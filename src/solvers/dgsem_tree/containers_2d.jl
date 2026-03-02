@@ -1271,6 +1271,9 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
     antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
                                         (n_variables, n_nodes, n_nodes + 1, capacity))
 
+    reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                antidiffusive_flux2_L, antidiffusive_flux2_R)
+
     return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1_L,
                                                  antidiffusive_flux1_R,
                                                  antidiffusive_flux2_L,
@@ -1309,17 +1312,27 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
 
-    uEltype = eltype(fluxes.antidiffusive_flux1_L)
-    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 4)
-        fluxes.antidiffusive_flux1_L[:, 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_R[:, 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, element] .= zero(uEltype)
+    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                fluxes.antidiffusive_flux1_R,
+                                fluxes.antidiffusive_flux2_L,
+                                fluxes.antidiffusive_flux2_R)
 
-        fluxes.antidiffusive_flux2_L[:, :, 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, element] .= zero(uEltype)
+    return nothing
+end
+
+function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                     antidiffusive_flux2_L, antidiffusive_flux2_R)
+    uEltype = eltype(antidiffusive_flux1_L)
+    @threaded for element in axes(antidiffusive_flux1_L, 4)
+        antidiffusive_flux1_L[:, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux1_L[:, end, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, end, :, element] .= zero(uEltype)
+
+        antidiffusive_flux2_L[:, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux2_L[:, :, end, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, end, element] .= zero(uEltype)
     end
 
     return nothing
