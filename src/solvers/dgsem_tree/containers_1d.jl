@@ -337,14 +337,14 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh1D,
-                         elements::TreeElementContainer1D)
+                         elements::TreeElementContainer1D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer1D{real(elements), eltype(elements)}(n_boundaries,
                                                                            nvariables(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -373,8 +373,50 @@ function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
     return count
 end
 
+# For Lobtto points, we can simply use the outer nodes of the elements as boundary nodes.
+function set_boundary_node_coordinates!(boundaries, element, count, direction,
+                                        elements, mesh::TreeMesh1D,
+                                        basis::LobattoLegendreBasis)
+    orientation = 1 # always 1 in 1D
+    if direction == 1
+        @views boundaries.node_coordinates[:, count] .= elements.node_coordinates[orientation,
+                                                                                  1,
+                                                                                  element]
+    elseif direction == 2
+        @views boundaries.node_coordinates[:, count] .= elements.node_coordinates[orientation,
+                                                                                  end,
+                                                                                  element]
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
+# For Gauss points, we need to interpolate the boundary node coordinates.
+function set_boundary_node_coordinates!(boundaries, element, count, direction,
+                                        elements, mesh::TreeMesh1D,
+                                        basis::GaussLegendreBasis)
+    orientation = 1 # always 1 in 1D
+    if direction == 1
+        @views x_interpolated_left = dot(basis.boundary_interpolation[:, 1],
+                                         elements.node_coordinates[orientation, :,
+                                                                   element])
+        boundaries.node_coordinates[:, count] .= x_interpolated_left
+    elseif direction == 2
+        @views x_interpolated_right = dot(basis.boundary_interpolation[:, 2],
+                                          elements.node_coordinates[orientation, :,
+                                                                    element])
+        boundaries.node_coordinates[:, count] .= x_interpolated_right
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh1D, basis)
     # Reset boundaries count
     count = 0
 
@@ -419,14 +461,8 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
             boundaries.orientations[count] = 1
 
             # Store node coordinates
-            enc = elements.node_coordinates
-            if direction == 1 # -x direction
-                boundaries.node_coordinates[:, count] .= enc[:, 1, element]
-            elseif direction == 2 # +x direction
-                boundaries.node_coordinates[:, count] .= enc[:, end, element]
-            else
-                error("should not happen")
-            end
+            set_boundary_node_coordinates!(boundaries, element, count, direction,
+                                           elements, mesh, basis)
         end
     end
 
@@ -462,7 +498,7 @@ function reinitialize_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache
     # re-initialize boundaries container
     @unpack boundaries = cache
     resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, dg.basis)
 
     return nothing
 end
