@@ -134,4 +134,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-
 # This pays off almost immediately as only the first couple timesteps use this timestep before it is ramped up.
 dt0 = 1e-8
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
-            dt = dt0, ode_default_options()..., callback = callbacks);
+            adaptive = false, dt = dt0,
+            ode_default_options()..., callback = callbacks);
