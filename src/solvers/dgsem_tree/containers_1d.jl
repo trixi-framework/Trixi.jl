@@ -382,8 +382,7 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
 
     orientation = 1 # always 1 in 1D
     if direction == 1
-        bnd_node_coords[orientation, count] = el_node_coords[orientation,
-                                                             1,
+        bnd_node_coords[orientation, count] = el_node_coords[orientation, 1,
                                                              element]
     elseif direction == 2
         bnd_node_coords[orientation, count] = el_node_coords[orientation, end,
