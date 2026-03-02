@@ -724,6 +724,7 @@ end
 function reinit_volume_integral_cache!(cache, mesh, dg,
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        new_size)
+    reset_antidiffusive_fluxes!(cache.antidiffusive_fluxes)
     reinit_normal_vectors!(cache, mesh, dg)
 
     return nothing

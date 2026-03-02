@@ -913,14 +913,16 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux3D, capacity)
                                                 n_nodes, n_nodes, n_nodes + 1,
                                                 capacity))
 
+    return nothing
+end
+
+function reset_antidiffusive_fluxes!(fluxes::ContainerAntidiffusiveFlux3D)
     reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
                                 fluxes.antidiffusive_flux1_R,
                                 fluxes.antidiffusive_flux2_L,
                                 fluxes.antidiffusive_flux2_R,
                                 fluxes.antidiffusive_flux3_L,
                                 fluxes.antidiffusive_flux3_R)
-
-    return nothing
 end
 
 function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
