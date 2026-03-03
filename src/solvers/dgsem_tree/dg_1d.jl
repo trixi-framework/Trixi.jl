@@ -561,12 +561,8 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
             end
         else # Element in +x direction of boundary => need to evaluate at left boundary node (-1)
             for v in eachvariable(equations)
-                # Interpolate to the boundaries using a local variable for
-                # the accumulation of values (to reduce global memory operations).
                 boundary_u_2 = zero(eltype(boundaries.u))
                 for ii in eachnode(dg)
-                    # Not += to allow `@muladd` to turn these into FMAs
-                    # (see comment at the top of the file)
                     boundary_u_2 = (boundary_u_2 +
                                     u_or_flux_viscous[v, ii, element] *
                                     boundary_interpolation[ii, 1])
@@ -714,15 +710,18 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations)
+            # Aliases for repeatedly accessed variables
+            surface_flux_minus = surface_flux_values[v, 1, element]
+            surface_flux_plus = surface_flux_values[v, 2, element]
             for ii in eachnode(dg)
                 # surface at -x
                 du[v, ii, element] = (du[v, ii, element] -
-                                      surface_flux_values[v, 1, element] *
+                                      surface_flux_minus *
                                       boundary_interpolation_inverse_weights[ii, 1])
 
                 # surface at +x
                 du[v, ii, element] = (du[v, ii, element] +
-                                      surface_flux_values[v, 2, element] *
+                                      surface_flux_plus *
                                       boundary_interpolation_inverse_weights[ii, 2])
             end
         end
