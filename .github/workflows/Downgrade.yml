@@ -92,3 +92,5 @@ jobs:
             Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
             include("test/runtests.jl")
           '
+        env:
+          TRIXI_TEST: ${{ matrix.trixi_test }}
