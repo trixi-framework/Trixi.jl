@@ -85,9 +85,10 @@ jobs:
       # see also https://github.com/julia-actions/julia-downgrade-compat/blob/00f940b7be2b50389571ed016d603be561649103/README.md#L89
       - name: Run tests
         run: |
-          julia --project=. --color=yes -e '
+          julia --project=test --color=yes -e '
             import Pkg
+            Pkg.develop(Pkg.PackageSpec(path=pwd()))
             Pkg.instantiate()
             Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
-            Pkg.test(; allow_reresolve = false)
+            include("test/runtests.jl")
           '
