@@ -20,7 +20,7 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
@@ -537,26 +537,42 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, j, interface] = zero(eltype(interfaces_u))
-                interfaces_u[2, v, j, interface] = zero(eltype(interfaces_u))
+                # Interpolate to the interfaces using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                interface_u_1 = zero(eltype(interfaces_u))
+                interface_u_2 = zero(eltype(interfaces_u))
                 for ii in eachnode(dg)
-                    interfaces_u[1, v, j, interface] += (u[v, ii, j, left_element] *
-                                                         boundary_interpolation[ii, 2])
-                    interfaces_u[2, v, j, interface] += (u[v, ii, j, right_element] *
-                                                         boundary_interpolation[ii, 1])
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    interface_u_1 = (interface_u_1 +
+                                     u[v, ii, j, left_element] *
+                                     boundary_interpolation[ii, 2])
+                    interface_u_2 = (interface_u_2 +
+                                     u[v, ii, j, right_element] *
+                                     boundary_interpolation[ii, 1])
                 end
+                interfaces_u[1, v, j, interface] = interface_u_1
+                interfaces_u[2, v, j, interface] = interface_u_2
             end
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = zero(eltype(interfaces_u))
-                interfaces_u[2, v, i, interface] = zero(eltype(interfaces_u))
+                # Interpolate to the interfaces using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                interface_u_1 = zero(eltype(interfaces_u))
+                interface_u_2 = zero(eltype(interfaces_u))
                 for jj in eachnode(dg)
-                    interfaces_u[1, v, i, interface] += (u[v, i, jj, left_element] *
-                                                         boundary_interpolation[jj, 2])
-                    interfaces_u[2, v, i, interface] += (u[v, i, jj, right_element] *
-                                                         boundary_interpolation[jj, 1])
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    interface_u_1 = (interface_u_1 +
+                                     u[v, i, jj, left_element] *
+                                     boundary_interpolation[jj, 2])
+                    interface_u_2 = (interface_u_2 +
+                                     u[v, i, jj, right_element] *
+                                     boundary_interpolation[jj, 1])
                 end
+                interfaces_u[1, v, i, interface] = interface_u_1
+                interfaces_u[2, v, i, interface] = interface_u_2
             end
         end
     end
@@ -675,6 +691,74 @@ function prolong2boundaries!(cache, u,
                 # element in +y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, l, boundary] = u[v, l, 1, element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             dg::DG{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    # Interpolate to the boundaries using a local variable for
+                    # the accumulation of values (to reduce global memory operations).
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        # Not += to allow `@muladd` to turn these into FMAs
+                        # (see comment at the top of the file)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, l, element] *
+                                      boundary_interpolation[ii, 2])
+                    end
+                    boundaries.u[1, v, l, boundary] = boundary_u
+                end
+            else # element in +x direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, l, element] *
+                                      boundary_interpolation[ii, 1])
+                    end
+                    boundaries.u[2, v, l, boundary] = boundary_u
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, l, ii, element] *
+                                      boundary_interpolation[ii, 2])
+                    end
+                    boundaries.u[1, v, l, boundary] = boundary_u
+                end
+            else # element in +y direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, l, ii, element] *
+                                      boundary_interpolation[ii, 1])
+                    end
+                    boundaries.u[2, v, l, boundary] = boundary_u
                 end
             end
         end
@@ -1221,7 +1305,7 @@ function apply_jacobian!(du, mesh::TreeMesh{2},
 
     @threaded for element in eachelement(dg, cache)
         # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # see e.g. the computation of `derivative_hat` in the basis setup and
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
