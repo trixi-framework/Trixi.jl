@@ -524,7 +524,7 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
 end
 
 function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations,
-                             dg::DG{<:GaussLegendreBasis})
+                             dg::DGSEM{<:GaussLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     @unpack boundary_interpolation = dg.basis
@@ -701,7 +701,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::TreeMesh{2}, equations,
-                             dg::DG{<:GaussLegendreBasis})
+                             dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides = boundaries
     @unpack boundary_interpolation = dg.basis
@@ -1113,6 +1113,15 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
+# For Gauss-Legendre DGSEM mortars are not yet implemented
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{2},
+                           have_nonconservative_terms, equations,
+                           mortar::Nothing, surface_integral,
+                           dg::DGSEM{<:GaussLegendreBasis}, cache)
+    return nothing
+end
+
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, equations,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation)
@@ -1252,7 +1261,7 @@ function calc_surface_integral!(du, u,
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DG{<:GaussLegendreBasis}, cache)
+                                dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
