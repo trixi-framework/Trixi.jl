@@ -37,6 +37,14 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes --code-coverage=none $(joinpath(@__DIR__, "test_threaded.jl"))`)
     end
 
+    # Downgrade CI currently has issues with running julia processes via `run`, see
+    # https://github.com/trixi-framework/Trixi.jl/pull/2507#issuecomment-3990318366
+    # So we run test_threaded.jl serially.
+    # For `TRIXI_TEST = "all"`, test_threaded.jl is already covered by the threaded run, so we don't need to run it again.
+    @time TRIXI_TEST == "downgrade"
+        include(joinpath(@__DIR__, "test_threaded.jl"))
+    end
+
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part1"
         include(joinpath(@__DIR__, "test_tree_1d.jl"))
         include(joinpath(@__DIR__, "test_tree_2d_part1.jl"))
