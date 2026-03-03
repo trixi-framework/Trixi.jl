@@ -41,7 +41,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     # https://github.com/trixi-framework/Trixi.jl/pull/2507#issuecomment-3990318366
     # So we run test_threaded.jl serially.
     # For `TRIXI_TEST = "all"`, test_threaded.jl is already covered by the threaded run, so we don't need to run it again.
-    @time TRIXI_TEST == "downgrade"
+    @time if TRIXI_TEST == "downgrade"
         include(joinpath(@__DIR__, "test_threaded.jl"))
     end
 
