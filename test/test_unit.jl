@@ -2445,12 +2445,10 @@ end
                   max_abs_speed(u_ll, u_rr, orientation, equations)
         end
 
-        # Test flux with normal_direction (covers lines 323-374 in ideal_glm_mhd_multiion_2d.jl)
         normal_directions = [SVector(1.0, 0.0), SVector(0.0, 1.0), SVector(0.5, -0.5)]
         for normal_direction in normal_directions
-            @test flux(u_ll, normal_direction, equations) isa SVector
-            @test length(flux(u_ll, normal_direction, equations)) ==
-                  nvariables(equations)
+            @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                  max_abs_speed(u_ll, u_rr, normal_direction, equations)
         end
     end
 
