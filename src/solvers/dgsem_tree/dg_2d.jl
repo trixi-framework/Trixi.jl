@@ -1265,30 +1265,35 @@ function calc_surface_integral!(du, u,
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus = surface_flux_values[v, l, 1, element]
+                surface_flux_plus = surface_flux_values[v, l, 2, element]
                 for ii in eachnode(dg)
                     # surface at -x
                     du[v, ii, l, element] = (du[v, ii, l, element] -
-                                             surface_flux_values[v, l, 1, element] *
+                                             surface_flux_minus *
                                              boundary_interpolation_inverse_weights[ii,
                                                                                     1])
 
                     # surface at +x
                     du[v, ii, l, element] = (du[v, ii, l, element] +
-                                             surface_flux_values[v, l, 2, element] *
+                                             surface_flux_plus *
                                              boundary_interpolation_inverse_weights[ii,
                                                                                     2])
                 end
 
+                surface_flux_minus = surface_flux_values[v, l, 3, element]
+                surface_flux_plus = surface_flux_values[v, l, 4, element]
                 for jj in eachnode(dg)
                     # surface at -y
                     du[v, l, jj, element] = (du[v, l, jj, element] -
-                                             surface_flux_values[v, l, 3, element] *
+                                             surface_flux_minus *
                                              boundary_interpolation_inverse_weights[jj,
                                                                                     1])
 
                     # surface at +y
                     du[v, l, jj, element] = (du[v, l, jj, element] +
-                                             surface_flux_values[v, l, 4, element] *
+                                             surface_flux_plus *
                                              boundary_interpolation_inverse_weights[jj,
                                                                                     2])
                 end
