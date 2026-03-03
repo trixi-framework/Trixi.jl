@@ -20,7 +20,7 @@ function create_cache(mesh::TreeMesh{1}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     # Container cache
     cache = (; elements, interfaces, boundaries)
@@ -410,16 +410,24 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces_u[1, v, interface] = zero(eltype(interfaces_u))
-            interfaces_u[2, v, interface] = zero(eltype(interfaces_u))
+            # Interpolate to the interfaces using a local variable for
+            # the accumulation of values (to reduce global memory operations).
+            interface_u_1 = zero(eltype(interfaces_u))
+            interface_u_2 = zero(eltype(interfaces_u))
             for ii in eachnode(dg)
-                interfaces_u[1, v, interface] += (u_or_flux_viscous[v, ii,
-                                                                    left_element] *
-                                                  boundary_interpolation[ii, 2])
-                interfaces_u[2, v, interface] += (u_or_flux_viscous[v, ii,
-                                                                    right_element] *
-                                                  boundary_interpolation[ii, 1])
+                # Not += to allow `@muladd` to turn these into FMAs
+                # (see comment at the top of the file)
+                # Need `boundary_interpolation` at right (+1) node for left element
+                interface_u_1 = (interface_u_1 +
+                                 u_or_flux_viscous[v, ii, left_element] *
+                                 boundary_interpolation[ii, 2])
+                # Need `boundary_interpolation` at left (-1) node for right element
+                interface_u_2 = (interface_u_2 +
+                                 u_or_flux_viscous[v, ii, right_element] *
+                                 boundary_interpolation[ii, 1])
             end
+            interfaces_u[1, v, interface] = interface_u_1
+            interfaces_u[2, v, interface] = interface_u_2
         end
     end
 
@@ -518,6 +526,48 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
                 boundaries.u[2, v, boundary] = u_or_flux_viscous[v, 1, element]
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(cache, u_or_flux_viscous,
+                             mesh::TreeMesh{1}, equations,
+                             dg::DG{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack neighbor_sides = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        # boundary in x-direction
+        if neighbor_sides[boundary] == 1
+            # element in -x direction of boundary => need to evaluate at right boundary node (+1)
+            for v in eachvariable(equations)
+                # Interpolate to the boundaries using a local variable for
+                # the accumulation of values (to reduce global memory operations).
+                boundary_u_1 = zero(eltype(boundaries.u))
+                for ii in eachnode(dg)
+                    # Not += to allow `@muladd` to turn these into FMAs
+                    # (see comment at the top of the file)
+                    boundary_u_1 = (boundary_u_1 +
+                                    u_or_flux_viscous[v, ii, element] *
+                                    boundary_interpolation[ii, 2])
+                end
+                boundaries.u[1, v, boundary] = boundary_u_1
+            end
+        else # Element in +x direction of boundary => need to evaluate at left boundary node (-1)
+            for v in eachvariable(equations)
+                boundary_u_2 = zero(eltype(boundaries.u))
+                for ii in eachnode(dg)
+                    boundary_u_2 = (boundary_u_2 +
+                                    u_or_flux_viscous[v, ii, element] *
+                                    boundary_interpolation[ii, 1])
+                end
+                boundaries.u[2, v, boundary] = boundary_u_2
             end
         end
     end
@@ -660,15 +710,18 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations)
+            # Aliases for repeatedly accessed variables
+            surface_flux_minus = surface_flux_values[v, 1, element]
+            surface_flux_plus = surface_flux_values[v, 2, element]
             for ii in eachnode(dg)
                 # surface at -x
                 du[v, ii, element] = (du[v, ii, element] -
-                                      surface_flux_values[v, 1, element] *
+                                      surface_flux_minus *
                                       boundary_interpolation_inverse_weights[ii, 1])
 
                 # surface at +x
                 du[v, ii, element] = (du[v, ii, element] +
-                                      surface_flux_values[v, 2, element] *
+                                      surface_flux_plus *
                                       boundary_interpolation_inverse_weights[ii, 2])
             end
         end
@@ -683,7 +736,7 @@ function apply_jacobian!(du, mesh::TreeMesh{1},
 
     @threaded for element in eachelement(dg, cache)
         # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # see e.g. the computation of `derivative_hat` in the basis setup and
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 

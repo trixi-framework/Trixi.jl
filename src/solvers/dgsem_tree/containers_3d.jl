@@ -350,7 +350,7 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh3D,
-                         elements::TreeElementContainer3D)
+                         elements::TreeElementContainer3D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
@@ -358,7 +358,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh3D,
                                                                            nnodes(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -388,7 +388,7 @@ function count_required_boundaries(mesh::TreeMesh3D, cell_ids)
 end
 
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh3D, basis)
     # Reset boundaries count
     count = 0
 
