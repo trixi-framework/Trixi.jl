@@ -92,6 +92,7 @@ The global solution vector `u_global` uses per-view offsets with layout
 function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, semi,
                                          mesh, equations, dg, mortar_l2)
     global_neighbor_ids = coupled_mortars.global_neighbor_ids[mortar]
+    local_neighbor_ids = coupled_mortars.local_neighbor_ids[mortar]
     local_neighbor_positions = coupled_mortars.local_neighbor_positions[mortar]
     node_indices = coupled_mortars.node_indices[:, mortar]
 
@@ -103,11 +104,23 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
     n_vars = nvariables(equations)
     index_range = eachnode(dg)
 
+    # Determine which system index this view corresponds to.
+    # local_neighbor_ids is always non-empty for a coupled mortar.
+    idx_this = semi.mesh_ids[mesh.cell_ids[local_neighbor_ids[1]]]
+
+    # coupling_functions[i, j](x, u, eq_j, eq_i) converts system j → system i variable space.
+    coupling_functions = semi.coupling_functions
+
+    # Dummy spatial coordinate for the converter (most converters ignore x).
+    RealT = real(mesh)
+    x_dummy = zero(SVector{ndims(mesh), RealT})
+
     for (global_id, pos) in zip(global_neighbor_ids, all_positions)
         if pos in remote_positions
-            # Determine which view owns this element and get the local element ID
+            # Determine which view owns this element and get the view-local element ID.
             view_id = semi.mesh_ids[global_id]
             semi_other = semi.semis[view_id]
+            n_vars_other = nvariables(semi_other.equations)
             local_id = global_cell_id_to_local(global_id, semi_other.mesh)
             offset = semi.element_offset[view_id]
 
@@ -119,12 +132,28 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
                 i_node = i_start
                 j_node = j_start
                 for i in eachnode(dg)
+                    # Read n_vars_other values from u_global using the remote system's stride.
+                    u_remote = Vector{eltype(u_global)}(undef, n_vars_other)
+                    for v in 1:n_vars_other
+                        u_remote[v] = u_global[offset +
+                                               (v - 1) +
+                                               n_vars_other * (i_node - 1) +
+                                               n_vars_other * n_nodes * (j_node - 1) +
+                                               n_vars_other * n_nodes^2 * (local_id - 1)]
+                    end
+
+                    # Convert to the current system's variable space.
+                    u_converted = if coupling_functions !== nothing
+                        coupling_functions[idx_this, view_id](x_dummy, u_remote,
+                                                              semi_other.equations,
+                                                              equations)
+                    else
+                        u_remote
+                    end
+
+                    # Store converted values in the mortar buffer (n_vars entries).
                     for v in eachvariable(equations)
-                        coupled_mortars.u[1, v, pos, i, mortar] = u_global[offset +
-                                                                           (v - 1) +
-                                                                           n_vars * (i_node - 1) +
-                                                                           n_vars * n_nodes * (j_node - 1) +
-                                                                           n_vars * n_nodes^2 * (local_id - 1)]
+                        coupled_mortars.u[1, v, pos, i, mortar] = u_converted[v]
                     end
                     i_node += i_step
                     j_node += j_step
@@ -134,22 +163,39 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
                 i_start, i_step = index_to_start_step_2d(large_indices[1], index_range)
                 j_start, j_step = index_to_start_step_2d(large_indices[2], index_range)
 
-                u_buffer = zeros(eltype(u_global), n_vars, n_nodes)
+                # Read remote face data with the remote system's stride.
+                u_buffer_remote = zeros(eltype(u_global), n_vars_other, n_nodes)
                 i_node = i_start
                 j_node = j_start
                 for i in eachnode(dg)
-                    for v in eachvariable(equations)
-                        u_buffer[v, i] = u_global[offset +
-                                                  (v - 1) +
-                                                  n_vars * (i_node - 1) +
-                                                  n_vars * n_nodes * (j_node - 1) +
-                                                  n_vars * n_nodes^2 * (local_id - 1)]
+                    for v in 1:n_vars_other
+                        u_buffer_remote[v, i] = u_global[offset +
+                                                         (v - 1) +
+                                                         n_vars_other * (i_node - 1) +
+                                                         n_vars_other * n_nodes * (j_node - 1) +
+                                                         n_vars_other * n_nodes^2 * (local_id - 1)]
                     end
                     i_node += i_step
                     j_node += j_step
                 end
 
-                # Interpolate large face data to small element positions
+                # Convert each face node to the current system's variable space.
+                u_buffer = zeros(eltype(u_global), n_vars, n_nodes)
+                for i in eachnode(dg)
+                    u_remote_col = view(u_buffer_remote, :, i)
+                    u_conv = if coupling_functions !== nothing
+                        coupling_functions[idx_this, view_id](x_dummy, u_remote_col,
+                                                              semi_other.equations,
+                                                              equations)
+                    else
+                        u_remote_col
+                    end
+                    for v in eachvariable(equations)
+                        u_buffer[v, i] = u_conv[v]
+                    end
+                end
+
+                # Interpolate converted large face data to small element positions.
                 multiply_dimensionwise!(view(coupled_mortars.u, 2, :, 1, :, mortar),
                                        mortar_l2.forward_lower, u_buffer)
                 multiply_dimensionwise!(view(coupled_mortars.u, 2, :, 2, :, mortar),
@@ -168,64 +214,102 @@ end
 Compute fluxes at coupled mortar boundaries and distribute to elements.
 """
 function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
-                                  have_nonconservative_terms,
+                                  have_nonconservative_terms::False,
                                   equations, mortar_l2::LobattoLegendreMortarL2,
                                   surface_integral, dg::DG, cache,
                                   u_global, semi)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.coupled_mortars
-    @unpack contravariant_vectors = cache.elements
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, u_threaded = cache
     @unpack surface_flux = surface_integral
     index_range = eachnode(dg)
 
     @threaded for mortar in eachcoupledmortar(dg, cache)
-        # Fill remote element data from global solution
         fill_coupled_mortar_from_global!(cache.coupled_mortars, mortar, u_global,
                                         semi, mesh, equations, dg, mortar_l2)
 
-        # Choose thread-specific pre-allocated containers
         fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
         fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
         u_buffer = u_threaded[Threads.threadid()]
 
-        # Get indices
         small_indices = node_indices[1, mortar]
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
-                                                             index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
-                                                             index_range)
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-        # Compute fluxes at each small element position
         for position in 1:2
             i_small = i_small_start
             j_small = j_small_start
             for i in eachnode(dg)
-                # Get solution values on both sides using get_surface_node_vars
-                # which handles the [side, v, ...] indexing correctly
                 u_small, u_large = get_surface_node_vars(cache.coupled_mortars.u,
                                                          equations, dg,
                                                          position, i, mortar)
-
-                # Get normal direction
                 normal_direction = get_normal_direction(cache.coupled_mortars.normal_directions,
                                                        i, position, mortar)
-
-                # Compute flux
                 flux = surface_flux(u_small, u_large, normal_direction, equations)
 
-                # Store flux
                 if position == 1
                     set_node_vars!(fstar_primary_lower, flux, equations, dg, i)
                 else
                     set_node_vars!(fstar_primary_upper, flux, equations, dg, i)
                 end
-
                 i_small += i_small_step
                 j_small += j_small_step
             end
         end
 
-        # Distribute fluxes to elements
+        coupled_mortar_fluxes_to_elements!(surface_flux_values,
+                                           mesh, equations, mortar_l2, dg, cache,
+                                           mortar, fstar_primary_lower, fstar_primary_upper,
+                                           u_buffer)
+    end
+
+    return nothing
+end
+
+function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
+                                  have_nonconservative_terms::True,
+                                  equations, mortar_l2::LobattoLegendreMortarL2,
+                                  surface_integral, dg::DG, cache,
+                                  u_global, semi)
+    @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.coupled_mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, u_threaded = cache
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    index_range = eachnode(dg)
+
+    @threaded for mortar in eachcoupledmortar(dg, cache)
+        fill_coupled_mortar_from_global!(cache.coupled_mortars, mortar, u_global,
+                                        semi, mesh, equations, dg, mortar_l2)
+
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        u_buffer = u_threaded[Threads.threadid()]
+
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+
+        for position in 1:2
+            i_small = i_small_start
+            j_small = j_small_start
+            for i in eachnode(dg)
+                u_small, u_large = get_surface_node_vars(cache.coupled_mortars.u,
+                                                         equations, dg,
+                                                         position, i, mortar)
+                normal_direction = get_normal_direction(cache.coupled_mortars.normal_directions,
+                                                       i, position, mortar)
+                flux = surface_flux(u_small, u_large, normal_direction, equations)
+                noncons = nonconservative_flux(u_small, u_large, normal_direction, equations)
+                flux = flux + 0.5f0 * noncons
+
+                if position == 1
+                    set_node_vars!(fstar_primary_lower, flux, equations, dg, i)
+                else
+                    set_node_vars!(fstar_primary_upper, flux, equations, dg, i)
+                end
+                i_small += i_small_step
+                j_small += j_small_step
+            end
+        end
+
         coupled_mortar_fluxes_to_elements!(surface_flux_values,
                                            mesh, equations, mortar_l2, dg, cache,
                                            mortar, fstar_primary_lower, fstar_primary_upper,

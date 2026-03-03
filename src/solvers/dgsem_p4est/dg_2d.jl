@@ -258,7 +258,8 @@ end
 end
 
 @inline function calc_interface_flux!(surface_flux_values,
-                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                  T8codeMesh{2}},
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::True,
                                       equations,
@@ -491,7 +492,8 @@ end
 end
 
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::False,
                                      equations,
@@ -532,7 +534,8 @@ end
 end
 
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::True,
                                      equations,

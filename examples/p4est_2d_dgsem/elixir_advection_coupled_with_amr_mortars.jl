@@ -179,7 +179,7 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
                                      solver, boundary_conditions = bc2)
 
 # Create coupled system
-semi = SemidiscretizationCoupledP4est(semi1, semi2)
+semi = SemidiscretizationCoupledP4est(semi1, semi2; coupling_functions = coupling_functions)
 
 println("="^80)
 

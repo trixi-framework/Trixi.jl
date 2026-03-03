@@ -17,7 +17,7 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList, CF} <:
                AbstractSemidiscretization
     semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
@@ -26,14 +26,17 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
     local_element_ids::Vector{Int}
     element_offset::Vector{Int}
     mesh_ids::Vector{Int}
+    coupling_functions::CF # [i, j] converts system j variables to system i variable space
 end
 
 """
-    SemidiscretizationCoupledP4est(semis...)
+    SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
 
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
+`coupling_functions[i, j]` is called as `f(x, u, equations_j, equations_i)` and should return
+the state vector of system `i` given a state vector `u` of system `j`.
 """
-function SemidiscretizationCoupledP4est(semis...)
+function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
     # Number of coefficients for each semidiscretization
@@ -73,12 +76,14 @@ function SemidiscretizationCoupledP4est(semis...)
     performance_counter = PerformanceCounter()
 
     SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
-                                   typeof(performance_counter)}(semis, u_indices,
-                                                                performance_counter,
-                                                                global_element_ids,
-                                                                local_element_ids,
-                                                                element_offset,
-                                                                mesh_ids)
+                                   typeof(performance_counter),
+                                   typeof(coupling_functions)}(semis, u_indices,
+                                                               performance_counter,
+                                                               global_element_ids,
+                                                               local_element_ids,
+                                                               element_offset,
+                                                               mesh_ids,
+                                                               coupling_functions)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
@@ -195,26 +200,19 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
-        u_loc_reshape = reshape(u_loc,
-                                (nvariables(semi_.equations),
-                                 n_nodes, n_nodes,
-                                 Int(length(u_loc) /
-                                     (n_nodes^2 * nvariables(semi_.equations)))))
-        for i_node in 1:n_nodes, j_node in 1:n_nodes,
-            element in 1:Int(ndofs(semi) / n_nodes^2)
-
-            if element in semi_.mesh.cell_ids
-                for var in 1:nvariables(semi_.equations)
-                    u_global[semi.element_offset[i] +
-                    (var - 1) +
-                    nvariables(semi_.equations) * (i_node - 1) +
-                    nvariables(semi_.equations) * n_nodes * (j_node - 1) +
-                    nvariables(semi_.equations) * n_nodes^2 * (global_cell_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
-                                                                                                                                     i_node,
-                                                                                                                                     j_node,
-                                                                                                                                     global_cell_id_to_local(element,
-                                                                                                                                                             semi_.mesh)]
-                end
+        n_vars = nvariables(semi_.equations)
+        n_cells = length(semi_.mesh.cell_ids)
+        u_loc_reshape = reshape(u_loc, (n_vars, n_nodes, n_nodes, n_cells))
+        for (local_element, _) in enumerate(semi_.mesh.cell_ids)
+            for j_node in 1:n_nodes, i_node in 1:n_nodes, var in 1:n_vars
+                u_global[semi.element_offset[i] +
+                         (var - 1) +
+                         n_vars * (i_node - 1) +
+                         n_vars * n_nodes * (j_node - 1) +
+                         n_vars * n_nodes^2 * (local_element - 1)] = u_loc_reshape[var,
+                                                                                    i_node,
+                                                                                    j_node,
+                                                                                    local_element]
             end
         end
     end
