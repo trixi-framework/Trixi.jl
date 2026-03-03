@@ -377,7 +377,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl" begin
+@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl (Gauss-Legendre)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hlle,
