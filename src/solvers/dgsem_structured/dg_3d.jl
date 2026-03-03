@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-
 function create_cache(mesh::Union{StructuredMesh{3},
                                   P4estMesh{3}, T8codeMesh{3}},
                       equations,
@@ -32,8 +31,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element,
-                                   mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                               T8codeMesh{3}},
+                                   ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                  T8codeMesh{3}}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -89,8 +88,9 @@ end
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -171,11 +171,12 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+                                           meshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3},
+                                                               T8codeMesh{3}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
+    flux_differencing_kernel!(du, u, element, meshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations, volume_flux, dg, cache, alpha)
@@ -184,8 +185,9 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+                                           meshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3},
+                                                               T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -195,7 +197,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -274,8 +276,9 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                       T8codeMesh{3}},
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,
@@ -369,8 +372,8 @@ end
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                          T8codeMesh{3}},
+                              ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                             T8codeMesh{3}}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
@@ -430,8 +433,8 @@ end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
-                              mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                          T8codeMesh{3}},
+                              ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                             T8codeMesh{3}}},
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
@@ -526,8 +529,8 @@ end
 
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                                 fstar3_L, fstar3_R, u,
-                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                            T8codeMesh{3}},
+                                ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                               T8codeMesh{3}}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -896,24 +899,48 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     return nothing
 end
 
-function apply_jacobian!(du,
+function apply_jacobian!(backend::Nothing, du,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+    @threaded for element in eachelement(dg, cache)
+        apply_jacobian_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
+                                element)
+    end
+    return nothing
+end
+
+function apply_jacobian!(backend::Backend, du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            # Negative sign included to account for the negated surface and volume terms,
-            # see e.g. the computation of `derivative_hat` in the basis setup and 
-            # the comment in `calc_surface_integral!`.
-            factor = -inverse_jacobian[i, j, k, element]
+    kernel! = apply_jacobian_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
+            ndrange = nelements(cache.elements))
+    return nothing
+end
 
-            for v in eachvariable(equations)
-                du[v, i, j, k, element] *= factor
-            end
+@kernel function apply_jacobian_KAkernel!(du, meshT, equations, dg::DG,
+                                          inverse_jacobian)
+    element = @index(Global)
+    apply_jacobian_element!(du, meshT, equations, dg, inverse_jacobian, element)
+end
+
+@inline function apply_jacobian_element!(du,
+                                         ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
+                                                        T8codeMesh{3}}},
+                                         equations, dg, inverse_jacobian, element)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        # Negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_hat` in the basis setup and 
+        # the comment in `calc_surface_integral!`.
+        factor = -inverse_jacobian[i, j, k, element]
+
+        for v in eachvariable(equations)
+            du[v, i, j, k, element] *= factor
         end
     end
-
     return nothing
 end
 end # @muladd
