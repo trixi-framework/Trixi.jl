@@ -20,7 +20,7 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
@@ -691,6 +691,74 @@ function prolong2boundaries!(cache, u,
                 # element in +y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, l, boundary] = u[v, l, 1, element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             dg::DG{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    # Interpolate to the boundaries using a local variable for
+                    # the accumulation of values (to reduce global memory operations).
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        # Not += to allow `@muladd` to turn these into FMAs
+                        # (see comment at the top of the file)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, l, element] *
+                                      boundary_interpolation[ii, 2])
+                    end
+                    boundaries.u[1, v, l, boundary] = boundary_u
+                end
+            else # element in +x direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, l, element] *
+                                      boundary_interpolation[ii, 1])
+                    end
+                    boundaries.u[2, v, l, boundary] = boundary_u
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, l, ii, element] *
+                                      boundary_interpolation[ii, 2])
+                    end
+                    boundaries.u[1, v, l, boundary] = boundary_u
+                end
+            else # element in +y direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, l, ii, element] *
+                                      boundary_interpolation[ii, 1])
+                    end
+                    boundaries.u[2, v, l, boundary] = boundary_u
                 end
             end
         end
