@@ -670,7 +670,8 @@ end
                                   volume_flux_fv = flux_lax_friedrichs)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. Used with the limiters [`SubcellLimiterIDP`](@ref) and
+[`SubcellLimiterMCL`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
@@ -719,7 +720,28 @@ function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_
 
     # Resize container subcell_limiter_coefficients
     @unpack limiter = volume_integral
-    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    # Calc subcell normal directions before StepsizeCallback
+    if limiter isa SubcellLimiterMCL ||
+       (limiter isa SubcellLimiterIDP && limiter.bar_states)
+        resize!(limiter.cache.container_bar_states, new_size)
+    end
+
+    return nothing
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralSubcellLimiting, dg,
+                                cache)
+    if volume_integral.limiter.smoothness_indicator
+        # call the element-wise limiter to get up-to-date values for IO
+        volume_integral.limiter.IndicatorHG(u, mesh, equations, dg, cache)
+        return get_element_variables!(element_variables, volume_integral.limiter,
+                                      volume_integral)
+    end
+
+    return nothing
 end
 
 # TODO: FD. Should this definition live in a different file because it is

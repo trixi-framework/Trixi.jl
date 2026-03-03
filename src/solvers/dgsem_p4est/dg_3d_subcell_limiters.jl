@@ -63,9 +63,10 @@ end
                                          mesh::P4estMesh{3},
                                          nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
+                                         limiter::SubcellLimiterIDP,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
-    @unpack volume_flux_dg, volume_flux_fv, limiter = volume_integral
+    @unpack volume_flux_dg, volume_flux_fv = volume_integral
 
     # high-order DG fluxes
     @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded, fhat3_L_threaded, fhat3_R_threaded = cache
@@ -638,6 +639,19 @@ end
                                                          fstar3_R[v, i, j, k]
         end
     end
+
+    return nothing
+end
+
+@inline function calc_lambdas_bar_states!(u, t, mesh::P4estMesh{3},
+                                          have_nonconservative_terms, equations,
+                                          limiter, dg, cache, boundary_conditions;
+                                          calc_bar_states = true)
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return nothing
+    end
+
+    error("Bar states are only implemented for 2D problems.")
 
     return nothing
 end

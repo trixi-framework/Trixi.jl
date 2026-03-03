@@ -221,11 +221,13 @@ export splitting_steger_warming, splitting_vanleer_haenel,
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave,
+       initial_condition_density_wave_highdensity,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
+       BoundaryConditionCharacteristic,
        BoundaryConditionNeumann,
        boundary_condition_noslip_wall,
        boundary_condition_slip_wall,
@@ -285,7 +287,8 @@ export reconstruction_O2_inner, reconstruction_O2_full,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
-       SubcellLimiterIDP, SubcellLimiterIDPCorrection
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection,
+       SubcellLimiterMCL
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable,
@@ -309,7 +312,7 @@ export SemidiscretizationCoupled
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
-       AMRCallback, StepsizeCallback,
+       AMRCallback, StepsizeCallback, LimitingAnalysisCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,

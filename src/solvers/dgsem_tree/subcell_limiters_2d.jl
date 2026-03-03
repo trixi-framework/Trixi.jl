@@ -179,7 +179,6 @@ end
         right = cache.interfaces.neighbor_ids[2, interface]
 
         orientation = cache.interfaces.orientations[interface]
-
         for i in eachnode(dg)
             index_left = (nnodes(dg), i)
             index_right = (1, i)
@@ -237,7 +236,7 @@ end
 # Local minimum and maximum limiting of conservative variables
 
 @inline function idp_local_twosided!(alpha, limiter, u::AbstractArray{<:Any, 4}, t, dt,
-                                     semi, variable)
+                                     semi, elements, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
@@ -246,9 +245,11 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    if !limiter.bar_states
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    end
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -300,14 +301,16 @@ end
 # Local minimum or maximum limiting of nonlinear variables
 
 @inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4}, t, dt,
-                                     semi, variable, min_or_max)
+                                     semi, elements, variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
-    calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    if !limiter.bar_states
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    end
 
     # Perform Newton's bisection method to find new alpha
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -328,7 +331,7 @@ end
 
 @inline function idp_positivity_conservative!(alpha, limiter,
                                               u::AbstractArray{<:Real, 4},
-                                              dt, semi, variable)
+                                              dt, semi, elements, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -337,7 +340,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -395,14 +398,14 @@ end
 
 @inline function idp_positivity_nonlinear!(alpha, limiter,
                                            u::AbstractArray{<:Real, 4},
-                                           dt, semi, variable)
+                                           dt, semi, elements, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -473,5 +476,33 @@ end
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     return nothing
+end
+
+###############################################################################
+# Monolithic Convex Limiting
+###############################################################################
+
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, positivity_limiter_pressure)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)}(0,
+                                                                                   nvariables(equations),
+                                                                                   nnodes(basis))
+    container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                   nvariables(equations),
+                                                                   nnodes(basis))
+
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Local variable contains the maximum deviation since the last export.
+    # [min / max, variable]
+    mcl_bounds_delta_local = zeros(real(basis), 2,
+                                   nvariables(equations) + positivity_limiter_pressure)
+    # Global variable contains the total maximum deviation.
+    # [min / max, variable]
+    mcl_bounds_delta_global = zeros(real(basis), 2,
+                                    nvariables(equations) + positivity_limiter_pressure)
+
+    return (; subcell_limiter_coefficients, container_bar_states,
+            mcl_bounds_delta_local, mcl_bounds_delta_global)
 end
 end # @muladd

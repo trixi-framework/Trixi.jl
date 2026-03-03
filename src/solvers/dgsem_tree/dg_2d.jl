@@ -113,7 +113,8 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,
                               have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
+                              dg.volume_integral, dg, cache,
+                              t, boundary_conditions)
     end
 
     # Prolong solution to interfaces
@@ -165,6 +166,17 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "source terms" begin
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
+
+    return nothing
+end
+
+function calc_volume_integral!(du, u, mesh,
+                               nonconservative_terms, equations,
+                               volume_integral::AbstractVolumeIntegral,
+                               dg, cache, t, boundary_conditions)
+    calc_volume_integral!(du, u, mesh,
+                          nonconservative_terms, equations,
+                          volume_integral, dg, cache)
 
     return nothing
 end

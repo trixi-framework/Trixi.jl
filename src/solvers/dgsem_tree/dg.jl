@@ -5,6 +5,31 @@
 @muladd begin
 #! format: noindent
 
+#     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
+#
+# Given blending factors `alpha` and the solver `dg`, fill
+# `element_ids_dg` with the IDs of elements using a pure DG scheme and
+# `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
+# TODO: Was deleted in main. Now, it's only used for subcell limiting since there we need the with HG calculated alpha twice (in volume integral and in correction stage). Remove in future?
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG,
+                                       cache)
+    empty!(element_ids_dg)
+    empty!(element_ids_dgfv)
+
+    for element in eachelement(dg, cache)
+        # Clip blending factor for values close to zero (-> pure DG)
+        tol = dg.volume_integral.limiter.threshold_smoothness_indicator
+        dg_only = isapprox(alpha[element], 0, atol = tol)
+        if dg_only
+            push!(element_ids_dg, element)
+        else
+            push!(element_ids_dgfv, element)
+        end
+    end
+
+    return nothing
+end
+
 function volume_jacobian(element, mesh::TreeMesh, cache)
     return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
@@ -37,7 +62,7 @@ include("dg_parallel.jl")
 # Helper structs for parabolic AMR
 include("containers_viscous.jl")
 
-# Some functions for a second-order Finite-Volume (MUSCL) alike 
+# Some functions for a second-order Finite-Volume (MUSCL) alike
 # scheme on DG-subcells.
 include("subcell_finite_volume_O2.jl")
 
