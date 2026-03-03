@@ -353,7 +353,7 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh2D,
-                         elements::TreeElementContainer2D)
+                         elements::TreeElementContainer2D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer2D{real(elements), eltype(elements)}(n_boundaries,
@@ -361,7 +361,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh2D,
                                                                            nnodes(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -390,8 +390,89 @@ function count_required_boundaries(mesh::TreeMesh2D, cell_ids)
     return count
 end
 
+# For Lobatto points, we can simply use the outer nodes of the elements as boundary nodes.
+function set_boundary_node_coordinates!(boundaries, element, count, direction,
+                                        elements, mesh::TreeMesh2D,
+                                        basis::LobattoLegendreBasis)
+    el_node_coords = elements.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
+
+    if direction == 1 # -x direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, 1, :, element]
+    elseif direction == 2 # +x direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, end, :, element]
+    elseif direction == 3 # -y direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, :, 1, element]
+    elseif direction == 4 # +y direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, :, end, element]
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
+# For Gauss points, we need to interpolate the boundary node coordinates.
+function set_boundary_node_coordinates!(boundaries, element, count, direction,
+                                        elements, mesh::TreeMesh2D,
+                                        basis::GaussLegendreBasis)
+    boundary_matrix = basis.boundary_interpolation
+    el_node_coords = elements.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
+
+    if direction == 1 # -x direction: interpolate in x for each y node j
+        for j in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, j, count] = dot(boundary_matrix[:,
+                                                                                    1],
+                                                                    el_node_coords[orientation,
+                                                                                   :,
+                                                                                   j,
+                                                                                   element])
+            end
+        end
+    elseif direction == 2 # +x direction: interpolate in x for each y node j
+        for j in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, j, count] = dot(boundary_matrix[:,
+                                                                                    2],
+                                                                    el_node_coords[orientation,
+                                                                                   :,
+                                                                                   j,
+                                                                                   element])
+            end
+        end
+    elseif direction == 3 # -y direction: interpolate in y for each x node i
+        for i in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, i, count] = dot(boundary_matrix[:,
+                                                                                    1],
+                                                                    el_node_coords[orientation,
+                                                                                   i,
+                                                                                   :,
+                                                                                   element])
+            end
+        end
+    elseif direction == 4 # +y direction: interpolate in y for each x node i
+        for i in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, i, count] = dot(boundary_matrix[:,
+                                                                                    2],
+                                                                    el_node_coords[orientation,
+                                                                                   i,
+                                                                                   :,
+                                                                                   element])
+            end
+        end
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh2D, basis)
     # Exit early if there are no boundaries to initialize
     if nboundaries(boundaries) == 0
         # In this case n_boundaries_per_direction still needs to be reset!
@@ -441,24 +522,14 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
 
             # Set orientation (x -> 1, y -> 2)
             if direction in (1, 2)
-                boundaries.orientations[count] = 1
+                boundaries.orientations[count] = 1 # x direction
             else
-                boundaries.orientations[count] = 2
+                boundaries.orientations[count] = 2 # y direction
             end
 
             # Store node coordinates
-            enc = elements.node_coordinates
-            if direction == 1 # -x direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, 1, :, element]
-            elseif direction == 2 # +x direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, end, :, element]
-            elseif direction == 3 # -y direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, :, 1, element]
-            elseif direction == 4 # +y direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, :, end, element]
-            else
-                error("should not happen")
-            end
+            set_boundary_node_coordinates!(boundaries, element, count, direction,
+                                           elements, mesh, basis)
         end
     end
 
@@ -1349,7 +1420,7 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
     # re-initialize boundaries container
     @unpack boundaries = cache
     resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, dg.basis)
 
     # re-initialize mortars container
     @unpack mortars = cache
