@@ -1533,12 +1533,14 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                         (n_variables, n_nodes, 2 * 2,
                                                          capacity))
 
-    reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
-                                fluxes.antidiffusive_flux1_R,
-                                fluxes.antidiffusive_flux2_L,
-                                fluxes.antidiffusive_flux2_R)
-
     return nothing
+end
+
+function reset_antidiffusive_fluxes!(fluxes::ContainerAntidiffusiveFlux2D)
+    return reset_antidiffusive_fluxes!(fluxes.antidiffusive_flux1_L,
+                                       fluxes.antidiffusive_flux1_R,
+                                       fluxes.antidiffusive_flux2_L,
+                                       fluxes.antidiffusive_flux2_R)
 end
 
 function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,

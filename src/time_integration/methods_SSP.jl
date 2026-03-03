@@ -135,7 +135,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     # Resize container of volume integral for subcell limiting
     _, _, dg, cache = mesh_equations_solver_cache(integrator.p)
     if dg.volume_integral isa VolumeIntegralSubcellLimiting
-        # subcell_limiter_coefficients: was created with 0 elements
+        # `subcell_limiter_coefficients` was created with 0 elements
         resize!(dg.volume_integral.limiter.cache.subcell_limiter_coefficients,
                 nelements(dg, cache))
     end
