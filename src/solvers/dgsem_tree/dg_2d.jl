@@ -20,7 +20,7 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
@@ -699,6 +699,74 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries!(cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             dg::DG{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    # Interpolate to the boundaries using a local variable for
+                    # the accumulation of values (to reduce global memory operations).
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        # Not += to allow `@muladd` to turn these into FMAs
+                        # (see comment at the top of the file)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, l, element] *
+                                      boundary_interpolation[ii, 2])
+                    end
+                    boundaries.u[1, v, l, boundary] = boundary_u
+                end
+            else # element in +x direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, l, element] *
+                                      boundary_interpolation[ii, 1])
+                    end
+                    boundaries.u[2, v, l, boundary] = boundary_u
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, l, ii, element] *
+                                      boundary_interpolation[ii, 2])
+                    end
+                    boundaries.u[1, v, l, boundary] = boundary_u
+                end
+            else # element in +y direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg), v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, l, ii, element] *
+                                      boundary_interpolation[ii, 1])
+                    end
+                    boundaries.u[2, v, l, boundary] = boundary_u
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
@@ -1197,30 +1265,35 @@ function calc_surface_integral!(du, u,
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus = surface_flux_values[v, l, 1, element]
+                surface_flux_plus = surface_flux_values[v, l, 2, element]
                 for ii in eachnode(dg)
                     # surface at -x
                     du[v, ii, l, element] = (du[v, ii, l, element] -
-                                             surface_flux_values[v, l, 1, element] *
+                                             surface_flux_minus *
                                              boundary_interpolation_inverse_weights[ii,
                                                                                     1])
 
                     # surface at +x
                     du[v, ii, l, element] = (du[v, ii, l, element] +
-                                             surface_flux_values[v, l, 2, element] *
+                                             surface_flux_plus *
                                              boundary_interpolation_inverse_weights[ii,
                                                                                     2])
                 end
 
+                surface_flux_minus = surface_flux_values[v, l, 3, element]
+                surface_flux_plus = surface_flux_values[v, l, 4, element]
                 for jj in eachnode(dg)
                     # surface at -y
                     du[v, l, jj, element] = (du[v, l, jj, element] -
-                                             surface_flux_values[v, l, 3, element] *
+                                             surface_flux_minus *
                                              boundary_interpolation_inverse_weights[jj,
                                                                                     1])
 
                     # surface at +y
                     du[v, l, jj, element] = (du[v, l, jj, element] +
-                                             surface_flux_values[v, l, 4, element] *
+                                             surface_flux_plus *
                                              boundary_interpolation_inverse_weights[jj,
                                                                                     2])
                 end
