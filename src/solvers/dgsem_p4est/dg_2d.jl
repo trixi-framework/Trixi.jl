@@ -953,8 +953,7 @@ function calc_surface_integral!(du, u,
 end
 
 function calc_surface_integral!(du, u,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                            T8codeMesh{2}},
+                                mesh::Union{P4estMesh{2}, P4estMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
@@ -970,32 +969,31 @@ function calc_surface_integral!(du, u,
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
-                # Aliases for the surface flux values on the -x and +x faces
+                # Aliases for repeatedly accessed variables
                 surface_flux_minus_x = surface_flux_values[v, l, 1, element]
                 surface_flux_plus_x = surface_flux_values[v, l, 2, element]
                 for ii in eachnode(dg)
-                    # surface at -x: distribute using left boundary interpolation weights
+                    # surface at -x
                     du[v, ii, l, element] = (du[v, ii, l, element] +
                                              surface_flux_minus_x *
                                              boundary_interpolation_inverse_weights[ii,
                                                                                     1])
-                    # surface at +x: distribute using right boundary interpolation weights
+                    # surface at +x
                     du[v, ii, l, element] = (du[v, ii, l, element] +
                                              surface_flux_plus_x *
                                              boundary_interpolation_inverse_weights[ii,
                                                                                     2])
                 end
 
-                # Aliases for the surface flux values on the -y and +y faces
                 surface_flux_minus_y = surface_flux_values[v, l, 3, element]
                 surface_flux_plus_y = surface_flux_values[v, l, 4, element]
                 for jj in eachnode(dg)
-                    # surface at -y: distribute using left boundary interpolation weights
+                    # surface at -y
                     du[v, l, jj, element] = (du[v, l, jj, element] +
                                              surface_flux_minus_y *
                                              boundary_interpolation_inverse_weights[jj,
                                                                                     1])
-                    # surface at +y: distribute using right boundary interpolation weights
+                    # surface at +y
                     du[v, l, jj, element] = (du[v, l, jj, element] +
                                              surface_flux_plus_y *
                                              boundary_interpolation_inverse_weights[jj,
