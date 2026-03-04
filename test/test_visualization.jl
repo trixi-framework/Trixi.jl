@@ -34,8 +34,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in
-                                                               keys(test_examples_2d)
+@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
@@ -230,8 +229,8 @@ end
         @trixi_test_nowarn Plots.plot(pd["p"])
         @trixi_test_nowarn Plots.plot(getmesh(pd))
         initial_condition_t_end(x,
-                                equations) = initial_condition(x, last(tspan),
-                                                               equations)
+        equations) = initial_condition(x, last(tspan),
+                                       equations)
         @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
         @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
     end
@@ -963,8 +962,8 @@ end
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
-    x = view(semi.cache.elements.node_coordinates,1,:,:,:) # extracts the node x coordinates
-    y = view(semi.cache.elements.node_coordinates,2,:,:,:) # extracts the node x coordinates
+    x = view(semi.cache.elements.node_coordinates, 1, :, :, :) # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates, 2, :, :, :) # extracts the node x coordinates
     @trixi_test_nowarn iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
 
     # test heatmap plot
