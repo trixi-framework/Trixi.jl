@@ -588,18 +588,23 @@ function calc_node_coordinates!(node_coordinates,
 
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)
 
-    mesh_view_cell_id = 0
+    # Build a lookup from global parent cell ID → local view cell ID.
+    # This respects the ordering of mesh.cell_ids (which may not be sorted),
+    # ensuring consistency with extract_p4est_mesh_view which copies data in
+    # mesh.cell_ids order.
+    cell_id_to_local = Dict(id => k for (k, id) in enumerate(mesh.cell_ids))
+
     for tree_id in eachindex(trees)
         tree_offset = trees[tree_id].quadrants_offset
         quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree_id].quadrants)
 
         for i in eachindex(quadrants)
             parent_mesh_cell_id = tree_offset + i
-            if !(parent_mesh_cell_id in mesh.cell_ids)
+            local_id = get(cell_id_to_local, parent_mesh_cell_id, 0)
+            if local_id == 0
                 # This cell is not part of the mesh view, thus skip it
                 continue
             end
-            mesh_view_cell_id += 1
 
             quad = quadrants[i]
 
@@ -614,7 +619,7 @@ function calc_node_coordinates!(node_coordinates,
             polynomial_interpolation_matrix!(matrix2, mesh.parent.nodes, nodes_out_y,
                                              baryweights_in)
 
-            multiply_dimensionwise!(view(node_coordinates, :, :, :, mesh_view_cell_id),
+            multiply_dimensionwise!(view(node_coordinates, :, :, :, local_id),
                                     matrix1, matrix2,
                                     view(mesh.parent.tree_node_coordinates, :, :, :,
                                          tree_id),
