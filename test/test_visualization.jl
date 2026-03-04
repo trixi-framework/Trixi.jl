@@ -34,7 +34,8 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in
+                                                               keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
@@ -228,7 +229,8 @@ end
         @trixi_test_nowarn Plots.plot(pd)
         @trixi_test_nowarn Plots.plot(pd["p"])
         @trixi_test_nowarn Plots.plot(getmesh(pd))
-        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
+        initial_condition_t_end(x,
+                                equations) = initial_condition(x, last(tspan),
                                                                equations)
         @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
         @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
@@ -444,7 +446,8 @@ end
 @testset "PlotData2D Regression Tests" begin
     examples_dir_local = joinpath(dirname(@__DIR__), "examples")
 
-    function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
+    function initial_condition_taylor_green_vortex(x, t,
+                                                   equations::CompressibleEulerEquations2D)
         A = 1.0 # magnitude of speed
         Ms = 0.1 # maximum Mach number
 
@@ -468,8 +471,9 @@ end
                                    "elixir_euler_blast_wave.jl"),
                           tspan = (0.0, 0.0))
             semi_tree = mod.semi
-            
-            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0, semi_tree)
+
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
+                                         semi_tree)
             pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
 
             @test all(x -> isapprox(x, 1.0), pd.data[1]) # rho
@@ -485,7 +489,8 @@ end
                                    "elixir_euler_ec.jl"),
                           tspan = (0.0, 0.0))
             semi_struct = mod.semi
-            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0, semi_struct)
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
+                                         semi_struct)
             pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
 
             @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
@@ -501,7 +506,8 @@ end
                                    "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                           tspan = (0.0, 0.0))
             semi_p4est = mod.semi
-            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0, semi_p4est)
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
+                                         semi_p4est)
             pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
 
             @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
@@ -519,16 +525,18 @@ end
                                    "elixir_euler_blast_wave.jl"),
                           tspan = (0.0, 0.0))
             semi_tree = mod.semi
-            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0, semi_tree)
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
+                                         semi_tree)
             pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
 
             max_error = 0.0
             for (j, y) in enumerate(pd.y), (i, x) in enumerate(pd.x)
-                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0, semi_tree.equations)
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
+                                                                semi_tree.equations)
                 prim_exact = cons2prim(u_exact, semi_tree.equations)
-                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j], 
+                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j],
                                       pd.data[3][i, j], pd.data[4][i, j])
-                
+
                 current_error = maximum(abs.(prim_interp - prim_exact))
                 max_error = max(max_error, current_error)
             end
@@ -542,16 +550,18 @@ end
                                    "elixir_euler_ec.jl"),
                           tspan = (0.0, 0.0))
             semi_struct = mod.semi
-            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0, semi_struct)
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
+                                         semi_struct)
             pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
 
             max_error = 0.0
             for i in eachindex(pd.x)
                 x = pd.x[i]
                 y = pd.y[i]
-                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0, semi_struct.equations)
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
+                                                                semi_struct.equations)
                 prim_exact = cons2prim(u_exact, semi_struct.equations)
-                
+
                 current_error = maximum(abs.(pd.data[i] - prim_exact))
                 max_error = max(max_error, current_error)
             end
@@ -565,14 +575,16 @@ end
                                    "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                           tspan = (0.0, 0.0))
             semi_p4est = mod.semi
-            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0, semi_p4est)
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
+                                         semi_p4est)
             pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
 
             max_error = 0.0
             for i in eachindex(pd.x)
                 x = pd.x[i]
                 y = pd.y[i]
-                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0, semi_p4est.equations)
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
+                                                                semi_p4est.equations)
                 prim_exact = cons2prim(u_exact, semi_p4est.equations)
 
                 current_error = maximum(abs.(pd.data[i] - prim_exact))
