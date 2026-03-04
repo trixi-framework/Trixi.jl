@@ -865,6 +865,7 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
                            surface_integral, dg::DGSEM{<:GaussLegendreBasis},
                            parabolic_scheme, gradient_or_divergence,
                            cache)
+    @assert isempty(eachmortar(dg, cache))
     return nothing
 end
 

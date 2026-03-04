@@ -1127,6 +1127,7 @@ function calc_mortar_flux!(surface_flux_values,
                            have_nonconservative_terms, equations,
                            mortar::Nothing, surface_integral,
                            dg::DGSEM{<:GaussLegendreBasis}, cache)
+    @assert isempty(eachmortar(dg, cache))
     return nothing
 end
 
