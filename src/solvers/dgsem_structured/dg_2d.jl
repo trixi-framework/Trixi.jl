@@ -74,7 +74,7 @@ end
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       P4estMeshView{2}, T8codeMesh{2}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
@@ -138,7 +138,7 @@ end
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       P4estMeshView{2}, T8codeMesh{2}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
@@ -155,7 +155,7 @@ end
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       P4estMeshView{2}, T8codeMesh{2}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
@@ -229,7 +229,7 @@ end
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       P4estMeshView{2}, T8codeMesh{2}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,
