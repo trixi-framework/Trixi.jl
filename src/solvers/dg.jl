@@ -151,7 +151,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     indicator::Indicator
 
     # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
-    # This implementation is a generalization, which allows also usage of e.g. 
+    # This implementation is a generalization, which allows also usage of e.g.
     # the (potentially) cheaper weak form volume integral.
     volume_integral_default::VolumeIntegralDefault
 
@@ -272,12 +272,12 @@ end
 Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
-In the non-stabilized region, `volume_integral_default` is used, 
+In the non-stabilized region, `volume_integral_default` is used,
 which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
 or [`VolumeIntegralFluxDifferencing`](@ref).
 
 The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
-the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour.
 This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
 but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
 

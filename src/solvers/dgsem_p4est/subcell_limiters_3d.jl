@@ -12,10 +12,171 @@
 ###############################################################################
 # Calculation of local bounds using low-order FV solution
 
+@inline function calc_bounds_twosided!(var_min, var_max, variable,
+                                       u::AbstractArray{<:Any, 5}, t, semi, equations)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+    # Calc bounds inside elements
+    @threaded for element in eachelement(dg, cache)
+        # Calculate bounds at Gauss-Lobatto nodes
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, k, element]
+            var_min[i, j, k, element] = var
+            var_max[i, j, k, element] = var
+        end
+
+        # Apply values in x direction
+        for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+            var = u[variable, i - 1, j, k, element]
+            var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
+            var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
+
+            var = u[variable, i, j, k, element]
+            var_min[i - 1, j, k, element] = min(var_min[i - 1, j, k, element], var)
+            var_max[i - 1, j, k, element] = max(var_max[i - 1, j, k, element], var)
+        end
+
+        # Apply values in y direction
+        for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+            var = u[variable, i, j - 1, k, element]
+            var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
+            var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
+
+            var = u[variable, i, j, k, element]
+            var_min[i, j - 1, k, element] = min(var_min[i, j - 1, k, element], var)
+            var_max[i, j - 1, k, element] = max(var_max[i, j - 1, k, element], var)
+        end
+
+        # Apply values in z direction
+        for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, k - 1, element]
+            var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
+            var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
+
+            var = u[variable, i, j, k, element]
+            var_min[i, j, k - 1, element] = min(var_min[i, j, k - 1, element], var)
+            var_max[i, j, k - 1, element] = max(var_max[i, j, k - 1, element], var)
+        end
+    end
+
+    # Values at element boundary
+    calc_bounds_twosided_interface!(var_min, var_max, variable,
+                                    u, t, semi, mesh, equations)
+    return nothing
+end
+
+function calc_bounds_twosided_interface!(var_min, var_max, variable,
+                                         u, t, semi, mesh::P4estMesh{3}, equations)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+    (; boundary_conditions) = semi
+
+    (; neighbor_ids, node_indices) = cache.interfaces
+    index_range = eachnode(dg)
+
+    # Calc bounds at interfaces and periodic boundaries
+    for interface in eachinterface(dg, cache)
+        # Get element and side index information on the primary element
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+
+        # Get element and side index information on the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+
+        # Create the local i,j,k indexing
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                           index_range)
+        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                           index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        k_secondary = k_secondary_start
+
+        for j in eachnode(dg)
+            for i in eachnode(dg)
+                var_primary = u[variable, i_primary, j_primary, k_primary,
+                                primary_element]
+                var_secondary = u[variable, i_secondary, j_secondary, k_secondary,
+                                  secondary_element]
+
+                var_min[i_primary, j_primary, k_primary, primary_element] = min(var_min[i_primary,
+                                                                                        j_primary,
+                                                                                        k_primary,
+                                                                                        primary_element],
+                                                                                var_secondary)
+                var_max[i_primary, j_primary, k_primary, primary_element] = max(var_max[i_primary,
+                                                                                        j_primary,
+                                                                                        k_primary,
+                                                                                        primary_element],
+                                                                                var_secondary)
+
+                var_min[i_secondary, j_secondary, k_secondary, secondary_element] = min(var_min[i_secondary,
+                                                                                                j_secondary,
+                                                                                                k_secondary,
+                                                                                                secondary_element],
+                                                                                        var_primary)
+                var_max[i_secondary, j_secondary, k_secondary, secondary_element] = max(var_max[i_secondary,
+                                                                                                j_secondary,
+                                                                                                k_secondary,
+                                                                                                secondary_element],
+                                                                                        var_primary)
+
+                # Increment the primary element indices
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+                # Increment the secondary element surface indices
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+                k_secondary += k_secondary_step_i
+            end
+            # Increment the primary element indices
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+            # Increment the secondary element surface indices
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+            k_secondary += k_secondary_step_j
+        end
+    end
+
+    # Calc bounds at physical boundaries
+    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
+
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::P4estMesh{3},
+                                                equations, dg, cache)
+    return nothing
+end
+
 @inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
                                        u::AbstractArray{<:Any, 5}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
+
+    # The approach used in `calc_bounds_twosided!` is not used here because it requires more
+    # evaluations of the variable and is therefore slower.
+
     @threaded for element in eachelement(dg, cache)
         # Reset bounds
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -161,6 +322,75 @@ end
     return nothing
 end
 
+###############################################################################
+# Local two-sided limiting of conservative variables
+
+@inline function idp_local_twosided!(alpha, limiter, u::AbstractArray{<:Any, 5},
+                                     t, dt, semi, variable)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    variable_string = string(variable)
+    var_min = variable_bounds[Symbol(variable_string, "_min")]
+    var_max = variable_bounds[Symbol(variable_string, "_max")]
+    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+
+    @threaded for element in eachelement(dg, semi.cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, k, element)
+            var = u[variable, i, j, k, element]
+            # Real Zalesak type limiter
+            #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #         for each interface, not each node
+
+            Qp = max(0, (var_max[i, j, k, element] - var) / dt)
+            Qm = min(0, (var_min[i, j, k, element] - var) / dt)
+
+            # Calculate Pp and Pm
+            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            val_flux1_local = inverse_weights[i] *
+                              antidiffusive_flux1_R[variable, i, j, k, element]
+            val_flux1_local_ip1 = -inverse_weights[i] *
+                                  antidiffusive_flux1_L[variable, i + 1, j, k, element]
+            val_flux2_local = inverse_weights[j] *
+                              antidiffusive_flux2_R[variable, i, j, k, element]
+            val_flux2_local_jp1 = -inverse_weights[j] *
+                                  antidiffusive_flux2_L[variable, i, j + 1, k, element]
+            val_flux3_local = inverse_weights[k] *
+                              antidiffusive_flux3_R[variable, i, j, k, element]
+            val_flux3_local_jp1 = -inverse_weights[k] *
+                                  antidiffusive_flux3_L[variable, i, j, k + 1, element]
+
+            Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
+                 max(0, val_flux2_local) + max(0, val_flux2_local_jp1) +
+                 max(0, val_flux3_local) + max(0, val_flux3_local_jp1)
+            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1) +
+                 min(0, val_flux3_local) + min(0, val_flux3_local_jp1)
+
+            Pp = inverse_jacobian * Pp
+            Pm = inverse_jacobian * Pm
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qp = abs(Qp) /
+                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, k, element]))
+            Qm = abs(Qm) /
+                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, k, element]))
+
+            # Calculate alpha at nodes
+            alpha[i, j, k, element] = max(alpha[i, j, k, element], 1 - min(1, Qp, Qm))
+        end
+    end
+
+    return nothing
+end
+
 ##############################################################################
 # Local one-sided limiting of nonlinear variables
 
@@ -214,6 +444,13 @@ end
             end
 
             # Compute bound
+            if limiter.local_twosided &&
+               (variable in limiter.local_twosided_variables_cons) &&
+               (var_min[i, j, k, element] >= positivity_correction_factor * var)
+                # Local limiting is more restrictive that positivity limiting
+                # => Skip positivity limiting for this node
+                continue
+            end
             var_min[i, j, k, element] = positivity_correction_factor * var
 
             # Real one-sided Zalesak-type limiter
