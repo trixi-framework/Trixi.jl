@@ -100,6 +100,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
                              dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
+
+    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
     interfaces_u = interfaces.u
 
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
@@ -112,7 +114,7 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
             # interface in x-direction
             for k in eachnode(dg), j in eachnode(dg),
                 v in eachvariable(equations_parabolic)
-                # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+
                 interfaces_u[1, v, j, k, interface] = flux_viscous_x[v,
                                                                      nnodes(dg), j, k,
                                                                      left_element]
@@ -124,7 +126,7 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
             # interface in y-direction
             for k in eachnode(dg), i in eachnode(dg),
                 v in eachvariable(equations_parabolic)
-                # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+
                 interfaces_u[1, v, i, k, interface] = flux_viscous_y[v,
                                                                      i, nnodes(dg), k,
                                                                      left_element]
@@ -136,7 +138,7 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
             # interface in z-direction
             for j in eachnode(dg), i in eachnode(dg),
                 v in eachvariable(equations_parabolic)
-                # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+
                 interfaces_u[1, v, i, j, interface] = flux_viscous_z[v,
                                                                      i, j, nnodes(dg),
                                                                      left_element]
@@ -198,6 +200,8 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                              dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
+
+    # OBS! `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
     boundaries_u = boundaries.u
     flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
 
@@ -210,7 +214,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                 # element in -x direction of boundary
                 for k in eachnode(dg), j in eachnode(dg),
                     v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+
                     boundaries_u[1, v, j, k, boundary] = flux_viscous_x[v,
                                                                         nnodes(dg),
                                                                         j,
@@ -220,7 +224,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
             else # Element in +x direction of boundary
                 for k in eachnode(dg), j in eachnode(dg),
                     v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+
                     boundaries_u[2, v, j, k, boundary] = flux_viscous_x[v,
                                                                         1,
                                                                         j,
@@ -234,7 +238,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                 # element in -y direction of boundary
                 for k in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+
                     boundaries_u[1, v, i, k, boundary] = flux_viscous_y[v,
                                                                         i,
                                                                         nnodes(dg),
@@ -245,7 +249,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                 # element in +y direction of boundary
                 for k in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+
                     boundaries_u[2, v, i, k, boundary] = flux_viscous_y[v,
                                                                         i,
                                                                         1,
@@ -259,7 +263,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                 # element in -z direction of boundary
                 for j in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+
                     boundaries_u[1, v, i, j, boundary] = flux_viscous_z[v,
                                                                         i,
                                                                         j,
@@ -270,7 +274,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                 # element in +z direction of boundary
                 for j in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+
                     boundaries_u[2, v, i, j, boundary] = flux_viscous_z[v,
                                                                         i,
                                                                         j,
