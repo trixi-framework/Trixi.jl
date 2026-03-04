@@ -8,7 +8,7 @@
 # Initialize data structures in element container
 function init_elements!(elements,
                         mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                        basis::AbstractBasisSBP)
+                        basis::LobattoLegendreBasis)
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
@@ -29,7 +29,7 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
-                                basis::AbstractBasisSBP)
+                                basis::LobattoLegendreBasis)
     # Hanging nodes will cause holes in the mesh if its polydeg is higher
     # than the polydeg of the solver.
     @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"

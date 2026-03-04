@@ -60,7 +60,7 @@ end
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element,
                                node_coordinates::AbstractArray{<:Any, 4},
-                               basis::AbstractBasisSBP)
+                               basis::LobattoLegendreBasis)
     @unpack derivative_matrix = basis
 
     # The code below is equivalent to the following matrix multiplications, which
