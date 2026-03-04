@@ -252,9 +252,8 @@ end
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(u, equations)
 
-    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus,
-    vk3_plus = charge_averaged_velocities(u,
-                                          equations)
+    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
+                                                                                         equations)
 
     mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
     div_clean_energy = 0.5f0 * psi^2
