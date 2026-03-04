@@ -83,3 +83,9 @@ SparseMatrixColorings = "0.4.21"
 StableRNGs = "1.0.2"
 Test = "1"
 TrixiTest = "0.2.1"
+
+[extras]
+HostCPUFeatures = "3e5b6fbb-0976-4d2c-9146-d79de83f2fb0"
+
+[preferences.HostCPUFeatures]
+allow_runtime_invalidation = true

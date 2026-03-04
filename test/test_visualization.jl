@@ -21,9 +21,11 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "Visualization tests" begin
 #! format: noindent
 
-# Run 2D tests with elixirs for all mesh types
+# Run 2D tests with elixirs for different mesh and solver types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                        "elixir_euler_blast_wave_amr.jl"),
+                        "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
+                                               "elixir_euler_convergence.jl"),
                         "StructuredMesh" => ("structured_2d_dgsem",
                                              "elixir_euler_source_terms_waving_flag.jl"),
                         "UnstructuredMesh" => ("unstructured_2d_dgsem",
@@ -32,19 +34,20 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in
-                                                               keys(test_examples_2d)
+@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
                         tspan=(0, 0.1))
 
     # Constructor tests
-    if mesh == "TreeMesh"
+    if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)"
         @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
         @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
                          solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
-        @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        if semi.solver isa DGSEM
+            @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        end
     else
         @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
         @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
@@ -104,11 +107,43 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                 u = sol.u[end]
             end
             scalar_data = StructArrays.component(u, 1)
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
-            cache = semi.cache
-            x = view(cache.elements.node_coordinates,1,:,:,:)
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(x, semi))
+            # There are some issues with `PtrArray`s returned by default
+            # by `Trixi.wrap_array`, see
+            # https://github.com/trixi-framework/Trixi.jl/issues/2797
+            u = Trixi.wrap_array_native(sol.u[end], semi)
+            scalar_data = u[1, :, :, :]
+        end
+        @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+        @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                       sol.u[end], semi))
+
+        # test for consistency between the two ScalarPlotData2D constructions
+        if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
+            spd_no_function = ScalarPlotData2D(scalar_data, semi)
+            spd_function = ScalarPlotData2D((u, equations) -> u[1],
+                                            sol.u[end], semi)
+            @test typeof(spd_no_function) == typeof(spd_function)
+            for property in propertynames(spd_function)
+                if property == :data
+                    @test spd_no_function.data.data ≈ spd_function.data.data
+                elseif property == :variable_names
+                    @test getproperty(spd_no_function, property) ==
+                          getproperty(spd_function, property)
+                else
+                    @test getproperty(spd_no_function, property) ≈
+                          getproperty(spd_function, property)
+                end
+            end
+        end
+
+        # test that non-upwinded FDSBP functionality is consistent with upwinded FDSBP solver behavior
+        if mesh == "TreeMesh (FDSBP)"
+            (; volume_integral, surface_integral) = semi.solver
+            solver_fdsbp = FDSBP(semi.solver.basis.central; surface_integral,
+                                 volume_integral)
+            @test all(Trixi.reference_node_coordinates_2d(semi.solver) .≈
+                      Trixi.reference_node_coordinates_2d(solver_fdsbp))
         end
     end
 
@@ -193,8 +228,7 @@ end
         @trixi_test_nowarn Plots.plot(pd)
         @trixi_test_nowarn Plots.plot(pd["p"])
         @trixi_test_nowarn Plots.plot(getmesh(pd))
-        initial_condition_t_end(x,
-                                equations) = initial_condition(x, last(tspan),
+        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
                                                                equations)
         @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
         @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
@@ -235,11 +269,13 @@ end
             trees_per_dimension = (2, 2)
             mesh = MeshType(trees_per_dimension; polydeg = 1,
                             coordinates_min, coordinates_max,
-                            initial_refinement_level = 0)
+                            initial_refinement_level = 0,
+                            periodicity = true)
 
             semi = SemidiscretizationHyperbolic(mesh, equations,
                                                 initial_condition_constant,
-                                                solver)
+                                                solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
             # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
             # and Ketcheson (2021)
@@ -271,17 +307,21 @@ end
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
                              n_cells_max = 10^5,
-                             initial_refinement_level)
+                             initial_refinement_level,
+                             periodicity = true)
         trees_per_dimension = (1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
-                               initial_refinement_level)
+                               initial_refinement_level,
+                               periodicity = true)
         mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
                                  coordinates_min, coordinates_max,
-                                 initial_refinement_level)
+                                 initial_refinement_level,
+                                 periodicity = true)
         cells_per_dimension = (2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
-                                         coordinates_min, coordinates_max)
+                                         coordinates_min, coordinates_max,
+                                         periodicity = true)
 
         function initial_condition_taylor_green_vortex(x, t,
                                                        equations::CompressibleEulerEquations2D)
@@ -302,22 +342,26 @@ end
         ic = initial_condition_taylor_green_vortex
 
         ode_tree = let mesh = mesh_tree
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_p4est = let mesh = mesh_p4est
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_t8code = let mesh = mesh_t8code
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_structured = let mesh = mesh_structured
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
@@ -400,16 +444,14 @@ end
 @testset "PlotData2D Regression Tests" begin
     examples_dir_local = joinpath(dirname(@__DIR__), "examples")
 
-    # Taylor-Green Vortex for interpolation tests (Non-Constant IC)
-    function initial_condition_taylor_green_vortex(x, t,
-                                                   equations::CompressibleEulerEquations2D)
-        A = 1.0
-        Ms = 0.1
+    function initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
+        A = 1.0 # magnitude of speed
+        Ms = 0.1 # maximum Mach number
 
         rho = 1.0
         v1 = A * sin(x[1]) * cos(x[2])
         v2 = -A * cos(x[1]) * sin(x[2])
-        p = (A / Ms)^2 * rho / equations.gamma
+        p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
         p = p +
             1.0 / 16.0 * A^2 * rho *
             (cos(2 * x[1]) + 2 * cos(2 * x[2]) +
@@ -420,101 +462,96 @@ end
 
     @testset "Constant IC (Exact Checks)" begin
         @testset "TreeMesh" begin
-            trixi_include(@__MODULE__,
+            mod = Module()
+            trixi_include(mod,
                           joinpath(examples_dir_local, "tree_2d_dgsem",
                                    "elixir_euler_blast_wave.jl"),
                           tspan = (0.0, 0.0))
-            semi_tree = getfield(@__MODULE__, :semi)
-
-            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
-                                         semi_tree)
+            semi_tree = mod.semi
+            
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0, semi_tree)
             pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
 
-            @test all(x -> isapprox(x, 1.0), pd.data[1])
-            @test all(x -> isapprox(x, 0.1), pd.data[2])
-            @test all(x -> isapprox(x, -0.2), pd.data[3])
-            @test all(x -> isapprox(x, 3.99), pd.data[4])
+            @test all(x -> isapprox(x, 1.0), pd.data[1]) # rho
+            @test all(x -> isapprox(x, 0.1), pd.data[2]) # v1
+            @test all(x -> isapprox(x, -0.2), pd.data[3]) # v2
+            @test all(x -> isapprox(x, 3.99), pd.data[4]) # p
         end
 
         @testset "StructuredMesh" begin
-            trixi_include(@__MODULE__,
+            mod = Module()
+            trixi_include(mod,
                           joinpath(examples_dir_local, "structured_2d_dgsem",
                                    "elixir_euler_ec.jl"),
                           tspan = (0.0, 0.0))
-            semi_struct = getfield(@__MODULE__, :semi)
-            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
-                                         semi_struct)
+            semi_struct = mod.semi
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0, semi_struct)
             pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
 
-            @test all(val -> isapprox(val[1], 1.0), pd.data)
-            @test all(val -> isapprox(val[2], 0.1), pd.data)
-            @test all(val -> isapprox(val[3], -0.2), pd.data)
-            @test all(val -> isapprox(val[4], 3.99), pd.data)
+            @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
+            @test all(val -> isapprox(val[2], 0.1), pd.data) # v1
+            @test all(val -> isapprox(val[3], -0.2), pd.data) # v2
+            @test all(val -> isapprox(val[4], 3.99), pd.data) # p
         end
 
         @testset "P4estMesh" begin
-            trixi_include(@__MODULE__,
+            mod = Module()
+            trixi_include(mod,
                           joinpath(examples_dir_local, "p4est_2d_dgsem",
                                    "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                           tspan = (0.0, 0.0))
-            semi_p4est = getfield(@__MODULE__, :semi)
-            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0,
-                                         semi_p4est)
+            semi_p4est = mod.semi
+            u_ode = compute_coefficients(Trixi.initial_condition_constant, 0.0, semi_p4est)
             pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
 
-            @test all(val -> isapprox(val[1], 1.0), pd.data)
-            @test all(val -> isapprox(val[2], 0.1), pd.data)
-            @test all(val -> isapprox(val[3], -0.2), pd.data)
-            @test all(val -> isapprox(val[4], 3.99), pd.data)
+            @test all(val -> isapprox(val[1], 1.0), pd.data) # rho
+            @test all(val -> isapprox(val[2], 0.1), pd.data) # v1
+            @test all(val -> isapprox(val[3], -0.2), pd.data) # v2
+            @test all(val -> isapprox(val[4], 3.99), pd.data) # p
         end
     end
 
-    # Part 2: Non-Constant IC (Interpolation Accuracy)
     @testset "Non-Constant IC (Taylor-Green Vortex)" begin
         @testset "TreeMesh" begin
-            trixi_include(@__MODULE__,
+            mod = Module()
+            trixi_include(mod,
                           joinpath(examples_dir_local, "tree_2d_dgsem",
                                    "elixir_euler_blast_wave.jl"),
                           tspan = (0.0, 0.0))
-            semi_tree = getfield(@__MODULE__, :semi)
-            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
-                                         semi_tree)
+            semi_tree = mod.semi
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0, semi_tree)
             pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
 
-            # TreeMesh (Cartesian) interpolation check
             max_error = 0.0
             for (j, y) in enumerate(pd.y), (i, x) in enumerate(pd.x)
-                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
-                                                                equations)
-                prim_exact = cons2prim(u_exact, equations)
-                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j],
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0, semi_tree.equations)
+                prim_exact = cons2prim(u_exact, semi_tree.equations)
+                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j], 
                                       pd.data[3][i, j], pd.data[4][i, j])
-
+                
                 current_error = maximum(abs.(prim_interp - prim_exact))
                 max_error = max(max_error, current_error)
             end
-            # Relaxed tolerance for TreeMesh due to AMR/Grid mismatch with TGV function
             @test max_error < 1.5
         end
 
         @testset "StructuredMesh" begin
-            trixi_include(@__MODULE__,
+            mod = Module()
+            trixi_include(mod,
                           joinpath(examples_dir_local, "structured_2d_dgsem",
                                    "elixir_euler_ec.jl"),
                           tspan = (0.0, 0.0))
-            semi_struct = getfield(@__MODULE__, :semi)
-            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
-                                         semi_struct)
+            semi_struct = mod.semi
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0, semi_struct)
             pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
 
             max_error = 0.0
             for i in eachindex(pd.x)
                 x = pd.x[i]
                 y = pd.y[i]
-                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
-                                                                equations)
-                prim_exact = cons2prim(u_exact, equations)
-
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0, semi_struct.equations)
+                prim_exact = cons2prim(u_exact, semi_struct.equations)
+                
                 current_error = maximum(abs.(pd.data[i] - prim_exact))
                 max_error = max(max_error, current_error)
             end
@@ -522,22 +559,21 @@ end
         end
 
         @testset "P4estMesh" begin
-            trixi_include(@__MODULE__,
+            mod = Module()
+            trixi_include(mod,
                           joinpath(examples_dir_local, "p4est_2d_dgsem",
                                    "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                           tspan = (0.0, 0.0))
-            semi_p4est = getfield(@__MODULE__, :semi)
-            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0,
-                                         semi_p4est)
+            semi_p4est = mod.semi
+            u_ode = compute_coefficients(initial_condition_taylor_green_vortex, 0.0, semi_p4est)
             pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
 
             max_error = 0.0
             for i in eachindex(pd.x)
                 x = pd.x[i]
                 y = pd.y[i]
-                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0,
-                                                                equations)
-                prim_exact = cons2prim(u_exact, equations)
+                u_exact = initial_condition_taylor_green_vortex(SVector(x, y), 0.0, semi_p4est.equations)
+                prim_exact = cons2prim(u_exact, semi_p4est.equations)
 
                 current_error = maximum(abs.(pd.data[i] - prim_exact))
                 max_error = max(max_error, current_error)
@@ -673,11 +709,13 @@ end
                 trees_per_dimension = (2, 2, 2)
                 mesh = MeshType(trees_per_dimension; polydeg = 1,
                                 coordinates_min, coordinates_max,
-                                initial_refinement_level = 0)
+                                initial_refinement_level = 0,
+                                periodicity = true)
 
                 semi = SemidiscretizationHyperbolic(mesh, equations,
                                                     initial_condition_constant,
-                                                    solver)
+                                                    solver;
+                                                    boundary_conditions = boundary_condition_periodic)
                 ode = semidiscretize(semi, (0.0, 0.1))
                 # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
                 # and Ketcheson (2021)
@@ -710,17 +748,21 @@ end
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
                              n_cells_max = 10^6,
-                             initial_refinement_level)
+                             initial_refinement_level,
+                             periodicity = true)
         trees_per_dimension = (1, 1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
-                               initial_refinement_level)
+                               initial_refinement_level,
+                               periodicity = true)
         mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
                                  coordinates_min, coordinates_max,
-                                 initial_refinement_level)
+                                 initial_refinement_level,
+                                 periodicity = true)
         cells_per_dimension = (2, 2, 2) .^ initial_refinement_level
         mesh_structured = StructuredMesh(cells_per_dimension,
-                                         coordinates_min, coordinates_max)
+                                         coordinates_min, coordinates_max,
+                                         periodicity = true)
 
         function initial_condition_taylor_green_vortex(x, t,
                                                        equations::CompressibleEulerEquations3D)
@@ -743,22 +785,26 @@ end
         ic = initial_condition_taylor_green_vortex
 
         ode_tree = let mesh = mesh_tree
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_p4est = let mesh = mesh_p4est
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_t8code = let mesh = mesh_t8code
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 
         ode_structured = let mesh = mesh_structured
-            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver;
+                                                boundary_conditions = boundary_condition_periodic)
             ode = semidiscretize(semi, (0.0, 0.1))
         end
 

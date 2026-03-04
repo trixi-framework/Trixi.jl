@@ -29,7 +29,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     S = convert(RealT, 13.5)
     # Radius of vortex
     R = convert(RealT, 1.5)
-    # Free-stream Mach 
+    # Free-stream Mach
     M = convert(RealT, 0.4)
     # Base flow
     v1 = 1
@@ -67,9 +67,11 @@ coordinates_min = (-edge_length() / 2, -edge_length() / 2)
 coordinates_max = (edge_length() / 2, edge_length() / 2)
 
 cells_per_dimension = (32, 32)
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ode = semidiscretize(semi, tspan)
 

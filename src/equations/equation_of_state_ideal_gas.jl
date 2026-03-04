@@ -11,7 +11,7 @@
 This defines the polytropic ideal gas equation of state
 given by the pressure and internal energy relations
 ```math
-p = \rho R T, \quad e = c_v T
+p = \rho R T, \quad e_{\text{internal}} = c_v T
 ```
 with ``c_v = \frac{R}{\gamma - 1}``.
 """
@@ -47,15 +47,15 @@ function pressure(V, T, eos::IdealGas)
 end
 
 """
-    energy_internal(V, T, eos::IdealGas)
+    energy_internal_specific(V, T, eos::IdealGas)
 
 Computes internal energy for an ideal gas from specific volume `V` and temperature `T` as
-``e = c_v T``.
+``e_{\text{internal}} = c_v T``.
 """
-function energy_internal(V, T, eos::IdealGas)
+function energy_internal_specific(V, T, eos::IdealGas)
     (; cv) = eos
-    e = cv * T
-    return e
+    e_internal = cv * T
+    return e_internal
 end
 
 function entropy_specific(V, T, eos::IdealGas)
@@ -74,9 +74,9 @@ end
 # This is not a required interface function, but specializing it 
 # if an explicit function is available can improve performance.
 # For general EOS, this is calculated via a Newton solve. 
-function temperature(V, e, eos::IdealGas)
+function temperature(V, e_internal, eos::IdealGas)
     (; cv) = eos
-    T = e / cv
+    T = e_internal / cv
     return T
 end
 end # @muladd

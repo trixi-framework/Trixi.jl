@@ -13,7 +13,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition)
 
 # Mapping as described in https://arxiv.org/abs/2012.12040 but with less warping.
 # The mapping will be interpolated at tree level, and then refined without changing
@@ -52,7 +52,7 @@ mesh = T8codeMesh(mesh_file, 3; polydeg = 3,
                   initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

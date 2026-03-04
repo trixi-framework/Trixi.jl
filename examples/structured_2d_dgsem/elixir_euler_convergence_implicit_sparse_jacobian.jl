@@ -6,7 +6,7 @@ using OrdinaryDiffEqSDIRK, ADTypes
 ###############################################################################
 ### solver and equations ###
 
-# For sparsity detection we can only use `flux_lax_friedrichs` at the moment since this is 
+# For sparsity detection we can only use `flux_lax_friedrichs` at the moment since this is
 # `if`-clause free (although it contains `min` and `max` operations).
 # The sparsity pattern, however, should be the same for other (two-point) fluxes as well.
 surface_flux = flux_lax_friedrichs
@@ -33,7 +33,7 @@ function mapping(xi_, eta_)
     return SVector(x, y)
 end
 cells_per_dimension = (16, 16)
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 ###############################################################################
 ### semidiscretization for sparsity detection ###
@@ -46,8 +46,9 @@ jac_eltype = jacobian_eltype(real(solver), jac_detector)
 # Semidiscretization for sparsity pattern detection
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
                                              initial_condition_convergence_test,
-                                             solver,
+                                             solver;
                                              source_terms = source_terms_convergence_test,
+                                             boundary_conditions = boundary_condition_periodic,
                                              uEltype = jac_eltype) # Need to supply Jacobian element type
 
 tspan = (0.0, 5.0) # Re-used for wrapping `rhs` below
@@ -81,8 +82,9 @@ coloring_vec = column_colors(coloring_result)
 # Must be called 'semi' in order for the convergence test to run successfully
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition_convergence_test,
-                                    solver,
-                                    source_terms = source_terms_convergence_test)
+                                    solver;
+                                    source_terms = source_terms_convergence_test,
+                                    boundary_conditions = boundary_condition_periodic)
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode_jac_sparse = semidiscretize(semi, tspan,

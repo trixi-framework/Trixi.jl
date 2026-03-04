@@ -249,5 +249,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                           normal_direction, u, equations)
         end
     end
+
+    return nothing
 end
 end # @muladd

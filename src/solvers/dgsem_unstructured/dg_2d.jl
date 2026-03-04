@@ -309,8 +309,7 @@ function prolong2boundaries!(cache, u,
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 
@@ -319,8 +318,7 @@ end
 
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
@@ -484,7 +482,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
-    # i.e., M^{-1} * boundary_interpolation^T (which is for DGSEM just M^{-1} * B)
+    # i.e., M^{-1} * boundary_interpolation^T 
     # and the missing "-" is taken care of by `apply_jacobian!`.
     #
     # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
