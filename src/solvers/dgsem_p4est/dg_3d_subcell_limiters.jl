@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::P4estMesh{3},
+function create_cache(mesh::Union{TreeMesh{3}, P4estMesh{3}},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
                       dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
@@ -61,7 +61,7 @@ end
 
 # Subcell limiting currently only implemented for certain mesh types
 @inline function volume_integral_kernel!(du, u, element,
-                                         mesh::P4estMesh{3},
+                                         mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                          nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
@@ -551,7 +551,7 @@ end
                                          fstar1_L, fstar1_R,
                                          fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
-                                         u, mesh::P4estMesh{3},
+                                         u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
@@ -602,7 +602,7 @@ end
                                          fstar1_L, fstar1_R,
                                          fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
-                                         u, mesh::P4estMesh{3},
+                                         u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
