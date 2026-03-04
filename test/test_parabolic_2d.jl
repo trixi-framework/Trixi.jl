@@ -212,7 +212,7 @@ end
                                  "elixir_advection_diffusion.jl"),
                         solver=DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
                                      basis_type = GaussLegendreBasis),
-                        initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
+                        initial_refinement_level=2, tspan=(0.0, 0.4),
                         l2=[2.8254621369070895e-6], linf=[6.914648264633172e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
