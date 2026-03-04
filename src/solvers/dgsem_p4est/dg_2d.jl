@@ -952,12 +952,6 @@ function calc_surface_integral!(du, u,
     return nothing
 end
 
-# Specialized variant for `GaussLegendreBasis` that distributes the surface flux
-# contribution to all volume nodes.
-# Note that all interface fluxes are for `P4estMesh` stored with outward-pointing normals:
-# The secondary element's contribution is negated in `calc_interface_flux!` above,
-# so all four surface directions are added with a positive sign, matching the existing LGL version above.
-# The missing "-" sign is taken care of by `apply_jacobian!`.
 function calc_surface_integral!(du, u,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
@@ -966,6 +960,11 @@ function calc_surface_integral!(du, u,
     @unpack boundary_interpolation_inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)

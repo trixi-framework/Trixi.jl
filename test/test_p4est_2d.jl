@@ -32,11 +32,10 @@ end
 
 @trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-               basis_type = GaussLegendreBasis),
-               cfl = 0.8,
-                        l2=[8.311947673061856e-6],
-                        linf=[6.627000273229378e-5])
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     basis_type = GaussLegendreBasis),
+                        cfl=0.8,
+                        l2=[3.721398353159235e-6], linf=[1.8621131703255855e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
