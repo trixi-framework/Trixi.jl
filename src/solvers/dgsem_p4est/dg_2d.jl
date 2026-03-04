@@ -135,7 +135,7 @@ function prolong2interfaces!(cache, u,
         j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
                                                                  index_range)
         # The index direction is identified based on `{i,j}_{primary, secondary}_step`.
-        # For step = 0, the direction indentified by this index is normal to the face.
+        # For step = 0, the direction identified by this index is normal to the face.
         # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
 
         # Note that in the current implementation, the interface will be
