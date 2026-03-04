@@ -27,9 +27,10 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
   Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
   `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
 - Add Legendre-Gauss basis for DGSEM and implement solver (`VolumeIntegralWeakForm` and `SurfaceIntegralWeakForm` only) support for conforming 1D & 2D `TreeMesh`es ([#1965]).
-- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2763]).
+- Extended 3D support for subcell limiting with `P4estMesh` was added ([#2763], [#2844]).
   In the new version, local (minimum and maximum) limiting for conservative variables (using the
   keyword `local_twosided_variables_cons` in `SubcellLimiterIDP()`) is supported.
+  Support extended to nonperiodic `P4estMesh{3}`es.
 
 ## Changes when updating to v0.15 from v0.14.x
 
