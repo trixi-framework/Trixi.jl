@@ -10,6 +10,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
+# Define the physical domain for the parent mesh.
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
@@ -43,10 +44,10 @@ coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
 # The mesh is coupled across the physical boundaries, which makes this setup
 # effectively double periodic.
-boundary_conditions = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                           :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                           :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
-                           :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
+boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_function),
+                       y_neg = BoundaryConditionCoupledP4est(coupling_function),
+                       y_pos = BoundaryConditionCoupledP4est(coupling_function),
+                       x_pos = BoundaryConditionCoupledP4est(coupling_function))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
                                      solver,
@@ -69,6 +70,7 @@ ode = semidiscretize(semi, (0.0, 2.0))
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+# We require this definition for the test, even though we don't use it in the CallbackSet.
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
 analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1,

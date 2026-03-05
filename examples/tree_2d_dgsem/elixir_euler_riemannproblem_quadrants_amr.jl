@@ -6,11 +6,11 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# Variant of the 4-quadrant Riemann problem considered in 
+# Variant of the 4-quadrant Riemann problem considered in
 # - Carsten W. Schulz-Rinne:
 #   Classification of the Riemann Problem for Two-Dimensional Gas Dynamics
 #   https://doi.org/10.1137/0524006
-# and 
+# and
 # - Carsten W. Schulz-Rinne, James P. Collins, and Harland M. Glaz
 #   Numerical Solution of the Riemann Problem for Two-Dimensional Gas Dynamics
 #   https://doi.org/10.1137/0914082
@@ -54,12 +54,12 @@ initial_condition = initial_condition_rp
 end
 
 # The flow is subsonic at all boundaries.
-# For small enough simulation times, the solution remains at the initial condition 
+# For small enough simulation times, the solution remains at the initial condition
 # *along the boundaries* of quadrants 2, 3, and 4.
 # In quadrants 2 and 4 there are non-zero velocity components (v1 in quadrant 2, v2 in quadrant 4)
 # normal to the boundary, which is troublesome for the `boundary_condition_do_nothing`.
 # Thus, the `boundary_condition_subsonic` are used instead.
-boundary_conditions = (x_neg = boundary_condition_subsonic,
+boundary_conditions = (; x_neg = boundary_condition_subsonic,
                        x_pos = boundary_condition_do_nothing,
                        y_neg = boundary_condition_subsonic,
                        y_pos = boundary_condition_do_nothing)
@@ -94,13 +94,13 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 # Specialized function for computing coefficients of `func`,
 # here the discontinuous `initial_condition_rp`.
 #
-# Shift the outer (i.e., ±1 on the reference element) nodes passed to the 
+# Shift the outer (i.e., ±1 on the reference element) nodes passed to the
 # `func` inwards by the smallest amount possible, i.e., [-1 + ϵ, +1 - ϵ].
 # This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
-# i.e., if the jump location `x_jump` is at the position of an interface which is shared by 
+# i.e., if the jump location `x_jump` is at the position of an interface which is shared by
 # the nodes x_{e-1}^{(i)} = x_{e}^{(1)}.
 #
-# In particular, this results in the typically desired behaviour for 
+# In particular, this results in the typically desired behaviour for
 # initial conditions of the form
 #           { u_1, if x <= x_jump
 # u(x, t) = {
