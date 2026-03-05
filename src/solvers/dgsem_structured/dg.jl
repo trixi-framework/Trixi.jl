@@ -39,9 +39,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
 end
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{1},
-                          StructuredMesh, StructuredMeshView{2},
-                          UnstructuredMesh2D},
+              mesh::Union{StructuredMesh, StructuredMeshView{2}},
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
