@@ -12,8 +12,8 @@ function initial_condition_const(x, t, equations)
     rho_v1 = convert(RealT, 0.1)
     rho_v2 = convert(RealT, -0.2)
     rho_v3 = convert(RealT, 0.7)
-    rho_e = 10
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
+    rho_e_total = 10
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 initial_condition = initial_condition_const
 
@@ -40,8 +40,8 @@ boundary_symbols = [:PhysicalSurface1, :PhysicalSurface2]
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, initial_refinement_level = 0,
                     boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition),
-                           :PhysicalSurface2 => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; PhysicalSurface1 = BoundaryConditionDirichlet(initial_condition),
+                       PhysicalSurface2 = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,

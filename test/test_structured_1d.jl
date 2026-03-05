@@ -261,7 +261,7 @@ end
     using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_1d_dgsem"),
                                  "elixir_euler_convergence_pure_fv.jl"),
-                        mesh=StructuredMesh(16, (0.0,), (2.0,)),
+                        mesh=StructuredMesh(16, (0.0,), (2.0,), periodicity = true),
                         l2=[
                             0.019355699748523896,
                             0.022326984561234497,

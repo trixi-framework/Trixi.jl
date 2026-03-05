@@ -48,7 +48,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
     mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
 
     # Extract data for views.
-    elements, interfaces, boundaries, mortars, neighbor_ids_global = extract_p4est_mesh_view(elements_parent,
+    elements, interfaces, boundaries, mortars, neighbor_ids_parent = extract_p4est_mesh_view(elements_parent,
                                                                                              interfaces_parent,
                                                                                              boundaries_parent,
                                                                                              mortars_parent,
@@ -57,7 +57,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                                                                              dg,
                                                                                              uEltype)
 
-    cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_global)
+    cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
 
     # Add Volume-Integral cache
     cache = (; cache...,

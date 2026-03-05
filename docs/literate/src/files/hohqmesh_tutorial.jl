@@ -326,14 +326,14 @@ initial_condition = uniform_flow_state
 ## boundary condition types
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
 
-## boundary condition dictionary
-boundary_conditions = Dict(:Bottom => boundary_condition_uniform_flow,
-                           :Top => boundary_condition_uniform_flow,
-                           :Right => boundary_condition_uniform_flow,
-                           :Left => boundary_condition_uniform_flow,
-                           :LeftSlant => boundary_condition_slip_wall,
-                           :RightSlant => boundary_condition_slip_wall,
-                           :IceCream => boundary_condition_slip_wall);
+## boundary conditions (NamedTuple)
+boundary_conditions = (; Bottom = boundary_condition_uniform_flow,
+                       Top = boundary_condition_uniform_flow,
+                       Right = boundary_condition_uniform_flow,
+                       Left = boundary_condition_uniform_flow,
+                       LeftSlant = boundary_condition_slip_wall,
+                       RightSlant = boundary_condition_slip_wall,
+                       IceCream = boundary_condition_slip_wall);
 
 ## DGSEM solver.
 ##    1) polydeg must be >= the polynomial order set in the HOHQMesh control file to guarantee
@@ -495,13 +495,13 @@ output = generate_mesh(control_file);
 
 # We can reuse much of the elixir file to setup the uniform flow over an ice cream cone from the
 # previous part of this tutorial. The only component of the elixir file that must be changed is the boundary condition
-# dictionary because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
+# `NamedTuple` because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
 
-## boundary condition dictionary
-boundary_conditions = Dict(:OuterCircle => boundary_condition_uniform_flow,
-                           :LeftSlant => boundary_condition_slip_wall,
-                           :RightSlant => boundary_condition_slip_wall,
-                           :IceCream => boundary_condition_slip_wall);
+## boundary conditions (NamedTuple)
+boundary_conditions = (; OuterCircle = boundary_condition_uniform_flow,
+                       LeftSlant = boundary_condition_slip_wall,
+                       RightSlant = boundary_condition_slip_wall,
+                       IceCream = boundary_condition_slip_wall);
 
 # Also, we must update the construction of the mesh from our new mesh file `ice_cream_curved_sides.mesh` that
 # is located in the `out` folder.

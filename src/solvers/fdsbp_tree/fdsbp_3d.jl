@@ -42,8 +42,7 @@ function create_cache(mesh::TreeMesh{3}, equations,
 end
 
 # 3D volume integral contributions for `VolumeIntegralStrongForm`
-function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
+function calc_volume_integral!(du, u, mesh::TreeMesh{3},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
@@ -105,8 +104,7 @@ end
 # the finite difference stencils. Thus, the D^- operator acts on the positive
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
-function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
+function calc_volume_integral!(du, u, mesh::TreeMesh{3},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)

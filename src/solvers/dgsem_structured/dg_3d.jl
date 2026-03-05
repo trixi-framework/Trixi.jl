@@ -88,8 +88,7 @@ end
 # flux differencing volume integral on curvilinear hexahedral elements. Averaging of the
 # mapping terms, stored in `contravariant_vectors`, is peeled apart from the evaluation of
 # the physical fluxes in each Cartesian direction
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::False, equations,
@@ -171,8 +170,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True, equations,
@@ -185,8 +183,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True,
@@ -276,8 +273,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element,
+@inline function flux_differencing_kernel!(du, u, element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
                                            have_nonconservative_terms::True,
@@ -534,18 +530,19 @@ end
                                             T8codeMesh{3}},
                                 have_nonconservative_terms::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
-                                       element), equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, k,
-                                       element), equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
-                                       element), equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
+                                        element), equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k,
+                                        element), equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k,
+                                        element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j, k,
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, i,
@@ -553,8 +550,8 @@ end
 
         normal_direction = get_normal_vector(normal_vectors_1, i - 1, j, k, element)
 
-        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                            prim2cons(u_r, equations),
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
                                             normal_direction, equations)
 
         set_node_vars!(fstar1_L, contravariant_flux, equations, dg, i, j, k)
@@ -562,14 +559,14 @@ end
     end
 
     for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), k,
-                                       element), equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, k,
-                                       element), equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
-                                       element), equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), k,
+                                        element), equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, k,
+                                        element), equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k,
+                                        element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1), k,
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, j,
@@ -577,8 +574,8 @@ end
 
         normal_direction = get_normal_vector(normal_vectors_2, i, j - 1, k, element)
 
-        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                            prim2cons(u_r, equations),
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
                                             normal_direction, equations)
 
         set_node_vars!(fstar2_L, contravariant_flux, equations, dg, i, j, k)
@@ -586,14 +583,14 @@ end
     end
 
     for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, j, max(1, k - 2),
-                                       element), equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j, k - 1,
-                                       element), equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, k,
-                                       element), equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, j, max(1, k - 2),
+                                        element), equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j, k - 1,
+                                        element), equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, k,
+                                        element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, j, min(nnodes(dg), k + 1),
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, k,
@@ -601,8 +598,8 @@ end
 
         normal_direction = get_normal_vector(normal_vectors_3, i, j, k - 1, element)
 
-        contravariant_flux = volume_flux_fv(prim2cons(u_l, equations),
-                                            prim2cons(u_r, equations),
+        contravariant_flux = volume_flux_fv(recon2cons(u_l, equations),
+                                            recon2cons(u_r, equations),
                                             normal_direction, equations)
 
         set_node_vars!(fstar3_L, contravariant_flux, equations, dg, i, j, k)
