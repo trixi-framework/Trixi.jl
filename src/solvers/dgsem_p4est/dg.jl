@@ -48,17 +48,16 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
     mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
 
     # Extract data for views.
-    elements, interfaces, boundaries, mortars = extract_p4est_mesh_view(elements_parent,
-                                                                        interfaces_parent,
-                                                                        boundaries_parent,
-                                                                        mortars_parent,
-                                                                        mesh,
-                                                                        equations,
-                                                                        dg,
-                                                                        uEltype)
+    elements, interfaces, boundaries, mortars, neighbor_ids_parent = extract_p4est_mesh_view(elements_parent,
+                                                                                             interfaces_parent,
+                                                                                             boundaries_parent,
+                                                                                             mortars_parent,
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             uEltype)
 
-    # Container cache
-    cache = (; elements, interfaces, boundaries, mortars)
+    cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
 
     # Add Volume-Integral cache
     cache = (; cache...,
@@ -94,6 +93,8 @@ include("dg_3d.jl")
 include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
 
+# Subcell limiters
+include("subcell_limiters.jl")
 include("subcell_limiters_2d.jl")
 include("subcell_limiters_3d.jl")
 include("dg_3d_subcell_limiters.jl")
