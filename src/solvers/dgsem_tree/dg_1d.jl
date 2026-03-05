@@ -113,8 +113,9 @@ end
 regularized_ratio(a, b; tol=10 * eps()) = a * b / (b * b + tol)
 
 function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1}, 
-                                   equations, equations_artificial_viscosity, 
-                                   boundary_conditions, source_terms::Source,
+                                   equations, equations_parabolic, equations_artificial_viscosity, 
+                                   boundary_conditions, boundary_conditions_parabolic, 
+                                   source_terms::Source,
                                    dg::DG, solver_parabolic, cache, cache_parabolic) where {Source}
 
     # Reset du
