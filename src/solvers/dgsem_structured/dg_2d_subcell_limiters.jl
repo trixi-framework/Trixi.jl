@@ -60,9 +60,11 @@
     end
 
     # FV-form flux `fhat` in x direction
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
-        fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
-        fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
+            fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -91,9 +93,11 @@
     end
 
     # FV-form flux `fhat` in y direction
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
-        fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
-        fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
+            fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+        end
     end
 
     return nothing

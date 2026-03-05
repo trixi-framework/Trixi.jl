@@ -403,7 +403,7 @@ end
 
 function prolong2interfaces!(cache, u_or_flux_viscous,
                              mesh::TreeMesh{1}, equations,
-                             dg::DG{<:GaussLegendreBasis})
+                             dg::DGSEM{<:GaussLegendreBasis})
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     @unpack boundary_interpolation = dg.basis
@@ -540,7 +540,7 @@ end
 
 function prolong2boundaries!(cache, u_or_flux_viscous,
                              mesh::TreeMesh{1}, equations,
-                             dg::DG{<:GaussLegendreBasis})
+                             dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
     @unpack boundary_interpolation = dg.basis
@@ -703,7 +703,7 @@ end
 
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DG{<:GaussLegendreBasis}, cache)
+                                dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
