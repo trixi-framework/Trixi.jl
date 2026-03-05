@@ -48,12 +48,12 @@
     end
 
     # FV-form flux `fhat` in x direction
-    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1),
-        v in eachvariable(equations)
-
-        fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
-                                  weights[i] * flux_temp[v, i, j, k]
-        fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
+    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
+                                      weights[i] * flux_temp[v, i, j, k]
+            fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -72,12 +72,12 @@
     end
 
     # FV-form flux `fhat` in y direction
-    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg),
-        v in eachvariable(equations)
-
-        fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
-                                  weights[j] * flux_temp[v, i, j, k]
-        fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
+    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
+                                      weights[j] * flux_temp[v, i, j, k]
+            fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
+        end
     end
 
     # Split form volume flux in orientation 3: z direction
@@ -96,12 +96,12 @@
     end
 
     # FV-form flux `fhat` in z direction
-    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg),
-        v in eachvariable(equations)
-
-        fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
-                                  weights[k] * flux_temp[v, i, j, k]
-        fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
+    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
+                                      weights[k] * flux_temp[v, i, j, k]
+            fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
+        end
     end
 
     return nothing
