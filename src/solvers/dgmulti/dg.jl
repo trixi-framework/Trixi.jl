@@ -700,11 +700,11 @@ function rhs!(du, u, t, mesh, equations,
     return nothing
 end
 
-function rhs_artificial_viscosity!(du, u, t, mesh, 
+function rhs_artificial_viscosity!(du, u, t, mesh,
                                    equations, equations_artificial_viscosity,
-                                   boundary_conditions::BC, 
+                                   boundary_conditions::BC,
                                    source_terms::Source,
-                                   dg::DGMulti, solver_parabolic, 
+                                   dg::DGMulti, solver_parabolic,
                                    cache, cache_parabolic) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -714,7 +714,7 @@ function rhs_artificial_viscosity!(du, u, t, mesh,
                               dg.volume_integral, dg, cache)
     end
     # @show parent(du)
-    
+
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u, mesh, equations, dg)
     end
@@ -722,19 +722,24 @@ function rhs_artificial_viscosity!(du, u, t, mesh,
     # Calculate volume entropy residual: v' * M * du + surface_integral(psi_normal)
 
     # should also be identical to "cache_parabolic.u_transformed[:, e]"
-    entropy_variables = dg.basis.Pq * cons2entropy.(cache.u_values, equations) 
+    entropy_variables = dg.basis.Pq * cons2entropy.(cache.u_values, equations)
 
     entropy_residual = zeros(real(dg), mesh.md.num_elements)
     for e in eachelement(mesh, dg, cache)
         entropy_potential_surface_integral = zero(real(dg))
         for i in each_face_node(mesh, dg, cache)
             normal = SVector(mesh.md.nx[i, e])
-            entropy_potential_surface_integral = entropy_potential_surface_integral + 
-                entropy_potential(cache.u_face_values[i, e], normal, equations) * dg.basis.wf[i]
+            entropy_potential_surface_integral = entropy_potential_surface_integral +
+                                                 entropy_potential(cache.u_face_values[i,
+                                                                                       e],
+                                                                   normal, equations) *
+                                                 dg.basis.wf[i]
         end
 
-        volume_integral_entropy_variables = sum(dot.(entropy_variables[:,e], dg.basis.M * du[:, e]))
-        entropy_residual[e] = volume_integral_entropy_variables + entropy_potential_surface_integral
+        volume_integral_entropy_variables = sum(dot.(entropy_variables[:, e],
+                                                     dg.basis.M * du[:, e]))
+        entropy_residual[e] = volume_integral_entropy_variables +
+                              entropy_potential_surface_integral
     end
 
     @trixi_timeit timer() "interface flux" begin
@@ -760,7 +765,6 @@ function rhs_artificial_viscosity!(du, u, t, mesh,
 
     # --- calculate AV coefficient by dotting `flux_viscous` and `gradients`
 
-
     # @trixi_timeit timer() "calc divergence" begin
     #     calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,
     #                      BoundaryConditionDoNothing(), dg, parabolic_scheme, cache, cache_parabolic)
@@ -774,5 +778,4 @@ function rhs_artificial_viscosity!(du, u, t, mesh,
 
     return nothing
 end
-
 end # @muladd

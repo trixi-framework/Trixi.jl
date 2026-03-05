@@ -20,7 +20,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
     p = 1.0
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-                                                          
+
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     RealT = eltype(x)
     inicenter = SVector(0.25, 0.25)
@@ -46,7 +46,7 @@ function initial_condition_daru(x, t, equations)
     v1 = zero(RealT)
     v2 = zero(RealT)
 
-    rho_rr = 120.0 
+    rho_rr = 120.0
     # rho_rr = 60.0
 
     rho = x[1] > 0.5f0 ? 1.2 : rho_rr
@@ -58,7 +58,6 @@ function initial_condition_daru(x, t, equations)
         rho = 0.5 * (1.2 + rho_rr)
     end
     p = rho / equations.gamma
-
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -105,29 +104,28 @@ dg = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed),
 #                                                  volume_flux_fv = surface_flux)           
 # dg = DGSEM(basis, surface_flux, volume_integral)
 
-
 # Create a uniformly refined mesh with periodic boundaries
 initial_refinement_level = 9
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
-                periodicity=periodicity, n_cells_max = 400_000) 
+                periodicity = periodicity, n_cells_max = 400_000)
 
 # BC types
-boundary_condition_noslip_wall = 
-    BoundaryConditionNavierStokesWall(NoSlip((x, t, equations_parabolic) -> (0.0, 0.0)), 
-                                      Adiabatic((x, t, equations_parabolic) -> 0.0))
+boundary_condition_noslip_wall = BoundaryConditionNavierStokesWall(NoSlip((x, t, equations_parabolic) -> (0.0,
+                                                                                                          0.0)),
+                                                                   Adiabatic((x, t, equations_parabolic) -> 0.0))
 
 # define inviscid boundary conditions
 boundary_conditions_hyperbolic = (; x_neg = boundary_condition_slip_wall,
-                                    x_pos = boundary_condition_slip_wall,
-                                    y_neg = boundary_condition_slip_wall,
-                                    y_pos = boundary_condition_slip_wall)
+                                  x_pos = boundary_condition_slip_wall,
+                                  y_neg = boundary_condition_slip_wall,
+                                  y_pos = boundary_condition_slip_wall)
 
 # define viscous boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_noslip_wall,
-                                   x_pos = boundary_condition_noslip_wall,
-                                   y_neg = boundary_condition_noslip_wall,
-                                   y_pos = boundary_condition_noslip_wall)
+                                 x_pos = boundary_condition_noslip_wall,
+                                 y_neg = boundary_condition_noslip_wall,
+                                 y_pos = boundary_condition_noslip_wall)
 
 # solver_parabolic = ViscousFormulationBassiRebay1()
 solver_parabolic = ViscousFormulationLocalDG()
@@ -135,27 +133,26 @@ solver_parabolic = ViscousFormulationLocalDG()
 if all(mesh.tree.periodicity .== true)
     semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic),
                                                  initial_condition, dg;
-                                                 combine_rhs=Trixi.True(),
+                                                 combine_rhs = Trixi.True(),
                                                  solver_parabolic = solver_parabolic)
     # semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
     #                                              initial_condition, dg;
     #                                              solver_parabolic = solver_parabolic)
-                                                 
+
 else
     semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic),
                                                  initial_condition, dg;
-                                                 combine_rhs=Trixi.True(),
+                                                 combine_rhs = Trixi.True(),
                                                  solver_parabolic = solver_parabolic,
-                                                 boundary_conditions = (boundary_conditions_hyperbolic, 
+                                                 boundary_conditions = (boundary_conditions_hyperbolic,
                                                                         boundary_conditions_parabolic))
 
-#     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-#                                                 initial_condition, dg;
-#                                                 solver_parabolic = solver_parabolic,
-#                                                 boundary_conditions = (boundary_conditions_hyperbolic, 
-#                                                                         boundary_conditions_parabolic))
+    #     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+    #                                                 initial_condition, dg;
+    #                                                 solver_parabolic = solver_parabolic,
+    #                                                 boundary_conditions = (boundary_conditions_hyperbolic, 
+    #                                                                         boundary_conditions_parabolic))
 end
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -190,17 +187,19 @@ using Plots
 # plot(PlotData2D(sol)["rho"])
 
 u = Trixi.wrap_array(sol.u[end], semi)
-T = [Trixi.temperature(get_node_vars(u, equations, dg, i, j, elements), equations_parabolic) 
+T = [Trixi.temperature(get_node_vars(u, equations, dg, i, j, elements),
+                       equations_parabolic)
      for i in eachnode(dg), j in eachnode(dg), elements in eachelement(dg, semi.cache)]
 plot(ScalarPlotData2D(T, semi))
-plot!(clims=(0.4, 1.2))
-plot!(xlims=(0.4, 1.0), ylims=(0, 0.25))
+plot!(clims = (0.4, 1.2))
+plot!(xlims = (0.4, 1.0), ylims = (0, 0.25))
 
 ECAV_coefficient = [semi.cache.artificial_viscosity.coefficients[elements]
-                  for i in eachnode(dg), j in eachnode(dg), elements in eachelement(dg, semi.cache)]
+                    for i in eachnode(dg), j in eachnode(dg),
+                        elements in eachelement(dg, semi.cache)]
 plot(ScalarPlotData2D(ECAV_coefficient, semi))
-plot!(clims=(0, 5e-6))
-plot!(xlims=(0.4, 1.0), ylims=(0, 0.25))
+plot!(clims = (0, 5e-6))
+plot!(xlims = (0.4, 1.0), ylims = (0, 0.25))
 # plot!(getmesh(PlotData2D(sol)))
 
 # using JLD2

@@ -140,9 +140,10 @@ include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 
-abstract type AbstractArtificialViscosity end 
+abstract type AbstractArtificialViscosity end
 
-struct EntropyCorrectionArtificialViscosity{EquationsArtificialViscosity} <: AbstractArtificialViscosity
+struct EntropyCorrectionArtificialViscosity{EquationsArtificialViscosity} <:
+       AbstractArtificialViscosity
     equations_artificial_viscosity::EquationsArtificialViscosity
 end
 

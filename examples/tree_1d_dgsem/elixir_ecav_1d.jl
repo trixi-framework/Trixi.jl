@@ -10,7 +10,7 @@ mu() = 1e-2
 equations = CompressibleEulerEquations1D(1.4)
 gradient_variables = GradientVariablesEntropy()
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations; mu = mu(),
-                                                          Prandtl = prandtl_number(), 
+                                                          Prandtl = prandtl_number(),
                                                           gradient_variables)
 
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
@@ -106,16 +106,15 @@ function initial_condition_test(x, t, equations)
     v1 = 0.0
     p = rho^equations.gamma
 
-    rho = x[1] > 0.f0 ? 1.2 : 120.0
-    p = x[1] > 0.f0 ? 1.2 / equations.gamma : 120.0 / equations.gamma
-
+    rho = x[1] > 0.0f0 ? 1.2 : 120.0
+    p = x[1] > 0.0f0 ? 1.2 / equations.gamma : 120.0 / equations.gamma
 
     return prim2cons(SVector(rho, v1, p), equations)
 end
 initial_condition = initial_condition_test #initial_condition_weak_blast_wave
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-            #    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+               #    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
                volume_integral = VolumeIntegralWeakForm())
 
 coordinates_min = -1.0
@@ -160,7 +159,8 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 time_int_tol = 1e-7
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+            dt = time_int_tol,
             ode_default_options()..., callback = callbacks)
 using Plots
 plot(sol[end], semi)

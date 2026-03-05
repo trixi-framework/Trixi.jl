@@ -110,13 +110,15 @@ function rhs!(du, u, t,
     return nothing
 end
 
-regularized_ratio(a, b; tol=10 * eps()) = a * b / (b * b + tol)
+regularized_ratio(a, b; tol = 10 * eps()) = a * b / (b * b + tol)
 
-function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1}, 
-                                   equations, equations_parabolic, equations_artificial_viscosity, 
-                                   boundary_conditions, boundary_conditions_parabolic, 
+function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
+                                   equations, equations_parabolic,
+                                   equations_artificial_viscosity,
+                                   boundary_conditions, boundary_conditions_parabolic,
                                    source_terms::Source,
-                                   dg::DG, solver_parabolic, cache, cache_parabolic) where {Source}
+                                   dg::DG, solver_parabolic, cache,
+                                   cache_parabolic) where {Source}
 
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -137,17 +139,20 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
             du_node = get_node_vars(du, equations, dg, i, element)
-            volume_integral_du_entropy = volume_integral_du_entropy + 
-                dot(cons2entropy(u_node, equations), du_node) * dg.basis.weights[i] 
+            volume_integral_du_entropy = volume_integral_du_entropy +
+                                         dot(cons2entropy(u_node, equations), du_node) *
+                                         dg.basis.weights[i]
         end
-        
+
         # calculate surface integral
         u_left = get_node_vars(u, equations, dg, 1, element)
         u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
-        surface_integral_entropy_potential = 
-            entropy_potential(u_right, SVector(1.0), equations) + 
-            entropy_potential(u_left, SVector(-1.0), equations)
-        entropy_residual[element] = volume_integral_du_entropy + surface_integral_entropy_potential
+        surface_integral_entropy_potential = entropy_potential(u_right, SVector(1.0),
+                                                               equations) +
+                                             entropy_potential(u_left, SVector(-1.0),
+                                                               equations)
+        entropy_residual[element] = volume_integral_du_entropy +
+                                    surface_integral_entropy_potential
     end
 
     # Prolong solution to interfaces
@@ -201,23 +206,27 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
 
             flux_viscous_node = get_node_vars(flux_viscous, equations, dg, i, element)
             gradients_node = get_node_vars(gradients, equations, dg, i, element)
-            element_viscous_dissipation = element_viscous_dissipation + 
-                dot(flux_viscous_node, gradients_node) * dg.basis.weights[i] * volume_jacobian_
+            element_viscous_dissipation = element_viscous_dissipation +
+                                          dot(flux_viscous_node, gradients_node) *
+                                          dg.basis.weights[i] * volume_jacobian_
         end
 
         # Scale viscous flux by ecav coefficient. 
         # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we 
         # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl. 
-        ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]), element_viscous_dissipation)
+        ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
+                                             element_viscous_dissipation)
         for i in eachnode(dg)
             flux_viscous_node = get_node_vars(flux_viscous, equations, dg, i, element)
-            set_node_vars!(flux_viscous, ecav_coefficient * flux_viscous_node, equations, dg, i, element)
+            set_node_vars!(flux_viscous, ecav_coefficient * flux_viscous_node,
+                           equations, dg, i, element)
         end
     end
 
-    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh, 
-                                                             equations_artificial_viscosity, 
-                                                             BoundaryConditionDoNothing(), dg, 
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
+                                                             equations_artificial_viscosity,
+                                                             BoundaryConditionDoNothing(),
+                                                             dg,
                                                              solver_parabolic, cache, t)
 
     # Apply Jacobian from mapping to reference element

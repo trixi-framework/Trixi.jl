@@ -69,9 +69,11 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
-    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh, 
-                                                             equations_parabolic, boundary_conditions_parabolic, 
-                                                             dg, parabolic_scheme, cache, t)
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
+                                                             equations_parabolic,
+                                                             boundary_conditions_parabolic,
+                                                             dg, parabolic_scheme,
+                                                             cache, t)
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
@@ -81,9 +83,9 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     return nothing
 end
 
-function calc_divergence!(du, flux_viscous, u, mesh::TreeMesh{1}, equations_parabolic, 
+function calc_divergence!(du, flux_viscous, u, mesh::TreeMesh{1}, equations_parabolic,
                           boundary_conditions_parabolic, dg, parabolic_scheme, cache, t)
-        # Calculate volume integral
+    # Calculate volume integral
     # This calls the specialized version for the viscous flux.
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
@@ -124,7 +126,6 @@ function calc_divergence!(du, flux_viscous, u, mesh::TreeMesh{1}, equations_para
         calc_surface_integral!(du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
     end
-
 end
 
 # Transform solution variables prior to taking the gradient
@@ -228,7 +229,8 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
 end
 
 function calc_gradient_boundary_flux!(cache, t,
-                                      boundary_conditions_parabolic::Union{BoundaryConditionPeriodic, BoundaryConditionDoNothing},
+                                      boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                           BoundaryConditionDoNothing},
                                       mesh::TreeMesh{1},
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
@@ -236,7 +238,8 @@ function calc_gradient_boundary_flux!(cache, t,
 end
 
 function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::Union{BoundaryConditionPeriodic, BoundaryConditionDoNothing},
+                                        boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                             BoundaryConditionDoNothing},
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)

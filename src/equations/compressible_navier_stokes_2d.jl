@@ -401,7 +401,7 @@ end
     normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
 
     # first term is zero due to the mass equation having no dissipation
-    return SVector(0, flux_inner[2], flux_inner[3], normal_energy_flux) 
+    return SVector(0, flux_inner[2], flux_inner[3], normal_energy_flux)
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
