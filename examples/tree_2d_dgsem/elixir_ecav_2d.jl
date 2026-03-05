@@ -107,8 +107,9 @@ dg = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed),
 
 
 # Create a uniformly refined mesh with periodic boundaries
+initial_refinement_level = 9
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 9,
+                initial_refinement_level = initial_refinement_level,
                 periodicity=periodicity, n_cells_max = 400_000) 
 
 # BC types
@@ -128,7 +129,7 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_noslip_wall,
                                    y_neg = boundary_condition_noslip_wall,
                                    y_pos = boundary_condition_noslip_wall)
 
-solver_parabolic = ViscousFormulationBassiRebay1()
+# solver_parabolic = ViscousFormulationBassiRebay1()
 solver_parabolic = ViscousFormulationLocalDG()
 
 if all(mesh.tree.periodicity .== true)
@@ -162,20 +163,12 @@ end
 # Create ODE problem with time span `tspan`
 ode = semidiscretize(semi, tspan)
 
-# amr_controller = ControllerThreeLevel(semi, IndicatorLöhner(semi, variable = v1),
-#                                       base_level = 3,
-#                                       med_level = 5, med_threshold = 0.2,
-#                                       max_level = 7, max_threshold = 0.5)
-# amr_callback = AMRCallback(semi, amr_controller,
-#                            interval = 50,
-#                            adapt_initial_condition = true,
-#                            adapt_initial_condition_only_refine = true)
-
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 100)
-analysis_interval = 1000
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback) #, amr_callback)
+callbacks = CallbackSet(summary_callback, alive_callback)
+# analysis_interval = 1000
+# analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+# callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback) #, amr_callback)
 
 ###############################################################################
 # run the simulation
@@ -188,8 +181,13 @@ solver = SSPRK43()
 sol = solve(ode, solver; abstol = 1e-6, reltol = 1e-4, # dt = 1e-8,
             ode_default_options()..., callback = callbacks)
 
+using JLD2
+#@save "DaruTenaudRe1000_polydeg_3_elements_512.jld2" sol
+#@save "DaruTenaudRe1000_polydeg_$(Trixi.polydeg(dg.basis))_elements_$(2^initial_refinement_level).jld2" sol
+# @save "DaruTenaudRe1000_polydeg_$(Trixi.polydeg(dg.basis))_elements_$(2^initial_refinement_level)_shock_capturing_amax_p5.jld2" sol
+
 using Plots
-plot(PlotData2D(sol)["rho"])
+# plot(PlotData2D(sol)["rho"])
 
 u = Trixi.wrap_array(sol.u[end], semi)
 T = [Trixi.temperature(get_node_vars(u, equations, dg, i, j, elements), equations_parabolic) 
