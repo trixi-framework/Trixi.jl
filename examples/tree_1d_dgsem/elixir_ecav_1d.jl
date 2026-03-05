@@ -135,11 +135,6 @@ semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabol
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
-u = copy(ode.u0)
-du = similar(u)
-Trixi.rhs_parabolic!(du, u, semi, 0)
-Trixi.rhs!(du, u, semi, 0)
-
 summary_callback = SummaryCallback()
 
 analysis_interval = 1000
