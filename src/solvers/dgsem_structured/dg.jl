@@ -30,18 +30,66 @@ end
 end
 
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
-function prolong2boundaries!(cache, u, mesh::Union{StructuredMesh, StructuredMeshView},
-                             equations, dg::DG)
-    # Boundary face values are already stored in `cache.elements.interfaces_u`
-    # by `prolong2interfaces!`, so nothing to do here.
-    return nothing
-end
-
-# Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
+
+    return nothing
+end
+
+function rhs!(du, u, t,
+              mesh::Union{TreeMesh{1},
+                          StructuredMesh, StructuredMeshView{2},
+                          UnstructuredMesh2D},
+              equations,
+              boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
+    # Reset du
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
+
+    # Calculate volume integral
+    @trixi_timeit timer() "volume integral" begin
+        calc_volume_integral!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    # Prolong solution to interfaces
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, u, mesh, equations, dg)
+    end
+
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values 
+    # are stored in the interface datastructure (`interfaces_u`),
+    # so we can directly calculate the boundary fluxes without prolongation.
+
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Calculate surface integrals
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral!(du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+
+    # Calculate source terms
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+    end
 
     return nothing
 end
@@ -85,7 +133,7 @@ end
                                                   direction, node_indices,
                                                   surface_node_indices, element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
-    interfaces_u = cache.elements
+    interfaces_u = cache.elements # Boundary values are for `StructuredMesh` stored in the interface datastructure
     @unpack surface_flux = surface_integral
 
     u_inner = get_node_vars(interfaces_u, equations, dg, surface_node_indices...,
@@ -127,7 +175,7 @@ end
                                                   direction, node_indices,
                                                   surface_node_indices, element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
-    interfaces_u = cache.elements
+    interfaces_u = cache.elements # Boundary values are for `StructuredMesh` stored in the interface datastructure
     @unpack surface_flux = surface_integral
 
     u_inner = get_node_vars(interfaces_u, equations, dg, surface_node_indices...,

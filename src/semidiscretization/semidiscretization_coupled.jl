@@ -657,7 +657,7 @@ end
                                                   direction, node_indices,
                                                   surface_node_indices, element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
-    interfaces_u = cache.elements
+    interfaces_u = cache.elements # Boundary values are for `StructuredMesh` stored in the interface datastructure
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
@@ -699,7 +699,7 @@ end
                                                   direction, node_indices,
                                                   surface_node_indices, element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
-    interfaces_u = cache.elements
+    interfaces_u = cache.elements # Boundary values are for `StructuredMesh` stored in the interface datastructure
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
