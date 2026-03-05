@@ -675,32 +675,4 @@ end
 
     return nothing
 end
-
-"""
-    get_boundary_outer_state(u_inner, t,
-                             boundary_condition::BoundaryConditionDirichlet,
-                             orientation_or_normal, direction,
-                             mesh, equations, dg, cache, indices...)
-For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
-outer state. This function returns the boundary value  for [`BoundaryConditionDirichlet`](@ref) at
-time `t` and for node with spatial indices `indices` at the boundary with `orientation_or_normal`
-and `direction`.
-
-Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-@inline function get_boundary_outer_state(u_inner, t,
-                                          boundary_condition::BoundaryConditionDirichlet,
-                                          orientation_or_normal, direction,
-                                          mesh::Union{TreeMesh, StructuredMesh},
-                                          equations, dg, cache, indices...)
-    (; node_coordinates) = cache.elements
-
-    x = get_node_coords(node_coordinates, equations, dg, indices...)
-    u_outer = boundary_condition.boundary_value_function(x, t, equations)
-
-    return u_outer
-end
 end # @muladd
