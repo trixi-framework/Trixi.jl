@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::P4estMesh{3},
+function create_cache(mesh::Union{TreeMesh{3}, P4estMesh{3}},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
                       dg::DG, cache_containers, uEltype)
     cache = create_cache(mesh, equations,
@@ -61,7 +61,7 @@ end
 
 # Subcell limiting currently only implemented for certain mesh types
 @inline function volume_integral_kernel!(du, u, element,
-                                         mesh::P4estMesh{3},
+                                         mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                          nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
@@ -171,12 +171,12 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1),
-        v in eachvariable(equations)
-
-        fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
-                                  weights[i] * flux_temp[v, i, j, k]
-        fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
+    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
+                                      weights[i] * flux_temp[v, i, j, k]
+            fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -206,12 +206,12 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg),
-        v in eachvariable(equations)
-
-        fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
-                                  weights[j] * flux_temp[v, i, j, k]
-        fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
+    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
+                                      weights[j] * flux_temp[v, i, j, k]
+            fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
+        end
     end
 
     # Split form volume flux in orientation 3: z direction
@@ -241,12 +241,12 @@ end
     end
 
     # FV-form flux `fhat` in z direction
-    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg),
-        v in eachvariable(equations)
-
-        fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
-                                  weights[k] * flux_temp[v, i, j, k]
-        fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
+    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
+                                      weights[k] * flux_temp[v, i, j, k]
+            fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
+        end
     end
 
     return nothing
@@ -551,7 +551,7 @@ end
                                          fstar1_L, fstar1_R,
                                          fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
-                                         u, mesh::P4estMesh{3},
+                                         u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
@@ -602,7 +602,7 @@ end
                                          fstar1_L, fstar1_R,
                                          fstar2_L, fstar2_R,
                                          fstar3_L, fstar3_R,
-                                         u, mesh::P4estMesh{3},
+                                         u, mesh::Union{TreeMesh{3}, P4estMesh{3}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
