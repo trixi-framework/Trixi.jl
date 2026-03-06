@@ -470,6 +470,40 @@ function calc_surface_integral_gradient!(gradients,
     return nothing
 end
 
+function calc_surface_integral_gradient!(gradients,
+                                         mesh::TreeMesh{1}, # for dispatch only
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM{<:GaussLegendreBasis}, cache)
+    @unpack boundary_interpolation_inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    @threaded for element in eachelement(dg, cache)
+        for v in eachvariable(equations_parabolic)
+            # Aliases for repeatedly accessed variables
+            surface_flux_minus = surface_flux_values[v, 1, element]
+            surface_flux_plus = surface_flux_values[v, 2, element]
+            for ii in eachnode(dg)
+                # surface at -x
+                gradients[v, ii, element] = (gradients[v, ii, element] -
+                                             surface_flux_minus *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    1])
+
+                # surface at +x
+                gradients[v, ii, element] = (gradients[v, ii, element] +
+                                             surface_flux_plus *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    2])
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
