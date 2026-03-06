@@ -25,6 +25,7 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
     parent_cell_ids::Vector{Int}
+    element_offset::Vector{Int}
     view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
 end
@@ -54,6 +55,7 @@ function SemidiscretizationCoupledP4est(semis...)
     # Create correspondence between parent mesh cell IDs and view cell IDs.
     parent_cell_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
     view_cell_ids = zeros(Int, length(parent_cell_ids))
+    element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, length(parent_cell_ids))
     for i in eachindex(semis)
         view_cell_ids[semis[i].mesh.cell_ids] = parent_cell_id_to_view(parent_cell_ids[semis[i].mesh.cell_ids],
@@ -68,6 +70,7 @@ function SemidiscretizationCoupledP4est(semis...)
                                                                 performance_counter,
                                                                 parent_cell_ids,
                                                                 view_cell_ids,
+                                                                element_offset,  
                                                                 mesh_ids)
 end
 
@@ -163,28 +166,23 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    n_nodes = length(semi.semis[1].mesh.parent.nodes)
-    # Reformat the parent solutions vector.
-    u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
-    u_ode_reformatted_reshape = reshape(u_ode_reformatted,
-                                        (n_nodes,
-                                         n_nodes,
-                                         length(semi.mesh_ids)))
-    # Extract the parent solution vector from the local solutions.
+    # Update all BoundaryConditionCoupledP4est instances with the current solution
+    # and semidiscretization reference so they can look up neighbor states.
     foreach_enumerate(semi.semis) do (i, semi_)
-        system_ode = get_system_u_ode(u_ode, i, semi)
-        system_ode_reshape = reshape(system_ode,
-                                     (n_nodes, n_nodes,
-                                      Int(length(system_ode) /
-                                          n_nodes^ndims(semi_.mesh))))
-        u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
+        for bc in semi_.boundary_conditions.boundary_condition_types
+            if bc isa BoundaryConditionCoupledP4est
+                bc.semi_coupled = semi
+                bc.u_ode = u_ode
+            end
+        end
     end
 
-    # Call rhs! for each semidiscretization
+    # Call rhs! for each semidiscretization.
+    # u_ode is passed as u_parent but the coupled BCs read from their stored fields.
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
+        rhs!(du_loc, u_loc, u_ode, semi, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -333,6 +331,86 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     return dt
 end
 
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
+                                glm_speed_callback, dt, t)
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+
+    if length(semi_indices) == 0
+        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+    end
+
+    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
+    for (semi_index, semi) in enumerate(semi_coupled.semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
+            !(semi_index in semi_indices))
+            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
+    end
+
+    if cfl isa Real # Case for constant CFL
+        cfl_number = cfl
+    else # Variable CFL
+        cfl_number = cfl(t)
+    end
+
+    for semi_index in semi_indices
+        semi = semi_coupled.semis[semi_index]
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+        # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+                                                mesh, equations, solver, cache)
+
+        # c_h is proportional to its own time step divided by the complete MHD time step
+        # We use @reset here since the equations are immutable (to work on GPUs etc.).
+        # Thus, we need to modify the equations field of the semidiscretization.
+        @reset equations.c_h = glm_scale * c_h_deltat / dt
+        semi.equations = equations
+    end
+
+    return semi_coupled
+end
+
+################################################################################
+### Equations
+################################################################################
+
+"""
+    BoundaryConditionCoupled(other_semi_index, indices, uEltype, coupling_converter)
+
+Boundary condition to glue two meshes together. Solution values at the boundary
+of another mesh will be used as boundary values. This requires the use
+of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
+which is the index of the mesh in the tuple of semidiscretizations.
+
+Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
+This is currently only implemented for [`StructuredMesh`](@ref).
+
+# Arguments
+- `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
+                      from which the values are copied
+- `indices::Tuple`: node/cell indices at the boundary of the mesh in the other
+                    semidiscretization. See examples below.
+- `uEltype::Type`: element type of solution
+- `coupling_converter::CouplingConverter`: function to call for converting the solution
+                                           state of one system to the other system
+
+# Examples
+```julia
+# Connect the left boundary of mesh 2 to our boundary such that our positive
+# boundary direction will match the positive y direction of the other boundary
+BoundaryConditionCoupled(2, (:begin, :i), Float64, fun)
+
+# Connect the same two boundaries oppositely oriented
+BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64, fun)
+
+# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
+BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
+```
+
+!!! warning "Experimental code"
+    This is an experimental feature and can change any time.
+"""
 ################################################################################
 ### Boundary conditions
 ################################################################################
@@ -348,9 +426,12 @@ Boundary condition struct where the user can specify the coupling converter func
 """
 mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     coupling_converter::CouplingConverter
+    # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
+    semi_coupled::Any
+    u_ode::Any
 
     function BoundaryConditionCoupledP4est(coupling_converter)
-        new{typeof(coupling_converter)}(coupling_converter)
+        new{typeof(coupling_converter)}(coupling_converter, nothing, nothing)
     end
 end
 
@@ -413,17 +494,34 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
-    # Perform integer division to get the right shape of the array.
-    u_parent_reshape = reshape(u_ode_coupled,
-                               (n_nodes, n_nodes,
-                                length(u_ode_coupled) ÷ n_nodes^ndims(mesh.parent)))
-    u_boundary = SVector(u_parent_reshape[i_index_g, j_index_g, cell_index_parent])
+    # Look up the neighbor element's state from the stored coupled solution.
+    semi_coupled = boundary_condition.semi_coupled
+    u_ode = boundary_condition.u_ode
+    idx_other = semi_coupled.mesh_ids[cell_index_parent]
+    semi_other = semi_coupled.semis[idx_other]
+    local_elem = semi_coupled.view_cell_ids[cell_index_parent]
 
-    # u_boundary = u_inner
+    u_loc_other = get_system_u_ode(u_ode, idx_other, semi_coupled)
+    u_other = wrap_array(u_loc_other, semi_other.mesh, semi_other.equations,
+                         semi_other.solver, semi_other.cache)
+    u_boundary_raw = get_node_vars(u_other, semi_other.equations, semi_other.solver,
+                                   i_index_g, j_index_g, local_elem)
+
+    # Apply coupling converter to transform from neighbor's equations to ours.
+    x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
+    u_boundary = boundary_condition.coupling_converter(x, u_boundary_raw,
+                                                       semi_other.equations, equations)
+
     orientation = normal_direction
 
     # Calculate boundary flux
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    if have_nonconservative_terms(equations) == true
+        flux = (surface_flux_function[1](u_inner, u_boundary, orientation, equations) +
+                0.5f0 *
+                surface_flux_function[2](u_inner, u_boundary, orientation, equations))
+    else
+        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    end
 
     return flux
 end

@@ -39,6 +39,8 @@ end
 NDIMS_AMBIENT,
 RealT} = RealT
 
+@inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
+
 # Extract interfaces, boundaries and parent element ids from the neighbors.
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
@@ -300,8 +302,11 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    filename = joinpath(output_directory, "mesh.h5")
-    p4est_filename = "p4est_data"
+    # Determine file name based on existence of meaningful time step
+    filename = joinpath(output_directory,
+                        @sprintf("mesh_%s_%09d.h5", system, timestep))
+    p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
+
     p4est_file = joinpath(output_directory, p4est_filename)
 
     # Save the complete connectivity and `p4est` data to disk.
