@@ -30,6 +30,43 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
     return nothing
 end
 
+function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
+                              nonconservative_terms, # can be True/False
+                              equations, surface_integral, dg::DG{<:GaussLegendreBasis})
+    @unpack surface_flux = surface_integral
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for element in eachelement(dg, cache)
+        left_element = cache.elements.left_neighbors[1, element]
+        # => `element` is the right element of the interface
+
+        if left_element > 0 # left_element = 0 at boundaries
+            # Interpolate to left element's right boundary
+            u_ll = zero(get_node_vars(u, equations, dg, 1, left_element))
+            for i in eachnode(dg)
+                u_node = get_node_vars(u, equations, dg, i, left_element)
+                u_ll = u_ll .+ boundary_interpolation[i, 2] .* u_node
+            end
+
+            # Interpolate to right element's left boundary
+            u_rr = zero(get_node_vars(u, equations, dg, 1, element))
+            for i in eachnode(dg)
+                u_node = get_node_vars(u, equations, dg, i, element)
+                u_rr = u_rr .+ boundary_interpolation[i, 1] .* u_node
+            end
+
+            f1 = surface_flux(u_ll, u_rr, 1, equations)
+
+            for v in eachvariable(equations)
+                cache.elements.surface_flux_values[v, 2, left_element] = f1[v]
+                cache.elements.surface_flux_values[v, 1, element] = f1[v]
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
