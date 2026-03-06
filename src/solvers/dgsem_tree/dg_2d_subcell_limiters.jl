@@ -24,7 +24,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                                  nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
 
-    antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
+    n_elements = nelements(cache_containers.elements)
+    antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(n_elements,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
@@ -150,9 +151,11 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
-        fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
-        fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
+            fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -171,9 +174,11 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
-        fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
-        fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
+            fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+        end
     end
 
     return nothing

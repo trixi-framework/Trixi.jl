@@ -74,7 +74,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     @trixi_testset "elixir_advection_restart_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_restart_amr.jl"),
-                            l2=[8.018498574373939e-5],
+                            l2=[8.018497923389368e-5],
                             linf=[0.0007307237754662355])
     end
 

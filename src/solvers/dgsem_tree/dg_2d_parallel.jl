@@ -253,7 +253,7 @@ function create_cache(mesh::TreeMeshParallel{2}, equations,
 
     mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
