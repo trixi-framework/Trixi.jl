@@ -166,73 +166,23 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    n_nodes = length(semi.semis[1].mesh.parent.nodes)
-
-    # Reformat the parent solutions vector.
-    u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
-    u_ode_reformatted_reshape = reshape(u_ode_reformatted,
-                                        (n_nodes,
-                                         n_nodes,
-                                         length(semi.mesh_ids)))
-    # Extract the parent solution vector from the local solutions.
+    # Update all BoundaryConditionCoupledP4est instances with the current solution
+    # and semidiscretization reference so they can look up neighbor states.
     foreach_enumerate(semi.semis) do (i, semi_)
-        system_ode = get_system_u_ode(u_ode, i, semi)
-        system_ode_reshape = reshape(system_ode,
-                                     (n_nodes, n_nodes,
-                                      Int(length(system_ode) /
-                                          n_nodes^ndims(semi_.mesh))))
-        u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
-    
-    # Determine how many ndofs*nvariables we have in the global solutions array.
-    global ndofs_nvars_global = 0
-    foreach_enumerate(semi.semis) do (i, semi_)
-        global ndofs_nvars_global
-        ndofs_nvars_global += nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
+        for bc in semi_.boundary_conditions.boundary_condition_types
+            if bc isa BoundaryConditionCoupledP4est
+                bc.semi_coupled = semi
+                bc.u_ode = u_ode
+            end
+        end
     end
 
-    # Determine the element index offset for the global solutions array.
-    for i in 2:nsystems(semi)
-        semi.element_offset[i] = semi.element_offset[i - 1] +
-                                 n_nodes^2 * nvariables(semi.semis[i - 1]) *
-                                 length(semi.semis[i - 1].mesh.cell_ids)
-    end
-
-    
-#    # Create the global solution vector.
-#    u_global = Vector{real(semi)}(undef, ndofs_nvars_global * n_nodes^2)
-
- #   # Extract the global solution vector from the local solutions.
- #   foreach_enumerate(semi.semis) do (i, semi_)
- #       u_loc = get_system_u_ode(u_ode, i, semi)
- #       u_loc_reshape = reshape(u_loc,
- #                               (nvariables(semi_.equations),
- #                                n_nodes, n_nodes,
- #                                Int(length(u_loc) /
- #                                    (n_nodes^2 * nvariables(semi_.equations)))))
- #       for i_node in 1:n_nodes, j_node in 1:n_nodes,
- #           element in 1:Int(ndofs(semi) / n_nodes^2)
-
-  #          if element in semi_.mesh.cell_ids
-  #              for var in 1:nvariables(semi_.equations)
-  #                  u_global[semi.element_offset[i] +
-  #                  (var - 1) +
-  #                  nvariables(semi_.equations) * (i_node - 1) +
-  #                  nvariables(semi_.equations) * n_nodes * (j_node - 1) +
-  #                  nvariables(semi_.equations) * n_nodes^2 * (global_element_id_to_local(element, semi_.mesh) - 1)] = u_loc_reshape[var,
-  #                                                                                                                                   i_node,
-  #                                                                                                                                   j_node,
-  #                                                                                                                                   global_element_id_to_local(element,
-  #                                                                                                                                                              semi_.mesh)]
-  #              end
-  #          end
-  #      end
-  #  end
-
-    # Call rhs! for each semidiscretization
+    # Call rhs! for each semidiscretization.
+    # u_ode is passed as u_parent but the coupled BCs read from their stored fields.
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
+        rhs!(du_loc, u_loc, u_ode, semi, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -460,6 +410,7 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
+"""
 ################################################################################
 ### Boundary conditions
 ################################################################################
@@ -475,9 +426,12 @@ Boundary condition struct where the user can specify the coupling converter func
 """
 mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     coupling_converter::CouplingConverter
+    # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
+    semi_coupled::Any
+    u_ode::Any
 
     function BoundaryConditionCoupledP4est(coupling_converter)
-        new{typeof(coupling_converter)}(coupling_converter)
+        new{typeof(coupling_converter)}(coupling_converter, nothing, nothing)
     end
 end
 
@@ -540,17 +494,34 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
-    # Perform integer division to get the right shape of the array.
-    u_parent_reshape = reshape(u_ode_coupled,
-                               (n_nodes, n_nodes,
-                                length(u_ode_coupled) ÷ n_nodes^ndims(mesh.parent)))
-    u_boundary = SVector(u_parent_reshape[i_index_g, j_index_g, cell_index_parent])
+    # Look up the neighbor element's state from the stored coupled solution.
+    semi_coupled = boundary_condition.semi_coupled
+    u_ode = boundary_condition.u_ode
+    idx_other = semi_coupled.mesh_ids[cell_index_parent]
+    semi_other = semi_coupled.semis[idx_other]
+    local_elem = semi_coupled.view_cell_ids[cell_index_parent]
 
-    # u_boundary = u_inner
+    u_loc_other = get_system_u_ode(u_ode, idx_other, semi_coupled)
+    u_other = wrap_array(u_loc_other, semi_other.mesh, semi_other.equations,
+                         semi_other.solver, semi_other.cache)
+    u_boundary_raw = get_node_vars(u_other, semi_other.equations, semi_other.solver,
+                                   i_index_g, j_index_g, local_elem)
+
+    # Apply coupling converter to transform from neighbor's equations to ours.
+    x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
+    u_boundary = boundary_condition.coupling_converter(x, u_boundary_raw,
+                                                       semi_other.equations, equations)
+
     orientation = normal_direction
 
     # Calculate boundary flux
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    if have_nonconservative_terms(equations) == true
+        flux = (surface_flux_function[1](u_inner, u_boundary, orientation, equations) +
+                0.5f0 *
+                surface_flux_function[2](u_inner, u_boundary, orientation, equations))
+    else
+        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    end
 
     return flux
 end
