@@ -499,10 +499,10 @@ end
                                                         semi_tree.equations)
             ref_prim = cons2prim(ref_cons, semi_tree.equations)
 
-            @test all(x -> isapprox(x, ref_prim[1], atol = 1.0e-5), pd.data[1]) # rho
-            @test all(x -> isapprox(x, ref_prim[2], atol = 1.0e-5), pd.data[2]) # v1
-            @test all(x -> isapprox(x, ref_prim[3], atol = 1.0e-5), pd.data[3]) # v2
-            @test all(x -> isapprox(x, ref_prim[4], atol = 1.0e-5), pd.data[4]) # p
+            @test all(x -> isapprox(x, ref_prim[1]), pd.data[1]) # rho
+            @test all(x -> isapprox(x, ref_prim[2]), pd.data[2]) # v1
+            @test all(x -> isapprox(x, ref_prim[3]), pd.data[3]) # v2
+            @test all(x -> isapprox(x, ref_prim[4]), pd.data[4]) # p
         end
 
         @testset "StructuredMesh" begin
@@ -516,10 +516,10 @@ end
                                                         semi_struct.equations)
             ref_prim = cons2prim(ref_cons, semi_struct.equations)
 
-            @test all(val -> isapprox(val[1], ref_prim[1], atol = 1.0e-5), pd.data) # rho
-            @test all(val -> isapprox(val[2], ref_prim[2], atol = 1.0e-5), pd.data) # v1
-            @test all(val -> isapprox(val[3], ref_prim[3], atol = 1.0e-5), pd.data) # v2
-            @test all(val -> isapprox(val[4], ref_prim[4], atol = 1.0e-5), pd.data) # p
+            @test all(val -> isapprox(val[1], ref_prim[1]), pd.data) # rho
+            @test all(val -> isapprox(val[2], ref_prim[2]), pd.data) # v1
+            @test all(val -> isapprox(val[3], ref_prim[3]), pd.data) # v2
+            @test all(val -> isapprox(val[4], ref_prim[4]), pd.data) # p
         end
 
         @testset "P4estMesh" begin
@@ -532,10 +532,10 @@ end
                                                         semi_p4est.equations)
             ref_prim = cons2prim(ref_cons, semi_p4est.equations)
 
-            @test all(val -> isapprox(val[1], ref_prim[1], atol = 1.0e-5), pd.data) # rho
-            @test all(val -> isapprox(val[2], ref_prim[2], atol = 1.0e-5), pd.data) # v1
-            @test all(val -> isapprox(val[3], ref_prim[3], atol = 1.0e-5), pd.data) # v2
-            @test all(val -> isapprox(val[4], ref_prim[4], atol = 1.0e-5), pd.data) # p
+            @test all(val -> isapprox(val[1], ref_prim[1]), pd.data) # rho
+            @test all(val -> isapprox(val[2], ref_prim[2]), pd.data) # v1
+            @test all(val -> isapprox(val[3], ref_prim[3]), pd.data) # v2
+            @test all(val -> isapprox(val[4], ref_prim[4]), pd.data) # p
         end
     end
 
@@ -561,7 +561,7 @@ end
             # Note that PlotData2D for TreeMesh uses a different algorithm that interpolates
             # the solution onto a uniform Cartesian grid. This is less accurate than the
             # exact nodal evaluations above, so we need to use a larger tolerance.
-            @test max_error < 1.5
+            @test max_error < 1.05
         end
 
         @testset "StructuredMesh" begin
@@ -581,7 +581,7 @@ end
                 current_error = maximum(abs.(pd.data[i] - prim_exact))
                 max_error = max(max_error, current_error)
             end
-            @test max_error < 1.0e-2
+            @test max_error < 1.0e-5
         end
 
         @testset "P4estMesh" begin
@@ -600,7 +600,7 @@ end
                 current_error = maximum(abs.(pd.data[i] - prim_exact))
                 max_error = max(max_error, current_error)
             end
-            @test max_error < 1.0e-2
+            @test max_error < 1.0e-5
         end
     end
 end
