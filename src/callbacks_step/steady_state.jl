@@ -20,8 +20,8 @@ function SteadyStateCallback(; abstol = 1.0e-8, reltol = 1.0e-6)
     abstol, reltol = promote(abstol, reltol)
     steady_state_callback = SteadyStateCallback(abstol, reltol)
 
-    DiscreteCallback(steady_state_callback, steady_state_callback,
-                     save_positions = (false, false))
+    return DiscreteCallback(steady_state_callback, steady_state_callback,
+                            save_positions = (false, false))
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SteadyStateCallback})
@@ -30,6 +30,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SteadyStateCallback})
     steady_state_callback = cb.affect!
     print(io, "SteadyStateCallback(abstol=", steady_state_callback.abstol, ", ",
           "reltol=", steady_state_callback.reltol, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -72,7 +73,7 @@ end
 
 function (steady_state_callback::SteadyStateCallback)(du, u,
                                                       semi::AbstractSemidiscretization)
-    steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
+    return steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
 end
 
 include("steady_state_dg1d.jl")

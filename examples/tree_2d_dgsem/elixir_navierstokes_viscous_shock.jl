@@ -123,7 +123,7 @@ function boundary_condition_outflow(u_inner, orientation, direction, x, t,
     return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
+boundary_conditions = (; x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -131,17 +131,17 @@ boundary_conditions = (x_neg = boundary_condition_inflow,
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
 velocity_bc = NoSlip() do x, t, equations_parabolic
-    Trixi.velocity(initial_condition_viscous_shock(x,
-                                                   t,
-                                                   equations_parabolic),
-                   equations_parabolic)
+    return Trixi.velocity(initial_condition_viscous_shock(x,
+                                                          t,
+                                                          equations_parabolic),
+                          equations_parabolic)
 end
 
 heat_bc = Isothermal() do x, t, equations_parabolic
-    Trixi.temperature(initial_condition_viscous_shock(x,
-                                                      t,
-                                                      equations_parabolic),
-                      equations_parabolic)
+    return Trixi.temperature(initial_condition_viscous_shock(x,
+                                                             t,
+                                                             equations_parabolic),
+                             equations_parabolic)
 end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
@@ -153,6 +153,7 @@ boundary_conditions_parabolic = (x_neg = boundary_condition_parabolic,
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -171,7 +172,7 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 # Admissible stepsize is governed by the diffusive CFL condition.
-# Unless the advective cfl number `cfl` is not reduced to e.g. `0.1` 
+# Unless the advective cfl number `cfl` is not reduced to e.g. `0.1`
 # (which is overly restrictive for this problem),
 # the diffusive CFL restricts the timestep for this problem.
 stepsize_callback = StepsizeCallback(cfl = 0.2,

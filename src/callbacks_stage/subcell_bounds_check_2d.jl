@@ -5,9 +5,9 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u, equations::AbstractEquations{2}, # only works for 2D
+@inline function check_bounds(u, equations::AbstractEquations{2},
                               solver, cache, limiter::SubcellLimiterIDP)
-    (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
+    (; local_twosided, positivity, local_onesided) = limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
 
@@ -65,6 +65,8 @@
     end
     if positivity
         for v in limiter.positivity_variables_cons
+            # Note: If a variable appears here and in the local min/max limiting, the positivity
+            # lower bound is taken into account there. Skip these variables here.
             if v in limiter.local_twosided_variables_cons
                 continue
             end

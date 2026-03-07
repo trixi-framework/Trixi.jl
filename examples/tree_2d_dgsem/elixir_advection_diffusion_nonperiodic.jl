@@ -15,7 +15,6 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -0.5) # minimum coordinates (min(x), min(y))
 coordinates_max = (0.0, 0.5) # maximum coordinates (max(x), max(y))
 
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 periodicity = false,
@@ -30,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 function initial_condition_eriksson_johnson(x, t, equations)
     RealT = eltype(x)
     l = 4
-    epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+    epsilon = diffusivity() # NOTE: this requires epsilon <= 1/16 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     r1 = (1 + sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)

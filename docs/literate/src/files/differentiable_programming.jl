@@ -25,9 +25,11 @@ using Trixi, LinearAlgebra, Plots
 equations = CompressibleEulerEquations2D(1.4)
 
 solver = DGSEM(3, flux_central)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 J = jacobian_ad_forward(semi);
 size(J)
@@ -47,7 +49,8 @@ relative_maximum = maximum(real, λ) / maximum(abs, λ)
 # at the interfaces, the maximal real part of the eigenvalues increases.
 
 solver = DGSEM(3, flux_lax_friedrichs)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 J = jacobian_ad_forward(semi)
 λ = eigvals(J)
@@ -72,9 +75,11 @@ condition_number = cond(V)
 equations = CompressibleEulerEquations1D(1.4)
 
 solver = DGSEM(3, flux_central)
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6, n_cells_max = 10^5)
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6, n_cells_max = 10^5,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 J = jacobian_ad_forward(semi)
 
@@ -96,7 +101,8 @@ condition_number = cond(V)
 # If we add dissipation, the maximal real part is still approximately zero.
 
 solver = DGSEM(3, flux_lax_friedrichs)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 J = jacobian_ad_forward(semi)
 λ = eigvals(J)
@@ -172,12 +178,14 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+                periodicity = true)
 
 solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 u0_ode = Trixi.compute_coefficients(0.0, semi)
 size(u0_ode)
@@ -221,17 +229,18 @@ using Trixi, OrdinaryDiffEqLowOrderRK, ForwardDiff, Plots
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                    n_cells_max = 10^4)
+                    n_cells_max = 10^4, periodicity = true)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
         x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
         return SVector(sinpi(k * sum(x_trans)))
     end
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                        uEltype = typeof(k))
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        uEltype = typeof(k),
+                                        boundary_conditions = boundary_condition_periodic)
     ode = semidiscretize(semi, (0.0, 1.0))
     sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
-    Trixi.integrate(energy_total, sol.u[end], semi)
+    return Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
 k_values = range(0.9, 1.1, length = 101)
@@ -271,17 +280,18 @@ second_derivative = round(ForwardDiff.derivative(k -> Trixi.ForwardDiff.derivati
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                    n_cells_max = 10^4)
+                    n_cells_max = 10^4, periodicity = true)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
         x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
         return SVector(sinpi(k * sum(x_trans)))
     end
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                        uEltype = typeof(k))
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                        uEltype = typeof(k),
+                                        boundary_conditions = boundary_condition_periodic)
     ode = semidiscretize(semi, (0.0, 1.0))
     sol = solve(ode, FRK65(), dt = 0.05, adaptive = false, save_everystep = false)
-    Trixi.integrate(energy_total, sol.u[end], semi)
+    return Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
 k = 1.0
@@ -300,7 +310,8 @@ round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits = 2)
 
 # The first step in this example creates some basic ingredients of our simulation.
 equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4,
+                periodicity = true)
 solver = DGSEM(3, flux_lax_friedrichs);
 
 # These do not have internal caches storing intermediate values of the numerical
@@ -324,8 +335,9 @@ end;
 # and speed up the computations, e.g. for numerical fluxes at interfaces. Thus, we
 # need to tell Trixi.jl to allow `ForwardDiff.Dual` numbers in these caches. That's what
 # the keyword argument `uEltype=typeof(k)` in
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    uEltype = typeof(k));
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    uEltype = typeof(k),
+                                    boundary_conditions = boundary_condition_periodic)
 
 # does. This is basically the only part where you need to modify your standard Trixi.jl
 # code to enable automatic differentiation. From there on, the remaining steps
@@ -353,12 +365,14 @@ using Trixi, OrdinaryDiffEqLowOrderRK, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
-mesh = TreeMesh((-1.0,), (1.0,), n_cells_max = 10^5, initial_refinement_level = 5)
+mesh = TreeMesh((-1.0,), (1.0,), n_cells_max = 10^5, initial_refinement_level = 5,
+                periodicity = true)
 
 solver = DGSEM(3)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver, uEltype = Measurement{Float64})
+                                    solver, uEltype = Measurement{Float64},
+                                    boundary_conditions = boundary_condition_periodic)
 
 ode = semidiscretize(semi, (0.0, 1.5))
 
@@ -388,9 +402,11 @@ equations = CompressibleEulerEquations2D(1.4)
 
 solver = DGSEM(3, flux_central)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 J_fd = jacobian_fd(semi)
 
@@ -423,7 +439,8 @@ using Trixi
 advection_velocity = 1.0
 equation = LinearScalarAdvectionEquation1D(advection_velocity)
 
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4)
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4,
+                periodicity = true)
 
 # We define the basic floating point type used for the actual simulation
 # and construct the solver:
@@ -444,7 +461,8 @@ jac_eltype = jacobian_eltype(float_type, jac_detector)
 # Now we can construct the semidiscretization for sparsity detection with `jac_eltype` as the
 # datatype for the working arrays and helper datastructures.
 semi_jac_type = SemidiscretizationHyperbolic(mesh, equation,
-                                             initial_condition_convergence_test, solver,
+                                             initial_condition_convergence_test, solver;
+                                             boundary_conditions = boundary_condition_periodic,
                                              uEltype = jac_eltype) # Supply sparsity detection datatype here
 
 tspan = (0.0, 1.0) # Re-used later in `rhs!` evaluation
@@ -475,7 +493,8 @@ coloring_vec = column_colors(coloring_result)
 # Now, set up the actual semidiscretization for the simulation.
 # The datatype is automatically retrieved from the solver (in this case `float_type = Float64`).
 semi_float_type = SemidiscretizationHyperbolic(mesh, equation,
-                                               initial_condition_convergence_test, solver)
+                                               initial_condition_convergence_test, solver;
+                                               boundary_conditions = boundary_condition_periodic)
 # Supply the sparse Jacobian prototype and the optional coloring vector.
 # Internally, an [`ODEFunction`](https://docs.sciml.ai/DiffEqDocs/stable/types/ode_types/#SciMLBase.ODEFunction)
 # with `jac_prototype = jac_prototype` and `colorvec = coloring_vec` is created.
@@ -511,10 +530,12 @@ equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
 
 solver = DGSEM(3, flux_lax_friedrichs)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 A, b = linear_structure(semi)
 
@@ -535,7 +556,7 @@ relative_maximum = maximum(real, λ) / maximum(abs, λ)
 
 # Since the linear structure defines the action of the linear matrix-alike operator `A`
 # on a vector, Krylov-subspace based iterative solvers can be employed to efficiently solve
-# the resulting linear system. 
+# the resulting linear system.
 # For instance, one may use the [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl) package to solve
 # e.g. steady-stage problems, i.e., problems where ``\partial_t u(t) = 0``.
 # Note that the present problem does not possess an actual steady state.

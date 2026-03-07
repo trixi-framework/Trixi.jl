@@ -7,12 +7,12 @@ using OrdinaryDiffEqLowStorageRK
 gamma = 1.4
 equations = CompressibleEulerEquations3D(gamma)
 
-# Simulation setup roughly based on testcase CS1 (Tandem Spheres) from the 
+# Simulation setup roughly based on testcase CS1 (Tandem Spheres) from the
 # 5th International Workshop on High-Order CFD Methods.
 # For description see:
 # https://how5.cenaero.be/content/cs1-tandem-spheres-re3900
-# This is a simplified inviscid version of the testcase, mainly 
-# designed to test the import of second-order (curved) elements in 3D. 
+# This is a simplified inviscid version of the testcase, mainly
+# designed to test the import of second-order (curved) elements in 3D.
 
 D = 1 # Sphere diameter, follows from mesh
 U() = 0.1
@@ -46,7 +46,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 # Mesh taken from https://acdl.mit.edu/HOW5/CS1_TandemSpheres/pointwise/gmsh/
-# and converted to Abaqus .inp format using Gmsh after adding 
+# and converted to Abaqus .inp format using Gmsh after adding
 #
 # $PhysicalNames
 # 4
@@ -65,16 +65,16 @@ mesh_file = Trixi.download("https://rwth-aachen.sciebo.de/s/pioS9PmdSWnLc8D/down
 boundary_symbols = [:FrontSphere, :BackSphere, :FarField]
 mesh = P4estMesh{3}(mesh_file; boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:FrontSphere => boundary_condition_slip_wall,
-                           :BackSphere => boundary_condition_slip_wall,
-                           :FarField => bc_farfield)
+boundary_conditions = (; FrontSphere = boundary_condition_slip_wall,
+                       BackSphere = boundary_condition_slip_wall,
+                       FarField = bc_farfield)
 
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 t_star_end = 1.0 # 100 recommended in testcase description
-t_end = t_star_end * D / U() # convert `t_star` to unit-equipped time 
+t_end = t_star_end * D / U() # convert `t_star` to unit-equipped time
 tspan = (0.0, t_end)
 ode = semidiscretize(semi, tspan)
 

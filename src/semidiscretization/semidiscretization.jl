@@ -12,7 +12,7 @@ Return the number of degrees of freedom associated with each scalar variable.
 """
 @inline function ndofs(semi::AbstractSemidiscretization)
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
-    ndofs(mesh, solver, cache)
+    return ndofs(mesh, solver, cache)
 end
 
 """
@@ -25,7 +25,7 @@ running in parallel with MPI.
 """
 @inline function ndofsglobal(semi::AbstractSemidiscretization)
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
-    ndofsglobal(mesh, solver, cache)
+    return ndofsglobal(mesh, solver, cache)
 end
 
 """
@@ -41,8 +41,8 @@ function integrate_via_indices(func::Func, u_ode, semi::AbstractSemidiscretizati
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    integrate_via_indices(func, u, mesh, equations, solver, cache, args...,
-                          normalize = normalize)
+    return integrate_via_indices(func, u, mesh, equations, solver, cache, args...,
+                                 normalize = normalize)
 end
 
 """
@@ -58,11 +58,11 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization;
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    integrate(func, u, mesh, equations, solver, cache, normalize = normalize)
+    return integrate(func, u, mesh, equations, solver, cache, normalize = normalize)
 end
 
 function integrate(u_ode, semi::AbstractSemidiscretization; normalize = true)
-    integrate(cons2cons, u_ode, semi; normalize = normalize)
+    return integrate(cons2cons, u_ode, semi; normalize = normalize)
 end
 
 """
@@ -74,7 +74,7 @@ for regression tests.
 """
 function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
                           cache_analysis)
-    calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
+    return calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
 end
 
 """
@@ -232,7 +232,8 @@ function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
     backend = trixi_backend(u_ode)
     u = wrap_array(u_ode, semi)
     # Call `compute_coefficients` defined by the solver
-    compute_coefficients!(backend, u, func, t, mesh_equations_solver_cache(semi)...)
+    return compute_coefficients!(backend, u, func, t,
+                                 mesh_equations_solver_cache(semi)...)
 end
 
 """
@@ -358,7 +359,7 @@ of the semidiscretization `semi` at time `t0` and state `u0_ode`.
 function jacobian_ad_forward(semi::AbstractSemidiscretization;
                              t0 = zero(real(semi)),
                              u0_ode = compute_coefficients(t0, semi))
-    jacobian_ad_forward(semi, t0, u0_ode)
+    return jacobian_ad_forward(semi, t0, u0_ode)
 end
 
 # The following version is for plain arrays
@@ -368,7 +369,7 @@ function jacobian_ad_forward(semi::AbstractSemidiscretization, t0, u0_ode)
 
     # Use a function barrier since the generation of the `config` we use above
     # is not type-stable
-    _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
+    return _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
 end
 
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
@@ -377,7 +378,7 @@ function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
-        Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+        return Trixi.rhs!(du_ode, u_ode, new_semi, t0)
     end
 
     return J
@@ -402,7 +403,8 @@ function jacobian_ad_forward(semi::AbstractSemidiscretization, t0, _u0_ode::Stru
 
     # Use a function barrier since the generation of the `config` we use above
     # is not type-stable
-    _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
+    return _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain,
+                                             config)
 end
 
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
@@ -422,7 +424,7 @@ function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain,
                                                                                          :,
                                                                                          v),
                                                                                nvariables(semi)))
-        Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+        return Trixi.rhs!(du_ode, u_ode, new_semi, t0)
     end
 
     return J
@@ -439,7 +441,8 @@ function jacobian_ad_forward(semi::AbstractSemidiscretization, t0,
 
     # Use a function barrier since the generation of the `config` we use above
     # is not type-stable
-    _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
+    return _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain,
+                                             config)
 end
 
 function _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
@@ -448,7 +451,7 @@ function _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain,
                              config) do du_ode_plain, u_ode_plain
         u_ode = reinterpret(SVector{nvariables(semi), eltype(config)}, u_ode_plain)
         du_ode = reinterpret(SVector{nvariables(semi), eltype(config)}, du_ode_plain)
-        Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+        return Trixi.rhs!(du_ode, u_ode, new_semi, t0)
     end
 
     return J
@@ -463,13 +466,15 @@ end
 function get_element_variables!(element_variables, u_ode,
                                 semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
-    get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
+    return get_element_variables!(element_variables, u,
+                                  mesh_equations_solver_cache(semi)...)
 end
 
 # Required for storing `extra_node_variables` in the `SaveSolutionCallback`.
 # Not to be confused with `get_node_vars` which returns the variables of the simulated equation.
 function get_node_variables!(node_variables, u_ode, semi::AbstractSemidiscretization)
-    get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...)
+    return get_node_variables!(node_variables, u_ode,
+                               mesh_equations_solver_cache(semi)...)
 end
 
 # To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
@@ -512,13 +517,13 @@ end
 #
 # Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
 function wrap_array(u_ode, semi::AbstractSemidiscretization)
-    wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
+    return wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
 # Like `wrap_array`, but guarantees to return a plain `Array`, which can be better
 # for writing solution files etc.
 function wrap_array_native(u_ode, semi::AbstractSemidiscretization)
-    wrap_array_native(u_ode, mesh_equations_solver_cache(semi)...)
+    return wrap_array_native(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
 # TODO: Taal, document interface?

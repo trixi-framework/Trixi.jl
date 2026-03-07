@@ -18,22 +18,24 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
 
     # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
 
 # Extract contravariant vector Ja^i (i = index) as SVector
 @inline function get_contravariant_vector(index, contravariant_vectors, indices...)
-    SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
-                   Val(ndims(contravariant_vectors) - 3)))
+    return SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
+                          Val(ndims(contravariant_vectors) - 3)))
 end
 
 # Dimension agnostic, i.e., valid for all 1D, 2D, and 3D `StructuredMesh`es.
-function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
+function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              mesh::StructuredMesh, equations, surface_integral,
                              dg::DG)
     @assert isperiodic(mesh)
+
+    return nothing
 end
 
 function rhs!(du, u, t,
@@ -41,7 +43,7 @@ function rhs!(du, u, t,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -50,16 +52,25 @@ function rhs!(du, u, t,
                               dg.volume_integral, dg, cache)
     end
 
-    # Calculate interface and boundary fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg)
+    # Prolong solution to interfaces
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
+
+    # Calculate interface fluxes
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values 
+    # are stored in the interface datastructure (`interfaces_u`),
+    # so we can directly calculate the boundary fluxes without prolongation.
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, u, t, boundary_conditions, mesh, equations,
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
@@ -80,7 +91,7 @@ function rhs!(du, u, t,
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
@@ -94,7 +105,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
@@ -108,7 +119,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition,
                                                   mesh::Union{StructuredMesh,
@@ -118,10 +129,13 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
     x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
@@ -140,6 +154,7 @@ end
     flux = sign_jacobian *
            boundary_condition(u_inner, normal, direction, x, t, surface_flux, equations)
 
+    # Only flux contribution for boundary element, boundary face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
     end
@@ -147,7 +162,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition,
                                                   mesh::Union{StructuredMesh,
@@ -157,10 +172,13 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
     x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
@@ -179,6 +197,7 @@ end
     flux, noncons_flux = boundary_condition(u_inner, normal, direction, x, t,
                                             surface_flux, equations)
 
+    # Only flux contribution for boundary element, boundary face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian *
                                                                               (flux[v] +

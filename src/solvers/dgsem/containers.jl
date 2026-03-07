@@ -20,4 +20,6 @@ abstract type AbstractMortarContainer <: AbstractContainer end
 function nmortars end
 abstract type AbstractMPIMortarContainer <: AbstractContainer end
 function nmpimortars end
+
+abstract type AbstractNormalVectorContainer <: AbstractContainer end
 end # @muladd

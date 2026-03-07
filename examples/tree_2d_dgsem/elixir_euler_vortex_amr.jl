@@ -57,7 +57,7 @@ end
 
 # Optional: Nicer display of the indicator
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorVortex)
-    Trixi.summary_box(io, "IndicatorVortex")
+    return Trixi.summary_box(io, "IndicatorVortex")
 end
 
 end # module TrixiExtension
@@ -127,9 +127,10 @@ coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

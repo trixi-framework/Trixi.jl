@@ -46,8 +46,8 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         # --------------------
         #   b | 1/6  1/6  2/3
 
-        new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
-                                     stage_callbacks)
+        return new{typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
+                                            stage_callbacks)
     end
 end
 
@@ -67,10 +67,11 @@ function SimpleIntegratorSSPOptions(callback, tspan; maxiters = typemax(Int), kw
     # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
     # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
     push!(tstops_internal, 2 * last(tspan))
-    SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
-                                                                          false, Inf,
-                                                                          maxiters,
-                                                                          tstops_internal)
+    return SimpleIntegratorSSPOptions{typeof(callback), typeof(tstops_internal)}(callback,
+                                                                                 false,
+                                                                                 Inf,
+                                                                                 maxiters,
+                                                                                 tstops_internal)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -111,7 +112,7 @@ function add_tstop!(integrator::SimpleIntegratorSSP, t)
     if length(integrator.opts.tstops) > 1
         pop!(integrator.opts.tstops)
     end
-    push!(integrator.opts.tstops, integrator.tdir * t)
+    return push!(integrator.opts.tstops, integrator.tdir * t)
 end
 
 has_tstop(integrator::SimpleIntegratorSSP) = !isempty(integrator.opts.tstops)
@@ -131,9 +132,13 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                                                 kwargs...),
                                      false, true, false)
 
-    # resize container
-    resize!(integrator.p, integrator.p.solver.volume_integral,
-            nelements(integrator.p.solver, integrator.p.cache))
+    # Resize container of volume integral for subcell limiting
+    _, _, dg, cache = mesh_equations_solver_cache(integrator.p)
+    if dg.volume_integral isa VolumeIntegralSubcellLimiting
+        # `subcell_limiter_coefficients` was created with 0 elements
+        resize!(dg.volume_integral.limiter.cache.subcell_limiter_coefficients,
+                nelements(dg, cache))
+    end
 
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
@@ -256,11 +261,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
-
-    # Resize container
-    # new_size = n_variables * n_nodes^n_dims * n_elements
-    n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 
     return nothing
 end

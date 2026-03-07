@@ -27,8 +27,7 @@ function calc_error_norms(func, u, t, analyzer,
     return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
 end
 
-function integrate(func::Func, u,
-                   mesh::DGMultiMesh,
+function integrate(func::Func, u, mesh::DGMultiMesh,
                    equations, dg::DGMulti, cache; normalize = true) where {Func}
     rd = dg.basis
     md = mesh.md
@@ -149,7 +148,7 @@ function nelementsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)
     if mpi_isparallel()
         error("`nelementsglobal` is not implemented for `DGMultiMesh` when used in parallel with MPI")
     else
-        return ndofs(mesh, solver, cache)
+        return nelements(mesh, solver)
     end
 end
 function ndofsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)

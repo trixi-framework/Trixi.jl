@@ -17,30 +17,33 @@
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        var_min[:, :, element] .= typemax(eltype(var_min))
-        var_max[:, :, element] .= typemin(eltype(var_max))
-        # Calculate bounds at Gauss-Lobatto nodes using u
+        # Calculate bounds at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
+            var_min[i, j, element] = var
+            var_max[i, j, element] = var
+        end
+
+        # Apply values in x direction
+        for j in eachnode(dg), i in 2:nnodes(dg)
+            var = u[variable, i - 1, j, element]
             var_min[i, j, element] = min(var_min[i, j, element], var)
             var_max[i, j, element] = max(var_max[i, j, element], var)
 
-            if i > 1
-                var_min[i - 1, j, element] = min(var_min[i - 1, j, element], var)
-                var_max[i - 1, j, element] = max(var_max[i - 1, j, element], var)
-            end
-            if i < nnodes(dg)
-                var_min[i + 1, j, element] = min(var_min[i + 1, j, element], var)
-                var_max[i + 1, j, element] = max(var_max[i + 1, j, element], var)
-            end
-            if j > 1
-                var_min[i, j - 1, element] = min(var_min[i, j - 1, element], var)
-                var_max[i, j - 1, element] = max(var_max[i, j - 1, element], var)
-            end
-            if j < nnodes(dg)
-                var_min[i, j + 1, element] = min(var_min[i, j + 1, element], var)
-                var_max[i, j + 1, element] = max(var_max[i, j + 1, element], var)
-            end
+            var = u[variable, i, j, element]
+            var_min[i - 1, j, element] = min(var_min[i - 1, j, element], var)
+            var_max[i - 1, j, element] = max(var_max[i - 1, j, element], var)
+        end
+
+        # Apply values in y direction
+        for j in 2:nnodes(dg), i in eachnode(dg)
+            var = u[variable, i, j - 1, element]
+            var_min[i, j, element] = min(var_min[i, j, element], var)
+            var_max[i, j, element] = max(var_max[i, j, element], var)
+
+            var = u[variable, i, j, element]
+            var_min[i, j - 1, element] = min(var_min[i, j - 1, element], var)
+            var_max[i, j - 1, element] = max(var_max[i, j - 1, element], var)
         end
     end
 
@@ -120,6 +123,10 @@ end
 @inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
                                        u::AbstractArray{<:Any, 4}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    # The approach used in `calc_bounds_twosided!` is not used here because it requires more
+    # evaluations of the variable and is therefore slower.
+
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         # Reset bounds
@@ -131,7 +138,7 @@ end
             end
         end
 
-        # Calculate bounds at Gauss-Lobatto nodes using u
+        # Calculate bounds at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
             var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
             var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element], var)
@@ -422,13 +429,13 @@ end
 ###############################################################################
 # Newton-bisection method
 
-# 2D version
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
                                      variable, min_or_max,
                                      initial_check, final_check,
                                      inverse_jacobian, dt,
-                                     equations, dg, cache, limiter)
-    (; inverse_weights) = dg.basis
+                                     equations::AbstractEquations{2},
+                                     dg, cache, limiter)
+    (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
     (; gamma_constant_newton) = limiter

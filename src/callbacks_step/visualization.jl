@@ -31,6 +31,7 @@ function Base.show(io::IO,
           "show_mesh=", show_mesh, ", ",
           "plot_creator=", plot_creator, ", ",
           "plot_arguments=", plot_arguments, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -57,7 +58,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VisualizationCallback(semi, plot_data_creator = nothing; 
+    VisualizationCallback(semi, plot_data_creator = nothing;
                           interval=0,
                           solution_variables=cons2prim,
                           variable_names=[],
@@ -122,9 +123,9 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
         @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
     end
 
-    DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -219,7 +220,7 @@ function show_plot(plot_data, variable_names;
     layout = (rows, cols)
 
     # Show plot
-    display(Plots.plot(plots..., layout = layout))
+    return display(Plots.plot(plots..., layout = layout))
 end
 
 """
@@ -258,6 +259,6 @@ function save_plot(plot_data, variable_names;
 
     # Determine filename and save plot
     filename = joinpath("out", @sprintf("solution_%09d.png", timestep))
-    Plots.savefig(filename)
+    return Plots.savefig(filename)
 end
 end # @muladd

@@ -63,6 +63,7 @@ function Base.show(io::IO, semi::SemidiscretizationCoupled)
     @nospecialize semi # reduce precompilation time
 
     print(io, "SemidiscretizationCoupled($(semi.semis))")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
@@ -122,11 +123,11 @@ end
 @inline Base.real(semi::SemidiscretizationCoupled) = promote_type(real.(semi.semis)...)
 
 @inline function Base.eltype(semi::SemidiscretizationCoupled)
-    promote_type(eltype.(semi.semis)...)
+    return promote_type(eltype.(semi.semis)...)
 end
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
-    sum(ndofs, semi.semis)
+    return sum(ndofs, semi.semis)
 end
 
 """
@@ -138,7 +139,7 @@ parallelized via threads. It will in general be different for simulations
 running in parallel with MPI.
 """
 @inline function ndofsglobal(semi::SemidiscretizationCoupled)
-    sum(ndofsglobal, semi.semis)
+    return sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
@@ -171,7 +172,7 @@ end
     func((index, element))
 
     # Process remaining collection
-    foreach_enumerate(func, remaining_collection, index + 1)
+    return foreach_enumerate(func, remaining_collection, index + 1)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
@@ -181,7 +182,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
         foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+            return copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi,
+                                             semi_)
         end
     end
 
@@ -189,7 +191,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi_, t)
+        return rhs!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -246,12 +248,12 @@ function AnalysisCallbackCoupled(semi_coupled, callbacks...)
 
     # This callback is triggered if any of its subsidiary callbacks' condition is triggered
     condition = (u, t, integrator) -> any(callbacks) do callback
-        callback.condition(u, t, integrator)
+        return callback.condition(u, t, integrator)
     end
 
-    DiscreteCallback(condition, analysis_callback_coupled,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(condition, analysis_callback_coupled,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
@@ -319,7 +321,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
         append!(linf_error_collection, linf_error)
     end
 
-    (; l2 = l2_error_collection, linf = linf_error_collection)
+    return (; l2 = l2_error_collection, linf = linf_error_collection)
 end
 
 ################################################################################
@@ -359,7 +361,7 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
+        return calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
@@ -466,15 +468,15 @@ mutable struct BoundaryConditionCoupled{NDIMS,
             other_orientation = 3
         end
 
-        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
-            typeof(coupling_converter)}(u_boundary,
-                                        other_orientation,
-                                        indices, coupling_converter)
+        return new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
+                   typeof(coupling_converter)}(u_boundary,
+                                               other_orientation,
+                                               indices, coupling_converter)
     end
 end
 
 function Base.eltype(boundary_condition::BoundaryConditionCoupled)
-    eltype(boundary_condition.u_boundary)
+    return eltype(boundary_condition.u_boundary)
 end
 
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
@@ -545,9 +547,10 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
     end
 
     uEltype = eltype(boundary_condition)
-    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
-                                                      nnodes(dg),
-                                                      cell_size)
+    return boundary_condition.u_boundary = Array{uEltype, 3}(undef,
+                                                             nvariables(equations),
+                                                             nnodes(dg),
+                                                             cell_size)
 end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
@@ -566,8 +569,9 @@ end
 
 function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
                                    semi_coupled, semi)
-    copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1, length(boundary_conditions),
-                              boundary_conditions...)
+    return copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1,
+                                     length(boundary_conditions),
+                                     boundary_conditions...)
 end
 
 # In 2D
@@ -642,7 +646,7 @@ end
 ### DGSEM/structured
 ################################################################################
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
@@ -652,12 +656,15 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The normal vector must be oriented in the direction
@@ -682,7 +689,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
@@ -692,12 +699,15 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The normal vector must be oriented in the direction
@@ -773,7 +783,8 @@ function analyze_convergence(errors_coupled, iterations,
         append!(errors[i][:linf], errors_coupled[:linf][first:last])
     end
 
-    eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+    eocs = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+    errorsmatrix = Vector{Dict{Symbol, Matrix{Float64}}}(undef, nsystems(semi_coupled))
     for i in eachsystem(semi_coupled)
         # Use visual cues to separate output from multiple systems
         println()
@@ -786,9 +797,10 @@ function analyze_convergence(errors_coupled, iterations,
         _, equations, _, _ = mesh_equations_solver_cache(semi)
         variablenames = varnames(cons2cons, equations)
 
-        eoc_mean_values[i] = analyze_convergence(errors[i], iterations, variablenames)
+        eocs[i], errorsmatrix[i] = analyze_convergence(errors[i], iterations,
+                                                       variablenames)
     end
 
-    return eoc_mean_values
+    return eocs, errorsmatrix
 end
 end # @muladd

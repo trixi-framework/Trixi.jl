@@ -23,7 +23,7 @@ end
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{IndicatorHennemannGassner},
                       mesh, equations::AbstractEquations, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
+    return create_cache(typ, equations, dg.basis)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -31,8 +31,7 @@ end
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
-                                                   u,
-                                                   element, mesh::AbstractMesh{1},
+                                                   u, element, mesh::AbstractMesh{1},
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
@@ -50,19 +49,13 @@ end
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
                                    indicator)
 
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for i in eachnode(dg)
-        total_energy += modal[i]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for i in 1:(nnodes(dg) - 1)
-        total_energy_clip1 += modal[i]^2
-    end
+    # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     for i in 1:(nnodes(dg) - 2)
         total_energy_clip2 += modal[i]^2
     end
+    total_energy_clip1 = total_energy_clip2 + modal[nnodes(dg) - 1]^2
+    total_energy = total_energy_clip1 + modal[nnodes(dg)]^2
 
     # Calculate energy in higher modes
     if !(iszero(total_energy))
@@ -91,6 +84,7 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

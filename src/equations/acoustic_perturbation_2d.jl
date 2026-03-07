@@ -69,12 +69,12 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2, <:Real},
 end
 
 function varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime_scaled",
-     "v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_prime", "v2_prime", "p_prime_scaled",
+            "v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 function varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime",
-     "v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_prime", "v2_prime", "p_prime",
+            "v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
 # Convenience functions for retrieving state variables and mean variables
@@ -87,10 +87,10 @@ function cons2mean(u, equations::AcousticPerturbationEquations2D)
 end
 
 function varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D)
-    ("v1_prime", "v2_prime", "p_prime_scaled")
+    return ("v1_prime", "v2_prime", "p_prime_scaled")
 end
 function varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D)
-    ("v1_mean", "v2_mean", "c_mean", "rho_mean")
+    return ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
 """

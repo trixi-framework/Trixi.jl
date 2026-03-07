@@ -17,7 +17,7 @@ equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_eriksson_johnson(x, t, equations)
     l = 4
-    epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
+    epsilon = diffusivity() # NOTE: this requires epsilon <= 1/16 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
@@ -28,15 +28,15 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_pos => BoundaryConditionDirichlet(initial_condition),
-                           :x_pos => boundary_condition_do_nothing)
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_pos = BoundaryConditionDirichlet(initial_condition),
+                       x_pos = boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :y_pos => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions_parabolic = (; x_neg = BoundaryConditionDirichlet(initial_condition),
+                                 x_pos = BoundaryConditionDirichlet(initial_condition),
+                                 y_neg = BoundaryConditionDirichlet(initial_condition),
+                                 y_pos = BoundaryConditionDirichlet(initial_condition))
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -56,7 +56,7 @@ mesh = P4estMesh(trees_per_dimension,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 

@@ -251,6 +251,7 @@ function Base.show(io::IO,
                    ::UnstructuredMesh2D{RealT, CurvedSurfaceT}) where {RealT,
                                                                        CurvedSurfaceT}
     print(io, "UnstructuredMesh2D{2, ", RealT, ", ", CurvedSurfaceT, "}")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",

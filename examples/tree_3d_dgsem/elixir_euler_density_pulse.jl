@@ -21,8 +21,8 @@ function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquat
     rho_v2 = rho * v2
     rho_v3 = rho * v3
     p = 1
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2 + v3^2)
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2 + v3^2)
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 initial_condition = initial_condition_density_pulse
 
@@ -34,9 +34,10 @@ coordinates_min = (-2.0, -2.0, -2.0)
 coordinates_max = (2.0, 2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

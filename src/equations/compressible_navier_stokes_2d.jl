@@ -22,7 +22,7 @@ the [`CompressibleEulerEquations2D`](@ref).
 
 Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
-The viscosity ``\mu`` may be a constant or a function of the current state, e.g., 
+The viscosity ``\mu`` may be a constant or a function of the current state, e.g.,
 depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
 In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
 
@@ -30,12 +30,12 @@ The particular form of the compressible Navier-Stokes implemented is
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho \mathbf{v} \\ \rho e
+\rho \\ \rho \mathbf{v} \\ \rho e_{\text{total}}
 \end{pmatrix}
 +
 \nabla \cdot
 \begin{pmatrix}
- \rho \mathbf{v} \\ \rho \mathbf{v}\mathbf{v}^T + p \underline{I} \\ (\rho e + p) \mathbf{v}
+ \rho \mathbf{v} \\ \rho \mathbf{v}\mathbf{v}^T + p \underline{I} \\ (\rho e_{\text{total}} + p) \mathbf{v}
 \end{pmatrix}
 =
 \nabla \cdot
@@ -45,7 +45,7 @@ The particular form of the compressible Navier-Stokes implemented is
 ```
 where the system is closed with the ideal gas assumption giving
 ```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
+p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho (v_1^2+v_2^2) \right)
 ```
 as the pressure. The value of the adiabatic constant `gamma` is taken from the [`CompressibleEulerEquations2D`](@ref).
 The terms on the right hand side of the system above
@@ -115,13 +115,15 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
     # This avoids recomputation of kappa for non-constant μ.
     kappa = gamma * inv_gamma_minus_one / Prandtl
 
-    CompressibleNavierStokesDiffusion2D{typeof(gradient_variables), typeof(gamma),
-                                        typeof(mu),
-                                        typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           mu, Prandtl, kappa,
-                                                           max(4 / 3, kappa),
-                                                           equations,
-                                                           gradient_variables)
+    return CompressibleNavierStokesDiffusion2D{typeof(gradient_variables),
+                                               typeof(gamma),
+                                               typeof(mu),
+                                               typeof(equations)}(gamma,
+                                                                  inv_gamma_minus_one,
+                                                                  mu, Prandtl, kappa,
+                                                                  max(4 / 3, kappa),
+                                                                  equations,
+                                                                  gradient_variables)
 end
 
 # TODO: parabolic
@@ -131,16 +133,16 @@ end
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion2D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
-    cons2prim
+    return cons2prim
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-    cons2entropy
+    return cons2entropy
 end
 
 # Explicit formulas for the diffusive Navier-Stokes fluxes are available, e.g., in Section 2
@@ -175,7 +177,7 @@ function flux(u, gradients, orientation::Integer,
     q1 = equations.kappa * dTdx
     q2 = equations.kappa * dTdy
 
-    # In the simplest cases, the user passed in `mu` or `mu()` 
+    # In the simplest cases, the user passed in `mu` or `mu()`
     # (which returns just a constant) but
     # more complex functions like Sutherland's law are possible.
     # `dynamic_viscosity` is a helper function that handles both cases
@@ -210,7 +212,7 @@ end
 where `max_4over3_kappa = max(4/3, kappa)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
-as suggested in Section 3.5 of 
+as suggested in Section 3.5 of
 - Krais et. al (2021)
   FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
   [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
@@ -254,10 +256,10 @@ end
 # This can be done by specializing `cons2entropy` and `entropy2cons` to `CompressibleNavierStokesDiffusion2D`,
 # but this may be confusing to new users.
 function cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D)
-    cons2entropy(u, equations.equations_hyperbolic)
+    return cons2entropy(u, equations.equations_hyperbolic)
 end
 function entropy2cons(w, equations::CompressibleNavierStokesDiffusion2D)
-    entropy2cons(w, equations.equations_hyperbolic)
+    return entropy2cons(w, equations.equations_hyperbolic)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
@@ -309,7 +311,7 @@ end
 # with `cons2prim(..., ::CompressibleNavierStokesDiffusion2D)` as defined above.
 # TODO: parabolic. Is there a way to clean this up?
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion2D)
-    prim2cons(u, equations.equations_hyperbolic)
+    return prim2cons(u, equations.equations_hyperbolic)
 end
 
 """
@@ -322,9 +324,9 @@ T = \\frac{p}{\\rho}
 ```
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
-    rho, rho_v1, rho_v2, rho_e = u
+    rho, rho_v1, rho_v2, rho_e_total = u
 
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
     T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end
@@ -554,7 +556,7 @@ end
                                                                                                            equations)
 
     # Normal stresses should be 0. This implies also that `normal_energy_flux = normal_heat_flux`.
-    # For details, see Section 4.2 of 
+    # For details, see Section 4.2 of
     # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
     #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
     # DOI: 10.1016/j.jcp.2021.110723
