@@ -78,6 +78,12 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                             linf=[0.0007307237754662355])
     end
 
+    @trixi_testset "elixir_advection_restart_polydeg_lower.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_restart_polydeg_lower.jl"),
+                            l2=[0.00017439412748604995], linf=[0.0004655222114398061])
+    end
+
     # Linear scalar advection with AMR
     # These example files are only for testing purposes and have no practical use
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
