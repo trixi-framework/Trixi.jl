@@ -114,8 +114,6 @@ function rhs!(du, u, t,
     return nothing
 end
 
-regularized_ratio(a, b; tol = 10 * eps()) = a * b / (b * b + tol)
-
 function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
                                    equations, equations_parabolic,
                                    equations_artificial_viscosity,
