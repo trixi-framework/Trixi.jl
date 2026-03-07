@@ -118,6 +118,107 @@ function prolong2interfaces!(cache, u,
     return nothing
 end
 
+function prolong2interfaces!(cache, u,
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             equations, dg::DGSEM{<:GaussLegendreBasis})
+    @unpack interfaces = cache
+    @unpack boundary_interpolation = dg.basis
+    index_range = eachnode(dg)
+
+    @threaded for interface in eachinterface(dg, cache)
+        # Interpolate solution data from the primary element to the interface.
+        primary_element = interfaces.neighbor_ids[1, interface]
+        primary_indices = interfaces.node_indices[1, interface]
+
+        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                 index_range)
+        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                 index_range)
+        # The index direction is identified based on `{i,j}_{primary, secondary}_step`.
+        # For step = 0, the direction identified by this index is normal to the face.
+        # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
+
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the index of the primary side
+        # will always run forwards.
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                u_primary = zero(eltype(interfaces.u))
+                if i_primary_step == 0
+                    # i is the normal direction (constant), j varies along the surface
+                    # => Interpolate in first/normal direction
+                    interp_side = (primary_indices[1] === :begin) ? 1 : 2
+                    # Figure out if we go forward or backward (i.e., query element orientation)
+                    # to know if we need to use `boundary_interpolation[:, 1]` or `boundary_interpolation[:, 2]`.
+                    # If the first index of the element is `:begin`, this face corresponds to left reference element side (-1).
+                    # If the first index of the element is `:end`,   this face corresponds to right reference element side (+1).
+                    for ii in eachnode(dg)
+                        u_primary = (u_primary +
+                                     u[v, ii, j_primary, primary_element] *
+                                     boundary_interpolation[ii, interp_side])
+                    end
+                else # j_primary_step == 0
+                    # j is the normal direction (constant), i varies along the surface
+                    # => Interpolate in second/normal direction
+                    interp_side = (primary_indices[2] === :begin) ? 1 : 2
+                    for jj in eachnode(dg)
+                        u_primary = (u_primary +
+                                     u[v, i_primary, jj, primary_element] *
+                                     boundary_interpolation[jj, interp_side])
+                    end
+                end
+                interfaces.u[1, v, i, interface] = u_primary
+            end
+            i_primary += i_primary_step
+            j_primary += j_primary_step
+        end
+
+        # Interpolate solution data from the secondary element to the interface.
+        secondary_element = interfaces.neighbor_ids[2, interface]
+        secondary_indices = interfaces.node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                     index_range)
+        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                     index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                u_secondary = zero(eltype(interfaces.u))
+                if i_secondary_step == 0
+                    # i is the normal direction (constant), j varies along the surface
+                    # => Interpolate in first/normal direction
+                    interp_side = (secondary_indices[1] === :begin) ? 1 : 2
+                    for ii in eachnode(dg)
+                        u_secondary = (u_secondary +
+                                       u[v, ii, j_secondary, secondary_element] *
+                                       boundary_interpolation[ii, interp_side])
+                    end
+                else # j_secondary_step == 0
+                    # j is the normal direction (constant), i varies along the surface
+                    # => Interpolate in second/normal direction
+                    interp_side = (secondary_indices[2] === :begin) ? 1 : 2
+                    for jj in eachnode(dg)
+                        u_secondary = (u_secondary +
+                                       u[v, i_secondary, jj, secondary_element] *
+                                       boundary_interpolation[jj, interp_side])
+                    end
+                end
+                interfaces.u[2, v, i, interface] = u_secondary
+            end
+            i_secondary += i_secondary_step
+            j_secondary += j_secondary_step
+        end
+    end
+
+    return nothing
+end
+
 function calc_interface_flux!(surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
@@ -844,6 +945,60 @@ function calc_surface_integral!(du, u,
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
                                                  factor)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_surface_integral!(du, u,
+                                mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM{<:GaussLegendreBasis}, cache)
+    @unpack boundary_interpolation_inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus_x = surface_flux_values[v, l, 1, element]
+                surface_flux_plus_x = surface_flux_values[v, l, 2, element]
+                for ii in eachnode(dg)
+                    # surface at -x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_minus_x *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    1])
+                    # surface at +x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_plus_x *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    2])
+                end
+
+                surface_flux_minus_y = surface_flux_values[v, l, 3, element]
+                surface_flux_plus_y = surface_flux_values[v, l, 4, element]
+                for jj in eachnode(dg)
+                    # surface at -y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_minus_y *
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    1])
+                    # surface at +y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_plus_y *
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    2])
+                end
             end
         end
     end
