@@ -129,8 +129,7 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian,
-    interfaces_u = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
     # Boundary values are for `StructuredMesh` stored in the interface datastructure
     boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
