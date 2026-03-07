@@ -228,9 +228,8 @@ end
         @trixi_test_nowarn Plots.plot(pd)
         @trixi_test_nowarn Plots.plot(pd["p"])
         @trixi_test_nowarn Plots.plot(getmesh(pd))
-        initial_condition_t_end(x,
-        equations) = initial_condition(x, last(tspan),
-                                       equations)
+        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
+                                                                  equations)
         @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
         @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
     end
