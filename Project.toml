@@ -62,11 +62,11 @@ NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 
 [extensions]
-TrixiCUDAExt = "CUDA"
-TrixiConvexECOSExt = ["Convex", "ECOS"]
-TrixiMakieExt = "Makie"
-TrixiNLsolveExt = "NLsolve"
-TrixiSparseConnectivityTracerExt = "SparseConnectivityTracer"
+CUDAExt = "CUDA"
+ConvexECOSExt = ["Convex", "ECOS"]
+MakieExt = "Makie"
+NLsolveExt = "NLsolve"
+SparseConnectivityTracerExt = "SparseConnectivityTracer"
 
 [compat]
 Accessors = "0.1.36"
