@@ -357,18 +357,19 @@ end
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        maximum_entropy_increase=0.0,
                         tspan=(0.0, 0.2),
                         l2=[
-                            0.05570372384049351,
-                            0.0329928398506452,
-                            0.052245080612875985,
-                            0.08011546492953733
+                            0.05570371489805444,
+                            0.03299286402646503,
+                            0.05224508023471742,
+                            0.08011545946002244
                         ],
                         linf=[
-                            0.24329760372990328,
-                            0.16853848030309973,
-                            0.12357902358319864,
-                            0.2697835825391772
+                            0.24323216643032874,
+                            0.1685158282708948,
+                            0.12357902305982191,
+                            0.26981068435988087
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
