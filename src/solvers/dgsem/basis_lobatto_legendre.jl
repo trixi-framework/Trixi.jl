@@ -17,7 +17,6 @@ This exceptional case is currently only supported for TreeMesh!
 struct LobattoLegendreBasis{RealT <: Real, NNODES,
                             VectorT <: AbstractVector{RealT},
                             InverseVandermondeLegendre <: AbstractMatrix{RealT},
-                            BoundaryMatrix <: AbstractMatrix{RealT},
                             DerivativeMatrix <: AbstractMatrix{RealT}} <:
        AbstractBasisSBP{RealT}
     nodes::VectorT
@@ -25,13 +24,10 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     inverse_weights::VectorT
 
     inverse_vandermonde_legendre::InverseVandermondeLegendre
-    boundary_interpolation::BoundaryMatrix # lhat
 
-    derivative_matrix::DerivativeMatrix # strong form derivative matrix
+    derivative_matrix::DerivativeMatrix # strong form derivative matrix "D"
     derivative_split::DerivativeMatrix # strong form derivative matrix minus boundary terms
-    derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
-    derivative_dhat::DerivativeMatrix # weak form matrix "dhat",
-    # negative adjoint wrt the SBP dot product
+    derivative_hat::DerivativeMatrix # weak form matrix "Dhat", negative adjoint wrt the SBP dot product
 end
 
 function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
@@ -41,23 +37,18 @@ function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
     nodes = SVector{<:Any, RealT}(basis.nodes)
     weights = SVector{<:Any, RealT}(basis.weights)
     inverse_weights = SVector{<:Any, RealT}(basis.inverse_weights)
-    boundary_interpolation = adapt(to, basis.boundary_interpolation)
     derivative_matrix = adapt(to, basis.derivative_matrix)
     derivative_split = adapt(to, basis.derivative_split)
-    derivative_split_transpose = adapt(to, basis.derivative_split_transpose)
-    derivative_dhat = adapt(to, basis.derivative_dhat)
+    derivative_hat = adapt(to, basis.derivative_hat)
     return LobattoLegendreBasis{RealT, nnodes(basis), typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
-                                typeof(boundary_interpolation),
                                 typeof(derivative_matrix)}(nodes,
                                                            weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation,
                                                            derivative_matrix,
                                                            derivative_split,
-                                                           derivative_split_transpose,
-                                                           derivative_dhat)
+                                                           derivative_hat)
 end
 
 function LobattoLegendreBasis(RealT, polydeg::Integer)
@@ -68,14 +59,9 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
 
     _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
 
-    boundary_interpolation = zeros(RealT, nnodes_, 2)
-    boundary_interpolation[:, 1] = calc_lhat(-one(RealT), nodes_, weights_)
-    boundary_interpolation[:, 2] = calc_lhat(one(RealT), nodes_, weights_)
-
     derivative_matrix = polynomial_derivative_matrix(nodes_)
-    derivative_split = calc_dsplit(nodes_, weights_)
-    derivative_split_transpose = Matrix(derivative_split')
-    derivative_dhat = calc_dhat(nodes_, weights_)
+    derivative_split = calc_Dsplit(derivative_matrix, weights_)
+    derivative_hat = calc_Dhat(derivative_matrix, weights_)
 
     # Type conversions to enable possible optimizations of runtime performance
     # and latency
@@ -90,15 +76,12 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
-                                typeof(boundary_interpolation),
                                 typeof(derivative_matrix)}(nodes, weights,
                                                            inverse_weights,
                                                            inverse_vandermonde_legendre,
-                                                           boundary_interpolation,
                                                            derivative_matrix,
                                                            derivative_split,
-                                                           derivative_split_transpose,
-                                                           derivative_dhat)
+                                                           derivative_hat)
 end
 LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
 
@@ -410,45 +393,50 @@ end
 
 # TODO: Taal refactor, allow other RealT below and adapt constructors above accordingly
 
-# Calculate the Dhat matrix
-function calc_dhat(nodes, weights)
-    n_nodes = length(nodes)
-    dhat = Matrix(polynomial_derivative_matrix(nodes)')
+# Calculate the Dhat matrix = -M^{-1} D^T M for weak form differentiation.
+# Note that this is the negated version of the matrix that shows up on the RHS of the
+# DG update multiplying the physical flux evaluations.
+function calc_Dhat(derivative_matrix, weights)
+    n_nodes = length(weights)
+    Dhat = Matrix(derivative_matrix') # D^T
 
+    # Perform M matrix multiplications and negate
     for n in 1:n_nodes, j in 1:n_nodes
-        dhat[j, n] *= -weights[n] / weights[j]
+        Dhat[j, n] *= -weights[n] / weights[j]
     end
 
-    return dhat
+    return Dhat
 end
 
-# Calculate the Dsplit matrix for split-form differentiation: dplit = 2D - M⁻¹B
-function calc_dsplit(nodes, weights)
+# Calculate the Dsplit matrix for split-form differentiation: Dsplit = 2D - M⁻¹B
+# Note that this is the negated version of the matrix that shows up on the RHS of the 
+# DG update multiplying the two-point numerical volume flux evaluations.
+function calc_Dsplit(derivative_matrix, weights)
     # Start with 2 x the normal D matrix
-    dsplit = 2 .* polynomial_derivative_matrix(nodes)
+    Dsplit = 2 .* derivative_matrix
 
-    # Modify to account for
-    dsplit[1, 1] += 1 / weights[1]
-    dsplit[end, end] -= 1 / weights[end]
+    # Modify to account for the weighted boundary terms
+    Dsplit[1, 1] += 1 / weights[1] # B[1, 1] = -1
+    Dsplit[end, end] -= 1 / weights[end] # B[end, end] = 1
 
-    return dsplit
+    return Dsplit
 end
 
 # Calculate the polynomial derivative matrix D.
 # This implements algorithm 37 "PolynomialDerivativeMatrix" from Kopriva's book.
 function polynomial_derivative_matrix(nodes)
     n_nodes = length(nodes)
-    d = zeros(eltype(nodes), n_nodes, n_nodes)
+    D = zeros(eltype(nodes), n_nodes, n_nodes)
     wbary = barycentric_weights(nodes)
 
     for i in 1:n_nodes, j in 1:n_nodes
         if j != i
-            d[i, j] = (wbary[j] / wbary[i]) * 1 / (nodes[i] - nodes[j])
-            d[i, i] -= d[i, j]
+            D[i, j] = (wbary[j] / wbary[i]) * 1 / (nodes[i] - nodes[j])
+            D[i, i] -= D[i, j]
         end
     end
 
-    return d
+    return D
 end
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
@@ -525,20 +513,6 @@ function barycentric_weights(nodes)
     return weights
 end
 
-# Calculate Lhat.
-function calc_lhat(x, nodes, weights)
-    n_nodes = length(nodes)
-    wbary = barycentric_weights(nodes)
-
-    lhat = lagrange_interpolating_polynomials(x, nodes, wbary)
-
-    for i in 1:n_nodes
-        lhat[i] /= weights[i]
-    end
-
-    return lhat
-end
-
 """
     lagrange_interpolating_polynomials(x, nodes, wbary)
 
@@ -602,7 +576,8 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
     nodes = zeros(RealT, n_nodes)
     weights = zeros(RealT, n_nodes)
 
-    # Special case for polynomial degree zero (first order finite volume)
+    # Special case for polynomial degree zero (first order finite volume):
+    # Fall back to Gauss-Legendre
     if n_nodes == 1
         nodes[1] = 0
         weights[1] = 2
@@ -686,76 +661,6 @@ function calc_q_and_l(N::Integer, x::Real)
     qder = (2 * N + 1) * L
 
     return q, qder, L
-end
-
-"""
-    gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
-
-Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
-This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
-
-- David A. Kopriva, (2009).
-  Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers.
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
-"""
-function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
-    n_iterations = 20
-    tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
-
-    # Initialize output
-    nodes = ones(RealT, n_nodes)
-    weights = zeros(RealT, n_nodes)
-
-    # Get polynomial degree for convenience
-    N = n_nodes - 1
-    if N == 0
-        nodes .= 0
-        weights .= 2
-        return nodes, weights
-    elseif N == 1
-        nodes[1] = -sqrt(one(RealT) / 3)
-        nodes[end] = -nodes[1]
-        weights .= 1
-        return nodes, weights
-    else # N > 1
-        # Use symmetry property of the roots of the Legendre polynomials
-        for i in 0:(div(N + 1, 2) - 1)
-            # Starting guess for Newton method
-            nodes[i + 1] = -cospi(one(RealT) / (2 * N + 2) * (2 * i + 1))
-
-            # Newton iteration to find root of Legendre polynomial (= integration node)
-            for k in 0:n_iterations
-                poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i + 1])
-                dx = -poly / deriv
-                nodes[i + 1] += dx
-                if abs(dx) < tolerance * abs(nodes[i + 1])
-                    break
-                end
-
-                if k == n_iterations
-                    @warn "`gauss_nodes_weights` Newton iteration did not converge"
-                end
-            end
-
-            # Calculate weight
-            poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i + 1])
-            weights[i + 1] = (2 * N + 3) / ((1 - nodes[i + 1]^2) * deriv^2)
-
-            # Set nodes and weights according to symmetry properties
-            nodes[N + 1 - i] = -nodes[i + 1]
-            weights[N + 1 - i] = weights[i + 1]
-        end
-
-        # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
-        if n_nodes % 2 == 1
-            poly, deriv = legendre_polynomial_and_derivative(N + 1, zero(RealT))
-            nodes[div(N, 2) + 1] = 0
-            weights[div(N, 2) + 1] = (2 * N + 3) / deriv^2
-        end
-
-        return nodes, weights
-    end
 end
 
 """
