@@ -135,10 +135,11 @@ function analyze(::Val{:linf_divb}, du, u, t,
 end
 
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
-# Note that ∂S/∂u = w(u) with entropy variables w
+# Note that ∂S/∂u = w(u) with entropy variables w.
+# This assumes that both du and u are already interpolated to the quadrature points
 function entropy_change_reference_element(du_values_local, u_values_local,
                                           mesh::DGMultiMesh, equations,
-                                          dg::DGMultiFluxDiff, cache)
+                                          dg::DGMulti, cache)
     rd = dg.basis
     @unpack Nq, wq = rd
 

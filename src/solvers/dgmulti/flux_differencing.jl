@@ -372,37 +372,85 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
     interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
     J = Vq * md.J
 
-    if dg.volume_integral isa VolumeIntegralAdaptive
-        # Need weak form datastructure
-        @unpack wq, Vq, M, Drst = rd
-        weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
-
-        # For entropy change difference computation
-        du_values = copy(u_values)
-
-        # Thread-local buffer for face interpolation, which is required 
-        # for computation of entropy potential at interpolated face nodes 
-        u_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)
-                                 for _ in 1:Threads.maxthreadid()]
-
-        return (; md, Qrst_skew, VhP, Ph,
-                invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
-                entropy_var_values, projected_entropy_var_values,
-                entropy_projected_u_values,
-                u_values, u_face_values, flux_face_values,
-                local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded,
-                # Weak form additions
-                weak_differentiation_matrices, du_values,
-                # Required for entropy change difference computation
-                u_face_local_threaded)
-    end
-
     return (; md, Qrst_skew, VhP, Ph,
             invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values,
             entropy_projected_u_values,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
+end
+
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiAdaptive,
+                      RealT, uEltype)
+    rd = dg.basis
+    @unpack md = mesh
+
+    Qrst_skew, VhP, Ph = compute_flux_differencing_SBP_matrices(dg)
+
+    # temp storage for entropy variables at volume quad points
+    nvars = nvariables(equations)
+    entropy_var_values = allocate_nested_array(uEltype, nvars, (rd.Nq, md.num_elements),
+                                               dg)
+
+    # storage for all quadrature points (concatenated volume / face quadrature points)
+    num_quad_points_total = rd.Nq + rd.Nfq
+    entropy_projected_u_values = allocate_nested_array(uEltype, nvars,
+                                                       (num_quad_points_total,
+                                                        md.num_elements), dg)
+    projected_entropy_var_values = allocate_nested_array(uEltype, nvars,
+                                                         (num_quad_points_total,
+                                                          md.num_elements), dg)
+
+    # For this specific solver, `prolong2interfaces` will not be used anymore.
+    # Instead, this step is also performed in `entropy_projection!`. Thus, we set
+    # `u_face_values` as a `view` into `entropy_projected_u_values`. We do not do
+    # the same for `u_values` since we will use that with LoopVectorization, which
+    # cannot handle such views as of v0.12.66, the latest version at the time of writing.
+    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+    u_face_values = view(entropy_projected_u_values, (rd.Nq + 1):num_quad_points_total,
+                         :)
+    flux_face_values = similar(u_face_values)
+
+    # local storage for interface fluxes, rhs, and source
+    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                             for _ in 1:Threads.maxthreadid()]
+
+    # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
+    # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
+    # projecting it and storing it into `du`.
+    fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
+                               for _ in 1:Threads.maxthreadid()]
+    rhs_local_threaded = [allocate_nested_array(uEltype, nvars,
+                                                (num_quad_points_total,), dg)
+                          for _ in 1:Threads.maxthreadid()]
+
+    # interpolate geometric terms to both quadrature and face values for curved meshes
+    (; Vq, Vf) = dg.basis
+    interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
+    J = Vq * md.J
+
+    # Need weak form datastructure
+    @unpack wq, Vq, M, Drst = rd
+    weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
+
+    # For entropy change difference computation
+    du_values = copy(u_values)
+
+    # Thread-local buffer for face interpolation, which is required
+    # for computation of entropy potential at interpolated face nodes
+    u_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)
+                             for _ in 1:Threads.maxthreadid()]
+
+    return (; md, Qrst_skew, VhP, Ph,
+            invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
+            entropy_var_values, projected_entropy_var_values,
+            entropy_projected_u_values,
+            u_values, u_face_values, flux_face_values,
+            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded,
+            # Weak form additions
+            weak_differentiation_matrices, du_values,
+            # Required for entropy change difference computation
+            u_face_local_threaded)
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
