@@ -6,10 +6,10 @@
 #! format: noindent
 
 function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMulti{NDIMS, ElemType, ApproxType,
+                      dg::DGMulti{NDIMS, ElemType, <:Polynomial,
                                   <:SurfaceIntegralWeakForm,
-                                  <:VolumeIntegralAdaptive}, RealT,
-                      uEltype) where {NDIMS, ElemType, ApproxType}
+                                  <:VolumeIntegralAdaptive{<:IndicatorEntropyChange}},
+                      RealT, uEltype) where {NDIMS, ElemType}
     # Construct temporary solvers for each sub-integral to reuse their cache allocations.
     # `volume_integral_default` is a weak form integral; `volume_integral_stabilized` is a
     # flux differencing integral.
@@ -35,12 +35,12 @@ function create_cache(mesh::DGMultiMesh, equations,
     # The FD dxidxhatj ([Vq; Vf] * x) is a superset of the WF one (Vq * x), so it
     # can be shared: the WF kernel only accesses volume-quadrature rows (1:Nq).
     return (; fd_cache...,
-            # Weak-form-specific fields needed by the default volume integral kernel
+            # Weak-form-specific fields required for the default volume integral
             weak_differentiation_matrices = wf_cache.weak_differentiation_matrices,
             lift_scalings = wf_cache.lift_scalings,
             flux_threaded = wf_cache.flux_threaded,
             rotated_flux_threaded = wf_cache.rotated_flux_threaded,
-            # Adaptive-specific fields
+            # Required for `IndicatorEntropyChange`
             du_values, u_face_local_threaded)
 end
 
