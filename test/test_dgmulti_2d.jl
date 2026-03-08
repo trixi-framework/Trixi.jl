@@ -354,6 +354,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        tspan=(0.0, 0.2),
+                        l2=[
+                            0.05570372384049351,
+                            0.0329928398506452,
+                            0.052245080612875985,
+                            0.08011546492953733
+                        ],
+                        linf=[
+                            0.24329760372990328,
+                            0.16853848030309973,
+                            0.12357902358319864,
+                            0.2697835825391772
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
