@@ -8,38 +8,38 @@
 function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMulti{NDIMS, ElemType, <:Polynomial,
                                   <:SurfaceIntegralWeakForm,
-                                  <:VolumeIntegralAdaptive{<:IndicatorEntropyChange}},
+                                  <:VolumeIntegralAdaptive{<:IndicatorEntropyChange,
+                                                           <:VolumeIntegralWeakForm,
+                                                           <:VolumeIntegralFluxDifferencing}},
                       RealT, uEltype) where {NDIMS, ElemType}
-    # Construct temporary solvers for each sub-integral to reuse their cache allocations.
-    # `volume_integral_default` is a weak form integral; `volume_integral_stabilized` is a
-    # flux differencing integral.
-    dg_wf = DG(dg.basis, dg.mortar, dg.surface_integral,
+    # Construct temporary solvers for each sub-integral to reuse the `create_cache` functions
+
+    # `VolumeIntegralAdaptive` for `DGMulti` currently limited to Weak From & Flux Differencing combi
+    dg_WF = DG(dg.basis, dg.mortar, dg.surface_integral,
                dg.volume_integral.volume_integral_default)
-    dg_fd = DG(dg.basis, dg.mortar, dg.surface_integral,
+    dg_FD = DG(dg.basis, dg.mortar, dg.surface_integral,
                dg.volume_integral.volume_integral_stabilized)
 
-    wf_cache = create_cache(mesh, equations, dg_wf, RealT, uEltype)
-    fd_cache = create_cache(mesh, equations, dg_fd, RealT, uEltype)
+    cache_WF = create_cache(mesh, equations, dg_WF, RealT, uEltype)
+    cache_FD = create_cache(mesh, equations, dg_FD, RealT, uEltype)
 
     rd = dg.basis
     nvars = nvariables(equations)
 
     # For entropy change difference computation
-    du_values = similar(fd_cache.u_values)
+    du_values = similar(cache_FD.u_values)
 
     # Thread-local buffer for face interpolation, which is required
     # for computation of entropy potential at interpolated face nodes
     u_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
-    # The FD dxidxhatj ([Vq; Vf] * x) is a superset of the WF one (Vq * x), so it
-    # can be shared: the WF kernel only accesses volume-quadrature rows (1:Nq).
-    return (; fd_cache...,
+    return (; cache_FD...,
             # Weak-form-specific fields required for the default volume integral
-            weak_differentiation_matrices = wf_cache.weak_differentiation_matrices,
-            lift_scalings = wf_cache.lift_scalings,
-            flux_threaded = wf_cache.flux_threaded,
-            rotated_flux_threaded = wf_cache.rotated_flux_threaded,
+            weak_differentiation_matrices = cache_WF.weak_differentiation_matrices,
+            lift_scalings = cache_WF.lift_scalings,
+            flux_threaded = cache_WF.flux_threaded,
+            rotated_flux_threaded = cache_WF.rotated_flux_threaded,
             # Required for `IndicatorEntropyChange`
             du_values, u_face_local_threaded)
 end
