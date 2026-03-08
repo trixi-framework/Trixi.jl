@@ -23,23 +23,24 @@ function create_cache(mesh::DGMultiMesh, equations,
     cache_WF = create_cache(mesh, equations, dg_WF, RealT, uEltype)
     cache_FD = create_cache(mesh, equations, dg_FD, RealT, uEltype)
 
+    # Set up structures required for `IndicatorEntropyChange`
     rd = dg.basis
     nvars = nvariables(equations)
 
-    # For entropy change difference computation
+    # Required for entropy change computation (`entropy_change_reference_element`)
     du_values = similar(cache_FD.u_values)
 
     # Thread-local buffer for face interpolation, which is required
     # for computation of entropy potential at interpolated face nodes
+    # (`surface_integral_reference_element`)
     u_face_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nfq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
     return (; cache_FD...,
-            # Weak-form-specific fields required for the default volume integral
+            # Weak-form-specific fields for the default volume integral
             weak_differentiation_matrices = cache_WF.weak_differentiation_matrices,
-            lift_scalings = cache_WF.lift_scalings,
             flux_threaded = cache_WF.flux_threaded,
-            rotated_flux_threaded = cache_WF.rotated_flux_threaded,
+            rotated_flux_threaded = cache_WF.rotated_flux_threaded, # For non-affine meshes
             # Required for `IndicatorEntropyChange`
             du_values, u_face_local_threaded)
 end

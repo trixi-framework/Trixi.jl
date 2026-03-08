@@ -17,8 +17,8 @@ volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integr
                                          indicator = indicator)
 
 dg = DGMulti(polydeg = 3,
-             element_type = Tri(), # `Tri()` makes flux differencing really(!) expensive
-             approximation_type = Polynomial(),
+             # `Tri()` and `Polynomial()` make flux differencing really(!) expensive
+             element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_hllc),
              volume_integral = volume_integral)
 
@@ -55,9 +55,6 @@ mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = boundary_condition_periodic)
 
-tspan = (0.0, 3.0) # WF still stable until this time
-#tspan = (0.0, 3.4) # FD still stable until this time
-#tspan = (0.0, 4.3) # stable time for entropy-diffusive adaptive volume integral
 tspan = (0.0, 4.6) # stable time for limited entropy-increase adaptive volume integral
 
 ode = semidiscretize(semi, tspan)
