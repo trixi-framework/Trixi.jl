@@ -42,7 +42,7 @@ end
     end
 end
 
-@inline nelements(dg::DGMulti, cache) = size(cache.u_values)[end]
+@inline nelements(dg::DGMulti, cache) = size(cache.common_arrays.u_values)[end]
 
 """
     eachdim(mesh)
@@ -218,20 +218,17 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
-    (; u_values, u_face_values, flux_face_values,
-    local_values_threaded) = allocate_common_dgmulti_arrays(mesh, equations, dg,
-                                                            uEltype)
+    common_arrays = allocate_common_dgmulti_arrays(mesh, equations, dg, uEltype)
 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, flux_threaded, rotated_flux_threaded)
+            common_arrays, flux_threaded, rotated_flux_threaded)
 end
 
 function compute_coefficients!(::Nothing, u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
     md = mesh.md
     rd = dg.basis
-    @unpack u_values = cache
+    (; u_values) = cache.common_arrays
 
     # evaluate the initial condition at quadrature points
     @threaded for i in each_quad_node_global(mesh, dg, cache)
@@ -364,7 +361,7 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
-    @unpack u_face_values = cache
+    (; u_face_values) = cache.common_arrays
     apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 
     return nothing
@@ -377,7 +374,8 @@ end
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache)
-    @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
+    @unpack weak_differentiation_matrices, dxidxhatj = cache
+    (; u_values, local_values_threaded) = cache.common_arrays
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
@@ -405,7 +403,8 @@ end
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache) where {NDIMS}
-    (; weak_differentiation_matrices, dxidxhatj, u_values) = cache
+    (; weak_differentiation_matrices, dxidxhatj) = cache
+    (; u_values) = cache.common_arrays
 
     flux_values = cache.flux_threaded[Threads.threadid()]
     for i in eachdim(mesh)
@@ -446,7 +445,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
                                cache)
     rd = dg.basis
-    (; u_values) = cache
+    (; u_values) = cache.common_arrays
     # interpolate to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
@@ -466,7 +465,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     @unpack surface_flux = surface_integral
     md = mesh.md
     @unpack mapM, mapP, nxyzJ, Jf = md
-    @unpack u_face_values, flux_face_values = cache
+    (; u_face_values, flux_face_values) = cache.common_arrays
 
     @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
 
@@ -488,7 +487,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     flux_conservative, flux_nonconservative = surface_integral.surface_flux
     md = mesh.md
     @unpack mapM, mapP, nxyzJ, Jf = md
-    @unpack u_face_values, flux_face_values = cache
+    (; u_face_values, flux_face_values) = cache.common_arrays
 
     @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
 
@@ -522,7 +521,7 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
     rd = dg.basis
-    apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
+    apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.common_arrays.flux_face_values)
 
     return nothing
 end
@@ -532,7 +531,7 @@ function prolong2interfaces!(cache, u,
                              mesh::DGMultiMesh, equations, dg::DGMultiSBP)
     rd = dg.basis
     @unpack Fmask = rd
-    @unpack u_face_values = cache
+    (; u_face_values) = cache.common_arrays
     @threaded for e in eachelement(mesh, dg, cache)
         for (i, fid) in enumerate(Fmask)
             u_face_values[i, e] = u[fid, e]
@@ -548,7 +547,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiSBP, cache)
     rd = dg.basis
-    @unpack flux_face_values, lift_scalings = cache
+    (; flux_face_values) = cache.common_arrays
+    @unpack lift_scalings = cache
 
     @threaded for e in eachelement(mesh, dg, cache)
         for i in each_face_node(mesh, dg, cache)
@@ -582,7 +582,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
                                     dg::DGMulti{NDIMS}) where {NDIMS}
     rd = dg.basis
     md = mesh.md
-    @unpack u_face_values, flux_face_values = cache
+    (; u_face_values, flux_face_values) = cache.common_arrays
     @unpack xyzf, nxyzJ, Jf = md
     @unpack surface_flux = dg.surface_integral
 
@@ -617,8 +617,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
         end
     end
 
-    # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
-    # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+    # Note: modifying the values of the reshaped array modifies the values of cache.common_arrays.flux_face_values.
+    # However, we don't have to re-reshape, since cache.common_arrays.flux_face_values still retains its original shape.
 
     return nothing
 end
@@ -641,8 +641,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
     # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
     reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
 
-    u_face_values = reshape_by_face(cache.u_face_values)
-    flux_face_values = reshape_by_face(cache.flux_face_values)
+    u_face_values = reshape_by_face(cache.common_arrays.u_face_values)
+    flux_face_values = reshape_by_face(cache.common_arrays.flux_face_values)
     Jf = reshape_by_face(md.Jf)
     nxyzJ, xyzf = reshape_by_face.(md.nxyzJ), reshape_by_face.(md.xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
 
@@ -667,8 +667,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
         end
     end
 
-    # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
-    # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+    # Note: modifying the values of the reshaped array modifies the values of cache.common_arrays.flux_face_values.
+    # However, we don't have to re-reshape, since cache.common_arrays.flux_face_values still retains its original shape.
 
     return nothing
 end
@@ -694,7 +694,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                           dg::DGMulti, cache; scaling = -1) where {NDIMS}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
-    (; local_values_threaded, invJ) = cache
+    (; invJ) = cache
+    (; local_values_threaded) = cache.common_arrays
 
     @threaded for e in eachelement(mesh, dg, cache)
         du_at_quad_points = local_values_threaded[Threads.threadid()]
@@ -730,7 +731,7 @@ function calc_sources!(du, u, t, source_terms,
     rd = dg.basis
     md = mesh.md
     @unpack Pq = rd
-    @unpack u_values, local_values_threaded = cache
+    (; u_values, local_values_threaded) = cache.common_arrays
     @threaded for e in eachelement(mesh, dg, cache)
         source_values = local_values_threaded[Threads.threadid()]
 
