@@ -31,7 +31,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cr
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
                     rowvals, nzrange, nonzeros
-
+using StructArrays
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
@@ -138,6 +138,7 @@ include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
+include("auxiliary/solution_interface.jl") 
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
