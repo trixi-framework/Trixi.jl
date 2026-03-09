@@ -302,20 +302,16 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     # for use with flux differencing schemes
     Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
 
-    # Todo: DGMulti. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
-    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
-
+    nvars = nvariables(equations)
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
+
+    (; u_values, u_face_values, flux_face_values,
+    local_values_threaded) = allocate_common_dgmulti_arrays(mesh, equations, dg,
+                                                            uEltype)
 
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),

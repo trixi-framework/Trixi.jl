@@ -161,6 +161,30 @@ function set_zero!(du, dg::DGMulti, other_args...)
     return nothing
 end
 
+# Holds arrays shared across most DGMulti cache types:
+# solution values at volume/face quadrature points and thread-local scratch storage.
+struct DGMultiCommonArrays{uType, fType, lType}
+    u_values::uType
+    u_face_values::fType
+    flux_face_values::fType
+    local_values_threaded::lType
+end
+
+# Allocates arrays shared across most DGMulti cache types.
+function allocate_common_dgmulti_arrays(mesh::DGMultiMesh, equations, dg::DGMulti,
+                                        uEltype)
+    rd = dg.basis
+    md = mesh.md
+    nvars = nvariables(equations)
+    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                             for _ in 1:Threads.maxthreadid()]
+    return DGMultiCommonArrays(u_values, u_face_values, flux_face_values,
+                               local_values_threaded)
+end
+
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT,
                       uEltype) where {NDIMS}
@@ -173,22 +197,12 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
     weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
 
-    nvars = nvariables(equations)
-
-    # storage for volume quadrature values, face quadrature values, flux values
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     if typeof(rd.approximation_type) <:
        Union{SBP, AbstractNonperiodicDerivativeOperator}
         lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
     else
         lift_scalings = nothing
     end
-
-    # local storage for volume integral and source computations
-    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
 
     # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
     # For affine meshes, we just access one element of this interpolated data.
@@ -198,10 +212,15 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     invJ = inv.(rd.Vq * md.J)
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
+    nvars = nvariables(equations)
     flux_threaded = [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                       for _ in 1:NDIMS] for _ in 1:Threads.maxthreadid()]
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                              for _ in 1:Threads.maxthreadid()]
+
+    (; u_values, u_face_values, flux_face_values,
+    local_values_threaded) = allocate_common_dgmulti_arrays(mesh, equations, dg,
+                                                            uEltype)
 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             u_values, u_face_values, flux_face_values,
