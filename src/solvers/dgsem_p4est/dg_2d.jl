@@ -138,46 +138,46 @@ function prolong2interfaces!(cache, u,
         # For step = 0, the direction identified by this index is normal to the face.
         # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
 
-        # Precompute the interpolation indices for the primary element, case:
-
-        # 1) i is the normal direction (constant), j varies along the surface
-        #    => Interpolate in first/normal direction
-        interp_side_1 = (primary_indices[1] === :begin) ? 1 : 2
-
-        # 2) j is the normal direction (constant), i varies along the surface
-        #    => Interpolate in second/normal direction
-        interp_side_2 = (primary_indices[2] === :begin) ? 1 : 2
-
         # Note that in the current implementation, the interface will be
         # "aligned at the primary element", i.e., the index of the primary side
         # will always run forwards.
 
         i_primary = i_primary_start
         j_primary = j_primary_start
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                u_primary = zero(eltype(interfaces.u))
-                if i_primary_step == 0
-                    # Figure out if we go forward or backward (i.e., query element orientation)
-                    # to know if we need to use `boundary_interpolation[:, 1]` or `boundary_interpolation[:, 2]`.
-                    # If the first index of the element is `:begin`, this face corresponds to left reference element side (-1).
-                    # If the first index of the element is `:end`,   this face corresponds to right reference element side (+1).
+
+        if i_primary_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            interp_side = (primary_indices[1] === :begin) ? 1 : 2
+
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    u_primary = zero(eltype(interfaces.u))
                     for ii in eachnode(dg)
                         u_primary = (u_primary +
                                      u[v, ii, j_primary, primary_element] *
-                                     boundary_interpolation[ii, interp_side_1])
+                                     boundary_interpolation[ii, interp_side])
                     end
-                else # j_primary_step == 0
+                    interfaces.u[1, v, i, interface] = u_primary
+                end
+                j_primary += j_primary_step # incrementing j_primary suffices
+            end
+        else # j_primary_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            interp_side = (primary_indices[2] === :begin) ? 1 : 2
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    u_primary = zero(eltype(interfaces.u))
                     for jj in eachnode(dg)
                         u_primary = (u_primary +
                                      u[v, i_primary, jj, primary_element] *
-                                     boundary_interpolation[jj, interp_side_2])
+                                     boundary_interpolation[jj, interp_side])
                     end
+                    interfaces.u[1, v, i, interface] = u_primary
                 end
-                interfaces.u[1, v, i, interface] = u_primary
+                i_primary += i_primary_step # incrementing i_primary suffices
             end
-            i_primary += i_primary_step
-            j_primary += j_primary_step
         end
 
         # Interpolate solution data from the secondary element to the interface.
@@ -189,37 +189,40 @@ function prolong2interfaces!(cache, u,
         j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
                                                                      index_range)
 
-        # Precompute the interpolation indices for the secondary element, case:
-        # 1) i is the normal direction (constant), j varies along the surface
-        #    => Interpolate in first/normal direction
-        interp_side_1 = (secondary_indices[1] === :begin) ? 1 : 2
-
-        # 2) j is the normal direction (constant), i varies along the surface
-        #    => Interpolate in second/normal direction
-        interp_side_2 = (secondary_indices[2] === :begin) ? 1 : 2
-
         i_secondary = i_secondary_start
         j_secondary = j_secondary_start
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                u_secondary = zero(eltype(interfaces.u))
-                if i_secondary_step == 0
+        if i_secondary_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            interp_side = (secondary_indices[1] === :begin) ? 1 : 2
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    u_secondary = zero(eltype(interfaces.u))
                     for ii in eachnode(dg)
                         u_secondary = (u_secondary +
                                        u[v, ii, j_secondary, secondary_element] *
-                                       boundary_interpolation[ii, interp_side_1])
+                                       boundary_interpolation[ii, interp_side])
                     end
-                else # j_secondary_step == 0
+                    interfaces.u[2, v, i, interface] = u_secondary
+                end
+                j_secondary += j_secondary_step # incrementing j_secondary suffices
+            end
+        else # j_secondary_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            interp_side = (secondary_indices[2] === :begin) ? 1 : 2
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    u_secondary = zero(eltype(interfaces.u))
                     for jj in eachnode(dg)
                         u_secondary = (u_secondary +
                                        u[v, i_secondary, jj, secondary_element] *
-                                       boundary_interpolation[jj, interp_side_2])
+                                       boundary_interpolation[jj, interp_side])
                     end
+                    interfaces.u[2, v, i, interface] = u_secondary
                 end
-                interfaces.u[2, v, i, interface] = u_secondary
+                i_secondary += i_secondary_step # incrementing i_secondary suffices
             end
-            i_secondary += i_secondary_step
-            j_secondary += j_secondary_step
         end
     end
 
