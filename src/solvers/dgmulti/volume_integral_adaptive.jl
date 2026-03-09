@@ -90,7 +90,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # before any surface terms are added.
             fill!(du_local, zero(eltype(du_local)))
 
-            # Recompute using stabilized volume integral
+            # Recompute using stabilized volume integral. Note that the calculation of this volume integral requires the calculation of the entropy projection, which is done in `rhs!` specialized on the `DGMultiFluxDiff` solver type. 
             volume_integral_kernel!(du, u, e, mesh,
                                     have_nonconservative_terms, equations,
                                     volume_integral_stabilized, dg, cache)
