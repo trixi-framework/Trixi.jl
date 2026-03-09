@@ -521,7 +521,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
     rd = dg.basis
-    apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.common_arrays.flux_face_values)
+    apply_to_each_field(mul_by_accum!(rd.LIFT), du,
+                        cache.common_arrays.flux_face_values)
 
     return nothing
 end
