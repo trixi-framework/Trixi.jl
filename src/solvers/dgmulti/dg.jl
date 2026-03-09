@@ -163,10 +163,10 @@ end
 
 # Holds arrays shared across most DGMulti cache types:
 # solution values at volume/face quadrature points and thread-local scratch storage.
-struct DGMultiCommonArrays{uType, fType, lType}
+struct DGMultiCommonArrays{uType, ufType, ffType, lType}
     u_values::uType
-    u_face_values::fType
-    flux_face_values::fType
+    u_face_values::ufType
+    flux_face_values::ffType
     local_values_threaded::lType
 end
 
