@@ -69,8 +69,8 @@ function SemidiscretizationCoupledP4est(semis...)
                                    typeof(performance_counter)}(semis, u_indices,
                                                                 performance_counter,
                                                                 parent_cell_ids,
+                                                                element_offset,
                                                                 view_cell_ids,
-                                                                element_offset,  
                                                                 mesh_ids)
 end
 
@@ -191,24 +191,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     return nothing
 end
 
-# RHS call for the local system.
-# Here we require the data from u_parent for each semidiscretization in order
-# to exchange the correct boundary values.
-function rhs!(du_ode, u_ode, u_parent, semis,
-              semi::SemidiscretizationHyperbolic, t)
-    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
-
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
-
-    time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_parent, semis, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
-    runtime = time_ns() - time_start
-    put!(semi.performance_counter, runtime)
-
-    return nothing
-end
 
 ################################################################################
 ### AnalysisCallback
@@ -246,6 +228,57 @@ function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
     DiscreteCallback(condition, analysis_callback_coupled,
                      save_positions = (false, false),
                      initialize = initialize!)
+end
+
+# This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
+function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_coupled, t,
+                     integrator) where {Condition, Affect! <: AnalysisCallbackCoupledP4est}
+    analysis_callback_coupled = cb_coupled.affect!
+    semi_coupled = integrator.p
+    du_ode_coupled = first(get_tmp_cache(integrator))
+
+    # Prime the coupled boundary conditions with the initial solution so that
+    # individual AnalysisCallback calls to rhs! can read neighbor state correctly.
+    foreach_enumerate(semi_coupled.semis) do (i, semi_)
+        for bc in semi_.boundary_conditions.boundary_condition_types
+            if bc isa BoundaryConditionCoupledP4est
+                bc.semi_coupled = semi_coupled
+                bc.u_ode = u_ode_coupled
+            end
+        end
+    end
+
+    # Loop over coupled systems' callbacks and initialize them individually
+    for i in eachsystem(semi_coupled)
+        cb = analysis_callback_coupled.callbacks[i]
+        semi = semi_coupled.semis[i]
+        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+        du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+        initialize!(cb, u_ode, du_ode, t, integrator, semi)
+    end
+end
+
+# This method gets called from OrdinaryDiffEq's `solve(...)`
+function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
+    semi_coupled = integrator.p
+    u_ode_coupled = integrator.u
+    du_ode_coupled = first(get_tmp_cache(integrator))
+
+    # Loop over coupled systems' callbacks and call them individually
+    for i in eachsystem(semi_coupled)
+        @unpack condition = analysis_callback_coupled.callbacks[i]
+        analysis_callback = analysis_callback_coupled.callbacks[i].affect!
+        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+
+        # Check condition and skip callback if it is not yet its turn
+        if !condition(u_ode, integrator.t, integrator)
+            continue
+        end
+
+        semi = semi_coupled.semis[i]
+        du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
+        analysis_callback(u_ode, du_ode, integrator, semi)
+    end
 end
 
 # used for error checks and EOC analysis

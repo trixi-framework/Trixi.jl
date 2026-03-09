@@ -598,6 +598,16 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     return nothing
 end
 
+# Fallback for the standard rhs! dispatch path (e.g., from AnalysisCallback).
+# BoundaryConditionCoupledP4est reads the coupled solution from stored fields,
+# so u_parent is not needed and we pass nothing.
+function calc_boundary_flux!(cache, t, boundary_conditions,
+                             mesh::P4estMeshView,
+                             equations, surface_integral, dg::DG)
+    calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, surface_integral,
+                        dg, nothing)
+end
+
 function prolong2mortars!(cache, u,
                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                           equations,
