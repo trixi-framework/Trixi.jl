@@ -172,9 +172,6 @@ function surface_integral_reference_element(func::Func, u, element,
     surface_integral = zero(eltype(first(u)))
     # Loop over all face nodes for this element
     for i in 1:Nfq
-        # Get global face node index (across all elements' face nodes)
-        face_node_global = i + (element - 1) * Nfq
-
         # Get solution at this face node
         u_node = u_face_local[i]
 
