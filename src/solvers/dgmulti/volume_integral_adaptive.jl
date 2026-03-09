@@ -14,7 +14,7 @@ function create_cache(mesh::DGMultiMesh, equations,
                       RealT, uEltype) where {NDIMS, ElemType}
     # Construct temporary solvers for each sub-integral to reuse the `create_cache` functions
 
-    # `VolumeIntegralAdaptive` for `DGMulti` currently limited to Weak From & Flux Differencing combi
+    # `VolumeIntegralAdaptive` for `DGMulti` currently limited to Weak Form & Flux Differencing combi
     dg_WF = DG(dg.basis, dg.mortar, dg.surface_integral,
                dg.volume_integral.volume_integral_default)
     dg_FD = DG(dg.basis, dg.mortar, dg.surface_integral,

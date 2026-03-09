@@ -23,9 +23,9 @@ const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxTyp
                                                       <:SurfaceIntegralWeakForm,
                                                       <:Union{VolumeIntegralFluxDifferencing,
                                                               VolumeIntegralShockCapturingHGType,
-                                                              VolumeIntegralAdaptive}} where {
-                                                                                              NDIMS
-                                                                                              }
+                                                              VolumeIntegralAdaptiveEC_WF_DG}} where {
+                                                                                                      NDIMS
+                                                                                                      }
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
