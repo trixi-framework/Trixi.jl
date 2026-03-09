@@ -179,7 +179,7 @@ function surface_integral_reference_element(func::Func, u, element,
         u_node = u_face_local[i]
 
         # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
-        normal_direction = SVector(getindex.(nxyzJ, face_node_global))
+        normal_direction = SVector(getindex.(nxyzJ, i, element))
 
         # Multiply with face quadrature weight and accumulate
         surface_integral += wf[i] * func(u_node, normal_direction, equations)
