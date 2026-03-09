@@ -61,7 +61,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 mesh_file = joinpath(@__DIR__, "TandemSpheresHexMesh1P2_fixed.inp")
 using Downloads
 Downloads.download("https://zenodo.org/records/18921889/files/TandemSpheresHexMesh1P2_fixed.inp?download=1",
-                    mesh_file)
+                   mesh_file)
 
 # Boundary symbols follow from nodesets in the mesh file
 boundary_symbols = [:FrontSphere, :BackSphere, :FarField]
