@@ -590,5 +590,4 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
     return nothing
 end
-
 end # @muladd
