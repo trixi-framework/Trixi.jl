@@ -317,8 +317,10 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
 
-    geometric_terms_container = DGMultiGeometricTermsContainer(md.J, inv.(md.J), md.rstxyzJ)
-    return (; md, Qrst_skew, geometric_terms_container, lift_scalings, inv_wq = inv.(rd.wq),
+    geometric_terms_container = DGMultiGeometricTermsContainer(md.J, inv.(md.J),
+                                                               md.rstxyzJ)
+    return (; md, Qrst_skew, geometric_terms_container, lift_scalings,
+            inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
             local_values_threaded, fluxdiff_local_threaded)
 end
@@ -371,7 +373,8 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
     (; Vq, Vf) = dg.basis
     interpolated_dxidxhatj = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
     J = rd.Vq * md.J
-    geometric_terms_container = DGMultiGeometricTermsContainer(J, inv.(J), interpolated_dxidxhatj)
+    geometric_terms_container = DGMultiGeometricTermsContainer(J, inv.(J),
+                                                               interpolated_dxidxhatj)
 
     return (; md, Qrst_skew, VhP, Ph,
             geometric_terms_container,

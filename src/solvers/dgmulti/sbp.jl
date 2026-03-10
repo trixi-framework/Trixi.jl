@@ -182,7 +182,8 @@ function create_cache(mesh::DGMultiMesh, equations,
     # storage for volume quadrature values, face quadrature values, flux values
     nvars = nvariables(equations)
     u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    geometric_terms_container = DGMultiGeometricTermsContainer(md.J, inv.(md.J), md.rstxyzJ)
+    geometric_terms_container = DGMultiGeometricTermsContainer(md.J, inv.(md.J),
+                                                               md.rstxyzJ)
     return (; u_values, geometric_terms_container)
 end
 
