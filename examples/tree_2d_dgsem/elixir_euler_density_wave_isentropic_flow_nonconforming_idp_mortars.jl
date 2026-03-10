@@ -77,19 +77,22 @@ mortar = MortarIDP(equations, basis;
                    pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral)#, mortar)
 
-coordinates_min = (-1.0, -1.0)
-coordinates_max = (1.0, 1.0)
+# 1d problem in literature uses x in [-1,1]
+# That corresponds to our 2D problem with 1d function on the diagonal in
+# [-1/sqrt(2), 1/sqrt(2)]^2. However, this setup is not periodic, which is
+# why I expanded the domain to [-2/sqrt(2), 2/sqrt(2)]^2.
+coordinates_min = (-2/sqrt(2), -2/sqrt(2))
+coordinates_max = (2/sqrt(2), 2/sqrt(2))
 refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
                        coordinates_max = (0.5, 0.5)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 # refinement_patches = refinement_patches,
-                n_cells_max = 10_000,
+                n_cells_max = 30_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_condition_periodic)
-# Question: Is it periodic?
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -111,7 +114,7 @@ save_solution = SaveSolutionCallback(interval = 5,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-stepsize_callback = StepsizeCallback(cfl = 0.2)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
