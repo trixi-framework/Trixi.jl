@@ -19,7 +19,7 @@ See also: [`SemidiscretizationCoupled`](@ref)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices} <:
                AbstractSemidiscretization
     semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
@@ -80,13 +80,13 @@ function SemidiscretizationCoupledP4est(semis...)
         boundary_parent_lookup[i] = lookup
     end
 
-    SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
-                                   typeof(performance_counter)}(semis, u_indices,
-                                                                performance_counter,
-                                                                parent_cell_ids,
-                                                                view_cell_ids,
-                                                                mesh_ids,
-                                                                boundary_parent_lookup)
+    SemidiscretizationCoupledP4est{typeof(semis),
+                                   typeof(u_indices)}(semis, u_indices,
+                                                      performance_counter,
+                                                      parent_cell_ids,
+                                                      view_cell_ids,
+                                                      mesh_ids,
+                                                      boundary_parent_lookup)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
