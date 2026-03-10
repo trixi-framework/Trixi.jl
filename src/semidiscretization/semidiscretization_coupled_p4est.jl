@@ -27,6 +27,9 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
     parent_cell_ids::Vector{Int}
     view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
+    # Precomputed lookup: boundary_parent_lookup[i][(element, :direction)] → parent cell ID
+    # for each semidiscretization i. Avoids per-node linear scans at runtime.
+    boundary_parent_lookup::Vector{Dict{Tuple{Int, Symbol}, Int}}
 end
 
 """
@@ -63,12 +66,27 @@ function SemidiscretizationCoupledP4est(semis...)
 
     performance_counter = PerformanceCounter()
 
+    # Precompute boundary → parent cell ID lookup for each semidiscretization.
+    boundary_parent_lookup = Vector{Dict{Tuple{Int, Symbol}, Int}}(undef,
+                                                                    length(semis))
+    for i in eachindex(semis)
+        cache_i = semis[i].cache
+        lookup = Dict{Tuple{Int, Symbol}, Int}()
+        for b in eachindex(cache_i.boundaries.name)
+            elem = cache_i.boundaries.neighbor_ids[b]
+            name = cache_i.boundaries.name[b]
+            lookup[(elem, name)] = cache_i.neighbor_ids_parent[b]
+        end
+        boundary_parent_lookup[i] = lookup
+    end
+
     SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
                                    typeof(performance_counter)}(semis, u_indices,
                                                                 performance_counter,
                                                                 parent_cell_ids,
                                                                 view_cell_ids,
-                                                                mesh_ids)
+                                                                mesh_ids,
+                                                                boundary_parent_lookup)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
@@ -440,21 +458,16 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              surface_flux_function,
                                                              direction)
     n_nodes = length(mesh.parent.nodes)
-    # Using a projection onto e_x, -e_x, e_y, -e_y to determine which way our boundary interfaces points to.
-    # Knowing this, we then find the cell index in the global (parent) space of the neighboring cell.
-    if abs(sum(normal_direction .* (1.0, 0.0))) >
-       abs(sum(normal_direction .* (0.0, 1.0)))
-        if sum(normal_direction .* (1.0, 0.0)) >
-           sum(normal_direction .* (-1.0, 0.0))
-            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
-                                                                     :x_pos) .*
-                                                                    (cache.boundaries.neighbor_ids .==
-                                                                     element_index))]
+    semi_coupled = boundary_condition.semi_coupled
+    lookup = semi_coupled.boundary_parent_lookup[boundary_condition.self_index]
+
+    # Determine which direction the boundary faces and look up the parent cell ID
+    # from the precomputed table.
+    if abs(normal_direction[1]) > abs(normal_direction[2])
+        if normal_direction[1] > 0
+            cell_index_parent = lookup[(element_index, :x_pos)]
         else
-            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
-                                                                     :x_neg) .*
-                                                                    (cache.boundaries.neighbor_ids .==
-                                                                     element_index))]
+            cell_index_parent = lookup[(element_index, :x_neg)]
         end
         i_index_g = i_index
         # Make sure we do not leave the domain.
@@ -465,16 +478,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         j_index_g = j_index
     else
-        if sum(normal_direction .* (0.0, 1.0)) > sum(normal_direction .* (0.0, -1.0))
-            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
-                                                                     :y_pos) .*
-                                                                    (cache.boundaries.neighbor_ids .==
-                                                                     element_index))]
+        if normal_direction[2] > 0
+            cell_index_parent = lookup[(element_index, :y_pos)]
         else
-            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
-                                                                     :y_neg) .*
-                                                                    (cache.boundaries.neighbor_ids .==
-                                                                     element_index))]
+            cell_index_parent = lookup[(element_index, :y_neg)]
         end
         j_index_g = j_index
         # Make sure we do not leave the domain.
@@ -486,7 +493,6 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Look up the neighbor element's state from the stored coupled solution.
-    semi_coupled = boundary_condition.semi_coupled
     u_ode = boundary_condition.u_ode
     idx_other = semi_coupled.mesh_ids[cell_index_parent]
     semi_other = semi_coupled.semis[idx_other]
