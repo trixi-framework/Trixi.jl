@@ -155,8 +155,10 @@ end
 
 # calculate surface integral of func(u, normal_direction, equations) on the reference element.
 # For DGMulti, we loop over all faces of the element and integrate using face quadrature weights.
+# Restricted to `Polynomial` approximation type which requires interpolation to face quadrature nodes
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::DGMultiMesh, equations, dg::DGMulti,
+                                            mesh::DGMultiMesh, equations,
+                                            dg::DGMultiFluxDiff{<:Polynomial},
                                             cache, args...) where {Func}
     rd = dg.basis
     @unpack Nfq, wf, Vf = rd
