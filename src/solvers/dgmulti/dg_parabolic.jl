@@ -18,11 +18,7 @@ function create_cache_parabolic(mesh::DGMultiMesh,
     divergence_lift_matrix = dg.basis.LIFT
     projection_face_interpolation_matrix = dg.basis.Vf * dg.basis.Pq
 
-    # evaluate geometric terms at quadrature points in case the mesh is curved
     (; md) = mesh
-    J = dg.basis.Vq * md.J
-    invJ = inv.(J)
-    dxidxhatj = map(x -> dg.basis.Vq * x, md.rstxyzJ)
 
     # u_transformed stores "transformed" variables for computing the gradient
     u_transformed = allocate_nested_array(uEltype, nvars, size(md.x), dg)
@@ -49,7 +45,6 @@ function create_cache_parabolic(mesh::DGMultiMesh,
             weak_differentiation_matrices, strong_differentiation_matrices,
             gradient_lift_matrix, projection_face_interpolation_matrix,
             divergence_lift_matrix,
-            dxidxhatj, J, invJ, # geometric terms
             u_face_values, gradients_face_values, scalar_flux_face_values,
             local_u_values_threaded, local_flux_viscous_threaded,
             local_flux_face_values_threaded)
@@ -115,7 +110,8 @@ end
 function calc_volume_integral_gradient!(gradients, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                         equations::AbstractEquationsParabolic,
                                         dg::DGMulti, cache, cache_parabolic) where {NDIMS}
-    (; strong_differentiation_matrices, dxidxhatj, local_flux_viscous_threaded) = cache_parabolic
+    (; strong_differentiation_matrices, local_flux_viscous_threaded) = cache_parabolic
+    (; dxidxhatj) = cache.geometric_terms
 
     # compute volume contributions to gradients
     @threaded for e in eachelement(mesh, dg)
@@ -201,7 +197,7 @@ function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh, equations, dg::
 
         # Here, we exploit the fact that J is constant on affine elements,
         # so we only have to access invJ once per element.
-        invJ = cache_parabolic.invJ[1, e]
+        invJ = cache.geometric_terms.invJ[1, e]
 
         for dim in eachdim(mesh)
             for i in axes(gradients[dim], 1)
@@ -217,7 +213,7 @@ end
 function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                    equations,
                                    dg::DGMulti, cache, cache_parabolic) where {NDIMS}
-    (; invJ) = cache_parabolic
+    (; invJ) = cache.geometric_terms
     @threaded for e in eachelement(mesh, dg)
         for dim in eachdim(mesh)
             for i in axes(gradients[dim], 1)
@@ -375,7 +371,8 @@ function calc_volume_integral_divergence!(du, u, flux_viscous,
                                           mesh::DGMultiMesh{NDIMS, <:NonAffine},
                                           equations::AbstractEquationsParabolic,
                                           dg::DGMulti, cache, cache_parabolic) where {NDIMS}
-    (; weak_differentiation_matrices, dxidxhatj, local_flux_viscous_threaded) = cache_parabolic
+    (; weak_differentiation_matrices, local_flux_viscous_threaded) = cache_parabolic
+    (; dxidxhatj) = cache.geometric_terms
 
     # compute volume contributions to divergence
     @threaded for e in eachelement(mesh, dg)

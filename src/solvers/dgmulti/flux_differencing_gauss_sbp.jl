@@ -577,7 +577,8 @@ end
 function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
                                           dg::DGMultiFluxDiff{<:GaussSBP}, cache;
                                           scaling = -1)
-    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded, invJ) = cache
+    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded) = cache
+    (; invJ) = cache.geometric_terms
 
     @threaded for e in eachelement(mesh, dg, cache)
         rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
