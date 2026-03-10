@@ -879,5 +879,4 @@ function calc_surface_integral!(du, u,
 
     return nothing
 end
-
 end # @muladd
