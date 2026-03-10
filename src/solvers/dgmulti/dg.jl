@@ -680,7 +680,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                           dg::DGMulti, cache; scaling = -1) where {NDIMS}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
-    (; local_values_threaded, invJ) = cache
+    (; local_values_threaded) = cache
+    (; invJ) = cache.geometric_terms
 
     @threaded for e in eachelement(mesh, dg, cache)
         du_at_quad_points = local_values_threaded[Threads.threadid()]
