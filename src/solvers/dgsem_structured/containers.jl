@@ -22,6 +22,9 @@ struct StructuredElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
     inverse_jacobian::Array{RealT, NDIMSP1} # [node_i, node_j, node_k, element]
 
+    # Buffer for solution values at interfaces (filled by `prolong2interfaces!`)
+    interfaces_u::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
+
     # Buffer for calculated surface flux
     surface_flux_values::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
 end
@@ -44,6 +47,10 @@ function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
     inverse_jacobian = Array{RealT, NDIMS + 1}(undef,
                                                ntuple(_ -> nnodes(basis), NDIMS)...,
                                                nelements)
+    interfaces_u = Array{uEltype, NDIMS + 2}(undef, nvariables(equations),
+                                             ntuple(_ -> nnodes(basis),
+                                                    NDIMS - 1)..., NDIMS * 2,
+                                             nelements)
     surface_flux_values = Array{uEltype, NDIMS + 2}(undef, nvariables(equations),
                                                     ntuple(_ -> nnodes(basis),
                                                            NDIMS - 1)..., NDIMS * 2,
@@ -55,6 +62,7 @@ function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
                                                                            jacobian_matrix,
                                                                            contravariant_vectors,
                                                                            inverse_jacobian,
+                                                                           interfaces_u,
                                                                            surface_flux_values)
 
     init_elements!(elements, mesh, basis)
