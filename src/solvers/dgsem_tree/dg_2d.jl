@@ -176,7 +176,6 @@ function rhs!(du, u, t,
     return nothing
 end
 
-
 #=
 `weak_form_kernel!` is only implemented for conserved terms as
 non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
