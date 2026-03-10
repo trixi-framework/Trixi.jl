@@ -139,7 +139,7 @@ end
 # This assumes that both du and u are already interpolated to the quadrature points
 function entropy_change_reference_element(du_values_local, u_values_local,
                                           mesh::DGMultiMesh, equations,
-                                          dg::DGMulti, cache)
+                                          dg::DGMultiFluxDiff, cache)
     rd = dg.basis
     @unpack Nq, wq = rd
 
