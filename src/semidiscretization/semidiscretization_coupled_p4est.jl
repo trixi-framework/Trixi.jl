@@ -12,7 +12,7 @@ Specialized semidiscretization routines for coupled problems using P4est mesh vi
 This is analogous to the implementation for structured meshes.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
-The semidiscretizations can be coupled by glueing meshes together using [`BoundaryConditionCoupled`](@ref).
+The semidiscretizations can be coupled by glueing meshes together using [`BoundaryConditionCoupledP4est`](@ref).
 
 See also: [`SemidiscretizationCoupled`](@ref)
 
@@ -216,10 +216,10 @@ end
     AnalysisCallbackCoupledP4est(semi, callbacks...)
 
 Combine multiple analysis callbacks for coupled simulations with a
-[`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
+[`SemidiscretizationCoupledP4est`](@ref). For each coupled system, an individual
 [`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupledP4est` **in
-order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
-`SemidiscretizationCoupled`.
+order**, i.e., in the same sequence as the individual semidiscretizations are stored in the
+`SemidiscretizationCoupledP4est`.
 
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
