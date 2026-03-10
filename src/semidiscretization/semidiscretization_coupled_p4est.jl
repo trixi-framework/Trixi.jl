@@ -189,6 +189,25 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
 end
 
 
+# RHS call for the local system.
+# Here we require the data from u_parent for each semidiscretization in order
+# to exchange the correct boundary values.
+function rhs!(du_ode, u_ode, u_parent, semis,
+              semi::SemidiscretizationHyperbolic, t)
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    time_start = time_ns()
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_parent, semis, mesh, equations,
+                                      boundary_conditions, source_terms, solver, cache)
+    runtime = time_ns() - time_start
+    put!(semi.performance_counter, runtime)
+
+    return nothing
+end
+
 ################################################################################
 ### AnalysisCallback
 ################################################################################
