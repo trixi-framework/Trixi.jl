@@ -294,15 +294,16 @@ end
                                  "elixir_navierstokes_convergence_walls.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hll,
                                      basis_type = GaussLegendreBasis),
+                        time_int_tol=1e-10,
                         l2=[
-                            4.201407214726233e-5,
-                            9.758795848409044e-5,
-                            0.00042000319972803127
+                            4.201445769104007e-5,
+                            9.758279535510314e-5,
+                            0.0004199990641561288
                         ],
                         linf=[
-                            0.00015354693449309842,
-                            0.00041974539800903807,
-                            0.0016951216452660844
+                            0.00015356293659607445,
+                            0.0004198436005902785,
+                            0.0016946745322332646
                         ],
                         atol=1e-10)
     # Ensure that we do not have excessive memory allocations
