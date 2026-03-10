@@ -45,7 +45,7 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
 
-struct DGMultiGeometricTerms{TJ, TinvJ, Tdxidxhatj}
+struct DGMultiGeometricTermsContainer{TJ, TinvJ, Tdxidxhatj}
     J::TJ
     invJ::TinvJ
     dxidxhatj::Tdxidxhatj

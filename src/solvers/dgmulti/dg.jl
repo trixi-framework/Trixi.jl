@@ -197,7 +197,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     # interpolate J to quadrature points for weight-adjusted DG (WADG)
     J = md.J
     invJ = inv.(rd.Vq * J)
-    geometric_terms = DGMultiGeometricTerms(J, invJ, dxidxhatj)
+    geometric_terms_container = DGMultiGeometricTermsContainer(J, invJ, dxidxhatj)
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
     flux_threaded = [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
@@ -206,7 +206,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
                              for _ in 1:Threads.maxthreadid()]
 
     return (; md, weak_differentiation_matrices, lift_scalings,
-            geometric_terms,
+            geometric_terms_container,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, flux_threaded, rotated_flux_threaded)
 end
@@ -362,7 +362,7 @@ end
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache)
     @unpack weak_differentiation_matrices, u_values, local_values_threaded = cache
-    (; dxidxhatj) = cache.geometric_terms
+    (; dxidxhatj) = cache.geometric_terms_container
 
     flux_values = local_values_threaded[Threads.threadid()]
     for i in eachdim(mesh)
@@ -391,7 +391,7 @@ end
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache) where {NDIMS}
     (; weak_differentiation_matrices, u_values) = cache
-    (; dxidxhatj) = cache.geometric_terms
+    (; dxidxhatj) = cache.geometric_terms_container
 
     flux_values = cache.flux_threaded[Threads.threadid()]
     for i in eachdim(mesh)
@@ -671,7 +671,7 @@ end
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache;
                           scaling = -1)
     @threaded for e in eachelement(mesh, dg, cache)
-        invJ = cache.geometric_terms.invJ[1, e]
+        invJ = cache.geometric_terms_container.invJ[1, e]
         for i in axes(du, 1)
             du[i, e] *= scaling * invJ
         end
@@ -689,7 +689,7 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
     (; local_values_threaded) = cache
-    (; invJ) = cache.geometric_terms
+    (; invJ) = cache.geometric_terms_container
 
     @threaded for e in eachelement(mesh, dg, cache)
         du_at_quad_points = local_values_threaded[Threads.threadid()]

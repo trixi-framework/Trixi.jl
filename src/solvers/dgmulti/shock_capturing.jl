@@ -222,7 +222,7 @@ end
 
 @inline function get_contravariant_matrix(node, element, mesh::DGMultiMesh{NDIMS},
                                           cache) where {NDIMS}
-    (; dxidxhatj) = cache.geometric_terms
+    (; dxidxhatj) = cache.geometric_terms_container
     # SMatrix is filled column-major, so row index i varies fastest
     return SMatrix{NDIMS, NDIMS}(ntuple(k -> dxidxhatj[(k - 1) % NDIMS + 1,
                                                        (k - 1) ÷ NDIMS + 1][node, element],
