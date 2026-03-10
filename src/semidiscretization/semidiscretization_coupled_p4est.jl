@@ -434,10 +434,10 @@ Boundary condition struct where the user can specify the coupling converter func
                                            state of one system to the other system
 """
 mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
-    coupling_converter::CouplingConverter
+    const coupling_converter::CouplingConverter
     # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
-    semi_coupled::Any
-    u_ode::Any
+    semi_coupled::Union{Nothing, AbstractSemidiscretization}
+    u_ode::Union{Nothing, AbstractVector}
 
     function BoundaryConditionCoupledP4est(coupling_converter)
         new{typeof(coupling_converter)}(coupling_converter, nothing, nothing)
