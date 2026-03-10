@@ -659,6 +659,14 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
     return nothing
 end
 
+# Returns `invJ` at a given `node` and `element`. For affine meshes, `invJ` is
+# constant per element so node 1 is used; for NonAffine meshes it varies by node.
+@inline get_node_invJ(invJ, node, element, ::DGMultiMesh) = invJ[1, element]
+@inline function get_node_invJ(invJ, node, element,
+                               ::DGMultiMesh{NDIMS, <:NonAffine}) where {NDIMS}
+    return invJ[node, element]
+end
+
 # inverts Jacobian and scales by -1.0
 function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache;
                           scaling = -1)

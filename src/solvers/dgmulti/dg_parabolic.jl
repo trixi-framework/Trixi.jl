@@ -190,34 +190,13 @@ function calc_gradient!(gradients, u::StructArray, t, mesh::DGMultiMesh,
     return nothing
 end
 
-# affine mesh - constant Jacobian version
 function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh, equations, dg::DGMulti,
                                    cache, cache_parabolic)
-    @threaded for e in eachelement(mesh, dg)
-
-        # Here, we exploit the fact that J is constant on affine elements,
-        # so we only have to access invJ once per element.
-        invJ = cache.geometric_terms.invJ[1, e]
-
-        for dim in eachdim(mesh)
-            for i in axes(gradients[dim], 1)
-                gradients[dim][i, e] = gradients[dim][i, e] * invJ
-            end
-        end
-    end
-
-    return nothing
-end
-
-# non-affine mesh - variable Jacobian version
-function invert_jacobian_gradient!(gradients, mesh::DGMultiMesh{NDIMS, <:NonAffine},
-                                   equations,
-                                   dg::DGMulti, cache, cache_parabolic) where {NDIMS}
     (; invJ) = cache.geometric_terms
     @threaded for e in eachelement(mesh, dg)
         for dim in eachdim(mesh)
             for i in axes(gradients[dim], 1)
-                gradients[dim][i, e] = gradients[dim][i, e] * invJ[i, e]
+                gradients[dim][i, e] *= get_node_invJ(invJ, i, e, mesh)
             end
         end
     end
