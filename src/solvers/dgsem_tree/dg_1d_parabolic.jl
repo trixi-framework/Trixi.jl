@@ -242,7 +242,7 @@ function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::Tree
     return nothing
 end
 
-function calc_gradient_boundary_flux!(cache, t,
+function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
                                                                            BoundaryConditionDoNothing},
                                       mesh::TreeMesh{1},
