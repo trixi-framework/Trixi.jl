@@ -170,6 +170,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
             if bc isa BoundaryConditionCoupledP4est
                 bc.semi_coupled = semi
                 bc.u_ode = u_ode
+                bc.self_index = i
             end
         end
     end
@@ -240,6 +241,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
             if bc isa BoundaryConditionCoupledP4est
                 bc.semi_coupled = semi_coupled
                 bc.u_ode = u_ode_coupled
+                bc.self_index = i
             end
         end
     end
@@ -418,9 +420,10 @@ mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
     semi_coupled::Union{Nothing, AbstractSemidiscretization}
     u_ode::Union{Nothing, AbstractVector}
+    self_index::Int # index of the system this BC belongs to
 
     function BoundaryConditionCoupledP4est(coupling_converter)
-        new{typeof(coupling_converter)}(coupling_converter, nothing, nothing)
+        new{typeof(coupling_converter)}(coupling_converter, nothing, nothing, 0)
     end
 end
 
@@ -496,9 +499,14 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                    i_index_g, j_index_g, local_elem)
 
     # Apply coupling converter to transform from neighbor's equations to ours.
+    # coupling_converter can be a single function or a matrix of functions
+    # indexed by [self_index, other_index].
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
-    u_boundary = boundary_condition.coupling_converter(x, u_boundary_raw,
-                                                       semi_other.equations, equations)
+    converter = boundary_condition.coupling_converter
+    if converter isa AbstractMatrix
+        converter = converter[boundary_condition.self_index, idx_other]
+    end
+    u_boundary = converter(x, u_boundary_raw, semi_other.equations, equations)
 
     orientation = normal_direction
 
