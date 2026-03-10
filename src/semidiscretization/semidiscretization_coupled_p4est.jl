@@ -25,7 +25,6 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, EquationList} <:
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
     parent_cell_ids::Vector{Int}
-    element_offset::Vector{Int}
     view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
 end
@@ -55,7 +54,6 @@ function SemidiscretizationCoupledP4est(semis...)
     # Create correspondence between parent mesh cell IDs and view cell IDs.
     parent_cell_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
     view_cell_ids = zeros(Int, length(parent_cell_ids))
-    element_offset = ones(Int, length(semis))
     mesh_ids = zeros(Int, length(parent_cell_ids))
     for i in eachindex(semis)
         view_cell_ids[semis[i].mesh.cell_ids] = parent_cell_id_to_view(parent_cell_ids[semis[i].mesh.cell_ids],
@@ -69,7 +67,6 @@ function SemidiscretizationCoupledP4est(semis...)
                                    typeof(performance_counter)}(semis, u_indices,
                                                                 performance_counter,
                                                                 parent_cell_ids,
-                                                                element_offset,
                                                                 view_cell_ids,
                                                                 mesh_ids)
 end
