@@ -179,8 +179,9 @@ function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
-    common_arrays = allocate_common_dgmulti_arrays(mesh, equations, dg, uEltype)
-    return (; common_arrays, invJ = inv.(md.J))
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+    return (; solution_container, invJ = inv.(md.J))
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).

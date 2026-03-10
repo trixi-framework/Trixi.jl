@@ -10,7 +10,7 @@ function calc_error_norms(func, u, t, analyzer,
                           dg::DGMulti{NDIMS}, cache, cache_analysis) where {NDIMS}
     rd = dg.basis
     md = mesh.md
-    (; u_values) = cache.common_arrays
+    (; u_values) = cache.solution_container
 
     # interpolate u to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
@@ -31,7 +31,7 @@ function integrate(func::Func, u, mesh::DGMultiMesh,
                    equations, dg::DGMulti, cache; normalize = true) where {Func}
     rd = dg.basis
     md = mesh.md
-    (; u_values) = cache.common_arrays
+    (; u_values) = cache.solution_container
 
     # interpolate u to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
@@ -47,7 +47,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::DGMultiMesh, equations, dg::DGMulti, cache)
     rd = dg.basis
     md = mesh.md
-    (; u_values) = cache.common_arrays
+    (; u_values) = cache.solution_container
 
     # interpolate u, du to quadrature points
     du_values = similar(u_values) # Todo: DGMulti. Can we move this to the analysis cache somehow?

@@ -309,11 +309,12 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
 
-    common_arrays = allocate_common_dgmulti_arrays(mesh, equations, dg, uEltype)
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
 
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            common_arrays, fluxdiff_local_threaded)
+            solution_container, fluxdiff_local_threaded)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
@@ -365,14 +366,15 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
     interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
     J = rd.Vq * md.J
 
-    common_arrays = DGMultiCommonArrays(u_values, u_face_values, flux_face_values,
-                                        local_values_threaded)
+    solution_container = DGMultiSolutionContainer(u_values, u_face_values,
+                                                  flux_face_values,
+                                                  local_values_threaded)
 
     return (; md, Qrst_skew, VhP, Ph,
             invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values,
             entropy_projected_u_values,
-            common_arrays, fluxdiff_local_threaded, rhs_local_threaded)
+            solution_container, fluxdiff_local_threaded, rhs_local_threaded)
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
@@ -381,7 +383,7 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti
     @unpack Vq = rd
     @unpack VhP, entropy_var_values = cache
     @unpack projected_entropy_var_values, entropy_projected_u_values = cache
-    (; u_values) = cache.common_arrays
+    (; u_values) = cache.solution_container
 
     apply_to_each_field(mul_by!(Vq), u_values, u)
 
