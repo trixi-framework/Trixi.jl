@@ -61,10 +61,10 @@ volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver1 = DGSEM(polydeg = 3,
                 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
-boundary_conditions1 = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
-                            :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
+boundary_conditions1 = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                         y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                         y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                         x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 semi1 = SemidiscretizationHyperbolic(mesh1, equations1, initial_condition_mhd, solver1,
                                      boundary_conditions = boundary_conditions1)
 
@@ -73,10 +73,10 @@ cell_ids2 = Vector(9:31)
 mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 solver2 = DGSEM(polydeg = 3, surface_flux = flux_hll,
                 volume_integral = VolumeIntegralWeakForm())
-boundary_conditions2 = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
-                            :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
+boundary_conditions2 = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                         y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                         y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                         x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 semi2 = SemidiscretizationHyperbolic(mesh2, equations2, initial_condition_euler, solver2,
                                      boundary_conditions = boundary_conditions2)
 
@@ -96,7 +96,8 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
-analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
+analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1,
+                                                 analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
