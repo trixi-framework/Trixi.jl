@@ -298,7 +298,8 @@ function build_element_to_element_connectivity(mesh::DGMultiMesh, dg::DGMulti)
             neighbor_face_index = face_to_face_connectivity[f, e]
             # Reverse-engineer element index from face index. Assumes all elements
             # have the same number of faces.
-            neighbor_element_index = ((neighbor_face_index - 1) ÷ dg.basis.num_faces) + 1
+            neighbor_element_index = ((neighbor_face_index - 1) ÷ dg.basis.num_faces) +
+                                     1
             element_to_element_connectivity[f, e] = neighbor_element_index
         end
     end
