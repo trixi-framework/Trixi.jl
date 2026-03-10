@@ -80,6 +80,12 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
         apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
     end
 
+    # Calculate source terms
+    @trixi_timeit timer() "source terms parabolic" begin
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                equations_parabolic, dg, cache)
+    end
+
     return nothing
 end
 
@@ -130,12 +136,6 @@ function calc_divergence!(du, flux_viscous, u, mesh::TreeMesh{1}, equations_para
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                equations_parabolic, dg, cache)
     end
 
     return nothing
