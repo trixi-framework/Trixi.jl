@@ -67,7 +67,7 @@ function SemidiscretizationCoupledP4est(semis...)
 
     # Precompute boundary → parent cell ID lookup for each semidiscretization.
     boundary_parent_lookup = Vector{Dict{Tuple{Int, Symbol}, Int}}(undef,
-                                                                    length(semis))
+                                                                   length(semis))
     for i in eachindex(semis)
         cache_i = semis[i].cache
         lookup = Dict{Tuple{Int, Symbol}, Int}()
