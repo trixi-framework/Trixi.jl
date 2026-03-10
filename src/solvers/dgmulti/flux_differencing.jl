@@ -288,6 +288,23 @@ function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP,
     return Qrst_skew
 end
 
+# Build element-to-element connectivity from face-to-face connectivity.
+# Used for smoothing of shock capturing blending parameters (see `apply_smoothing!`).
+function build_element_to_element_connectivity(mesh::DGMultiMesh, dg::DGMulti)
+    face_to_face_connectivity = mesh.md.FToF
+    element_to_element_connectivity = similar(face_to_face_connectivity)
+    for e in axes(face_to_face_connectivity, 2)
+        for f in axes(face_to_face_connectivity, 1)
+            neighbor_face_index = face_to_face_connectivity[f, e]
+            # Reverse-engineer element index from face index. Assumes all elements
+            # have the same number of faces.
+            neighbor_element_index = ((neighbor_face_index - 1) ÷ dg.basis.num_faces) + 1
+            element_to_element_connectivity[f, e] = neighbor_element_index
+        end
+    end
+    return element_to_element_connectivity
+end
+
 # For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
 # This results in a slight speedup for `calc_volume_integral!`.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiffSBP)
@@ -317,10 +334,13 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
 
+    element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
+
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded)
+            local_values_threaded, fluxdiff_local_threaded,
+            element_to_element_connectivity)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
@@ -594,7 +614,8 @@ end
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralFluxDifferencing,
-                                         dg::DGMultiFluxDiffSBP, cache)
+                                         dg::DGMultiFluxDiffSBP, cache,
+                                         alpha = true)
     @unpack fluxdiff_local_threaded, inv_wq = cache
 
     fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
@@ -608,7 +629,7 @@ end
                              mesh, equations, dg, cache)
 
     for i in each_quad_node(mesh, dg, cache)
-        du[i, element] = du[i, element] + fluxdiff_local[i] * inv_wq[i]
+        du[i, element] = du[i, element] + alpha * fluxdiff_local[i] * inv_wq[i]
     end
 
     return nothing
