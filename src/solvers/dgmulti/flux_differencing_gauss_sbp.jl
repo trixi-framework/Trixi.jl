@@ -511,29 +511,6 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
-                                           have_nonconservative_terms, equations,
-                                           volume_flux, dg::DGMultiFluxDiff{<:GaussSBP},
-                                           cache, alpha = true)
-    fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-    u_local = view(cache.entropy_projected_u_values, :, element)
-
-    local_flux_differencing!(fluxdiff_local, u_local, element,
-                             have_nonconservative_terms,
-                             volume_flux, has_sparse_operators(dg),
-                             mesh, equations, dg, cache)
-
-    # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
-    # for faster performance when using `apply_to_each_field`.
-    rhs_local = cache.rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-        rhs_local[i] = fluxdiff_local[i]
-    end
-
-    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
-end
-
 function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
                                      dg::DGMulti, cache, alpha = true)
 
@@ -566,11 +543,23 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                  dg::DGMultiFluxDiff{<:GaussSBP}, cache)
     (; volume_flux) = volume_integral
 
-    flux_differencing_kernel!(du, u, element, mesh,
-                              have_nonconservative_terms, equations,
-                              volume_flux, dg, cache)
+    fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
+    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    u_local = view(cache.entropy_projected_u_values, :, element)
 
-    return nothing
+    local_flux_differencing!(fluxdiff_local, u_local, element,
+                             have_nonconservative_terms,
+                             volume_flux, has_sparse_operators(dg),
+                             mesh, equations, dg, cache)
+
+    # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
+    # for faster performance when using `apply_to_each_field`.
+    rhs_local = cache.rhs_local_threaded[Threads.threadid()]
+    for i in Base.OneTo(length(fluxdiff_local))
+        rhs_local[i] = fluxdiff_local[i]
+    end
+
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache)
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
