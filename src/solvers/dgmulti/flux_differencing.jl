@@ -342,12 +342,7 @@ end
     for dim in eachdim(mesh)
         normal_directions = get_contravariant_vector(element_index, dim, mesh, cache)
         Q_skew = Qrst_skew[dim]
-        # `Q_skew` is an `Adjoint{SparseMatrixCSC}`; `parent` retrieves the underlying
-        # `SparseMatrixCSC` so we can iterate over its stored entries directly.
-        A_base = parent(Q_skew) # SparseMatrixCSC (the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR)
-        row_ids = axes(Q_skew, 2)
-        rows = rowvals(A_base)
-        vals = nonzeros(A_base)
+        A_base, row_ids, rows, vals = _adjoint_sparse_data(Q_skew)
         for i in row_ids
             u_i = u_local[i]
             du_i = fluxdiff_local[i]
@@ -381,15 +376,10 @@ end
     for dim in eachdim(mesh)
         normal_directions = get_contravariant_vector(element_index, dim, mesh, cache)
         Q_skew = Qrst_skew[dim]
-        # `Q_skew` is an `Adjoint{SparseMatrixCSC}`; `parent` retrieves the underlying
-        # `SparseMatrixCSC` so we can iterate over its stored entries directly.
-        A_base = parent(Q_skew) # SparseMatrixCSC (the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR)
-        row_ids = axes(Q_skew, 2)
-        rows = rowvals(A_base)
-        vals = nonzeros(A_base)
+        A_base, row_ids, rows, vals = _adjoint_sparse_data(Q_skew)
         for i in row_ids
             u_i = u_local[i]
-            du_i = fluxdiff_local[i]
+            du_i = du_local[i]
             for id in nzrange(A_base, i)
                 j = rows[id]
                 A_ij = vals[id]
