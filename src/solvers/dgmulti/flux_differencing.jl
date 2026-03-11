@@ -5,84 +5,6 @@
 @muladd begin
 #! format: noindent
 
-#   hadamard_sum!(du, A, flux_is_symmetric, volume_flux, orientation_or_normal_direction, u, equations)
-#
-# Computes the flux difference ∑_j A[i, j] * f(u_i, u_j) and accumulates the result into `du`.
-# Used by the periodic FD-SBP solver (`sbp.jl`). `A` must be the adjoint of a SparseMatrixCSC.
-
-# Version for sparse operators and symmetric fluxes
-@inline function hadamard_sum!(du,
-                               A::LinearAlgebra.Adjoint{<:Any,
-                                                        <:AbstractSparseMatrixCSC},
-                               flux_is_symmetric::True, volume_flux,
-                               orientation_or_normal_direction, u, equations)
-    A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-    row_ids = axes(A, 2)
-    rows = rowvals(A_base)
-    vals = nonzeros(A_base)
-
-    for i in row_ids
-        u_i = u[i]
-        du_i = du[i]
-        for id in nzrange(A_base, i)
-            j = rows[id]
-            # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
-            # We avoid computing the lower-triangular part, and instead accumulate those contributions
-            # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
-            # is symmetric).
-            if j > i
-                u_j = u[j]
-                A_ij = vals[id]
-                AF_ij = 2 * A_ij *
-                        volume_flux(u_i, u_j, orientation_or_normal_direction,
-                                    equations)
-                du_i = du_i + AF_ij
-                du[j] = du[j] - AF_ij
-            end
-        end
-        du[i] = du_i
-    end
-end
-
-# Version for sparse operators, symmetric fluxes, and curved (NonAffine) meshes.
-# `normal_directions` is an SVector of per-node arrays (one view per reference direction),
-# as returned by `get_contravariant_vector` on NonAffine meshes. We average the normals
-# at nodes i and j to obtain a per-pair entropy-stable de-aliased direction.
-@inline function hadamard_sum!(du,
-                               A::LinearAlgebra.Adjoint{<:Any,
-                                                        <:AbstractSparseMatrixCSC},
-                               flux_is_symmetric::True, volume_flux,
-                               normal_directions::AbstractVector{<:AbstractVector},
-                               u, equations)
-    A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-    row_ids = axes(A, 2)
-    rows = rowvals(A_base)
-    vals = nonzeros(A_base)
-
-    for i in row_ids
-        u_i = u[i]
-        du_i = du[i]
-        for id in nzrange(A_base, i)
-            j = rows[id]
-            # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
-            # We avoid computing the lower-triangular part, and instead accumulate those contributions
-            # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
-            # is symmetric).
-            if j > i
-                u_j = u[j]
-                A_ij = vals[id]
-                # provably entropy stable de-aliasing of geometric terms
-                normal_direction = 0.5 * (getindex.(normal_directions, i) +
-                                    getindex.(normal_directions, j))
-                AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
-                du_i = du_i + AF_ij
-                du[j] = du[j] - AF_ij
-            end
-        end
-        du[i] = du_i
-    end
-end
-
 # Return the contravariant basis vector corresponding to the Cartesian
 # coordinate direction `orientation` in a given `element` of the `mesh`.
 # The contravariant basis vectors have entries `dx_i / dxhat_j` where
@@ -108,6 +30,17 @@ end
     # assumes geometric terms vary spatially over each element
     (; dxidxhatj) = cache
     return SVector{NDIMS}(view.(dxidxhatj[:, orientation], :, element))
+end
+
+# For Affine meshes, `get_contravariant_vector` returns an SVector of scalars (constant over the
+# element). The normal direction is the same for all node pairs.
+@inline get_normal_direction(normal_directions::AbstractVector{<:Number}, i, j) = normal_directions
+
+# For NonAffine meshes, `get_contravariant_vector` returns an SVector of per-node arrays.
+# We average the normals at nodes i and j for provably entropy-stable de-aliasing of geometric terms.
+@inline function get_normal_direction(normal_directions::AbstractVector{<:AbstractVector},
+                                      i, j)
+    return 0.5 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
 end
 
 # use hybridized SBP operators for general flux differencing schemes.
@@ -398,7 +331,8 @@ end
 # When the operators are sparse, we use the sum-factorization approach to
 # computing flux differencing. Each dimension has its own sparse operator with
 # its own sparsity pattern (e.g., tensor-product structure on Quad/Hex elements),
-# so we loop per-dimension and use `hadamard_sum!` for the symmetric conservative flux.
+# so we loop per-dimension. For each nonzero entry A[i,j] we evaluate the flux once
+# and exploit skew-symmetry to accumulate both the (i,j) and (j,i) contributions.
 @inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
                                           have_nonconservative_terms::False,
                                           volume_flux,
@@ -406,12 +340,33 @@ end
                                           equations, dg, cache)
     @unpack Qrst_skew = cache
     for dim in eachdim(mesh)
-        normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
+        normal_directions = get_contravariant_vector(element_index, dim, mesh, cache)
         Q_skew = Qrst_skew[dim]
-        # True() indicates the flux is symmetric
-        hadamard_sum!(fluxdiff_local, Q_skew,
-                      True(), volume_flux,
-                      normal_direction, u_local, equations)
+        A_base = parent(Q_skew) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+        row_ids = axes(Q_skew, 2)
+        rows = rowvals(A_base)
+        vals = nonzeros(A_base)
+        for i in row_ids
+            u_i = u_local[i]
+            du_i = fluxdiff_local[i]
+            for id in nzrange(A_base, i)
+                j = rows[id]
+                # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+                # We avoid computing the lower-triangular part, and instead accumulate those contributions
+                # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+                # is symmetric).
+                if j > i
+                    u_j = u_local[j]
+                    A_ij = vals[id]
+                    normal_direction_ij = get_normal_direction(normal_directions, i, j)
+                    AF_ij = 2 * A_ij *
+                            volume_flux(u_i, u_j, normal_direction_ij, equations)
+                    du_i = du_i + AF_ij
+                    fluxdiff_local[j] = fluxdiff_local[j] - AF_ij
+                end
+            end
+            fluxdiff_local[i] = du_i
+        end
     end
 end
 
@@ -422,20 +377,9 @@ end
     @unpack Qrst_skew = cache
     flux_conservative, flux_nonconservative = volume_flux
     for dim in eachdim(mesh)
-        normal_direction = get_contravariant_vector(element_index, dim, mesh, cache)
+        normal_directions = get_contravariant_vector(element_index, dim, mesh, cache)
         Q_skew = Qrst_skew[dim]
-
-        # True() indicates the conservative flux is symmetric
-        hadamard_sum!(fluxdiff_local, Q_skew,
-                      True(), flux_conservative,
-                      normal_direction, u_local, equations)
-
-        # Non-conservative terms: pass 0.5 * normal_direction to replace the old
-        # LazyMatrixLinearCombo((Q_skew,), (0.5,)) scaling.
-        # This relies on flux_nonconservative being linear (homogeneous of degree 1)
-        # in the normal direction, so that Q[i,j]*f(u,v,n) = 2*Q[i,j]*f(u,v,0.5*n).
-        half_normal = 0.5 * normal_direction
-        A_base = parent(Q_skew)
+        A_base = parent(Q_skew) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
         row_ids = axes(Q_skew, 2)
         rows = rowvals(A_base)
         vals = nonzeros(A_base)
@@ -443,11 +387,21 @@ end
             u_i = u_local[i]
             du_i = fluxdiff_local[i]
             for id in nzrange(A_base, i)
-                A_ij = vals[id]
                 j = rows[id]
+                A_ij = vals[id]
                 u_j = u_local[j]
-                f_ij = flux_nonconservative(u_i, u_j, half_normal, equations)
-                du_i = du_i + 2 * A_ij * f_ij
+                normal_direction_ij = get_normal_direction(normal_directions, i, j)
+                # Conservative part: exploit skew-symmetry (calculate upper triangular part only).
+                if j > i
+                    AF_ij = 2 * A_ij *
+                            flux_conservative(u_i, u_j, normal_direction_ij, equations)
+                    du_i = du_i + AF_ij
+                    fluxdiff_local[j] = fluxdiff_local[j] - AF_ij
+                end
+                # Non-conservative terms use the full (non-symmetric) loop.
+                # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
+                f_nc = flux_nonconservative(u_i, u_j, 0.5 * normal_direction, equations)
+                du_i = du_i + 2 * A_ij * f_nc
             end
             fluxdiff_local[i] = du_i
         end
