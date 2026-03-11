@@ -400,7 +400,7 @@ end
                 end
                 # Non-conservative terms use the full (non-symmetric) loop.
                 # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
-                f_nc = flux_nonconservative(u_i, u_j, 0.5 * normal_direction, equations)
+                f_nc = flux_nonconservative(u_i, u_j, 0.5 * normal_direction_ij, equations)
                 du_i = du_i + 2 * A_ij * f_nc
             end
             fluxdiff_local[i] = du_i
