@@ -17,7 +17,7 @@ equations = CompressibleEulerEquations3D(gamma())
 rho_inf() = 1.293 # [kg/m^3]
 p_inf() = 101325 # [Pa]
 
-c_inf() = sqrt(gamma() * p_inf()/rho_inf()) # [m/s]
+c_inf() = sqrt(gamma() * p_inf() / rho_inf()) # [m/s]
 
 Ma_inf() = 0.76
 U_inf() = Ma_inf() * c_inf() # [m/s]
