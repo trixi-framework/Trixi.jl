@@ -115,15 +115,15 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
                              for _ in 1:Threads.maxthreadid()]
 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
-    fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
-                               for _ in 1:Threads.maxthreadid()]
+    du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
+                         for _ in 1:Threads.maxthreadid()]
 
     element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
 
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded,
+            local_values_threaded, du_local_threaded,
             element_to_element_connectivity)
 end
 
@@ -165,8 +165,8 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
     # projecting it and storing it into `du`.
-    fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
-                               for _ in 1:Threads.maxthreadid()]
+    du_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
+                         for _ in 1:Threads.maxthreadid()]
     rhs_local_threaded = [allocate_nested_array(uEltype, nvars,
                                                 (num_quad_points_total,), dg)
                           for _ in 1:Threads.maxthreadid()]
@@ -181,7 +181,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
             entropy_var_values, projected_entropy_var_values,
             entropy_projected_u_values,
             u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
+            local_values_threaded, du_local_threaded, rhs_local_threaded)
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
@@ -411,9 +411,9 @@ end
                                          volume_integral::VolumeIntegralFluxDifferencing,
                                          dg::DGMultiFluxDiff, cache, alpha = true)
     @unpack entropy_projected_u_values, Ph = cache
-    @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
+    @unpack du_local_threaded, rhs_local_threaded = cache
 
-    du_local = fluxdiff_local_threaded[Threads.threadid()]
+    du_local = du_local_threaded[Threads.threadid()]
     fill!(du_local, zero(eltype(du_local)))
     u_local = view(entropy_projected_u_values, :, element)
 
@@ -439,9 +439,9 @@ end
                                          volume_integral::VolumeIntegralFluxDifferencing,
                                          dg::DGMultiFluxDiffSBP, cache,
                                          alpha = true)
-    @unpack fluxdiff_local_threaded, inv_wq = cache
+    @unpack du_local_threaded, inv_wq = cache
 
-    du_local = fluxdiff_local_threaded[Threads.threadid()]
+    du_local = du_local_threaded[Threads.threadid()]
     fill!(du_local, zero(eltype(du_local)))
     u_local = view(u, :, element)
 

@@ -543,7 +543,7 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                  dg::DGMultiFluxDiff{<:GaussSBP}, cache, alpha = true)
     (; volume_flux) = volume_integral
 
-    du_local = cache.fluxdiff_local_threaded[Threads.threadid()]
+    du_local = cache.du_local_threaded[Threads.threadid()]
     fill!(du_local, zero(eltype(du_local)))
     u_local = view(cache.entropy_projected_u_values, :, element)
 
