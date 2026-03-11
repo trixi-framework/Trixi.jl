@@ -118,13 +118,10 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                          for _ in 1:Threads.maxthreadid()]
 
-    element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
-
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
-            local_values_threaded, du_local_threaded,
-            element_to_element_connectivity)
+            local_values_threaded, du_local_threaded)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
