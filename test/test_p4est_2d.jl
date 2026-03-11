@@ -123,6 +123,7 @@ end
                                              n_cells_max = 0,
                                              RealT = typeof(parent_mesh).parameters[3])
     end
+end
 
 @trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
