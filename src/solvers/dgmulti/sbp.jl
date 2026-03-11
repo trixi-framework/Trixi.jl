@@ -234,19 +234,35 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
     else # if using two threads or fewer
 
-        # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
-        # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
-        # volume integral unless we have >2 threads (which should yield >2 speedup).
+        # Exploit skew-symmetry to halve the number of flux evaluations (≈2x speedup).
+        # A = Drst[dim] is skew-symmetric for periodic FD-SBP on uniform grids, so
+        # A[i,j] = -A[j,i]. The stored CSC value vals[id] = A[j,i] = -A[i,j], hence
+        # we use -vals[id] to recover A[i,j], matching the multithreaded branch above.
         for dim in eachdim(mesh)
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             A = dg.basis.Drst[dim]
+            A_base = parent(A)
+            row_ids = axes(A, 2)
+            rows = rowvals(A_base)
+            vals = nonzeros(A_base)
 
-            # since have_nonconservative_terms::False,
-            # the volume flux is symmetric.
-            flux_is_symmetric = True()
-            hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
-                          normal_direction, u, equations)
+            for i in row_ids
+                u_i = u[i]
+                du_i = du[i]
+                for id in nzrange(A_base, i)
+                    j = rows[id]
+                    if j > i
+                        A_ij = -vals[id]  # A[j,i] stored; skew-symmetry: -A[j,i] = A[i,j]
+                        u_j = u[j]
+                        AF_ij = 2 * A_ij *
+                                volume_flux(u_i, u_j, normal_direction, equations)
+                        du_i = du_i + AF_ij
+                        du[j] = du[j] - AF_ij
+                    end
+                end
+                du[i] = du_i
+            end
         end
     end
 
