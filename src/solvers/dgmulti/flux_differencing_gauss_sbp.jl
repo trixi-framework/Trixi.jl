@@ -540,7 +540,7 @@ end
 function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                  have_nonconservative_terms, equations,
                                  volume_integral::VolumeIntegralFluxDifferencing,
-                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache)
+                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache, alpha = true)
     (; volume_flux) = volume_integral
 
     fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
@@ -559,7 +559,7 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         rhs_local[i] = fluxdiff_local[i]
     end
 
-    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points

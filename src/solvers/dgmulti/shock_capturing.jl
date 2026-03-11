@@ -183,10 +183,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                     dg, cache, 1 - alpha_element)
 
             # Calculate "FV" low order volume integral contribution
-            low_order_flux_differencing_kernel!(du, u, element, mesh,
-                                                have_nonconservative_terms, equations,
-                                                volume_integral_blend_low_order,
-                                                dg, cache, alpha_element)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_blend_low_order,
+                                    dg, cache, alpha_element)
         end
     end
 
@@ -266,12 +266,11 @@ end
 end
 
 # Computes an algebraic low order method with internal dissipation.
-function low_order_flux_differencing_kernel!(du, u, element,
-                                             mesh::DGMultiMesh,
-                                             have_nonconservative_terms::False, equations,
-                                             volume_integral,
-                                             dg::DGMultiFluxDiff{<:GaussSBP},
-                                             cache, alpha = true)
+function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                 have_nonconservative_terms::False, equations,
+                                 volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache,
+                                 alpha = true)
     (; volume_flux_fv) = volume_integral
 
     # accumulates output from flux differencing
