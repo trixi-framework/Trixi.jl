@@ -453,8 +453,24 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              surface_flux_function,
                                                              direction,
                                                              boundary_index)
-    n_nodes = length(mesh.parent.nodes)
+    # Use a function barrier to ensure type stability: the mutable fields
+    # semi_coupled and u_ode are abstractly typed (set at runtime), so we
+    # extract them once here and pass them into a fully-typed inner function.
     semi_coupled = boundary_condition.semi_coupled
+    u_ode = boundary_condition.u_ode
+    _boundary_condition_coupled(boundary_condition, semi_coupled, u_ode,
+                                u_inner, mesh, equations, cache,
+                                i_index, j_index, element_index,
+                                normal_direction, surface_flux_function,
+                                boundary_index)
+end
+
+@inline function _boundary_condition_coupled(boundary_condition, semi_coupled, u_ode,
+                                              u_inner, mesh, equations, cache,
+                                              i_index, j_index, element_index,
+                                              normal_direction, surface_flux_function,
+                                              boundary_index)
+    n_nodes = length(mesh.parent.nodes)
     lookup = semi_coupled.boundary_parent_lookup[boundary_condition.self_index]
 
     # Look up the parent cell ID directly by boundary index.
@@ -481,21 +497,49 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         i_index_g = i_index
     end
     # Look up the neighbor element's state from the stored coupled solution.
-    u_ode = boundary_condition.u_ode
     idx_other = semi_coupled.mesh_ids[cell_index_parent]
-    semi_other = semi_coupled.semis[idx_other]
     local_elem = semi_coupled.view_cell_ids[cell_index_parent]
+    semi_other = semi_coupled.semis[idx_other]
 
-    u_loc_other = get_system_u_ode(u_ode, idx_other, semi_coupled)
-    u_other = wrap_array(u_loc_other, semi_other.mesh, semi_other.equations,
-                         semi_other.solver, semi_other.cache)
-    u_boundary_raw = get_node_vars(u_other, semi_other.equations, semi_other.solver,
-                                   i_index_g, j_index_g, local_elem)
+    # Read the neighbor node variables directly from the flat u_ode vector
+    # to avoid per-node SubArray + wrap_array allocations.
+    u_boundary_raw = _get_node_vars_coupled(u_ode, semi_coupled, idx_other,
+                                             semi_other, i_index_g, j_index_g,
+                                             local_elem)
+    _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
+                           u_inner, mesh, equations, cache,
+                           i_index, j_index,
+                           element_index, normal_direction, surface_flux_function,
+                           idx_other)
+end
+
+# Read node variables directly from the flat u_ode vector using a computed
+# linear index, avoiding SubArray and wrap_array allocations.
+@inline function _get_node_vars_coupled(u_ode, semi_coupled, idx_other,
+                                         semi_other, i, j, elem)
+    offset = first(semi_coupled.u_indices[idx_other]) - 1
+    nvars = nvariables(semi_other.equations)
+    nn = nnodes(semi_other.solver)
+    SVector(ntuple(@inline(v -> u_ode[offset + v +
+                                       nvars * ((i - 1) +
+                                                 nn * ((j - 1) +
+                                                        nn * (elem - 1)))]),
+                   Val(nvars)))
+end
+
+@inline function _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
+                                         u_inner, mesh, equations, cache,
+                                         i_index, j_index,
+                                         element_index, normal_direction,
+                                         surface_flux_function, idx_other)
 
     # Apply coupling converter to transform from neighbor's equations to ours.
     # coupling_converter can be a single function or a matrix of functions
     # indexed by [self_index, other_index].
-    x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
+    x = SVector(ntuple(@inline(idx -> cache.elements.node_coordinates[idx, i_index,
+                                                                       j_index,
+                                                                       element_index]),
+                       Val(ndims(equations))))
     converter = boundary_condition.coupling_converter
     if converter isa AbstractMatrix
         converter = converter[boundary_condition.self_index, idx_other]
