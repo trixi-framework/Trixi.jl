@@ -428,7 +428,7 @@ end
 
     flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
                                element_index, normal_direction, surface_flux,
-                               normal_direction)
+                               normal_direction, boundary_index)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
@@ -459,7 +459,7 @@ end
 
     flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
                                element_index, normal_direction, surface_flux,
-                               normal_direction)
+                               normal_direction, boundary_index)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)

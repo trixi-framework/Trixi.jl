@@ -26,9 +26,9 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices} <:
     performance_counter::PerformanceCounter
     view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
-    # Precomputed lookup: boundary_parent_lookup[i][(element, :direction)] → parent cell ID
+    # Precomputed lookup: boundary_parent_lookup[i][boundary_index] → parent cell ID
     # for each semidiscretization i. Avoids per-node linear scans at runtime.
-    boundary_parent_lookup::Vector{Dict{Tuple{Int, Symbol}, Int}}
+    boundary_parent_lookup::Vector{Vector{Int}}
 end
 
 """
@@ -66,17 +66,10 @@ function SemidiscretizationCoupledP4est(semis...)
     performance_counter = PerformanceCounter()
 
     # Precompute boundary → parent cell ID lookup for each semidiscretization.
-    boundary_parent_lookup = Vector{Dict{Tuple{Int, Symbol}, Int}}(undef,
-                                                                   length(semis))
+    # boundary_parent_lookup[i] is a vector indexed by boundary index.
+    boundary_parent_lookup = Vector{Vector{Int}}(undef, length(semis))
     for i in eachindex(semis)
-        cache_i = semis[i].cache
-        lookup = Dict{Tuple{Int, Symbol}, Int}()
-        for b in eachindex(cache_i.boundaries.name)
-            elem = cache_i.boundaries.neighbor_ids[b]
-            name = cache_i.boundaries.name[b]
-            lookup[(elem, name)] = cache_i.neighbor_ids_parent[b]
-        end
-        boundary_parent_lookup[i] = lookup
+        boundary_parent_lookup[i] = semis[i].cache.neighbor_ids_parent
     end
 
     SemidiscretizationCoupledP4est{typeof(semis),
@@ -179,8 +172,10 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    # Update all BoundaryConditionCoupledP4est instances with the current solution
-    # and semidiscretization reference so they can look up neighbor states.
+    # For each semidiscretization, first prime its BoundaryConditionCoupledP4est
+    # instances with the current solution and index, then call rhs!.
+    # Priming and rhs! must be interleaved (not separated) because multiple semis
+    # may share the same BC objects, so self_index must be set immediately before use.
     foreach_enumerate(semi.semis) do (i, semi_)
         for bc in semi_.boundary_conditions.boundary_condition_types
             if bc isa BoundaryConditionCoupledP4est
@@ -189,11 +184,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                 bc.self_index = i
             end
         end
-    end
-
-    # Call rhs! for each semidiscretization using the standard dispatch path.
-    # The coupled BCs read neighbor state from their stored fields (set above).
-    foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
         rhs!(du_loc, u_loc, semi_, t)
@@ -253,20 +243,18 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
 
     # Prime the coupled boundary conditions with the initial solution so that
     # individual AnalysisCallback calls to rhs! can read neighbor state correctly.
-    foreach_enumerate(semi_coupled.semis) do (i, semi_)
-        for bc in semi_.boundary_conditions.boundary_condition_types
+    # Priming and initialize! must be interleaved because multiple semis may share
+    # the same BC objects, so self_index must be set immediately before use.
+    for i in eachsystem(semi_coupled)
+        semi = semi_coupled.semis[i]
+        for bc in semi.boundary_conditions.boundary_condition_types
             if bc isa BoundaryConditionCoupledP4est
                 bc.semi_coupled = semi_coupled
                 bc.u_ode = u_ode_coupled
                 bc.self_index = i
             end
         end
-    end
-
-    # Loop over coupled systems' callbacks and initialize them individually
-    for i in eachsystem(semi_coupled)
         cb = analysis_callback_coupled.callbacks[i]
-        semi = semi_coupled.semis[i]
         u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
         du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
         initialize!(cb, u_ode, du_ode, t, integrator, semi)
@@ -279,7 +267,8 @@ function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
     u_ode_coupled = integrator.u
     du_ode_coupled = first(get_tmp_cache(integrator))
 
-    # Loop over coupled systems' callbacks and call them individually
+    # Loop over coupled systems' callbacks and call them individually.
+    # Prime BCs before each call since multiple semis may share BC objects.
     for i in eachsystem(semi_coupled)
         @unpack condition = analysis_callback_coupled.callbacks[i]
         analysis_callback = analysis_callback_coupled.callbacks[i].affect!
@@ -291,6 +280,13 @@ function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
         end
 
         semi = semi_coupled.semis[i]
+        for bc in semi.boundary_conditions.boundary_condition_types
+            if bc isa BoundaryConditionCoupledP4est
+                bc.semi_coupled = semi_coupled
+                bc.u_ode = u_ode_coupled
+                bc.self_index = i
+            end
+        end
         du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
         analysis_callback(u_ode, du_ode, integrator, semi)
     end
@@ -455,19 +451,17 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              element_index,
                                                              normal_direction,
                                                              surface_flux_function,
-                                                             direction)
+                                                             direction,
+                                                             boundary_index)
     n_nodes = length(mesh.parent.nodes)
     semi_coupled = boundary_condition.semi_coupled
     lookup = semi_coupled.boundary_parent_lookup[boundary_condition.self_index]
 
-    # Determine which direction the boundary faces and look up the parent cell ID
-    # from the precomputed table.
+    # Look up the parent cell ID directly by boundary index.
+    cell_index_parent = lookup[boundary_index]
+
+    # Determine which direction the boundary faces to compute the neighbor node indices.
     if abs(normal_direction[1]) > abs(normal_direction[2])
-        if normal_direction[1] > 0
-            cell_index_parent = lookup[(element_index, :x_pos)]
-        else
-            cell_index_parent = lookup[(element_index, :x_neg)]
-        end
         i_index_g = i_index
         # Make sure we do not leave the domain.
         if i_index == n_nodes
@@ -477,11 +471,6 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         j_index_g = j_index
     else
-        if normal_direction[2] > 0
-            cell_index_parent = lookup[(element_index, :y_pos)]
-        else
-            cell_index_parent = lookup[(element_index, :y_neg)]
-        end
         j_index_g = j_index
         # Make sure we do not leave the domain.
         if j_index == n_nodes
