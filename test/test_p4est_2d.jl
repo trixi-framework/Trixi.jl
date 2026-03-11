@@ -105,24 +105,20 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
                         linf=[3.8353423270964804e-5])
-    @trixi_testset "elixir_advection_coupled.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-                            l2=[0.0, 0.0],
-                            linf=[0.0, 0.0])
-        #     Ensure that we do not have excessive memory allocations
-        #     (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 135553)
+end
 
-        # Ensure we cover the calculation of the node coordinates
-        node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
-                                                                     ntuple(_ -> length(parent_mesh.nodes),
-                                                                            2)...,
-                                                                     length(mesh1.cell_ids))
-        # Load the mesh file for code coverage.
-        loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5");
-                                             n_cells_max = 0,
-                                             RealT = typeof(parent_mesh).parameters[3])
-    end
+@trixi_testset "elixir_advection_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
+                        l2=[0.0, 0.0],
+                        linf=[0.0, 0.0])
+    #     Ensure that we do not have excessive memory allocations
+    #     (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5");
+                                            n_cells_max = 0,
+                                            RealT = typeof(parent_mesh).parameters[3])
 end
 
 @trixi_testset "elixir_advection_basic.jl" begin
@@ -710,20 +706,23 @@ end
     end
 end
 
-    @trixi_testset "elixir_euler_mhd_coupled.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
-                            l2=[0.0009298429085292762, 0.001493667091551915,
-                                1.388020051383912e-7, 0.0, 0.002324586945682294,
-                                0.0, 0.0, 0.0, 0.0, 0.000930224035177847,
-                                0.0014944958076029463, 1.8536128566663707e-7,
-                                0.0023266433566251038],
-                            linf=[0.0015949952992960759, 0.0026047400211187777,
-                                2.1137352797650287e-6, 0.0, 0.003994377993553844,
-                                0.0, 0.0, 0.0, 0.0, 0.0015998321088653844,
-                                0.00260875068917614, 2.1084038302110918e-6,
-                                0.004011403632471433],
-                            tspan=(0.0, 0.02))
-    end
+@trixi_testset "elixir_euler_mhd_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                        l2=[0.0009298429085292762, 0.001493667091551915,
+                            1.388020051383912e-7, 0.0, 0.002324586945682294,
+                            0.0, 0.0, 0.0, 0.0, 0.000930224035177847,
+                            0.0014944958076029463, 1.8536128566663707e-7,
+                            0.0023266433566251038],
+                        linf=[0.0015949952992960759, 0.0026047400211187777,
+                            2.1137352797650287e-6, 0.0, 0.003994377993553844,
+                            0.0, 0.0, 0.0, 0.0, 0.0015998321088653844,
+                            0.00260875068917614, 2.1084038302110918e-6,
+                            0.004011403632471433],
+                        tspan=(0.0, 0.02))
+    #     Ensure that we do not have excessive memory allocations
+    #     (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
