@@ -139,7 +139,7 @@ end
 # This assumes that both du and u are already interpolated to the quadrature points
 function entropy_change_reference_element(du_values_local, u_values_local,
                                           mesh::DGMultiMesh, equations,
-                                          dg::DGMultiFluxDiff, cache)
+                                          dg::DGMulti, cache)
     rd = dg.basis
     @unpack Nq, wq = rd
 
@@ -158,7 +158,7 @@ end
 # Restricted to `Polynomial` approximation type which requires interpolation to face quadrature nodes
 function surface_integral_reference_element(func::Func, u, element,
                                             mesh::DGMultiMesh, equations,
-                                            dg::DGMultiFluxDiff,
+                                            dg::DGMulti,
                                             cache, args...) where {Func}
     rd = dg.basis
     @unpack Nfq, wf, Vf = rd
