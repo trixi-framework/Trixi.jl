@@ -20,5 +20,5 @@ end
 include("solvers_parabolic.jl")
 
 include("dg.jl")
-include("dgmulti.jl")
+include("dgmulti/dgmulti.jl")
 end # @muladd
