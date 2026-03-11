@@ -67,7 +67,7 @@ function SemidiscretizationCoupledP4est(semis...)
 
     # Precompute boundary → parent cell ID lookup for each semidiscretization.
     boundary_parent_lookup = Vector{Dict{Tuple{Int, Symbol}, Int}}(undef,
-                                                                    length(semis))
+                                                                   length(semis))
     for i in eachindex(semis)
         cache_i = semis[i].cache
         lookup = Dict{Tuple{Int, Symbol}, Int}()
@@ -245,7 +245,8 @@ end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
 function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_coupled, t,
-                     integrator) where {Condition, Affect! <: AnalysisCallbackCoupledP4est}
+                     integrator) where {Condition,
+                                        Affect! <: AnalysisCallbackCoupledP4est}
     analysis_callback_coupled = cb_coupled.affect!
     semi_coupled = integrator.p
     du_ode_coupled = first(get_tmp_cache(integrator))

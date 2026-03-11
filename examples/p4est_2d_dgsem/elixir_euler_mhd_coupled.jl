@@ -62,9 +62,9 @@ solver1 = DGSEM(polydeg = 3,
                 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 boundary_conditions1 = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
-                         y_neg = BoundaryConditionCoupledP4est(coupling_functions),
-                         y_pos = BoundaryConditionCoupledP4est(coupling_functions),
-                         x_pos = BoundaryConditionCoupledP4est(coupling_functions))
+                        y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                        y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                        x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 semi1 = SemidiscretizationHyperbolic(mesh1, equations1, initial_condition_mhd, solver1,
                                      boundary_conditions = boundary_conditions1)
 
@@ -74,9 +74,9 @@ mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 solver2 = DGSEM(polydeg = 3, surface_flux = flux_hll,
                 volume_integral = VolumeIntegralWeakForm())
 boundary_conditions2 = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
-                         y_neg = BoundaryConditionCoupledP4est(coupling_functions),
-                         y_pos = BoundaryConditionCoupledP4est(coupling_functions),
-                         x_pos = BoundaryConditionCoupledP4est(coupling_functions))
+                        y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                        y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                        x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 semi2 = SemidiscretizationHyperbolic(mesh2, equations2, initial_condition_euler, solver2,
                                      boundary_conditions = boundary_conditions2)
 
