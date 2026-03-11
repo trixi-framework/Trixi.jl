@@ -64,6 +64,10 @@ end
         du_i = du[i]
         for id in nzrange(A_base, i)
             j = rows[id]
+            # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
+            # We avoid computing the lower-triangular part, and instead accumulate those contributions
+            # while computing the upper-triangular part (using the fact that A is skew-symmetric and F
+            # is symmetric).
             if j > i
                 u_j = u[j]
                 A_ij = vals[id]
