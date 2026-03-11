@@ -209,7 +209,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # because then `volume_flux` is non-symmetric.
             A = dg.basis.Drst[dim]
 
-            A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+            # `A` is an `Adjoint{SparseMatrixCSC}` (i.e., a lazy transpose/adjoint of a
+            # `SparseMatrixCSC`). `parent(A)` retrieves the underlying `SparseMatrixCSC`,
+            # whose column-major storage corresponds to row-major access of `A`.
+            A_base = parent(A) # SparseMatrixCSC (the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR)
             row_ids = axes(A, 2)
             rows = rowvals(A_base)
             vals = nonzeros(A_base)
@@ -242,7 +245,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             A = dg.basis.Drst[dim]
-            A_base = parent(A)
+            # `A` is an `Adjoint{SparseMatrixCSC}`; `parent(A)` retrieves the underlying
+            # `SparseMatrixCSC` so we can iterate over its stored entries directly.
+            A_base = parent(A) # SparseMatrixCSC
             row_ids = axes(A, 2)
             rows = rowvals(A_base)
             vals = nonzeros(A_base)

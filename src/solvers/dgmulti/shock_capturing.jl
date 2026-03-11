@@ -281,7 +281,9 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
     u_local = view(cache.entropy_projected_u_values, :, element)
 
     (; sparsity_pattern) = cache
-    A_base = parent(sparsity_pattern) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+    # `sparsity_pattern` is an `Adjoint{SparseMatrixCSC}`; `parent` retrieves the underlying
+    # `SparseMatrixCSC` so we can iterate over its stored entries directly.
+    A_base = parent(sparsity_pattern) # SparseMatrixCSC (the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR)
     row_ids, rows = axes(sparsity_pattern, 2), rowvals(A_base)
     for i in row_ids
         u_i = u_local[i]
