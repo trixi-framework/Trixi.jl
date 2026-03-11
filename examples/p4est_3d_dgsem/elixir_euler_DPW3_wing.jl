@@ -1,6 +1,7 @@
 using Trixi
 using OrdinaryDiffEqSSPRK
 using LinearAlgebra: norm
+using Downloads
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -83,7 +84,9 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 # Mesh taken from https://cfd.ku.edu/hiocfd/dpw/dpw_w1_cgrid_q1.msh.gz, adapted for Trixi & P4est by Daniel Doehring
-mesh_file = "out/DPW3_Wing.inp"
+mesh_file = joinpath(@__DIR__, "DPW3_Wing.inp")
+Downloads.download("https://zenodo.org/records/18953457/files/DPW3_Wing.inp?download=1",
+                   mesh_file)
 
 # Boundary symbols follow from nodesets in the mesh file
 boundary_symbols = [:Symmetry, :Farfield, :Wing]
