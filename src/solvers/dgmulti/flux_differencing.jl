@@ -44,6 +44,41 @@
     end
 end
 
+# Version for sparse operators, symmetric fluxes, and curved (NonAffine) meshes.
+# `normal_directions` is an SVector of per-node arrays (one view per reference direction),
+# as returned by `get_contravariant_vector` on NonAffine meshes. We average the normals
+# at nodes i and j to obtain a per-pair entropy-stable de-aliased direction.
+@inline function hadamard_sum!(du,
+                               A::LinearAlgebra.Adjoint{<:Any,
+                                                        <:AbstractSparseMatrixCSC},
+                               flux_is_symmetric::True, volume_flux,
+                               normal_directions::AbstractVector{<:AbstractVector},
+                               u, equations)
+    A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+    row_ids = axes(A, 2)
+    rows = rowvals(A_base)
+    vals = nonzeros(A_base)
+
+    for i in row_ids
+        u_i = u[i]
+        du_i = du[i]
+        for id in nzrange(A_base, i)
+            j = rows[id]
+            if j > i
+                u_j = u[j]
+                A_ij = vals[id]
+                # provably entropy stable de-aliasing of geometric terms
+                normal_direction = 0.5 * (getindex.(normal_directions, i) +
+                                    getindex.(normal_directions, j))
+                AF_ij = 2 * A_ij * volume_flux(u_i, u_j, normal_direction, equations)
+                du_i = du_i + AF_ij
+                du[j] = du[j] - AF_ij
+            end
+        end
+        du[i] = du_i
+    end
+end
+
 # Return the contravariant basis vector corresponding to the Cartesian
 # coordinate direction `orientation` in a given `element` of the `mesh`.
 # The contravariant basis vectors have entries `dx_i / dxhat_j` where
