@@ -543,20 +543,20 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                  dg::DGMultiFluxDiff{<:GaussSBP}, cache, alpha = true)
     (; volume_flux) = volume_integral
 
-    fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    du_local = cache.fluxdiff_local_threaded[Threads.threadid()]
+    fill!(du_local, zero(eltype(du_local)))
     u_local = view(cache.entropy_projected_u_values, :, element)
 
-    local_flux_differencing!(fluxdiff_local, u_local, element,
+    local_flux_differencing!(du_local, u_local, element,
                              have_nonconservative_terms,
                              volume_flux, has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
-    # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
+    # convert `du_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
     # for faster performance when using `apply_to_each_field`.
     rhs_local = cache.rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-        rhs_local[i] = fluxdiff_local[i]
+    for i in Base.OneTo(length(du_local))
+        rhs_local[i] = du_local[i]
     end
 
     return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)

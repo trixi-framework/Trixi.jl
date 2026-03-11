@@ -275,7 +275,7 @@ end
 # where ref_entries[d] = Qrst_skew[d][i,j]. This fuses the NDIMS per-dimension flux
 # evaluations of the old dimension-by-dimension loop into a single evaluation per pair.
 # For dense operators (SBP on Line/Tri/Tet), we do not use sum factorization.
-@inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+@inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::False,
                                           volume_flux,
                                           has_sparse_operators::False, mesh,
@@ -292,14 +292,14 @@ end
                 ref_entries = SVector(ntuple(d -> Qrst_skew[d][i, j], Val(NDIMS)))
                 normal_direction = geometric_matrix * ref_entries
                 AF_ij = 2 * volume_flux(u_i, u_j, normal_direction, equations)
-                fluxdiff_local[i] = fluxdiff_local[i] + AF_ij
-                fluxdiff_local[j] = fluxdiff_local[j] - AF_ij
+                du_local[i] = du_local[i] + AF_ij
+                du_local[j] = du_local[j] - AF_ij
             end
         end
     end
 end
 
-@inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+@inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::False, mesh,
                                           equations, dg, cache)
@@ -316,14 +316,14 @@ end
             if j > i
                 u_j = u_local[j]
                 AF_ij = 2 * flux_conservative(u_i, u_j, normal_direction, equations)
-                fluxdiff_local[i] = fluxdiff_local[i] + AF_ij
-                fluxdiff_local[j] = fluxdiff_local[j] - AF_ij
+                du_local[i] = du_local[i] + AF_ij
+                du_local[j] = du_local[j] - AF_ij
             end
             # Non-conservative terms use the full (non-symmetric) loop.
             # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
             f_nc = flux_nonconservative(u_i, u_local[j], 0.5 * normal_direction,
                                         equations)
-            fluxdiff_local[i] = fluxdiff_local[i] + 2 * f_nc
+            du_local[i] = du_local[i] + 2 * f_nc
         end
     end
 end
@@ -333,7 +333,7 @@ end
 # its own sparsity pattern (e.g., tensor-product structure on Quad/Hex elements),
 # so we loop per-dimension. For each nonzero entry A[i,j] we evaluate the flux once
 # and exploit skew-symmetry to accumulate both the (i,j) and (j,i) contributions.
-@inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+@inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::False,
                                           volume_flux,
                                           has_sparse_operators::True, mesh,
@@ -345,7 +345,7 @@ end
         A_base, row_ids, rows, vals = _adjoint_sparse_data(Q_skew)
         for i in row_ids
             u_i = u_local[i]
-            du_i = fluxdiff_local[i]
+            du_i = du_local[i]
             for id in nzrange(A_base, i)
                 j = rows[id]
                 # This routine computes only the upper-triangular part of the hadamard sum (A .* F).
@@ -359,15 +359,15 @@ end
                     AF_ij = 2 * A_ij *
                             volume_flux(u_i, u_j, normal_direction_ij, equations)
                     du_i = du_i + AF_ij
-                    fluxdiff_local[j] = fluxdiff_local[j] - AF_ij
+                    du_local[j] = du_local[j] - AF_ij
                 end
             end
-            fluxdiff_local[i] = du_i
+            du_local[i] = du_i
         end
     end
 end
 
-@inline function local_flux_differencing!(fluxdiff_local, u_local, element_index,
+@inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::True, volume_flux,
                                           has_sparse_operators::True, mesh,
                                           equations, dg, cache)
@@ -390,7 +390,7 @@ end
                     AF_ij = 2 * A_ij *
                             flux_conservative(u_i, u_j, normal_direction_ij, equations)
                     du_i = du_i + AF_ij
-                    fluxdiff_local[j] = fluxdiff_local[j] - AF_ij
+                    du_local[j] = du_local[j] - AF_ij
                 end
                 # Non-conservative terms use the full (non-symmetric) loop.
                 # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
@@ -398,7 +398,7 @@ end
                                             equations)
                 du_i = du_i + 2 * A_ij * f_nc
             end
-            fluxdiff_local[i] = du_i
+            du_local[i] = du_i
         end
     end
 end
@@ -413,21 +413,21 @@ end
     @unpack entropy_projected_u_values, Ph = cache
     @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
 
-    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    du_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(du_local, zero(eltype(du_local)))
     u_local = view(entropy_projected_u_values, :, element)
 
-    local_flux_differencing!(fluxdiff_local, u_local, element,
+    local_flux_differencing!(du_local, u_local, element,
                              have_nonconservative_terms,
                              volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
-    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
+    # convert du_local::Vector{<:SVector} to StructArray{<:SVector} for faster
     # apply_to_each_field performance.
     rhs_local = rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-        rhs_local[i] = fluxdiff_local[i]
+    for i in Base.OneTo(length(du_local))
+        rhs_local[i] = du_local[i]
     end
     apply_to_each_field(mul_by_accum!(Ph, alpha), view(du, :, element), rhs_local)
 
@@ -441,18 +441,18 @@ end
                                          alpha = true)
     @unpack fluxdiff_local_threaded, inv_wq = cache
 
-    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    du_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(du_local, zero(eltype(du_local)))
     u_local = view(u, :, element)
 
-    local_flux_differencing!(fluxdiff_local, u_local, element,
+    local_flux_differencing!(du_local, u_local, element,
                              have_nonconservative_terms,
                              volume_integral.volume_flux,
                              has_sparse_operators(dg),
                              mesh, equations, dg, cache)
 
     for i in each_quad_node(mesh, dg, cache)
-        du[i, element] = du[i, element] + alpha * fluxdiff_local[i] * inv_wq[i]
+        du[i, element] = du[i, element] + alpha * du_local[i] * inv_wq[i]
     end
 
     return nothing
