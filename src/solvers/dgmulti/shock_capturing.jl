@@ -265,7 +265,8 @@ end
     return get_avg_contravariant_matrix(i, j, element, mesh, cache)
 end
 
-# Computes an algebraic low order method with internal dissipation.
+# Calculates the volume integral corresponding to an algebraic low order method.
+# This is used, for example, in shock capturing.
 function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                  have_nonconservative_terms::False, equations,
                                  volume_integral::VolumeIntegralPureLGLFiniteVolume,
