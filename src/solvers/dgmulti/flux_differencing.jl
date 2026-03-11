@@ -414,7 +414,7 @@ end
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralFluxDifferencing,
-                                         dg::DGMultiFluxDiff, cache)
+                                         dg::DGMultiFluxDiff, cache, alpha = true)
     @unpack entropy_projected_u_values, Ph = cache
     @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
 
@@ -434,7 +434,7 @@ end
     for i in Base.OneTo(length(fluxdiff_local))
         rhs_local[i] = fluxdiff_local[i]
     end
-    apply_to_each_field(mul_by_accum!(Ph), view(du, :, element), rhs_local)
+    apply_to_each_field(mul_by_accum!(Ph, alpha), view(du, :, element), rhs_local)
 
     return nothing
 end
