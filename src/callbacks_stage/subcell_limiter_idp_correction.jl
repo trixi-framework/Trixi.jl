@@ -49,10 +49,8 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     # Calculate blending factor alpha in [0,1]
     # f_ij = alpha_ij * f^(FV)_ij + (1 - alpha_ij) * f^(DG)_ij
     #      = f^(FV)_ij + (1 - alpha_ij) * f^(antidiffusive)_ij
-    @trixi_timeit timer() "blending factors" solver.volume_integral.limiter(u, semi,
-                                                                            equations,
-                                                                            solver, t,
-                                                                            dt)
+    @trixi_timeit timer() "blending factors" limiter(u, semi, equations, solver,
+                                                     t, dt)
 
     perform_idp_correction!(u, dt, mesh, equations, solver, cache)
 

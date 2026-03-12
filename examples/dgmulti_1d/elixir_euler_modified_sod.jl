@@ -9,6 +9,23 @@ dg = DGMulti(polydeg = 3, element_type = Line(), approximation_type = SBP(),
 
 equations = CompressibleEulerEquations1D(1.4)
 
+"""
+    initial_condition_modified_sod(x, t, equations::CompressibleEulerEquations1D)
+
+Modiﬁed Sod shock tube problem, presented in Section 6.4 of Toro's book.
+This problem consists of a left sonic rarefaction wave and is useful for testing whether numerical solutions
+violate the entropy condition.
+An entropy-satisfying solution should produce a smooth(!) rarefaction wave.
+
+## References
+- Toro (2009).
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction, 3rd Edition.
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+
+- Lin, Chan (2014)
+  High order entropy stable discontinuous Galerkin spectral element methods through subcell limiting
+  [DOI: 10.1016/j.jcp.2023.112677](https://doi.org/10.1016/j.jcp.2023.112677)
+"""
 function initial_condition_modified_sod(x, t, ::CompressibleEulerEquations1D)
     if x[1] < 0.3
         return prim2cons(SVector(1, 0.75, 1), equations)
@@ -22,7 +39,8 @@ initial_condition = initial_condition_modified_sod
 cells_per_dimension = (50,)
 mesh = DGMultiMesh(dg, cells_per_dimension,
                    coordinates_min = (0.0,), coordinates_max = (1.0,), periodicity = false)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)

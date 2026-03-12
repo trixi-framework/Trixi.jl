@@ -142,13 +142,13 @@ include("auxiliary/solution_interface.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
-include("solvers/boundary_condition_default.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_coupled_p4est.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
@@ -183,6 +183,9 @@ export AcousticPerturbationEquations2D,
        LinearElasticityEquations1D,
        PassiveTracerEquations
 
+export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
+export IdealGas, VanDerWaals, PengRobinson
+
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
        LaplaceDiffusionEntropyVariables3D,
@@ -202,6 +205,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
+       flux_terashima_etal, flux_central_terashima_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
        FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speed,
@@ -222,7 +226,6 @@ export initial_condition_constant,
        initial_condition_weak_blast_wave
 
 export boundary_condition_do_nothing,
-       boundary_condition_default,
        boundary_condition_periodic,
        BoundaryConditionDirichlet,
        BoundaryConditionNeumann,
@@ -232,7 +235,7 @@ export boundary_condition_do_nothing,
        BoundaryConditionNavierStokesWall,
        NoSlip, Slip,
        Adiabatic, Isothermal,
-       BoundaryConditionCoupled
+       BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,
@@ -244,13 +247,14 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
+       cons2entropy, entropy2cons, cons2thermo, thermo2cons
 export density, pressure, density_pressure, velocity, temperature,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
 export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
-       energy_total, energy_kinetic, energy_internal,
+       entropy_potential,
+       energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
        enstrophy, vorticity
 export lake_at_rest_error
@@ -261,22 +265,25 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
        P4estMeshView, P4estMeshCubedSphere, T8codeMesh
 
 export DG,
-       DGSEM, LobattoLegendreBasis,
+       DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
+       VolumeIntegralShockCapturingHGType,
+       VolumeIntegralAdaptive, IndicatorEntropyChange,
        IndicatorHennemannGassner,
        VolumeIntegralUpwind,
+       IndicatorEntropyCorrection, IndicatorEntropyCorrectionShockCapturingCombined,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
 
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
-       minmod, monotonized_central, superbee, vanLeer,
-       Koren, Koren_flipped, Koren_symmetric,
+       minmod, monotonized_central, superbee, vanleer,
+       koren, koren_flipped, koren_symmetric,
        central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
@@ -299,14 +306,14 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk53_3Sstar!,
        timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SemidiscretizationCoupled
+export SemidiscretizationCoupled, SemidiscretizationCoupledP4est
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled,
+       TrivialCallback, AnalysisCallbackCoupled, AnalysisCallbackCoupledP4est,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
        DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
        DragCoefficientPressure3D, LiftCoefficientPressure3D
