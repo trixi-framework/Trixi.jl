@@ -787,6 +787,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_mhd_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                        l2=[
+                            0.0009298429085292762, 0.001493667091551915,
+                            1.3880200513838985e-7, 0.0, 0.002324586945682294,
+                            0.0, 0.0, 0.0, 0.0, 0.000930224035177847,
+                            0.0014944958076029463, 1.8536128566663707e-7,
+                            0.0023266433566251038
+                        ],
+                        linf=[
+                              0.0015949952992960759, 0.0026047400211187777,
+                              2.1137352797650287e-6, 0.0, 0.003994377993553844,
+                              0.0, 0.0, 0.0, 0.0, 0.0015998321088653844,
+                              0.00260875068917614, 2.1084038302110918e-6,
+                              0.004011403632471433],
+                        tspan=(0.0, 0.02))
+    #     Ensure that we do not have excessive memory allocations
+    #     (e.g., from type instabilities)
+    @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+end
+
 @trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_gaussian_source.jl"),
