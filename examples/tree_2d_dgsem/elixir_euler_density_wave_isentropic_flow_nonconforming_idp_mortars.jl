@@ -54,7 +54,6 @@ function initial_condition_isentropic_flow(x, t, equations::CompressibleEulerEqu
     v2 = 0
     p = rho^equations.gamma
 
-    # return prim2cons(SVector(rho, v1, v2, p), equations)
     return prim2cons(SVector(rho, v1 * cos(theta), v1 * sin(theta), p), equations)
 end
 initial_condition = initial_condition_isentropic_flow
@@ -75,7 +74,7 @@ mortar = MortarIDP(equations, basis;
                    positivity_variables_cons = ["rho"],
                    positivity_variables_nonlinear = [pressure],
                    pure_low_order = false)
-solver = DGSEM(basis, surface_flux, volume_integral)#, mortar)
+solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 # 1d problem in literature uses x in [-1,1]
 # That corresponds to our 2D problem with 1d function on the diagonal in
@@ -87,7 +86,7 @@ refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
                        coordinates_max = (0.5, 0.5)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                # refinement_patches = refinement_patches,
+                refinement_patches = refinement_patches,
                 n_cells_max = 30_000,
                 periodicity = true)
 
