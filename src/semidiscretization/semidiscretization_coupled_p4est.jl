@@ -186,7 +186,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         end
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi_, t)
+        return rhs!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -225,12 +225,12 @@ function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
 
     # This callback is triggered if any of its subsidiary callbacks' condition is triggered
     condition = (u, t, integrator) -> any(callbacks) do callback
-        callback.condition(u, t, integrator)
+        return callback.condition(u, t, integrator)
     end
 
-    DiscreteCallback(condition, analysis_callback_coupled,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(condition, analysis_callback_coupled,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
@@ -369,7 +369,7 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
                       semi::SemidiscretizationCoupledP4est)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
+        return calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
     end
 
     return dt
