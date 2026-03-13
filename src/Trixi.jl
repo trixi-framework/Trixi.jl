@@ -138,7 +138,6 @@ include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
-include("auxiliary/solution_interface.jl") 
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
@@ -158,6 +157,8 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
+
+include("auxiliary/solution_interface.jl")
 
 # export types/functions that define the public API of Trixi.jl
 
@@ -284,7 +285,7 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable,
-       get_node_vars
+       get_node_vars,get_u, get_coordinates
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
