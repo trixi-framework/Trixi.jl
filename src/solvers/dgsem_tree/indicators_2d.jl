@@ -8,24 +8,18 @@
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                      for _ in 1:Threads.nthreads()]
-    modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                           for _ in 1:Threads.nthreads()]
+    MA2d = MArray{Tuple{nnodes(basis), nnodes(basis)},
+                  uEltype, 2, nnodes(basis)^ndims(equations)}
+
+    indicator_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
+    modal_tmp1_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations{2}, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -33,8 +27,7 @@ end
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
-                                                   u,
-                                                   element, mesh::AbstractMesh{2},
+                                                   u, element, mesh::AbstractMesh{2},
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -54,18 +47,26 @@ end
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
                                    indicator, modal_tmp1)
 
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for j in 1:nnodes(dg), i in 1:nnodes(dg)
-        total_energy += modal[i, j]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for j in 1:(nnodes(dg) - 1), i in 1:(nnodes(dg) - 1)
-        total_energy_clip1 += modal[i, j]^2
-    end
+    # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     for j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
         total_energy_clip2 += modal[i, j]^2
+    end
+
+    total_energy_clip1 = copy(total_energy_clip2)
+    for i in 1:(nnodes(dg) - 1)
+        total_energy_clip1 += modal[i, nnodes(dg) - 1]^2
+    end
+    for j in 1:(nnodes(dg) - 2) # stop at N-2 to avoid adding the (N-1, N-1) mode twice
+        total_energy_clip1 += modal[nnodes(dg) - 1, j]^2
+    end
+
+    total_energy = copy(total_energy_clip1)
+    for i in 1:nnodes(dg)
+        total_energy += modal[i, nnodes(dg)]^2
+    end
+    for j in 1:(nnodes(dg) - 1) # stop at N-1 to avoid adding the (N, N) mode twice
+        total_energy += modal[nnodes(dg), j]^2
     end
 
     # Calculate energy in higher modes
@@ -95,6 +96,7 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
@@ -129,25 +131,21 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper], alpha[large])
     end
 
-    return alpha
+    return nothing
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
+    MA2d = MArray{Tuple{nnodes(basis), nnodes(basis)},
+                  uEltype, 2, nnodes(basis)^ndims(equations)}
+
+    indicator_threaded = MA2d[MA2d(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{2},
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
@@ -189,24 +187,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
     end
 
     return alpha
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
-
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-
-    return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{2},
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},

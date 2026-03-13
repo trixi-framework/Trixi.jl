@@ -12,8 +12,8 @@ A callback that does nothing. This can be useful to disable some callbacks easil
 [`trixi_include`](@ref).
 """
 function TrivialCallback()
-    DiscreteCallback(trivial_callback, trivial_callback,
-                     save_positions = (false, false))
+    return DiscreteCallback(trivial_callback, trivial_callback,
+                            save_positions = (false, false))
 end
 
 trivial_callback(u, t, integrator) = false
@@ -23,6 +23,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(trivial_callback
     @nospecialize cb # reduce precompilation time
 
     print(io, "TrivialCallback()")
+    return nothing
 end
 
 # This allows to set `summary_callback = TrivialCallback()` in elixirs to suppress

@@ -1,7 +1,12 @@
 # by default, return an empty tuple for volume integral caches
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG,
+                      volume_integral::VolumeIntegralShockCapturingHGType,
                       dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
+    (; volume_integral_default, volume_integral_blend_high_order) = volume_integral
+    @assert volume_integral_default isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_default`"
+    @assert volume_integral_blend_high_order isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_blend_high_order`"
+    # `volume_integral_blend_low_order` limited to finite-volume on Gauss-node subcells
+
     # build element to element (element_to_element_connectivity) connectivity for smoothing of
     # shock capturing parameters.
     face_to_face_connectivity = mesh.md.FToF # num_faces x num_elements matrix
@@ -35,12 +40,13 @@ end
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations,
                       basis::RefElemData{NDIMS}) where {NDIMS}
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Vector{real(basis)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    MVec = MVector{nnodes(basis), uEltype}
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
     (; N) = basis
@@ -73,26 +79,33 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # Calculate indicator variable at interpolation (Lobatto) nodes.
         # TODO: calculate indicator variables at Gauss nodes or using `cache.entropy_projected_u_values`
         for i in eachnode(dg)
-            indicator[i] = indicator_hg.variable(u[i, element], equations)
+            indicator[i] = variable(u[i, element], equations)
         end
 
         # multiply by invVDM::SimpleKronecker
         LinearAlgebra.mul!(modal_, inverse_vandermonde, indicator)
 
+        # Create Returns functors to return the constructor args (e.g., Base.OneTo(dg.basis.N)) no matter what
+        # Returns(Base.OneTo(dg.basis.N)) equiv to _ -> Base.OneTo(dg.basis.N), with possibly fewer allocs
+        return_N_plus_one = Returns(dg.basis.N + 1)
+        return_to_N_minus_one = Returns(Base.OneTo(dg.basis.N - 1))
+        return_to_N = Returns(Base.OneTo(dg.basis.N))
+
         # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
         # Thus, Base.ReshapedArray should be used if you are setting values in the array.
         # `reshape` is fine if you are only accessing values.
         # Here, we reshape modal coefficients to expose the tensor product structure.
-        modal = Base.ReshapedArray(modal_, ntuple(_ -> dg.basis.N + 1, NDIMS), ())
+
+        modal = Base.ReshapedArray(modal_, ntuple(return_N_plus_one, NDIMS), ())
 
         # Calculate total energies for all modes, all modes minus the highest mode, and
         # all modes without the two highest modes
-        total_energy = sum(x -> x^2, modal)
-        clip_1_ranges = ntuple(_ -> Base.OneTo(dg.basis.N), NDIMS)
-        clip_2_ranges = ntuple(_ -> Base.OneTo(dg.basis.N - 1), NDIMS)
+        total_energy = sum(abs2, modal)
+        clip_1_ranges = ntuple(return_to_N, NDIMS)
+        clip_2_ranges = ntuple(return_to_N_minus_one, NDIMS)
         # These splattings do not seem to allocate as of Julia 1.9.0?
-        total_energy_clip1 = sum(x -> x^2, view(modal, clip_1_ranges...))
-        total_energy_clip2 = sum(x -> x^2, view(modal, clip_2_ranges...))
+        total_energy_clip1 = sum(abs2, view(modal, clip_1_ranges...))
+        total_energy_clip2 = sum(abs2, view(modal, clip_2_ranges...))
 
         # Calculate energy in higher modes
         if !(iszero(total_energy))
@@ -145,14 +158,16 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
             alpha[element] = max(alpha[element], 0.5 * alpha_neighbor)
         end
     end
+
+    return nothing
 end
 
-function calc_volume_integral!(du, u,
-                               mesh::DGMultiMesh,
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralShockCapturingHG,
+                               volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGMultiFluxDiff, cache)
-    (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
+    (; indicator, volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
@@ -169,18 +184,22 @@ function calc_volume_integral!(du, u,
         dg_only = isapprox(alpha_element, 0, atol = atol)
 
         if dg_only
-            flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
-                                      equations, volume_flux_dg, dg, cache)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_default,
+                                    dg, cache)
         else
             # Calculate DG volume integral contribution
-            flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms, equations,
-                                      volume_flux_dg, dg, cache, 1 - alpha_element)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_blend_high_order,
+                                    dg, cache, 1 - alpha_element)
 
             # Calculate "FV" low order volume integral contribution
-            low_order_flux_differencing_kernel!(du, u, element, mesh,
-                                                have_nonconservative_terms, equations,
-                                                volume_flux_fv, dg, cache, alpha_element)
+            low_order_flux_differencing_kernel(du, u, element, mesh,
+                                               have_nonconservative_terms, equations,
+                                               volume_integral_blend_low_order,
+                                               dg, cache, alpha_element)
         end
     end
 
@@ -188,7 +207,7 @@ function calc_volume_integral!(du, u,
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache)
-    SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
+    return SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{2}, cache)
@@ -202,7 +221,7 @@ function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{3}, cache)
 end
 
 function get_contravariant_matrix(element, mesh::DGMultiMesh{1}, cache)
-    SMatrix{1, 1}(cache.dxidxhatj[1, 1][1, element])
+    return SMatrix{1, 1}(cache.dxidxhatj[1, 1][1, element])
 end
 
 function get_contravariant_matrix(element, mesh::DGMultiMesh{2, <:Affine}, cache)
@@ -238,17 +257,19 @@ function get_contravariant_matrix(i, element, mesh::DGMultiMesh{3}, cache)
 end
 
 function get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache)
-    0.5 * (get_contravariant_matrix(i, element, mesh, cache) +
-     get_contravariant_matrix(j, element, mesh, cache))
+    return 0.5 * (get_contravariant_matrix(i, element, mesh, cache) +
+            get_contravariant_matrix(j, element, mesh, cache))
 end
 
 # computes an algebraic low order method with internal dissipation.
 # This method is for affine/Cartesian meshes
-function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
-                                             have_nonconservative_terms::False, equations,
-                                             volume_flux_fv,
-                                             dg::DGMultiFluxDiff{<:GaussSBP},
-                                             cache, alpha = true)
+function low_order_flux_differencing_kernel(du, u, element,
+                                            mesh::DGMultiMesh,
+                                            have_nonconservative_terms::False, equations,
+                                            volume_integral,
+                                            dg::DGMultiFluxDiff{<:GaussSBP},
+                                            cache, alpha = true)
+    (; volume_flux_fv) = volume_integral
 
     # accumulates output from flux differencing
     rhs_local = cache.rhs_local_threaded[Threads.threadid()]
@@ -282,15 +303,16 @@ function low_order_flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
     end
 
     # TODO: factor this out to avoid calling it twice during calc_volume_integral!
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
 
-function low_order_flux_differencing_kernel!(du, u, element,
-                                             mesh::DGMultiMesh{NDIMS, <:NonAffine},
-                                             have_nonconservative_terms::False, equations,
-                                             volume_flux_fv,
-                                             dg::DGMultiFluxDiff{<:GaussSBP},
-                                             cache, alpha = true) where {NDIMS}
+function low_order_flux_differencing_kernel(du, u, element,
+                                            mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                            have_nonconservative_terms::False, equations,
+                                            volume_integral,
+                                            dg::DGMultiFluxDiff{<:GaussSBP},
+                                            cache, alpha = true) where {NDIMS}
+    (; volume_flux_fv) = volume_integral
 
     # accumulates output from flux differencing
     rhs_local = cache.rhs_local_threaded[Threads.threadid()]
@@ -322,5 +344,5 @@ function low_order_flux_differencing_kernel!(du, u, element,
     end
 
     # TODO: factor this out to avoid calling it twice during calc_volume_integral!
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end

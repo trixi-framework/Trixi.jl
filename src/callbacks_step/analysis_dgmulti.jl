@@ -27,8 +27,7 @@ function calc_error_norms(func, u, t, analyzer,
     return sqrt.(component_l2_errors ./ total_volume), component_linf_errors
 end
 
-function integrate(func::Func, u,
-                   mesh::DGMultiMesh,
+function integrate(func::Func, u, mesh::DGMultiMesh,
                    equations, dg::DGMulti, cache; normalize = true) where {Func}
     rd = dg.basis
     md = mesh.md
@@ -135,10 +134,62 @@ function analyze(::Val{:linf_divb}, du, u, t,
     return linf_divB
 end
 
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w.
+# This assumes that both du and u are already interpolated to the quadrature points
+function entropy_change_reference_element(du_values_local, u_values_local,
+                                          mesh::DGMultiMesh, equations,
+                                          dg::DGMulti, cache)
+    rd = dg.basis
+    @unpack Nq, wq = rd
+
+    # Compute entropy change for this element
+    dS_dt_elem = zero(eltype(first(du_values_local)))
+    for i in Base.OneTo(Nq) # Loop over quadrature points in the element
+        dS_dt_elem += dot(cons2entropy(u_values_local[i], equations),
+                          du_values_local[i]) * wq[i]
+    end
+
+    return dS_dt_elem
+end
+
+# calculate surface integral of func(u, normal_direction, equations) on the reference element.
+# For DGMulti, we loop over all faces of the element and integrate using face quadrature weights.
+# Restricted to `Polynomial` approximation type which requires interpolation to face quadrature nodes
+function surface_integral_reference_element(func::Func, u, element,
+                                            mesh::DGMultiMesh, equations,
+                                            dg::DGMulti,
+                                            cache, args...) where {Func}
+    rd = dg.basis
+    @unpack Nfq, wf, Vf = rd
+    md = mesh.md
+    @unpack nxyzJ = md
+
+    # Interpolate volume solution to face quadrature nodes for this element
+    @unpack u_face_local_threaded = cache
+    u_face_local = u_face_local_threaded[Threads.threadid()]
+    u_elem = view(u, :, element)
+    apply_to_each_field(mul_by!(Vf), u_face_local, u_elem)
+
+    surface_integral = zero(eltype(first(u)))
+    # Loop over all face nodes for this element
+    for i in 1:Nfq
+        # Get solution at this face node
+        u_node = u_face_local[i]
+
+        # Get face normal; nxyzJ stores components as (nxJ, nyJ, nxJ)
+        normal_direction = SVector(getindex.(nxyzJ, i, element))
+
+        # Multiply with face quadrature weight and accumulate
+        surface_integral += wf[i] * func(u_node, normal_direction, equations)
+    end
+
+    return surface_integral
+end
+
 function create_cache_analysis(analyzer, mesh::DGMultiMesh,
                                equations, dg::DGMulti, cache,
                                RealT, uEltype)
-    md = mesh.md
     return (;)
 end
 
@@ -149,7 +200,7 @@ function nelementsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)
     if mpi_isparallel()
         error("`nelementsglobal` is not implemented for `DGMultiMesh` when used in parallel with MPI")
     else
-        return ndofs(mesh, solver, cache)
+        return nelements(mesh, solver)
     end
 end
 function ndofsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)

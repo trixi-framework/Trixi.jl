@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -31,9 +31,16 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 cells_per_dimension = (32, 64)
 
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###########
@@ -56,7 +63,7 @@ boundary_conditions1 = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), 
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 
-semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition1, solver,
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition1, solver;
                                      boundary_conditions = boundary_conditions1)
 
 ###########
@@ -79,7 +86,7 @@ boundary_conditions2 = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), 
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 
-semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition2, solver,
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition2, solver;
                                      boundary_conditions = boundary_conditions2)
 
 # Create a semidiscretization that bundles all the semidiscretizations.

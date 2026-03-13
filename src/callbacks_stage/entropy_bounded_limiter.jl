@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-mutable struct EntropyBoundedLimiter{RealT <: Real}
+struct EntropyBoundedLimiter{RealT <: Real}
     exp_entropy_decrease_max::RealT # < 0
 end
 
@@ -42,7 +42,7 @@ function EntropyBoundedLimiter(;
                                exp_entropy_decrease_max::RealT = -1.0f-13) where {RealT <:
                                                                                   Real}
     @assert exp_entropy_decrease_max<0 "Supplied `exp_entropy_decrease_max` expected to be negative"
-    EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max)
+    return EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max)
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
@@ -56,6 +56,8 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
         limiter_entropy_bounded!(u, u_prev, limiter!.exp_entropy_decrease_max,
                                  mesh_equations_solver_cache(semi)...)
     end
+
+    return nothing
 end
 
 # Exponentiated entropy change for the thermodynamic entropy (see `entropy_thermodynamic`) 

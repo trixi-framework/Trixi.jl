@@ -16,6 +16,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     boundaries = init_boundaries(mesh, elements)
 
+    # Container cache
     cache = (; elements, interfaces, boundaries)
 
     # perform a check on the sufficient metric identities condition for free-stream preservation
@@ -27,76 +28,16 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
     end
 
-    # Add specialized parts of the cache required to compute the flux differencing volume integral
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
 
     return cache
 end
 
-function rhs!(du, u, t,
-              mesh::UnstructuredMesh2D, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    #  Note! this routine is reused from dgsem_structured/dg_2d.jl
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
 # prolong the solution into the convenience array in the interior interface container
-# We pass the `surface_integral` argument solely for dispatch
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
-function prolong2interfaces!(cache, u,
-                             mesh::UnstructuredMesh2D,
-                             equations, surface_integral, dg::DG)
+function prolong2interfaces!(cache, u, mesh::UnstructuredMesh2D, equations, dg::DG)
     @unpack interfaces = cache
     @unpack element_ids, element_side_ids = interfaces
     interfaces_u = interfaces.u
@@ -160,7 +101,7 @@ end
 # quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -214,7 +155,7 @@ end
 # on an unstructured quadrilateral mesh
 function calc_interface_flux!(surface_flux_values,
                               mesh::UnstructuredMesh2D,
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, start_index, index_increment, element_ids, element_side_ids = cache.interfaces
@@ -281,7 +222,7 @@ end
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack boundaries = cache
     @unpack element_id, element_side_id = boundaries
     boundaries_u = boundaries.u
@@ -312,18 +253,17 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
+
+    return nothing
 end
 
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
@@ -363,7 +303,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG)
-    nothing
+    return nothing
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
@@ -388,13 +328,15 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
                                 node, side, element, boundary)
         end
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux calculation along a physical interface where the
 # boundary flux values are set according to a particular `boundary_condition` function
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::False, equations,
+                                     have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
@@ -418,6 +360,8 @@ end
     for v in eachvariable(equations)
         surface_flux_values[v, node_index, side_index, element_index] = flux[v]
     end
+
+    return nothing
 end
 
 # inlined version of the boundary flux and nonconseravtive terms calculation along a
@@ -428,7 +372,7 @@ end
 # `derivative_split` from `dg.basis` in [`flux_differencing_kernel!`](@ref)
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::UnstructuredMesh2D,
-                                     nonconservative_terms::True, equations,
+                                     have_nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
@@ -458,6 +402,8 @@ end
                                                                         0.5f0 *
                                                                         noncons_flux[v]
     end
+
+    return nothing
 end
 
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs
@@ -476,25 +422,34 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T 
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`
+    # turn these into FMAs (see comment at the top of the file).
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
-            du[v, 1, l, element] += (surface_flux_values[v, l, 4, element]
-                                     *
-                                     boundary_interpolation[1, 1])
-            du[v, nnodes(dg), l, element] += (surface_flux_values[v, l, 2, element]
-                                              *
-                                              boundary_interpolation[nnodes(dg), 2])
+            du[v, 1, l, element] = du[v, 1, l, element] +
+                                   surface_flux_values[v, l, 4, element] *
+                                   factor
+            du[v, nnodes(dg), l, element] = du[v, nnodes(dg), l, element] +
+                                            surface_flux_values[v, l, 2, element] *
+                                            factor
+
             # surface contribution along local sides 1 and 3 (fixed y and x varies)
-            du[v, l, 1, element] += (surface_flux_values[v, l, 1, element]
-                                     *
-                                     boundary_interpolation[1, 1])
-            du[v, l, nnodes(dg), element] += (surface_flux_values[v, l, 3, element]
-                                              *
-                                              boundary_interpolation[nnodes(dg), 2])
+            du[v, l, 1, element] = du[v, l, 1, element] +
+                                   surface_flux_values[v, l, 1, element] *
+                                   factor
+            du[v, l, nnodes(dg), element] = du[v, l, nnodes(dg), element] +
+                                            surface_flux_values[v, l, 3, element] *
+                                            factor
         end
     end
 
@@ -502,7 +457,7 @@ function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
 end
 
 # This routine computes the maximum value of the discrete metric identities necessary to ensure
-# that the approxmiation will be free-stream preserving (i.e. a constant solution remains constant)
+# that the approximation will be free-stream preserving (i.e. a constant solution remains constant)
 # on a curvilinear mesh.
 #   Note! Independent of the equation system and is only a check on the discrete mapping terms.
 #         Can be used for a metric identities check on StructuredMesh{2} or UnstructuredMesh2D

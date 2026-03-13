@@ -7,7 +7,7 @@
 
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector,
-                           mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                           mesh::Union{P4estMeshParallel, T8codeMeshParallel},
                            equations,
                            dg::DGSEM, cache, old_global_first_quadrant)
 
@@ -89,6 +89,8 @@ function rebalance_solver!(u_ode::AbstractVector,
             MPI.Waitall(requests, MPI.Status)
         end
     end # GC.@preserve old_u_ode
+
+    return nothing
 end
 
 # Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.

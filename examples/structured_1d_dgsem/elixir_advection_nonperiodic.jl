@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -18,8 +18,7 @@ mesh = StructuredMesh((16,), coordinates_min, coordinates_max, periodicity = fal
 
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition,
-                                    solver,
-                                    boundary_conditions = boundary_conditions)
+                                    solver; boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

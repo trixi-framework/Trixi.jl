@@ -13,16 +13,16 @@ have_nonconservative_terms(::AbstractIdealGlmMhdMultiIonEquations) = True()
 # ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference
 # - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
 #   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
-#   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655). 
-# The first three entries of the state vector `cons[1:3]` are the magnetic field components. After that, we have chunks 
-# of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `cons[end]` is the divergence 
-# cleaning field. 
+#   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
+# The first three entries of the state vector `cons[1:3]` are the magnetic field components. After that, we have chunks
+# of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `cons[end]` is the divergence
+# cleaning field.
 function varnames(::typeof(cons2cons), equations::AbstractIdealGlmMhdMultiIonEquations)
     cons = ("B1", "B2", "B3")
     for i in eachcomponent(equations)
         cons = (cons...,
                 tuple("rho_" * string(i), "rho_v1_" * string(i), "rho_v2_" * string(i),
-                      "rho_v3_" * string(i), "rho_e_" * string(i))...)
+                      "rho_v3_" * string(i), "rho_e_total_" * string(i))...)
     end
     cons = (cons..., "psi")
 
@@ -42,14 +42,14 @@ function varnames(::typeof(cons2prim), equations::AbstractIdealGlmMhdMultiIonEqu
 end
 
 function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    return (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
 """
     source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
-terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
+Source terms due to the Lorentz' force for plasmas with more than one ion species. These source
+terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for
 a single-species plasma. In particular, they have to be used for every
 simulation of [`IdealGlmMhdMultiIonEquations2D`](@ref) and [`IdealGlmMhdMultiIonEquations3D`](@ref).
 """
@@ -62,7 +62,7 @@ function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEqu
     s = zero(MVector{nvariables(equations), eltype(u)})
 
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
         rho_inv = 1 / rho
         v1 = rho_v1 * rho_inv
         v2 = rho_v2 * rho_inv
@@ -85,7 +85,7 @@ end
 """
     electron_pressure_zero(u, equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Returns the value of zero for the electron pressure. Needed for consistency with the 
+Returns the value of zero for the electron pressure. Needed for consistency with the
 single-fluid MHD equations in the limit of one ion species.
 """
 function electron_pressure_zero(u, equations::AbstractIdealGlmMhdMultiIonEquations)
@@ -174,7 +174,12 @@ magnetic_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = SVector(u[1
 # Extract GLM divergence-cleaning field from solution vector
 divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = u[end]
 
-# Get total density as the sum of the individual densities of the ion species
+@doc raw"""
+    density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved variables `u`,
+where ``i`` is the index of **ion** species.
+"""
 @inline function density(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     rho = zero(real(equations))
     for k in eachcomponent(equations)
@@ -183,18 +188,23 @@ divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = 
     return rho
 end
 
+@doc raw"""
+    pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Computes the pressure of every component ``k`` analogouos to
+[`pressure(u, equations::IdealGlmMhdEquations1D)`](@ref).
+"""
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     B1, B2, B3, _ = u
     p = zero(MVector{ncomponents(equations), real(equations)})
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         gamma = equations.gammas[k]
-        p[k] = (gamma - 1) *
-               (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
-                0.5f0 * (B1^2 + B2^2 + B3^2))
+        p[k] = (gamma - 1) * (rho_e_total - 0.5f0 *
+                              (rho * (v1^2 + v2^2 + v3^2) + B1^2 + B2^2 + B3^2))
     end
     return SVector{ncomponents(equations), real(equations)}(p)
 end
@@ -210,13 +220,13 @@ function cons2prim(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     prim[2] = B2
     prim[3] = B3
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e_total = get_component(k, u, equations)
         rho_inv = 1 / rho
         v1 = rho_inv * rho_v1
         v2 = rho_inv * rho_v2
         v3 = rho_inv * rho_v3
 
-        p = (gammas[k] - 1) * (rho_e -
+        p = (gammas[k] - 1) * (rho_e_total -
              0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
               + B1 * B1 + B2 * B2 + B3 * B3
               + psi * psi))
@@ -276,12 +286,12 @@ end
         rho_v2 = rho * v2
         rho_v3 = rho * v3
 
-        rho_e = p / (gammas[k] - 1) +
-                0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-                0.5f0 * (B1^2 + B2^2 + B3^2) +
-                0.5f0 * psi^2
+        rho_e_total = p / (gammas[k] - 1) +
+                      0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+                      0.5f0 * (B1^2 + B2^2 + B3^2) +
+                      0.5f0 * psi^2
 
-        set_component!(cons, k, rho, rho_v1, rho_v2, rho_v3, rho_e, equations)
+        set_component!(cons, k, rho, rho_v1, rho_v2, rho_v3, rho_e_total, equations)
     end
     cons[end] = psi
 
@@ -296,10 +306,10 @@ end
 # Since the entropy Jacobian is a sparse matrix, we do not construct it but directly compute the
 # action of its product with the jump in the entropy variables.
 #
-# ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference above. 
-# The first three entries of the state vector `u[1:3]` are the magnetic field components. After that, we have chunks 
-# of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `u[end]` is the divergence 
-# cleaning field. 
+# ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference above.
+# The first three entries of the state vector `u[1:3]` are the magnetic field components. After that, we have chunks
+# of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `u[end]` is the divergence
+# cleaning field.
 @inline function (dissipation::DissipationLaxFriedrichsEntropyVariables)(u_ll, u_rr,
                                                                          orientation_or_normal_direction,
                                                                          equations::AbstractIdealGlmMhdMultiIonEquations)
@@ -332,8 +342,8 @@ end
 
     # The for loop below fills the entries of `dissipation` that depend on the entries of the diagonal
     # blocks ``A_k`` of the entropy Jacobian ``H`` in the given reference (see equations (80)-(82)),
-    # but the terms that depend on the magnetic field ``B`` and divergence cleaning field ``psi`` are 
-    # excluded here and considered below. In other words, these are the dissipation values that depend 
+    # but the terms that depend on the magnetic field ``B`` and divergence cleaning field ``psi`` are
+    # excluded here and considered below. In other words, these are the dissipation values that depend
     # on the entries of the entropy Jacobian that are marked in blue in Figure 1 of the reference given above.
     for k in eachcomponent(equations)
         rho_ll, v1_ll, v2_ll, v3_ll, p_ll = get_component(k, prim_ll, equations)
@@ -437,26 +447,26 @@ end
 
     h_B_psi = 1 / (beta_plus_ll + beta_plus_rr)
 
-    # Dissipation for the magnetic field components due to the diagonal entries of the 
+    # Dissipation for the magnetic field components due to the diagonal entries of the
     # dissipation matrix ``H``. These are the dissipation values that depend on the diagonal
     # entries of the entropy Jacobian that are marked in cyan in Figure 1 of the reference given above.
     dissipation[1] = -0.5f0 * λ * h_B_psi * (w_rr[1] - w_ll[1])
     dissipation[2] = -0.5f0 * λ * h_B_psi * (w_rr[2] - w_ll[2])
     dissipation[3] = -0.5f0 * λ * h_B_psi * (w_rr[3] - w_ll[3])
 
-    # Dissipation for the divergence-cleaning field due to the diagonal entry of the 
+    # Dissipation for the divergence-cleaning field due to the diagonal entry of the
     # dissipation matrix ``H``. This dissipation value depends on the single diagonal
     # entry of the entropy Jacobian that is marked in red in Figure 1 of the reference given above.
     dissipation[end] = -0.5f0 * λ * h_B_psi * (w_rr[end] - w_ll[end])
 
-    # Dissipation due to the off-diagonal blocks (``B_{off}``) of the dissipation matrix ``H`` and to the entries 
-    # of the block ``A`` that depend on the magnetic field ``B`` and the divergence cleaning field ``psi``. 
+    # Dissipation due to the off-diagonal blocks (``B_{off}``) of the dissipation matrix ``H`` and to the entries
+    # of the block ``A`` that depend on the magnetic field ``B`` and the divergence cleaning field ``psi``.
     # See equations (80)-(82) of the given reference.
     for k in eachcomponent(equations)
         _, _, _, _, w5_ll = get_component(k, w_ll, equations)
         _, _, _, _, w5_rr = get_component(k, w_rr, equations)
 
-        # Dissipation for the magnetic field components and divergence cleaning field due to the off-diagonal 
+        # Dissipation for the magnetic field components and divergence cleaning field due to the off-diagonal
         # entries of the dissipation matrix ``H`` (block ``B^T`` in equation (80) and Figure 1 of the reference
         # given above).
         dissipation[1] -= 0.5f0 * λ * h_B_psi * B1_avg * (w5_rr - w5_ll)
@@ -465,7 +475,7 @@ end
         dissipation[end] -= 0.5f0 * λ * h_B_psi * psi_avg * (w5_rr - w5_ll)
 
         # Dissipation for the energy equation of species `k` depending on `w_1`, `w_2`, `w_3` and `w_end`. These are the
-        # values of the dissipation that depend on the off-diagonal block ``B`` of the dissipation matrix ``H`` (see equation (80) 
+        # values of the dissipation that depend on the off-diagonal block ``B`` of the dissipation matrix ``H`` (see equation (80)
         # and Figure 1 of the reference given above.
         ind_E = 3 + 5 * k # simplified version of 3 + (k - 1) * 5 + 5
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B1_avg * (w_rr[1] - w_ll[1])
@@ -473,8 +483,8 @@ end
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * psi_avg * (w_rr[end] - w_ll[end])
 
-        # Dissipation for the energy equation of all ion species depending on `w_5`. These are the values of the dissipation 
-        # vector that depend on the magnetic and divergence-cleaning field terms of the entries marked with a red cross in 
+        # Dissipation for the energy equation of all ion species depending on `w_5`. These are the values of the dissipation
+        # vector that depend on the magnetic and divergence-cleaning field terms of the entries marked with a red cross in
         # Figure 1 of the reference given above.
         for kk in eachcomponent(equations)
             ind_E = 3 + 5 * kk # simplified version of 3 + (kk - 1) * 5 + 5
@@ -496,10 +506,10 @@ Compute the ion-ion collision source terms for the momentum and energy equations
 ```math
 \begin{aligned}
   \vec{s}_{\rho_k \vec{v}_k} =&  \rho_k\sum_{l}\bar{\nu}_{kl}(\vec{v}_{l} - \vec{v}_k),\\
-  s_{E_k}  =& 
+  s_{E_k}  =&
     3 \sum_{l} \left(
     \bar{\nu}_{kl} \frac{\rho_k M_1}{M_{l} + M_k} R_1 (T_{l} - T_k)
-    \right) + 
+    \right) +
     \sum_{l} \left(
         \bar{\nu}_{kl} \rho_k \frac{M_{l}}{M_{l} + M_k} \|\vec{v}_{l} - \vec{v}_k\|^2
         \right)
@@ -507,7 +517,7 @@ Compute the ion-ion collision source terms for the momentum and energy equations
         \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
 \end{aligned}
 ```
-where ``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`, 
+where ``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`,
 ``R_k`` is the specific gas constant of ion species `k` provided in `equations.gas_constants`, and
  ``\bar{\nu}_{kl}`` is the effective collision frequency of species `k` with species `l`, which is computed as
 ```math
@@ -523,7 +533,7 @@ The additional coefficient ``\bar{\nu}^1_{kl}`` is a non-dimensional drift corre
 References:
 - P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
   [DOI: 10.1063/1.870875](https://doi.org/10.1063/1.870875).
-- Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
+- Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry.
   Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
 """
 function source_terms_collision_ion_ion(u, x, t,
@@ -582,7 +592,7 @@ end
     source_terms_collision_ion_electron(u, x, t,
                                         equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Compute the ion-electron collision source terms for the momentum and energy equations of each ion species. We assume ``v_e = v^+`` 
+Compute the ion-electron collision source terms for the momentum and energy equations of each ion species. We assume ``v_e = v^+``
 (no effect of currents on the electron velocity).
 
 The collision sources read as
@@ -590,16 +600,16 @@ The collision sources read as
 \begin{aligned}
     \vec{s}_{\rho_k \vec{v}_k} =&  \rho_k \bar{\nu}_{ke} (\vec{v}_{e} - \vec{v}_k),
     \\
-    s_{E_k}  =& 
+    s_{E_k}  =&
     3  \left(
     \bar{\nu}_{ke} \frac{\rho_k M_{1}}{M_k} R_1 (T_{e} - T_k)
-    \right) 
+    \right)
         +
         \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
 \end{aligned}
 ```
-where ``T_e`` is the electron temperature computed with the function `equations.electron_temperature`, 
-``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`, 
+where ``T_e`` is the electron temperature computed with the function `equations.electron_temperature`,
+``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`,
 ``R_k`` is the specific gas constant of ion species `k` provided in `equations.gas_constants`, and
 ``\bar{\nu}_{ke}`` is the collision frequency of species `k` with the electrons, which is computed as
 ```math
@@ -614,7 +624,7 @@ which is scaled with the elementary charge (see [`IdealGlmMhdMultiIonEquations2D
 References:
 - P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
   [DOI: 10.1063/1.870875](https://doi.org/10.1063/1.870875).
-- Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
+- Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry.
   Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
 """
 function source_terms_collision_ion_electron(u, x, t,

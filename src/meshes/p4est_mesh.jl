@@ -24,17 +24,19 @@ mesh for a two-dimensional surface or shell in three-dimensional space.
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
-    is_parallel :: IsParallel
-    ghost       :: Ghost # Either PointerWrapper{p4est_ghost_t} or PointerWrapper{p8est_ghost_t}
+    const p4est::P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
+    const is_parallel::IsParallel
+    # Either `PointerWrapper{p4est_ghost_t}` or `PointerWrapper{p8est_ghost_t}`.
+    # Required for ghost/halo layers in parallel runs, thus mutable.
+    ghost::Ghost
     # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
     # This specifies the geometry interpolation for each tree.
-    tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
-    nodes::SVector{NNODES, RealT}
-    boundary_names::Array{Symbol, 2}      # [face direction, tree]
+    const tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
+    const nodes::SVector{NNODES, RealT}
+    const boundary_names::Array{Symbol, 2} # [face direction, tree]
     current_filename::String
     unsaved_changes::Bool
-    p4est_partition_allow_for_coarsening::Bool
+    const p4est_partition_allow_for_coarsening::Bool
 
     function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                               current_filename, unsaved_changes,
@@ -63,7 +65,7 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
         # allow them to differ in the general case. This functionality is used for
         # constructing discretizations on spherical shell domains for applications in
-        # global atmospheric modelling. The ambient dimension NDIMS_AMBIENT is therefore 
+        # global atmospheric modelling. The ambient dimension NDIMS_AMBIENT is therefore
         # set here in the inner constructor to size(tree_node_coordinates, 1).
         mesh = new{NDIMS, size(tree_node_coordinates, 1),
                    eltype(tree_node_coordinates), typeof(is_parallel),
@@ -84,24 +86,24 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     end
 end
 
-const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:False}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:True}
+const P4estMeshSerial{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:False}
+const P4estMeshParallel{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:True}
 
-@inline mpi_parallel(mesh::SerialP4estMesh) = False()
-@inline mpi_parallel(mesh::ParallelP4estMesh) = True()
+@inline mpi_parallel(mesh::P4estMeshSerial) = False()
+@inline mpi_parallel(mesh::P4estMeshParallel) = True()
 
 function destroy_mesh(mesh::P4estMesh{2})
     connectivity = mesh.p4est.connectivity
     p4est_ghost_destroy(mesh.ghost)
     p4est_destroy(mesh.p4est)
-    p4est_connectivity_destroy(connectivity)
+    return p4est_connectivity_destroy(connectivity)
 end
 
 function destroy_mesh(mesh::P4estMesh{3})
     connectivity = mesh.p4est.connectivity
     p8est_ghost_destroy(mesh.ghost)
     p8est_destroy(mesh.p4est)
-    p8est_connectivity_destroy(connectivity)
+    return p8est_connectivity_destroy(connectivity)
 end
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
@@ -118,6 +120,7 @@ end
 function Base.show(io::IO, mesh::P4estMesh)
     print(io, "P4estMesh{", ndims(mesh), ", ", ndims_ambient(mesh), ", ", real(mesh),
           "}")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
@@ -139,7 +142,7 @@ end
 """
     P4estMesh(trees_per_dimension; polydeg,
               mapping=nothing, faces=nothing, coordinates_min=nothing, coordinates_max=nothing,
-              RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
+              RealT=Float64, initial_refinement_level=0, periodicity=false, unsaved_changes=true,
               p4est_partition_allow_for_coarsening=true)
 
 Create a structured curved/higher-order `P4estMesh` of the specified size.
@@ -186,7 +189,7 @@ Non-periodic boundaries will be called `:x_neg`, `:x_pos`, `:y_neg`, `:y_pos`, `
 function P4estMesh(trees_per_dimension; polydeg,
                    mapping = nothing, faces = nothing, coordinates_min = nothing,
                    coordinates_max = nothing,
-                   RealT = Float64, initial_refinement_level = 0, periodicity = true,
+                   RealT = Float64, initial_refinement_level = 0, periodicity = false,
                    unsaved_changes = true,
                    p4est_partition_allow_for_coarsening = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
@@ -385,7 +388,7 @@ function P4estMesh{NDIMS}(meshfile::String;
     # Read in the Header of the meshfile to determine which constructor is appropriate
     header = open(meshfile, "r") do io
         readline(io) # *Header of the Abaqus file; discarded
-        readline(io) # Readin the actual header information
+        return readline(io) # Readin the actual header information
     end
 
     # Check if the meshfile was generated using HOHQMesh
@@ -500,7 +503,7 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile,
 end
 
 # This removes irrelevant elements from the meshfile, i.e., trusses/beams which are 1D elements.
-# Thus, if `n_dimensions == 2`, only quads are kept, and if `n_dimensions == 3`, 
+# Thus, if `n_dimensions == 2`, only quads are kept, and if `n_dimensions == 3`,
 # only hexes are kept, i.e., in that case also quads are removed.
 function preprocess_standard_abaqus(meshfile,
                                     linear_quads, linear_hexes,
@@ -597,9 +600,9 @@ function preprocess_standard_abaqus(meshfile,
     return elements_begin_idx, sets_begin_idx
 end
 
-# p4est can handle only linear elements. This function checks the `meshfile_pre_proc` 
+# p4est can handle only linear elements. This function checks the `meshfile_pre_proc`
 # for quadratic elements (highest order supported by standard Abaqus) and
-# replaces them with linear elements. The higher-order (quadratic) boundaries are handled 
+# replaces them with linear elements. The higher-order (quadratic) boundaries are handled
 # "internally" by Trixi as for the HOHQMesh-Abaqus case.
 function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                                               linear_quads, linear_hexes,
@@ -703,9 +706,9 @@ function read_nodes_standard_abaqus(meshfile, n_dimensions,
 end
 
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
-# and a list of boundary names for the `P4estMesh`. For linear meshes, the tree node coordinates are 
+# and a list of boundary names for the `P4estMesh`. For linear meshes, the tree node coordinates are
 # computed according to the `mapping` passed to this function using polynomial interpolants of degree `polydeg`.
-# For quadratic (second-order) meshes, the tree node coordinates are read from the meshfile, similar as for 
+# For quadratic (second-order) meshes, the tree node coordinates are read from the meshfile, similar as for
 # `p4est_connectivity_from_hohqmesh_abaqus`.
 function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                  n_dimensions,
@@ -714,7 +717,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
 
     ### Regular expressions for Abaqus element types ###
 
-    # These are the standard Abaqus linear quads. 
+    # These are the standard Abaqus linear quads.
     # Note that there are many(!) more variants designed for specific purposes in the Abaqus solver, see
     # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt10eli01.html
     # To keep it simple we support only basic quads, membranes, and shells here.
@@ -791,10 +794,10 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     # Thus, this check is equivalent to checking for higher-order boundary information.
     if mesh_polydeg == 2
         mesh_nnodes = mesh_polydeg + 1 # = 3
-        # Note: We ASSUME that the additional node between the end-vertices lies 
+        # Note: We ASSUME that the additional node between the end-vertices lies
         # on the center on that line, such that we can use Chebyshev-Gauss-Lobatto nodes!
         # For polydeg = 2, we have the 3 nodes [-1, 0, 1] (within the reference element).
-        # Note that these coincide for polydeg = 2 with the Legendre-Gauss-Lobatto nodes. 
+        # Note that these coincide for polydeg = 2 with the Legendre-Gauss-Lobatto nodes.
         cheby_nodes, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
         nodes = SVector{mesh_nnodes}(cheby_nodes)
     end
@@ -804,7 +807,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                   n_dimensions)...,
                                                            n_trees)
 
-    # No nonlinearity in the mesh. Rely on the mapping function to realize the curvature.                                                           
+    # No nonlinearity in the mesh. Rely on the mapping function to realize the curvature.
     if mesh_polydeg == 1
         calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping,
                                     vertices, tree_to_vertex)
@@ -820,7 +823,9 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                         nodes, vertices, RealT,
                                         linear_quads, mesh_nodes)
         else # n_dimensions == 3
-            @error "Three dimensional quadratic elements are not supported yet!"
+            calc_tree_node_coordinates!(tree_node_coordinates, element_lines,
+                                        nodes, vertices, RealT,
+                                        linear_hexes, mesh_nodes)
         end
     end
 
@@ -1049,8 +1054,8 @@ The mesh will have two boundaries, `:inside` and `:outside`.
                                        each face.
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e., the number
                      of layers of the sphere.
-- `inner_radius::Integer`: the inner radius of the sphere.
-- `thickness::Integer`: the thickness of the sphere. The outer radius will be `inner_radius + thickness`.
+- `inner_radius::RealT`: the inner radius of the sphere.
+- `thickness::RealT`: the thickness of the spherical shell. The outer radius will be `inner_radius + thickness`.
 - `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
@@ -1075,8 +1080,8 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
     tree_node_coordinates = Array{RealT, 5}(undef, 3,
                                             ntuple(_ -> length(nodes), 3)...,
                                             n_trees)
-    calc_tree_node_coordinates!(tree_node_coordinates, nodes, trees_per_face_dimension,
-                                layers,
+    calc_tree_node_coordinates!(tree_node_coordinates, nodes,
+                                trees_per_face_dimension, layers,
                                 inner_radius, thickness)
 
     p4est = new_p4est(connectivity, initial_refinement_level)
@@ -1583,6 +1588,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                                           dy / 2 * nodes[j])
         end
     end
+
+    return nothing
 end
 
 # 3D version
@@ -1616,6 +1623,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                              dz / 2 * nodes[k])
         end
     end
+
+    return nothing
 end
 
 # Calculate physical coordinates of each node of an unstructured mesh.
@@ -1645,7 +1654,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 4},
                                 tmp1)
     end
 
-    map_node_coordinates!(node_coordinates, mapping)
+    return map_node_coordinates!(node_coordinates, mapping)
 end
 
 function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4}, mapping)
@@ -1690,7 +1699,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{RealT, 5},
                                 data_in)
     end
 
-    map_node_coordinates!(node_coordinates, mapping)
+    return map_node_coordinates!(node_coordinates, mapping)
 end
 
 function map_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5}, mapping)
@@ -1754,6 +1763,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
             end
         end
     end
+
+    return nothing
 end
 
 # Map the computational coordinates xi, eta, zeta to the specified side of a cubed sphere
@@ -1895,8 +1906,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     return file_idx
 end
 
-# TODO: 3D version
-# Version for quadratic 2D elements, i.e., second-order quads.
+# Version for quadratic 2D elements, i.e., second-order quads in
+# standard Abaqus .inp format as exported from e.g. Gmsh.
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                      element_lines, nodes, vertices, RealT,
                                      linear_quads, mesh_nodes)
@@ -1907,7 +1918,6 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     surface_curves = Array{CurvedSurfaceT}(undef, 4)
 
     # Create other work arrays to perform the mesh construction
-    element_node_ids = Array{Int}(undef, 4)
     quad_vertices = Array{RealT}(undef, (4, 2))
     curve_values = Array{RealT}(undef, (nnodes, 2))
 
@@ -1936,31 +1946,27 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
             # Pull the vertex node IDs
             line_split = split(line, r",\s+")
-            element_nodes = parse.(Int, line_split)
+            # Store the indices of the element-defining nodes
+            element_nodes = parse.(Int, line_split)[2:end] # First entry is the element number, can be ignored
 
             if element_set_order == 1
-                element_node_ids[1] = element_nodes[2]
-                element_node_ids[2] = element_nodes[3]
-                element_node_ids[3] = element_nodes[4]
-                element_node_ids[4] = element_nodes[5]
-
                 # Create the node coordinates on this particular element
                 # Pull the (x,y) values of the four vertices of the current tree out of the global vertices array
                 for i in 1:4
-                    quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]] # 2D => 1:2
+                    quad_vertices[i, :] .= vertices[1:2, element_nodes[i]] # 2D => 1:2
                 end
                 calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
             else # element_set_order == 2
                 for edge in 1:4
-                    node1 = element_nodes[edge + 1] # "Left" node
-                    node2 = element_nodes[edge + 5] # "Middle" node
-                    node3 = edge == 4 ? element_nodes[2] : element_nodes[edge + 2] # "Right" node
+                    node1 = element_nodes[edge] # "Left" node
+                    node2 = element_nodes[edge + 4] # "Middle" node
+                    node3 = edge == 4 ? element_nodes[1] : element_nodes[edge + 1] # "Right" node
 
                     node1_coords = mesh_nodes[node1]
                     node2_coords = mesh_nodes[node2]
                     node3_coords = mesh_nodes[node3]
 
-                    # The nodes for an Abaqus element are labeled following a closed path 
+                    # The nodes for an Abaqus element are labeled following a closed path
                     # around the element:
                     #
                     #            <----
@@ -1972,15 +1978,15 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                     #        |           |
                     #        *-----*-----*
                     #            ---->
-                    # `curve_values`, however, requires to sort the nodes into a 
-                    # valid coordinate system, 
-                    # 
+                    # `curve_values`, however, requires to sort the nodes into a
+                    # valid coordinate system,
+                    #
                     #        *-----*-----*
                     #        |           |
                     #        |           |
                     #        *           *
-                    #        |           |
-                    #  ^ η   |           |
+                    #  η     |           |
+                    #  ↑     |           |
                     #  |     *-----*-----*
                     #  |----> ξ
                     # thus we need to flip the node order for the second xi and eta edges met.
@@ -2015,6 +2021,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
             end
         end
     end
+
+    return nothing
 end
 
 # Calculate physical coordinates of each element of an unstructured mesh read
@@ -2114,6 +2122,252 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     return file_idx
 end
 
+function face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                   mesh_nodes, nodes, bary_weights,
+                                   RealT, CurvedFaceT)
+    node1_coords = mesh_nodes[face_nodes[1]]
+    node2_coords = mesh_nodes[face_nodes[2]]
+    node3_coords = mesh_nodes[face_nodes[3]]
+    node4_coords = mesh_nodes[face_nodes[4]]
+    node5_coords = mesh_nodes[face_nodes[5]]
+    node6_coords = mesh_nodes[face_nodes[6]]
+    node7_coords = mesh_nodes[face_nodes[7]]
+    node8_coords = mesh_nodes[face_nodes[8]]
+    node9_coords = mesh_nodes[face_nodes[9]]
+
+    # The nodes for an Abaqus element are labeled following a closed path
+    # around the element:
+    #
+    #             <----
+    #         7     6     5
+    #         *-----*-----*
+    #         |           |
+    #     |   |           |   ^
+    #     |  8*     9*    *4  |
+    #     v   |           |   |
+    #         |           |
+    #         *-----*-----*
+    #         1     2     3
+    #             ---->
+    # `curve_values`, however, requires to sort the nodes into a
+    # valid coordinate system,
+    #
+    #        *-----*-----*
+    #        |           |
+    #        |           |
+    #        *     *     *
+    #  η     |           |
+    #  ↑     |           |
+    #  |     *-----*-----*
+    #  |----> ξ
+    # thus we need to flip the node order for the second xi and eta edges met.
+
+    nnodes = length(nodes)
+    curve_values = Array{RealT}(undef, (3, nnodes, nnodes))
+
+    # Proceed along bottom edge
+    curve_values[:, 1, 1] = node1_coords
+    curve_values[:, 2, 1] = node2_coords
+    curve_values[:, 3, 1] = node3_coords
+
+    # Proceed along middle line
+    curve_values[:, 1, 2] = node8_coords
+    curve_values[:, 2, 2] = node9_coords
+    curve_values[:, 3, 2] = node4_coords
+
+    # Proceed along top edge
+    curve_values[:, 1, 3] = node7_coords
+    curve_values[:, 2, 3] = node6_coords
+    curve_values[:, 3, 3] = node5_coords
+
+    # Construct the curve interpolant for the current side
+    face_curves[face] = CurvedFaceT(nodes, bary_weights, copy(curve_values))
+
+    return nothing
+end
+
+# Version for quadratic 3D elements, i.e., second-order hexes in
+# standard Abaqus .inp format as exported from e.g. Gmsh.
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
+                                     element_lines, nodes, vertices, RealT,
+                                     linear_hexes, mesh_nodes)
+    nnodes = length(nodes)
+
+    # Create a work set of Gamma curves to create the node coordinates
+    CurvedFaceT = CurvedFace{RealT}
+    face_curves = Array{CurvedFaceT}(undef, 6)
+
+    # Create other work arrays to perform the mesh construction
+    hex_vertices = Array{RealT}(undef, (3, 8))
+    face_nodes = Array{Int}(undef, 9)
+
+    # Create the barycentric weights used for the surface interpolations
+    bary_weights_ = barycentric_weights(nodes)
+    bary_weights = SVector{nnodes}(bary_weights_)
+
+    element_set_order = 1
+    tree = 0
+    for line_idx in 1:length(element_lines)
+        line = element_lines[line_idx]
+
+        # Check if a new element type/element set is defined
+        if startswith(line, "*ELEMENT")
+            # Retrieve element type
+            current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
+
+            # Check if these are linear elements
+            if occursin(linear_hexes, current_element_type)
+                element_set_order = 1
+            else
+                element_set_order = 2
+            end
+        else # Element data
+            tree += 1
+
+            # Pull the vertex node IDs
+            line_split = split(line, r",\s+")
+            # Store the indices of the element-defining nodes
+            element_nodes = parse.(Int, line_split)[2:end] # First entry is the element number, can be ignored
+
+            if element_set_order == 1
+                # Create the node coordinates on this particular element
+                # Pull the (x,y,z) values of the four vertices of the current tree out of the global vertices array
+                for i in 1:8
+                    hex_vertices[:, i] .= vertices[:, element_nodes[i]] # 3D => : = 1:3
+                end
+                calc_node_coordinates!(node_coordinates, tree, nodes, hex_vertices)
+            else # element_set_order == 2
+                # The second-order face has the following node distribution:
+                #    NW    N     NE
+                #    *-----*-----*
+                #    |           |
+                #    |     C     |
+                #  W *     *     * E
+                #    |           |
+                #    |           |
+                #    *-----*-----*
+                #    SW    S     SE
+                #
+                # where SW gets placed at the origin of the local face coordinate system:
+                #
+                #    η
+                #    ↑
+                #    |
+                #    |
+                #    |----> ξ
+
+                # We proceed now face by face, with face numbering as sketched out in
+                # https://trixi-framework.github.io/TrixiDocumentation/stable/meshes/p4est_mesh/#HOHQMesh-Extended-Abaqus-format
+                # and in `get_vertices_for_bilinear_interpolant!`
+                #
+                # The node selection follows from the sketch for the 27-node element presented in the doc
+                # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
+
+                face = 1 # -y, "Front"
+                face_nodes[1] = element_nodes[1]  # "SW" node
+                face_nodes[2] = element_nodes[9]  # "S"  node
+                face_nodes[3] = element_nodes[2]  # "SE" node
+                face_nodes[4] = element_nodes[18] # "E"  node
+                face_nodes[5] = element_nodes[6]  # "NE" node
+                face_nodes[6] = element_nodes[13] # "N"  node
+                face_nodes[7] = element_nodes[5]  # "NW" node
+                face_nodes[8] = element_nodes[17] # "W"  node
+                face_nodes[9] = element_nodes[24] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
+                                          RealT, CurvedFaceT)
+
+                face = 2 # +y, "Back"
+                face_nodes[1] = element_nodes[4]  # "SW" node
+                face_nodes[2] = element_nodes[11] # "S"  node
+                face_nodes[3] = element_nodes[3]  # "SE" node
+                face_nodes[4] = element_nodes[19] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
+                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[7] = element_nodes[8]  # "NW" node
+                face_nodes[8] = element_nodes[20] # "W"  node
+                face_nodes[9] = element_nodes[26] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
+                                          RealT, CurvedFaceT)
+
+                face = 3 # -z, "Bottom"
+                face_nodes[1] = element_nodes[1]  # "SW" node
+                face_nodes[2] = element_nodes[9]  # "S"  node
+                face_nodes[3] = element_nodes[2]  # "SE" node
+                face_nodes[4] = element_nodes[10] # "E"  node
+                face_nodes[5] = element_nodes[3]  # "NE" node
+                face_nodes[6] = element_nodes[11] # "N"  node
+                face_nodes[7] = element_nodes[4]  # "NW" node
+                face_nodes[8] = element_nodes[12] # "W"  node
+                face_nodes[9] = element_nodes[22] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
+                                          RealT, CurvedFaceT)
+
+                # Care: Note the different node ordering compared to `get_vertices_for_bilinear_interpolant!`
+                # Here, we obtain the node indices in the usual order, the "direction" is defined by the
+                # corner nodes 2 and 3, which are the same as face 4.
+                face = 4 # +x, "Right"
+                face_nodes[1] = element_nodes[2]  # "SW" node
+                face_nodes[2] = element_nodes[10] # "S"  node
+                face_nodes[3] = element_nodes[3]  # "SE" node
+                face_nodes[4] = element_nodes[19] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
+                face_nodes[6] = element_nodes[14] # "N"  node
+                face_nodes[7] = element_nodes[6]  # "NW" node
+                face_nodes[8] = element_nodes[18] # "W"  node
+                face_nodes[9] = element_nodes[25] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
+                                          RealT, CurvedFaceT)
+
+                face = 5 # +z, "Top"
+                face_nodes[1] = element_nodes[5]  # "SW" node
+                face_nodes[2] = element_nodes[13] # "S"  node
+                face_nodes[3] = element_nodes[6]  # "SE" node
+                face_nodes[4] = element_nodes[14] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
+                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[7] = element_nodes[8]  # "NW" node
+                face_nodes[8] = element_nodes[16] # "W"  node
+                face_nodes[9] = element_nodes[23] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
+                                          RealT, CurvedFaceT)
+
+                face = 6 # -x, "Left"
+                face_nodes[1] = element_nodes[1]  # "SW" node
+                face_nodes[2] = element_nodes[12] # "S"  node
+                face_nodes[3] = element_nodes[4]  # "SE" node
+                face_nodes[4] = element_nodes[20] # "E"  node
+                face_nodes[5] = element_nodes[8]  # "NE" node
+                face_nodes[6] = element_nodes[16] # "N"  node
+                face_nodes[7] = element_nodes[5]  # "NW" node
+                face_nodes[8] = element_nodes[17] # "W"  node
+                face_nodes[9] = element_nodes[27] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face,
+                                          mesh_nodes, nodes, bary_weights,
+                                          RealT, CurvedFaceT)
+
+                # Note: `element_nodes[21]` remains unused, since it is not part of any face
+                # (sits in the center of the element)
+
+                # Create the node coordinates on this particular element
+                calc_node_coordinates!(node_coordinates, tree, nodes, face_curves)
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Given the eight `hex_vertices` for a hexahedral element extract
 # the four `face_vertices` for a particular `face_index`.
 function get_vertices_for_bilinear_interpolant!(face_vertices, face_index, hex_vertices)
@@ -2148,6 +2402,8 @@ function get_vertices_for_bilinear_interpolant!(face_vertices, face_index, hex_v
         @views face_vertices[:, 3] .= hex_vertices[:, 8]
         @views face_vertices[:, 4] .= hex_vertices[:, 5]
     end
+
+    return nothing
 end
 
 # Evaluate a bilinear interpolant at a point (u,v) given the four vertices where the face is right-handed
@@ -2179,26 +2435,26 @@ function balance!(mesh::P4estMesh{2}, init_fn = C_NULL)
     p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
     # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
     # See https://github.com/cburstedde/p4est/issues/112
-    p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
+    return p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
 end
 
 function balance!(mesh::P4estMesh{3}, init_fn = C_NULL)
-    p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
+    return p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
 end
 
 function partition!(mesh::P4estMesh{2}; weight_fn = C_NULL)
-    p4est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening),
-                    weight_fn)
+    return p4est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening),
+                           weight_fn)
 end
 
 function partition!(mesh::P4estMesh{3}; weight_fn = C_NULL)
-    p8est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening),
-                    weight_fn)
+    return p8est_partition(mesh.p4est, Int(mesh.p4est_partition_allow_for_coarsening),
+                           weight_fn)
 end
 
 function update_ghost_layer!(mesh::P4estMesh)
     ghost_destroy_p4est(mesh.ghost)
-    mesh.ghost = PointerWrapper(ghost_new_p4est(mesh.p4est))
+    return mesh.ghost = PointerWrapper(ghost_new_p4est(mesh.p4est))
 end
 
 function init_fn(p4est, which_tree, quadrant)
@@ -2293,11 +2549,11 @@ end
 
 # 2D
 function unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p4est_t})
-    unsafe_wrap(Array, quadrants_ptr, 4)
+    return unsafe_wrap(Array, quadrants_ptr, 4)
 end
 # 3D
 function unsafe_wrap_quadrants(quadrants_ptr, ::Ptr{p8est_t})
-    unsafe_wrap(Array, quadrants_ptr, 8)
+    return unsafe_wrap(Array, quadrants_ptr, 8)
 end
 
 # 2D
@@ -2392,7 +2648,7 @@ end
 function save_original_ids(mesh::P4estMesh)
     iter_volume_c = cfunction(save_original_id_iter_volume, Val(ndims(mesh)))
 
-    iterate_p4est(mesh.p4est, C_NULL; iter_volume_c = iter_volume_c)
+    return iterate_p4est(mesh.p4est, C_NULL; iter_volume_c = iter_volume_c)
 end
 
 # Extract information about which cells have been changed

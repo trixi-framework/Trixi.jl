@@ -46,8 +46,12 @@ installation and postprocessing procedures. Its features include:
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
+* Custom explicit time integration schemes
+  * Maximized linear stability via paired explicit Runge-Kutta methods
+  * Relaxation Runge-Kutta methods for entropy-conservative time integration
 * Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
+  * Automatic Jacobian sparsity detection via [SparseConnectivityTracer.jl](https://github.com/adrhill/SparseConnectivityTracer.jl)
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
@@ -58,7 +62,7 @@ installation and postprocessing procedures. Its features include:
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Shallow water equations
+  * Shallow water equations via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl)
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
@@ -118,7 +122,8 @@ cd Trixi.jl
 mkdir run
 cd run
 julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi.jl clone
-julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
+julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK",
+                                          "Trixi2Vtk", "Plots"])' # Install additional packages
 ```
 Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
 can be omitted.
@@ -249,8 +254,8 @@ Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
-(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (Rice University, US),
-and Andrés Rueda-Ramírez (Polytechnic University of Madrid (UPM), Spain),
+(Linköping University, Sweden), [Jesse Chan](https://jlchan.github.io) (UT Austin, US),
+and [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com) (Polytechnic University of Madrid (UPM), Spain),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
@@ -276,7 +281,7 @@ Participating research groups in alphabetical order:
 
 [Division of Applied Mathematics, Department of Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
 
-[Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
+[Oden Institute for Computational Engineering and Sciences, UT Austin :us:](https://jlchan.github.io/)
 
 [High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) :de:](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
 

@@ -6,7 +6,7 @@
 # The interface to these packages is the `solve(...)` function. It always requires an ODE problem and
 # a time integration algorithm as input parameters.
 # ````julia
-# solve(ode, alg; kwargs...)
+# solve(ode, alg; kwargs...);
 # ````
 # In Trixi.jl, the ODE problem is created by `semidiscretize(semi, tspan)` for a semidiscretization
 # `semi` and the time span `tspan`. In particular, [`semidiscretize`](@ref) returns an `ODEProblem`
@@ -69,7 +69,7 @@
 # alg = CarpenterKennedy2N54(williamson_condition=false)
 # solve(ode, alg;
 #       dt=1.0 # solve needs some value here but it will be overwritten by the stepsize_callback
-#       callback=callbacks)
+#       callback=callbacks);
 # ````
 
 # You can find simple examples with a CFL-based step size control for instance in the elixirs
