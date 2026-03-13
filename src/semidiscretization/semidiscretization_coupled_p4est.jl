@@ -387,7 +387,7 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
-        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+        error("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
     end
 
     # Check that all MHD semidiscretizations received a GLM cleaning speed update.
