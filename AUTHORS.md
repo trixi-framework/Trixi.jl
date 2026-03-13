@@ -16,7 +16,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 * [Jesse Chan](https://jlchan.github.io),
-  Rice University, US
+  UT Austin, US
 * [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com),
   Polytechnic University of Madrid (UPM), Spain
 
