@@ -218,9 +218,11 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
-        fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
-        fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
+            fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -239,9 +241,11 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
-        fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
-        fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
+            fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+        end
     end
 
     return nothing
@@ -928,33 +932,5 @@ function calc_mortar_flux_low_order!(surface_flux_values,
     end
 
     return nothing
-end
-
-"""
-    get_boundary_outer_state(u_inner, t,
-                             boundary_condition::BoundaryConditionDirichlet,
-                             orientation_or_normal, direction,
-                             mesh, equations, dg, cache, indices...)
-For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
-outer state. This function returns the boundary value  for [`BoundaryConditionDirichlet`](@ref) at
-time `t` and for node with spatial indices `indices` at the boundary with `orientation_or_normal`
-and `direction`.
-
-Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-@inline function get_boundary_outer_state(u_inner, t,
-                                          boundary_condition::BoundaryConditionDirichlet,
-                                          orientation_or_normal, direction,
-                                          mesh::Union{TreeMesh, StructuredMesh},
-                                          equations, dg, cache, indices...)
-    (; node_coordinates) = cache.elements
-
-    x = get_node_coords(node_coordinates, equations, dg, indices...)
-    u_outer = boundary_condition.boundary_value_function(x, t, equations)
-
-    return u_outer
 end
 end # @muladd
