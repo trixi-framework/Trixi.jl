@@ -80,8 +80,8 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 # That corresponds to our 2D problem with 1d function on the diagonal in
 # [-1/sqrt(2), 1/sqrt(2)]^2. However, this setup is not periodic, which is
 # why I expanded the domain to [-2/sqrt(2), 2/sqrt(2)]^2.
-coordinates_min = (-2/sqrt(2), -2/sqrt(2))
-coordinates_max = (2/sqrt(2), 2/sqrt(2))
+coordinates_min = (-2 / sqrt(2), -2 / sqrt(2))
+coordinates_max = (2 / sqrt(2), 2 / sqrt(2))
 refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
                        coordinates_max = (0.5, 0.5)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
