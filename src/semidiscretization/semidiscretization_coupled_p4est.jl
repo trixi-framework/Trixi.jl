@@ -514,7 +514,8 @@ end
                                              semi_other, i_index_g, j_index_g,
                                              local_elem)
     _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
-                           u_inner, mesh, equations, cache,
+                           u_inner, mesh, have_nonconservative_terms(equations),
+                           equations, cache,
                            i_index, j_index,
                            element_index, normal_direction, surface_flux_function,
                            idx_other)
@@ -535,36 +536,50 @@ end
 end
 
 @inline function _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
-                                         u_inner, mesh, equations, cache,
+                                         u_inner, mesh, nonconservative_terms::False,
+                                         equations, cache,
                                          i_index, j_index,
                                          element_index, normal_direction,
                                          surface_flux_function, idx_other)
+    u_boundary = _convert_boundary_state(boundary_condition, semi_other,
+                                          u_boundary_raw, equations, cache,
+                                          i_index, j_index, element_index, idx_other)
 
-    # Apply coupling converter to transform from neighbor's equations to ours.
-    # coupling_converter can be a single function or a matrix of functions
-    # indexed by [self_index, other_index].
+    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
+@inline function _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
+                                         u_inner, mesh, nonconservative_terms::True,
+                                         equations, cache,
+                                         i_index, j_index,
+                                         element_index, normal_direction,
+                                         surface_flux_function, idx_other)
+    u_boundary = _convert_boundary_state(boundary_condition, semi_other,
+                                          u_boundary_raw, equations, cache,
+                                          i_index, j_index, element_index, idx_other)
+
+    flux = (surface_flux_function[1](u_inner, u_boundary, normal_direction, equations) +
+            0.5f0 *
+            surface_flux_function[2](u_inner, u_boundary, normal_direction, equations))
+
+    return flux
+end
+
+# Apply coupling converter to transform from neighbor's equations to ours.
+@inline function _convert_boundary_state(boundary_condition, semi_other,
+                                          u_boundary_raw, equations, cache,
+                                          i_index, j_index, element_index, idx_other)
     x = SVector(ntuple(@inline(idx -> cache.elements.node_coordinates[idx, i_index,
-                                                                    j_index,
-                                                                    element_index]),
+                                                                      j_index,
+                                                                      element_index]),
                        Val(ndims(equations))))
     converter = boundary_condition.coupling_converter
     if converter isa AbstractMatrix
         converter = converter[boundary_condition.self_index, idx_other]
     end
-    u_boundary = converter(x, u_boundary_raw, semi_other.equations, equations)
-
-    orientation = normal_direction
-
-    # Calculate boundary flux
-    if have_nonconservative_terms(equations) == true
-        flux = (surface_flux_function[1](u_inner, u_boundary, orientation, equations) +
-                0.5f0 *
-                surface_flux_function[2](u_inner, u_boundary, orientation, equations))
-    else
-        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-    end
-
-    return flux
+    return converter(x, u_boundary_raw, semi_other.equations, equations)
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
