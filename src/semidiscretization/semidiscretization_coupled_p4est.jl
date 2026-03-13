@@ -80,6 +80,13 @@ function SemidiscretizationCoupledP4est(semis...)
                                                       boundary_parent_lookup)
 end
 
+function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
+    @nospecialize semi # reduce precompilation time
+
+    print(io, "SemidiscretizationCoupledP4est($(semi.semis))")
+    return nothing
+end
+
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
     @nospecialize semi # reduce precompilation time
 
