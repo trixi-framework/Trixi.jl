@@ -292,7 +292,7 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable,
-       get_node_vars,get_u, get_coordinates
+       get_node_vars, get_u, get_coordinates
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
