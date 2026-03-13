@@ -1,4 +1,5 @@
 [deps]
+Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
@@ -41,6 +42,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TrixiTest = "0a316866-cbd0-4425-8bcb-08103b2c1f26"
 
 [compat]
+Accessors = "0.1.36"
 ADTypes = "1.14"
 Adapt = "4.1"
 Aqua = "0.8"
@@ -60,7 +62,7 @@ LinearSolve = "3.13"
 MPI = "0.20.22"
 NLsolve = "4.5.1"
 OrdinaryDiffEqBDF = "1.1"
-OrdinaryDiffEqCore = "1.26, 2"
+OrdinaryDiffEqCore = "1.26, 2, 3"
 OrdinaryDiffEqFeagin = "1"
 OrdinaryDiffEqHighOrderRK = "1.1"
 OrdinaryDiffEqLowOrderRK = "1.2"
@@ -81,3 +83,9 @@ SparseMatrixColorings = "0.4.21"
 StableRNGs = "1.0.2"
 Test = "1"
 TrixiTest = "0.2.1"
+
+[extras]
+HostCPUFeatures = "3e5b6fbb-0976-4d2c-9146-d79de83f2fb0"
+
+[preferences.HostCPUFeatures]
+allow_runtime_invalidation = true

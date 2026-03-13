@@ -16,7 +16,8 @@ coordinates_min = (0.0,) # minimum coordinate
 coordinates_max = (1.0,) # maximum coordinate
 cells_per_dimension = (64,)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
 # For eigensystem of the linearized Euler equations see e.g.
 # https://www.nas.nasa.gov/assets/nas/pdf/ams/2018/introtocfd/Intro2CFD_Lecture1_Pulliam_Euler_WaveEQ.pdf
@@ -78,7 +79,8 @@ end
 
 initial_condition = initial_condition_char_vars
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

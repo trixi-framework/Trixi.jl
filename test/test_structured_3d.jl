@@ -147,6 +147,50 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_adaptive_vol_int.jl"),
+                        l2=[
+                            0.0022878466025464924,
+                            0.0022468985135237107,
+                            0.002033101904326531,
+                            0.0022483293238877004,
+                            0.004345885176536526
+                        ],
+                        linf=[
+                            0.02684833550245891,
+                            0.028038458002909383,
+                            0.022367626384228956,
+                            0.02930352451545737,
+                            0.05222743788433171
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.046860892952192236,
+                            0.04269641872975366,
+                            0.04269641872975368,
+                            0.042696418729753556,
+                            0.1443421265167028
+                        ],
+                        linf=[
+                            0.42250001347847244,
+                            0.2975151811754566,
+                            0.29751518117545483,
+                            0.29751518117545617,
+                            0.3982472383589144
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[

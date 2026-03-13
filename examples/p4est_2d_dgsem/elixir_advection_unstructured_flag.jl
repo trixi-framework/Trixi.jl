@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:all => boundary_condition)
+boundary_conditions = (; all = boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -35,7 +35,7 @@ mesh = P4estMesh{2}(mesh_file, polydeg = 3,
                     initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

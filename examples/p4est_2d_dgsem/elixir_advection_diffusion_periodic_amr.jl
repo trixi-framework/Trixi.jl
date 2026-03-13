@@ -18,7 +18,8 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3, initial_refinement_level = 1,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max)
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = true)
 
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t,
@@ -40,7 +41,9 @@ initial_condition = initial_condition_diffusive_convergence_test
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
