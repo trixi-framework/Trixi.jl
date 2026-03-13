@@ -6,8 +6,8 @@ using Trixi
 
 # Pressure wave, same for the Euler system.
 function initial_condition_mhd(x, t, equations::IdealGlmMhdEquations2D)
-    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)))
-    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)))
+    rho = 1.0 + 0.01 * sin(x[1] * 2 * pi)
+    v1 = 0.01 * sin((x[1] - 1 / 2) * 2 * pi)
     v2 = 0.0
     v3 = 0.0
     p = rho^equations.gamma
@@ -21,10 +21,10 @@ end
 
 # Pressure wave, same as for the MHD system.
 function initial_condition_euler(x, t, equations::CompressibleEulerEquations2D)
-    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)))
-    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)))
+    rho = 1.0 + 0.01 * sin(x[1] * 2 * pi)
+    v1 = 0.01 * sin((x[1] - 1 / 2) * 2 * pi)
     v2 = 0.0
-    p = rho .^ equations.gamma
+    p = rho^equations.gamma
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -33,7 +33,7 @@ end
 coordinates_min = (-2.0, -2.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (2.0, 2.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
-# Here we set the priodicity to false for the coupling.
+# Here we set the periodicity to false for the coupling.
 # Since we couple through the physical boundaries the system is effectively periodic.
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,

@@ -86,7 +86,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     # Loop over all interfaces (index 2).
-    for interface in 1:size(interfaces_parent.neighbor_ids)[2]
+    for interface in 1:size(interfaces_parent.neighbor_ids, 2)
         mask[interface] = (interfaces_parent.neighbor_ids[1,
                            interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2,
@@ -104,7 +104,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
 
     # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
-    for interface in 1:size(neighbor_ids)[2]
+    for interface in 1:size(neighbor_ids, 2)
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
                                                               neighbor_ids[1,
                                                                            interface],

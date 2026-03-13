@@ -111,8 +111,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
                         l2=[0.00013318279010712176, 0.00013318279010712014],
                         linf=[0.000960578229013187, 0.0009605782290140752])
-    #     Ensure that we do not have excessive memory allocations
-    #     (e.g., from type instabilities)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
 
     # Load the mesh file for code coverage.
@@ -803,8 +803,8 @@ end
                               0.00260875068917614, 2.1084038302110918e-6,
                               0.004011403632471433],
                         tspan=(0.0, 0.02))
-    #     Ensure that we do not have excessive memory allocations
-    #     (e.g., from type instabilities)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
 
     # Test ncells for P4estMeshView for code coverage.

@@ -536,7 +536,7 @@ end
     # Apply coupling converter to transform from neighbor's equations to ours.
     # coupling_converter can be a single function or a matrix of functions
     # indexed by [self_index, other_index].
-    x = SVector(ntuple(@inline(idx->cache.elements.node_coordinates[idx, i_index,
+    x = SVector(ntuple(@inline(idx -> cache.elements.node_coordinates[idx, i_index,
                                                                     j_index,
                                                                     element_index]),
                        Val(ndims(equations))))
