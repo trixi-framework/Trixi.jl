@@ -74,13 +74,13 @@ end
         # The sign of inverse_jacobian determines whether the mapping is
         # orientation-reversing; if so, we flip the normal to maintain correct orientation.
         if orientation == 1
-            sign_jac = sign(inverse_jacobian[1, i, right_element])
-            normal_direction = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[1, i, right_element])
+            normal_direction = sign_jacobian *
                                get_contravariant_vector(1, contravariant_vectors,
                                                         1, i, right_element)
         else # orientation == 2
-            sign_jac = sign(inverse_jacobian[i, 1, right_element])
-            normal_direction = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[i, 1, right_element])
+            normal_direction = sign_jacobian *
                                get_contravariant_vector(2, contravariant_vectors,
                                                         i, 1, right_element)
         end
@@ -219,8 +219,8 @@ end
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The outward normal must be correctly oriented.
-    sign_jac = sign(inverse_jacobian[node_i, node_j, element])
-    outward_normal = sign_jac *
+    sign_jacobian = sign(inverse_jacobian[node_i, node_j, element])
+    outward_normal = sign_jacobian *
                      get_normal_direction(direction, contravariant_vectors, node_i,
                                           node_j,
                                           element)
@@ -258,8 +258,8 @@ function calc_surface_integral_gradient!(gradients,
                 # Compute x-component of gradients
 
                 # surface at -x (direction 1, i=1)
-                sign_jac = sign(inverse_jacobian[1, l, element])
-                normal_direction_x, _ = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[1, l, element])
+                normal_direction_x, _ = sign_jacobian *
                                         get_normal_direction(1, contravariant_vectors,
                                                              1,
                                                              l, element)
@@ -268,8 +268,8 @@ function calc_surface_integral_gradient!(gradients,
                                                  factor * normal_direction_x)
 
                 # surface at +x (direction 2, i=N)
-                sign_jac = sign(inverse_jacobian[nnodes(dg), l, element])
-                normal_direction_x, _ = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[nnodes(dg), l, element])
+                normal_direction_x, _ = sign_jacobian *
                                         get_normal_direction(2, contravariant_vectors,
                                                              nnodes(dg), l, element)
                 gradients_x[v, nnodes(dg), l, element] = (gradients_x[v, nnodes(dg), l,
@@ -279,8 +279,8 @@ function calc_surface_integral_gradient!(gradients,
                                                           factor * normal_direction_x)
 
                 # surface at -y (direction 3, j=1)
-                sign_jac = sign(inverse_jacobian[l, 1, element])
-                normal_direction_x, _ = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[l, 1, element])
+                normal_direction_x, _ = sign_jacobian *
                                         get_normal_direction(3, contravariant_vectors,
                                                              l,
                                                              1, element)
@@ -289,8 +289,8 @@ function calc_surface_integral_gradient!(gradients,
                                                  factor * normal_direction_x)
 
                 # surface at +y (direction 4, j=N)
-                sign_jac = sign(inverse_jacobian[l, nnodes(dg), element])
-                normal_direction_x, _ = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[l, nnodes(dg), element])
+                normal_direction_x, _ = sign_jacobian *
                                         get_normal_direction(4, contravariant_vectors,
                                                              l,
                                                              nnodes(dg), element)
@@ -303,8 +303,8 @@ function calc_surface_integral_gradient!(gradients,
                 # Compute y-component of gradients
 
                 # surface at -x (direction 1, i=1)
-                sign_jac = sign(inverse_jacobian[1, l, element])
-                _, normal_direction_y = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[1, l, element])
+                _, normal_direction_y = sign_jacobian *
                                         get_normal_direction(1, contravariant_vectors,
                                                              1,
                                                              l, element)
@@ -313,8 +313,8 @@ function calc_surface_integral_gradient!(gradients,
                                                  factor * normal_direction_y)
 
                 # surface at +x (direction 2, i=N)
-                sign_jac = sign(inverse_jacobian[nnodes(dg), l, element])
-                _, normal_direction_y = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[nnodes(dg), l, element])
+                _, normal_direction_y = sign_jacobian *
                                         get_normal_direction(2, contravariant_vectors,
                                                              nnodes(dg), l, element)
                 gradients_y[v, nnodes(dg), l, element] = (gradients_y[v, nnodes(dg), l,
@@ -324,8 +324,8 @@ function calc_surface_integral_gradient!(gradients,
                                                           factor * normal_direction_y)
 
                 # surface at -y (direction 3, j=1)
-                sign_jac = sign(inverse_jacobian[l, 1, element])
-                _, normal_direction_y = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[l, 1, element])
+                _, normal_direction_y = sign_jacobian *
                                         get_normal_direction(3, contravariant_vectors,
                                                              l,
                                                              1, element)
@@ -334,8 +334,8 @@ function calc_surface_integral_gradient!(gradients,
                                                  factor * normal_direction_y)
 
                 # surface at +y (direction 4, j=N)
-                sign_jac = sign(inverse_jacobian[l, nnodes(dg), element])
-                _, normal_direction_y = sign_jac *
+                sign_jacobian = sign(inverse_jacobian[l, nnodes(dg), element])
+                _, normal_direction_y = sign_jacobian *
                                         get_normal_direction(4, contravariant_vectors,
                                                              l,
                                                              nnodes(dg), element)
@@ -366,8 +366,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             # Direction 1: negative x-face, volume node at (1, i)
-            sign_jac = sign(inverse_jacobian[1, i, element])
-            normal = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[1, i, element])
+            normal = sign_jacobian *
                      get_normal_direction(1, contravariant_vectors, 1, i, element)
             for v in eachvariable(equations_parabolic)
                 fvisc = SVector(flux_viscous_x[v, 1, i, element],
@@ -376,8 +376,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
             end
 
             # Direction 2: positive x-face, volume node at (N, i)
-            sign_jac = sign(inverse_jacobian[nnodes(dg), i, element])
-            normal = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[nnodes(dg), i, element])
+            normal = sign_jacobian *
                      get_normal_direction(2, contravariant_vectors, nnodes(dg), i,
                                           element)
             for v in eachvariable(equations_parabolic)
@@ -387,8 +387,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
             end
 
             # Direction 3: negative y-face, volume node at (i, 1)
-            sign_jac = sign(inverse_jacobian[i, 1, element])
-            normal = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[i, 1, element])
+            normal = sign_jacobian *
                      get_normal_direction(3, contravariant_vectors, i, 1, element)
             for v in eachvariable(equations_parabolic)
                 fvisc = SVector(flux_viscous_x[v, i, 1, element],
@@ -397,8 +397,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
             end
 
             # Direction 4: positive y-face, volume node at (i, N)
-            sign_jac = sign(inverse_jacobian[i, nnodes(dg), element])
-            normal = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[i, nnodes(dg), element])
+            normal = sign_jacobian *
                      get_normal_direction(4, contravariant_vectors, i, nnodes(dg),
                                           element)
             for v in eachvariable(equations_parabolic)
@@ -467,13 +467,13 @@ end
 
         # Compute the outward normal at the interface (right element's left face)
         if orientation == 1
-            sign_jac = sign(inverse_jacobian[1, i, right_element])
-            normal_direction = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[1, i, right_element])
+            normal_direction = sign_jacobian *
                                get_contravariant_vector(1, contravariant_vectors,
                                                         1, i, right_element)
         else # orientation == 2
-            sign_jac = sign(inverse_jacobian[i, 1, right_element])
-            normal_direction = sign_jac *
+            sign_jacobian = sign(inverse_jacobian[i, 1, right_element])
+            normal_direction = sign_jacobian *
                                get_contravariant_vector(2, contravariant_vectors,
                                                         i, 1, right_element)
         end
@@ -618,8 +618,8 @@ end
     x = get_node_coords(node_coordinates, equations_parabolic, dg, node_i, node_j,
                         element)
 
-    sign_jac = sign(inverse_jacobian[node_i, node_j, element])
-    outward_normal = sign_jac *
+    sign_jacobian = sign(inverse_jacobian[node_i, node_j, element])
+    outward_normal = sign_jacobian *
                      get_normal_direction(direction, contravariant_vectors, node_i,
                                           node_j,
                                           element)
