@@ -29,7 +29,8 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+function rhs_parabolic!(du, u, t,
+                        mesh::Union{TreeMesh{2}, StructuredMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -1156,7 +1157,7 @@ end
 
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
-                        mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                        mesh::Union{TreeMesh{2}, StructuredMesh{2}, TreeMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
     # Reset gradients

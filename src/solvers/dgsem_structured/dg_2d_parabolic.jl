@@ -5,145 +5,21 @@
 @muladd begin
 #! format: noindent
 
-function rhs_parabolic!(du, u, t, mesh::StructuredMesh{2},
-                        equations_parabolic::AbstractEquationsParabolic,
-                        boundary_conditions_parabolic, source_terms_parabolic,
-                        dg::DG, parabolic_scheme, cache, cache_parabolic)
-    @unpack viscous_container = cache_parabolic
-    @unpack u_transformed, gradients, flux_viscous = viscous_container
-
-    # Convert conservative variables to a form more suitable for viscous flux calculations
-    @trixi_timeit timer() "transform variables" begin
-        transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, cache)
-    end
-
-    # Compute the gradients of the transformed variables
-    @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh,
-                       equations_parabolic, boundary_conditions_parabolic,
-                       dg, parabolic_scheme, cache)
-    end
-
-    # Compute and store the viscous fluxes
-    @trixi_timeit timer() "calculate viscous fluxes" begin
-        calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_parabolic, dg, cache)
-    end
-
-    # The remainder of this function is essentially a regular rhs! for parabolic
-    # equations (i.e., it computes the divergence of the viscous fluxes).
-    #
-    # OBS! In `calc_viscous_fluxes!`, the viscous flux values at the volume nodes of each element have
-    # been computed and stored in `flux_viscous`. In the following, we *reuse* (abuse) the
-    # `interfaces_u` container in `cache.elements` to interpolate and store the
-    # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
-    # is done in the hyperbolic operator). That is, `interfaces_u` stores *viscous flux values*
-    # (normal components) and *not the solution*. The advantage is that a) we do not need to allocate
-    # more storage, b) we do not need to recreate the existing data structure only with a different
-    # name, and c) we do not need to interpolate solutions *and* gradients to the surfaces.
-
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Prolong viscous fluxes (as normal components) to interfaces.
-    # Uses Tuple dispatch to avoid ambiguity with the hyperbolic `prolong2interfaces!`.
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, flux_viscous, mesh, equations_parabolic, dg)
-    end
-
-    # Calculate interface fluxes for the divergence
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, parabolic_scheme, cache)
-    end
-
-    # Calculate boundary fluxes for the divergence.
-    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values
-    # are stored in `interfaces_u` after `prolong2interfaces!` above.
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
-                                       boundary_conditions_parabolic, mesh,
-                                       equations_parabolic,
-                                       dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals.
-    # Reuses `calc_surface_integral!` for the purely hyperbolic StructuredMesh case.
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
-    end
-
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                equations_parabolic, dg, cache)
-    end
-
+function prolong2boundaries!(cache, flux_viscous, mesh::StructuredMesh{2},
+                             equations_parabolic::AbstractEquationsParabolic, dg)
     return nothing
 end
 
-function calc_gradient!(gradients, u_transformed, t,
-                        mesh::StructuredMesh{2},
-                        equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache)
-    # Reset gradients
-    @trixi_timeit timer() "reset gradients" begin
-        reset_gradients!(gradients, dg, cache)
-    end
+function prolong2mortars!(cache, flux_viscous, mesh::StructuredMesh{2},
+                          equations_parabolic::AbstractEquationsParabolic,
+                          mortar, dg)
+    return nothing
+end
 
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral_gradient!(gradients, u_transformed,
-                                       mesh, equations_parabolic, dg, cache)
-    end
-
-    # Prolong solution to interfaces.
-    # This reuses `prolong2interfaces!` for the purely hyperbolic StructuredMesh case.
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u_transformed, mesh,
-                            equations_parabolic, dg)
-    end
-
-    # Calculate interface fluxes for the gradient.
-    # `prolong2boundaries!` is not required for `StructuredMesh` — boundary values
-    # are already available in `interfaces_u` after the prolong step above.
-    @trixi_timeit timer() "interface flux" begin
-        @unpack surface_flux_values = cache.elements
-        calc_interface_flux_gradient!(surface_flux_values, mesh, equations_parabolic,
-                                      dg, parabolic_scheme, cache)
-    end
-
-    # Calculate boundary fluxes for the gradient
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradient!(cache, t, boundary_conditions_parabolic,
-                                     mesh, equations_parabolic, dg.surface_integral,
-                                     dg)
-    end
-
-    # Calculate surface integrals for the gradient
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral_gradient!(gradients, mesh, equations_parabolic,
-                                        dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element.
-    # Uses the AbstractMesh{2} dispatch which already covers StructuredMesh.
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
-                                  cache)
-    end
-
+function calc_mortar_flux!(surface_flux_values, mesh::StructuredMesh{2},
+                           equations_parabolic::AbstractEquationsParabolic, mortar,
+                           dgsurface_integral,
+                           dg, parabolic_scheme, gradient_or_divergence, cache)
     return nothing
 end
 
