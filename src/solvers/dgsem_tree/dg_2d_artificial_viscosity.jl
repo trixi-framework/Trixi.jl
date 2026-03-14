@@ -203,9 +203,7 @@
                            boundary_conditions, boundary_conditions_parabolic,
                            source_terms::Source,
                            dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}
-        @unpack viscous_container = cache_parabolic
-        @unpack u_transformed, gradients, flux_viscous = viscous_container
-
+        (; u_transformed, flux_viscous, gradients) = cache_parabolic.viscous_container
         # Reset du
         @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -272,7 +270,6 @@
         # ========= AV specific part ============
 
         @trixi_timeit timer() "calculate AV viscous fluxes" begin
-            (; u_transformed, flux_viscous, gradients) = cache_parabolic.viscous_container
             calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
                                  equations_artificial_viscosity, dg, cache)
         end
