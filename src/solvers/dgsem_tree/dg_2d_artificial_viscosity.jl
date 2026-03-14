@@ -279,6 +279,7 @@
 
         # --- calculate ECAV denominator by dotting `flux_viscous` and `gradients`
         @threaded for element in eachelement(dg, cache)
+            volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
             # calculate volume integral
             element_viscous_dissipation = zero(real(dg))
@@ -292,7 +293,6 @@
                 viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
                 viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
 
-                volume_jacobian_ = volume_jacobian(element, mesh, cache)
                 weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
                 element_viscous_dissipation = element_viscous_dissipation +
                                               (viscous_dissipation_x +
