@@ -195,8 +195,10 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
+solver_parabolic = ViscousFormulationBassiRebay1()
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic,
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic),
                                              source_terms = source_terms_navier_stokes_convergence_test)
