@@ -109,8 +109,8 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
     end
 
     # calculate entropy residual
-    entropy_residual = zeros(real(dg), nelements(dg, cache))
-    for element in eachelement(dg, cache)
+    entropy_residual = cache.artificial_viscosity.coefficients # reuse storage
+    @threaded for element in eachelement(dg, cache)
 
         # calculate volume integral
         volume_integral_du_entropy = zero(real(dg))
@@ -188,11 +188,12 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
                                           dg.basis.weights[i] * volume_jacobian_
         end
 
-        # Scale viscous flux by ecav coefficient. 
-        # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we 
-        # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl. 
+        # Scale viscous flux by ecav coefficient.
+        # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
+        # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
         ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
                                              element_viscous_dissipation)
+        cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
         for i in eachnode(dg)
             flux_viscous_node = get_node_vars(flux_viscous, equations, dg, i, element)
             set_node_vars!(flux_viscous, ecav_coefficient * flux_viscous_node,
