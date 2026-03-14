@@ -56,6 +56,8 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                                                                              equations,
                                                                                              dg,
                                                                                              uEltype)
+    init_boundary_node_coordinates!(boundaries, elements, dg.basis)
+    init_boundary_normal_directions!(boundaries, elements, dg.basis)
 
     cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
 
@@ -68,7 +70,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
     return cache
 end
 
-# Extract outward-pointing normal direction
+# Extract outward-pointing normal direction from elements (valid for Lobatto nodes)
 # (contravariant vector ±Ja^i, i = index)
 # Note that this vector is not normalized
 @inline function get_normal_direction(direction, contravariant_vectors, indices...)
@@ -82,6 +84,13 @@ end
     else
         return normal
     end
+end
+
+# Extract outward-pointing normal direction from boundaries (required for Gauss-Legendre nodes)
+@inline function get_node_normal_direction(normal_directions, equations,
+                                           solver::DG, indices...)
+    return SVector(ntuple(@inline(idx->normal_directions[idx, indices...]),
+                          Val(ndims(equations))))
 end
 
 include("containers.jl")

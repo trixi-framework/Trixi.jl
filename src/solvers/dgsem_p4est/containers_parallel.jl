@@ -311,6 +311,8 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # re-initialize containers together to reduce
     # the number of iterations over the mesh in p4est
     init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
+    init_boundary_node_coordinates!(boundaries, elements, dg.basis)
+    init_boundary_normal_directions!(boundaries, elements, dg.basis)
 
     # re-initialize MPI cache
     @unpack mpi_cache = cache

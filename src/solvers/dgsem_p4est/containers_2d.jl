@@ -141,6 +141,177 @@ end
     return boundaries
 end
 
+function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
+                                         elements,
+                                         basis::LobattoLegendreBasis)
+    @unpack node_coordinates = elements
+    index_range = eachnode(basis)
+
+    for boundary in eachindex(boundaries.neighbor_ids)
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for i in eachnode(basis)
+            for orientation in 1:2
+                boundaries.node_coordinates[orientation, i, boundary] = node_coordinates[orientation,
+                                                                                          i_node,
+                                                                                          j_node,
+                                                                                          element]
+            end
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
+
+    return nothing
+end
+
+function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
+                                         elements,
+                                         basis::GaussLegendreBasis)
+    @unpack boundary_interpolation = basis
+    @unpack node_coordinates = elements
+    index_range = eachnode(basis)
+
+    for boundary in eachindex(boundaries.neighbor_ids)
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        if i_node_step == 0
+            # Interpolate in first/normal direction.
+            interp_side = (node_indices[1] === :begin) ? 1 : 2
+            for i in eachnode(basis)
+                for orientation in 1:2
+                    x_boundary = zero(eltype(boundaries.node_coordinates))
+                    for ii in eachnode(basis)
+                        x_boundary = (x_boundary +
+                                      node_coordinates[orientation, ii, j_node, element] *
+                                      boundary_interpolation[ii, interp_side])
+                    end
+                    boundaries.node_coordinates[orientation, i, boundary] = x_boundary
+                end
+                j_node += j_node_step
+            end
+        else # j_node_step == 0
+            # Interpolate in second/normal direction.
+            interp_side = (node_indices[2] === :begin) ? 1 : 2
+            for i in eachnode(basis)
+                for orientation in 1:2
+                    x_boundary = zero(eltype(boundaries.node_coordinates))
+                    for jj in eachnode(basis)
+                        x_boundary = (x_boundary +
+                                      node_coordinates[orientation, i_node, jj, element] *
+                                      boundary_interpolation[jj, interp_side])
+                    end
+                    boundaries.node_coordinates[orientation, i, boundary] = x_boundary
+                end
+                i_node += i_node_step
+            end
+        end
+    end
+
+    return nothing
+end
+
+function init_boundary_normal_directions!(boundaries::P4estBoundaryContainer{2},
+                                          elements,
+                                          basis::LobattoLegendreBasis)
+    @unpack contravariant_vectors = elements
+    index_range = eachnode(basis)
+
+    for boundary in eachindex(boundaries.neighbor_ids)
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+        direction = indices2direction(node_indices)
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for i in eachnode(basis)
+            normal_direction = get_normal_direction(direction, contravariant_vectors,
+                                                    i_node, j_node, element)
+            for dimension in 1:2
+                boundaries.normal_directions[dimension, i, boundary] = normal_direction[dimension]
+            end
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
+
+    return nothing
+end
+
+function init_boundary_normal_directions!(boundaries::P4estBoundaryContainer{2},
+                                          elements,
+                                          basis::GaussLegendreBasis)
+    @unpack boundary_interpolation = basis
+    @unpack contravariant_vectors = elements
+    index_range = eachnode(basis)
+
+    for boundary in eachindex(boundaries.neighbor_ids)
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+        direction = indices2direction(node_indices)
+        orientation = (direction + 1) >> 1
+        sign_ = isodd(direction) ? -1 : 1
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        if i_node_step == 0
+            # Interpolate the contravariant vector in first/normal direction.
+            interp_side = (node_indices[1] === :begin) ? 1 : 2
+            for i in eachnode(basis)
+                for dimension in 1:2
+                    normal_boundary = zero(eltype(boundaries.normal_directions))
+                    for ii in eachnode(basis)
+                        normal_boundary = (normal_boundary +
+                                           sign_ *
+                                           contravariant_vectors[dimension, orientation,
+                                                                 ii, j_node, element] *
+                                           boundary_interpolation[ii, interp_side])
+                    end
+                    boundaries.normal_directions[dimension, i, boundary] = normal_boundary
+                end
+                j_node += j_node_step
+            end
+        else # j_node_step == 0
+            # Interpolate the contravariant vector in second/normal direction.
+            interp_side = (node_indices[2] === :begin) ? 1 : 2
+            for i in eachnode(basis)
+                for dimension in 1:2
+                    normal_boundary = zero(eltype(boundaries.normal_directions))
+                    for jj in eachnode(basis)
+                        normal_boundary = (normal_boundary +
+                                           sign_ *
+                                           contravariant_vectors[dimension, orientation,
+                                                                 i_node, jj, element] *
+                                           boundary_interpolation[jj, interp_side])
+                    end
+                    boundaries.normal_directions[dimension, i, boundary] = normal_boundary
+                end
+                i_node += i_node_step
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars, faces, orientation, mortar_id)

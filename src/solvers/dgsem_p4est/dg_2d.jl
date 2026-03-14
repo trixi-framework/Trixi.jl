@@ -443,6 +443,64 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries!(cache, u,
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             equations, dg::DGSEM{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack boundary_interpolation = dg.basis
+    index_range = eachnode(dg)
+
+    @threaded for boundary in eachboundary(dg, cache)
+        # Interpolate solution data from the element to the boundary.
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+        # The index direction is identified based on `{i,j}_node_step`.
+        # For step = 0, the direction identified by this index is normal to the face.
+        # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
+
+        i_node = i_node_start
+        j_node = j_node_start
+        if i_node_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            interp_side = (node_indices[1] === :begin) ? 1 : 2
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, ii, j_node, element] *
+                                      boundary_interpolation[ii, interp_side])
+                    end
+                    boundaries.u[v, i, boundary] = boundary_u
+                end
+                j_node += j_node_step # incrementing j_node suffices
+            end
+        else # j_node_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            interp_side = (node_indices[2] === :begin) ? 1 : 2
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for jj in eachnode(dg)
+                        boundary_u = (boundary_u +
+                                      u[v, i_node, jj, element] *
+                                      boundary_interpolation[jj, interp_side])
+                    end
+                    boundaries.u[v, i, boundary] = boundary_u
+                end
+                i_node += i_node_step # incrementing i_node suffices
+            end
+        end
+    end
+
+    return nothing
+end
+
 # We require this function definition, as the function calls for the
 # coupled simulations pass the u_parent variable
 # Note: Since the implementation is identical, we forward to the original function
@@ -469,20 +527,11 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
         node_indices = boundaries.node_indices[boundary]
         direction = indices2direction(node_indices)
 
-        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
-        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
-
-        i_node = i_node_start
-        j_node = j_node_start
         for node in eachnode(dg)
             calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                 mesh, have_nonconservative_terms(equations),
                                 equations, surface_integral, dg, cache,
-                                i_node, j_node,
                                 node, direction, element, boundary)
-
-            i_node += i_node_step
-            j_node += j_node_step
         end
     end
 
@@ -494,23 +543,22 @@ end
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                      have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
-                                     i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
     @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack node_coordinates, normal_directions = boundaries
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
 
     # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
+    normal_direction = get_node_normal_direction(normal_directions, equations, dg,
+                                                 node_index, boundary_index)
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        node_index, boundary_index)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
@@ -531,15 +579,15 @@ end
                                      node_index, direction_index, element_index,
                                      boundary_index, u_parent)
     @unpack boundaries = cache
-    @unpack contravariant_vectors = cache.elements
+    @unpack normal_directions = boundaries
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
 
     # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
+    normal_direction = get_node_normal_direction(normal_directions, equations, dg,
+                                                 node_index, boundary_index)
 
     flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
                                element_index, normal_direction, surface_flux,
@@ -581,18 +629,18 @@ end
                                      node_index, direction_index, element_index,
                                      boundary_index)
     @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack node_coordinates, normal_directions = boundaries
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
 
     # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
+    normal_direction = get_node_normal_direction(normal_directions, equations, dg,
+                                                 node_index, boundary_index)
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        node_index, boundary_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
@@ -622,18 +670,18 @@ end
                                      node_index, direction_index, element_index,
                                      boundary_index)
     @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack node_coordinates, normal_directions = boundaries
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
 
     # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
+    normal_direction = get_node_normal_direction(normal_directions, equations, dg,
+                                                 node_index, boundary_index)
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        node_index, boundary_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
