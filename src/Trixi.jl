@@ -31,7 +31,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cr
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
                     rowvals, nzrange, nonzeros
-
+using StructArrays
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
@@ -157,6 +157,8 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
+
+include("auxiliary/solution_interface.jl")
 
 # export types/functions that define the public API of Trixi.jl
 
@@ -290,7 +292,7 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable,
-       get_node_vars
+       get_node_vars, get_u, get_coordinates
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
