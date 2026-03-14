@@ -566,7 +566,7 @@ function calc_boundary_flux_divergence!(cache, t,
     return nothing
 end
 
-function calc_boundary_flux_gradient!(cache, t,
+function calc_gradient_boundary_flux!(cache, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::TreeMesh{2}, # for dispatch only
                                       equations_parabolic::AbstractEquationsParabolic,
@@ -1209,7 +1209,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradient!(cache, t,
+        calc_gradient_boundary_flux!(cache, t,
                                      boundary_conditions_parabolic, mesh,
                                      equations_parabolic,
                                      dg.surface_integral, dg)
