@@ -628,7 +628,7 @@ end
                                equations_parabolic)
 
     # Apply the sign correction to align with the `calc_surface_integral!` convention:
-    # subtract at odd directions (1,3), add at even directions (2,4).
+    # subtract at odd directions (1, 3), add at even directions (2, 4).
     sign_dir = isodd(direction) ? -one(eltype(flux_)) : one(eltype(flux_))
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, face_node_index, direction, element] = sign_dir *
