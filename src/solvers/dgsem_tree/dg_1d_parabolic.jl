@@ -89,7 +89,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     return nothing
 end
 
-
 function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
                                    equations, equations_parabolic,
                                    equations_artificial_viscosity,
