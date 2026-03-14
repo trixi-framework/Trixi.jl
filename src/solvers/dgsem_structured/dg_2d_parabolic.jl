@@ -28,7 +28,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
                                        mesh::StructuredMesh{2},
                                        equations_parabolic,
                                        dg::DG, parabolic_scheme, cache)
-    @unpack elements = cache
+    (; elements) = cache
 
     @threaded for element in eachelement(dg, cache)
         # Interfaces in x-direction (orientation = 1)
@@ -58,7 +58,7 @@ end
         return nothing
     end
 
-    @unpack interfaces_u, contravariant_vectors, inverse_jacobian = cache.elements
+    (; interfaces_u, contravariant_vectors, inverse_jacobian) = cache.elements
 
     right_direction = 2 * orientation
     left_direction = right_direction - 1
@@ -112,8 +112,8 @@ function calc_boundary_flux_gradient!(cache, t,
                                       boundary_conditions_parabolic::NamedTuple,
                                       mesh::StructuredMesh{2},
                                       equations_parabolic, surface_integral, dg::DG)
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors,
-    inverse_jacobian, interfaces_u = cache.elements
+    (; surface_flux_values, node_coordinates, contravariant_vectors,
+    inverse_jacobian, interfaces_u) = cache.elements
     linear_indices = LinearIndices(size(mesh))
 
     for cell_y in axes(mesh, 2)
@@ -243,8 +243,8 @@ function calc_surface_integral_gradient!(gradients,
                                          mesh::StructuredMesh{2},
                                          equations_parabolic::AbstractEquationsParabolic,
                                          dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values, contravariant_vectors, inverse_jacobian = cache.elements
+    (; inverse_weights) = dg.basis
+    (; surface_flux_values, contravariant_vectors, inverse_jacobian) = cache.elements
 
     gradients_x, gradients_y = gradients
 
@@ -360,7 +360,7 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
                              mesh::StructuredMesh{2},
                              equations_parabolic::AbstractEquationsParabolic,
                              dg::DG)
-    @unpack interfaces_u, contravariant_vectors, inverse_jacobian = cache.elements
+    (; interfaces_u, contravariant_vectors, inverse_jacobian) = cache.elements
     flux_viscous_x, flux_viscous_y = flux_viscous
 
     @threaded for element in eachelement(dg, cache)
@@ -417,7 +417,7 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::StructuredMesh{2},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, parabolic_scheme, cache)
-    @unpack elements = cache
+    (; elements) = cache
 
     @threaded for element in eachelement(dg, cache)
         # Interfaces in x-direction (orientation = 1)
@@ -450,7 +450,7 @@ end
         return nothing
     end
 
-    @unpack interfaces_u, contravariant_vectors, inverse_jacobian = cache.elements
+    (; interfaces_u, contravariant_vectors, inverse_jacobian) = cache.elements
 
     right_direction = 2 * orientation
     left_direction = right_direction - 1
@@ -509,8 +509,8 @@ function calc_boundary_flux_divergence!(cache, t,
                                         boundary_conditions_parabolic::NamedTuple,
                                         mesh::StructuredMesh{2},
                                         equations_parabolic, surface_integral, dg::DG)
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors,
-    inverse_jacobian, interfaces_u = cache.elements
+    (; surface_flux_values, node_coordinates, contravariant_vectors,
+    inverse_jacobian, interfaces_u) = cache.elements
     linear_indices = LinearIndices(size(mesh))
 
     for cell_y in axes(mesh, 2)
