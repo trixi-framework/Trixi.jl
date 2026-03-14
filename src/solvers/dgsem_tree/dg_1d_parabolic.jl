@@ -202,7 +202,7 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
 
     @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
                                                              equations_artificial_viscosity,
-                                                             BoundaryConditionDoNothing(),
+                                                             boundary_conditions_parabolic,
                                                              dg,
                                                              solver_parabolic, cache, t)
 
