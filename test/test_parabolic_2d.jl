@@ -1367,6 +1367,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
+
+@trixi_testset "StructuredMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_2d_dgsem",
+                                 "elixir_navierstokes_convergence_nonperiodic.jl"),
+                        tspan=(0.0, 0.2),
+                        l2=[
+                            0.0037449752743851615,
+                            0.005221074520723011,
+                            0.0046469376125328424,
+                            0.01687752270063324
+                        ],
+                        linf=[
+                            0.016941527466427075,
+                            0.05916727045628933,
+                            0.023264341021379854,
+                            0.12487745524804872
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
