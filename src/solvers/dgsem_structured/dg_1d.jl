@@ -74,7 +74,7 @@ function calc_interface_flux!(surface_flux_values, mesh::StructuredMesh{1},
     return nothing
 end
 
-function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
     @unpack surface_flux = surface_integral
