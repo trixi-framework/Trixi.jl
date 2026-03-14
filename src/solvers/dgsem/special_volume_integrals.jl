@@ -7,6 +7,10 @@
 
 # This file contains some specialized volume integrals that require some indicators already to be defined.
 
+const VolumeIntegralAdaptiveEC_WF_DG = VolumeIntegralAdaptive{<:IndicatorEntropyChange,
+                                                              <:VolumeIntegralWeakForm,
+                                                              <:VolumeIntegralFluxDifferencing}
+
 """
     VolumeIntegralEntropyCorrection(indicator, 
                                     volume_integral_default, 
