@@ -7,20 +7,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
     @assert volume_integral_blend_high_order isa VolumeIntegralFluxDifferencing "DGMulti is currently only compatible with `VolumeIntegralFluxDifferencing` as `volume_integral_blend_high_order`"
     # `volume_integral_blend_low_order` limited to finite-volume on Gauss-node subcells
 
-    # build element to element (element_to_element_connectivity) connectivity for smoothing of
-    # shock capturing parameters.
-    face_to_face_connectivity = mesh.md.FToF # num_faces x num_elements matrix
-    element_to_element_connectivity = similar(face_to_face_connectivity)
-    for e in axes(face_to_face_connectivity, 2)
-        for f in axes(face_to_face_connectivity, 1)
-            neighbor_face_index = face_to_face_connectivity[f, e]
-
-            # reverse-engineer element index from face. Assumes all elements
-            # have the same number of faces.
-            neighbor_element_index = ((neighbor_face_index - 1) ÷ dg.basis.num_faces) + 1
-            element_to_element_connectivity[f, e] = neighbor_element_index
-        end
-    end
+    element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
 
     # create sparse hybridized operators for low order scheme
     Qrst, E = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
@@ -196,10 +183,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                     dg, cache, 1 - alpha_element)
 
             # Calculate "FV" low order volume integral contribution
-            low_order_flux_differencing_kernel(du, u, element, mesh,
-                                               have_nonconservative_terms, equations,
-                                               volume_integral_blend_low_order,
-                                               dg, cache, alpha_element)
+            volume_integral_kernel!(du, u, element, mesh,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_blend_low_order,
+                                    dg, cache, alpha_element)
         end
     end
 
@@ -261,57 +248,30 @@ function get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache)
             get_contravariant_matrix(j, element, mesh, cache))
 end
 
-# computes an algebraic low order method with internal dissipation.
-# This method is for affine/Cartesian meshes
-function low_order_flux_differencing_kernel(du, u, element,
-                                            mesh::DGMultiMesh,
-                                            have_nonconservative_terms::False, equations,
-                                            volume_integral,
-                                            dg::DGMultiFluxDiff{<:GaussSBP},
-                                            cache, alpha = true)
-    (; volume_flux_fv) = volume_integral
-
-    # accumulates output from flux differencing
-    rhs_local = cache.rhs_local_threaded[Threads.threadid()]
-    fill!(rhs_local, zero(eltype(rhs_local)))
-
-    u_local = view(cache.entropy_projected_u_values, :, element)
-
-    # constant over each element
-    geometric_matrix = get_contravariant_matrix(element, mesh, cache)
-
-    (; sparsity_pattern) = cache
-    A_base = parent(sparsity_pattern) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-    row_ids, rows = axes(sparsity_pattern, 2), rowvals(A_base)
-    for i in row_ids
-        u_i = u_local[i]
-        du_i = zero(u_i)
-        for id in nzrange(A_base, i)
-            j = rows[id]
-            u_j = u_local[j]
-
-            # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-            reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
-            normal_direction_ij = geometric_matrix * reference_operator_entries
-
-            # note that we do not need to normalize `normal_direction_ij` since
-            # it is typically normalized within the flux computation.
-            f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
-            du_i = du_i + 2 * f_ij
-        end
-        rhs_local[i] = du_i
-    end
-
-    # TODO: factor this out to avoid calling it twice during calc_volume_integral!
-    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+# On affine meshes, the geometric matrix is constant over the element, so we compute it
+# once and reuse it for all node pairs (i, j). The compiler is expected to hoist this
+# out of the inner loop after inlining.
+@inline function get_low_order_geometric_matrix(i, j, element,
+                                                mesh::DGMultiMesh{NDIMS, <:Affine},
+                                                cache) where {NDIMS}
+    return get_contravariant_matrix(element, mesh, cache)
 end
 
-function low_order_flux_differencing_kernel(du, u, element,
-                                            mesh::DGMultiMesh{NDIMS, <:NonAffine},
-                                            have_nonconservative_terms::False, equations,
-                                            volume_integral,
-                                            dg::DGMultiFluxDiff{<:GaussSBP},
-                                            cache, alpha = true) where {NDIMS}
+# On non-affine meshes, we use the average of the geometric matrices at nodes i and j
+# for provably entropy-stable de-aliasing of the geometric terms.
+@inline function get_low_order_geometric_matrix(i, j, element,
+                                                mesh::DGMultiMesh,
+                                                cache)
+    return get_avg_contravariant_matrix(i, j, element, mesh, cache)
+end
+
+# Calculates the volume integral corresponding to an algebraic low order method.
+# This is used, for example, in shock capturing.
+function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                 have_nonconservative_terms::False, equations,
+                                 volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                                 dg::DGMultiFluxDiff{<:GaussSBP}, cache,
+                                 alpha = true)
     (; volume_flux_fv) = volume_integral
 
     # accumulates output from flux differencing
@@ -321,8 +281,7 @@ function low_order_flux_differencing_kernel(du, u, element,
     u_local = view(cache.entropy_projected_u_values, :, element)
 
     (; sparsity_pattern) = cache
-    A_base = parent(sparsity_pattern) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-    row_ids, rows = axes(sparsity_pattern, 2), rowvals(A_base)
+    A_base, row_ids, rows, _ = _adjoint_sparse_data(sparsity_pattern)
     for i in row_ids
         u_i = u_local[i]
         du_i = zero(u_i)
@@ -331,7 +290,7 @@ function low_order_flux_differencing_kernel(du, u, element,
             u_j = u_local[j]
 
             # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-            geometric_matrix = get_avg_contravariant_matrix(i, j, element, mesh, cache)
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh, cache)
             reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
             normal_direction_ij = geometric_matrix * reference_operator_entries
 

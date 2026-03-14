@@ -29,7 +29,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cr
                      normalize, I,
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
-using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
+using SparseArrays: AbstractSparseMatrix, sparse, droptol!,
                     rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
