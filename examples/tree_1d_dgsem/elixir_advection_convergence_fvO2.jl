@@ -13,7 +13,7 @@ surface_flux = flux_godunov
 volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                       volume_flux_fv = surface_flux,
                                                       reconstruction_mode = reconstruction_O2_full,
-                                                      slope_limiter = Koren)
+                                                      slope_limiter = koren)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
@@ -22,10 +22,11 @@ coordinates_max = 1.0
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -35,7 +35,8 @@ cells_per_dimension = (16, 16)
 
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

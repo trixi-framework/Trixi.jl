@@ -66,7 +66,8 @@ jobs:
           # - performance_specializations_part1
           # - performance_specializations_part2
           # - mpi
-          - threaded
+          # - threaded
+          - downgrade
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
@@ -75,17 +76,22 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
-      - uses: julia-actions/julia-downgrade-compat@v1
+      - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
-      - uses: julia-actions/julia-buildpkg@v1
+          mode: forcedeps
+      # We run the tests manually instead of using julia-action/julia-builpkg and julia-action/julia-runtest or `Pkg.test`
+      # because otherwise the downgraded Manifest.toml is not used in the tests under julia <v1.12
+      # see also https://github.com/julia-actions/julia-downgrade-compat/blob/00f940b7be2b50389571ed016d603be561649103/README.md#L89
+      - name: Run tests
+        run: |
+          julia --project=test --color=yes -e '
+            import Pkg
+            Pkg.develop(Pkg.PackageSpec(path=pwd()))
+            Pkg.instantiate()
+            Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
+            include("test/runtests.jl")
+          '
         env:
-          PYTHON: ''
-      - name: Run tests without coverage
-        uses: julia-actions/julia-runtest@v1
-        with:
-          coverage: false
-        env:
-          PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
