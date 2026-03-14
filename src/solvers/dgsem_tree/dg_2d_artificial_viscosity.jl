@@ -59,6 +59,50 @@
                jacobian_1d
     end
 
+    function calc_ecav_coefficients!(flux_viscous, gradients, entropy_residual,
+                                     equations, mesh::TreeMesh{2}, dg, cache)
+        @threaded for element in eachelement(dg, cache)
+            volume_jacobian_ = volume_jacobian(element, mesh, cache)
+
+            # calculate viscous dissipation (ECAV denominator)
+            element_viscous_dissipation = zero(real(dg))
+            for j in eachnode(dg), i in eachnode(dg)
+                flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j,
+                                                    element)
+                flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j,
+                                                    element)
+                gradients_x_node = get_node_vars(gradients[1], equations, dg, i, j, element)
+                gradients_y_node = get_node_vars(gradients[2], equations, dg, i, j, element)
+                viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
+                viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
+
+                weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
+                element_viscous_dissipation = element_viscous_dissipation +
+                                              (viscous_dissipation_x +
+                                               viscous_dissipation_y) * weight_ij *
+                                              volume_jacobian_
+            end
+
+            # Scale viscous flux by ecav coefficient.
+            # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
+            # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
+            ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
+                                                 element_viscous_dissipation)
+            cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
+            for j in eachnode(dg), i in eachnode(dg)
+                flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j,
+                                                    element)
+                flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j,
+                                                    element)
+                set_node_vars!(flux_viscous[1], ecav_coefficient * flux_viscous_x_node,
+                               equations, dg, i, j, element)
+                set_node_vars!(flux_viscous[2], ecav_coefficient * flux_viscous_y_node,
+                               equations, dg, i, j, element)
+            end
+        end
+        return nothing
+    end
+
     function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
                                        equations, equations_parabolic,
                                        equations_artificial_viscosity,
@@ -138,51 +182,12 @@
                                  equations_artificial_viscosity, dg, cache)
         end
 
-        # --- calculate AV denominator by dotting `flux_viscous` and `gradients`
-        @threaded for element in eachelement(dg, cache)
-            volume_jacobian_ = volume_jacobian(element, mesh, cache)
-
-            # calculate volume integral
-            element_viscous_dissipation = zero(real(dg))
-            for j in eachnode(dg), i in eachnode(dg)
-                flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j,
-                                                    element)
-                flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j,
-                                                    element)
-                gradients_x_node = get_node_vars(gradients[1], equations, dg, i, j, element)
-                gradients_y_node = get_node_vars(gradients[2], equations, dg, i, j, element)
-                viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
-                viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
-
-                weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
-                element_viscous_dissipation = element_viscous_dissipation +
-                                              (viscous_dissipation_x +
-                                               viscous_dissipation_y) * weight_ij *
-                                              volume_jacobian_
-            end
-
-            # Scale viscous flux by ecav coefficient. 
-            # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we 
-            # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl. 
-            ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
-                                                 element_viscous_dissipation)
-            # ecav_coefficient *= equations_artificial_viscosity.diffusivity # optional extra scaling of AV
-            cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
-            for j in eachnode(dg), i in eachnode(dg)
-                flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j,
-                                                    element)
-                flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j,
-                                                    element)
-                set_node_vars!(flux_viscous[1], ecav_coefficient * flux_viscous_x_node,
-                               equations, dg, i, j, element)
-                set_node_vars!(flux_viscous[2], ecav_coefficient * flux_viscous_y_node,
-                               equations, dg, i, j, element)
-            end
-        end
+        calc_ecav_coefficients!(flux_viscous, gradients, entropy_residual, equations, mesh,
+                                dg, cache)
 
         @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
                                                                  equations_parabolic,
-                                                                 boundary_conditions_parabolic, # TODO: hacky pass in parabolic equations 
+                                                                 boundary_conditions_parabolic, # TODO: hacky pass in parabolic equations
                                                                  #  equations_artificial_viscosity, BoundaryConditionDoNothing(), 
                                                                  dg, solver_parabolic,
                                                                  cache, t)
@@ -274,47 +279,8 @@
                                  equations_artificial_viscosity, dg, cache)
         end
 
-        # --- calculate ECAV denominator by dotting `flux_viscous` and `gradients`
-        @threaded for element in eachelement(dg, cache)
-            volume_jacobian_ = volume_jacobian(element, mesh, cache)
-
-            # calculate volume integral
-            element_viscous_dissipation = zero(real(dg))
-            for j in eachnode(dg), i in eachnode(dg)
-                flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j,
-                                                    element)
-                flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j,
-                                                    element)
-                gradients_x_node = get_node_vars(gradients[1], equations, dg, i, j, element)
-                gradients_y_node = get_node_vars(gradients[2], equations, dg, i, j, element)
-                viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
-                viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
-
-                weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
-                element_viscous_dissipation = element_viscous_dissipation +
-                                              (viscous_dissipation_x +
-                                               viscous_dissipation_y) * weight_ij *
-                                              volume_jacobian_
-            end
-
-            # Scale viscous flux by ecav coefficient. 
-            # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we 
-            # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl. 
-            ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
-                                                 element_viscous_dissipation)
-            # ecav_coefficient *= equations_artificial_viscosity.diffusivity # optional extra scaling of AV
-            cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
-            for j in eachnode(dg), i in eachnode(dg)
-                flux_viscous_x_node = get_node_vars(flux_viscous[1], equations, dg, i, j,
-                                                    element)
-                flux_viscous_y_node = get_node_vars(flux_viscous[2], equations, dg, i, j,
-                                                    element)
-                set_node_vars!(flux_viscous[1], ecav_coefficient * flux_viscous_x_node,
-                               equations, dg, i, j, element)
-                set_node_vars!(flux_viscous[2], ecav_coefficient * flux_viscous_y_node,
-                               equations, dg, i, j, element)
-            end
-        end
+        calc_ecav_coefficients!(flux_viscous, gradients, entropy_residual, equations, mesh,
+                                dg, cache)
 
         # # TODO: accumulate into flux_viscous instead
         # # accumulate the AV term
