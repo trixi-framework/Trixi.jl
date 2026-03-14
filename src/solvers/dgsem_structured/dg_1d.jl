@@ -40,8 +40,8 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations,
                 interface_u_2 = interface_u_2 +
                                 u[v, i, element] * boundary_interpolation[i, 2]
             end
-            interfaces_u[1, v, element] = interface_u_1
-            interfaces_u[2, v, element] = interface_u_2
+            interfaces_u[v, 1, element] = interface_u_1
+            interfaces_u[v, 2, element] = interface_u_2
         end
     end
 
