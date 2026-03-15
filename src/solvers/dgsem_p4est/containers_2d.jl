@@ -151,6 +151,10 @@ function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
                                                                  index_begin,
                                                                  index_end)
 
+        # The index direction is identified based on `{i,j}_{primary, secondary}_step`.
+        # For step = 0, the direction identified by this index is normal to the face.
+        # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
+
         i_primary = i_primary_start
         j_primary = j_primary_start
 
