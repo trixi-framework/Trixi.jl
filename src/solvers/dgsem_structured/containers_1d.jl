@@ -36,8 +36,8 @@ function calc_boundary_node_coordinates!(boundary_node_coordinates,
     nelements = size(mesh, 1)
 
     dim = 1 # spatial dimension
-    boundary_node_coordinates[dim] = node_coordinates[dim, 1, 1]
-    boundary_node_coordinates[dim + 1] = node_coordinates[dim, nnodes(basis), nelements]
+    boundary_node_coordinates[dim, 1] = node_coordinates[dim, 1, 1]
+    boundary_node_coordinates[dim, 2] = node_coordinates[dim, nnodes(basis), nelements]
 
     return nothing
 end
