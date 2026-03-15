@@ -76,7 +76,7 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-# Not yet implmented and needed for 3D
+# Not yet implemented and needed for 3D
 function init_normal_directions!(interfaces::P4estInterfaceContainer{3},
                                  basis::LobattoLegendreBasis,
                                  elements::P4estElementContainer{3})
