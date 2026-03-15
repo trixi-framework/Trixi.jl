@@ -252,8 +252,10 @@ end
 
 # Overload init! function for regular interfaces, regular mortars and boundaries since they must
 # call the appropriate init_surfaces! function for parallel p4est meshes
-function init_interfaces!(interfaces, mesh::P4estMeshParallel)
+function init_interfaces!(interfaces, elements,
+                          mesh::P4estMeshParallel, basis)
     init_surfaces!(interfaces, nothing, nothing, nothing, nothing, mesh)
+    init_normal_directions!(interfaces, basis, elements)
 
     return interfaces
 end

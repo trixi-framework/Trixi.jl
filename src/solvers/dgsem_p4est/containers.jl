@@ -213,22 +213,27 @@ function Adapt.adapt_structure(to,
                                                      _surface_flux_values)
 end
 
-mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
+mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, RealT <: Real,
+                                       NDIMSP1, NDIMSP2,
                                        uArray <: DenseArray{uEltype, NDIMSP2},
+                                       NormalArray <: DenseArray{RealT, NDIMSP1},
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
                                        DenseMatrix{NTuple{NDIMS, Symbol}},
                                        uVector <: DenseVector{uEltype},
+                                       NormalVector <: DenseVector{RealT},
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
                AbstractInterfaceContainer
-    u::uArray                   # [primary/secondary, variable, i, j, interface]
-    neighbor_ids::IdsMatrix     # [primary/secondary, interface]
-    node_indices::IndicesMatrix # [primary/secondary, interface]
+    u::uArray                      # [primary/secondary, variable, i, j, interface]
+    normal_directions::NormalArray # [dimension, i, j, interface]
+    neighbor_ids::IdsMatrix        # [primary/secondary, interface]
+    node_indices::IndicesMatrix    # [primary/secondary, interface]
 
     # internal `resize!`able storage
     _u::uVector
+    _normal_directions::NormalVector
     _neighbor_ids::IdsVector
     _node_indices::IndicesVector
 end
@@ -244,7 +249,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
-    @unpack _u, _neighbor_ids, _node_indices = interfaces
+    @unpack _u, _normal_directions, _neighbor_ids, _node_indices = interfaces
 
     n_dims = ndims(interfaces)
     n_nodes = size(interfaces.u, 3)
@@ -255,6 +260,12 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
     interfaces.u = unsafe_wrap(ArrayType, pointer(_u),
                                (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                 capacity))
+
+    resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
+    interfaces.normal_directions = unsafe_wrap(ArrayType, pointer(_normal_directions),
+                                               (n_dims,
+                                                ntuple(_ -> n_nodes, n_dims - 1)...,
+                                                capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
     interfaces.neighbor_ids = unsafe_wrap(ArrayType, pointer(_neighbor_ids),
@@ -271,6 +282,7 @@ end
 function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                          basis, elements)
     NDIMS = ndims(elements)
+    RealT = real(mesh)
     uEltype = eltype(elements)
 
     # Initialize container
@@ -283,34 +295,49 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_interfaces))
 
+    _normal_directions = Vector{RealT}(undef,
+                                       NDIMS * nnodes(basis)^(NDIMS - 1) *
+                                       n_interfaces)
+    normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
+                                    (NDIMS,
+                                     ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                     n_interfaces))
+
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
-    interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
-                                         typeof(u), typeof(neighbor_ids),
-                                         typeof(node_indices), typeof(_u),
+    interfaces = P4estInterfaceContainer{NDIMS, uEltype, RealT,
+                                         NDIMS + 1, NDIMS + 2,
+                                         typeof(u), typeof(normal_directions),
+                                         typeof(neighbor_ids), typeof(node_indices),
+                                         typeof(_u), typeof(_normal_directions),
                                          typeof(_neighbor_ids), typeof(_node_indices)}(u,
+                                                                                       normal_directions,
                                                                                        neighbor_ids,
                                                                                        node_indices,
                                                                                        _u,
+                                                                                       _normal_directions,
                                                                                        _neighbor_ids,
                                                                                        _node_indices)
 
-    init_interfaces!(interfaces, mesh)
+    init_interfaces!(interfaces, elements, mesh, basis)
 
     return interfaces
 end
 
-function init_interfaces!(interfaces, mesh::Union{P4estMesh, P4estMeshView})
+function init_interfaces!(interfaces, elements,
+                          mesh::Union{P4estMesh, P4estMeshView}, basis)
     init_surfaces!(interfaces, nothing, nothing, mesh)
+    init_normal_directions!(interfaces, basis, elements)
 
     return interfaces
 end
 
 function Adapt.parent_type(::Type{<:P4estInterfaceContainer{<:Any, <:Any, <:Any,
+                                                            <:Any, <:Any,
                                                             ArrayT}}) where {ArrayT}
     return ArrayT
 end
@@ -319,10 +346,13 @@ end
 function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
     # Adapt underlying storage
     _u = adapt(to, interfaces._u)
+    _normal_directions = adapt(to, interfaces._normal_directions)
     _neighbor_ids = adapt(to, interfaces._neighbor_ids)
     _node_indices = adapt(to, interfaces._node_indices)
     # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(interfaces.u))
+    normal_directions = unsafe_wrap_or_alloc(to, _normal_directions,
+                                             size(interfaces.normal_directions))
     neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids,
                                         size(interfaces.neighbor_ids))
     node_indices = unsafe_wrap_or_alloc(to, _node_indices,
@@ -331,11 +361,16 @@ function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
     NDIMS = ndims(interfaces)
     new_type_params = (NDIMS,
                        eltype(_u),
-                       NDIMS + 2,
-                       typeof(u), typeof(neighbor_ids), typeof(node_indices),
-                       typeof(_u), typeof(_neighbor_ids), typeof(_node_indices))
-    return P4estInterfaceContainer{new_type_params...}(u, neighbor_ids, node_indices,
-                                                       _u, _neighbor_ids, _node_indices)
+                       eltype(_normal_directions),
+                       NDIMS + 1, NDIMS + 2,
+                       typeof(u), typeof(normal_directions),
+                       typeof(neighbor_ids), typeof(node_indices),
+                       typeof(_u), typeof(_normal_directions),
+                       typeof(_neighbor_ids), typeof(_node_indices))
+    return P4estInterfaceContainer{new_type_params...}(u, normal_directions,
+                                                       neighbor_ids, node_indices,
+                                                       _u, _normal_directions,
+                                                       _neighbor_ids, _node_indices)
 end
 
 mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
@@ -644,6 +679,10 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # resize interfaces container
     @unpack interfaces = cache
     resize!(interfaces, required.interfaces)
+    # Call `init_normal_directions!` only since `init_interfaces!` calls also
+    # `init_surfaces!` which iterates over the mesh, which should be done only once
+    # after boundaries and mortars are resized.
+    init_normal_directions!(interfaces, dg.basis, elements)
 
     # resize boundaries container
     @unpack boundaries = cache

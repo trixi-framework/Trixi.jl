@@ -26,6 +26,7 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     return cache
 end
 
+#     index_to_start_step_2d(index::Symbol, index_begin, index_end)
 #     index_to_start_step_2d(index::Symbol, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
@@ -47,10 +48,7 @@ end
 #       i_volume += i_volume_step
 #       j_volume += j_volume_step
 #     end
-@inline function index_to_start_step_2d(index::Symbol, index_range)
-    index_begin = first(index_range)
-    index_end = last(index_range)
-
+@inline function index_to_start_step_2d(index::Symbol, index_begin, index_end)
     if index === :begin
         return index_begin, 0
     elseif index === :end
@@ -60,6 +58,18 @@ end
     else # if index === :i_backward
         return index_end, -1
     end
+end
+@inline function index_to_start_step_2d(index::Symbol, index_range)
+    index_begin = first(index_range)
+    index_end = last(index_range)
+
+    return index_to_start_step_2d(index, index_begin, index_end)
+end
+
+# Infer interpolation side, i.e., left (1) or right (2) for an element.
+# Required for boundary interpolation with Gauss-Legendre nodes.
+@inline function interpolation_side(index)
+    return (index === :begin) ? 1 : 2
 end
 
 function prolong2interfaces!(cache, u,
@@ -148,15 +158,15 @@ function prolong2interfaces!(cache, u,
         if i_primary_step == 0
             # i is the normal direction (constant), j varies along the surface
             # => Interpolate in first/normal direction
-            interp_side = (primary_indices[1] === :begin) ? 1 : 2
-
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(primary_indices[1])
             for i in eachnode(dg)
                 for v in eachvariable(equations)
                     u_primary = zero(eltype(interfaces.u))
                     for ii in eachnode(dg)
                         u_primary = (u_primary +
                                      u[v, ii, j_primary, primary_element] *
-                                     boundary_interpolation[ii, interp_side])
+                                     boundary_interpolation[ii, side])
                     end
                     interfaces.u[1, v, i, interface] = u_primary
                 end
@@ -165,14 +175,15 @@ function prolong2interfaces!(cache, u,
         else # j_primary_step == 0
             # j is the normal direction (constant), i varies along the surface
             # => Interpolate in second/normal direction
-            interp_side = (primary_indices[2] === :begin) ? 1 : 2
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(primary_indices[2])
             for i in eachnode(dg)
                 for v in eachvariable(equations)
                     u_primary = zero(eltype(interfaces.u))
                     for jj in eachnode(dg)
                         u_primary = (u_primary +
                                      u[v, i_primary, jj, primary_element] *
-                                     boundary_interpolation[jj, interp_side])
+                                     boundary_interpolation[jj, side])
                     end
                     interfaces.u[1, v, i, interface] = u_primary
                 end
@@ -192,32 +203,28 @@ function prolong2interfaces!(cache, u,
         i_secondary = i_secondary_start
         j_secondary = j_secondary_start
         if i_secondary_step == 0
-            # i is the normal direction (constant), j varies along the surface
-            # => Interpolate in first/normal direction
-            interp_side = (secondary_indices[1] === :begin) ? 1 : 2
+            side = interpolation_side(secondary_indices[1])
             for i in eachnode(dg)
                 for v in eachvariable(equations)
                     u_secondary = zero(eltype(interfaces.u))
                     for ii in eachnode(dg)
                         u_secondary = (u_secondary +
                                        u[v, ii, j_secondary, secondary_element] *
-                                       boundary_interpolation[ii, interp_side])
+                                       boundary_interpolation[ii, side])
                     end
                     interfaces.u[2, v, i, interface] = u_secondary
                 end
                 j_secondary += j_secondary_step # incrementing j_secondary suffices
             end
         else # j_secondary_step == 0
-            # j is the normal direction (constant), i varies along the surface
-            # => Interpolate in second/normal direction
-            interp_side = (secondary_indices[2] === :begin) ? 1 : 2
+            side = interpolation_side(secondary_indices[2])
             for i in eachnode(dg)
                 for v in eachvariable(equations)
                     u_secondary = zero(eltype(interfaces.u))
                     for jj in eachnode(dg)
                         u_secondary = (u_secondary +
                                        u[v, i_secondary, jj, secondary_element] *
-                                       boundary_interpolation[jj, interp_side])
+                                       boundary_interpolation[jj, side])
                     end
                     interfaces.u[2, v, i, interface] = u_secondary
                 end
@@ -234,8 +241,7 @@ function calc_interface_flux!(surface_flux_values,
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    @unpack contravariant_vectors = cache.elements
+    @unpack neighbor_ids, node_indices, normal_directions = cache.interfaces
     index_range = eachnode(dg)
     index_end = last(index_range)
 
@@ -244,15 +250,6 @@ function calc_interface_flux!(surface_flux_values,
         primary_element = neighbor_ids[1, interface]
         primary_indices = node_indices[1, interface]
         primary_direction = indices2direction(primary_indices)
-
-        # Create the local i,j indexing on the primary element used to pull normal direction information
-        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_range)
-        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_range)
-
-        i_primary = i_primary_start
-        j_primary = j_primary_start
 
         # Get element and side index information on the secondary element
         secondary_element = neighbor_ids[2, interface]
@@ -271,13 +268,8 @@ function calc_interface_flux!(surface_flux_values,
         end
 
         for node in eachnode(dg)
-            # Get the normal direction on the primary element.
-            # Contravariant vectors at interfaces in negative coordinate direction
-            # are pointing inwards. This is handled by `get_normal_direction`.
-            normal_direction = get_normal_direction(primary_direction,
-                                                    contravariant_vectors,
-                                                    i_primary, j_primary,
-                                                    primary_element)
+            normal_direction = SVector(normal_directions[1, node, interface],
+                                       normal_directions[2, node, interface])
 
             calc_interface_flux!(surface_flux_values, mesh, have_nonconservative_terms,
                                  equations,
@@ -286,9 +278,6 @@ function calc_interface_flux!(surface_flux_values,
                                  node, primary_direction, primary_element,
                                  node_secondary, secondary_direction, secondary_element)
 
-            # Increment primary element indices to pull the normal direction
-            i_primary += i_primary_step
-            j_primary += j_primary_step
             # Increment the surface node index along the secondary element
             node_secondary += node_secondary_step
         end
