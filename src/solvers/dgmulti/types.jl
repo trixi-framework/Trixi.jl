@@ -169,6 +169,10 @@ Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object
   For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 
 """
+const DGMultiBasis{NDIMS, element_type, approximation_type} = StartUpDG.RefElemData{NDIMS,
+                                                                                    element_type,
+                                                                                    approximation_type}
+
 function DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(),
                       kwargs...)
     return RefElemData(element_type, approximation_type, polydeg; kwargs...)
