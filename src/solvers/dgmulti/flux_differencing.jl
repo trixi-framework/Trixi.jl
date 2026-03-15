@@ -317,8 +317,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
 
-    geometric_terms_container = DGMultiGeometricTermsContainer(md.J, inv.(md.J),
-                                                               md.rstxyzJ)
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
     return (; md, Qrst_skew, geometric_terms_container, lift_scalings,
             inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
@@ -369,12 +368,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
                                                 (num_quad_points_total,), dg)
                           for _ in 1:Threads.maxthreadid()]
 
-    # interpolate geometric terms to both quadrature and face values for curved meshes
-    (; Vq, Vf) = dg.basis
-    interpolated_dxidxhatj = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
-    J = rd.Vq * md.J
-    geometric_terms_container = DGMultiGeometricTermsContainer(J, inv.(J),
-                                                               interpolated_dxidxhatj)
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
 
     return (; md, Qrst_skew, VhP, Ph,
             geometric_terms_container,

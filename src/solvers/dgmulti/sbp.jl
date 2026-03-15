@@ -63,6 +63,12 @@ const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS,
                                                                                                  VolumeIntegralFluxDifferencing
                                                                                                  }
 
+function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiffPeriodicFDSBP,
+                                        mesh::DGMultiMesh)
+    md = mesh.md
+    return DGMultiGeometricTermsContainer(md.J, inv.(md.J), md.rstxyzJ)
+end
+
 """
     DGMultiMesh(dg::DGMulti)
 
@@ -182,8 +188,7 @@ function create_cache(mesh::DGMultiMesh, equations,
     # storage for volume quadrature values, face quadrature values, flux values
     nvars = nvariables(equations)
     u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    geometric_terms_container = DGMultiGeometricTermsContainer(md.J, inv.(md.J),
-                                                               md.rstxyzJ)
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
     return (; u_values, geometric_terms_container)
 end
 

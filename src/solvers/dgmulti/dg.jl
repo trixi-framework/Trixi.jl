@@ -161,6 +161,29 @@ function set_zero!(du, dg::DGMulti, other_args...)
     return nothing
 end
 
+function DGMultiGeometricTermsContainer(dg::DGMultiWeakForm, mesh::DGMultiMesh)
+    rd = dg.basis
+    md = mesh.md
+    dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+    J = md.J
+    invJ = inv.(rd.Vq * J)
+    return DGMultiGeometricTermsContainer(J, invJ, dxidxhatj)
+end
+
+function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiffSBP, mesh::DGMultiMesh)
+    md = mesh.md
+    return DGMultiGeometricTermsContainer(md.J, inv.(md.J), md.rstxyzJ)
+end
+
+function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiff, mesh::DGMultiMesh)
+    rd = dg.basis
+    md = mesh.md
+    (; Vq, Vf) = rd
+    dxidxhatj = map(x -> [Vq; Vf] * x, md.rstxyzJ)
+    J = rd.Vq * md.J
+    return DGMultiGeometricTermsContainer(J, inv.(J), dxidxhatj)
+end
+
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT,
                       uEltype) where {NDIMS}
@@ -190,14 +213,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
-    # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
-    # For affine meshes, we just access one element of this interpolated data.
-    dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
-
-    # interpolate J to quadrature points for weight-adjusted DG (WADG)
-    J = md.J
-    invJ = inv.(rd.Vq * J)
-    geometric_terms_container = DGMultiGeometricTermsContainer(J, invJ, dxidxhatj)
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
     flux_threaded = [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
