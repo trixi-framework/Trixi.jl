@@ -12,15 +12,33 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
     # create sparse hybridized operators for low order scheme
     Qrst, E = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
     Brst = map(n -> Diagonal(n .* dg.basis.wf), dg.basis.nrstJ)
-    sparse_hybridized_SBP_operators = map((Q, B) -> 0.5 * [Q-Q' E'*B; -B*E zeros(size(B))],
-                                          Qrst, Brst)
+    sparse_SBP_operators = map((Q, B) -> 0.5 * [Q-Q' E'*B; -B*E zeros(size(B))],
+                               Qrst, Brst)
 
     # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
     # an adjoint for faster iteration through the rows.
-    sparsity_pattern = sum(map(A -> abs.(A)', sparse_hybridized_SBP_operators)) .>
+    sparsity_pattern = sum(map(A -> abs.(A)', sparse_SBP_operators)) .>
                        100 * eps()
 
-    return (; sparse_hybridized_SBP_operators, sparsity_pattern,
+    return (; sparse_SBP_operators, sparsity_pattern,
+            element_to_element_connectivity)
+end
+
+function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
+                      volume_integral::Union{VolumeIntegralShockCapturingHGType,
+                                             VolumeIntegralPureLGLFiniteVolume},
+                      dg::DGMultiFluxDiffSBP, RealT, uEltype) where {NDIMS}
+    element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
+
+    # create skew-symmetric parts of sparse hybridized operators for low order scheme.
+    sparse_SBP_operators, _ = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
+    sparse_SBP_operators = map(A -> 0.5 * (A - A'), sparse_SBP_operators)
+
+    # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
+    # an adjoint for faster iteration through the rows.
+    sparsity_pattern = sum(map(A -> abs.(A)', sparse_SBP_operators)) .> 100 * eps()
+
+    return (; sparse_SBP_operators, sparsity_pattern,
             element_to_element_connectivity)
 end
 
@@ -194,16 +212,16 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache)
-    return SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
+    return SVector(cache.sparse_SBP_operators[1][i, j])
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{2}, cache)
-    Qr, Qs = cache.sparse_hybridized_SBP_operators
+    Qr, Qs = cache.sparse_SBP_operators
     return SVector(Qr[i, j], Qs[i, j])
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{3}, cache)
-    Qr, Qs, Qt = cache.sparse_hybridized_SBP_operators
+    Qr, Qs, Qt = cache.sparse_SBP_operators
     return SVector(Qr[i, j], Qs[i, j], Qt[i, j])
 end
 
