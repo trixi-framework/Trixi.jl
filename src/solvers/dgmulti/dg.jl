@@ -228,10 +228,6 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
         lift_scalings = nothing
     end
 
-    # local storage for volume integral and source computations
-    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
-
     geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
