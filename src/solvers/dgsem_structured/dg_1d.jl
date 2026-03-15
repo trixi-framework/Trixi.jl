@@ -78,7 +78,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
     @unpack surface_flux = surface_integral
-    @unpack surface_flux_values, node_coordinates, interfaces_u = cache.elements
+    @unpack surface_flux_values, boundary_node_coordinates, interfaces_u = cache.elements
     # Boundary values are for `StructuredMesh` stored in the interface datastructure
     boundaries_u = interfaces_u
 
@@ -88,7 +88,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     direction = 1
 
     u_rr = get_node_vars(boundaries_u, equations, dg, direction, 1)
-    x = get_node_coords(node_coordinates, equations, dg, 1, 1)
+    x = get_node_coords(boundary_node_coordinates, equations, dg, direction)
 
     flux = boundary_conditions[direction](u_rr, orientation, direction, x, t,
                                           surface_flux, equations)
@@ -102,8 +102,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     direction = 2
 
     u_rr = get_node_vars(boundaries_u, equations, dg, direction, nelements(dg, cache))
-    x = get_node_coords(node_coordinates, equations, dg, nnodes(dg),
-                        nelements(dg, cache))
+    x = get_node_coords(boundary_node_coordinates, equations, dg, direction)
 
     flux = boundary_conditions[direction](u_rr, orientation, direction, x, t,
                                           surface_flux, equations)
