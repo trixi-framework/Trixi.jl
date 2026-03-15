@@ -186,10 +186,10 @@ function create_cache(mesh::DGMultiMesh, equations,
     md = mesh.md
 
     # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
     geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
-    return (; u_values, geometric_terms_container)
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+    return (; solution_container, geometric_terms_container)
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
