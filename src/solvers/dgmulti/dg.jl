@@ -183,7 +183,7 @@ function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiff, mesh::DGMultiMesh)
     J = rd.Vq * md.J
     return DGMultiGeometricTermsContainer(J, inv.(J), dxidxhatj)
 end
-      
+
 # Holds arrays shared across most DGMulti cache types:
 # solution values at volume/face quadrature points and thread-local scratch storage.
 struct DGMultiSolutionContainer{uType, ufType, ffType, lType}
@@ -244,9 +244,9 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
                                                                uEltype)
 
-    return (; md, weak_differentiation_matrices, lift_scalings, 
-              geometric_terms_container, solution_container, 
-              flux_threaded, rotated_flux_threaded)
+    return (; md, weak_differentiation_matrices, lift_scalings,
+            geometric_terms_container, solution_container,
+            flux_threaded, rotated_flux_threaded)
 end
 
 function compute_coefficients!(::Nothing, u, initial_condition, t,

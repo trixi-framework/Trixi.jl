@@ -314,8 +314,8 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
                                                                uEltype)
 
     return (; md, Qrst_skew, lift_scalings, inv_wq = inv.(rd.wq),
-              geometric_terms_container, solution_container, 
-              fluxdiff_local_threaded)
+            geometric_terms_container, solution_container,
+            fluxdiff_local_threaded)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
