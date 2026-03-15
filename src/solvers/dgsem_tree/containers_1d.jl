@@ -465,7 +465,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D, basis)
             # Set orientation (x -> 1)
             boundaries.orientations[count] = 1
 
-            # Store node coordinates
+            # Calculate node coordinates
             calc_boundary_node_coordinates!(boundaries, element, count, direction,
                                             elements, mesh, basis)
         end
