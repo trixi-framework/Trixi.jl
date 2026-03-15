@@ -127,6 +127,8 @@ function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
     return interfaces
 end
 
+# For Gauss-Legendre (GL) nodes, the interface normals are
+# computed from interpolation of the volume node normals to the surface nodes.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
                                  basis::GaussLegendreBasis,
                                  elements::P4estElementContainer{2})
