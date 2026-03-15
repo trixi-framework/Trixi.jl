@@ -271,7 +271,14 @@ end
 # The physical normal direction for each pair is n_ij = geometric_matrix * ref_entries,
 # where ref_entries[d] = Qrst_skew[d][i,j]. This fuses the NDIMS per-dimension flux
 # evaluations of the old dimension-by-dimension loop into a single evaluation per pair.
-# For dense operators (SBP on Line/Tri/Tet), we do not use sum factorization.
+# Essentially, instead of calculating 
+#   volume_flux(u_i, u_j, 1, equations) * Qx[i, j] + volume_flux(u_i, u_j, 2, equations) * Qy[i, j] + ...
+# where Qx[i, j] = dr/dx * Qr[i, j] + ds/dx * Qs[i, j], we can expand out and evaluate
+#   volume_flux(u_i, u_j, [dr/dx, dr/dy] * Qr[i, j], equations) + 
+#   volume_flux(u_i, u_j, [ds/dx, ds/dy] * Qs[i, j], equations)
+# which is slightly faster. 
+# 
+# For dense operators (SBP on Line/Tri/Tet), we do not use this sum factorization trick.
 @inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::False,
                                           volume_flux,
