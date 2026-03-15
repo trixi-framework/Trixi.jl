@@ -441,16 +441,37 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            0.055659339125865195,
-                            0.042323245380073364,
-                            0.042323245380073315,
-                            0.20642426004746467
+                            0.055658468,
+                            0.0423231322,
+                            0.0423231322,
+                            0.206421330
                         ],
                         linf=[
-                            0.23633597150568753,
-                            0.16929779869845438,
-                            0.16929779869845438,
-                            0.8587814448153765
+                            0.236334646,
+                            0.169315478,
+                            0.169315478,
+                            0.858777061
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shockcapturing_curved.jl (SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
+                        l2=[
+                            5.18728232e-02,
+                            3.90002358e-02,
+                            3.79118767e-02,
+                            1.92041565e-01
+                        ],
+                        linf=[
+                            2.75190697e-01,
+                            2.45642985e-01,
+                            1.79725974e-01,
+                            9.86008024e-01
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
