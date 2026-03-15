@@ -269,7 +269,8 @@ end
 
 # Computes flux differencing contribution over a single element by looping over node pairs (i, j).
 # The physical normal direction for each pair is n_ij = geometric_matrix * ref_entries,
-# where ref_entries[d] = Qrst_skew[d][i,j]. This fuses the NDIMS per-dimension flux
+# where ref_entries[d] = Qrst_skew[d][i,j].
+# This fuses the NDIMS per-dimension flux
 # evaluations of the old dimension-by-dimension loop into a single evaluation per pair.
 # For dense operators (SBP on Line/Tri/Tet), we do not use sum factorization.
 @inline function local_flux_differencing!(du_local, u_local, element_index,
@@ -314,7 +315,7 @@ end
                 u_j = u_local[j]
                 AF_ij = 2 * flux_conservative(u_i, u_j, normal_direction, equations)
                 du_local[i] = du_local[i] + AF_ij
-                du_local[j] = du_local[j] - AF_ij
+                du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
             end
             # Non-conservative terms use the full (non-symmetric) loop.
             # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
@@ -356,7 +357,7 @@ end
                     AF_ij = 2 * A_ij *
                             volume_flux(u_i, u_j, normal_direction_ij, equations)
                     du_i = du_i + AF_ij
-                    du_local[j] = du_local[j] - AF_ij
+                    du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
                 end
             end
             du_local[i] = du_i
