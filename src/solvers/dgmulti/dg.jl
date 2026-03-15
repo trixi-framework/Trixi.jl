@@ -135,6 +135,20 @@ In particular, not the face nodes themselves are returned.
     return Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 end
 
+# The `num_modes` functions returns the number of polynomial modes for a degree N 
+# approximation on a specific type of element. 
+@inline function num_modes(N, ::Elem) where {Elem <: Union{Line, Quad, Hex}}
+    return N + 1
+end
+
+@inline function num_modes(N, ::Tri)
+    return (N + 1) * (N + 2) ÷ 2
+end
+
+@inline function num_modes(N, ::Tet)
+    return (N + 1) * (N + 2) * (N + 3) ÷ 6
+end
+
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
