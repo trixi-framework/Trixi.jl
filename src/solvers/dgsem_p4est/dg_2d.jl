@@ -242,7 +242,7 @@ function calc_interface_flux!(surface_flux_values,
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
                               equations, surface_integral,
-                              dg::DGSEM{<:LobattoGaussLegendreBasis}, cache)
+                              dg::DGSEM{<:LobattoLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
