@@ -40,7 +40,7 @@ end
 # We average the normals at nodes i and j for provably entropy-stable de-aliasing of geometric terms.
 @inline function get_normal_direction(normal_directions::AbstractVector{<:AbstractVector},
                                       i, j)
-    return 0.5 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
+    return 0.5f0 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
 end
 
 # use hybridized SBP operators for general flux differencing schemes.
@@ -103,20 +103,15 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     # for use with flux differencing schemes
     Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
 
-    # Todo: DGMulti. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
-    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
-
+    nvars = nvariables(equations)
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                          for _ in 1:Threads.maxthreadid()]
+
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
 
     # this calls the `create_cache` for the shock capturing volume integral                          
     volume_integral_cache = create_cache(mesh, equations, dg.volume_integral,
@@ -124,8 +119,7 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
 
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, du_local_threaded,
+            solution_container, du_local_threaded,
             volume_integral_cache...)
 end
 
@@ -178,20 +172,24 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
     interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
     J = Vq * md.J
 
+    solution_container = DGMultiSolutionContainer(u_values, u_face_values,
+                                                  flux_face_values,
+                                                  local_values_threaded)
+
     return (; md, Qrst_skew, VhP, Ph,
             invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values,
             entropy_projected_u_values,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, du_local_threaded, rhs_local_threaded)
+            solution_container, du_local_threaded, rhs_local_threaded)
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
     @unpack Vq = rd
-    @unpack VhP, entropy_var_values, u_values = cache
+    @unpack VhP, entropy_var_values = cache
     @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+    (; u_values) = cache.solution_container
 
     apply_to_each_field(mul_by!(Vq), u_values, u)
 

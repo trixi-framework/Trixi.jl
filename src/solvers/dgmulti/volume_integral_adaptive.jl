@@ -28,7 +28,7 @@ function create_cache(mesh::DGMultiMesh, equations,
     nvars = nvariables(equations)
 
     # Required for entropy change computation (`entropy_change_reference_element`)
-    du_values = similar(cache_FD.u_values)
+    du_values = similar(cache_FD.solution_container.u_values)
 
     # Thread-local buffer for face interpolation, which is required
     # for computation of entropy potential at interpolated face nodes
@@ -54,7 +54,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     @unpack maximum_entropy_increase = volume_integral.indicator
 
     # For weak form integral
-    @unpack u_values = cache
+    @unpack u_values = cache.solution_container
 
     # For entropy production computation
     rd = dg.basis

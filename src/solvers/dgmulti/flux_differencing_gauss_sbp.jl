@@ -454,9 +454,10 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
                              dg::DGMultiFluxDiff{<:GaussSBP})
     rd = dg.basis
     @unpack Vq = rd
-    @unpack VhP, entropy_var_values, u_values = cache
+    @unpack VhP, entropy_var_values = cache
     @unpack projected_entropy_var_values, entropy_projected_u_values = cache
     @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
+    (; u_values) = cache.solution_container
 
     @threaded for e in eachelement(mesh, dg, cache)
         apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss),
@@ -489,7 +490,7 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
     return nothing
 end
 
-# Assumes cache.flux_face_values is already computed.
+# Assumes cache.solution_container.flux_face_values is already computed.
 # Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
@@ -501,7 +502,7 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
         # applies LIFT matrix, output is stored at Gauss nodes
         gauss_volume_local = gauss_volume_local_threaded[Threads.threadid()]
         apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local,
-                            view(cache.flux_face_values, :, e))
+                            view(cache.solution_container.flux_face_values, :, e))
 
         for i in eachindex(gauss_volume_local)
             du[i, e] = du[i, e] + gauss_volume_local[i]
