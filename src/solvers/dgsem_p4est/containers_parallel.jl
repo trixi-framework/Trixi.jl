@@ -314,6 +314,9 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # the number of iterations over the mesh in p4est
     init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
 
+    # init_normal_directions! requires that `node_indices` have been initialized
+    init_normal_directions!(interfaces, dg.basis, elements)
+
     # re-initialize MPI cache
     @unpack mpi_cache = cache
     init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,

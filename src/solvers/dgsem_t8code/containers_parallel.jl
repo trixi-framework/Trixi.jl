@@ -52,7 +52,7 @@ function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 
-    # Normal directions require that `node_indices` have been initialized
+    # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
 
     return nothing

@@ -692,7 +692,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # the number of iterations over the mesh in `p4est`
     init_surfaces!(interfaces, mortars, boundaries, mesh)
 
-    # Normal directions require that `node_indices` have been initialized
+    # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
 
     return nothing
