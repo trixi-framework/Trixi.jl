@@ -679,10 +679,6 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # resize interfaces container
     @unpack interfaces = cache
     resize!(interfaces, required.interfaces)
-    # Call `init_normal_directions!` only since `init_interfaces!` calls also
-    # `init_surfaces!` which iterates over the mesh, which should be done only once
-    # after boundaries and mortars are resized.
-    init_normal_directions!(interfaces, dg.basis, elements)
 
     # resize boundaries container
     @unpack boundaries = cache
@@ -694,7 +690,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     # re-initialize containers together to reduce
     # the number of iterations over the mesh in `p4est`
-    return init_surfaces!(interfaces, mortars, boundaries, mesh)
+    init_surfaces!(interfaces, mortars, boundaries, mesh)
+
+    # Normal directions require that `node_indices` have been initialized
+    init_normal_directions!(interfaces, dg.basis, elements)
+
+    return nothing
 end
 
 # A helper struct used in initialization methods below

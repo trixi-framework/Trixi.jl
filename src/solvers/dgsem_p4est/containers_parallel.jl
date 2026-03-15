@@ -322,7 +322,9 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
     # the MPI cache must be re-initialized before
     init_normal_directions!(mpi_mortars, dg.basis, elements)
-    return exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+    exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+
+    return nothing
 end
 
 # A helper struct used in initialization methods below
