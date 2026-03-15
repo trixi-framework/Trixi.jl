@@ -339,7 +339,7 @@ end
     for dim in eachdim(mesh)
         normal_directions = get_contravariant_vector(element_index, dim, mesh, cache)
         Q_skew = Qrst_skew[dim]
-        A_base, row_ids, rows, vals = _adjoint_sparse_data(Q_skew)
+        A_base, row_ids, rows, vals = adjoint_sparse_data(Q_skew)
         for i in row_ids
             u_i = u_local[i]
             du_i = du_local[i]
@@ -373,7 +373,7 @@ end
     for dim in eachdim(mesh)
         normal_directions = get_contravariant_vector(element_index, dim, mesh, cache)
         Q_skew = Qrst_skew[dim]
-        A_base, row_ids, rows, vals = _adjoint_sparse_data(Q_skew)
+        A_base, row_ids, rows, vals = adjoint_sparse_data(Q_skew)
         for i in row_ids
             u_i = u_local[i]
             du_i = du_local[i]

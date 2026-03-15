@@ -208,7 +208,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # This would have to be changed if `have_nonconservative_terms = False()`
             # because then `volume_flux` is non-symmetric.
             A = dg.basis.Drst[dim]
-            A_base, row_ids, rows, vals = _adjoint_sparse_data(A)
+            A_base, row_ids, rows, vals = adjoint_sparse_data(A)
 
             @threaded for i in row_ids
                 u_i = u[i]
@@ -238,7 +238,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             A = dg.basis.Drst[dim]
-            A_base, row_ids, rows, vals = _adjoint_sparse_data(A)
+            A_base, row_ids, rows, vals = adjoint_sparse_data(A)
 
             for i in row_ids
                 u_i = u[i]
