@@ -478,6 +478,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_shockcapturing.jl (Tri, SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        basis=DGMultiBasis(Tri(), 3, approximation_type = SBP()),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        l2=[
+                            5.30835071e-02,
+                            4.00814281e-02,
+                            4.22126468e-02,
+                            1.96879890e-01
+                        ],
+                        linf=[
+                            2.50055556e-01,
+                            2.05652113e-01,
+                            2.50338726e-01,
+                            9.02470984e-01
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
     using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
