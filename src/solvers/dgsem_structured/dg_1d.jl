@@ -22,6 +22,32 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations, dg::D
     return nothing
 end
 
+function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations,
+                             dg::DGSEM{<:GaussLegendreBasis})
+    @unpack interfaces_u = cache.elements
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for element in eachelement(dg, cache)
+        for v in eachvariable(equations)
+            interface_u_1 = zero(eltype(interfaces_u))
+            interface_u_2 = zero(eltype(interfaces_u))
+            for i in eachnode(dg)
+                # Left/negative x face
+                interface_u_1 = interface_u_1 +
+                                u[v, i, element] * boundary_interpolation[i, 1]
+
+                # Right/positive x face
+                interface_u_2 = interface_u_2 +
+                                u[v, i, element] * boundary_interpolation[i, 2]
+            end
+            interfaces_u[v, 1, element] = interface_u_1
+            interfaces_u[v, 2, element] = interface_u_2
+        end
+    end
+
+    return nothing
+end
+
 function calc_interface_flux!(surface_flux_values, mesh::StructuredMesh{1},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG, cache)
