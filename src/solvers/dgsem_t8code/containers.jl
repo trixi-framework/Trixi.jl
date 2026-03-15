@@ -28,6 +28,9 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names)
 
+    # Normal directions require that `node_indices` have been initialized
+    init_normal_directions!(interfaces, dg.basis, elements)
+
     return nothing
 end
 
