@@ -40,7 +40,7 @@ end
 # We average the normals at nodes i and j for provably entropy-stable de-aliasing of geometric terms.
 @inline function get_normal_direction(normal_directions::AbstractVector{<:AbstractVector},
                                       i, j)
-    return 0.5 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
+    return 0.5f0 * (getindex.(normal_directions, i) + getindex.(normal_directions, j))
 end
 
 # use hybridized SBP operators for general flux differencing schemes.
