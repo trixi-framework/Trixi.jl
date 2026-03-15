@@ -34,7 +34,7 @@ end
 
 # For Affine meshes, `get_contravariant_vector` returns an SVector of scalars (constant over the
 # element). The normal direction is the same for all node pairs.
-@inline get_normal_direction(normal_directions::AbstractVector{<:Number}, i, j) = normal_directions
+@inline get_normal_direction(normal_directions::AbstractVector, i, j) = normal_directions
 
 # For NonAffine meshes, `get_contravariant_vector` returns an SVector of per-node arrays.
 # We average the normals at nodes i and j for provably entropy-stable de-aliasing of geometric terms.
