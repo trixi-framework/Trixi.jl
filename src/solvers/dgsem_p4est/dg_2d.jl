@@ -268,6 +268,7 @@ function calc_interface_flux!(surface_flux_values,
         end
 
         for node in eachnode(dg)
+            # This seems to be faster than `@views normal_direction = normal_directions[:, node, interface]`
             normal_direction = SVector(normal_directions[1, node, interface],
                                        normal_directions[2, node, interface])
 
