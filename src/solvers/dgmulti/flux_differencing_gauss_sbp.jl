@@ -490,7 +490,7 @@ function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
     return nothing
 end
 
-# Assumes cache.flux_face_values is already computed.
+# Assumes cache.solution_container.flux_face_values is already computed.
 # Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
