@@ -118,10 +118,15 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     du_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                          for _ in 1:Threads.maxthreadid()]
 
+    # this calls the `create_cache` for the shock capturing volume integral                          
+    volume_integral_cache = create_cache(mesh, equations, dg.volume_integral,
+                                         dg, RealT, uEltype)
+
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
             u_values, u_face_values, flux_face_values,
-            local_values_threaded, du_local_threaded)
+            local_values_threaded, du_local_threaded,
+            volume_integral_cache...)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`

@@ -53,17 +53,37 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
     indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
     modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
+    inverse_vandermonde = calc_inverse_vandermonde(basis)
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
+end
+
+# calculates the inverse of the vandermonde matrix for shock capturing purposes. 
+# This version is for tensor product elements
+function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Quad, Hex}}) where {NDIMS}
     # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
     (; N) = basis
     lobatto_node_coordinates_1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, N)
     VDM_1D = StartUpDG.vandermonde(Line(), N, lobatto_node_coordinates_1D)
     inverse_vandermonde = SimpleKronecker(NDIMS, inv(VDM_1D))
+    return inverse_vandermonde
+end
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
+# calculates the inverse of the vandermonde matrix for shock capturing purposes. 
+# This version is for nodal simplicial SBP elements
+function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
+
+    # the inverse vandermonde matrix here should first project from SBP nodes to degree N polynomials
+    (; N, element_type, r, s) = basis
+    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) / basis.VDM
+    M = interp_matrix_to_quad_points' * Diagonal(basis.wq) * interp_matrix_to_quad_points
+    Pq = M \ (interp_matrix_to_quad_points' * Diagonal(basis.wq))
+    return basis.VDM \ Pq
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
-                                                   equations, dg::DGMulti{NDIMS}, cache;
+                                                   equations,
+                                                   dg::DGMulti{NDIMS, <:Union{Quad, Hex}},
+                                                   cache;
                                                    kwargs...) where {NDIMS}
     (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
     (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde) = indicator_hg.cache
@@ -322,4 +342,40 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
 
     # TODO: factor this out to avoid calling it twice during calc_volume_integral!
     return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+end
+
+# Calculates the volume integral corresponding to an algebraic low order method for
+# DGMultiFluxDiffSBP (traditional SBP operators with LGL-type nodes).
+# Unlike GaussSBP, the solution lives at nodes that include the face nodes (at positions
+# `rd.Fmask`), so no entropy projection is needed. We build the extended [interior; face]
+# vector in-kernel and project back by scattering face contributions to Fmask positions.
+function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                 have_nonconservative_terms::False, equations,
+                                 volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                                 dg::DGMultiFluxDiffSBP, cache, alpha = true)
+    (; volume_flux_fv) = volume_integral
+
+    (; sparsity_pattern) = cache
+    A_base, row_ids, rows, _ = adjoint_sparse_data(sparsity_pattern)
+    for i in row_ids
+        u_i = u[i, element]
+        du_i = zero(u_i)
+        for id in nzrange(A_base, i)
+            j = rows[id]
+            u_j = u[j, element]
+
+            # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh, cache)
+            reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
+            normal_direction_ij = geometric_matrix * reference_operator_entries
+
+            # note that we do not need to normalize `normal_direction_ij` since
+            # it is typically normalized within the flux computation.
+            f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+            du_i = du_i + 2 * f_ij
+        end
+        du[i, element] = du[i, element] + alpha * du_i * cache.inv_wq[i]
+    end
+
+    return nothing
 end
