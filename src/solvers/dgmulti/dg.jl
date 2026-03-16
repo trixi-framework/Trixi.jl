@@ -698,10 +698,14 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
 end
 
 # Returns `invJ` at a given `node` and `element`. For affine meshes, `invJ` is
-# constant per element so node 1 is used; for NonAffine meshes it varies by node.
+# constant per element so node 1 is used. For NonAffine meshes, it varies by node.
+# Note that we only allow this for collocation-type discretizations (e.g., where 
+# `approximation_type` is SBP or GaussSBP); for general discretizations this should 
+# be treated using a weight-adjusted mass matrix inversion. 
 @inline get_node_invJ(invJ, node, element, ::DGMultiMesh) = invJ[1, element]
 @inline function get_node_invJ(invJ, node, element,
-                               ::DGMultiMesh{NDIMS, <:NonAffine}) where {NDIMS}
+                               ::DGMultiMesh{NDIMS, <:NonAffine,
+                                             <:Union{SBP, GaussSBP}}) where {NDIMS}
     return invJ[node, element]
 end
 
