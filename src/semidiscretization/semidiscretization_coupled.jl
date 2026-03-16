@@ -646,7 +646,7 @@ end
 ### DGSEM/structured
 ################################################################################
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
@@ -656,12 +656,15 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The normal vector must be oriented in the direction
@@ -686,7 +689,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
@@ -696,12 +699,15 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The normal vector must be oriented in the direction

@@ -208,6 +208,8 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
                              dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
+
+    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
     interfaces_u = interfaces.u
 
     flux_viscous_x, flux_viscous_y = flux_viscous
@@ -219,7 +221,6 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(dg), v in eachvariable(equations_parabolic)
-                # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
                 interfaces_u[1, v, j, interface] = flux_viscous_x[v, nnodes(dg), j,
                                                                   left_element]
                 interfaces_u[2, v, j, interface] = flux_viscous_x[v, 1, j,
@@ -228,11 +229,81 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(dg), v in eachvariable(equations_parabolic)
-                # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
                 interfaces_u[1, v, i, interface] = flux_viscous_y[v, i, nnodes(dg),
                                                                   left_element]
                 interfaces_u[2, v, i, interface] = flux_viscous_y[v, i, 1,
                                                                   right_element]
+            end
+        end
+    end
+
+    return nothing
+end
+
+# This is the version used when calculating the divergence of the viscous fluxes.
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
+function prolong2interfaces!(cache, flux_viscous::Tuple,
+                             mesh::TreeMesh{2},
+                             equations_parabolic::AbstractEquationsParabolic,
+                             dg::DGSEM{<:GaussLegendreBasis})
+    @unpack interfaces = cache
+    @unpack orientations, neighbor_ids = interfaces
+    @unpack boundary_interpolation = dg.basis
+
+    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+    interfaces_u = interfaces.u
+
+    flux_viscous_x, flux_viscous_y = flux_viscous
+
+    @threaded for interface in eachinterface(dg, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(dg)
+                for v in eachvariable(equations_parabolic)
+                    # Interpolate to the interfaces using a local variable for
+                    # the accumulation of values (to reduce global memory operations).
+                    interface_u_1 = zero(eltype(interfaces_u))
+                    interface_u_2 = zero(eltype(interfaces_u))
+                    for ii in eachnode(dg)
+                        # Not += to allow `@muladd` to turn these into FMAs
+                        # (see comment at the top of the file)
+                        # Need `boundary_interpolation` at right (+1) node for left element
+                        interface_u_1 = (interface_u_1 +
+                                         flux_viscous_x[v, ii, j, left_element] *
+                                         boundary_interpolation[ii, 2])
+                        # Need `boundary_interpolation` at left (-1) node for right element
+                        interface_u_2 = (interface_u_2 +
+                                         flux_viscous_x[v, ii, j, right_element] *
+                                         boundary_interpolation[ii, 1])
+                    end
+                    interfaces_u[1, v, j, interface] = interface_u_1
+                    interfaces_u[2, v, j, interface] = interface_u_2
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(dg)
+                for v in eachvariable(equations_parabolic)
+                    interface_u_1 = zero(eltype(interfaces_u))
+                    interface_u_2 = zero(eltype(interfaces_u))
+                    for jj in eachnode(dg)
+                        # Need `boundary_interpolation` at right (+1) node for left element
+                        interface_u_1 = (interface_u_1 +
+                                         flux_viscous_y[v, i, jj, left_element] *
+                                         boundary_interpolation[jj, 2])
+                        # Need `boundary_interpolation` at left (-1) node for right element
+                        interface_u_2 = (interface_u_2 +
+                                         flux_viscous_y[v, i, jj, right_element] *
+                                         boundary_interpolation[jj, 1])
+                    end
+                    interfaces_u[1, v, i, interface] = interface_u_1
+                    interfaces_u[2, v, i, interface] = interface_u_2
+                end
             end
         end
     end
@@ -287,6 +358,8 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                              dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
+
+    # OBS! `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
     boundaries_u = boundaries.u
     flux_viscous_x, flux_viscous_y = flux_viscous
 
@@ -298,13 +371,11 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
                     boundaries_u[1, v, l, boundary] = flux_viscous_x[v, nnodes(dg), l,
                                                                      element]
                 end
             else # Element in +x direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
                     boundaries_u[2, v, l, boundary] = flux_viscous_x[v, 1, l,
                                                                      element]
                 end
@@ -314,16 +385,99 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
                     boundaries_u[1, v, l, boundary] = flux_viscous_y[v, l, nnodes(dg),
                                                                      element]
                 end
             else
                 # element in +y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
                     boundaries_u[2, v, l, boundary] = flux_viscous_y[v, l, 1,
                                                                      element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+# This is the version used when calculating the divergence of the viscous fluxes.
+# Specialization `flux_viscous::Tuple` needed to
+# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
+# which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
+function prolong2boundaries!(cache, flux_viscous::Tuple,
+                             mesh::TreeMesh{2},
+                             equations_parabolic::AbstractEquationsParabolic,
+                             dg::DGSEM{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides, neighbor_ids = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+    boundaries_u = boundaries.u
+    flux_viscous_x, flux_viscous_y = flux_viscous
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations_parabolic)
+                        # Interpolate to the boundaries using a local variable for
+                        # the accumulation of values (to reduce global memory operations).
+                        boundary_u = zero(eltype(boundaries_u))
+                        for ii in eachnode(dg)
+                            # Not += to allow `@muladd` to turn these into FMAs
+                            # (see comment at the top of the file)
+                            boundary_u = (boundary_u +
+                                          flux_viscous_x[v, ii, l, element] *
+                                          boundary_interpolation[ii, 2])
+                        end
+                        boundaries_u[1, v, l, boundary] = boundary_u
+                    end
+                end
+            else # element in +x direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations_parabolic)
+                        boundary_u = zero(eltype(boundaries_u))
+                        for ii in eachnode(dg)
+                            boundary_u = (boundary_u +
+                                          flux_viscous_x[v, ii, l, element] *
+                                          boundary_interpolation[ii, 1])
+                        end
+                        boundaries_u[2, v, l, boundary] = boundary_u
+                    end
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations_parabolic)
+                        boundary_u = zero(eltype(boundaries_u))
+                        for jj in eachnode(dg)
+                            boundary_u = (boundary_u +
+                                          flux_viscous_y[v, l, jj, element] *
+                                          boundary_interpolation[jj, 2])
+                        end
+                        boundaries_u[1, v, l, boundary] = boundary_u
+                    end
+                end
+            else # element in +y direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations_parabolic)
+                        boundary_u = zero(eltype(boundaries_u))
+                        for jj in eachnode(dg)
+                            boundary_u = (boundary_u +
+                                          flux_viscous_y[v, l, jj, element] *
+                                          boundary_interpolation[jj, 1])
+                        end
+                        boundaries_u[2, v, l, boundary] = boundary_u
+                    end
                 end
             end
         end
@@ -704,6 +858,17 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
     return nothing
 end
 
+# For Gauss-Legendre DGSEM mortars are not yet implemented
+function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
+                           equations_parabolic::AbstractEquationsParabolic,
+                           mortar::Nothing,
+                           surface_integral, dg::DGSEM{<:GaussLegendreBasis},
+                           parabolic_scheme, gradient_or_divergence,
+                           cache)
+    @assert isempty(eachmortar(dg, cache))
+    return nothing
+end
+
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
                              mesh, equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
@@ -917,6 +1082,60 @@ function calc_surface_integral_gradient!(gradients,
                                                                               l, 4,
                                                                               element] *
                                                           factor)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_surface_integral_gradient!(gradients,
+                                         mesh::TreeMesh{2}, # for dispatch only
+                                         equations_parabolic::AbstractEquationsParabolic,
+                                         dg::DGSEM{<:GaussLegendreBasis}, cache)
+    @unpack boundary_interpolation_inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    gradients_x, gradients_y = gradients
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations_parabolic)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus = surface_flux_values[v, l, 1, element]
+                surface_flux_plus = surface_flux_values[v, l, 2, element]
+                for ii in eachnode(dg)
+                    # surface at -x
+                    gradients_x[v, ii, l, element] = (gradients_x[v, ii, l, element] -
+                                                      surface_flux_minus *
+                                                      boundary_interpolation_inverse_weights[ii,
+                                                                                             1])
+
+                    # surface at +x
+                    gradients_x[v, ii, l, element] = (gradients_x[v, ii, l, element] +
+                                                      surface_flux_plus *
+                                                      boundary_interpolation_inverse_weights[ii,
+                                                                                             2])
+                end
+
+                surface_flux_minus = surface_flux_values[v, l, 3, element]
+                surface_flux_plus = surface_flux_values[v, l, 4, element]
+                for jj in eachnode(dg)
+                    # surface at -y
+                    gradients_y[v, l, jj, element] = (gradients_y[v, l, jj, element] -
+                                                      surface_flux_minus *
+                                                      boundary_interpolation_inverse_weights[jj,
+                                                                                             1])
+
+                    # surface at +y
+                    gradients_y[v, l, jj, element] = (gradients_y[v, l, jj, element] +
+                                                      surface_flux_plus *
+                                                      boundary_interpolation_inverse_weights[jj,
+                                                                                             2])
+                end
             end
         end
     end
