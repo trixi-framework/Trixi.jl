@@ -36,33 +36,6 @@ function DGMulti(element_type::AbstractElemShape,
                    surface_integral = surface_integral, volume_integral = volume_integral)
 end
 
-# type alias for specializing on a periodic SBP operator
-const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
-                                                                  ApproxType,
-                                                                  SurfaceIntegral,
-                                                                  VolumeIntegral} where {
-                                                                                         NDIMS,
-                                                                                         ElemType,
-                                                                                         ApproxType <:
-                                                                                         SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
-                                                                                         SurfaceIntegral,
-                                                                                         VolumeIntegral
-                                                                                         }
-
-const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
-                                                                          ApproxType,
-                                                                          SurfaceIntegral,
-                                                                          VolumeIntegral} where {
-                                                                                                 NDIMS,
-                                                                                                 ElemType,
-                                                                                                 ApproxType <:
-                                                                                                 SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
-                                                                                                 SurfaceIntegral <:
-                                                                                                 SurfaceIntegralWeakForm,
-                                                                                                 VolumeIntegral <:
-                                                                                                 VolumeIntegralFluxDifferencing
-                                                                                                 }
-
 function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiffPeriodicFDSBP,
                                         mesh::DGMultiMesh)
     md = mesh.md

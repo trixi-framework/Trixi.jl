@@ -46,8 +46,50 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
 
+# type alias for specializing on a periodic SBP operator
+const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                                  ApproxType,
+                                                                  SurfaceIntegral,
+                                                                  VolumeIntegral} where {
+                                                                                         NDIMS,
+                                                                                         ElemType,
+                                                                                         ApproxType <:
+                                                                                         SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
+                                                                                         SurfaceIntegral,
+                                                                                         VolumeIntegral
+                                                                                         }
+
+const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                                          ApproxType,
+                                                                          SurfaceIntegral,
+                                                                          VolumeIntegral} where {
+                                                                                                 NDIMS,
+                                                                                                 ElemType,
+                                                                                                 ApproxType <:
+                                                                                                 SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
+                                                                                                 SurfaceIntegral <:
+                                                                                                 SurfaceIntegralWeakForm,
+                                                                                                 VolumeIntegral <:
+                                                                                                 VolumeIntegralFluxDifferencing
+                                                                                                 }
+
+const DGMultiFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                          ApproxType} where {NDIMS,
+                                                                             ElemType,
+                                                                             ApproxType <:
+                                                                             SummationByPartsOperators.AbstractDerivativeOperator
+                                                                             }
+
 # `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
 const GaussSBP = Polynomial{Gauss}
+
+const DGMultiGaussSBP{NDIMS, ElemType, ApproxType} = DGMulti{NDIMS, ElemType,
+                                                             ApproxType} where {NDIMS,
+                                                                                ElemType,
+                                                                                ApproxType <:
+                                                                                GaussSBP}
+
+const DGMultiNodalCollocation = Union{<:DGMultiSBP, <:DGMultiFDSBP, <:DGMultiGaussSBP}
 
 struct DGMultiGeometricTermsContainer{TJ, TinvJ, Tdxidxhatj}
     J::TJ
