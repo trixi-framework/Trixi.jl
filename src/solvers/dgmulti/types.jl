@@ -46,6 +46,9 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
 
+# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
+const GaussSBP = Polynomial{Gauss}
+
 struct DGMultiGeometricTermsContainer{TJ, TinvJ, Tdxidxhatj}
     J::TJ
     invJ::TinvJ
