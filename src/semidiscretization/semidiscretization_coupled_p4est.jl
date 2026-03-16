@@ -302,8 +302,7 @@ end
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
-                                                                AnalysisCallbackCoupledP4est
-                                                                }
+                                                                AnalysisCallbackCoupledP4est}
     semi_coupled = sol.prob.p
     u_ode_coupled = sol.u[end]
     @unpack callbacks = cb.affect!
@@ -468,10 +467,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
 end
 
 @inline function _boundary_condition_coupled(boundary_condition, semi_coupled, u_ode,
-                                              u_inner, mesh, equations, cache,
-                                              i_index, j_index, element_index,
-                                              normal_direction, surface_flux_function,
-                                              boundary_index)
+                                             u_inner, mesh, equations, cache,
+                                             i_index, j_index, element_index,
+                                             normal_direction, surface_flux_function,
+                                             boundary_index)
     n_nodes = length(mesh.parent.nodes)
     lookup = semi_coupled.boundary_parent_lookup[boundary_condition.self_index]
 
@@ -506,8 +505,8 @@ end
     # Read the neighbor node variables directly from the flat u_ode vector
     # to avoid per-node SubArray + wrap_array allocations.
     u_boundary_raw = _get_node_vars_coupled(u_ode, semi_coupled, idx_other,
-                                             semi_other, i_index_g, j_index_g,
-                                             local_elem)
+                                            semi_other, i_index_g, j_index_g,
+                                            local_elem)
     _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
                            u_inner, mesh, have_nonconservative_terms(equations),
                            equations, cache,
@@ -519,26 +518,23 @@ end
 # Read node variables directly from the flat u_ode vector using a computed
 # linear index, avoiding SubArray and wrap_array allocations.
 @inline function _get_node_vars_coupled(u_ode, semi_coupled, idx_other,
-                                         semi_other, i, j, elem)
+                                        semi_other, i, j, elem)
     offset = first(semi_coupled.u_indices[idx_other]) - 1
     nvars = nvariables(semi_other.equations)
     nn = nnodes(semi_other.solver)
-    SVector(ntuple(@inline(v -> u_ode[offset + v +
-                                       nvars * ((i - 1) +
-                                                 nn * ((j - 1) +
-                                                        nn * (elem - 1)))]),
+    SVector(ntuple(@inline(v -> u_ode[offset + v + nvars * ((i - 1) + nn * ((j - 1) + nn * (elem - 1)))]),
                    Val(nvars)))
 end
 
 @inline function _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
-                                         u_inner, mesh, nonconservative_terms::False,
-                                         equations, cache,
-                                         i_index, j_index,
-                                         element_index, normal_direction,
-                                         surface_flux_function, idx_other)
+                                        u_inner, mesh, nonconservative_terms::False,
+                                        equations, cache,
+                                        i_index, j_index,
+                                        element_index, normal_direction,
+                                        surface_flux_function, idx_other)
     u_boundary = _convert_boundary_state(boundary_condition, semi_other,
-                                          u_boundary_raw, equations, cache,
-                                          i_index, j_index, element_index, idx_other)
+                                         u_boundary_raw, equations, cache,
+                                         i_index, j_index, element_index, idx_other)
 
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
@@ -546,14 +542,14 @@ end
 end
 
 @inline function _compute_boundary_flux(semi_other, u_boundary_raw, boundary_condition,
-                                         u_inner, mesh, nonconservative_terms::True,
-                                         equations, cache,
-                                         i_index, j_index,
-                                         element_index, normal_direction,
-                                         surface_flux_function, idx_other)
+                                        u_inner, mesh, nonconservative_terms::True,
+                                        equations, cache,
+                                        i_index, j_index,
+                                        element_index, normal_direction,
+                                        surface_flux_function, idx_other)
     u_boundary = _convert_boundary_state(boundary_condition, semi_other,
-                                          u_boundary_raw, equations, cache,
-                                          i_index, j_index, element_index, idx_other)
+                                         u_boundary_raw, equations, cache,
+                                         i_index, j_index, element_index, idx_other)
 
     flux = (surface_flux_function[1](u_inner, u_boundary, normal_direction, equations) +
             0.5f0 *
@@ -564,8 +560,8 @@ end
 
 # Apply coupling converter to transform from neighbor's equations to ours.
 @inline function _convert_boundary_state(boundary_condition, semi_other,
-                                          u_boundary_raw, equations, cache,
-                                          i_index, j_index, element_index, idx_other)
+                                         u_boundary_raw, equations, cache,
+                                         i_index, j_index, element_index, idx_other)
     x = SVector(ntuple(@inline(idx -> cache.elements.node_coordinates[idx, i_index,
                                                                       j_index,
                                                                       element_index]),
