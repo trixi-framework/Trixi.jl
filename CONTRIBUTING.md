@@ -14,7 +14,7 @@ Trixi.jl and its contributions are licensed under the MIT license (see
 contributions are in conformance with the *Developer Certificate of Origin
 (Version 1.1)*, which is reproduced below.
 
-## LLM usage 
+## LLM/AI usage 
 
 PRs which make use of LLMs and AI tools are allowed. However, because an LLM-assisted PR may have different issues than human-only PRs and necessitate different review styles, we request that PRs disclose any LLM contributions. 
 
