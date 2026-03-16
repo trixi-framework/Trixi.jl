@@ -291,7 +291,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                 1.0764117f0
                             ],
                             tspan=(0.0f0, 1.0f0),
-                            rtol=10*sqrt(eps(Float32)), # to make CI pass
+                            rtol=10 * sqrt(eps(Float32)), # to make CI pass
                             RealT_for_test_tolerances=Float32)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
