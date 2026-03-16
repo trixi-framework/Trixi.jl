@@ -522,7 +522,7 @@ end
     offset = first(semi_coupled.u_indices[idx_other]) - 1
     nvars = nvariables(semi_other.equations)
     nn = nnodes(semi_other.solver)
-    SVector(ntuple(@inline(v -> u_ode[offset + v + nvars * ((i - 1) + nn * ((j - 1) + nn * (elem - 1)))]),
+    SVector(ntuple(@inline(v->u_ode[offset + v + nvars * ((i - 1) + nn * ((j - 1) + nn * (elem - 1)))]),
                    Val(nvars)))
 end
 
