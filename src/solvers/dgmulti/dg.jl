@@ -727,7 +727,8 @@ end
 #   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
 #   https://doi.org/10.1137/16M1089198
 function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
-                          dg::DGMulti{<:Polynomial}, cache; scaling = -1) where {NDIMS}
+                          dg::DGMulti{NDIMS, ElemType, <:Polynomial}, cache;
+                          scaling = -1) where {NDIMS, ElemType}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
     (; invJ) = cache.geometric_terms_container
