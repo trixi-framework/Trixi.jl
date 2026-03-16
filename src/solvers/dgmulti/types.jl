@@ -89,8 +89,6 @@ const DGMultiGaussSBP{NDIMS, ElemType, ApproxType} = DGMulti{NDIMS, ElemType,
                                                                                 ApproxType <:
                                                                                 GaussSBP}
 
-const DGMultiNodalCollocation = Union{<:DGMultiSBP, <:DGMultiFDSBP, <:DGMultiGaussSBP}
-
 struct DGMultiGeometricTermsContainer{TJ, TinvJ, Tdxidxhatj}
     J::TJ
     invJ::TinvJ

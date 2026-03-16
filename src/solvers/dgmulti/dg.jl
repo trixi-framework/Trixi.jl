@@ -708,9 +708,9 @@ end
     return invJ[node, element]
 end
 
-# inverts Jacobian and scales by -1.0
+# inverts Jacobian and scales by -1.0. 
 function invert_jacobian!(du, mesh::DGMultiMesh, equations,
-                          dg::DGMultiNodalCollocation, cache;
+                          dg::DGMulti, cache;
                           scaling = -1)
     (; invJ) = cache.geometric_terms_container
     @threaded for element in eachelement(mesh, dg, cache)
