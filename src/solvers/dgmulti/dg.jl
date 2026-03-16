@@ -710,8 +710,9 @@ end
 end
 
 # inverts Jacobian and scales by -1.0
-function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache;
-                          scaling = -1)
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
+                          dg::DGMulti, cache;
+                          scaling = -1) where {NDIMS}
     @threaded for e in eachelement(mesh, dg, cache)
         invJ = cache.geometric_terms_container.invJ[1, e]
         for i in axes(du, 1)
