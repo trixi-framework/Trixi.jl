@@ -108,7 +108,8 @@ function rhs!(du, u, t,
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
-    return rhs!(nothing, du, u, t, mesh, equations, boundary_conditions, source_terms, dg, cache)
+    return rhs!(nothing, du, u, t, mesh, equations, boundary_conditions, source_terms,
+                dg, cache)
 end
 
 # This function is valid for all non-conforming mesh types, i.e.,
