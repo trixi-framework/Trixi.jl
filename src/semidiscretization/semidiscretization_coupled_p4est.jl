@@ -562,9 +562,9 @@ end
 @inline function _convert_boundary_state(boundary_condition, semi_other,
                                          u_boundary_raw, equations, cache,
                                          i_index, j_index, element_index, idx_other)
-    x = SVector(ntuple(@inline(idx -> cache.elements.node_coordinates[idx, i_index,
-                                                                      j_index,
-                                                                      element_index]),
+    x = SVector(ntuple(@inline(idx->cache.elements.node_coordinates[idx, i_index,
+                                                                    j_index,
+                                                                    element_index]),
                        Val(ndims(equations))))
     converter = boundary_condition.coupling_converter
     if converter isa AbstractMatrix
