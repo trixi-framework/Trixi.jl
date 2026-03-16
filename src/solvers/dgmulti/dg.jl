@@ -704,19 +704,18 @@ end
 # be treated using a weight-adjusted mass matrix inversion. 
 @inline get_node_invJ(invJ, node, element, ::DGMultiMesh) = invJ[1, element]
 @inline function get_node_invJ(invJ, node, element,
-                               ::DGMultiMesh{NDIMS, <:NonAffine,
-                                             <:Union{SBP, GaussSBP}}) where {NDIMS}
+                               ::DGMultiMesh{NDIMS, <:NonAffine}) where {NDIMS}
     return invJ[node, element]
 end
 
 # inverts Jacobian and scales by -1.0
-function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
-                          dg::DGMulti, cache;
-                          scaling = -1) where {NDIMS}
-    @threaded for e in eachelement(mesh, dg, cache)
-        invJ = cache.geometric_terms_container.invJ[1, e]
+function invert_jacobian!(du, mesh::DGMultiMesh, equations,
+                          dg::DGMultiNodalCollocation, cache;
+                          scaling = -1)
+    (; invJ) = cache.geometric_terms_container
+    @threaded for element in eachelement(mesh, dg, cache)
         for i in axes(du, 1)
-            du[i, e] *= scaling * invJ
+            du[i, element] *= scaling * get_node_invJ(invJ, i, element, mesh)
         end
     end
 
@@ -728,7 +727,7 @@ end
 #   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
 #   https://doi.org/10.1137/16M1089198
 function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
-                          dg::DGMulti, cache; scaling = -1) where {NDIMS}
+                          dg::DGMulti{<:Polynomial}, cache; scaling = -1) where {NDIMS}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
     (; invJ) = cache.geometric_terms_container
