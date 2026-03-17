@@ -91,7 +91,7 @@ end
 # simply taken from the element face nodes.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
                                  basis::LobattoLegendreBasis,
-                                 elements::P4estElementContainer{2})
+                                 elements)
     @unpack neighbor_ids, node_indices, normal_directions = interfaces
     @unpack contravariant_vectors = elements
     index_range = eachnode(basis)
@@ -131,7 +131,7 @@ end
 # computed from interpolation of the volume node normals to the surface nodes.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
                                  basis::GaussLegendreBasis,
-                                 elements::P4estElementContainer{2})
+                                 elements)
     @unpack neighbor_ids, node_indices, normal_directions = interfaces
     @unpack contravariant_vectors = elements
     @unpack boundary_interpolation = basis
