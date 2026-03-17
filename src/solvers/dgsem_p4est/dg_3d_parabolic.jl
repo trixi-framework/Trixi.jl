@@ -195,24 +195,24 @@ end
     return nothing
 end
 
-# This is the version used when calculating the divergence of the viscous fluxes.
+# This is the version used when calculating the divergence of the parabolic fluxes.
 # Identical to weak-form volume integral/kernel for the purely hyperbolic case,
-# except that the fluxes are here already precomputed in `calc_viscous_fluxes!`
-function calc_volume_integral!(du, flux_viscous, mesh::P4estMesh{3},
+# except that the fluxes are here already precomputed in `calc_parabolic_fluxes!`
+function calc_volume_integral!(du, flux_parabolic, mesh::P4estMesh{3},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
     (; derivative_hat) = dg.basis
     (; contravariant_vectors) = cache.elements
-    flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
+    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            flux1 = get_node_vars(flux_viscous_x, equations_parabolic, dg,
+            flux1 = get_node_vars(flux_parabolic_x, equations_parabolic, dg,
                                   i, j, k, element)
-            flux2 = get_node_vars(flux_viscous_y, equations_parabolic, dg,
+            flux2 = get_node_vars(flux_parabolic_y, equations_parabolic, dg,
                                   i, j, k, element)
-            flux3 = get_node_vars(flux_viscous_z, equations_parabolic, dg,
+            flux3 = get_node_vars(flux_parabolic_z, equations_parabolic, dg,
                                   i, j, k, element)
 
             # Compute the contravariant flux by taking the scalar product of the
@@ -253,18 +253,18 @@ function calc_volume_integral!(du, flux_viscous, mesh::P4estMesh{3},
     return nothing
 end
 
-# This is the version used when calculating the divergence of the viscous fluxes.
-# Specialization `flux_viscous::Tuple` needed to
+# This is the version used when calculating the divergence of the parabolic fluxes.
+# Specialization `flux_parabolic::Tuple` needed to
 # avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
-function prolong2interfaces!(cache, flux_viscous::Tuple,
+function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
                              dg::DG)
     (; interfaces) = cache
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
-    flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
+    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
     @threaded for interface in eachinterface(dg, cache)
         # Copy solution data from the primary element using "delayed indexing" with
@@ -298,14 +298,17 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
 
                 for v in eachvariable(equations_parabolic)
                     # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_viscous = SVector(flux_viscous_x[v, i_primary, j_primary,
-                                                          k_primary, primary_element],
-                                           flux_viscous_y[v, i_primary, j_primary,
-                                                          k_primary, primary_element],
-                                           flux_viscous_z[v, i_primary, j_primary,
-                                                          k_primary, primary_element])
+                    flux_parabolic = SVector(flux_parabolic_x[v, i_primary, j_primary,
+                                                              k_primary,
+                                                              primary_element],
+                                             flux_parabolic_y[v, i_primary, j_primary,
+                                                              k_primary,
+                                                              primary_element],
+                                             flux_parabolic_z[v, i_primary, j_primary,
+                                                              k_primary,
+                                                              primary_element])
 
-                    interfaces.u[1, v, i, j, interface] = dot(flux_viscous,
+                    interfaces.u[1, v, i, j, interface] = dot(flux_parabolic,
                                                               normal_direction)
                 end
                 i_primary += i_primary_step_i
@@ -346,18 +349,21 @@ function prolong2interfaces!(cache, flux_viscous::Tuple,
 
                 for v in eachvariable(equations_parabolic)
                     # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_viscous = SVector(flux_viscous_x[v, i_secondary, j_secondary,
-                                                          k_secondary,
-                                                          secondary_element],
-                                           flux_viscous_y[v, i_secondary, j_secondary,
-                                                          k_secondary,
-                                                          secondary_element],
-                                           flux_viscous_z[v, i_secondary, j_secondary,
-                                                          k_secondary,
-                                                          secondary_element])
+                    flux_parabolic = SVector(flux_parabolic_x[v, i_secondary,
+                                                              j_secondary,
+                                                              k_secondary,
+                                                              secondary_element],
+                                             flux_parabolic_y[v, i_secondary,
+                                                              j_secondary,
+                                                              k_secondary,
+                                                              secondary_element],
+                                             flux_parabolic_z[v, i_secondary,
+                                                              j_secondary,
+                                                              k_secondary,
+                                                              secondary_element])
                     # store the normal flux with respect to the primary normal direction,
                     # which is the negative of the secondary normal direction
-                    interfaces.u[2, v, i, j, interface] = -dot(flux_viscous,
+                    interfaces.u[2, v, i, j, interface] = -dot(flux_parabolic,
                                                                normal_direction)
                 end
                 i_secondary += i_secondary_step_i
@@ -423,16 +429,17 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
                                                         contravariant_vectors,
                                                         i_primary, j_primary, k_primary,
                                                         primary_element)
-                # We prolong the viscous flux dotted with respect the outward normal on the
+                # We prolong the parabolic flux dotted with respect the outward normal on the
                 # primary element.
-                viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
-                                                                                       equations_parabolic,
-                                                                                       dg,
-                                                                                       i,
-                                                                                       j,
-                                                                                       interface)
+                parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(cache.interfaces.u,
+                                                                                           equations_parabolic,
+                                                                                           dg,
+                                                                                           i,
+                                                                                           j,
+                                                                                           interface)
 
-                flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+                flux_ = flux_parabolic(parabolic_flux_normal_ll,
+                                       parabolic_flux_normal_rr,
                                        normal_direction, Divergence(),
                                        equations_parabolic, parabolic_scheme)
 
@@ -464,7 +471,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
     return nothing
 end
 
-function prolong2mortars_divergence!(cache, flux_viscous,
+function prolong2mortars_divergence!(cache, flux_parabolic,
                                      mesh::P4estMesh{3}, equations_parabolic,
                                      mortar_l2::LobattoLegendreMortarL2,
                                      dg::DGSEM)
@@ -473,7 +480,7 @@ function prolong2mortars_divergence!(cache, flux_viscous,
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
 
-    flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
+    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
     @threaded for mortar in eachmortar(dg, cache)
         # Copy solution data from the small elements using "delayed indexing" with
@@ -501,14 +508,14 @@ function prolong2mortars_divergence!(cache, flux_viscous,
                                                             element)
 
                     for v in eachvariable(equations_parabolic)
-                        flux_viscous = SVector(flux_viscous_x[v, i_small, j_small,
-                                                              k_small, element],
-                                               flux_viscous_y[v, i_small, j_small,
-                                                              k_small, element],
-                                               flux_viscous_z[v, i_small, j_small,
-                                                              k_small, element])
+                        flux_parabolic = SVector(flux_parabolic_x[v, i_small, j_small,
+                                                                  k_small, element],
+                                                 flux_parabolic_y[v, i_small, j_small,
+                                                                  k_small, element],
+                                                 flux_parabolic_z[v, i_small, j_small,
+                                                                  k_small, element])
 
-                        cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_viscous,
+                        cache.mortars.u[1, v, position, i, j, mortar] = dot(flux_parabolic,
                                                                             normal_direction)
                     end
                     i_small += i_small_step_i
@@ -551,18 +558,21 @@ function prolong2mortars_divergence!(cache, flux_viscous,
                                                         element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_viscous = SVector(flux_viscous_x[v, i_large, j_large, k_large,
-                                                          element],
-                                           flux_viscous_y[v, i_large, j_large, k_large,
-                                                          element],
-                                           flux_viscous_z[v, i_large, j_large, k_large,
-                                                          element])
+                    flux_parabolic = SVector(flux_parabolic_x[v, i_large, j_large,
+                                                              k_large,
+                                                              element],
+                                             flux_parabolic_y[v, i_large, j_large,
+                                                              k_large,
+                                                              element],
+                                             flux_parabolic_z[v, i_large, j_large,
+                                                              k_large,
+                                                              element])
 
-                    # We prolong the viscous flux dotted with respect the outward normal
+                    # We prolong the parabolic flux dotted with respect the outward normal
                     # on the small element. We scale by -1/2 here because the normal
                     # direction on the large element is negative 2x that of the small
                     # element (these normal directions are "scaled" by the surface Jacobian)
-                    u_buffer[v, i, j] = -0.5f0 * dot(flux_viscous, normal_direction)
+                    u_buffer[v, i, j] = -0.5f0 * dot(flux_parabolic, normal_direction)
                 end
                 i_large += i_large_step_i
                 j_large += j_large_step_i
@@ -634,13 +644,13 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                                             element)
 
                     for v in eachvariable(equations_parabolic)
-                        viscous_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
-                                                                 mortar]
-                        viscous_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
-                                                                 mortar]
+                        parabolic_flux_normal_ll = cache.mortars.u[1, v, position, i, j,
+                                                                   mortar]
+                        parabolic_flux_normal_rr = cache.mortars.u[2, v, position, i, j,
+                                                                   mortar]
 
-                        flux_ = flux_parabolic(viscous_flux_normal_ll,
-                                               viscous_flux_normal_rr,
+                        flux_ = flux_parabolic(parabolic_flux_normal_ll,
+                                               parabolic_flux_normal_rr,
                                                normal_direction, Divergence(),
                                                equations_parabolic, parabolic_scheme)
 
@@ -748,7 +758,7 @@ end
 # We structure `calc_mortar_flux_gradient!` similarly to "calc_mortar_flux!" for
 # hyperbolic equations with no nonconservative terms.
 # The reasoning is that parabolic fluxes are treated like conservative
-# terms (e.g., we compute a viscous conservative "flux") and thus no
+# terms (e.g., we compute a parabolic conservative "flux") and thus no
 # non-conservative terms are present.
 @inline function calc_mortar_flux_gradient!(fstar_primary, fstar_secondary,
                                             mesh::P4estMesh{3},
@@ -852,10 +862,10 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
     return nothing
 end
 
-# Specialization `flux_viscous::Tuple` needed to
+# Specialization `flux_parabolic::Tuple` needed to
 # avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
-function prolong2boundaries!(cache, flux_viscous::Tuple,
+function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
                              dg::DG)
@@ -863,7 +873,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
     (; contravariant_vectors) = cache.elements
     index_range = eachnode(dg)
 
-    flux_viscous_x, flux_viscous_y, flux_viscous_z = flux_viscous
+    flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
     @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with
@@ -891,14 +901,14 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
                                                         i_node, j_node, k_node, element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_viscous = SVector(flux_viscous_x[v, i_node, j_node, k_node,
-                                                          element],
-                                           flux_viscous_y[v, i_node, j_node, k_node,
-                                                          element],
-                                           flux_viscous_z[v, i_node, j_node, k_node,
-                                                          element])
+                    flux_parabolic = SVector(flux_parabolic_x[v, i_node, j_node, k_node,
+                                                              element],
+                                             flux_parabolic_y[v, i_node, j_node, k_node,
+                                                              element],
+                                             flux_parabolic_z[v, i_node, j_node, k_node,
+                                                              element])
 
-                    boundaries.u[v, i, j, boundary] = dot(flux_viscous,
+                    boundaries.u[v, i, j, boundary] = dot(flux_parabolic,
                                                           normal_direction)
                 end
                 i_node += i_node_step_i
@@ -1092,7 +1102,7 @@ end
 # Needed to *not* flip the sign of the inverse Jacobian.
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
-# where f(u) is the inviscid flux and g(u) is the viscous flux.
+# where f(u) is the inviscid flux and g(u) is the parabolic flux.
 function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{3},
                                    equations_parabolic::AbstractEquationsParabolic,
                                    dg::DG, cache)

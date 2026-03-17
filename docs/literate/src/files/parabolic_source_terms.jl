@@ -62,7 +62,7 @@ end
 # to OrdinaryDiffEq.jl. 
 # 
 # Note that for this problem, since viscosity `nu` is relatively large, we utilize 
-# `ViscousFormulationLocalDG` instead of the default `ViscousFormulationBassiRebay1` 
+# `ParabolicFormulationLocalDG` instead of the default `ParabolicFormulationBassiRebay1` 
 # parabolic solver, since the Bassi-Rebay 1 formulation is not accurate when the 
 # diffusivity is large relative to the mesh size. 
 
@@ -76,7 +76,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationLocalDG(),
+                                             solver_parabolic = ParabolicFormulationLocalDG(),
                                              source_terms = source_terms,
                                              source_terms_parabolic = source_terms_parabolic,
                                              boundary_conditions = (boundary_conditions,

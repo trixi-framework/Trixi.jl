@@ -40,7 +40,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;
-                                             solver_parabolic = ViscousFormulationLocalDG(),
+                                             solver_parabolic = ParabolicFormulationLocalDG(),
                                              source_terms = source_terms,
                                              source_terms_parabolic = source_terms_parabolic,
                                              boundary_conditions = (boundary_conditions,

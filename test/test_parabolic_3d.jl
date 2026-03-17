@@ -457,7 +457,7 @@ end
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
-                        solver_parabolic=ViscousFormulationLocalDG(),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
                         initial_refinement_level=2,
                         base_level=2,
                         med_level=3,
@@ -495,7 +495,7 @@ end
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        solver_parabolic=ViscousFormulationLocalDG(),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
                         l2=[0.0009432415534931421], linf=[0.016955330290404563])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -525,7 +525,7 @@ end
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
-                        solver_parabolic=ViscousFormulationLocalDG(),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
                         cfl_diffusive=0.07,
                         l2=[0.0041854757843498725], linf=[0.05166356737492643])
     # Ensure that we do not have excessive memory allocations
@@ -547,7 +547,7 @@ end
 @trixi_testset "P4estMesh3D: elixir_advection_diffusion_amr_curved.jl (LDG)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_amr_curved.jl"),
-                        solver_parabolic=ViscousFormulationLocalDG(),
+                        solver_parabolic=ParabolicFormulationLocalDG(),
                         l2=[0.0006853004145232737], linf=[0.02352694543085776])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
