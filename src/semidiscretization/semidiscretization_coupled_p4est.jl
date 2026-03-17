@@ -83,7 +83,7 @@ end
 function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
     @nospecialize semi # reduce precompilation time
 
-    print(io, "SemidiscretizationCoupledP4est($(semi.semis))")
+    print(io, "SemidiscretizationCoupledP4est with $(nsystems(semi)) systems")
     return nothing
 end
 
