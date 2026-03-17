@@ -115,6 +115,9 @@ isdir(outdir) && rm(outdir, recursive = true)
         # (e.g., from type instabilities)
         @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
 
+        # Test show methods for code coverage.
+        @test_nowarn show(stdout, semi)
+
         # Load the mesh file for code coverage.
         loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5");
                                              n_cells_max = 0,
