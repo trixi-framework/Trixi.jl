@@ -994,11 +994,12 @@ end
 # Call this for coupled P4estMeshView simulations.
 # The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
 # the additional variable u_parent is needed, compared to non-coupled systems.
-function rhs!(backend, du, u, t, u_parent, semis,
+function rhs!(du, u, t, u_parent, semis,
               mesh::P4estMeshView{2},
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    backend = nothing
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
