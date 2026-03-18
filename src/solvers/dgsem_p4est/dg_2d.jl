@@ -1053,7 +1053,8 @@ function rhs!(backend, du, u, t, u_parent, semis,
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
