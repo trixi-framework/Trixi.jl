@@ -223,14 +223,22 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
                                  nvisnodes = 2 * nnodes(dg))
     @unpack md = mesh
     rd = dg.basis
-
-    # Construct 1D plotting interpolation matrix `Vp1D` for a single face
     @unpack N, Fmask = rd
-    vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
+
+    # number of points on a single face, assuming all faces have the same number of points
+    # note that since ScalarPlotData2D is restricted to Tri and Quad types, this should always be true.
+    num_face_points = size(Fmask, 1) ÷ num_faces(rd.element_type)
+
+    # this assumes that the nodes of the first face on the reference element correspond to a face where
+    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis. 
+    face_nodes_1D = basis.r[reshape(basis.Fmask, :, num_faces(rd.element_type))[:, 1]]
+
+    # Construct 1D plotting interpolation matrix `Vp1D` for a single face. 
+    # Since num_face_points may be larger than N+1, this is doing a least squares projection
+    vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, face_nodes_1D)
     rplot = LinRange(-1, 1, nvisnodes)
     Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-    num_face_points = N + 1
     num_faces_total = num_faces(rd.element_type) * md.num_elements
     xf, yf, uf = map(x -> reshape(view(x, Fmask, :), num_face_points, num_faces_total),
                      (md.xyz..., u.data))
