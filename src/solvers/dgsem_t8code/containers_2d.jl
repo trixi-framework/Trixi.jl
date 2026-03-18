@@ -68,12 +68,7 @@ end
 function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
                                    other_face, orientation, neighbor_ielements,
                                    mortar_id)
-    if orientation == 0
-        mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[1] + 1
-        mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[2] + 1
-    else
-        mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[2] + 1
-        mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[1] + 1
-    end
+    mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[1] + 1
+    mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[2] + 1
 end
 end # @muladd
