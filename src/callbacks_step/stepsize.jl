@@ -143,9 +143,8 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
                       semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    backend = trixi_backend(u_ode)
 
-    return cfl_advective(t) * max_dt(backend, u, t, mesh,
+    return cfl_advective(t) * max_dt(u, t, mesh,
                   have_constant_speed(equations), equations,
                   solver, cache)
 end
@@ -155,9 +154,8 @@ function calculate_dt(u_ode, t, cfl_advective::Real, cfl_diffusive::Real,
                       semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    backend = trixi_backend(u_ode)
 
-    return cfl_advective * max_dt(backend, u, t, mesh,
+    return cfl_advective * max_dt(u, t, mesh,
                   have_constant_speed(equations), equations,
                   solver, cache)
 end
@@ -169,15 +167,14 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     equations_parabolic = semi.equations_parabolic
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    backend = trixi_backend(u_ode)
 
-    dt_advective = cfl_advective(t) * max_dt(backend, u, t, mesh,
+    dt_advective = cfl_advective(t) * max_dt(u, t, mesh,
                           have_constant_speed(equations), equations,
                           solver, cache)
 
     cfl_diff = cfl_diffusive(t)
     if cfl_diff > 0 # Check if diffusive CFL should be considered
-        dt_diffusive = cfl_diff * max_dt(backend, u, t, mesh,
+        dt_diffusive = cfl_diff * max_dt(u, t, mesh,
                               have_constant_diffusivity(equations_parabolic), equations,
                               equations_parabolic, solver, cache)
 
@@ -185,6 +182,50 @@ function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
     else
         return dt_advective
     end
+end
+
+function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equations, dg,
+                               cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    max_scaled_speed = zero(eltype(u))
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+        max_lambda = max_scaled_speed_element(u, typeof(mesh), constant_speed,
+                                              equations, dg,
+                                              contravariant_vectors, inverse_jacobian,
+                                              element)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
+    end
+    return max_scaled_speed
+end
+
+function calc_max_scaled_speed(backend::Backend, u, mesh, constant_speed, equations, dg,
+                               cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    num_elements = nelements(dg, cache)
+    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+
+    kernel! = max_scaled_speed_KAkernel!(backend)
+    kernel!(max_scaled_speeds, u, typeof(mesh), constant_speed, equations, dg,
+            contravariant_vectors,
+            inverse_jacobian;
+            ndrange = num_elements)
+
+    return maximum(max_scaled_speeds)
+end
+
+@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, meshT, constant_speed,
+                                            equations,
+                                            dg, contravariant_vectors, inverse_jacobian)
+    element = @index(Global)
+    max_scaled_speeds[element] = max_scaled_speed_element(u, meshT, constant_speed,
+                                                          equations, dg,
+                                                          contravariant_vectors,
+                                                          inverse_jacobian,
+                                                          element)
 end
 
 include("stepsize_dg1d.jl")
