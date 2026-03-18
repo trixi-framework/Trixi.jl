@@ -16,7 +16,7 @@ end
 outflow(x) = (x[1] ≈ maximum(VXY[1]))
 cylinder(x) = !freestream(x) && !outflow(x)
 is_on_boundary = (; freestream = freestream, outflow = outflow, wall = cylinder)
-mesh = DGMultiMesh(dg, VXY, EToV; is_on_boundary)
+mesh = DGMultiMesh(basis, VXY, EToV; is_on_boundary)
 
 volume_flux = flux_ranocha
 surface_flux = flux_lax_friedrichs
@@ -70,7 +70,6 @@ callbacks = CallbackSet(summary_callback, alive_callback,
                         analysis_callback, save_solution)
 
 sol = solve(ode, solver;
-            dt = 1e-2 * estimate_dt(mesh, dg),
-            abstol = 1e-5, reltol = 1e-3,
+            dt = 1e-6, abstol = 1e-5, reltol = 1e-3,
             ode_default_options()...,
             callback = callbacks);

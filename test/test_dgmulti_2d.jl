@@ -499,6 +499,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        l2=[
+                            0.05685180852320552,
+                            0.04308097439005265,
+                            0.04308097439005263,
+                            0.21098250258804
+                        ],
+                        linf=[
+                            0.2360805191601203,
+                            0.16684117462697776,
+                            0.16684117462697767,
+                            0.8573034682049414
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
     using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
