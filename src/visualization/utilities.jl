@@ -231,7 +231,7 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
 
     # this assumes that the nodes of the first face on the reference element correspond to a face where
     # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis. 
-    face_nodes_1D = basis.r[reshape(basis.Fmask, :, num_faces(rd.element_type))[:, 1]]
+    face_nodes_1D = rd.r[reshape(rd.Fmask, :, num_faces(rd.element_type))[:, 1]]
 
     # Construct 1D plotting interpolation matrix `Vp1D` for a single face. 
     # Since num_face_points may be larger than N+1, this is doing a least squares projection
