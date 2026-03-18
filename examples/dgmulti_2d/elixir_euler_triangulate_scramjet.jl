@@ -60,17 +60,6 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, sav
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 0.8 * estimate_dt(mesh, dg),
+            dt = 0.7 * estimate_dt(mesh, dg),
             ode_default_options()...,
             callback = callbacks);
-
-function local_Mach_number(u, equations)
-    rho, v1, v2, p = prim2cons(u, equations)
-    vnorm = sqrt(v1^2 + v2^2)
-    c = sqrt(equations.gamma * p / rho)
-    return vnorm / c
-end
-
-using Plots
-plot(getmesh(ScalarPlotData2D(local_Mach_number, sol.u[end], semi)))
-# plot(ScalarPlotData2D(local_Mach_number, sol.u[end], semi))
