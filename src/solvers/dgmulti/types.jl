@@ -218,12 +218,12 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
 
 """
-    DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
+    DGMultiMesh(dg_or_basis, vertex_coordinates, EToV;
                 is_on_boundary=nothing,
                 periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
-- `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
-  basis evaluation, differentiation, etc).
+- `dg_or_basis` should be a `DGMulti` or `DGMultiBasis`, and contains information associated with 
+  the reference element (e.g., quadrature, basis evaluation, differentiation, etc).
 - `vertex_coordinates` is a tuple of vectors containing x,y,... components of the vertex coordinates
 - `EToV` is a 2D array containing element-to-vertex connectivities for each element
 - `is_on_boundary` specifies boundary using a `NamedTuple`
@@ -231,6 +231,14 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
   (x,y,z) direction.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray;
+                     is_on_boundary = nothing,
+                     periodicity = ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
+    return DGMultiMesh(dg.basis, vertex_coordinates, EToV;
+                       is_on_boundary, periodicity, kwargs...)
+end
+
+function DGMultiMesh(basis::DGMultiBasis{NDIMS}, vertex_coordinates,
+                     EToV::AbstractArray;
                      is_on_boundary = nothing,
                      periodicity = ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
     md = MeshData(vertex_coordinates, EToV, dg.basis)
