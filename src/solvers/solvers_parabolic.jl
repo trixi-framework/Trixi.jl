@@ -121,7 +121,7 @@ end
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    # Use "Upwind in dominant direction" fro LDG switch
+    # Use "Upwind in dominant direction" for LDG switch
     abs_max_dir = argmax(abs.(normal_direction))
     ldg_switch = sign(normal_direction[abs_max_dir])
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
@@ -163,7 +163,7 @@ end
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    # Use "Downwind in dominant direction" fro LDG switch
+    # Use "Downwind in dominant direction" for LDG switch
     abs_max_dir = argmax(abs.(normal_direction))
     ldg_switch = -sign(normal_direction[abs_max_dir])
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))

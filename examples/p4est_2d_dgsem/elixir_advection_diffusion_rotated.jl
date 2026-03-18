@@ -4,14 +4,14 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
 
-diffusivity() = 1.0e-1
+diffusivity() = 1.0e-2
 advection_velocity = (-1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 function initial_condition_gauss_damped(x, t, equations)
     damping_factor = 1 + 4 * diffusivity() * t
-    return SVector(exp(-(x[1]^2 + x[2]^2)/damping_factor) / damping_factor)
+    return SVector(exp(-(x[1]^2 + x[2]^2) / damping_factor) / damping_factor)
 end
 initial_condition = initial_condition_gauss_damped
 
@@ -30,10 +30,9 @@ mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3, initial_refinement_level = 0,
                  mapping = mapping, periodicity = true)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic), 
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              solver_parabolic = ViscousFormulationLocalDG(),
-                                             #solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
 
