@@ -186,7 +186,7 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 # Also, the normal directions are already outward pointing for `UnstructuredMesh2D` so all the
 # surface contributions are added.
-function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
+function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
                                 dg::DG, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
