@@ -121,7 +121,9 @@ end
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
+    # Use "Upwind in dominant direction" fro LDG switch
+    abs_max_dir = argmax(abs.(normal_direction))
+    ldg_switch = sign(normal_direction[abs_max_dir])
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
@@ -157,12 +159,14 @@ function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end
-# Version or `P4estMesh`
+# Version for `P4estMesh`
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ViscousFormulationLocalDG)
-    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
-    return 0.5f0 * (u_ll + u_rr + ldg_switch * (u_rr - u_ll))
+    # Use "Downwind in dominant direction" fro LDG switch
+    abs_max_dir = argmax(abs.(normal_direction))
+    ldg_switch = -sign(normal_direction[abs_max_dir])
+    return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
