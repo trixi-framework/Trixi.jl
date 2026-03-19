@@ -206,7 +206,7 @@ function calc_max_scaled_speed(backend::Backend, u, mesh, constant_speed, equati
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     num_elements = nelements(dg, cache)
-    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+    max_scaled_speeds = allocate(backend, eltype(u), num_elements)
 
     kernel! = max_scaled_speed_KAkernel!(backend)
     kernel!(max_scaled_speeds, u, typeof(mesh), constant_speed, equations, dg,

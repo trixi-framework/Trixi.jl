@@ -112,7 +112,7 @@ end
 
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
-                            T8codeMesh{2}, StructuredMeshView{2}},
+                            P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
                 constant_speed, equations, dg::DG, cache)
     backend = trixi_backend(u)
 
