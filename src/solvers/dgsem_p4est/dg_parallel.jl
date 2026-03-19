@@ -264,6 +264,29 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
     return cache
 end
 
+function create_cache_parabolic(mesh::P4estMeshParallel,
+                                equations_hyperbolic::AbstractEquations,
+                                dg::DG, n_elements, uEltype ) 
+
+    # Keep mesh state consistent, just like the hyperbolic parallel cache
+    balance!(mesh)
+    partition!(mesh)
+    update_ghost_layer!(mesh)
+
+    # Local parabolic containers
+    elements   = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
+    interfaces = init_interfaces(mesh, equations_hyperbolic, dg.basis, elements)
+    boundaries = init_boundaries(mesh, equations_hyperbolic, dg.basis, elements)
+
+
+    # --- Minimal viscous container (ONLY what is already used downstream)
+    viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
+                                                  nnodes(dg), n_elements,
+                                                  uEltype)
+
+    return (; elements, interfaces, boundaries, viscous_container)
+end
+
 function init_mpi_cache(mesh::P4estMeshParallel, mpi_interfaces, mpi_mortars, nvars,
                         nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
