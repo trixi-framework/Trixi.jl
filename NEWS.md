@@ -5,6 +5,16 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.15 from v0.14.x
+
+- The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
+In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
+i.e., summing up the normal components, the `ldg_switch` is now selected as 
+the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the dominant direction of the interface normal.
+This might change results slightly for some meshes where the sum of the normal might be close to zero,
+thus introducing some spurious switch assignments ([#2871]).
+
 ## Changes in the v0.15 lifecycle
 
 #### Added

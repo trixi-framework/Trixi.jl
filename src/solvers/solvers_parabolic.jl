@@ -100,11 +100,12 @@ f_{\text{gradient}} = u_{L}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
-For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding/downwinding.
-This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
+For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding.
+This is realized by selecting the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the "dominant" direction of the interface normal.
 ```math
-\sigma = \text{sign}(\vec{n} \cdot \vec{1})
-f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) - \sigma \big[f(u_{R}) - f(u_{L})\big]\Big)
+i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
+\sigma = \text{sign} (n_1)
 ```
 """
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
@@ -147,11 +148,12 @@ f_{\text{divergence}} = u_{R}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
-For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding/downwinding.
-This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
+For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the downwinding.
+This is realized by selecting the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the "dominant" direction of the interface normal.
 ```math
-\sigma = \text{sign}(\vec{n} \cdot \vec{1})
-f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) + \sigma \big[f(u_{R}) - f(u_{L})\big]\Big)
+i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
+\sigma = -\text{sign} (n_1)
 ```
 """
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
