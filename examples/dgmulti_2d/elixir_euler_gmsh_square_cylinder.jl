@@ -6,8 +6,11 @@ using Trixi: StartUpDG
 polydeg = 3
 basis = DGMultiBasis(Tri(), polydeg, approximation_type = SBP())
 
-mesh_path = "/Users/jchan/.julia/dev/StartUpDG/test/testset_Gmsh_meshes/squareCylinder2D.msh"
-VXY, EToV = StartUpDG.read_Gmsh_2D(mesh_path)
+# TODO: fix this download
+# mesh_file = Trixi.download("https://github.com/jlchan/StartUpDG.jl/blob/041d270ac97f8a650fb3e7a32b35cc9314e0777f/test/testset_Gmsh_meshes/squareCylinder2D.msh",
+#                            joinpath(@__DIR__, "squareCylinder2D.msh"))
+mesh_file = "/Users/jchan/.julia/dev/StartUpDG/test/testset_Gmsh_meshes/squareCylinder2D.msh"
+VXY, EToV = StartUpDG.read_Gmsh_2D(mesh_file)
 
 # tag different boundary conditions
 function freestream(x)
@@ -16,7 +19,6 @@ end
 outflow(x) = (x[1] ≈ maximum(VXY[1]))
 cylinder(x) = !freestream(x) && !outflow(x)
 is_on_boundary = (; freestream = freestream, outflow = outflow, wall = cylinder)
-mesh = DGMultiMesh(basis, VXY, EToV; is_on_boundary)
 
 volume_flux = flux_ranocha
 surface_flux = flux_lax_friedrichs
@@ -28,9 +30,11 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
+
 dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
+mesh = DGMultiMesh(dg, VXY, EToV; is_on_boundary)
 
 equations = CompressibleEulerEquations2D(1.4)
 @inline function initial_condition_mach2_flow(x, t, equations::CompressibleEulerEquations2D)
