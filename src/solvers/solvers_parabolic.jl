@@ -105,7 +105,7 @@ This is realized by selecting the sign of the maximum (in absolute value sense) 
 which corresponds to the "dominant" direction of the interface normal.
 ```math
 i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
-\sigma = \text{sign} (n_1)
+\sigma = \text{sign} (n_i)
 ```
 """
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
@@ -153,7 +153,7 @@ This is realized by selecting the sign of the maximum (in absolute value sense) 
 which corresponds to the "dominant" direction of the interface normal.
 ```math
 i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
-\sigma = -\text{sign} (n_1)
+\sigma = -\text{sign} (n_i)
 ```
 """
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
