@@ -572,9 +572,9 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
-function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Union{Quad, Hex}}, equations,
+function invert_jacobian!(du, mesh::DGMultiMesh, equations,
                           dg::DGMultiFluxDiff{<:GaussSBP}, cache;
-                          scaling = -1) where {NDIMS}
+                          scaling = -1) 
     (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded) = cache
     (; invJ) = cache.geometric_terms_container
 
