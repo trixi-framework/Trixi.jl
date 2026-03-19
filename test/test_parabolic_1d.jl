@@ -21,22 +21,21 @@ isdir(outdir) && rm(outdir, recursive = true)
                     n_cells_max = 30_000,
                     periodicity = false)
 
-    equations = LinearScalarAdvectionEquation1D(0.0)
-    equations_parabolic = LaplaceDiffusion1D(0.1, equations)
+    equations_parabolic = LinearDiffusionEquation1D(0.1)
 
     initial_condition(x, t, equations) = SVector(sinpi(x[1]))
     boundary_conditions = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0)),
                            x_pos = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0)))
 
     semi = SemidiscretizationParabolic(mesh, equations_parabolic, initial_condition, solver;
-                                       boundary_conditions = boundary_conditions,
-                                       solver_parabolic = ViscousFormulationLocalDG())
+                                       boundary_conditions = boundary_conditions)
 
     @trixi_test_nowarn show(stdout, semi)
     @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
 
     @test semi isa SemidiscretizationParabolic
-    @test semi.solver_parabolic isa ViscousFormulationLocalDG
+    @test semi.solver isa DGSEM
+    @test !hasproperty(semi, :solver_parabolic)
     @test nvariables(semi) == 1
     @test ndims(semi) == 1
     @test real(semi) == real(solver)

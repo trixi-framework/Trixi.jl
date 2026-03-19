@@ -39,6 +39,7 @@ see [`StepsizeCallback`](@ref).
     return equations_parabolic.diffusivity
 end
 
+include("linear_diffusion_equation_1d.jl")
 include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
 include("laplace_diffusion_3d.jl")
