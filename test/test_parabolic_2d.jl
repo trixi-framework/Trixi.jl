@@ -705,7 +705,7 @@ end
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hlle,
                                      basis_type = GaussLegendreBasis),
                         solver_parabolic=ParabolicFormulationLocalDG(),
-                        cfl_diffusive=0.04,
+                        cfl_parabolic=0.04,
                         l2=[
                             6.599006355897759e-6,
                             4.514805201434994e-6,
@@ -786,14 +786,14 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (Diffusive CFL)" begin
+@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (Parabolic CFL)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         initial_refinement_level=2,
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
                                               StepsizeCallback(cfl = 1.6,
-                                                               cfl_diffusive = 0.2)),
+                                                               cfl_parabolic = 0.2)),
                         ode_alg=CarpenterKennedy2N54(williamson_condition = false),
                         dt=1.0, # will be overwritten
                         l2=[0.00010850375815619432],
@@ -1145,7 +1145,7 @@ end
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
                                               StepsizeCallback(cfl = 2.3,
-                                                               cfl_diffusive = 1.0)),
+                                                               cfl_parabolic = 1.0)),
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[

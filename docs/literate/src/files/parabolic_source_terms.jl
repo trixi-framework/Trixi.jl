@@ -89,10 +89,10 @@ ode = semidiscretize(semi, tspan)
 # stable time-step is $O(h^2)$ due to the dominant parabolic term. We enforce this more stringent
 # parabolic CFL condition using a diffusion-aware `StepsizeCallback`. 
 
-cfl_advective = 0.5
-cfl_diffusive = 0.05
-stepsize_callback = StepsizeCallback(cfl = cfl_advective,
-                                     cfl_diffusive = cfl_diffusive)
+cfl_hyperbolic = 0.5
+cfl_parabolic = 0.05
+stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
+                                     cfl_parabolic = cfl_parabolic)
 callbacks = CallbackSet(SummaryCallback(), stepsize_callback)
 sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)

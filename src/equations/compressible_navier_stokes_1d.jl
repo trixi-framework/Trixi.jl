@@ -96,7 +96,7 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
-    max_1_kappa::RealT         # max(1, kappa) used for diffusive CFL => `max_diffusivity`
+    max_1_kappa::RealT         # max(1, kappa) used for parabolic CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations1D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy

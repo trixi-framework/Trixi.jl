@@ -204,11 +204,11 @@ end
     return lambda_max()
 end
 
-# We supply now the advective(hyperbolic) and diffusive(parabolic) CFL numbers
-cfl_advective = 2.0 # Not restrictive for this example
-cfl_diffusive = 0.21 # Restricts the timestep
-stepsize_callback = StepsizeCallback(cfl = cfl_advective,
-                                     cfl_diffusive = cfl_diffusive)
+# We now supply the hyperbolic and parabolic CFL numbers
+cfl_hyperbolic = 2.0 # Not restrictive for this example
+cfl_parabolic = 0.21 # Restricts the timestep
+stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
+                                     cfl_parabolic = cfl_parabolic)
 
 # Add the stepsize callback to the existing callbacks
 callbacks = CallbackSet(SummaryCallback(), stepsize_callback);

@@ -408,7 +408,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Diffusive CFL)" begin
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Parabolic CFL)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         tspan=(0.0, 0.1),
@@ -416,7 +416,7 @@ end
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
                                               StepsizeCallback(cfl = 2.3,
-                                                               cfl_diffusive = 0.4)),
+                                                               cfl_parabolic = 0.4)),
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
@@ -526,7 +526,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
-                        cfl_diffusive=0.07,
+                        cfl_parabolic=0.07,
                         l2=[0.0041854757843498725], linf=[0.05166356737492643])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

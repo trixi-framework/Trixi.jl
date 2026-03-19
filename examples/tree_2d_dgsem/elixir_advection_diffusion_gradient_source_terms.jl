@@ -67,10 +67,10 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
-cfl_advective = 0.5
-cfl_diffusive = 0.01
-stepsize_callback = StepsizeCallback(cfl = cfl_advective,
-                                     cfl_diffusive = cfl_diffusive)
+cfl_hyperbolic = 0.5
+cfl_parabolic = 0.01
+stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
+                                     cfl_parabolic = cfl_parabolic)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
