@@ -41,7 +41,7 @@ boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-solver_parabolic = ViscousFormulationLocalDG()
+solver_parabolic = ParabolicFormulationLocalDG()
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver; solver_parabolic,

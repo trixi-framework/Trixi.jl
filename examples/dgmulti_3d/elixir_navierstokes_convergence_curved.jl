@@ -249,7 +249,7 @@ boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_to
 # define inviscid boundary conditions
 boundary_conditions = (; top_bottom = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; top_bottom = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),

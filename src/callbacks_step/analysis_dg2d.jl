@@ -376,7 +376,7 @@ function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, P4estMesh{2}},
                    equations, equations_parabolic, dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
-    gradients_x, gradients_y = cache_parabolic.viscous_container.gradients
+    gradients_x, gradients_y = cache_parabolic.parabolic_container.gradients
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, element)

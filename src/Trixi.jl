@@ -340,7 +340,7 @@ export convergence_test,
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
-export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
+export ParabolicFormulationBassiRebay1, ParabolicFormulationLocalDG
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
