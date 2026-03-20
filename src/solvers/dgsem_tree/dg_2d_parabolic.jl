@@ -506,8 +506,7 @@ function calc_parabolic_fluxes!(flux_parabolic,
 
             # Calculate parabolic flux and store each component for later use
             flux_parabolic_node_x = flux(u_node, (gradients_1_node, gradients_2_node),
-                                         1,
-                                         equations_parabolic)
+                                         1, equations_parabolic)
             flux_parabolic_node_y = flux(u_node, (gradients_1_node, gradients_2_node),
                                          2,
                                          equations_parabolic)
