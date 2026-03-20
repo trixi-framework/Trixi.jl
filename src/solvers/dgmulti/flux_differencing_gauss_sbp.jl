@@ -572,9 +572,33 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
-function invert_jacobian!(du, mesh::DGMultiMesh, equations,
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
                           dg::DGMultiFluxDiff{<:GaussSBP}, cache;
-                          scaling = -1)
+                          scaling = -1) where {NDIMS}
+    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded) = cache
+    (; invJ) = cache.geometric_terms_container
+
+    @threaded for e in eachelement(mesh, dg, cache)
+        rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
+        invJ_e = invJ[1, e]
+
+        # At this point, `rhs_volume_local` should still be stored at Gauss points.
+        # We scale it by the inverse Jacobian before transforming back to Lobatto.
+        for i in eachindex(rhs_volume_local)
+            rhs_volume_local[i] = du[i, e] * invJ_e * scaling
+        end
+
+        # Interpolate result back to Lobatto nodes for ease of analysis, visualization
+        apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
+                            view(du, :, e), rhs_volume_local)
+    end
+
+    return nothing
+end
+
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                          scaling = -1) where {NDIMS}
     (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded) = cache
     (; invJ) = cache.geometric_terms_container
 
