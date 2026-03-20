@@ -542,6 +542,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
 
     return nothing
 end
+
 @inline function calc_mpi_interface_flux_gradient!(surface_flux_values,
                                                    mesh::Union{P4estMeshParallel{3},
                                                                T8codeMeshParallel{3}},
@@ -561,13 +562,8 @@ end
                                        interface_j_node_index,
                                        interface_index)
 
-    if local_side == 1
-        flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
-                               equations_parabolic, parabolic_scheme)
-    else # local_side == 2
-        flux_ = flux_parabolic(u_ll, u_rr, -normal_direction, Gradient(),
-                               equations_parabolic, parabolic_scheme)
-    end
+    flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
+                           equations_parabolic, parabolic_scheme)
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
@@ -576,7 +572,6 @@ end
 
     return nothing
 end
-
 
 # This is the version used when calculating the divergence of the viscous fluxes.
 # Identical to weak-form volume integral/kernel for the purely hyperbolic case,
@@ -1277,19 +1272,16 @@ end
                               interface_i_node_index, interface_j_node_index,
                               interface_index)
 
-    if local_side == 1
+   
         flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
                                normal_direction, Divergence(),
                                equations_parabolic, parabolic_scheme)
-    else
-        flux_ = -flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
-                                -normal_direction, Divergence(),
-                                equations_parabolic, parabolic_scheme)
-    end
+   
+    dirFactor = (local_side==1) ? 1 : -1
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
-                            local_direction_index, local_element_index] = flux_[v]
+                            local_direction_index, local_element_index] = dirFactor .* flux_[v]
     end
 
     return nothing
@@ -1969,13 +1961,13 @@ function prolong2mpiinterfaces!(cache, flux_viscous::Tuple,
                                                         local_element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_node = SVector(
+                    flux_viscous = SVector(
                         flux_viscous_x[v, i_elem, j_elem, k_elem, local_element],
                         flux_viscous_y[v, i_elem, j_elem, k_elem, local_element],
                         flux_viscous_z[v, i_elem, j_elem, k_elem, local_element]
                     )
 
-                    cache.mpi_interfaces.u[local_side, v, i, j, interface] = orientationFactor .* dot(flux_node, normal_direction)
+                    cache.mpi_interfaces.u[local_side, v, i, j, interface] = orientationFactor .* dot(flux_viscous, normal_direction)
                 end
 
                 i_elem += i_step_i
