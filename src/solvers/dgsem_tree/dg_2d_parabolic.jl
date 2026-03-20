@@ -69,6 +69,28 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
+                                                             equations_parabolic,
+                                                             boundary_conditions_parabolic,
+                                                             dg, parabolic_scheme,
+                                                             cache, t)
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" begin
+        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
+    end
+
+    @trixi_timeit timer() "source terms parabolic" begin
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                equations_parabolic, dg, cache)
+    end
+
+    return nothing
+end
+
+function calc_divergence!(du, flux_viscous, u, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                          equations_parabolic,
+                          boundary_conditions_parabolic, dg, parabolic_scheme, cache, t)
     # Calculate volume integral.
     # This calls the specialized version for the viscous fluxes from
     # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
@@ -130,16 +152,6 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
-    end
-
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -532,7 +544,8 @@ function get_unsigned_normal_vector_2d(direction)
 end
 
 function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                      boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                           BoundaryConditionDoNothing},
                                       mesh::Union{TreeMesh{2}, P4estMesh{2}},
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
@@ -540,7 +553,8 @@ function calc_boundary_flux_gradient!(cache, t,
 end
 
 function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                        boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                             BoundaryConditionDoNothing},
                                         mesh::Union{TreeMesh{2}, P4estMesh{2}},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)
