@@ -369,7 +369,8 @@ end
 # This is the version used when calculating the divergence of the viscous fluxes.
 # Identical to weak-form volume integral/kernel for the purely hyperbolic case,
 # except that the fluxes are here already precomputed in `calc_viscous_fluxes!`
-function calc_volume_integral!(du, flux_viscous, mesh::P4estMesh{2},
+function calc_volume_integral!(du, flux_viscous,
+                               mesh::Union{P4estMesh{2}, StructuredMesh{2}},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
     (; derivative_hat) = dg.basis
@@ -862,7 +863,7 @@ function prolong2boundaries!(cache, flux_viscous::Tuple,
 end
 
 function calc_volume_integral_gradient!(gradients, u_transformed,
-                                        mesh::P4estMesh{2}, # for dispatch only
+                                        mesh::Union{P4estMesh{2}, StructuredMesh{2}}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DG, cache)
     @unpack derivative_hat = dg.basis
@@ -1191,7 +1192,8 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian_parabolic!(du::AbstractArray, mesh::P4estMesh{2},
+function apply_jacobian_parabolic!(du::AbstractArray,
+                                   mesh::Union{P4estMesh{2}, StructuredMesh{2}},
                                    equations_parabolic::AbstractEquationsParabolic,
                                    dg::DG, cache)
     @unpack inverse_jacobian = cache.elements

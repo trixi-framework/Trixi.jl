@@ -8,7 +8,8 @@
 # This method is called when a `SemidiscretizationHyperbolicParabolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache_parabolic(mesh::Union{TreeMesh{2}, P4estMesh{2}},
+function create_cache_parabolic(mesh::Union{TreeMesh{2}, P4estMesh{2},
+                                            StructuredMesh{2}},
                                 equations_hyperbolic::AbstractEquations,
                                 dg::DG, n_elements, uEltype)
     viscous_container = init_viscous_container_2d(nvariables(equations_hyperbolic),
@@ -28,7 +29,8 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+function rhs_parabolic!(du, u, t,
+                        mesh::Union{TreeMesh{2}, StructuredMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -148,7 +150,8 @@ end
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
-function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+function transform_variables!(u_transformed, u,
+                              mesh::Union{TreeMesh{2}, P4estMesh{2}, StructuredMesh{2}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache)
     transformation = gradient_variable_transformation(equations_parabolic)
@@ -488,7 +491,7 @@ end
 
 function calc_viscous_fluxes!(flux_viscous,
                               gradients, u_transformed,
-                              mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                              mesh::Union{TreeMesh{2}, P4estMesh{2}, StructuredMesh{2}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache)
     gradients_x, gradients_y = gradients
@@ -1154,7 +1157,7 @@ end
 
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
-                        mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                        mesh::Union{TreeMesh{2}, StructuredMesh{2}, TreeMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
     # Reset gradients
