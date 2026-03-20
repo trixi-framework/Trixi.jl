@@ -512,8 +512,8 @@ function calc_parabolic_fluxes!(flux_parabolic,
             set_node_vars!(flux_parabolic_x, flux_parabolic_node_x,
                            equations_parabolic, dg,
                            i, j, element)
-            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
-                           dg,
+            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y,
+                           equations_parabolic, dg,
                            i, j, element)
         end
     end
