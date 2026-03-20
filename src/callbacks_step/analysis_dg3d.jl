@@ -161,13 +161,23 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func, _u, t, analyzer,
                           mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
-    @unpack node_coordinates, inverse_jacobian = cache.elements
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
+
+    # TODO GPU AnalysiCallback currently lives on CPU
+    backend = trixi_backend(_u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        @unpack node_coordinates, inverse_jacobian = cache.elements
+        u = _u
+    else
+        node_coordinates = Array(cache.elements.node_coordinates)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+        u = Array(_u)
+    end
 
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
@@ -214,7 +224,8 @@ end
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
-                                     mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
+                                     ::Type{<:AbstractMesh{3}}, equations, dg::DGSEM,
+                                     cache,
                                      args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
@@ -232,9 +243,9 @@ end
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
 function entropy_change_reference_element(du, u, element,
-                                          mesh::AbstractMesh{3},
+                                          meshT::Type{<:AbstractMesh{3}},
                                           equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+    return integrate_reference_element(u, element, meshT, equations, dg, cache,
                                        du) do u, i, j, k, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         du_node = get_node_vars(du, equations, dg, i, j, k, element)
@@ -245,7 +256,7 @@ end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::TreeMesh{3}, equations, dg::DGSEM,
+                                            ::Type{<:TreeMesh{3}}, equations, dg::DGSEM,
                                             cache, args...) where {Func}
     @unpack weights = dg.basis
 
@@ -281,8 +292,9 @@ end
 # Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
 # thus no +- flips are needed here.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                                        T8codeMesh{3}},
+                                            ::Type{<:Union{StructuredMesh{3},
+                                                           P4estMesh{3},
+                                                           T8codeMesh{3}}},
                                             equations, dg::DGSEM, cache,
                                             args...) where {Func}
     @unpack contravariant_vectors = cache.elements
@@ -377,12 +389,22 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate_via_indices(func::Func, u,
+function integrate_via_indices(func::Func, _u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
-    @unpack weights = dg.basis
+    # TODO GPU AnalysiCallback currently lives on CPU
+    backend = trixi_backend(_u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        @unpack weights = dg.basis
+        @unpack inverse_jacobian = cache.elements
+        u = _u
+    else
+        weights = Array(dg.basis.weights)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+        u = Array(_u)
+    end
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
@@ -392,7 +414,7 @@ function integrate_via_indices(func::Func, u,
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, k, element]))
             integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
                         func(u, i, j, k, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
@@ -438,10 +460,18 @@ function integrate(func::Func, u,
     end
 end
 
-function analyze(::typeof(entropy_timederivative), du, u, t,
+function analyze(::typeof(entropy_timederivative), _du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
+    # TODO GPU AnalysiCallback currently lives on CPU
+    backend = trixi_backend(u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        du = _du
+    else
+        du = Array(_du)
+    end
+
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du

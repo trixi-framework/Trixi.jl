@@ -124,7 +124,8 @@ end
 # This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
 # the time derivative of entropy, see `entropy_change_reference_element`.
 function integrate_reference_element(func::Func, u, element,
-                                     mesh::AbstractMesh{1}, equations, dg::DGSEM, cache,
+                                     ::Type{<:AbstractMesh{1}}, equations, dg::DGSEM,
+                                     cache,
                                      args...) where {Func}
     @unpack weights = dg.basis
 
@@ -142,9 +143,9 @@ end
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
 function entropy_change_reference_element(du, u, element,
-                                          mesh::AbstractMesh{1},
+                                          meshT::Type{<:AbstractMesh{1}},
                                           equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, mesh, equations, dg, cache,
+    return integrate_reference_element(u, element, meshT, equations, dg, cache,
                                        du) do u, i, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, element)
         du_node = get_node_vars(du, equations, dg, i, element)
@@ -155,7 +156,8 @@ end
 
 # calculate surface integral of func(u, equations) * normal on the reference element.
 function surface_integral_reference_element(func::Func, u, element,
-                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                            ::Type{<:Union{TreeMesh{1},
+                                                           StructuredMesh{1}}},
                                             equations, dg::DGSEM,
                                             cache, args...) where {Func}
     u_left = get_node_vars(u, equations, dg, 1, element)
