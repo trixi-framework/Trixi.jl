@@ -1878,7 +1878,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            parabolic_solver = ViscousFormulationLocalDG(RealT(0.1))
+            parabolic_solver = ParabolicFormulationLocalDG(RealT(0.1))
             @test eltype(@inferred Trixi.penalty(u_outer, u_inner, inv_h,
                                                  equations_parabolic, parabolic_solver)) ==
                   RealT
@@ -1901,7 +1901,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            parabolic_solver = ViscousFormulationLocalDG(RealT(0.1))
+            parabolic_solver = ParabolicFormulationLocalDG(RealT(0.1))
             @test eltype(@inferred Trixi.penalty(u_outer, u_inner, inv_h,
                                                  equations_parabolic, parabolic_solver)) ==
                   RealT
