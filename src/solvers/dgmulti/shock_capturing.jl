@@ -220,40 +220,18 @@ function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{3}, cache)
     return SVector(Qr[i, j], Qs[i, j], Qt[i, j])
 end
 
-function get_contravariant_matrix(element, mesh::DGMultiMesh{1}, cache)
-    return SMatrix{1, 1}(cache.dxidxhatj[1, 1][1, element])
+@inline function get_contravariant_matrix(node, element, mesh::DGMultiMesh{NDIMS},
+                                          cache) where {NDIMS}
+    (; dxidxhatj) = cache.geometric_terms_container
+    # SMatrix is filled column-major, so row index i varies fastest
+    return SMatrix{NDIMS, NDIMS}(ntuple(k -> dxidxhatj[(k - 1) % NDIMS + 1,
+                                                       (k - 1) ÷ NDIMS + 1][node, element],
+                                        Val(NDIMS^2)))
 end
 
-function get_contravariant_matrix(element, mesh::DGMultiMesh{2, <:Affine}, cache)
-    (; dxidxhatj) = cache
-    return SMatrix{2, 2}(dxidxhatj[1, 1][1, element], dxidxhatj[2, 1][1, element],
-                         dxidxhatj[1, 2][1, element], dxidxhatj[2, 2][1, element])
-end
-
-function get_contravariant_matrix(element, mesh::DGMultiMesh{3, <:Affine}, cache)
-    (; dxidxhatj) = cache
-    return SMatrix{3, 3}(dxidxhatj[1, 1][1, element], dxidxhatj[2, 1][1, element],
-                         dxidxhatj[3, 1][1, element],
-                         dxidxhatj[1, 2][1, element], dxidxhatj[2, 2][1, element],
-                         dxidxhatj[3, 2][1, element],
-                         dxidxhatj[1, 3][1, element], dxidxhatj[2, 3][1, element],
-                         dxidxhatj[3, 3][1, element])
-end
-
-function get_contravariant_matrix(i, element, mesh::DGMultiMesh{2}, cache)
-    (; dxidxhatj) = cache
-    return SMatrix{2, 2}(dxidxhatj[1, 1][i, element], dxidxhatj[2, 1][i, element],
-                         dxidxhatj[1, 2][i, element], dxidxhatj[2, 2][i, element])
-end
-
-function get_contravariant_matrix(i, element, mesh::DGMultiMesh{3}, cache)
-    (; dxidxhatj) = cache
-    return SMatrix{3, 3}(dxidxhatj[1, 1][i, element], dxidxhatj[2, 1][i, element],
-                         dxidxhatj[3, 1][i, element],
-                         dxidxhatj[1, 2][i, element], dxidxhatj[2, 2][i, element],
-                         dxidxhatj[3, 2][i, element],
-                         dxidxhatj[1, 3][i, element], dxidxhatj[2, 3][i, element],
-                         dxidxhatj[3, 3][i, element])
+@inline function get_contravariant_matrix(element, mesh::DGMultiMesh{NDIMS, <:Affine},
+                                          cache) where {NDIMS}
+    return get_contravariant_matrix(1, element, mesh, cache)
 end
 
 function get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache)

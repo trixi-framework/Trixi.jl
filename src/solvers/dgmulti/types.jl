@@ -46,6 +46,55 @@ const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
 
+# type alias for specializing on a periodic SBP operator
+const DGMultiPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                                  ApproxType,
+                                                                  SurfaceIntegral,
+                                                                  VolumeIntegral} where {
+                                                                                         NDIMS,
+                                                                                         ElemType,
+                                                                                         ApproxType <:
+                                                                                         SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
+                                                                                         SurfaceIntegral,
+                                                                                         VolumeIntegral
+                                                                                         }
+
+const DGMultiFluxDiffPeriodicFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                                          ApproxType,
+                                                                          SurfaceIntegral,
+                                                                          VolumeIntegral} where {
+                                                                                                 NDIMS,
+                                                                                                 ElemType,
+                                                                                                 ApproxType <:
+                                                                                                 SummationByPartsOperators.AbstractPeriodicDerivativeOperator,
+                                                                                                 SurfaceIntegral <:
+                                                                                                 SurfaceIntegralWeakForm,
+                                                                                                 VolumeIntegral <:
+                                                                                                 VolumeIntegralFluxDifferencing
+                                                                                                 }
+
+const DGMultiFDSBP{NDIMS, ApproxType, ElemType} = DGMulti{NDIMS, ElemType,
+                                                          ApproxType} where {NDIMS,
+                                                                             ElemType,
+                                                                             ApproxType <:
+                                                                             SummationByPartsOperators.AbstractDerivativeOperator
+                                                                             }
+
+# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
+const GaussSBP = Polynomial{Gauss}
+
+const DGMultiGaussSBP{NDIMS, ElemType, ApproxType} = DGMulti{NDIMS, ElemType,
+                                                             ApproxType} where {NDIMS,
+                                                                                ElemType,
+                                                                                ApproxType <:
+                                                                                GaussSBP}
+
+struct DGMultiGeometricTermsContainer{TJ, TinvJ, Tdxidxhatj}
+    J::TJ
+    invJ::TinvJ
+    dxidxhatj::Tdxidxhatj
+end
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.

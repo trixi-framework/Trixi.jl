@@ -4,9 +4,6 @@
 # inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
 # for more details.
 
-# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
-const GaussSBP = Polynomial{Gauss}
-
 function tensor_product_quadrature(element_type::Line, r1D, w1D)
     return r1D, w1D
 end
@@ -575,10 +572,35 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
 end
 
 # interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
-function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
-                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
-                                          scaling = -1)
-    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded, invJ) = cache
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
+                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                          scaling = -1) where {NDIMS}
+    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded) = cache
+    (; invJ) = cache.geometric_terms_container
+
+    @threaded for e in eachelement(mesh, dg, cache)
+        rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
+        invJ_e = invJ[1, e]
+
+        # At this point, `rhs_volume_local` should still be stored at Gauss points.
+        # We scale it by the inverse Jacobian before transforming back to Lobatto.
+        for i in eachindex(rhs_volume_local)
+            rhs_volume_local[i] = du[i, e] * invJ_e * scaling
+        end
+
+        # Interpolate result back to Lobatto nodes for ease of analysis, visualization
+        apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
+                            view(du, :, e), rhs_volume_local)
+    end
+
+    return nothing
+end
+
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
+                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                          scaling = -1) where {NDIMS}
+    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded) = cache
+    (; invJ) = cache.geometric_terms_container
 
     @threaded for e in eachelement(mesh, dg, cache)
         rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
@@ -592,55 +614,6 @@ function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
         # Interpolate result back to Lobatto nodes for ease of analysis, visualization
         apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
                             view(du, :, e), rhs_volume_local)
-    end
-
-    return nothing
-end
-
-# Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
-# since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
-function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
-              cache) where {Source, BC}
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # this function evaluates the solution at volume and face quadrature points (which was previously
-    # done in `prolong2interfaces` and `calc_volume_integral`)
-    @trixi_timeit timer() "entropy_projection!" begin
-        entropy_projection!(cache, u, mesh, equations, dg)
-    end
-
-    # `du` is stored at Gauss nodes here
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, dg.surface_integral, mesh,
-                             have_nonconservative_terms(equations), equations, dg)
-    end
-
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh,
-                            have_nonconservative_terms(equations), equations, dg)
-    end
-
-    # `du` is stored at Gauss nodes here
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # invert Jacobian and map `du` from Gauss to Lobatto nodes
-    @trixi_timeit timer() "Jacobian" begin
-        invert_jacobian_and_interpolate!(du, mesh, equations, dg, cache)
-    end
-
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
     end
 
     return nothing

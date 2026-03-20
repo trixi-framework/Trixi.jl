@@ -256,7 +256,7 @@ end
     # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ]
 
     # assumes geometric terms vary spatially over each element
-    (; dxidxhatj) = cache
+    (; dxidxhatj) = cache.geometric_terms_container
     return SVector{NDIMS}(view.(dxidxhatj[:, orientation], :, element))
 end
 
@@ -309,12 +309,13 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
 
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
                                                                uEltype)
 
-    return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
-            invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            solution_container, fluxdiff_local_threaded)
+    return (; md, Qrst_skew, lift_scalings, inv_wq = inv.(rd.wq),
+            geometric_terms_container, solution_container,
+            fluxdiff_local_threaded)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
@@ -361,17 +362,14 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
                                                 (num_quad_points_total,), dg)
                           for _ in 1:Threads.maxthreadid()]
 
-    # interpolate geometric terms to both quadrature and face values for curved meshes
-    (; Vq, Vf) = dg.basis
-    interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
-    J = Vq * md.J
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
 
     solution_container = DGMultiSolutionContainer(u_values, u_face_values,
                                                   flux_face_values,
                                                   local_values_threaded)
 
     return (; md, Qrst_skew, VhP, Ph,
-            invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
+            geometric_terms_container,
             entropy_var_values, projected_entropy_var_values,
             entropy_projected_u_values,
             solution_container, fluxdiff_local_threaded, rhs_local_threaded)
