@@ -42,11 +42,14 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
+stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 5.0e-5, adaptive = false,
+            dt = stepsize_callback(ode), adaptive = false,
             ode_default_options()..., callback = callbacks)

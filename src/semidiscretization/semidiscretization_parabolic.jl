@@ -13,31 +13,20 @@ of a purely parabolic conservation law.
 """
 mutable struct SemidiscretizationParabolic{Mesh, Equations, InitialCondition,
                                            BoundaryConditions, SourceTerms,
-                                           Solver, Cache, ViscousCache} <:
+                                           Solver, Cache} <:
                AbstractSemidiscretization
     mesh::Mesh
     equations::Equations
 
-    # This guy is a bit messy since we abuse it as some kind of "exact solution"
-    # although this doesn't really exist...
     const initial_condition::InitialCondition
-
     const boundary_conditions::BoundaryConditions
     const source_terms::SourceTerms
-
     const solver::Solver
 
     cache::Cache
-    cache_viscous::ViscousCache
 
     performance_counter::PerformanceCounter
 end
-# We assume some properties of the fields of the semidiscretization, e.g.,
-# the `equations` and the `mesh` should have the same dimension. We check these
-# properties in the outer constructor defined below. While we could ensure
-# them even better in an inner constructor, we do not use this approach to
-# simplify the integration with Adapt.jl for GPU usage, see
-# https://github.com/trixi-framework/Trixi.jl/pull/2677#issuecomment-3591789921
 
 """
     SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
@@ -60,13 +49,18 @@ function SemidiscretizationParabolic(mesh, equations::AbstractEquationsParabolic
                                      RealT = real(solver), uEltype = RealT)
     @assert ndims(mesh) == ndims(equations)
 
-    cache = create_cache(mesh, equations, solver, RealT, uEltype)
+    # Base cache containing data used for both parabolic and hyperbolic solvers
+    cache_base = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
-                                                      cache)
+                                                      cache_base)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    cache_viscous = create_cache_parabolic(mesh, equations, solver,
-                                           nelements(solver, cache), uEltype)
+    # Parabolic cache containing data only used for parabolic solvers
+    cache_parabolic = create_cache_parabolic(mesh, equations, solver,
+                                             nelements(solver, cache_base), uEltype)
+
+    # Combine caches into a single cache struct for the semidiscretization
+    cache = (; base = cache_base, parabolic = cache_parabolic)
 
     performance_counter = PerformanceCounter()
 
@@ -75,25 +69,19 @@ function SemidiscretizationParabolic(mesh, equations::AbstractEquationsParabolic
                                        typeof(_boundary_conditions),
                                        typeof(source_terms),
                                        typeof(solver),
-                                       typeof(cache), typeof(cache_viscous)}(mesh,
-                                                                             equations,
-                                                                             initial_condition,
-                                                                             _boundary_conditions,
-                                                                             source_terms,
-                                                                             solver,
-                                                                             cache,
-                                                                             cache_viscous,
-                                                                             performance_counter)
+                                       typeof(cache)}(mesh, equations,
+                                                      initial_condition,
+                                                      _boundary_conditions,
+                                                      source_terms,
+                                                      solver,
+                                                      cache,
+                                                      performance_counter)
 end
 
 # @eval due to @muladd
 @eval Adapt.@adapt_structure(SemidiscretizationParabolic)
 
 # Create a new semidiscretization but change some parameters compared to the input.
-# `Base.similar` follows a related concept but would require us to `copy` the `mesh`,
-# which would impact the performance. Instead, `SciMLBase.remake` has exactly the
-# semantics we want to use here. In particular, it allows us to re-use mutable parts,
-# e.g. `remake(semi).mesh === semi.mesh`.
 function remake(semi::SemidiscretizationParabolic; uEltype = real(semi.solver),
                 mesh = semi.mesh,
                 equations = semi.equations,
@@ -135,7 +123,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationParabolic
         summary_header(io, "SemidiscretizationParabolic")
         summary_line(io, "#spatial dimensions", ndims(semi.equations))
         summary_line(io, "mesh", semi.mesh)
-        summary_line(io, "parabolic equations", semi.equations |> typeof |> nameof)
+        summary_line(io, "equations", semi.equations |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
@@ -153,13 +141,15 @@ end
 @inline Base.real(semi::SemidiscretizationParabolic) = real(semi.solver)
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationParabolic)
-    @unpack mesh, equations, solver, cache = semi
+    @unpack mesh, equations, solver = semi
+    cache = semi.cache.base
     return mesh, equations, solver, cache
 end
 
 function calc_error_norms(func, u_ode, t, analyzer,
                           semi::SemidiscretizationParabolic, cache_analysis)
-    @unpack mesh, equations, initial_condition, solver, cache = semi
+    @unpack mesh, equations, initial_condition, solver = semi
+    cache = semi.cache.base
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition,
@@ -176,8 +166,9 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationParabolic)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
-    @unpack mesh, equations, boundary_conditions, source_terms, solver,
-    cache, cache_viscous = semi
+    @unpack mesh, equations, boundary_conditions, source_terms, solver = semi
+    cache = semi.cache.base
+    cache_parabolic = semi.cache.parabolic
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
@@ -188,7 +179,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     @trixi_timeit timer() "rhs!" rhs_parabolic!(du, u, t, mesh, equations,
                                                 boundary_conditions, source_terms,
                                                 solver, viscous_formulation, cache,
-                                                cache_viscous)
+                                                cache_parabolic)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
