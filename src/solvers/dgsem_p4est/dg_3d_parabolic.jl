@@ -558,13 +558,16 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                                         element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_parabolic = SVector(flux_parabolic_x[v, i_large, j_large,
+                    flux_parabolic = SVector(flux_parabolic_x[v, i_large,
+                                                              j_large,
                                                               k_large,
                                                               element],
-                                             flux_parabolic_y[v, i_large, j_large,
+                                             flux_parabolic_y[v, i_large,
+                                                              j_large,
                                                               k_large,
                                                               element],
-                                             flux_parabolic_z[v, i_large, j_large,
+                                             flux_parabolic_z[v, i_large,
+                                                              j_large,
                                                               k_large,
                                                               element])
 
