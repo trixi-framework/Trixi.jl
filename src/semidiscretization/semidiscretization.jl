@@ -92,14 +92,14 @@ Optional keyword arguments:
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
-- `storage_type` and `real_type`: Configure the underlying computational datastructures. 
-  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
+- `storage_type` and `real_type`: Configure the underlying computational datastructures.
+  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true,
+                        reset_threads = true, threaded_broadcast_array = false,
                         storage_type = nothing,
                         real_type = nothing)
     # Optionally reset Polyester.jl threads. See
@@ -123,6 +123,10 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     end
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
+
+    if threaded_broadcast_array
+        u0_ode = ThreadedBroadcastArray(u0_ode)
+    end
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
