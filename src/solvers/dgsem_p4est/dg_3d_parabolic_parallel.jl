@@ -20,7 +20,6 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMeshParallel{3}, T8codeMeshPa
                 interfaces = cache_parabolic.interfaces,
                 boundaries = cache_parabolic.boundaries)
 
-    #
     # Stage 0: local variable transform
     #
     @trixi_timeit timer() "transform variables" begin
@@ -65,7 +64,10 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMeshParallel{3}, T8codeMeshPa
     @trixi_timeit timer() "finish MPI receive gradient" begin
         finish_mpi_receive!(cache_p.mpi_cache, mesh, equations_parabolic, dg, cache_p)
     end
-
+    # Finish gradient-stage MPI send
+    @trixi_timeit timer() "finish MPI send gradient" begin
+        finish_mpi_send!(cache_p.mpi_cache)
+    end
     # MPI interface fluxes for gradient stage
     @trixi_timeit timer() "MPI interface flux gradient" begin
         calc_mpi_interface_flux_gradient!(cache_p.elements.surface_flux_values,
@@ -73,19 +75,24 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMeshParallel{3}, T8codeMeshPa
                                           dg, parabolic_scheme, cache_p)
     end
 
-    # MPI mortar fluxes for gradient stage
-    @trixi_timeit timer() "MPI mortar flux gradient" begin
-        calc_mpi_mortar_flux_gradient!(cache_p.elements.surface_flux_values,
-                                       mesh, equations_parabolic, dg.mortar,
-                                       dg, parabolic_scheme, cache_p)
+        # MPI mortar fluxes for gradient stage
+        @trixi_timeit timer() "MPI mortar flux gradient" begin
+            calc_mpi_mortar_flux_gradient!(cache_p.elements.surface_flux_values,
+                                        mesh, equations_parabolic, dg.mortar,
+                                        dg, parabolic_scheme, cache_p)
+        end
+
+        # Calculate surface integrals
+    @trixi_timeit timer() "surface integral" begin
+        calc_surface_integral_gradient!(gradients, mesh, equations_parabolic,
+                                        dg, cache_p)
     end
 
-    # Finish gradient-stage MPI send
-    @trixi_timeit timer() "finish MPI send gradient" begin
-        finish_mpi_send!(cache_p.mpi_cache)
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" begin
+        apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
+                                  cache_p)
     end
-
-    #
     # Stage 2: local viscous flux construction
     #
     @trixi_timeit timer() "calculate viscous fluxes" begin
@@ -122,7 +129,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMeshParallel{3}, T8codeMeshPa
     @trixi_timeit timer() "prolong2mpiinterfaces divergence" begin
         prolong2mpiinterfaces!(cache_p, flux_viscous, mesh, equations_parabolic, dg)
     end
-
+    ########################## Divergence #################################
     # Start divergence-stage MPI send
     @trixi_timeit timer() "start MPI send divergence" begin
         start_mpi_send!(cache_p.mpi_cache, mesh, equations_parabolic, dg, cache_p)
@@ -266,34 +273,6 @@ function calc_gradient!(gradients, u_transformed, t,
         calc_mortar_flux_gradient!(cache.elements.surface_flux_values,
                                    mesh, equations_parabolic, dg.mortar,
                                    dg, parabolic_scheme, cache)
-    end
-
-
-    # Calculate MPI interface fluxes
-    @trixi_timeit timer() "MPI interface flux" begin
-        @unpack surface_flux_values = cache.elements
-        calc_mpi_interface_flux_gradient!(surface_flux_values, mesh, equations_parabolic,
-                                      dg, parabolic_scheme, cache)
-    end
-
-    # Calculate MPI mortar fluxes
-    @trixi_timeit timer() "MPI mortar flux" begin
-        calc_mpi_mortar_flux_gradient!(cache.elements.surface_flux_values,
-                                   mesh, equations_parabolic, dg.mortar,
-                                   dg, parabolic_scheme, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral_gradient!(gradients, mesh, equations_parabolic,
-                                        dg, cache)
-    end
-
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
-                                  cache)
     end
 
     return nothing
@@ -1607,7 +1586,7 @@ end
                                         fstar_tmp)
 
             # same sign/scale handling as local mortar_fluxes_to_elements_gradient!
-            u_buffer .*= -4
+            #u_buffer .*= -4
 
             i_large = i_large_start
             j_large = j_large_start
@@ -1972,6 +1951,7 @@ function prolong2mpiinterfaces!(cache, flux_viscous::Tuple,
         local_indices = node_indices[interface]
         local_direction = indices2direction(local_indices)
         local_side = local_sides[interface]
+        orientationFactor = local_side==1 ? 1 : -1
 
         i_start, i_step_i, i_step_j = index_to_start_step_3d(local_indices[1], index_range)
         j_start, j_step_i, j_step_j = index_to_start_step_3d(local_indices[2], index_range)
@@ -1995,8 +1975,7 @@ function prolong2mpiinterfaces!(cache, flux_viscous::Tuple,
                         flux_viscous_z[v, i_elem, j_elem, k_elem, local_element]
                     )
 
-                    cache.mpi_interfaces.u[local_side, v, i, j, interface] =
-                        dot(flux_node, normal_direction)
+                    cache.mpi_interfaces.u[local_side, v, i, j, interface] = orientationFactor .* dot(flux_node, normal_direction)
                 end
 
                 i_elem += i_step_i
