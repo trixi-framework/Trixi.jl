@@ -35,7 +35,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @test semi isa SemidiscretizationParabolic
     @test semi.solver isa DGSEM
-    @test !hasproperty(semi, :solver_parabolic)
+    @test semi.solver_parabolic isa ParabolicFormulationBassiRebay1
     @test nvariables(semi) == 1
     @test ndims(semi) == 1
     @test real(semi) == real(solver)
@@ -54,6 +54,12 @@ end
 @trixi_testset "TreeMesh1D: elixir_diffusion_mixed_dirichlet_neumann.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_mixed_dirichlet_neumann.jl"),
+                        tspan = (0.0, 0.05))
+end
+
+@trixi_testset "TreeMesh1D: elixir_diffusion_pure_dirichlet_ldg.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_diffusion_pure_dirichlet_ldg.jl"),
                         tspan = (0.0, 0.05))
 end
 
