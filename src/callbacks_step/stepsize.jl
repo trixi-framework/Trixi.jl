@@ -162,8 +162,8 @@ function calculate_dt(u_ode, t, _cfl_hyperbolic, cfl_parabolic,
     end
 
     return cfl_para * max_dt(u, t, mesh,
-                             have_constant_diffusivity(equations), equations,
-                             equations, solver, cache)
+                  have_constant_diffusivity(equations), equations,
+                  equations, solver, cache)
 end
 
 # For Euler-Acoustic simulations with `EulerAcousticsCouplingCallback`

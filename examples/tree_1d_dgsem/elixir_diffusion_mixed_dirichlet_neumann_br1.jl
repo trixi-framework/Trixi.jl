@@ -18,7 +18,11 @@ mesh = TreeMesh((0.0,), (1.0,),
                 periodicity = false,
                 n_cells_max = 30_000)
 
-initial_condition = (x, t, equations) -> SVector(1.0 + amplitude * exp(-diffusivity * wave_number^2 * t) * sin(wave_number * x[1]))
+# Initial condition consistent with mixed Dirichlet-Neumann BCs and exact solution
+initial_condition = (x, t, equations) -> SVector(1.0 +
+                                                 amplitude *
+                                                 exp(-diffusivity * wave_number^2 * t) *
+                                                 sin(wave_number * x[1]))
 
 boundary_condition_dirichlet = BoundaryConditionDirichlet((x, t, equations) -> SVector(1.0))
 boundary_condition_neumann = BoundaryConditionNeumann((x, t, equations) -> SVector(0.0))
@@ -44,7 +48,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl_parabolic = 0.1)
+stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)

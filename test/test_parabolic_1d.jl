@@ -11,56 +11,25 @@ EXAMPLES_DIR = examples_dir()
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
-@testset "SemidiscretizationHyperbolicParabolic (1D)" begin
+@testset "SemidiscretizationHyperbolicParabolic and Semi (1D)" begin
 #! format: noindent
 
-@trixi_testset "TreeMesh1D: SemidiscretizationParabolic (purely parabolic)" begin
-    solver = DGSEM(polydeg = 2, surface_flux = flux_central)
-    mesh = TreeMesh((0.0,), (1.0,),
-                    initial_refinement_level = 2,
-                    n_cells_max = 30_000,
-                    periodicity = false)
-
-    equations_parabolic = LinearDiffusionEquation1D(0.1)
-
-    initial_condition(x, t, equations) = SVector(sinpi(x[1]))
-    boundary_conditions = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0)),
-                           x_pos = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0)))
-
-    semi = SemidiscretizationParabolic(mesh, equations_parabolic, initial_condition, solver;
-                                       boundary_conditions = boundary_conditions)
-
-    @trixi_test_nowarn show(stdout, semi)
-    @trixi_test_nowarn show(stdout, MIME"text/plain"(), semi)
-
-    @test semi isa SemidiscretizationParabolic
-    @test semi.solver isa DGSEM
-    @test semi.solver_parabolic isa ParabolicFormulationBassiRebay1
-    @test nvariables(semi) == 1
-    @test ndims(semi) == 1
-    @test real(semi) == real(solver)
-
-    ode = semidiscretize(semi, (0.0, 0.01))
-    u0 = copy(ode.u0)
-    du0 = similar(u0)
-    Trixi.rhs!(du0, u0, semi, 0.0)
-    @test all(isfinite, du0)
-
-    u0_check = similar(ode.u0)
-    Trixi.compute_coefficients!(u0_check, 0.0, semi)
-    @test u0_check ≈ ode.u0
-end
-
-@trixi_testset "TreeMesh1D: elixir_diffusion_mixed_dirichlet_neumann.jl" begin
+@trixi_testset "TreeMesh1D: elixir_diffusion_mixed_dirichlet_neumann_br1.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_mixed_dirichlet_neumann.jl"),
-                        tspan = (0.0, 0.05))
+                                 "elixir_diffusion_mixed_dirichlet_neumann_br1.jl"),
+                        l2=[4.906306967386223e-7], linf=[1.8404898263213454e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_diffusion_pure_dirichlet_ldg.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_pure_dirichlet_ldg.jl"),
-                        tspan = (0.0, 0.05))
+                        l2=[1.063561640989342e-5], linf=[7.870919430864876e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl" begin

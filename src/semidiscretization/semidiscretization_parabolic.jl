@@ -5,11 +5,11 @@
 @muladd begin
 #! format: noindent
 
-"""
+@doc raw"""
     SemidiscretizationParabolic
 
-A struct containing everything needed to describe a spatial semidiscretization
-of a purely parabolic conservation law.
+A struct containing everything needed to describe a spatial semidiscretization of a purely
+parabolic PDE.
 """
 mutable struct SemidiscretizationParabolic{Mesh, Equations, InitialCondition,
                                            BoundaryConditions, SourceTerms,
@@ -174,6 +174,8 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationParabolic)
     return compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
+# Method for `rhs!` that only computes the parabolic right-hand side with no hyperbolic
+# contribution.
 function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, solver_parabolic = semi
     cache = semi.cache.base
@@ -192,5 +194,4 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
 
     return nothing
 end
-
 end # @muladd

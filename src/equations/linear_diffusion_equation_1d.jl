@@ -28,5 +28,4 @@ varnames(::typeof(cons2prim), ::LinearDiffusionEquation1D) = ("scalar",)
     # orientation == 1
     return equations.diffusivity * dudx
 end
-
 end # @muladd
