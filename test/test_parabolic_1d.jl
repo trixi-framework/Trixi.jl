@@ -14,18 +14,18 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "SemidiscretizationHyperbolicParabolic and Semi (1D)" begin
 #! format: noindent
 
-@trixi_testset "TreeMesh1D: elixir_diffusion_mixed_dirichlet_neumann_br1.jl" begin
+@trixi_testset "TreeMesh1D: elixir_diffusion_dirichlet_neumann_br1.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_mixed_dirichlet_neumann_br1.jl"),
+                                 "elixir_diffusion_dirichlet_neumann_br1.jl"),
                         l2=[4.906306967386223e-7], linf=[1.8404898263213454e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_diffusion_pure_dirichlet_ldg.jl" begin
+@trixi_testset "TreeMesh1D: elixir_diffusion_dirichlet_ldg.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_pure_dirichlet_ldg.jl"),
+                                 "elixir_diffusion_dirichlet_ldg.jl"),
                         l2=[1.063561640989342e-5], linf=[7.870919430864876e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

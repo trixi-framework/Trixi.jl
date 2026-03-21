@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the pure diffusion equation with pure Dirichlet BCs (LDG)
+# semidiscretization of the pure diffusion equation with Dirichlet BCs (LDG)
 
 diffusivity = 0.5
 amplitude = 0.4
