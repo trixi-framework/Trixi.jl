@@ -50,7 +50,6 @@ https://github.com/project-fluxo/fluxo/blob/c7e0cc9b7fd4569dcab67bbb6e5a25c0a848
 function source_terms_convergence(u, x, t, equations::IdealGlmMhdEquations3D)
     h = 0.5 * sinpi(2 * (x[1] + x[2] + x[3] - t)) + 2
     h_x = pi * cospi(2 * (x[1] + x[2] + x[3] - t))
-    h_xx = -2 * pi^2 * sinpi(2 * (x[1] + x[2] + x[3] - t))
 
     s_1 = h_x
     s_2 = h_x + 4 * h * h_x
