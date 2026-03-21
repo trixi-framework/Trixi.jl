@@ -9,6 +9,10 @@ struct StructuredElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                   NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractElementContainer
     # Physical coordinates at each node
     node_coordinates::Array{RealT, NDIMSP2} # [orientation, node_i, node_j, node_k, element]
+
+    # Physical coordinates at boundary nodes
+    boundary_node_coordinates::Array{RealT, NDIMSP1} # [orientation, node_i, node_j, direction/face]
+
     # ID of neighbor element in negative direction in orientation
     left_neighbors::Array{Int, 2} # [orientation, elements]
 
@@ -39,6 +43,10 @@ function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
     node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                ntuple(_ -> nnodes(basis), NDIMS)...,
                                                nelements)
+    boundary_node_coordinates = Array{RealT, NDIMS + 1}(undef, NDIMS,
+                                                        ntuple(_ -> nnodes(basis),
+                                                               NDIMS - 1)...,
+                                                        NDIMS * 2)
     left_neighbors = Array{Int, 2}(undef, NDIMS, nelements)
     jacobian_matrix = Array{RealT, NDIMS + 3}(undef, NDIMS, NDIMS,
                                               ntuple(_ -> nnodes(basis), NDIMS)...,
@@ -58,6 +66,7 @@ function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
 
     elements = StructuredElementContainer{NDIMS, RealT, uEltype,
                                           NDIMS + 1, NDIMS + 2, NDIMS + 3}(node_coordinates,
+                                                                           boundary_node_coordinates,
                                                                            left_neighbors,
                                                                            jacobian_matrix,
                                                                            contravariant_vectors,
