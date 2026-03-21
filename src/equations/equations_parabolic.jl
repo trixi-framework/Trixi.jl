@@ -17,7 +17,7 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
 # Returns
 - `True()`
 
-Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+Used in parabolic CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
 diffusivity is constant in space and that [`max_diffusivity`](@ref) needs **not** to be re-computed
 at every node in every element.
 
@@ -27,18 +27,31 @@ if the diffusion term is linear in the variables/constant.
 @inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
 
 """
+    have_constant_speed(equations_parabolic::AbstractEquationsParabolic)
+
+Return whether the parabolic part is linear with constant diffusivity.
+
+This enables generic utilities such as [`linear_structure`](@ref) to treat
+purely parabolic semidiscretizations analogously to linear hyperbolic ones.
+"""
+@inline function have_constant_speed(equations_parabolic::AbstractEquationsParabolic)
+    return have_constant_diffusivity(equations_parabolic)
+end
+
+"""
     max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
 
 # Returns
 - `equations_parabolic.diffusivity`
 
-Returns isotropic diffusion coefficient for use in diffusive CFL condition computation,
+Returns isotropic diffusion coefficient for use in parabolic CFL condition computation,
 see [`StepsizeCallback`](@ref).
 """
 @inline function max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
     return equations_parabolic.diffusivity
 end
 
+include("linear_diffusion_equation_1d.jl")
 include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
 include("laplace_diffusion_3d.jl")
