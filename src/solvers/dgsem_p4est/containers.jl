@@ -190,11 +190,8 @@ function Adapt.adapt_structure(to,
                                                size(elements.surface_flux_values))
 
     new_type_params = (NDIMS,
-                       RealT,
-                       uEltype,
-                       NDIMS + 1,
-                       NDIMS + 2,
-                       NDIMS + 3,
+                       RealT, uEltype,
+                       NDIMS + 1, NDIMS + 2, NDIMS + 3,
                        typeof(inverse_jacobian),     # ArrayRealTNDIMSP1
                        typeof(node_coordinates),     # ArrayRealTNDIMSP2
                        typeof(jacobian_matrix),      # ArrayRealTNDIMSP3
@@ -213,15 +210,17 @@ function Adapt.adapt_structure(to,
                                                      _surface_flux_values)
 end
 
-mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, RealT <: Real,
+mutable struct P4estInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                        NDIMSP1, NDIMSP2,
                                        uArray <: DenseArray{uEltype, NDIMSP2},
-                                       NormalArray <: Union{DenseArray{RealT, NDIMSP1}, Nothing},
+                                       NormalArray <:
+                                       Union{DenseArray{RealT, NDIMSP1}, Nothing},
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
                                        DenseMatrix{NTuple{NDIMS, Symbol}},
                                        uVector <: DenseVector{uEltype},
-                                       NormalVector <:Union{DenseVector{RealT}, Nothing},
+                                       NormalVector <:
+                                       Union{DenseVector{RealT}, Nothing},
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
@@ -249,8 +248,11 @@ end
     return size(interfaces.neighbor_ids, 2)
 end
 @inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
-@inline function Base.eltype(::P4estInterfaceContainer{NDIMS, uEltype}) where {NDIMS,
-                                                                               uEltype}
+@inline function Base.eltype(::P4estInterfaceContainer{NDIMS, RealT, uEltype}) where {
+                                                                                      NDIMS,
+                                                                                      RealT,
+                                                                                      uEltype
+                                                                                      }
     return uEltype
 end
 
@@ -327,7 +329,7 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
-    interfaces = P4estInterfaceContainer{NDIMS, uEltype, RealT,
+    interfaces = P4estInterfaceContainer{NDIMS, RealT, uEltype,
                                          NDIMS + 1, NDIMS + 2,
                                          typeof(u), typeof(normal_directions),
                                          typeof(neighbor_ids), typeof(node_indices),
@@ -386,8 +388,7 @@ function Adapt.adapt_structure(to,
                                         size(interfaces.node_indices))
 
     new_type_params = (NDIMS,
-                       eltype(_u),
-                       RealT,
+                       RealT, eltype(_u),
                        NDIMS + 1, NDIMS + 2,
                        typeof(u), typeof(normal_directions),
                        typeof(neighbor_ids), typeof(node_indices),
@@ -679,8 +680,7 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     NDIMS = ndims(mortars)
     new_type_params = (NDIMS,
                        eltype(_u),
-                       NDIMS + 1,
-                       NDIMS + 3,
+                       NDIMS + 1, NDIMS + 3,
                        typeof(u), typeof(neighbor_ids), typeof(node_indices),
                        typeof(_u), typeof(_neighbor_ids), typeof(_node_indices))
     return P4estMortarContainer{new_type_params...}(u, neighbor_ids, node_indices,
