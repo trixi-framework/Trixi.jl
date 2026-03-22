@@ -365,12 +365,12 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to,
                                interfaces::P4estInterfaceContainer{NDIMS,
-                                                                   uEltype,
-                                                                   RealT}) where {
-                                                                                  NDIMS,
-                                                                                  uEltype,
-                                                                                  RealT
-                                                                                  }
+                                                                   RealT;
+                                                                   uEltype}) where {
+                                                                                    NDIMS,
+                                                                                    uEltype,
+                                                                                    RealT
+                                                                                    }
     # Adapt underlying storage
     _u = adapt(to, interfaces._u)
     _normal_directions = interfaces._normal_directions === nothing ? nothing :
