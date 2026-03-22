@@ -636,4 +636,33 @@ function invert_jacobian!(du, mesh::DGMultiMesh,
     end
     return nothing
 end
+
+# Tiebreaker methods resolving ambiguity between the Affine/NonAffine mesh specializations
+# above and the `AbstractEquationsParabolic` specialization: the parabolic behavior
+# (no Gauss→Lobatto interpolation) is always correct here.
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine},
+                          equations::AbstractEquationsParabolic,
+                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                          scaling = -1) where {NDIMS}
+    (; invJ) = cache.geometric_terms_container
+    @threaded for element in eachelement(mesh, dg, cache)
+        for i in axes(du, 1)
+            du[i, element] *= scaling * get_node_invJ(invJ, i, element, mesh)
+        end
+    end
+    return nothing
+end
+
+function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                          equations::AbstractEquationsParabolic,
+                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                          scaling = -1) where {NDIMS}
+    (; invJ) = cache.geometric_terms_container
+    @threaded for element in eachelement(mesh, dg, cache)
+        for i in axes(du, 1)
+            du[i, element] *= scaling * get_node_invJ(invJ, i, element, mesh)
+        end
+    end
+    return nothing
+end
 end # @muladd
