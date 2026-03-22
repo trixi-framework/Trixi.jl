@@ -1,7 +1,8 @@
 using Trixi
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqSDIRK, ADTypes
+using OrdinaryDiffEqSDIRK, OrdinaryDiffEqDifferentiation
+using ADTypes
 
 ###############################################################################
 ### equation, solver, mesh ###
