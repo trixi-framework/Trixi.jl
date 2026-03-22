@@ -571,7 +571,10 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
     return nothing
 end
 
-# interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
+# For the GaussSBP hyperbolic `rhs!`, `du` is stored at Gauss nodes after the
+# volume/surface integrals. We must scale by the inverse Jacobian and then interpolate
+# back to Lobatto nodes. This is distinct from the parabolic path (dispatched via
+# `AbstractEquationsParabolic` below) where `du` is already at Lobatto nodes.
 function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
                           dg::DGMultiFluxDiff{<:GaussSBP}, cache;
                           scaling = -1) where {NDIMS}
@@ -582,8 +585,7 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:Affine}, equations,
         rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
         invJ_e = invJ[1, e]
 
-        # At this point, `rhs_volume_local` should still be stored at Gauss points.
-        # We scale it by the inverse Jacobian before transforming back to Lobatto.
+        # Scale by the inverse Jacobian before transforming back to Lobatto nodes.
         for i in eachindex(rhs_volume_local)
             rhs_volume_local[i] = du[i, e] * invJ_e * scaling
         end
@@ -605,8 +607,7 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
     @threaded for e in eachelement(mesh, dg, cache)
         rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
 
-        # At this point, `rhs_volume_local` should still be stored at Gauss points.
-        # We scale it by the inverse Jacobian before transforming back to Lobatto.
+        # Scale by the inverse Jacobian before transforming back to Lobatto nodes.
         for i in eachindex(rhs_volume_local)
             rhs_volume_local[i] = du[i, e] * invJ[i, e] * scaling
         end
@@ -616,6 +617,23 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                             view(du, :, e), rhs_volume_local)
     end
 
+    return nothing
+end
+
+# In the parabolic `rhs_parabolic!`, `du` is at Lobatto nodes (the parabolic solver
+# uses standard polynomial operators and never converts to Gauss nodes), so we must
+# NOT apply the Gauss→Lobatto interpolation. Dispatch on `AbstractEquationsParabolic`
+# to select this plain inverse-Jacobian scaling instead of the hyperbolic overrides above.
+function invert_jacobian!(du, mesh::DGMultiMesh,
+                          equations::AbstractEquationsParabolic,
+                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
+                          scaling = -1)
+    (; invJ) = cache.geometric_terms_container
+    @threaded for element in eachelement(mesh, dg, cache)
+        for i in axes(du, 1)
+            du[i, element] *= scaling * get_node_invJ(invJ, i, element, mesh)
+        end
+    end
     return nothing
 end
 end # @muladd

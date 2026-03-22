@@ -626,7 +626,10 @@ end
 # Specializes on Polynomial (e.g., modal) DG methods with a flux differencing volume integral, e.g.,
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
-# Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
+# Note: DGMultiFluxDiff{<:GaussSBP} uses this same `rhs!` but dispatches to specialized
+# `invert_jacobian!` overrides in flux_differencing_gauss_sbp.jl that also interpolate
+# `du` from Gauss to Lobatto nodes. The parabolic path dispatches to a separate override
+# on `AbstractEquationsParabolic` that skips the interpolation.
 function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
