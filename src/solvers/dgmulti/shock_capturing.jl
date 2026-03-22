@@ -58,9 +58,9 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
 end
 
-# calculates the inverse of the vandermonde matrix for shock capturing purposes. 
-# This version is for tensor product elements
-function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Quad, Hex}}) where {NDIMS}
+# calculates the inverse of the vandermonde matrix for shock capturing purposes.
+# This version is for tensor product elements (Line, Quad, Hex)
+function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad, Hex}}) where {NDIMS}
     # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
     (; N) = basis
     lobatto_node_coordinates_1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, N)
@@ -175,7 +175,8 @@ end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
                                                    equations,
-                                                   dg::DGMulti{NDIMS, <:Union{Quad, Hex}},
+                                                   dg::DGMulti{NDIMS,
+                                                               <:Union{Line, Quad, Hex}},
                                                    cache;
                                                    kwargs...) where {NDIMS}
     (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
