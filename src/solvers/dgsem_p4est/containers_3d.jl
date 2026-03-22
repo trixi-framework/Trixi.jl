@@ -78,8 +78,7 @@ end
 
 # Not yet implemented and needed for 3D
 function init_normal_directions!(interfaces::P4estInterfaceContainer{3},
-                                 basis::LobattoLegendreBasis,
-                                 elements::P4estElementContainer{3})
+                                 basis::LobattoLegendreBasis, elements)
     return nothing
 end
 
