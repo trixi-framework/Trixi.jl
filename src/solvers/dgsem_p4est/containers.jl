@@ -365,7 +365,7 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to,
                                interfaces::P4estInterfaceContainer{NDIMS,
-                                                                   RealT;
+                                                                   RealT,
                                                                    uEltype}) where {
                                                                                     NDIMS,
                                                                                     uEltype,
