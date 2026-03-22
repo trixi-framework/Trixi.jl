@@ -216,12 +216,12 @@ end
 mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, RealT <: Real,
                                        NDIMSP1, NDIMSP2,
                                        uArray <: DenseArray{uEltype, NDIMSP2},
-                                       NormalArray,
+                                       NormalArray <: Union{DenseArray{RealT, NDIMSP1}, Nothing},
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
                                        DenseMatrix{NTuple{NDIMS, Symbol}},
                                        uVector <: DenseVector{uEltype},
-                                       NormalVector,
+                                       NormalVector <:Union{DenseVector{RealT}, Nothing},
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
