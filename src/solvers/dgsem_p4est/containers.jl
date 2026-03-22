@@ -248,13 +248,6 @@ end
     return size(interfaces.neighbor_ids, 2)
 end
 @inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
-@inline function Base.eltype(::P4estInterfaceContainer{NDIMS, RealT, uEltype}) where {
-                                                                                      NDIMS,
-                                                                                      RealT,
-                                                                                      uEltype
-                                                                                      }
-    return uEltype
-end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
