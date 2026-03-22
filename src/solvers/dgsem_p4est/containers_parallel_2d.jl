@@ -77,5 +77,7 @@ function init_normal_directions!(mpi_mortars::P4estMPIMortarContainer{2}, basis,
             end
         end
     end
+
+    return nothing
 end
 end # muladd

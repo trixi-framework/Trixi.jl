@@ -216,12 +216,12 @@ end
 mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, RealT <: Real,
                                        NDIMSP1, NDIMSP2,
                                        uArray <: DenseArray{uEltype, NDIMSP2},
-                                       NormalArray <: DenseArray{RealT, NDIMSP1},
+                                       NormalArray,
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
                                        DenseMatrix{NTuple{NDIMS, Symbol}},
                                        uVector <: DenseVector{uEltype},
-                                       NormalVector <: DenseVector{RealT},
+                                       NormalVector,
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
@@ -237,6 +237,13 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, RealT <: Real,
     _neighbor_ids::IdsVector
     _node_indices::IndicesVector
 end
+
+# `trivial` means that the interface normals can be taken from
+# the outer/surface element nodes
+@inline trivial_interface_normals(::LobattoLegendreBasis) = true
+# For Gauss-Legendre basis, the interface normals need to be interpolated,
+# analogous to the surface values.
+@inline trivial_interface_normals(::GaussLegendreBasis) = false
 
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
     return size(interfaces.neighbor_ids, 2)
@@ -261,11 +268,17 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
                                (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                 capacity))
 
-    resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
-    interfaces.normal_directions = unsafe_wrap(ArrayType, pointer(_normal_directions),
-                                               (n_dims,
-                                                ntuple(_ -> n_nodes, n_dims - 1)...,
-                                                capacity))
+    if _normal_directions === nothing # trivial interface normals, e.g. for Lobatto-Legendre basis
+        interfaces.normal_directions = nothing
+    else # non-trivial interface normals, e.g. for Gauss-Legendre basis
+        resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
+        interfaces.normal_directions = unsafe_wrap(ArrayType,
+                                                   pointer(_normal_directions),
+                                                   (n_dims,
+                                                    ntuple(_ -> n_nodes,
+                                                           n_dims - 1)...,
+                                                    capacity))
+    end
 
     resize!(_neighbor_ids, 2 * capacity)
     interfaces.neighbor_ids = unsafe_wrap(ArrayType, pointer(_neighbor_ids),
@@ -295,13 +308,18 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_interfaces))
 
-    _normal_directions = Vector{RealT}(undef,
-                                       NDIMS * nnodes(basis)^(NDIMS - 1) *
-                                       n_interfaces)
-    normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-                                    (NDIMS,
-                                     ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                     n_interfaces))
+    if !trivial_interface_normals(basis)
+        _normal_directions = Vector{RealT}(undef,
+                                           NDIMS * nnodes(basis)^(NDIMS - 1) *
+                                           n_interfaces)
+        normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
+                                        (NDIMS,
+                                         ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                         n_interfaces))
+    else
+        _normal_directions = nothing
+        normal_directions = nothing
+    end
 
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
@@ -343,25 +361,33 @@ function Adapt.parent_type(::Type{<:P4estInterfaceContainer{<:Any, <:Any, <:Any,
 end
 
 # Manual adapt_structure since we have aliasing memory
-function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
+function Adapt.adapt_structure(to,
+                               interfaces::P4estInterfaceContainer{NDIMS,
+                                                                   uEltype,
+                                                                   RealT}) where {
+                                                                                  NDIMS,
+                                                                                  uEltype,
+                                                                                  RealT
+                                                                                  }
     # Adapt underlying storage
     _u = adapt(to, interfaces._u)
-    _normal_directions = adapt(to, interfaces._normal_directions)
+    _normal_directions = interfaces._normal_directions === nothing ? nothing :
+                         adapt(to, interfaces._normal_directions)
     _neighbor_ids = adapt(to, interfaces._neighbor_ids)
     _node_indices = adapt(to, interfaces._node_indices)
     # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(interfaces.u))
-    normal_directions = unsafe_wrap_or_alloc(to, _normal_directions,
+    normal_directions = _normal_directions === nothing ? nothing : # Check if interface normals are trivial
+                        unsafe_wrap_or_alloc(to, _normal_directions,
                                              size(interfaces.normal_directions))
     neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids,
                                         size(interfaces.neighbor_ids))
     node_indices = unsafe_wrap_or_alloc(to, _node_indices,
                                         size(interfaces.node_indices))
 
-    NDIMS = ndims(interfaces)
     new_type_params = (NDIMS,
                        eltype(_u),
-                       eltype(_normal_directions),
+                       RealT,
                        NDIMS + 1, NDIMS + 2,
                        typeof(u), typeof(normal_directions),
                        typeof(neighbor_ids), typeof(node_indices),
