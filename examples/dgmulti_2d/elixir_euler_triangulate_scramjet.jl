@@ -4,6 +4,19 @@ using Trixi
 polydeg = 2
 basis = DGMultiBasis(Tri(), polydeg, approximation_type = SBP())
 
+equations = CompressibleEulerEquations2D(1.4)
+@inline function initial_condition_mach2_flow(x, t, equations::CompressibleEulerEquations2D)
+    # set the freestream flow parameters
+    rho_freestream = 1.4
+    v1 = 2.0
+    v2 = 0.0
+    p_freestream = 1.0
+
+    prim = SVector(rho_freestream, v1, v2, p_freestream)
+    return prim2cons(prim, equations)
+end
+initial_condition = initial_condition_mach2_flow
+
 volume_flux = flux_ranocha
 surface_flux = flux_hllc
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -17,19 +30,6 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
-
-equations = CompressibleEulerEquations2D(1.4)
-@inline function initial_condition_mach2_flow(x, t, equations::CompressibleEulerEquations2D)
-    # set the freestream flow parameters
-    rho_freestream = 1.4
-    v1 = 2.0
-    v2 = 0.0
-    p_freestream = 1.0
-
-    prim = SVector(rho_freestream, v1, v2, p_freestream)
-    return prim2cons(prim, equations)
-end
-initial_condition = initial_condition_mach2_flow
 
 # use pre-defined Triangulate geometry in StartUpDG
 meshIO = StartUpDG.triangulate_domain(StartUpDG.Scramjet(); h = 0.05)

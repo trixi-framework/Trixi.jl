@@ -6,9 +6,8 @@ using Trixi: StartUpDG
 polydeg = 3
 basis = DGMultiBasis(Tri(), polydeg, approximation_type = SBP())
 
-# TODO: fix this download
-mesh_file = Trixi.download("https://raw.githubusercontent.com/jlchan/StartUpDG.jl/041d270ac97f8a650fb3e7a32b35cc9314e0777f/test/testset_Gmsh_meshes/squareCylinder2D.msh",
-                           joinpath(@__DIR__, "squareCylinder2D.msh"))
+mesh_file = joinpath(pkgdir(StartUpDG), "test", "testset_Gmsh_meshes",
+                     "squareCylinder2D.msh")
 VXY, EToV = StartUpDG.read_Gmsh_2D(mesh_file)
 
 # tag different boundary conditions
@@ -18,6 +17,19 @@ end
 outflow(x) = (x[1] ≈ maximum(VXY[1]))
 cylinder(x) = !freestream(x) && !outflow(x)
 is_on_boundary = (; freestream = freestream, outflow = outflow, wall = cylinder)
+
+equations = CompressibleEulerEquations2D(1.4)
+@inline function initial_condition_mach2_flow(x, t, equations::CompressibleEulerEquations2D)
+    # set the freestream flow parameters
+    rho_freestream = 1.4
+    v1 = 2.0
+    v2 = 0.0
+    p_freestream = 1.0
+
+    prim = SVector(rho_freestream, v1, v2, p_freestream)
+    return prim2cons(prim, equations)
+end
+initial_condition = initial_condition_mach2_flow
 
 volume_flux = flux_ranocha
 surface_flux = flux_lax_friedrichs
@@ -34,19 +46,6 @@ dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
 mesh = DGMultiMesh(dg, VXY, EToV; is_on_boundary)
-
-equations = CompressibleEulerEquations2D(1.4)
-@inline function initial_condition_mach2_flow(x, t, equations::CompressibleEulerEquations2D)
-    # set the freestream flow parameters
-    rho_freestream = 1.4
-    v1 = 2.0
-    v2 = 0.0
-    p_freestream = 1.0
-
-    prim = SVector(rho_freestream, v1, v2, p_freestream)
-    return prim2cons(prim, equations)
-end
-initial_condition = initial_condition_mach2_flow
 
 boundary_conditions = (; freestream = BoundaryConditionDirichlet(initial_condition),
                        outflow = BoundaryConditionDirichlet(initial_condition),

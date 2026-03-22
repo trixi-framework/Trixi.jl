@@ -500,19 +500,39 @@ end
 end
 
 @trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
-                        cells_per_dimension=4, tspan=(0.0, 0.1),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
+                        polydeg=1, tspan=(0.0, 0.1),
                         l2=[
-                            0.05685180852320552,
-                            0.04308097439005265,
-                            0.04308097439005263,
-                            0.21098250258804
+                            1.70692488e-02,
+                            2.65734339e-02,
+                            4.86648991e-03,
+                            8.08472383e-02
                         ],
                         linf=[
-                            0.2360805191601203,
-                            0.16684117462697776,
-                            0.16684117462697767,
-                            0.8573034682049414
+                            2.33569012e+00,
+                            2.77506091e+00,
+                            5.46242047e-01,
+                            1.24709665e+01
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
+                        polydeg=1, tspan=(0.0, 0.1),
+                        l2=[
+                            1.54683626e-01,
+                            2.75970574e-01,
+                            1.82804003e-01,
+                            6.89527686e-01
+                        ],
+                        linf=[
+                            9.11459678e-01,
+                            1.35159556e+00,
+                            1.14564572e+00,
+                            3.82514943e+00
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
