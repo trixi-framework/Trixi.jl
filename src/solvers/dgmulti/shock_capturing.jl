@@ -131,8 +131,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # the last (N + 1) modes, or the number of modes corresponding to the face type of a 
         # triangle (e.g., a Line()). For tetrahedra, it removes the last (N + 1) * (N + 2) ÷ 2 
         # modes, which correspond to the number of modes for the face type of a Tet (e.g., a Tri()). 
-        clip_1_range = 1:num_modes(N, StartUpDG.face_type(dg.basis.element_type))
-        clip_2_range = 1:num_modes(N - 1, StartUpDG.face_type(dg.basis.element_type))
+        clip_1_range = 1:num_modes(N - 1, dg.basis.element_type)
+        clip_2_range = 1:num_modes(N - 2, dg.basis.element_type)
         total_energy_clip1 = sum(abs2, view(modal, clip_1_range))
         total_energy_clip2 = sum(abs2, view(modal, clip_2_range))
 
