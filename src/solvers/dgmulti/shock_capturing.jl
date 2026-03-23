@@ -69,7 +69,7 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
     return inverse_vandermonde
 end
 
-# calculates the inverse of the vandermonde matrix for shock capturing purposes. 
+# calculates the inverse of the vandermonde matrix for shock capturing purposes.
 # This version is for nodal simplicial SBP elements
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
 
@@ -96,7 +96,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         resize!(alpha_tmp, nelements(mesh, dg))
     end
 
-    # magic parameters; reuses the quad/hex parameters 
+    # magic parameters; reuses the quad/hex parameters
     threshold = 0.5 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
@@ -115,19 +115,19 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         total_energy = sum(abs2, modal)
 
         # Calculate total energies for all modes, all modes minus the highest mode, and
-        # all modes without the two highest modes. For simplicies, we cut off the "highest 
+        # all modes without the two highest modes. For simplices, we cut off the "highest
         # mode", which corresponds to the last "layer" of modes in a Pascal's triangle or
-        # simplex representation of the modal coefficients. 
-        # 
+        # simplex representation of the modal coefficients.
+        #
         # For example, for a degree N=3 triangle, the modal coefficients are ordered
-        # 
-        # 1       
-        # 2 3      
-        # 4 5 6     
-        # 7 8 9 10   
-        # 
-        # The modal coefficients corresponding to degree 2 are coefficients are then (1:6), 
-        # while the modal coefficients for degree 1 are (1:3). 
+        #
+        # 1
+        # 2 3
+        # 4 5 6
+        # 7 8 9 10
+        #
+        # The modal coefficients corresponding to degree 2 are coefficients are then (1:6),
+        # while the modal coefficients for degree 1 are (1:3).
         clip_1_range = 1:num_modes(N - 1, dg.basis.element_type)
         clip_2_range = 1:num_modes(N - 2, dg.basis.element_type)
         total_energy_clip1 = sum(abs2, view(modal, clip_1_range))
