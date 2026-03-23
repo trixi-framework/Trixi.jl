@@ -25,7 +25,8 @@ const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", tru
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cross,
+using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
+                     cross,
                      normalize, I,
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
