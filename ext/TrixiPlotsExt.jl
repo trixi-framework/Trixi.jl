@@ -3,10 +3,7 @@ module TrixiPlotsExt
 # Load the required packages
 using Plots: Plots
 using Trixi
-using Trixi: AbstractPlotData, PlotDataSeries, PlotMesh, PlotData1D, PlotData2D,
-             ScalarPlotData2D, PlotData2DCartesian, PlotData2DTriangulated, getmesh,
-             TrixiODESolution, AbstractSemidiscretization, ScalarData, DiscreteCallback,
-             CallbackSet, ODEProblem, ODESolution
+using Trixi: getmesh
 using MuladdMacro: @muladd
 using RecipesBase
 using Printf: @sprintf
