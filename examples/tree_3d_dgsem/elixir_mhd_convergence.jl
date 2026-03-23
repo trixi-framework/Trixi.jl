@@ -4,7 +4,7 @@ using OrdinaryDiffEqLowStorageRK
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-gamma() = 2.0 # required to make solution below valid!
+gamma() = 2.0 # required to make solution below working!
 equations = IdealGlmMhdEquations3D(gamma())
 
 """
