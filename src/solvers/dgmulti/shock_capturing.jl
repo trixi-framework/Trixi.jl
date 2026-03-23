@@ -119,18 +119,15 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         # mode", which corresponds to the last "layer" of modes in a Pascal's triangle or
         # simplex representation of the modal coefficients. 
         # 
-        # For example, for a degree N=4 triangle, the modal coefficients are ordered
+        # For example, for a degree N=3 triangle, the modal coefficients are ordered
         # 
         # 1       
         # 2 3      
         # 4 5 6     
         # 7 8 9 10   
         # 
-        # The modal coefficients corresponding to degree 3 are coefficients are then (1:6), 
-        # while the modal coefficients for degree 2 are (1:3). This corresponds to removing 
-        # the last (N + 1) modes, or the number of modes corresponding to the face type of a 
-        # triangle (e.g., a Line()). For tetrahedra, it removes the last (N + 1) * (N + 2) ÷ 2 
-        # modes, which correspond to the number of modes for the face type of a Tet (e.g., a Tri()). 
+        # The modal coefficients corresponding to degree 2 are coefficients are then (1:6), 
+        # while the modal coefficients for degree 1 are (1:3). 
         clip_1_range = 1:num_modes(N - 1, dg.basis.element_type)
         clip_2_range = 1:num_modes(N - 2, dg.basis.element_type)
         total_energy_clip1 = sum(abs2, view(modal, clip_1_range))
