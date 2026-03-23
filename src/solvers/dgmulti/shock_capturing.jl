@@ -267,7 +267,7 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
     alpha_tmp .= alpha
 
     # smooth alpha with its neighboring value
-    for element in eachelement(mesh, dg)
+    @threaded for element in eachelement(mesh, dg)
         for face in Base.OneTo(StartUpDG.num_faces(dg.basis.element_type))
             neighboring_element = cache.element_to_element_connectivity[face, element]
             alpha_neighbor = alpha_tmp[neighboring_element]
@@ -425,7 +425,8 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             u_j = u_local[j]
 
             # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh, cache)
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh,
+                                                              cache)
             reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
             normal_direction_ij = geometric_matrix * reference_operator_entries
 
@@ -462,7 +463,8 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             u_j = u[j, element]
 
             # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh, cache)
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh,
+                                                              cache)
             reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
             normal_direction_ij = geometric_matrix * reference_operator_entries
 
