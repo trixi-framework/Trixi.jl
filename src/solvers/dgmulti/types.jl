@@ -27,21 +27,34 @@ const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxTyp
                                                                                                       NDIMS
                                                                                                       }
 
+const rdSBP = RefElemData{NDIMS, ElemType, ApproxType} where {
+                                                              NDIMS,
+                                                              ElemType,
+                                                              ApproxType<:Union{SBP,
+                                                                                AbstractDerivativeOperator}
+                                                              }
+
+const TensorProductWedgeSBP{tri, line} = TensorProductWedge{tri, line} where {tri<:rdSBP,
+                                                                              line<:rdSBP
+                                                                              }
+
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
                                                          <:Union{VolumeIntegralFluxDifferencing,
                                                                  VolumeIntegralShockCapturingHGType}} where {
-                                                                                                             NDIMS,
-                                                                                                             ApproxType <:
-                                                                                                             Union{SBP,
-                                                                                                                   AbstractDerivativeOperator}
-                                                                                                             }
+                                                                                                         NDIMS,
+                                                                                                         ApproxType <:
+                                                                                                         Union{SBP,
+                                                                                                               TensorProductWedgeSBP,
+                                                                                                               AbstractDerivativeOperator}
+                                                                                                         }
 
 const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                  SurfaceIntegral,
                                                  VolumeIntegral} where {NDIMS, ElemType,
                                                                         ApproxType <:
                                                                         Union{SBP,
+                                                                              TensorProductWedgeSBP,
                                                                               AbstractDerivativeOperator},
                                                                         SurfaceIntegral,
                                                                         VolumeIntegral}
@@ -120,7 +133,7 @@ function DGMulti(element_type::Wedge,
                  approximation_type,
                  volume_integral,
                  surface_integral,
-                 polydeg::Tuple,
+                 polydeg::Tuple;
                  kwargs...)
     factor_a = RefElemData(Tri(), approximation_type, polydeg[1]; kwargs...)
     factor_b = RefElemData(Line(), approximation_type, polydeg[2]; kwargs...)

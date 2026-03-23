@@ -180,7 +180,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     if typeof(rd.approximation_type) <:
-       Union{SBP, AbstractNonperiodicDerivativeOperator}
+       Union{SBP, TensorProductWedgeSBP, AbstractNonperiodicDerivativeOperator}
         lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
     else
         lift_scalings = nothing
