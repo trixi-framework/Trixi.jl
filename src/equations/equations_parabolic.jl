@@ -22,15 +22,6 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
     end
 end
 
-@inline function Base.propertynames(equations::AbstractEquationsParabolic,
-                                    private::Bool = false)
-    local_fields = fieldnames(typeof(equations))
-    hyperbolic_fields = propertynames(getfield(equations, :equations_hyperbolic), private)
-    forwarded_fields = filter(field -> !(field in local_fields), hyperbolic_fields)
-
-    return (local_fields..., forwarded_fields...)
-end
-
 """
     have_constant_diffusivity(::AbstractLaplaceDiffusion)
 

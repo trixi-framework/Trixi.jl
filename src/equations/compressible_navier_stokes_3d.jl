@@ -347,9 +347,8 @@ T = \\frac{p}{\\rho}
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
-    @unpack gamma = equations.equations_hyperbolic
 
-    p = (gamma - 1) *
+    p = (equations.gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
     T = p / rho # Corresponds to a specific gas constant R = 1
     return T
