@@ -13,12 +13,12 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
 
 # This enables "forwarded" accesses to e.g.`equations.gamma` of the "underlying" `equations_hyperbolic`
 # while keeping direct access to parabolic-specific fields like `diffusivity` or `mu`.
-@inline function Base.getproperty(equations::AbstractEquationsParabolic,
+@inline function Base.getproperty(equations::AbstractCompressibleNavierStokesDiffusion,
                                   field::Symbol)
-    if hasfield(typeof(equations), field)
-        return getfield(equations, field)
-    else
+    if field === :gamma || field === :inv_gamma_minus_one
         return getproperty(getfield(equations, :equations_hyperbolic), field)
+    else
+        return getfield(equations, field)
     end
 end
 
