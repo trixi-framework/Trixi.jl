@@ -119,9 +119,6 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
     #       Requires.jl only when Plots is present.
     #       In the future, we should update/remove this warning if other plotting packages are
     #       starting to be used.
-    if !(:Plots in names(@__MODULE__, all = true))
-        @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
-    end
 
     return DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
                             save_positions = (false, false),

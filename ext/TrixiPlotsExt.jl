@@ -15,8 +15,8 @@ using Printf: @sprintf
 #! format: noindent
 
 function Trixi.show_plot(plot_data, variable_names;
-                   show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                   time = nothing, timestep = nothing)
+                         show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                         time = nothing, timestep = nothing)
     # Gather subplots
     plots = []
     for v in variable_names
@@ -50,8 +50,8 @@ function Trixi.show_plot(plot_data, variable_names;
 end
 
 function Trixi.save_plot(plot_data, variable_names;
-                   show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                   time = nothing, timestep = nothing)
+                         show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                         time = nothing, timestep = nothing)
     # Gather subplots
     plots = []
     for v in variable_names
