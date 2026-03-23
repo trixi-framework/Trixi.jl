@@ -61,28 +61,34 @@ end
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left_element = cache.interfaces.neighbor_ids[1, interface]
+        right_element = cache.interfaces.neighbor_ids[2, interface]
 
         orientation = cache.interfaces.orientations[interface]
 
         for i in eachnode(dg)
-            index_left = (nnodes(dg), i)
-            index_right = (1, i)
-            if orientation == 2
-                index_left = reverse(index_left)
-                index_right = reverse(index_right)
+            # Define node indices for left and right element based on the interface orientation
+            if orientation == 1
+                index_left = (nnodes(dg), i)
+                index_right = (1, i)
+            else # if orientation == 2
+                index_left = (i, nnodes(dg))
+                index_right = (i, 1)
             end
-            var_left = u[variable, index_left..., left]
-            var_right = u[variable, index_right..., right]
+            var_left = u[variable, index_left..., left_element]
+            var_right = u[variable, index_right..., right_element]
 
-            var_min[index_right..., right] = min(var_min[index_right..., right],
-                                                 var_left)
-            var_max[index_right..., right] = max(var_max[index_right..., right],
-                                                 var_left)
+            var_min[index_right..., right_element] = min(var_min[index_right...,
+                                                                 right_element],
+                                                         var_left)
+            var_max[index_right..., right_element] = max(var_max[index_right...,
+                                                                 right_element],
+                                                         var_left)
 
-            var_min[index_left..., left] = min(var_min[index_left..., left], var_right)
-            var_max[index_left..., left] = max(var_max[index_left..., left], var_right)
+            var_min[index_left..., left_element] = min(var_min[index_left...,
+                                                               left_element], var_right)
+            var_max[index_left..., left_element] = max(var_max[index_left...,
+                                                               left_element], var_right)
         end
     end
 
@@ -94,26 +100,28 @@ end
 
         for i in eachnode(dg)
             if neighbor_side == 2 # Element is on the right, boundary on the left
-                index = (1, i)
+                node_index = (1, i)
                 boundary_index = 1
             else # Element is on the left, boundary on the right
-                index = (nnodes(dg), i)
+                node_index = (nnodes(dg), i)
                 boundary_index = 2
             end
             if orientation == 2
-                index = reverse(index)
+                node_index = reverse(node_index)
                 boundary_index += 2
             end
-            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_inner = get_node_vars(u, equations, dg, node_index..., element)
             u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
                                                mesh, equations, dg, cache,
-                                               index..., element)
+                                               node_index..., element)
             var_outer = u_outer[variable]
 
-            var_min[index..., element] = min(var_min[index..., element], var_outer)
-            var_max[index..., element] = max(var_max[index..., element], var_outer)
+            var_min[node_index..., element] = min(var_min[node_index..., element],
+                                                  var_outer)
+            var_max[node_index..., element] = max(var_max[node_index..., element],
+                                                  var_outer)
         end
     end
 
@@ -175,27 +183,33 @@ end
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left = cache.interfaces.neighbor_ids[1, interface]
-        right = cache.interfaces.neighbor_ids[2, interface]
+        left_element = cache.interfaces.neighbor_ids[1, interface]
+        right_element = cache.interfaces.neighbor_ids[2, interface]
 
         orientation = cache.interfaces.orientations[interface]
 
         for i in eachnode(dg)
-            index_left = (nnodes(dg), i)
-            index_right = (1, i)
-            if orientation == 2
-                index_left = reverse(index_left)
-                index_right = reverse(index_right)
+            # Define node indices for left and right element based on the interface orientation
+            if orientation == 1
+                index_left = (nnodes(dg), i)
+                index_right = (1, i)
+            else # if orientation == 2
+                index_left = (i, nnodes(dg))
+                index_right = (i, 1)
             end
-            var_left = variable(get_node_vars(u, equations, dg, index_left..., left),
+            var_left = variable(get_node_vars(u, equations, dg, index_left...,
+                                              left_element),
                                 equations)
-            var_right = variable(get_node_vars(u, equations, dg, index_right..., right),
+            var_right = variable(get_node_vars(u, equations, dg, index_right...,
+                                               right_element),
                                  equations)
 
-            var_minmax[index_right..., right] = min_or_max(var_minmax[index_right...,
-                                                                      right], var_left)
-            var_minmax[index_left..., left] = min_or_max(var_minmax[index_left...,
-                                                                    left], var_right)
+            var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
+                                                                              right_element],
+                                                                   var_left)
+            var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
+                                                                            left_element],
+                                                                 var_right)
         end
     end
 
@@ -207,26 +221,27 @@ end
 
         for i in eachnode(dg)
             if neighbor_side == 2 # Element is on the right, boundary on the left
-                index = (1, i)
+                node_index = (1, i)
                 boundary_index = 1
             else # Element is on the left, boundary on the right
-                index = (nnodes(dg), i)
+                node_index = (nnodes(dg), i)
                 boundary_index = 2
             end
             if orientation == 2
-                index = reverse(index)
+                node_index = reverse(node_index)
                 boundary_index += 2
             end
-            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_inner = get_node_vars(u, equations, dg, node_index..., element)
             u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
                                                mesh, equations, dg, cache,
-                                               index..., element)
+                                               node_index..., element)
             var_outer = variable(u_outer, equations)
 
-            var_minmax[index..., element] = min_or_max(var_minmax[index..., element],
-                                                       var_outer)
+            var_minmax[node_index..., element] = min_or_max(var_minmax[node_index...,
+                                                                       element],
+                                                            var_outer)
         end
     end
 
