@@ -161,6 +161,29 @@ function set_zero!(du, dg::DGMulti, other_args...)
     return nothing
 end
 
+function DGMultiGeometricTermsContainer(dg::DGMultiWeakForm, mesh::DGMultiMesh)
+    rd = dg.basis
+    md = mesh.md
+    dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
+    J = md.J
+    invJ = inv.(rd.Vq * J)
+    return DGMultiGeometricTermsContainer(J, invJ, dxidxhatj)
+end
+
+function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiffSBP, mesh::DGMultiMesh)
+    md = mesh.md
+    return DGMultiGeometricTermsContainer(md.J, inv.(md.J), md.rstxyzJ)
+end
+
+function DGMultiGeometricTermsContainer(dg::DGMultiFluxDiff, mesh::DGMultiMesh)
+    rd = dg.basis
+    md = mesh.md
+    (; Vq, Vf) = rd
+    dxidxhatj = map(x -> [Vq; Vf] * x, md.rstxyzJ)
+    J = rd.Vq * md.J
+    return DGMultiGeometricTermsContainer(J, inv.(J), dxidxhatj)
+end
+
 # Holds arrays shared across most DGMulti cache types:
 # solution values at volume/face quadrature points and thread-local scratch storage.
 struct DGMultiSolutionContainer{uType, ufType, ffType, lType}
@@ -205,12 +228,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
         lift_scalings = nothing
     end
 
-    # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
-    # For affine meshes, we just access one element of this interpolated data.
-    dxidxhatj = map(x -> rd.Vq * x, md.rstxyzJ)
-
-    # interpolate J to quadrature points for weight-adjusted DG (WADG)
-    invJ = inv.(rd.Vq * md.J)
+    geometric_terms_container = DGMultiGeometricTermsContainer(dg, mesh)
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
     nvars = nvariables(equations)
@@ -222,8 +240,9 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
                                                                uEltype)
 
-    return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
-            solution_container, flux_threaded, rotated_flux_threaded)
+    return (; md, weak_differentiation_matrices, lift_scalings,
+            geometric_terms_container, solution_container,
+            flux_threaded, rotated_flux_threaded)
 end
 
 function compute_coefficients!(::Nothing, u, initial_condition, t,
@@ -376,7 +395,8 @@ end
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache)
-    @unpack weak_differentiation_matrices, dxidxhatj = cache
+    @unpack weak_differentiation_matrices = cache
+    (; dxidxhatj) = cache.geometric_terms_container
     (; u_values, local_values_threaded) = cache.solution_container
 
     flux_values = local_values_threaded[Threads.threadid()]
@@ -405,7 +425,8 @@ end
                                          have_nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralWeakForm,
                                          dg::DGMulti, cache) where {NDIMS}
-    (; weak_differentiation_matrices, dxidxhatj) = cache
+    (; weak_differentiation_matrices) = cache
+    (; dxidxhatj) = cache.geometric_terms_container
     (; u_values) = cache.solution_container
 
     flux_values = cache.flux_threaded[Threads.threadid()]
@@ -676,13 +697,25 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
     return nothing
 end
 
-# inverts Jacobian and scales by -1.0
-function invert_jacobian!(du, mesh::DGMultiMesh, equations, dg::DGMulti, cache;
+# Returns `invJ` at a given `node` and `element`. For affine meshes, `invJ` is
+# constant per element so node 1 is used. For NonAffine meshes, it varies by node.
+# Note that we only allow this for collocation-type discretizations (e.g., where 
+# `approximation_type` is SBP or GaussSBP); for general discretizations this should 
+# be treated using a weight-adjusted mass matrix inversion. 
+@inline get_node_invJ(invJ, node, element, ::DGMultiMesh) = invJ[1, element]
+@inline function get_node_invJ(invJ, node, element,
+                               ::DGMultiMesh{NDIMS, <:NonAffine}) where {NDIMS}
+    return invJ[node, element]
+end
+
+# inverts Jacobian and scales by -1.0. 
+function invert_jacobian!(du, mesh::DGMultiMesh, equations,
+                          dg::DGMulti, cache;
                           scaling = -1)
-    @threaded for e in eachelement(mesh, dg, cache)
-        invJ = cache.invJ[1, e]
+    (; invJ) = cache.geometric_terms_container
+    @threaded for element in eachelement(mesh, dg, cache)
         for i in axes(du, 1)
-            du[i, e] *= scaling * invJ
+            du[i, element] *= scaling * get_node_invJ(invJ, i, element, mesh)
         end
     end
 
@@ -694,10 +727,11 @@ end
 #   "Weight-adjusted discontinuous Galerkin methods: curvilinear meshes."
 #   https://doi.org/10.1137/16M1089198
 function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
-                          dg::DGMulti, cache; scaling = -1) where {NDIMS}
+                          dg::DGMulti{NDIMS, ElemType, <:Polynomial}, cache;
+                          scaling = -1) where {NDIMS, ElemType}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
-    (; invJ) = cache
+    (; invJ) = cache.geometric_terms_container
     (; local_values_threaded) = cache.solution_container
 
     @threaded for e in eachelement(mesh, dg, cache)
