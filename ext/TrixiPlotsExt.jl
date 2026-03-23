@@ -5,7 +5,6 @@ using Plots: Plots
 using Trixi
 using Trixi: getmesh
 using MuladdMacro: @muladd
-using RecipesBase
 using Printf: @sprintf
 
 @muladd begin
