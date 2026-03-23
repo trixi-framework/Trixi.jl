@@ -48,7 +48,7 @@ end
 # `Adjoint{SparseMatrixCSC}`. Since `parent(A)` is a `SparseMatrixCSC` stored
 # in column-major order, iterating over its columns gives row-major access to `A`.
 @inline function adjoint_sparse_data(A::Adjoint{SparseMatrixCSC})
-    A_base = parent(A) # SparseMatrixCSC
+    A_base = parent(A)
     return A_base, axes(A, 2), rowvals(A_base), nonzeros(A_base)
 end
 
