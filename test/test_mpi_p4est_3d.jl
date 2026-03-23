@@ -251,11 +251,9 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
-
-
     @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, 
-                                    "elixir_navierstokes_taylor_green_vortex.jl"),
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_navierstokes_taylor_green_vortex.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.25),
                             surface_flux=FluxHLL(min_max_speed_naive),
                             l2=[
@@ -278,16 +276,15 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
         @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
     end
 
-
     @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex.jl (Diffusive CFL)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, 
-                                    "elixir_navierstokes_taylor_green_vortex.jl"),
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_navierstokes_taylor_green_vortex.jl"),
                             tspan=(0.0, 0.1),
                             mu=0.5, # render flow diffusion-dominated
                             callbacks=CallbackSet(summary_callback, analysis_callback,
-                                                alive_callback,
-                                                StepsizeCallback(cfl = 2.3,
-                                                                cfl_diffusive = 0.4)),
+                                                  alive_callback,
+                                                  StepsizeCallback(cfl = 2.3,
+                                                                   cfl_diffusive = 0.4)),
                             adaptive=false, # respect CFL
                             ode_alg=CKLLSRK95_4S(),
                             l2=[
@@ -309,11 +306,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
         @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
     end
-
-
-
 end # 3D Testcases 
-
 end # P4estMesh MPI
 
 end # module

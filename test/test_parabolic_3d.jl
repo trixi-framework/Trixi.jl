@@ -440,7 +440,7 @@ end
 end
 
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr_mortar.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,"p4est_3d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_amr_mortar.jl"),
                         tspan=(0.0, 5.0),
                         l2=[
@@ -460,7 +460,7 @@ end
 
     @test isapprox(last(summary_callback.analysis_integrals[:enstrophy]),
                    1.6598233348361535;
-                   rtol=1.0e-12, atol=1.0e-14)
+                   rtol = 1.0e-12, atol = 1.0e-14)
 
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)

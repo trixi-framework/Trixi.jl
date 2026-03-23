@@ -91,7 +91,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
 
     cache_parabolic = create_cache_parabolic(mesh, equations, solver,
                                              nelements(solver, cache), uEltype)
-    cache_parabolic = (; cache..., cache_parabolic...)                                       
+    cache_parabolic = (; cache..., cache_parabolic...)
 
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
                                                                 mesh, solver, cache)

@@ -8,73 +8,73 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-    function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
-                        ::Type{uEltype}) where {uEltype <: Real}
-        # Make sure to balance the `p4est` before creating any containers
-        # in case someone has tampered with the `p4est` after creating the mesh
-        balance!(mesh)
+function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
+                      ::Type{uEltype}) where {uEltype <: Real}
+    # Make sure to balance the `p4est` before creating any containers
+    # in case someone has tampered with the `p4est` after creating the mesh
+    balance!(mesh)
 
-        elements = init_elements(mesh, equations, dg.basis, uEltype)
-        interfaces = init_interfaces(mesh, equations, dg.basis, elements)
-        boundaries = init_boundaries(mesh, equations, dg.basis, elements)
-        mortars = init_mortars(mesh, equations, dg.basis, elements)
+    elements = init_elements(mesh, equations, dg.basis, uEltype)
+    interfaces = init_interfaces(mesh, equations, dg.basis, elements)
+    boundaries = init_boundaries(mesh, equations, dg.basis, elements)
+    mortars = init_mortars(mesh, equations, dg.basis, elements)
 
-        # Container cache
-        cache = (; elements, interfaces, boundaries, mortars)
+    # Container cache
+    cache = (; elements, interfaces, boundaries, mortars)
 
-        # Add Volume-Integral cache
-        cache = (; cache...,
-                create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
-        # Add Mortar cache
-        cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    # Add Volume-Integral cache
+    cache = (; cache...,
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
+    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
-        return cache
-    end
+    return cache
+end
 
-    # This method is called when a SemidiscretizationHyperbolic is constructed.
-    # It constructs the basic `cache` used throughout the simulation to compute
-    # the RHS etc.
-    function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG, ::Any,
-                        ::Type{uEltype}) where {uEltype <: Real}
-        # Make sure to balance the `p4est` before creating any containers
-        # in case someone has tampered with the `p4est` after creating the mesh
-        balance!(mesh.parent)
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG, ::Any,
+                      ::Type{uEltype}) where {uEltype <: Real}
+    # Make sure to balance the `p4est` before creating any containers
+    # in case someone has tampered with the `p4est` after creating the mesh
+    balance!(mesh.parent)
 
-        elements_parent = init_elements(mesh.parent, equations, dg.basis, uEltype)
-        interfaces_parent = init_interfaces(mesh.parent, equations, dg.basis,
-                                            elements_parent)
-        boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis,
-                                            elements_parent)
-        mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
+    elements_parent = init_elements(mesh.parent, equations, dg.basis, uEltype)
+    interfaces_parent = init_interfaces(mesh.parent, equations, dg.basis,
+                                        elements_parent)
+    boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis,
+                                        elements_parent)
+    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
 
-        # Extract data for views.
-        elements, interfaces, boundaries, mortars, neighbor_ids_parent = extract_p4est_mesh_view(elements_parent,
-                                                                                                interfaces_parent,
-                                                                                                boundaries_parent,
-                                                                                                mortars_parent,
-                                                                                                mesh,
-                                                                                                equations,
-                                                                                                dg,
-                                                                                                uEltype)
+    # Extract data for views.
+    elements, interfaces, boundaries, mortars, neighbor_ids_parent = extract_p4est_mesh_view(elements_parent,
+                                                                                             interfaces_parent,
+                                                                                             boundaries_parent,
+                                                                                             mortars_parent,
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             uEltype)
 
-        cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
+    cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
 
-        # Add Volume-Integral cache
-        cache = (; cache...,
-                create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
-        # Add Mortar cache
-        cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+    # Add Volume-Integral cache
+    cache = (; cache...,
+             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+    # Add Mortar cache
+    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
-        return cache
-    end
+    return cache
+end
 
 function create_cache_parabolic(mesh::P4estMesh,
                                 equations_hyperbolic::AbstractEquations,
-                                dg::DG,  n_elements, uEltype)
+                                dg::DG, n_elements, uEltype)
     # Keep consistent with the baseline p4est cache
     balance!(mesh)
 
-    elements   = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
+    elements = init_elements(mesh, equations_hyperbolic, dg.basis, uEltype)
     interfaces = init_interfaces(mesh, equations_hyperbolic, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations_hyperbolic, dg.basis, elements)
     viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
@@ -87,22 +87,25 @@ end
 function create_cache_parabolic(mesh::P4estMeshView,
                                 equations_hyperbolic::AbstractEquations,
                                 dg::DG, n_elements, uEltype)
-    
-
     balance!(mesh.parent)
 
-    elements_parent   = init_elements(mesh.parent, equations_hyperbolic, dg.basis, uEltype)
+    elements_parent = init_elements(mesh.parent, equations_hyperbolic, dg.basis,
+                                    uEltype)
     interfaces_parent = init_interfaces(mesh.parent, equations_hyperbolic, dg.basis,
                                         elements_parent)
     boundaries_parent = init_boundaries(mesh.parent, equations_hyperbolic, dg.basis,
                                         elements_parent)
-    mortars_parent    = init_mortars(mesh.parent, equations_hyperbolic, dg.basis,
-                                     elements_parent)
+    mortars_parent = init_mortars(mesh.parent, equations_hyperbolic, dg.basis,
+                                  elements_parent)
 
-    elements, interfaces, boundaries, mortars, neighbor_ids_parent =
-        extract_p4est_mesh_view(elements_parent, interfaces_parent,
-                                boundaries_parent, mortars_parent,
-                                mesh, equations_hyperbolic, dg, uEltype)
+    elements, interfaces, boundaries, mortars, neighbor_ids_parent = extract_p4est_mesh_view(elements_parent,
+                                                                                             interfaces_parent,
+                                                                                             boundaries_parent,
+                                                                                             mortars_parent,
+                                                                                             mesh,
+                                                                                             equations_hyperbolic,
+                                                                                             dg,
+                                                                                             uEltype)
 
     viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
                                                   nnodes(dg), n_elements,
@@ -110,7 +113,6 @@ function create_cache_parabolic(mesh::P4estMeshView,
 
     return (; elements, interfaces, boundaries, neighbor_ids_parent, viscous_container)
 end
-
 
 # Extract outward-pointing normal direction
 # (contravariant vector ±Ja^i, i = index)
