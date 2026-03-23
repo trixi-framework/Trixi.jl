@@ -483,16 +483,16 @@ end
                         basis=DGMultiBasis(Tri(), 3, approximation_type = SBP()),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            5.30835071e-02,
-                            4.00814281e-02,
-                            4.22126468e-02,
-                            1.96879890e-01
+                            5.30907189e-02,
+                            4.01774966e-02,
+                            4.20434426e-02,
+                            1.96899847e-01
                         ],
                         linf=[
-                            2.50055556e-01,
-                            2.05652113e-01,
-                            2.50338726e-01,
-                            9.02470984e-01
+                            2.50415282e-01,
+                            2.05833653e-01,
+                            2.49680144e-01,
+                            9.03690862e-01
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -503,16 +503,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
                         polydeg=1, tspan=(0.0, 0.1),
                         l2=[
-                            1.70692488e-02,
-                            2.65734339e-02,
-                            4.86648991e-03,
-                            8.08472383e-02
+                            1.70502340e-02,
+                            2.65245374e-02,
+                            4.85334379e-03,
+                            8.07704996e-02
                         ],
                         linf=[
-                            2.33569012e+00,
-                            2.77506091e+00,
-                            5.46242047e-01,
-                            1.24709665e+01
+                            2.33524849e+00,
+                            2.77505539e+00,
+                            5.45694674e-01,
+                            1.24699312e+01
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -523,16 +523,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
                         polydeg=1, tspan=(0.0, 0.1),
                         l2=[
-                            1.54683626e-01,
-                            2.75970574e-01,
-                            1.82804003e-01,
-                            6.89527686e-01
+                            1.51402732e-01,
+                            2.68652980e-01,
+                            1.79370065e-01,
+                            6.72488135e-01
                         ],
                         linf=[
-                            9.11459678e-01,
-                            1.35159556e+00,
-                            1.14564572e+00,
-                            3.82514943e+00
+                            8.91248046e-01,
+                            1.32281118e+00,
+                            1.08533571e+00,
+                            3.74230652e+00
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
