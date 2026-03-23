@@ -154,8 +154,8 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
                              for _ in 1:Threads.maxthreadid()]
 
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
-    # The result is then transferred to rhs_local_threaded::StructArray{<:SVector} before
-    # projecting it and storing it into `du`.
+    # The result is then transferred to `rhs_local`, a thread-local element of
+    # `rhs_local_threaded::StructArray{<:SVector}` before projecting it and storing it into `du`.
     du_local_threaded = [zeros(SVector{nvars, uEltype}, num_quad_points_total)
                          for _ in 1:Threads.maxthreadid()]
     rhs_local_threaded = [allocate_nested_array(uEltype, nvars,
