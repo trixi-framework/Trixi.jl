@@ -89,7 +89,7 @@ end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
 function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
-    # Copy alpha values such that smoothing is indpedenent of the element access order
+    # Copy alpha values such that smoothing is independent of the element access order
     alpha_tmp .= alpha
 
     # Loop over interfaces

@@ -263,7 +263,7 @@ end
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
 function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cache)
 
-    # Copy alpha values such that smoothing is indpedenent of the element access order
+    # Copy alpha values such that smoothing is independent of the element access order
     alpha_tmp .= alpha
 
     # smooth alpha with its neighboring value
@@ -321,6 +321,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
     return nothing
 end
+
+# Since `@muladd` can fuse multiply-add operations and thus improve performance in
+# the flux differencing loops, we opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache)
     return SVector(cache.sparse_SBP_operators[1][i, j])
@@ -470,3 +476,4 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
 
     return nothing
 end
+end # @muladd
