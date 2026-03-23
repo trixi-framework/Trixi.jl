@@ -290,6 +290,9 @@ end
     for i in row_ids
         u_i = u_local[i]
         for j in row_ids
+            # We use the symmetry of the volume flux and the anti-symmetry
+            # of the derivative operator to save half of the volume flux
+            # computations.
             if j > i
                 u_j = u_local[j]
                 ref_entries = SVector(ntuple(d -> Qrst_skew[d][i, j], Val(NDIMS)))
@@ -316,6 +319,9 @@ end
         for j in row_ids
             ref_entries = SVector(ntuple(d -> Qrst_skew[d][i, j], Val(NDIMS)))
             normal_direction = geometric_matrix * ref_entries
+            # We use the symmetry of the volume flux and the anti-symmetry
+            # of the derivative operator to save half of the volume flux
+            # computations.
             if j > i
                 u_j = u_local[j]
                 AF_ij = 2 * flux_conservative(u_i, u_j, normal_direction, equations)

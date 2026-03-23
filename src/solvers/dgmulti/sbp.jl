@@ -244,6 +244,9 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                 du_i = du[i]
                 for id in nzrange(A_base, i)
                     j = rows[id]
+                    # We use the symmetry of the volume flux and the anti-symmetry
+                    # of the derivative operator to save half of the volume flux
+                    # computations.
                     if j > i
                         A_ij = -vals[id]  # A[j,i] stored; skew-symmetry: -A[j,i] = A[i,j]
                         u_j = u[j]
