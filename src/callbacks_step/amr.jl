@@ -633,6 +633,38 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                 partition!(mesh)
                 rebalance_solver!(u_ode, mesh, equations, dg, cache,
                                   old_global_first_quadrant)
+                
+                # Resync parabolic cache after repartitioning
+                @unpack viscous_container = cache_parabolic
+                resize!(viscous_container, equations, dg, cache)
+
+                if hasproperty(cache_parabolic, :elements)
+                    nelements = size(cache.elements.inverse_jacobian, ndims(mesh) + 1)
+                    resize!(cache_parabolic.elements, nelements)
+                    copyto!(cache_parabolic.elements.node_coordinates,      cache.elements.node_coordinates)
+                    copyto!(cache_parabolic.elements.jacobian_matrix,       cache.elements.jacobian_matrix)
+                    copyto!(cache_parabolic.elements.contravariant_vectors, cache.elements.contravariant_vectors)
+                    copyto!(cache_parabolic.elements.inverse_jacobian,      cache.elements.inverse_jacobian)
+                    copyto!(cache_parabolic.elements.surface_flux_values,   cache.elements.surface_flux_values)
+                end
+
+                if hasproperty(cache_parabolic, :interfaces)
+                    ninterfaces = size(cache.interfaces.neighbor_ids, 2)
+                    resize!(cache_parabolic.interfaces, ninterfaces)
+                    copyto!(cache_parabolic.interfaces.u,            cache.interfaces.u)
+                    copyto!(cache_parabolic.interfaces.neighbor_ids, cache.interfaces.neighbor_ids)
+                    copyto!(cache_parabolic.interfaces.node_indices, cache.interfaces.node_indices)
+                end
+
+                if hasproperty(cache_parabolic, :boundaries)
+                    nboundaries = length(cache.boundaries.neighbor_ids)
+                    resize!(cache_parabolic.boundaries, nboundaries)
+                    copyto!(cache_parabolic.boundaries.u,            cache.boundaries.u)
+                    copyto!(cache_parabolic.boundaries.neighbor_ids, cache.boundaries.neighbor_ids)
+                    copyto!(cache_parabolic.boundaries.node_indices, cache.boundaries.node_indices)
+                    copyto!(cache_parabolic.boundaries.name,         cache.boundaries.name)
+                end
+                
             end
         end
 

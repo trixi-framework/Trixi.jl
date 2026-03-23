@@ -489,4 +489,45 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
     return nothing
 end
+
+
+"""
+    IndicatorPositional(f)
+
+Create an AMR indicator from a positional rule `f(x, t)`. The usecase for this rule is explict testing and or targeted "static" refinment 
+based on a functional rule. The function `f` is called with the element center `x::SVector{ndims,Float64}` and time `t`.
+"""
+struct IndicatorPositional{F,Cache}<:AbstractIndicator
+    rule::F
+    cache::Cache
+end
+
+# this method is used when the indicator is constructed as for AMR
+function IndicatorPositional(rule,semi::AbstractSemidiscretization)
+    cache = create_cache(IndicatorPositional, semi)
+    return IndicatorPositional{typeof(rule), typeof(cache)}(rule, cache)
+end
+
+function (positional::IndicatorPositional)(u, mesh, equations, dg, cache; t=0.0, iter=0)
+    x = cache.elements.node_coordinates
+    @unpack alpha, center_threaded = positional.cache
+    resize!(alpha, nelements(dg, cache))
+    #### @threaded does not work with cfunction (positional.rule) thus Threads.@threads for now
+    Threads.@threads for element in Trixi.eachelement(dg, cache) 
+        center = center_threaded[Threads.threadid()]
+        fill!(center, 0.0)
+        n = 0
+
+        for k in Trixi.eachnode(dg), j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
+            center[1] += x[1, i, j, k, element]
+            center[2] += x[2, i, j, k, element]
+            center[3] += x[3, i, j, k, element]
+            n += 1
+        end
+        center ./= n 
+        alpha[element] = positional.rule(center, t)
+    end
+    return alpha
+end
+
 end # @muladd

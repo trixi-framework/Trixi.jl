@@ -120,7 +120,7 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax},Type{IndicatorPositional}},
                       mesh, equations::AbstractEquations, dg::DGSEM, cache)
     return create_cache(typ, equations, dg.basis)
 end

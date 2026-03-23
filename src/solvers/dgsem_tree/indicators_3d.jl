@@ -185,6 +185,16 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
+function create_cache(::Type{IndicatorPositional},
+                      equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
+
+    center_threaded = [MVector{3, uEltype}(undef) for _ in 1:Threads.maxthreadid()]
+
+    return (; alpha, center_threaded)
+end
+
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
