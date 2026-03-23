@@ -44,10 +44,17 @@ end
 
 @inline nelements(dg::DGMulti, cache) = size(cache.solution_container.u_values)[end]
 
-# Returns the components needed to iterate efficiently over the entries of an
-# `Adjoint{SparseMatrixCSC}`. Since `parent(A)` is a `SparseMatrixCSC` stored
-# in column-major order, iterating over its columns gives row-major access to `A`.
-@inline function adjoint_sparse_data(A::Adjoint{T, <:SparseMatrixCSC{T}}) where {T}
+# Returns the components needed to iterate efficiently over the entries of either a
+# `SparseMatrixCSC` or `Adjoint{SparseMatrixCSC}`. 
+# 
+# For `Adjoint{SparseMatrixCSC}` (used by `DGMultiFluxDiff`), since `parent(A)` is a 
+# `SparseMatrixCSC` stored in column-major order, iterating over its columns gives 
+# row-major access to `A`.
+# 
+# For `SparseMatrixCSC` (used by `DGMultiPeriodicFDSBP`, for example), `parent(A)` 
+# simply returns `A`. 
+@inline function adjoint_sparse_data(A::Union{<:SparseMatrixCSC,
+                                              <:Adjoint{<:Any, <:SparseMatrixCSC}})
     A_base = parent(A)
     return A_base, axes(A, 2), rowvals(A_base), nonzeros(A_base)
 end
