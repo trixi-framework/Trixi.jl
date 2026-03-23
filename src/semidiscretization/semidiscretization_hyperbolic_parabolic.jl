@@ -367,7 +367,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
         # but we stick to the lean direct in-place function `rhs_parabolic!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return SplitODEProblem{iip}(x, rhs!, u0_ode, tspan, semi)
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
     end
 end
 
