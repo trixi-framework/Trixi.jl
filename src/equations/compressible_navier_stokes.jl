@@ -1,3 +1,19 @@
+
+# Compressible Navier-Stokes equations
+abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVariables} <:
+              AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
+
+# This enables "forwarded" accesses to e.g.`equations.gamma` of the "underlying" `equations_hyperbolic`
+# while keeping direct access to parabolic-specific fields like `diffusivity` or `mu`.
+@inline function Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
+                                  field::Symbol)
+    if field === :gamma || field === :inv_gamma_minus_one
+        return getproperty(getfield(equations_parabolic, :equations_hyperbolic), field)
+    else
+        return getfield(equations_parabolic, field)
+    end
+end
+
 # TODO: can we generalize this to MHD?
 """
     struct BoundaryConditionNavierStokesWall
@@ -123,3 +139,7 @@ Also employed in [`linear_structure`](@ref) and [`linear_structure_parabolic`](@
 if the diffusion term is linear in the variables/constant.
 """
 @inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()
+
+include("compressible_navier_stokes_1d.jl")
+include("compressible_navier_stokes_2d.jl")
+include("compressible_navier_stokes_3d.jl")
