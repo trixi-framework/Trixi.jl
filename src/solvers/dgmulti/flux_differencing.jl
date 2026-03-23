@@ -329,8 +329,11 @@ end
                 du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
             end
             # Non-conservative terms use the full (non-symmetric) loop.
-            # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
-            f_nc = flux_nonconservative(u_i, u_local[j], 0.5 * normal_direction,
+            # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
+            # fluxes based on the interpretation of global SBP operators.  
+            # See also `calc_interface_flux!` with `have_nonconservative_terms::True` 
+            # in src/solvers/dgsem_tree/dg_1d.jl
+            f_nc = flux_nonconservative(u_i, u_local[j], 0.5f0 * normal_direction,
                                         equations)
             du_local[i] = du_local[i] + 2 * f_nc
         end
@@ -402,8 +405,11 @@ end
                     du_local[j] = du_local[j] - AF_ij
                 end
                 # Non-conservative terms use the full (non-symmetric) loop.
-                # The 0.5 factor on the normal direction replaces the old half_Qi_skew scaling.
-                f_nc = flux_nonconservative(u_i, u_j, 0.5 * normal_direction_ij,
+                # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
+                # fluxes based on the interpretation of global SBP operators.  
+                # See also `calc_interface_flux!` with `have_nonconservative_terms::True` 
+                # in src/solvers/dgsem_tree/dg_1d.jl
+                f_nc = flux_nonconservative(u_i, u_j, 0.5f0 * normal_direction_ij,
                                             equations)
                 du_i = du_i + 2 * A_ij * f_nc
             end
