@@ -253,7 +253,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                         AF_ij = 2 * A_ij *
                                 volume_flux(u_i, u_j, normal_direction, equations)
                         du_i = du_i + AF_ij
-                        du[j] = du[j] - AF_ij
+                        du[j] = du[j] - AF_ij # Due to skew-symmetry
                     end
                 end
                 du[i] = du_i
