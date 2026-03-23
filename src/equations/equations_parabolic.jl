@@ -11,8 +11,8 @@ struct GradientVariablesConservative end
 abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 
-# This enables "forwarded" accesses to e.g.`equations.gamma` to the "underlying" hyperbolic equations
-# while keeping direct access to Parabolic-specific fields like `diffusivity` or `mu`.
+# This enables "forwarded" accesses to e.g.`equations.gamma` of the "underlying" `equations_hyperbolic`
+# while keeping direct access to parabolic-specific fields like `diffusivity` or `mu`.
 @inline function Base.getproperty(equations::AbstractEquationsParabolic,
                                   field::Symbol)
     if hasfield(typeof(equations), field)
