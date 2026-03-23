@@ -299,7 +299,7 @@ end
                 normal_direction = geometric_matrix * ref_entries
                 AF_ij = 2 * volume_flux(u_i, u_j, normal_direction, equations)
                 du_local[i] = du_local[i] + AF_ij
-                du_local[j] = du_local[j] - AF_ij
+                du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
             end
         end
     end
@@ -402,7 +402,7 @@ end
                     AF_ij = 2 * A_ij *
                             flux_conservative(u_i, u_j, normal_direction_ij, equations)
                     du_i = du_i + AF_ij
-                    du_local[j] = du_local[j] - AF_ij
+                    du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
                 end
                 # Non-conservative terms use the full (non-symmetric) loop.
                 # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
