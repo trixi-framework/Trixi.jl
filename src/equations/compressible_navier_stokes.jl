@@ -4,7 +4,7 @@ abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVa
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
 
 # This enables "forwarded" accesses to e.g.`equations.gamma` of the "underlying" `equations_hyperbolic`
-# while keeping direct access to parabolic-specific fields like `diffusivity` or `mu`.
+# while keeping direct access to parabolic-specific fields like `mu` or `kappa`.
 @inline function Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
                                   field::Symbol)
     if field === :gamma || field === :inv_gamma_minus_one
@@ -14,7 +14,7 @@ abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVa
     end
 end
 
-# TODO: can we generalize this to MHD?
+# TODO: can we generalize this to V(R)-MHD?
 """
     struct BoundaryConditionNavierStokesWall
 
