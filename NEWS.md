@@ -5,15 +5,22 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-## Changes in the v0.15 lifecycle
+## Changes when updating to v0.16 from v0.15.x
 
-#### Added
+#### Changed
+
 - The word "viscous" is now used only where it refers specifically to fluid viscosity.
 The word "parabolic" is used in more general contexts.
 In particular, viscosity is no longer used as a proxy for any parabolic/diffusive process such as heat conduction.
 For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` and
 `ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
 For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
+Moreover, some internal functions have been renamed accordingly, including the results shown by the timer outputs after running a simulation.
+
+## Changes in the v0.15 lifecycle
+
+#### Added
+
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
