@@ -19,7 +19,7 @@
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element,
-                                           ::Type{<:Union{StructuredMesh{2},
+                                           MeshT::Type{<:Union{StructuredMesh{2},
                                                           UnstructuredMesh2D, P4estMesh{2}}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
@@ -27,19 +27,18 @@
                                            dg::DGSEM, cache, alpha)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
-    ndims = 2
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims)...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims)...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations))))
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
@@ -227,7 +226,7 @@ end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element,
-                                           ::Type{<:Union{StructuredMesh{2},
+                                           MeshT::Type{<:Union{StructuredMesh{2},
                                                           UnstructuredMesh2D, P4estMesh{2}}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
@@ -235,13 +234,12 @@ end
                                            dg::DGSEM, cache, alpha)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
-    ndims = 2
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims)...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`. In addition
@@ -250,7 +248,7 @@ end
     # values.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims)...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
