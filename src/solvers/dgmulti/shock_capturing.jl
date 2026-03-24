@@ -438,8 +438,12 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         rhs_local[i] = du_i
     end
 
-    # TODO: factor this out to avoid calling it twice during calc_volume_integral!
-    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+# On non-affine meshes, we use the average of the geometric matrices at nodes i and j
+# for provably entropy-stable de-aliasing of the geometric terms.
+@inline function get_low_order_geometric_matrix(i, j, element,
+                                                mesh::DGMultiMesh,
+                                                cache)
+    return get_avg_contravariant_matrix(i, j, element, mesh, cache)
 end
 
 # Calculates the volume integral corresponding to an algebraic low order method for
