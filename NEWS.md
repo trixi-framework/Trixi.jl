@@ -5,6 +5,12 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.16 from v0.15.x
+
+#### Changed
+- The parameters `gamma` and `inv_gamma_minus_one` are no longer stored (again) in the `CompressibleNavierStokesDiffusion` structs,
+but retrieved from the `CompressibleEulerEquations` via `equations.equations_hyperbolic` ([#2877]).
+
 ## Changes in the v0.15 lifecycle
 
 #### Added
