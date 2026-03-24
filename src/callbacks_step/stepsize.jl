@@ -11,7 +11,7 @@
 
 Set the time step size according to a CFL condition with hyperbolic CFL number `cfl`
 if the time integration method isn't adaptive itself.
-The hyperbolic CFL number must be either a `Real` number, corresponding to a constant
+The hyperbolic CFL number `cfl` must be either a `Real` number, corresponding to a constant
 CFL number, or a function of time `t` returning a `Real` number.
 The latter approach allows for variable CFL numbers that can be used to realize, e.g.,
 a ramp-up of the time step.
@@ -20,7 +20,7 @@ One can additionally supply a parabolic CFL number `cfl_parabolic` to
 limit the admissible timestep also respecting parabolic restrictions.
 This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
 To enable checking for parabolic timestep restrictions, provide a value greater than zero for `cfl_parabolic`.
-By default, `cfl_parabolic` is set to zero which means that only the hyperbolic CFL number is considered.
+By default, `cfl_parabolic` is set to zero which means that only the hyperbolic CFL number `cfl` is considered.
 The keyword argument `cfl_parabolic` must be either a `Real` number, corresponding to a constant
 parabolic CFL number, or a function of time `t` returning a `Real` number.
 

@@ -10,8 +10,9 @@ for human readability.
 #### Added
 - The word "viscous" is now used only where it refers specifically to fluid viscosity.
 The word "parabolic" is used in more general contexts.
-For example, `ViscousFormulationLocalDG()` is now `ParabolicFormulationLocalDG()`.
 In particular, viscosity is no longer used as a proxy for any parabolic/diffusive process such as heat conduction.
+For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` and
+`ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
 For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
