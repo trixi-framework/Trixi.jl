@@ -105,16 +105,16 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
+    Pr = convert(typeof(gamma), Prandtl)
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Prandtl
+    kappa = gamma * inv_gamma_minus_one / Pr
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
-                                               typeof(Prandtl),
-                                               typeof(mu),
-                                               typeof(equations)}(mu, Prandtl, kappa,
+                                               typeof(Pr), typeof(mu),
+                                               typeof(equations)}(mu, Pr, kappa,
                                                                   max(4 / 3, kappa),
                                                                   equations,
                                                                   gradient_variables)
