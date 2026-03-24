@@ -137,6 +137,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         try
             run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes $(abspath("test_kernelabstractions.jl"))`)
         finally
+            # Restore previous threading backend for later tests
             Trixi.set_threading_backend!(Symbol(previous_backend))
         end
     end

@@ -148,7 +148,7 @@ function calc_error_norms(func, _u, t, analyzer,
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
 
-    # TODO GPU AnalysiCallback currently lives on CPU
+    # TODO GPU AnalysisCallback currently lives on CPU
     backend = trixi_backend(_u)
     if backend isa Nothing # TODO GPU KA CPU backend
         @unpack node_coordinates, inverse_jacobian = cache.elements
