@@ -68,7 +68,7 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
 end
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
-    @unpack gamma, inv_gamma_minus_one = equations
+    @unpack gamma, inv_gamma_minus_one = equations.equations_hyperbolic
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
