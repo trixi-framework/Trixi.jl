@@ -934,7 +934,7 @@ function apply_jacobian!(backend::Nothing, du,
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
     @threaded for element in eachelement(dg, cache)
-        apply_jacobian_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
+        apply_jacobian_per_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
                                 element)
     end
     return nothing
@@ -954,10 +954,10 @@ end
 @kernel function apply_jacobian_KAkernel!(du, MeshT, equations, dg::DG,
                                           inverse_jacobian)
     element = @index(Global)
-    apply_jacobian_element!(du, MeshT, equations, dg, inverse_jacobian, element)
+    apply_jacobian_per_element!(du, MeshT, equations, dg, inverse_jacobian, element)
 end
 
-@inline function apply_jacobian_element!(du,
+@inline function apply_jacobian_per_element!(du,
                                          ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                                         T8codeMesh{3}}},
                                          equations, dg, inverse_jacobian, element)

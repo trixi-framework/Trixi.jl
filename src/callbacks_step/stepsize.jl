@@ -190,7 +190,7 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda = max_scaled_speed_element(u, typeof(mesh), constant_speed,
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
                                               equations, dg,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
@@ -221,7 +221,7 @@ end
                                             equations,
                                             dg, contravariant_vectors, inverse_jacobian)
     element = @index(Global)
-    max_scaled_speeds[element] = max_scaled_speed_element(u, MeshT, constant_speed,
+    max_scaled_speeds[element] = max_scaled_speed_per_element(u, MeshT, constant_speed,
                                                           equations, dg,
                                                           contravariant_vectors,
                                                           inverse_jacobian,

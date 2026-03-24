@@ -1219,7 +1219,7 @@ function compute_coefficients!(backend::Nothing, u, func, t,
     @unpack node_coordinates = cache.elements
     node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
     @threaded for element in eachelement(dg, cache)
-        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
+        compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
                                       element, node_indices)
     end
 
@@ -1243,11 +1243,11 @@ end
 @kernel function compute_coefficients_KAkernel!(u, func, t, equations,
                                                 dg::DG, node_coordinates, node_indices)
     element = @index(Global)
-    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates, element,
+    compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates, element,
                                   node_indices)
 end
 
-@inline function compute_coefficients_element!(u, func, t, equations, dg::DG,
+@inline function compute_coefficients_per_element!(u, func, t, equations, dg::DG,
                                                node_coordinates, element, node_indices)
     for indices in node_indices
         x_node = get_node_coords(node_coordinates, equations, dg, indices, element)

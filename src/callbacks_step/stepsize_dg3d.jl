@@ -91,7 +91,7 @@ function max_dt(u, t,
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-@inline function max_scaled_speed_element(u,
+@inline function max_scaled_speed_per_element(u,
                                           ::Type{<:Union{StructuredMesh{3},
                                                          P4estMesh{3},
                                                          T8codeMesh{3}}},
@@ -174,7 +174,7 @@ function max_dt(u, t,
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-@inline function max_scaled_speed_element(u,
+@inline function max_scaled_speed_per_element(u,
                                           ::Type{<:Union{StructuredMesh{3},
                                                          P4estMesh{3},
                                                          T8codeMesh{3}}},
