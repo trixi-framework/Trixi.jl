@@ -438,6 +438,9 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         rhs_local[i] = du_i
     end
 
+    return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
+end
+
 # On non-affine meshes, we use the average of the geometric matrices at nodes i and j
 # for provably entropy-stable de-aliasing of the geometric terms.
 @inline function get_low_order_geometric_matrix(i, j, element,
