@@ -81,8 +81,10 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
 
     # the inverse vandermonde matrix here should first project from SBP nodes to degree N polynomials
     (; N, element_type, r, s) = basis
-    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) / basis.VDM
-    M = interp_matrix_to_quad_points' * Diagonal(basis.wq) * interp_matrix_to_quad_points
+    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
+                                   basis.VDM
+    M = interp_matrix_to_quad_points' * Diagonal(basis.wq) *
+        interp_matrix_to_quad_points
     Pq = M \ (interp_matrix_to_quad_points' * Diagonal(basis.wq))
     return basis.VDM \ Pq
 end
@@ -146,7 +148,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
             energy_frac_1 = zero(total_energy)
         end
         if !(iszero(total_energy_clip1))
-            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) / total_energy_clip1
+            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) /
+                            total_energy_clip1
         else
             energy_frac_2 = zero(total_energy_clip1)
         end
@@ -236,7 +239,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
             energy_frac_1 = zero(total_energy)
         end
         if !(iszero(total_energy_clip1))
-            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) / total_energy_clip1
+            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) /
+                            total_energy_clip1
         else
             energy_frac_2 = zero(total_energy_clip1)
         end
@@ -472,7 +476,8 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
             geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh,
                                                               cache)
-            reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
+            reference_operator_entries = get_sparse_operator_entries(i, j, mesh,
+                                                                     cache)
             normal_direction_ij = geometric_matrix * reference_operator_entries
 
             # note that we do not need to normalize `normal_direction_ij` since
