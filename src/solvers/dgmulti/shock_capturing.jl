@@ -1,3 +1,9 @@
+# Since `@muladd` can fuse multiply-add operations and thus improve performance in
+# the flux differencing loops, we opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 # by default, return an empty tuple for volume integral caches
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
                       volume_integral::VolumeIntegralShockCapturingHGType,
@@ -321,12 +327,6 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
     return nothing
 end
-
-# Since `@muladd` can fuse multiply-add operations and thus improve performance in
-# the flux differencing loops, we opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-@muladd begin
-#! format: noindent
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache)
     return SVector(cache.sparse_SBP_operators[1][i, j])
