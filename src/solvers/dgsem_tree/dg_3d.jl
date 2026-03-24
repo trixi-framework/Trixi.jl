@@ -208,7 +208,7 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, meshT::Type{<:TreeMesh{3}},
+@inline function flux_differencing_kernel!(du, u, element, MeshT::Type{<:TreeMesh{3}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -217,7 +217,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -261,7 +261,7 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            meshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
+                            MeshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
                                                 P4estMesh{3},
                                                 T8codeMesh{3}}},
                             have_nonconservative_terms, equations,
@@ -278,7 +278,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                 meshT, have_nonconservative_terms, equations,
+                 MeshT, have_nonconservative_terms, equations,
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
@@ -301,7 +301,7 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              meshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
+                              MeshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
                                                   P4estMesh{3},
                                                   T8codeMesh{3}}},
                               have_nonconservative_terms, equations,
@@ -323,7 +323,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                   meshT, have_nonconservative_terms, equations,
+                   MeshT, have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)

@@ -120,10 +120,10 @@ function prolong2interfaces!(backend::Backend, cache, u,
     return nothing
 end
 
-@kernel function prolong2interfaces_KAkernel!(interface_u, u, meshT, equations,
+@kernel function prolong2interfaces_KAkernel!(interface_u, u, MeshT, equations,
                                               neighbor_ids, node_indices, index_range)
     interface = @index(Global)
-    prolong2interfaces_interface!(interface_u, u, meshT, equations, neighbor_ids,
+    prolong2interfaces_interface!(interface_u, u, MeshT, equations, neighbor_ids,
                                   node_indices, index_range, interface)
 end
 
@@ -236,14 +236,14 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
     return nothing
 end
 
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values, meshT,
+@kernel function calc_interface_flux_KAkernel!(surface_flux_values, MeshT,
                                                have_nonconservative_terms, equations,
                                                surface_integral, solverT, u_interface,
                                                neighbor_ids, node_indices,
                                                contravariant_vectors, index_range)
     interface = @index(Global)
     calc_interface_flux_interface!(surface_flux_values,
-                                   meshT,
+                                   MeshT,
                                    have_nonconservative_terms,
                                    equations, surface_integral, solverT, u_interface,
                                    neighbor_ids, node_indices, contravariant_vectors,
@@ -251,7 +251,7 @@ end
 end
 
 @inline function calc_interface_flux_interface!(surface_flux_values,
-                                                meshT::Type{<:Union{P4estMesh{3},
+                                                MeshT::Type{<:Union{P4estMesh{3},
                                                                     T8codeMesh{3}}},
                                                 have_nonconservative_terms,
                                                 equations, surface_integral,
@@ -301,7 +301,7 @@ end
                                                     i_primary, j_primary, k_primary,
                                                     primary_element)
 
-            calc_interface_flux!(surface_flux_values, meshT, have_nonconservative_terms,
+            calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations,
                                  surface_integral, solverT, u_interface,
                                  interface, normal_direction,
@@ -360,7 +360,7 @@ end
 
 # Inlined function for interface flux computation for flux + nonconservative terms
 @inline function calc_interface_flux!(surface_flux_values,
-                                      meshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
+                                      MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                       have_nonconservative_terms::True, equations,
                                       surface_integral, solverT::Type{<:DG},
                                       u_interface,
@@ -370,7 +370,7 @@ end
                                       secondary_i_node_index, secondary_j_node_index,
                                       secondary_direction_index,
                                       secondary_element_index)
-    calc_interface_flux!(surface_flux_values, meshT, have_nonconservative_terms,
+    calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                          combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                          equations),
                          equations, surface_integral, solverT, u_interface,
@@ -1035,11 +1035,11 @@ function calc_surface_integral!(backend::Backend, du, u,
     return nothing
 end
 
-@kernel function calc_surface_integral_KAkernel!(du, meshT, equations,
+@kernel function calc_surface_integral_KAkernel!(du, MeshT, equations,
                                                  surface_integral, dg, factor,
                                                  surface_flux_values)
     element = @index(Global)
-    calc_surface_integral_element!(du, meshT,
+    calc_surface_integral_element!(du, MeshT,
                                    equations, surface_integral, dg, factor,
                                    surface_flux_values, element)
 end

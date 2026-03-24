@@ -219,9 +219,9 @@ end
 # Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
 # Note that ∂S/∂u = w(u) with entropy variables w
 function entropy_change_reference_element(du, u, element,
-                                          meshT::Type{<:AbstractMesh{2}},
+                                          MeshT::Type{<:AbstractMesh{2}},
                                           equations, dg::DGSEM, cache, args...)
-    return integrate_reference_element(u, element, meshT, equations, dg, cache,
+    return integrate_reference_element(u, element, MeshT, equations, dg, cache,
                                        du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)

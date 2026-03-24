@@ -171,12 +171,12 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           meshT::Type{<:Union{StructuredMesh{3},
+                                           MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3},
                                                                T8codeMesh{3}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, meshT, have_nonconservative_terms,
+    flux_differencing_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations, volume_flux, dg, cache, alpha)
@@ -185,7 +185,7 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           meshT::Type{<:Union{StructuredMesh{3},
+                                           MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3},
                                                                T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
@@ -197,7 +197,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -951,10 +951,10 @@ function apply_jacobian!(backend::Backend, du,
     return nothing
 end
 
-@kernel function apply_jacobian_KAkernel!(du, meshT, equations, dg::DG,
+@kernel function apply_jacobian_KAkernel!(du, MeshT, equations, dg::DG,
                                           inverse_jacobian)
     element = @index(Global)
-    apply_jacobian_element!(du, meshT, equations, dg, inverse_jacobian, element)
+    apply_jacobian_element!(du, MeshT, equations, dg, inverse_jacobian, element)
 end
 
 @inline function apply_jacobian_element!(du,

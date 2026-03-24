@@ -217,11 +217,11 @@ function calc_max_scaled_speed(backend::Backend, u, mesh, constant_speed, equati
     return maximum(max_scaled_speeds)
 end
 
-@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, meshT, constant_speed,
+@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, MeshT, constant_speed,
                                             equations,
                                             dg, contravariant_vectors, inverse_jacobian)
     element = @index(Global)
-    max_scaled_speeds[element] = max_scaled_speed_element(u, meshT, constant_speed,
+    max_scaled_speeds[element] = max_scaled_speed_element(u, MeshT, constant_speed,
                                                           equations, dg,
                                                           contravariant_vectors,
                                                           inverse_jacobian,

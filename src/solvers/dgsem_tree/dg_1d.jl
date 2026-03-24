@@ -177,7 +177,7 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           meshT::Type{<:Union{TreeMesh{1},
+                                           MeshT::Type{<:Union{TreeMesh{1},
                                                                StructuredMesh{1}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -187,7 +187,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -213,7 +213,7 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            meshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
+                            MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
@@ -222,7 +222,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, u, meshT,
+    calcflux_fv!(fstar1_L, fstar1_R, u, MeshT,
                  have_nonconservative_terms, equations,
                  volume_flux_fv, dg, element, cache)
 
@@ -239,7 +239,7 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              meshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
+                              MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -251,7 +251,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, u, meshT, nonconservative_terms, equations,
+    calcflux_fvO2!(fstar1_L, fstar1_R, u, MeshT, nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)

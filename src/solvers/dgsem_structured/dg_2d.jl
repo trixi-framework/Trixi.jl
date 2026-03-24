@@ -142,14 +142,14 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           meshT::Type{<:Union{StructuredMesh{2},
+                                           MeshT::Type{<:Union{StructuredMesh{2},
                                                                StructuredMeshView{2},
                                                                UnstructuredMesh2D,
                                                                P4estMesh{2},
                                                                T8codeMesh{2}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, meshT, have_nonconservative_terms,
+    flux_differencing_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations,
@@ -159,7 +159,7 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           meshT::Type{<:Union{StructuredMesh{2},
+                                           MeshT::Type{<:Union{StructuredMesh{2},
                                                                StructuredMeshView{2},
                                                                UnstructuredMesh2D,
                                                                P4estMesh{2},
@@ -173,7 +173,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, meshT, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
