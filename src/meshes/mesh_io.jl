@@ -120,6 +120,7 @@ function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["size"] = collect(size(mesh))
         attributes(file)["mapping"] = mesh.mapping_as_string
+        attributes(file)["periodicity"] = collect(mesh.periodicity)
         return nothing
     end
 
@@ -420,8 +421,9 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                         RealT = RealT)
         load_mesh!(mesh, mesh_file)
     elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
-        size_, mapping_as_string = h5open(mesh_file, "r") do file
+        size_, periodicity, mapping_as_string = h5open(mesh_file, "r") do file
             return read(attributes(file)["size"]),
+                   read(attributes(file)["periodicity"]),
                    read(attributes(file)["mapping"])
         end
 
@@ -452,6 +454,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         end
 
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
+                              periodicity = periodicity,
                               mapping_as_string = mapping_as_string)
         mesh.current_filename = mesh_file
     elseif mesh_type == "UnstructuredMesh2D"
@@ -595,7 +598,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     return mesh
 end
 
-function load_mesh!(mesh::SerialTreeMesh, mesh_file::AbstractString)
+function load_mesh!(mesh::TreeMeshSerial, mesh_file::AbstractString)
     mesh.current_filename = mesh_file
     mesh.unsaved_changes = false
 
@@ -724,7 +727,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
     return mesh
 end
 
-function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
+function load_mesh!(mesh::TreeMeshParallel, mesh_file::AbstractString)
     mesh.current_filename = mesh_file
     mesh.unsaved_changes = false
 

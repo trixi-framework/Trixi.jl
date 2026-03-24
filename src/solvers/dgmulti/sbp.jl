@@ -179,10 +179,9 @@ function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    return (; u_values, invJ = inv.(md.J))
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+    return (; solution_container, invJ = inv.(md.J))
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
@@ -249,5 +248,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                           normal_direction, u, equations)
         end
     end
+
+    return nothing
 end
 end # @muladd

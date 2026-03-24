@@ -294,33 +294,27 @@ function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFlux
     return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
-function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT,
-                      uEltype)
+function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
+                      RealT, uEltype)
     rd = dg.basis
     md = mesh.md
 
     # for use with flux differencing schemes
     Qrst_skew = compute_flux_differencing_SBP_matrices(dg)
 
-    # Todo: DGMulti. Factor common storage into a struct (MeshDataCache?) for reuse across solvers?
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
 
-    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
-
+    nvars = nvariables(equations)
     # Use an array of SVectors (chunks of `nvars` are contiguous in memory) to speed up flux differencing
     fluxdiff_local_threaded = [zeros(SVector{nvars, uEltype}, rd.Nq)
                                for _ in 1:Threads.maxthreadid()]
 
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded)
+            solution_container, fluxdiff_local_threaded)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
@@ -370,22 +364,26 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiff, RealT, 
     # interpolate geometric terms to both quadrature and face values for curved meshes
     (; Vq, Vf) = dg.basis
     interpolated_geometric_terms = map(x -> [Vq; Vf] * x, mesh.md.rstxyzJ)
-    J = rd.Vq * md.J
+    J = Vq * md.J
+
+    solution_container = DGMultiSolutionContainer(u_values, u_face_values,
+                                                  flux_face_values,
+                                                  local_values_threaded)
 
     return (; md, Qrst_skew, VhP, Ph,
             invJ = inv.(J), dxidxhatj = interpolated_geometric_terms,
             entropy_var_values, projected_entropy_var_values,
             entropy_projected_u_values,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, fluxdiff_local_threaded, rhs_local_threaded)
+            solution_container, fluxdiff_local_threaded, rhs_local_threaded)
 end
 
 # TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
 function entropy_projection!(cache, u, mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
     @unpack Vq = rd
-    @unpack VhP, entropy_var_values, u_values = cache
+    @unpack VhP, entropy_var_values = cache
     @unpack projected_entropy_var_values, entropy_projected_u_values = cache
+    (; u_values) = cache.solution_container
 
     apply_to_each_field(mul_by!(Vq), u_values, u)
 
@@ -448,6 +446,21 @@ end
 @inline function has_sparse_operators(::Union{Line, Quad, Hex},
                                       approx_type::AbstractDerivativeOperator)
     return True()
+end
+
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral, dg::DGMultiFluxDiff, cache)
+    # No interpolation performed for general volume integral.
+    # Instead, an element-wise entropy projection (`entropy_projection!`) is performed before, see
+    # `rhs!` for `DGMultiFluxDiff`, which populates `entropy_projected_u_values`
+    @threaded for element in eachelement(mesh, dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
+    end
+
+    return nothing
 end
 
 # Computes flux differencing contribution from each Cartesian direction over a single element.
@@ -548,55 +561,55 @@ end
 # calculates volume integral for <:Polynomial approximation types. We
 # do not assume any additional structure (such as collocated volume or
 # face nodes, tensor product structure, etc) in `DGMulti`.
-function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMultiFluxDiff,
-                               cache)
+@inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralFluxDifferencing,
+                                         dg::DGMultiFluxDiff, cache)
     @unpack entropy_projected_u_values, Ph = cache
     @unpack fluxdiff_local_threaded, rhs_local_threaded = cache
 
-    @threaded for e in eachelement(mesh, dg, cache)
-        fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
-        fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-        u_local = view(entropy_projected_u_values, :, e)
+    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    u_local = view(entropy_projected_u_values, :, element)
 
-        local_flux_differencing!(fluxdiff_local, u_local, e,
-                                 have_nonconservative_terms,
-                                 volume_integral.volume_flux,
-                                 has_sparse_operators(dg),
-                                 mesh, equations, dg, cache)
+    local_flux_differencing!(fluxdiff_local, u_local, element,
+                             have_nonconservative_terms,
+                             volume_integral.volume_flux,
+                             has_sparse_operators(dg),
+                             mesh, equations, dg, cache)
 
-        # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
-        # apply_to_each_field performance.
-        rhs_local = rhs_local_threaded[Threads.threadid()]
-        for i in Base.OneTo(length(fluxdiff_local))
-            rhs_local[i] = fluxdiff_local[i]
-        end
-        apply_to_each_field(mul_by_accum!(Ph), view(du, :, e), rhs_local)
+    # convert fluxdiff_local::Vector{<:SVector} to StructArray{<:SVector} for faster
+    # apply_to_each_field performance.
+    rhs_local = rhs_local_threaded[Threads.threadid()]
+    for i in Base.OneTo(length(fluxdiff_local))
+        rhs_local[i] = fluxdiff_local[i]
     end
+    apply_to_each_field(mul_by_accum!(Ph), view(du, :, element), rhs_local)
+
+    return nothing
 end
 
-function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral, dg::DGMultiFluxDiffSBP,
-                               cache)
+@inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                         have_nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralFluxDifferencing,
+                                         dg::DGMultiFluxDiffSBP, cache)
     @unpack fluxdiff_local_threaded, inv_wq = cache
 
-    @threaded for e in eachelement(mesh, dg, cache)
-        fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
-        fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-        u_local = view(u, :, e)
+    fluxdiff_local = fluxdiff_local_threaded[Threads.threadid()]
+    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
+    u_local = view(u, :, element)
 
-        local_flux_differencing!(fluxdiff_local, u_local, e,
-                                 have_nonconservative_terms,
-                                 volume_integral.volume_flux,
-                                 has_sparse_operators(dg),
-                                 mesh, equations, dg, cache)
+    local_flux_differencing!(fluxdiff_local, u_local, element,
+                             have_nonconservative_terms,
+                             volume_integral.volume_flux,
+                             has_sparse_operators(dg),
+                             mesh, equations, dg, cache)
 
-        for i in each_quad_node(mesh, dg, cache)
-            du[i, e] = du[i, e] + fluxdiff_local[i] * inv_wq[i]
-        end
+    for i in each_quad_node(mesh, dg, cache)
+        du[i, element] = du[i, element] + fluxdiff_local[i] * inv_wq[i]
     end
+
+    return nothing
 end
 
 # Specialize since `u_values` isn't computed for DGMultiFluxDiffSBP solvers.
@@ -618,7 +631,7 @@ end
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
 function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
     # done in `prolong2interfaces` and `calc_volume_integral`)
@@ -664,7 +677,7 @@ end
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
                                                                   have_nonconservative_terms(equations),

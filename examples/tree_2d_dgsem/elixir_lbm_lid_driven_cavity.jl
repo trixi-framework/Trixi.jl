@@ -61,7 +61,7 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
     # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
     return surface_flux_function(u_inner, u_boundary, orientation, equations)
 end
-boundary_conditions = (x_neg = boundary_condition_noslip_wall,
+boundary_conditions = (; x_neg = boundary_condition_noslip_wall,
                        x_pos = boundary_condition_noslip_wall,
                        y_neg = boundary_condition_noslip_wall,
                        y_pos = boundary_condition_lid_driven_cavity)
@@ -75,7 +75,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = false,
                 n_cells_max = 10_000)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

@@ -68,7 +68,7 @@ SerialTree(::Val{NDIMS}, args...) where {NDIMS} = SerialTree{NDIMS, Float64}(arg
 # Create and initialize tree
 function SerialTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
                                   length::RealT,
-                                  periodicity = true) where {NDIMS, RealT <: Real}
+                                  periodicity = false) where {NDIMS, RealT <: Real}
     # Create instance
     t = SerialTree{NDIMS, RealT}(capacity)
 
@@ -80,17 +80,17 @@ end
 
 # Constructors accepting a single number as center (as opposed to an array) for 1D
 function SerialTree{1, RealT}(cap::Int, center::RealT, len::RealT,
-                              periodicity = true) where {RealT <: Real}
+                              periodicity = false) where {RealT <: Real}
     return SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 function SerialTree{1}(cap::Int, center::RealT, len::RealT,
-                       periodicity = true) where {RealT <: Real}
+                       periodicity = false) where {RealT <: Real}
     return SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
 function init!(t::SerialTree, center::AbstractArray{RealT}, length::RealT,
-               periodicity = true) where {RealT}
+               periodicity = false) where {RealT}
     clear!(t)
 
     # Set domain information

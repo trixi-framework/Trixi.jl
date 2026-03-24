@@ -121,16 +121,16 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
     @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
                             l2=[
-                                0.02026685991647352,
-                                0.017467584076280237,
-                                0.011378371604813321,
-                                0.05138942558296091
+                                0.020266970819461425,
+                                0.01746740120890609,
+                                0.011378393090609054,
+                                0.05138965928352185
                             ],
                             linf=[
-                                0.35924402060711524,
-                                0.32068389566068806,
-                                0.2361141752119986,
-                                0.9289840057748628
+                                0.3593492062888952,
+                                0.32077672777509403,
+                                0.23600493584887167,
+                                0.9291837711500472
                             ],
                             tspan=(0.0, 0.15))
         # Ensure that we do not have excessive memory allocations
