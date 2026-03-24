@@ -1,4 +1,4 @@
-module TestCUDA
+module TestCUDA2D
 
 using Test
 using Trixi
