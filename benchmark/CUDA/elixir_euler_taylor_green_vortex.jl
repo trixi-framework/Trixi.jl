@@ -26,12 +26,10 @@ end
 
 initial_condition = initial_condition_taylor_green_vortex
 
-# TODO Undefined external symbol "log"
-#volume_flux = flux_ranocha
-volume_flux = flux_lax_friedrichs
-solver = DGSEM(polydeg = 5, surface_flux = volume_flux)
-# TODO flux diff
-#volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_ranocha
+surface_flux = flux_lax_friedrichs
+volume_integral=VolumeIntegralFluxDifferencing(volume_flux)
+solver = DGSEM(polydeg = 5, surface_flux = surface_flux, volume_integral = volume_integral)
 
 coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
@@ -43,7 +41,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = true, initial_refinement_level = initial_refinement_level)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
