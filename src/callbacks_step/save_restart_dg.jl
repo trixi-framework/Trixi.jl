@@ -155,9 +155,9 @@ function convert_restart_file_polydeg!(u, file, polydeg_file, slice,
     return nothing
 end
 
-function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh,
-                                       SerialT8codeMesh},
+function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
+                                       UnstructuredMesh2D, P4estMeshSerial,
+                                       T8codeMeshSerial},
                            equations, dg::DG, cache,
                            restart_file, interpolate_high2low)
 
