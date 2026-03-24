@@ -561,4 +561,25 @@ end
     rho_e_internal = rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho
     return rho_e_internal
 end
+
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::NonIdealCompressibleEulerEquations2D)
+    eos = equations.equation_of_state
+    V, v1, v2, T = cons2thermo(u, equations)
+    p = pressure(V, T, eos)
+    if orientation == 1
+        return p * v1 / T
+    else # if orientation == 2
+        return p * v2 / T
+    end
+end
+
+@inline function entropy_potential(u, normal_direction,
+                                   equations::NonIdealCompressibleEulerEquations2D)
+    eos = equations.equation_of_state
+    V, v1, v2, T = cons2thermo(u, equations)
+    v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+    p = pressure(V, T, eos)
+    return p * v_normal / T
+end
 end # @muladd

@@ -363,4 +363,130 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyChange
         summary_box(io, "IndicatorEntropyChange", setup)
     end
 end
+
+"""
+    IndicatorEntropyCorrection(equations::AbstractEquations, basis; 
+                               scaling=true)
+
+Indicator used for entropy correction using subcell FV schemes, where the 
+blending is determined so that the volume integral entropy production is the 
+same or more than that of an entropy-conservative (EC) scheme. 
+
+This is intended to guide the convex blending of a `volume_integral_default` 
+(for example, [`VolumeIntegralWeakForm`](@ref)) and `volume_integral_stabilized` 
+(for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref) with an entropy stable 
+finite volume flux). 
+
+The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
+parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
+by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
+This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
+here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
+
+The use of `IndicatorEntropyCorrection` requires either
+`entropy_potential(u, orientation, equations)` for TreeMesh, or
+`entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
+
+"""
+struct IndicatorEntropyCorrection{Cache, ScalingT} <: AbstractIndicator
+    cache::Cache
+    scaling::ScalingT # either Bool or Real
+end
+
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorEntropyCorrection(equations::AbstractEquations,
+                                    basis::LobattoLegendreBasis;
+                                    scaling = true) # true = 1 in floating point multiplication
+    cache = create_cache(IndicatorEntropyCorrection, equations, basis)
+    return IndicatorEntropyCorrection{typeof(cache), typeof(scaling)}(cache, scaling)
+end
+
+# this method is used when the indicator is constructed as for 
+# shock-capturing volume integrals.
+function create_cache(::Type{IndicatorEntropyCorrection},
+                      equations::AbstractEquations{NDIMS, NVARS},
+                      basis::LobattoLegendreBasis) where {NDIMS, NVARS}
+    uEltype = real(basis)
+    AT = Array{uEltype, NDIMS + 1}
+
+    # container for elementwise volume integrals
+    volume_integral_values_threaded = AT[AT(undef, NVARS,
+                                            ntuple(_ -> nnodes(basis), NDIMS)...)
+                                         for _ in 1:Threads.maxthreadid()]
+
+    # stores the blending coefficients 
+    alpha = Vector{uEltype}()
+
+    return (; alpha, volume_integral_values_threaded)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyCorrection)
+    @nospecialize indicator # reduce precompilation time
+    print(io, "IndicatorEntropyCorrection")
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorEntropyCorrection)
+    @nospecialize indicator # reduce precompilation time
+    summary_box(io, "IndicatorEntropyCorrection")
+    return nothing
+end
+
+"""
+    IndicatorEntropyCorrectionShockCapturingCombined(; indicator_shock_capturing, 
+                                                       indicator_entropy_correction)
+
+Indicator used for entropy correction using subcell FV schemes, where the blending 
+is taken to be the maximum between a blending determined by shock capturing 
+(`indicator_shock_capturing`) and a blending determined so that the volume integral 
+entropy production is the same or more than that of an EC scheme (`indicator_entropy_correction`). 
+
+This is intended to guide the convex blending of a `volume_integral_default` (for 
+example, [`VolumeIntegralWeakForm`](@ref)) and `volume_integral_stabilized` (for 
+example, [`VolumeIntegralPureLGLFiniteVolume`](@ref) with an entropy stable finite 
+volume flux). 
+
+The use of `IndicatorEntropyCorrectionShockCapturingCombined` requires either
+`entropy_potential(u, orientation, equations)` for TreeMesh, or
+`entropy_potential(u, normal_direction, equations)` for other mesh types
+to be defined. 
+"""
+struct IndicatorEntropyCorrectionShockCapturingCombined{IndicatorEC, IndicatorSC} <:
+       AbstractIndicator
+    indicator_entropy_correction::IndicatorEC
+    indicator_shock_capturing::IndicatorSC
+end
+
+function IndicatorEntropyCorrectionShockCapturingCombined(; indicator_shock_capturing,
+                                                          indicator_entropy_correction)
+    return IndicatorEntropyCorrectionShockCapturingCombined(indicator_entropy_correction,
+                                                            indicator_shock_capturing)
+end
+
+function Base.show(io::IO, indicator::IndicatorEntropyCorrectionShockCapturingCombined)
+    @nospecialize indicator # reduce precompilation time
+    print(io, "IndicatorEntropyCorrectionShockCapturingCombined(")
+    print(io, indicator.indicator_entropy_correction)
+    print(io, ", ")
+    print(io, indicator.indicator_shock_capturing |> typeof |> nameof)
+    print(io, ")")
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   indicator::IndicatorEntropyCorrectionShockCapturingCombined)
+    @nospecialize indicator # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator EC" => indicator.indicator_entropy_correction,
+            "indicator SC" => indicator.indicator_shock_capturing |> typeof |> nameof
+        ]
+        summary_box(io, "IndicatorEntropyCorrectionShockCapturingCombined", setup)
+    end
+    return nothing
+end
 end # @muladd
