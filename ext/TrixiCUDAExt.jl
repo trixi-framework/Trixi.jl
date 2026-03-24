@@ -16,7 +16,7 @@ function Trixi.unsafe_wrap_or_alloc(::Type{<:CuDeviceArray}, vec::CuDeviceArray,
     return reshape(vec, size)
 end
 
-@static if TRIXI._PREFERENCE_LOG == "log_Trixi_NaN"
+@static if Trixi._PREFERENCE_LOG == "log_Trixi_NaN"
     @device_override Trixi.log(x::Float64) = ccall("extern __nv_log", llvmcall, Cdouble,
                                                    (Cdouble,), x)
     @device_override Trixi.log(x::Float32) = ccall("extern __nv_logf", llvmcall, Cfloat,
