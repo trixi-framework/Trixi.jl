@@ -1,7 +1,7 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# Why: This testcases adds uneven refinment in the taylor green vortex (TGV) to specifically test (MPI) mortar treatment in the parabolic part.
+# Why: This testcases adds uneven refinement in the taylor green vortex (TGV) to specifically test (MPI) mortar treatment in the parabolic part.
 
 ###############################################################################
 # Physics
@@ -72,7 +72,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
                                                                     boundary_condition_periodic))
 
 ###############################################################################
-# AMR: positional rule → creates 2 refinment bocks on the diagonal of the cube 
+# AMR: positional rule → creates 2 refinement bocks on the diagonal of the cube 
 # Used to explicitly include mortars in the parabolic MPI testscases
 
 function positional_rule(x, t)

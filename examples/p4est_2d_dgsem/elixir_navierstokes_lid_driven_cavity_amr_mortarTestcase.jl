@@ -1,7 +1,7 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-#This testcases uses a artifical refinement rule to explicitly test refinement and unrifinement. 
+#This testcases uses a artificial refinement rule to explicitly test refinement and unrifinement. 
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
