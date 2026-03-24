@@ -202,6 +202,9 @@ is `true`).  Additionally, `plot_arguments` will be unpacked and passed as keywo
 
 The `timestep` is used in the filename. `time` is currently unused by this function.
 
+!!! note
+    This requires loading [Plots.jl](https://github.com/JuliaPlots/Plots.jl), e.g., via `using Plots`.
+
 See also: [`VisualizationCallback`](@ref), [`show_plot`](@ref)
 """
 function save_plot end
