@@ -183,6 +183,9 @@ variables in `variable_names` and, optionally, the mesh (if `show_mesh` is `true
 This function is the default `plot_creator` argument for the [`VisualizationCallback`](@ref).
 `time` and `timestep` are currently unused by this function.
 
+!!! note
+    This requires loading [Plots.jl](https://github.com/JuliaPlots/Plots.jl), e.g., via `using Plots`.
+
 See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
 function show_plot end
