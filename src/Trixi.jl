@@ -31,7 +31,6 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cr
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
                     rowvals, nzrange, nonzeros
-using StructArrays
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 

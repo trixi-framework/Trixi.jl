@@ -1,27 +1,44 @@
-@inline function _build_svector_array(raw, ::Val{N}) where {N}
-    components = ntuple(i -> selectdim(raw, 1, i), N)
-    return StructArray{SVector{N, eltype(raw)}}(components)
-end
+"""
+    get_u(sol::ODESolution)
+    get_u(u_ode, semi::AbstractSemidiscretization)
 
-function get_u(sol)
+Extract the state variable `u` from an `ODESolution` or a raw `u_ode` array
+and wrap it into a multidimensional array based on the underlying semidiscretization.
+This function uses multiple dispatch to handle different mesh types
+(e.g., `TreeMesh`, `StructuredMesh`, `DGMultiMesh`).
+"""
+function get_u(sol::ODESolution)
     semi = sol.prob.p
     u_ode = sol.u[end]
     return get_u(u_ode, semi)
 end
 
 function get_u(u_ode, semi::AbstractSemidiscretization)
-    u_raw = wrap_array(u_ode, semi)
-    n_vars = nvariables(semi)
-    @assert ndims(u_raw)>=3 "Unexpected wrap_array shape: $(size(u_raw))"
-    return _build_svector_array(u_raw, Val(n_vars))
+    return wrap_array(u_ode, semi)
 end
 
-function get_coordinates(sol)
+"""
+    get_coordinates(sol::ODESolution)
+    get_coordinates(semi::AbstractSemidiscretization)
+
+Extract the nodal coordinates from a semidiscretization or an `ODESolution`.
+Returns a multidimensional array containing the coordinates for each node.
+This function uses multiple dispatch to handle different mesh types 
+(e.g., `TreeMesh`, `StructuredMesh`, `DGMultiMesh`).
+"""
+function get_coordinates(sol::ODESolution)
     return get_coordinates(sol.prob.p)
 end
 
 function get_coordinates(semi::AbstractSemidiscretization)
-    x_raw = semi.cache.elements.node_coordinates
-    n_dims = ndims(semi)
-    return _build_svector_array(x_raw, Val(n_dims))
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    return get_coordinates(mesh, equations, solver, cache)
+end
+
+function get_coordinates(mesh, equations, solver, cache)
+    return cache.elements.node_coordinates
+end
+
+function get_coordinates(mesh::DGMultiMesh, equations, solver, cache)
+    return mesh.md.xyz
 end

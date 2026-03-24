@@ -22,6 +22,16 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    @testset "Nodal API" begin
+        coords = Trixi.get_coordinates(sol)
+        @test size(coords) == size(semi.cache.elements.node_coordinates)
+        @test coords == semi.cache.elements.node_coordinates
+
+        u_nodal = Trixi.get_u(sol)
+        @test size(u_nodal) == size(Trixi.wrap_array(sol.u[end], semi))
+        @test u_nodal == Trixi.wrap_array(sol.u[end], semi)
+    end
 end
 
 @trixi_testset "elixir_advection_float32.jl" begin
@@ -102,7 +112,7 @@ end
                             6.627000273318195e-5,
                             6.62700027264096e-5
                         ],
-                        stepsize_callback=StepsizeCallback(cfl = x -> 1.6))
+                        stepsize_callback=StepsizeCallback(cfl = x->1.6))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
@@ -161,7 +171,7 @@ end
                             # Expected errors are exactly the same as in elixir_advection_basic!
                             l2=[8.311947673061856e-6],
                             linf=[6.627000273229378e-5],
-                            alpha=0.5 * pi)
+                            alpha=0.5*pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -403,7 +413,7 @@ end
                                 1.635260719945464e-5,
                                 4.886978754825577e-5
                             ],
-                            alpha=0.2 * pi)
+                            alpha=0.2*pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -425,7 +435,7 @@ end
                                 1.1707525976456523e-5,
                                 4.8869615580926506e-5
                             ],
-                            alpha=0.5 * pi)
+                            alpha=0.5*pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -830,8 +840,9 @@ end
 
     # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                  tspan[1])
+    rhs_wrapped! = (du_ode,
+                    u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                          tspan[1])
 
     @test_nowarn jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 end
@@ -887,7 +898,11 @@ end
 @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
-                        linf=[1.0771947577311836, 1.9143913544309838, 2.149549109115789],
+                        linf=[
+                            1.0771947577311836,
+                            1.9143913544309838,
+                            2.149549109115789
+                        ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
