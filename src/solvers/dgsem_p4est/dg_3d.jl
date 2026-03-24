@@ -100,8 +100,8 @@ function prolong2interfaces!(backend::Nothing, cache, u,
 
     @threaded for interface in eachinterface(dg, cache)
         prolong2interfaces_per_interface!(interfaces.u, u, typeof(mesh), equations,
-                                      neighbor_ids, node_indices, index_range,
-                                      interface)
+                                          neighbor_ids, node_indices, index_range,
+                                          interface)
     end
     return nothing
 end
@@ -124,14 +124,15 @@ end
                                               neighbor_ids, node_indices, index_range)
     interface = @index(Global)
     prolong2interfaces_per_interface!(interface_u, u, MeshT, equations, neighbor_ids,
-                                  node_indices, index_range, interface)
+                                      node_indices, index_range, interface)
 end
 
 @inline function prolong2interfaces_per_interface!(u_interface, u,
-                                               ::Type{<:Union{P4estMesh{3},
-                                                              T8codeMesh{3}}},
-                                               equations, neighbor_ids, node_indices,
-                                               index_range, interface)
+                                                   ::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                                   equations, neighbor_ids,
+                                                   node_indices,
+                                                   index_range, interface)
     # Copy solution data from the primary element using "delayed indexing" with
     # a start value and two step sizes to get the correct face and orientation.
     # Note that in the current implementation, the interface will be
@@ -211,11 +212,13 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
     @threaded for interface in eachinterface(dg, cache)
         calc_interface_flux_per_interface!(surface_flux_values,
-                                       typeof(mesh),
-                                       have_nonconservative_terms,
-                                       equations, surface_integral, typeof(dg),
-                                       cache.interfaces.u, neighbor_ids, node_indices,
-                                       contravariant_vectors, index_range, interface)
+                                           typeof(mesh),
+                                           have_nonconservative_terms,
+                                           equations, surface_integral, typeof(dg),
+                                           cache.interfaces.u, neighbor_ids,
+                                           node_indices,
+                                           contravariant_vectors, index_range,
+                                           interface)
     end
     return nothing
 end
@@ -243,22 +246,24 @@ end
                                                contravariant_vectors, index_range)
     interface = @index(Global)
     calc_interface_flux_per_interface!(surface_flux_values,
-                                   MeshT,
-                                   have_nonconservative_terms,
-                                   equations, surface_integral, solverT, u_interface,
-                                   neighbor_ids, node_indices, contravariant_vectors,
-                                   index_range, interface)
+                                       MeshT,
+                                       have_nonconservative_terms,
+                                       equations, surface_integral, solverT,
+                                       u_interface,
+                                       neighbor_ids, node_indices,
+                                       contravariant_vectors,
+                                       index_range, interface)
 end
 
 @inline function calc_interface_flux_per_interface!(surface_flux_values,
-                                                MeshT::Type{<:Union{P4estMesh{3},
-                                                                    T8codeMesh{3}}},
-                                                have_nonconservative_terms,
-                                                equations, surface_integral,
-                                                solverT::Type{<:DG}, u_interface,
-                                                neighbor_ids,
-                                                node_indices, contravariant_vectors,
-                                                index_range, interface)
+                                                    MeshT::Type{<:Union{P4estMesh{3},
+                                                                        T8codeMesh{3}}},
+                                                    have_nonconservative_terms,
+                                                    equations, surface_integral,
+                                                    solverT::Type{<:DG}, u_interface,
+                                                    neighbor_ids,
+                                                    node_indices, contravariant_vectors,
+                                                    index_range, interface)
     # Get element and side information on the primary element
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
@@ -1013,10 +1018,10 @@ function calc_surface_integral!(backend::Nothing, du, u,
 
     @threaded for element in eachelement(dg, cache)
         calc_surface_integral_per_element!(du, typeof(mesh),
-                                       equations, surface_integral,
-                                       dg, inverse_weights[1],
-                                       surface_flux_values,
-                                       element)
+                                           equations, surface_integral,
+                                           dg, inverse_weights[1],
+                                           surface_flux_values,
+                                           element)
     end
     return nothing
 end
@@ -1040,17 +1045,18 @@ end
                                                  surface_flux_values)
     element = @index(Global)
     calc_surface_integral_per_element!(du, MeshT,
-                                   equations, surface_integral, dg, factor,
-                                   surface_flux_values, element)
+                                       equations, surface_integral, dg, factor,
+                                       surface_flux_values, element)
 end
 
 @inline function calc_surface_integral_per_element!(du,
-                                                ::Type{<:Union{P4estMesh{3},
-                                                               T8codeMesh{3}}},
-                                                equations,
-                                                surface_integral::SurfaceIntegralWeakForm,
-                                                dg::DGSEM, factor, surface_flux_values,
-                                                element)
+                                                    ::Type{<:Union{P4estMesh{3},
+                                                                   T8codeMesh{3}}},
+                                                    equations,
+                                                    surface_integral::SurfaceIntegralWeakForm,
+                                                    dg::DGSEM, factor,
+                                                    surface_flux_values,
+                                                    element)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)

@@ -935,7 +935,7 @@ function apply_jacobian!(backend::Nothing, du,
     @unpack inverse_jacobian = cache.elements
     @threaded for element in eachelement(dg, cache)
         apply_jacobian_per_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
-                                element)
+                                    element)
     end
     return nothing
 end
@@ -958,9 +958,10 @@ end
 end
 
 @inline function apply_jacobian_per_element!(du,
-                                         ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
-                                                        T8codeMesh{3}}},
-                                         equations, dg, inverse_jacobian, element)
+                                             ::Type{<:Union{StructuredMesh{3},
+                                                            P4estMesh{3},
+                                                            T8codeMesh{3}}},
+                                             equations, dg, inverse_jacobian, element)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         # Negative sign included to account for the negated surface and volume terms,
         # see e.g. the computation of `derivative_hat` in the basis setup and 

@@ -191,9 +191,10 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
         max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
-                                              equations, dg,
-                                              contravariant_vectors, inverse_jacobian,
-                                              element)
+                                                  equations, dg,
+                                                  contravariant_vectors,
+                                                  inverse_jacobian,
+                                                  element)
         # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
         # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
         max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
@@ -222,10 +223,10 @@ end
                                             dg, contravariant_vectors, inverse_jacobian)
     element = @index(Global)
     max_scaled_speeds[element] = max_scaled_speed_per_element(u, MeshT, constant_speed,
-                                                          equations, dg,
-                                                          contravariant_vectors,
-                                                          inverse_jacobian,
-                                                          element)
+                                                              equations, dg,
+                                                              contravariant_vectors,
+                                                              inverse_jacobian,
+                                                              element)
 end
 
 include("stepsize_dg1d.jl")
