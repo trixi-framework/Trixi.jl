@@ -1,7 +1,7 @@
 # Package extension for adding CUDA-based features to Trixi.jl
 module TrixiCUDAExt
 
-import CUDA: CuArray, CuDeviceArray, KernelAdaptor, @device_override
+using CUDA: CUDA, CuArray, CuDeviceArray, KernelAdaptor, @device_override
 import Trixi
 
 function Trixi.storage_type(::Type{<:CuArray})
