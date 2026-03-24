@@ -11,10 +11,6 @@ equations = CompressibleEulerEquations1D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
-using BenchmarkTools
-u = SVector(42.0, -6.7, 3.14159)
-@benchmark temperature(u, equations_parabolic)
-
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 # (Simplified version of the 2D)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
