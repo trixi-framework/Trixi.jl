@@ -298,13 +298,19 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
 
                 for v in eachvariable(equations_parabolic)
                     # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_parabolic = SVector(flux_parabolic_x[v, i_primary, j_primary,
+                    flux_parabolic = SVector(flux_parabolic_x[v,
+                                                              i_primary,
+                                                              j_primary,
                                                               k_primary,
                                                               primary_element],
-                                             flux_parabolic_y[v, i_primary, j_primary,
+                                             flux_parabolic_y[v,
+                                                              i_primary,
+                                                              j_primary,
                                                               k_primary,
                                                               primary_element],
-                                             flux_parabolic_z[v, i_primary, j_primary,
+                                             flux_parabolic_z[v,
+                                                              i_primary,
+                                                              j_primary,
                                                               k_primary,
                                                               primary_element])
 
