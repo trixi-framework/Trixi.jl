@@ -4,8 +4,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the pure diffusion equation with Dirichlet BCs (LDG)
 
-diffusivity = 0.5
-amplitude = 0.4
+diffusivity = 0.25
+amplitude = 1.0
 wave_number = pi
 
 equations = LinearDiffusionEquation1D(diffusivity)
@@ -35,7 +35,7 @@ semi = SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
