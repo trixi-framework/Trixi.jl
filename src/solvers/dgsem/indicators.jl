@@ -489,4 +489,40 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
     return nothing
 end
+
+"""
+    IndicatorPositional(f)
+
+Create an AMR indicator from a positional rule `f(x, t)`. The usecase for this rule is explicit testing and or targeted "static" refinement 
+based on a functional rule. The function `f` is called with the element center `x::SVector{ndims,Float64}` and time `t`.
+"""
+struct IndicatorPositional{F, Cache} <: AbstractIndicator
+    rule::F
+    cache::Cache
+end
+
+# this method is used when the indicator is constructed as for AMR
+function IndicatorPositional(rule, semi::AbstractSemidiscretization)
+    cache = create_cache(IndicatorPositional, semi)
+    return IndicatorPositional{typeof(rule), typeof(cache)}(rule, cache)
+end
+
+function Base.show(io::IO, indicator::IndicatorPositional)
+    @nospecialize indicator # reduce precompilation time
+    print(io, "IndicatorPositional")
+    print(io, indicator.rule)
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorPositional)
+    @nospecialize indicator # reduce precompilation time
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "rule" => indicator.rule
+        ]
+        summary_box(io, "IndicatorPositional", setup)
+    end
+end
 end # @muladd

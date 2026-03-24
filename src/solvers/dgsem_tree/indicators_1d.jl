@@ -107,7 +107,8 @@ function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax},
+                              Type{IndicatorPositional}},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
     alpha = Vector{uEltype}()
@@ -119,8 +120,18 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorPositional},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
+
+    return (; alpha)
+end
+
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax},
+                                 Type{IndicatorPositional}},
                       mesh, equations::AbstractEquations, dg::DGSEM, cache)
     return create_cache(typ, equations, dg.basis)
 end
@@ -177,6 +188,26 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
         alpha[element] = maximum(indicator)
     end
 
+    return alpha
+end
+
+function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 3},
+                                           mesh, equations, dg::DGSEM, cache;
+                                           kwargs...)
+    x = cache.elements.node_coordinates
+    @unpack alpha, center_threaded = positional.cache
+    resize!(alpha, nelements(dg, cache))
+    #### @threaded does not work with cfunction (positional.rule) thus Threads.@threads for now
+    Threads.@threads for element in Trixi.eachelement(dg, cache)
+        center = 0
+        n = 0
+        for i in Trixi.eachnode(dg)
+            center += x[1, i, element]
+            n += 1
+        end
+        center ./= n
+        alpha[element] = positional.rule(center, kwargs.t)
+    end
     return alpha
 end
 end # @muladd

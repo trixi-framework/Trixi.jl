@@ -185,6 +185,16 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
+function create_cache(::Type{IndicatorPositional},
+                      equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
+
+    center_threaded = [MVector{3, uEltype}(undef) for _ in 1:Threads.maxthreadid()]
+
+    return (; alpha, center_threaded)
+end
+
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
@@ -253,6 +263,30 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
         alpha[element] = maximum(indicator)
     end
 
+    return alpha
+end
+
+function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 5},
+                                           mesh, equations, dg::DGSEM, cache;
+                                           kwargs...)
+    x = cache.elements.node_coordinates
+    @unpack alpha, center_threaded = positional.cache
+    resize!(alpha, nelements(dg, cache))
+    #### @threaded does not work with cfunction (positional.rule) thus Threads.@threads for now
+    Threads.@threads for element in Trixi.eachelement(dg, cache)
+        center = center_threaded[Threads.threadid()]
+        fill!(center, 0.0)
+        n = 0
+
+        for k in Trixi.eachnode(dg), j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
+            center[1] += x[1, i, j, k, element]
+            center[2] += x[2, i, j, k, element]
+            center[3] += x[3, i, j, k, element]
+            n += 1
+        end
+        center ./= n
+        alpha[element] = positional.rule(center, kwargs[:t])
+    end
     return alpha
 end
 end # @muladd
