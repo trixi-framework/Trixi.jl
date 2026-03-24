@@ -16,7 +16,8 @@ tspan = (load_time(restart_filename), 2.0)
 solver = DGSEM(polydeg = 4, surface_flux = flux_hll)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition)))
+                                    boundary_conditions = (;
+                                                           all = BoundaryConditionDirichlet(initial_condition)))
 
 ode = semidiscretize(semi, tspan, restart_filename)
 
