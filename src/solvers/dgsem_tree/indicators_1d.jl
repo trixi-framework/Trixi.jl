@@ -121,7 +121,7 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorPositional},
-                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations, basis::LobattoLegendreBasis)
     uEltype = real(basis)
     alpha = Vector{uEltype}()
 
@@ -194,19 +194,19 @@ function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 3},
                                            mesh, equations, dg::DGSEM, cache;
                                            kwargs...)
     x = cache.elements.node_coordinates
-    @unpack alpha, center_threaded = positional.cache
+    @unpack alpha = positional.cache
     resize!(alpha, nelements(dg, cache))
-    #### @threaded does not work with cfunction (positional.rule) thus Threads.@threads for now
-    Threads.@threads for element in Trixi.eachelement(dg, cache)
-        center = 0
-        n = 0
+    # Extract function to local variable to avoid capturing `positional` in the threaded loop
+    indicator_function = positional.indicator_function
+
+    @threaded for element in Trixi.eachelement(dg, cache)
+        estimate = -one(real(dg))
         for i in Trixi.eachnode(dg)
-            center += x[1, i, element]
-            n += 1
+            estimate = max(estimate, indicator_function(x[1, i, element], kwargs[:t]))
         end
-        center ./= n
-        alpha[element] = positional.rule(center, kwargs.t)
+        alpha[element] = estimate
     end
+
     return alpha
 end
 end # @muladd

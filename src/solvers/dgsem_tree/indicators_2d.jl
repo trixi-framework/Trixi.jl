@@ -148,16 +148,6 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
-function create_cache(::Type{IndicatorPositional},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
-    uEltype = real(basis)
-    alpha = Vector{uEltype}()
-
-    center_threaded = [MVector{2, uEltype}(undef) for _ in 1:Threads.maxthreadid()]
-
-    return (; alpha, center_threaded)
-end
-
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
@@ -225,22 +215,20 @@ function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 4},
                                            mesh, equations, dg::DGSEM, cache;
                                            kwargs...)
     x = cache.elements.node_coordinates
-    @unpack alpha, center_threaded = positional.cache
+    @unpack alpha = positional.cache
     resize!(alpha, nelements(dg, cache))
-    #### @threaded does not work with cfunction (positional.rule) thus Threads.@threads for now
-    Threads.@threads for element in Trixi.eachelement(dg, cache)
-        center = center_threaded[Threads.threadid()]
-        fill!(center, 0.0)
-        n = 0
+    # Extract function to local variable to avoid capturing `positional` in the threaded loop
+    indicator_function = positional.indicator_function
 
-        for j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
-            center[1] += x[1, i, j, element]
-            center[2] += x[2, i, j, element]
-            n += 1
+    @threaded for element in Trixi.eachelement(dg, cache)
+        estimate = -one(real(dg))
+        for j in eachnode(dg), i in eachnode(dg)
+            xi = @view x[:, i, j, element]
+            estimate = max(estimate, indicator_function(xi, kwargs[:t]))
         end
-        center ./= n
-        alpha[element] = positional.rule(center, kwargs[:t])
+        alpha[element] = estimate
     end
+
     return alpha
 end
 end # @muladd
