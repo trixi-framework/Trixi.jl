@@ -10,7 +10,7 @@ for human readability.
 #### Added
 
 - Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, `Trixi.jl` can
-  now partly be exectuted on GPUs. This includes simulations on `P4estMesh` in 2D and 3D,
+  now partly be executed on GPUs. This includes simulations on `P4estMesh` in 2D and 3D,
   with flux differencing and MPI. Adaptive mesh refinement and callbacks have not been
   ported, yet. Offloading is achieved via `KernelAbstractions.jl` kernels,
   which, at the moment, execute the same code as usually run on CPUs. A backend is selected
