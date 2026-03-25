@@ -18,7 +18,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
     # create sparse hybridized operators for low order scheme
     Qrst, E = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
     Brst = map(n -> Diagonal(n .* dg.basis.wf), dg.basis.nrstJ)
-    sparse_SBP_operators = map((Q, B) -> 0.5 * [Q-Q' E'*B; -B*E zeros(size(B))],
+    sparse_SBP_operators = map((Q, B) -> 0.5f0 * [Q-Q' E'*B; -B*E zeros(size(B))],
                                Qrst, Brst)
 
     # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
@@ -38,7 +38,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
 
     # create skew-symmetric parts of sparse hybridized operators for low order scheme.
     sparse_SBP_operators, _ = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
-    sparse_SBP_operators = map(A -> 0.5 * (A - A'), sparse_SBP_operators)
+    sparse_SBP_operators = map(A -> 0.5f0 * (A - A'), sparse_SBP_operators)
 
     # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
     # an adjoint for faster iteration through the rows.
@@ -105,7 +105,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     end
 
     # magic parameters; reuses the quad/hex parameters
-    threshold = 0.5 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
+    threshold = 0.5f0 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
     @threaded for element in eachelement(mesh, dg)
@@ -194,7 +194,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     end
 
     # magic parameters
-    threshold = 0.5 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
+    threshold = 0.5f0 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
     @threaded for element in eachelement(mesh, dg)
@@ -281,7 +281,7 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
         for face in Base.OneTo(StartUpDG.num_faces(dg.basis.element_type))
             neighboring_element = cache.element_to_element_connectivity[face, element]
             alpha_neighbor = alpha_tmp[neighboring_element]
-            alpha[element] = max(alpha[element], 0.5 * alpha_neighbor)
+            alpha[element] = max(alpha[element], 0.5f0 * alpha_neighbor)
         end
     end
 
@@ -383,7 +383,7 @@ function get_contravariant_matrix(i, element, mesh::DGMultiMesh{3}, cache)
 end
 
 function get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache)
-    return 0.5 * (get_contravariant_matrix(i, element, mesh, cache) +
+    return 0.5f0 * (get_contravariant_matrix(i, element, mesh, cache) +
             get_contravariant_matrix(j, element, mesh, cache))
 end
 
