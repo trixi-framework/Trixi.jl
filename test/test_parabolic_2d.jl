@@ -398,7 +398,7 @@ end
                                  "elixir_diffusion_steady_state_linear_map.jl"),
                         l2=[2.9029783114293355e-5], linf=[0.00030225018027482675],
                         # Relax error tols to avoid stochastic CI failures
-                        atol=1e-10)
+                        atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

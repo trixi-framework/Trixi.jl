@@ -38,7 +38,7 @@ boundary_conditions = (; x_neg = bc_homogeneous_dirichlet,
                        y_pos = bc_sin_dirichlet,
                        x_pos = bc_homogeneous_dirichlet)
 
-# `solver_parabolic = ParabolicFormulationLocalDG()` is strictly required for elliptic/diffusion-dominated problems.
+# Build the parabolic semidiscretization with a local DG formulation for diffusion
 semi = SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
                                    solver_parabolic = ParabolicFormulationLocalDG(),
                                    boundary_conditions = boundary_conditions)
