@@ -202,8 +202,9 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
     return max_scaled_speed
 end
 
-function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equations, dg,
-                        cache) where {MeshT}
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equations,
+                               dg,
+                               cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     num_elements = nelements(dg, cache)
