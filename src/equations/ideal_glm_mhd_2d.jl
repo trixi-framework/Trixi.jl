@@ -657,7 +657,7 @@ struct FluxNonConservativePowellLocalJump <:
        FluxNonConservative{NonConservativeJump()}
 end
 
-n_nonconservative_terms(::FluxNonConservativePowellLocalJump) = 2
+n_nonconservative_terms(::FluxNonConservativePowellLocalJump) = 3
 
 const flux_nonconservative_powell_local_jump = FluxNonConservativePowellLocalJump()
 
@@ -834,23 +834,29 @@ end
                                                                     nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
-    if nonconservative_term == 1
-        # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-        v1_ll = rho_v1_ll / rho_ll
-        v2_ll = rho_v2_ll / rho_ll
-        v3_ll = rho_v3_ll / rho_ll
-        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+    # Compute velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
 
-        f = SVector(0,
-                    B1_ll,
-                    B2_ll,
-                    B3_ll,
-                    v_dot_B_ll,
-                    v1_ll,
-                    v2_ll,
-                    v3_ll,
-                    0)
-    else # nonconservative_term == 2
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    phi_mhd = SVector(0,
+                B1_ll,
+                B2_ll,
+                B3_ll,
+                v_dot_B_ll,
+                v1_ll,
+                v2_ll,
+                v3_ll,
+                0)
+    
+    if nonconservative_term == 1
+        f = phi_mhd .* normal_direction_ll[1]
+    elseif nonconservative_term == 2
+        f = phi_mhd .* normal_direction_ll[2]
+    else # nonconservative_term == 3
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         v1_ll = rho_v1_ll / rho_ll
         v2_ll = rho_v2_ll / rho_ll
@@ -945,22 +951,31 @@ end
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     if nonconservative_term == 1
-        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         B1_jump = B1_rr - B1_ll
-        B2_jump = B2_rr - B2_ll
-        B_dot_n_jump = B1_jump * normal_direction_avg[1] +
-                       B2_jump * normal_direction_avg[2]
         f = SVector(0,
-                    B_dot_n_jump,
-                    B_dot_n_jump,
-                    B_dot_n_jump,
-                    B_dot_n_jump,
-                    B_dot_n_jump,
-                    B_dot_n_jump,
-                    B_dot_n_jump,
+                    B1_jump,
+                    B1_jump,
+                    B1_jump,
+                    B1_jump,
+                    B1_jump,
+                    B1_jump,
+                    B1_jump,
                     0)
-    else # nonconservative_term == 2
+    elseif nonconservative_term == 2
+        B2_jump = B2_rr - B2_ll
+        f = SVector(0,
+                    B2_jump,
+                    B2_jump,
+                    B2_jump,
+                    B2_jump,
+                    B2_jump,
+                    B2_jump,
+                    B2_jump,
+                    0)
+    else # nonconservative_term == 3
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         psi_jump = (psi_rr - psi_ll)
         f = SVector(0,
