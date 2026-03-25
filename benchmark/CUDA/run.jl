@@ -44,9 +44,10 @@ function main(elixir_path)
     metrics["rhs! time"] = 1.0e-9 * TimerOutputs.time(timer["rhs!"])
 
     # compute performance index
-    nrhscalls = Trixi.ncalls(semi.performance_counter)
-    walltime = 1.0e-9 * take!(semi.performance_counter)
-    metrics["PID"] = walltime * Trixi.mpi_nranks() / (Trixi.ndofsglobal(semi) * nrhscalls)
+    latest_semi = @invokelatest (@__MODULE__).semi
+    nrhscalls = Trixi.ncalls(latest_semi.performance_counter)
+    walltime = 1.0e-9 * take!(latest_semi.performance_counter)
+    metrics["PID"] = walltime * Trixi.mpi_nranks() / (Trixi.ndofsglobal(latest_semi) * nrhscalls)
 
     # write json file
     open("metrics.out", "w") do f
@@ -67,7 +68,7 @@ function main(elixir_path)
                   run_profiler = true)
 
     open("profile_float64.txt", "w") do io
-        show(io, prof_result)
+        show(io, @invokelatest (@__MODULE__).prof_result)
     end
 
     println("Running profiler (Float32)...")
@@ -79,7 +80,7 @@ function main(elixir_path)
                   run_profiler = true)
 
     open("profile_float32.txt", "w") do io
-        show(io, prof_result)
+        show(io, @invokelatest (@__MODULE__).prof_result)
     end
 end
 
