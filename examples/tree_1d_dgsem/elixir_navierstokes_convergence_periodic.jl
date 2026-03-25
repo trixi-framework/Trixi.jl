@@ -1,5 +1,5 @@
+using OrdinaryDiffEqLowStorageRK
 using Trixi
-using BenchmarkTools
 
 prandtl_number() = 0.72
 mu() = 6.25e-4 # equivalent to Re = 1600
@@ -7,12 +7,6 @@ mu() = 6.25e-4 # equivalent to Re = 1600
 equations = CompressibleEulerEquations1D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
-
-u = SVector(42.0, -6.7, 3.14159)
-#@benchmark temperature(u, equations_parabolic)
-@benchmark temperature($(Ref(u))[], $(Ref(equations_parabolic))[])
-
-@code_native temperature(u, equations_parabolic)
 
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 # (Simplified version of the 2D)
@@ -37,8 +31,6 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    RealT = eltype(x)
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
