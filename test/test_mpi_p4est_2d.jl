@@ -138,7 +138,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (No SC, No AMR)" begin
+    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (FD, No AMR)" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_weak_blast_wave_amr.jl"),
                             tspan=(0.0, 0.1),
@@ -161,6 +161,28 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_shockcapturing_ec.jl"),
+                            tspan=(0.0, 1.0),
+                            l2=[
+                                0.09539846747278223,
+                                0.10563345514232406,
+                                0.10563615757611067,
+                                0.350747236676169
+                            ],
+                            linf=[
+                                0.29435746429998466,
+                                0.40789301438634684,
+                                0.39733451552904603,
+                                1.081425202775586
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    end
+
+    #=
     @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (No AMR)" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_weak_blast_wave_amr.jl"),
@@ -182,6 +204,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
+    =#
 
     #=
     @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (no SC, only FD)" begin
