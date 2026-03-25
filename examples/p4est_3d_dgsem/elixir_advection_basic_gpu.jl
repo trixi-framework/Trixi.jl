@@ -32,6 +32,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
+# Change `storage_type` to, e.g., `CuArray` to acutally run on GPU
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
