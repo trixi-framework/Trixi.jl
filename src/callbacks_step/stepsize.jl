@@ -202,19 +202,17 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
     return max_scaled_speed
 end
 
-function calc_max_scaled_speed(backend::Backend, u, mesh, constant_speed, equations, dg,
-                               cache)
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equations, dg,
+                        cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
-    meshT = typeof(mesh)
 
     num_elements = nelements(dg, cache)
     init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
 
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
-    max_scaled_speed =
-        AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend; init, neutral) do element
-
-        max_scaled_speed_per_element(u, meshT, constant_speed,
+    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
+                                                    init, neutral) do element
+        max_scaled_speed_per_element(u, MeshT, constant_speed,
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,
