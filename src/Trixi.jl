@@ -78,7 +78,6 @@ using P4est
 using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
-using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
@@ -351,11 +350,6 @@ function __init__()
     init_t8code()
 
     register_error_hints()
-
-    # Enable features that depend on the availability of the Plots package
-    @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-        using .Plots: Plots
-    end
 end
 
 include("auxiliary/precompile.jl")
