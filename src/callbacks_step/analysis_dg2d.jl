@@ -345,7 +345,8 @@ function integrate_via_indices(func::Func, u,
                                            T8codeMesh{2}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
-    return integrate_via_indices(func, trixi_backend(u), u, mesh, equations, dg, cache, args...; normalize = normalize)
+    return integrate_via_indices(func, trixi_backend(u), u, mesh, equations, dg, cache,
+                                 args...; normalize = normalize)
 end
 
 function integrate_via_indices(func::Func, ::Nothing, u,
@@ -398,12 +399,15 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # `func(u, 1,1,1, equations, dg, args...)` might access GPU memory
     # so we have to rely on the compiler to correctly infer the type of the integral here.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral₀ = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations), typeof(dg), map(typeof, args)...))
+    integral₀ = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
+                                     typeof(dg), map(typeof, args)...))
     init = neutral = (integral₀, zero(real(mesh)))
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
-    _integral, _total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements, backend; init, neutral) do element
+    _integral, _total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
+                                                            backend; init,
+                                                            neutral) do element
         # Initialize integral with zeros of the right shape
         integral, total_volume = neutral
 
