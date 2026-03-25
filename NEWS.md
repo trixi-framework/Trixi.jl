@@ -9,6 +9,18 @@ for human readability.
 
 #### Added
 
+- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, `Trixi.jl` can
+  now partly be exectuted on GPUs. This includes simulations on `P4estMesh` in 2D and 3D,
+  with flux differencing and MPI. Adaptive mesh refinement and callbacks have not been
+  ported, yet. Offloading is achieved via `KernelAbstractions.jl` kernels,
+  which, at the moment, execute the same code as usually run on CPUs. A backend is selected
+  by passing an appropriate data type as keyword argument `storage_type` to
+  `semidiscretize`. See the
+  [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
+  section for some instructions on how to port kernels. This is however still preliminaray
+  and will change.
+  GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
+  `TRIXI_TEST=CUDA`
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
