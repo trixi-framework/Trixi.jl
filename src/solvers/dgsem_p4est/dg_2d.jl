@@ -245,7 +245,7 @@ end
 
     # Initiate the secondary index to be used in the surface for loop.
     # This index on the primary side will always run forward but
-    # the secondary index might need to run backwards                                               for flipped sides.
+    # the secondary index might need to run backwards for flipped sides.
     if :i_backward in secondary_indices
         node_secondary = index_end
         node_secondary_step = -1
@@ -362,12 +362,10 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = Float64(flux_[v] +
-                                                                                                             0.5f0 *
-                                                                                                             noncons_primary[v])
-        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = Float64(-(flux_[v] +
-                                                                                                                     0.5f0 *
-                                                                                                                     noncons_secondary[v]))
+        surface_flux_values[v, primary_node_index, primary_direction_index,
+        primary_element_index] = flux_[v] + 0.5f0 * noncons_primary[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index,
+        secondary_element_index] = -(flux_[v] + 0.5f0 * noncons_secondary[v])
     end
 
     return nothing
