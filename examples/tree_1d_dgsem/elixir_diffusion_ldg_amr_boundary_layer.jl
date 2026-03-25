@@ -43,7 +43,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval = 200, analysis_integrals = ())
+analysis_callback = AnalysisCallback(semi, interval = 200)
 
 alive_callback = AliveCallback(analysis_interval = 200)
 

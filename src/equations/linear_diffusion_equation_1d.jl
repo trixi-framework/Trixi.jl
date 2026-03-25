@@ -19,8 +19,13 @@ end
 
 varnames(::typeof(cons2cons), ::LinearDiffusionEquation1D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearDiffusionEquation1D) = ("scalar",)
+varnames(::typeof(cons2entropy), ::LinearDiffusionEquation1D) = ("scalar",)
 
 @inline cons2prim(u, equations::LinearDiffusionEquation1D) = u
+@inline cons2entropy(u, equations::LinearDiffusionEquation1D) = u
+
+@inline entropy(u::Real, ::LinearDiffusionEquation1D) = 0.5f0 * u^2
+@inline entropy(u, equations::LinearDiffusionEquation1D) = entropy(u[1], equations)
 
 @inline function flux(u, gradients, orientation::Integer,
                       equations::LinearDiffusionEquation1D)

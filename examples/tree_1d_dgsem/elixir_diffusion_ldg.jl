@@ -52,7 +52,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100, analysis_integrals = ())
+analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval = 100)

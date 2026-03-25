@@ -3,10 +3,8 @@ using Trixi
 ###############################################################################
 
 # Build pure diffusion (Laplace) operator
-# `LaplaceDiffusion2D` needs an auxiliary hyperbolic equation to determine variable layout.
-equations_hyperbolic = LinearScalarAdvectionEquation2D((0, 0))
 diffusivity() = 1
-equations = LaplaceDiffusion2D(diffusivity(), equations_hyperbolic)
+equations = LinearDiffusionEquation2D(diffusivity())
 solver = DGSEM(polydeg = 5)
 
 coordinates_min = (0.0, 0.0)
