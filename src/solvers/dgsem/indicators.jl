@@ -503,7 +503,7 @@ struct IndicatorPositional{F, Cache} <: AbstractIndicator
 end
 
 # this method is used when the indicator is constructed as for AMR
-function IndicatorPositional(rule, semi::AbstractSemidiscretization)
+function IndicatorPositional(indicator_function, semi::AbstractSemidiscretization)
     cache = create_cache(IndicatorPositional, semi)
     return IndicatorPositional{typeof(rule), typeof(cache)}(rule, cache)
 end
