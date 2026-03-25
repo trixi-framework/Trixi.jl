@@ -493,8 +493,9 @@ end
 """
     IndicatorPositional(f)
 
-Create an AMR indicator from a positional rule `f(x, t)`. The usecase for this rule is explicit testing and or targeted "static" refinement 
-based on a functional rule. The function `f` is called with the element center `x::SVector{ndims,Float64}` and time `t`.
+Create an AMR indicator from a space and time dependent indicator function `f(x, t)`.
+This allows user-defined mesh refinement/coarsening varying in space and time, similar to the `refinement_patches` keyword for the [`Treemesh`](@ref).
+The function `f` is evaluated at the element center `x::SVector{ndims,Float64}` and time `t`.
 """
 struct IndicatorPositional{F, Cache} <: AbstractIndicator
     rule::F
