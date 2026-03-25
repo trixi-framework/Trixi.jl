@@ -521,7 +521,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorPositional)
         show(io, indicator)
     else
         setup = [
-            "rule" => indicator.rule
+            "Indicator Function" => indicator.indicator_function
         ]
         summary_box(io, "IndicatorPositional", setup)
     end
