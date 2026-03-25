@@ -27,7 +27,8 @@ end
                         linf=6.627000273229378e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, ode.p, sol, 75_000)
 end
 
 @trixi_testset "elixir_advection_basic_gpu.jl Float32" begin
@@ -40,7 +41,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, ode.p, sol, 60_000)
 end
 end
 
@@ -55,7 +57,8 @@ end
                         linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 450_000)
 end
 
 @trixi_testset "elixir_advection_basic_gpu.jl Float32" begin
@@ -68,7 +71,8 @@ end
                         real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 370_000)
 end
 end
 
