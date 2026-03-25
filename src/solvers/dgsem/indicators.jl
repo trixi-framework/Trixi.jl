@@ -505,7 +505,7 @@ end
 # this method is used when the indicator is constructed as for AMR
 function IndicatorPositional(indicator_function, semi::AbstractSemidiscretization)
     cache = create_cache(IndicatorPositional, semi)
-    return IndicatorPositional{typeof(rule), typeof(cache)}(rule, cache)
+    return IndicatorPositional{typeof(rule), typeof(cache)}(indicator_function, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorPositional)
