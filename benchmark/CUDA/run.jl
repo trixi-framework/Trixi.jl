@@ -47,7 +47,8 @@ function main(elixir_path)
     latest_semi = @invokelatest (@__MODULE__).semi
     nrhscalls = Trixi.ncalls(latest_semi.performance_counter)
     walltime = 1.0e-9 * take!(latest_semi.performance_counter)
-    metrics["PID"] = walltime * Trixi.mpi_nranks() / (Trixi.ndofsglobal(latest_semi) * nrhscalls)
+    metrics["PID"] = walltime * Trixi.mpi_nranks() /
+                     (Trixi.ndofsglobal(latest_semi) * nrhscalls)
 
     # write json file
     open("metrics.out", "w") do f

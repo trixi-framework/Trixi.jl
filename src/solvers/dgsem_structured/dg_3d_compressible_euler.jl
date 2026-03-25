@@ -19,7 +19,8 @@
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element,
-                                           MeshT::Type{<:Union{StructuredMesh{3}, P4estMesh{3}}},
+                                           MeshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3}}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
@@ -351,7 +352,8 @@ end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element,
-                                           MeshT::Type{<:Union{StructuredMesh{3}, P4estMesh{3}}},
+                                           MeshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3}}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_ranocha_turbo),
