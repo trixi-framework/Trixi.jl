@@ -2,8 +2,7 @@ module TrixiPlotsExt
 
 # Load the required packages
 using Plots: Plots
-using Trixi
-using Trixi: getmesh
+using Trixi: Trixi, getmesh
 using MuladdMacro: @muladd
 using Printf: @sprintf
 
