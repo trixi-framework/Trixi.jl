@@ -74,5 +74,3 @@ else
     solve!(integrator)
     prof_result = nothing
 end
-
-finalize(mesh)
