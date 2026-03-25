@@ -161,6 +161,28 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (No AMR)" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr.jl"),
+                            tspan=(0.0, 0.1),
+                            amr_callback=TrivialCallback(),
+                            l2=[
+                                0.0753453207552333,
+                                0.09767142883170073,
+                                0.09927946431167811,
+                                0.7090785646759259
+                            ],
+                            linf=[
+                                0.41719421595727446,
+                                0.537603231012545,
+                                0.5342272947959772,
+                                3.8022380901041473
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    end
+
     #=
     @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (no SC, only FD)" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -178,28 +200,6 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                                 1.5070808600306635,
                                 2.1576366233229716,
                                 6.646659702042536
-                            ])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl (No AMR)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_weak_blast_wave_amr.jl"),
-                            tspan=(0.0, 0.1),
-                            amr_callback=TrivialCallback(),
-                            l2=[
-                                0.0753453207552333,
-                                0.09767142883170073,
-                                0.09927946431167811,
-                                0.7090785646759259
-                            ],
-                            linf=[
-                                0.41719421595727446,
-                                0.537603231012545,
-                                0.5342272947959772,
-                                3.8022380901041473
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
