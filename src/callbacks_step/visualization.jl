@@ -110,16 +110,6 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
                                                    plot_creator,
                                                    Dict{Symbol, Any}(plot_arguments))
 
-    # Warn users if they create a visualization callback without having loaded the Plots package
-    #
-    # Note: This warning is added for convenience, as Plots is the only "officially" supported
-    #       visualization package right now. However, in general nothing prevents anyone from using
-    #       other packages such as Makie, Gadfly etc., given that appropriate `plot_creator`s are
-    #       passed. This is also the reason why the visualization callback is not included via
-    #       Requires.jl only when Plots is present.
-    #       In the future, we should update/remove this warning if other plotting packages are
-    #       starting to be used.
-
     return DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
                             save_positions = (false, false),
                             initialize = initialize!)
