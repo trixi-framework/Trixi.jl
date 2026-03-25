@@ -13,7 +13,10 @@ equations = LinearDiffusionEquation1D(diffusivity)
 solver = DGSEM(polydeg = 3)
 solver_parabolic = ParabolicFormulationBassiRebay1()
 
-mesh = TreeMesh((0.0,), (1.0,), initial_refinement_level = 3, periodicity = false)
+mesh = TreeMesh((0.0,), (1.0,),
+                initial_refinement_level = 3,
+                periodicity = false,
+                n_cells_max = 30_000)
 
 # Initial condition consistent with mixed Dirichlet-Neumann BCs and exact solution
 initial_condition = (x, t, equations) -> SVector(amplitude *

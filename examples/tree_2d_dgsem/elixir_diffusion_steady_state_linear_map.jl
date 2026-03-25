@@ -3,14 +3,11 @@ using Trixi
 ###############################################################################
 
 # Build pure diffusion (Laplace) operator
-advection_velocity = (0, 0)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
+# `LaplaceDiffusion2D` needs an auxiliary hyperbolic equation to determine variable layout.
+equations_hyperbolic = LinearScalarAdvectionEquation2D((0, 0))
 diffusivity() = 1
-equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
-
-# The hyperbolic flux does not matter for this example since
-# the hyperbolic part is zero.
-solver = DGSEM(polydeg = 5, surface_flux = flux_central)
+equations = LaplaceDiffusion2D(diffusivity(), equations_hyperbolic)
+solver = DGSEM(polydeg = 5)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
@@ -38,19 +35,15 @@ function bc_sin(x, t, equations)
 end
 bc_sin_dirichlet = BoundaryConditionDirichlet(bc_sin)
 
-# Same boundary conditions for hyperbolic and parabolic part
 boundary_conditions = (; x_neg = bc_homogeneous_dirichlet,
                        y_neg = bc_sin_dirichlet,
                        y_pos = bc_sin_dirichlet,
                        x_pos = bc_homogeneous_dirichlet)
 
-# `solver_parabolic = ParabolicFormulationLocalDG()` strictly required for elliptic/diffusion-dominated problem
-semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             solver_parabolic = ParabolicFormulationLocalDG(),
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions))
+# `solver_parabolic = ParabolicFormulationLocalDG()` is strictly required for elliptic/diffusion-dominated problems.
+semi = SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
+                                   solver_parabolic = ParabolicFormulationLocalDG(),
+                                   boundary_conditions = boundary_conditions)
 
 # Note that `linear_structure` does not access the `initial_condition`/steady-state solution
 A_map, b = linear_structure(semi)
@@ -82,7 +75,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 # Analysis callback quantifies discretization/interpolation error of the exact solution
-analysis_callback = AnalysisCallback(semi)
+analysis_callback = AnalysisCallback(semi, analysis_integrals = ())
 callbacks = CallbackSet(summary_callback,
                         analysis_callback)
 
