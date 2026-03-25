@@ -10,13 +10,10 @@ wave_number = pi
 
 equations = LinearDiffusionEquation1D(diffusivity)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_central)
+solver = DGSEM(polydeg = 3)
 solver_parabolic = ParabolicFormulationLocalDG()
 
-mesh = TreeMesh((0.0,), (1.0,),
-                initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+mesh = TreeMesh((0.0,), (1.0,), initial_refinement_level = 3, periodicity = false)
 
 # Initial condition consistent with Dirichlet BCs and exact solution
 initial_condition = (x, t, equations) -> SVector(amplitude *
@@ -40,11 +37,9 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 200
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     analysis_integrals = ())
+analysis_callback = AnalysisCallback(semi, interval = 200, analysis_integrals = ())
 
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
+alive_callback = AliveCallback(analysis_interval = 200)
 
 stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 

@@ -2,8 +2,8 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the pure diffusion equation with mixed Dirichlet-Neumann BCs
-# (LDG + AMR), configured to test AMR redistribution as a steep boundary layer diffuses
+# Adaptive semidiscretization of the pure diffusion equation with mixed 
+# Dirichlet-Neumann BCs and an initial condition with a boundary layer.
 
 diffusivity = 0.25
 amplitude = 1.0
@@ -11,21 +11,17 @@ boundary_layer_thickness = 0.01
 
 equations = LinearDiffusionEquation1D(diffusivity)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_central)
+solver = DGSEM(polydeg = 3)
 solver_parabolic = ParabolicFormulationLocalDG()
 
 mesh = TreeMesh((0.0,), (1.0,),
-                initial_refinement_level = 2,
+                initial_refinement_level = 1,
                 periodicity = false,
                 n_cells_max = 30_000)
 
-# Initial condition: steep boundary layer profile only (no wave packet).
 function initial_condition_boundary_layer(x, t, equations)
-    x_local = x[1]
-
-    base_mode = amplitude * (1 - exp(-x_local / boundary_layer_thickness)) /
-                (1 - exp(-1 / boundary_layer_thickness))
-    return SVector(base_mode)
+    return SVector(amplitude * (1 - exp(-x[1] / boundary_layer_thickness)) /
+                   (1 - exp(-1 / boundary_layer_thickness)))
 end
 
 initial_condition = initial_condition_boundary_layer
@@ -47,21 +43,20 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval = 200,
-                                     analysis_integrals = ())
+analysis_callback = AnalysisCallback(semi, interval = 200, analysis_integrals = ())
 
 alive_callback = AliveCallback(analysis_interval = 200)
 
 amr_indicator = IndicatorLöhner(semi, variable = first)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 2,
+                                      base_level = 1,
                                       med_level = -1,
-                                      med_threshold = 0.01,
-                                      max_level = 6, max_threshold = 0.1)
+                                      med_threshold = 0.005,
+                                      max_level = 6, max_threshold = 0.025)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 200,
+                           interval = 100,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = false)
 
 stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 
