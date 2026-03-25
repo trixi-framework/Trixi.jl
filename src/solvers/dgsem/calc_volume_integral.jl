@@ -177,16 +177,6 @@ end
     return nothing
 end
 
-# DEPRECATED! Remove when TrixiAtmo.jl has been adapted
-function calc_volume_integral!(du, u, mesh, have_nonconservative_terms, equations,
-                               volume_integral, dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, mesh,
-                                have_nonconservative_terms, equations,
-                                volume_integral, dg, cache)
-    end
-end
-
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)

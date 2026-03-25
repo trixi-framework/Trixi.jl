@@ -70,13 +70,6 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-# DEPRECATED! Remove when TrixiAtmo.jl has been adapted
-function flux_differencing_kernel!(du, u, element, mesh, nonconservative_terms,
-                                   equations, volume_flux, dg::DGSEM, cache, alpha)
-    flux_differencing_kernel!(du, u, element, typeof(mesh), nonconservative_terms,
-                              equations, volume_flux, dg, cache, alpha)
-end
-
 @inline function flux_differencing_kernel!(du, u, element,
                                            ::Type{<:Union{StructuredMesh{2},
                                                           StructuredMeshView{2},
@@ -748,14 +741,6 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     end
 
     return nothing
-end
-
-# DEPRECATED! Remove when TrixiAtmo.jl has been adapted
-function apply_jacobian!(du,
-                         mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                     UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
-                                     T8codeMesh{2}}, equations, dg::DG, cache)
-    apply_jacobian!(nothing, du, mesh, equations, dg, cache)
 end
 
 function apply_jacobian!(backend::Nothing, du,

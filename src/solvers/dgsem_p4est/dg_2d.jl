@@ -62,11 +62,6 @@ end
     end
 end
 
-# DEPRECATED! Remove when TrixiAtmo.jl has been adapted
-function prolong2interfaces!(cache, u, mesh, equations, dg::DG)
-    prolong2interfaces!(nothing, cache, u, mesh, equations, dg)
-end
-
 function prolong2interfaces!(backend::Nothing, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                          T8codeMesh{2}},
@@ -157,15 +152,6 @@ end
     end
 
     return nothing
-end
-
-# DEPRECATED! Remove when TrixiAtmo.jl has been adapted
-function calc_interface_flux!(surface_flux_values,
-                              mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                          T8codeMesh{2}}, have_nonconservative_terms,
-                              equations, surface_integral, dg::DG, cache)
-    calc_interface_flux!(nothing, surface_flux_values, mesh, have_nonconservative_terms,
-                         equations, surface_integral, dg, cache)
 end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
@@ -914,11 +900,6 @@ end
     end
 
     return nothing
-end
-
-# DEPRECATED! Remove when TrixiAtmo.jl has been adapted
-function calc_surface_integral!(du, u, mesh, equations, surface_integral, dg, cache)
-    calc_surface_integral!(nothing, du, u, mesh, equations, surface_integral, dg, cache)
 end
 
 function calc_surface_integral!(backend::Nothing, du, u,
