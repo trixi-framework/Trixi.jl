@@ -498,7 +498,7 @@ This allows user-defined mesh refinement/coarsening varying in space and time, s
 The function `f` is evaluated at the element center `x::SVector{ndims,Float64}` and time `t`.
 """
 struct IndicatorPositional{F, Cache} <: AbstractIndicator
-    rule::F
+    indicator_function::F
     cache::Cache
 end
 
