@@ -1,7 +1,8 @@
 # Package extension for adding AMDGPU-based features to Trixi.jl
 module TrixiAMDGPUExt
 
-import AMDGPU: ROCArray, ROCDeviceArray
+using AMDGPU: AMDGPU, ROCArray, ROCDeviceArray
+import AMDGPU.Device: @device_override
 import AMDGPU.Runtime: Adaptor
 import Trixi
 
@@ -15,6 +16,14 @@ end
 
 function Trixi.unsafe_wrap_or_alloc(::Type{<:ROCDeviceArray}, vec::ROCDeviceArray, size)
     return reshape(vec, size)
+end
+
+@static if Trixi._PREFERENCE_LOG == "log_Trixi_NaN"
+    @device_override Trixi.log(x::Float64) = ccall("extern __ocml_log_f64", llvmcall, Cdouble,
+                                                   (Cdouble,), x)
+    @device_override Trixi.log(x::Float32) = ccall("extern __ocml_log_f32", llvmcall, Cfloat,
+                                                   (Cfloat,), x)
+    # TODO: Trixi.log(x::Float16)
 end
 
 end
