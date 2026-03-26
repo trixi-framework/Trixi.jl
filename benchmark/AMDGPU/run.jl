@@ -3,6 +3,9 @@ using AMDGPU
 using TimerOutputs
 using JSON
 
+import GPUArraysCore
+GPUArraysCore.allowscalar(false)
+
 function main(elixir_path)
 
     # setup
@@ -19,10 +22,6 @@ function main(elixir_path)
                       tspan = (0.0, 1e-14),
                       storage_type = storage_type,
                       real_type = real_type)
-        trixi_include(elixir_path,
-                      tspan = (0.0, 1e-14),
-                      storage_type = storage_type,
-                      real_type = Float32)
     end
 
     println("Finished warm-up in $duration_compile seconds\n")
