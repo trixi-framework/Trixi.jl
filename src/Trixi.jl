@@ -140,12 +140,21 @@ include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
 include("equations/equations.jl")
+
+abstract type AbstractArtificialViscosity end
+
+struct EntropyCorrectionArtificialViscosity{EquationsArtificialViscosity} <:
+       AbstractArtificialViscosity
+    equations_artificial_viscosity::EquationsArtificialViscosity
+end
+
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
+include("semidiscretization/semidiscretization_artificial_viscosity.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
 include("semidiscretization/semidiscretization_coupled_p4est.jl")
@@ -297,6 +306,8 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
+
+export SemidiscretizationArtificialViscosity, EntropyCorrectionArtificialViscosity
 
 export SemidiscretizationEulerAcoustics
 
