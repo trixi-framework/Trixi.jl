@@ -177,7 +177,7 @@
                                                                          (StaticInt(nnodes(dg)),
                                                                           StaticInt(nnodes(dg)),
                                                                           StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims)))
+                                                                          StaticInt(ndims(MeshT))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_y[i, j, k, 1] = contravariant_vectors[1, 2, i, j, k, element]
@@ -265,7 +265,7 @@
         contravariant_vectors_z = StrideArray{eltype(contravariant_vectors)}(undef,
                                                                              (StaticInt(nnodes(dg)^2),
                                                                               StaticInt(nnodes(dg)),
-                                                                              StaticInt(ndims)))
+                                                                              StaticInt(ndims(MeshT))))
 
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             ij = i + nnodes(dg) * (j - 1)
