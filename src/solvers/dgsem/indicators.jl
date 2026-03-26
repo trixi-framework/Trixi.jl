@@ -281,8 +281,6 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
     end
 end
 
-
-
 @doc raw"""
     IndicatorEntropyChange(; maximum_entropy_increase::Real = 0.0)
 
