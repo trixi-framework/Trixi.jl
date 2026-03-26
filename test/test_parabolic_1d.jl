@@ -528,6 +528,37 @@ end
 @testset "SemidiscretizationParabolic (1D)" begin
 #! format: noindent
 
+@trixi_testset "TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg_dirichlet.jl"),
+                        l2=[2.3481439150004898e-6],
+                        linf=[2.4576876189230656e-5])
+    @test semi isa SemidiscretizationParabolic
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Consistency check: compare to advection-diffusion equation with zero velocity
+    reference_solution = copy(sol.u[end]) # store reference solution for comparison
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg_dirichlet.jl"),
+                        equations=LinearScalarAdvectionEquation1D(0.0),
+                        semi=SemidiscretizationHyperbolicParabolic(mesh,
+                                                                   (equations,
+                                                                    LaplaceDiffusion1D(diffusivity(),
+                                                                                       equations)),
+                                                                   initial_condition,
+                                                                   solver;
+                                                                   solver_parabolic = solver_parabolic,
+                                                                   boundary_conditions = (boundary_conditions,
+                                                                                          boundary_conditions)))
+    @test semi isa SemidiscretizationHyperbolicParabolic
+
+    # Use the same Float64 tolerance defaults as `@test_trixi_include` in TrixiTest.jl
+    @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
+end
+
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_amr_boundary_layer.jl"),

@@ -10,8 +10,7 @@ using ADTypes # For automatic differentiation via finite differences
 diffusivity() = 0.5
 equations = LinearDiffusionEquation1D(diffusivity())
 
-# surface flux does not matter for pure diffusion problem
-solver = DGSEM(polydeg = 3, surface_flux = flux_central)
+solver = DGSEM(polydeg = 3)
 
 coordinates_min = -convert(Float64, pi)
 coordinates_max = convert(Float64, pi)
