@@ -8,7 +8,7 @@ function main(elixir_path)
     # setup
     maxiters = 50
     initial_refinement_level = 3
-    storage_type = RocArray
+    storage_type = ROCArray
     real_type = Float64
 
     println("Warming up...")
