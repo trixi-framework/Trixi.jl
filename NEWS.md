@@ -5,14 +5,14 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-## Changes in the v0.15 lifecycle
+## Changes when updating to v0.16 from v0.15
 
 #### Added
 
-- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, `Trixi.jl` can
+- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, Trixi.jl can
   now partly be executed on GPUs. This includes simulations with flux differencing on
   `P4estMesh` in 2D and 3D. Adaptive mesh refinement, multi-GPU, source terms, and callbacks
-  are not available, yet. Offloading is achieved via `KernelAbstractions.jl` kernels,
+  are not available, yet. Offloading is achieved via KernelAbstractions.jl kernels,
   which, at the moment, execute the same code as usually run on CPUs. A backend is selected
   by passing an appropriate data type as keyword argument `storage_type` to
   `semidiscretize`. See the
@@ -20,7 +20,12 @@ for human readability.
   section for some instructions on how to port kernels. This is however still preliminaray
   and will change.
   GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
-  `TRIXI_TEST=CUDA`
+  `TRIXI_TEST=CUDA` ([#2590]).
+
+## Changes in the v0.15 lifecycle
+
+#### Added
+
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
