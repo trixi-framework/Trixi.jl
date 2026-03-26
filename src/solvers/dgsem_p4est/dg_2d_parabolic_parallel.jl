@@ -505,11 +505,16 @@
                                             equations_parabolic,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DG, parabolic_scheme, cache)
-        @unpack fstar_primary_threaded, fstar_secondary_threaded = cache
+        @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+        fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
 
         @threaded for mortar in eachmpimortar(dg, cache)
-            fstar_primary = fstar_primary_threaded[Threads.threadid()]
-            fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
+            # Match local 2D API
+            fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
+                             fstar_primary_upper_threaded[Threads.threadid()])
+
+            fstar_secondary = (fstar_secondary_lower_threaded[Threads.threadid()],
+                               fstar_secondary_upper_threaded[Threads.threadid()])
 
             for position in 1:2
                 for i in eachnode(dg)
@@ -721,6 +726,68 @@
                     end
                 end
             end
+        end
+
+        return nothing
+    end
+
+    function calc_mpi_mortar_flux_divergence!(surface_flux_values,
+                                              mesh::Union{P4estMeshParallel{2},
+                                                          T8codeMeshParallel{2}},
+                                              equations_parabolic,
+                                              mortar_l2::LobattoLegendreMortarL2,
+                                              dg::DG, parabolic_scheme, cache)
+        @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
+
+        @threaded for mortar in eachmpimortar(dg, cache)
+            # Match local 2D structure: one tuple is sufficient
+            fstar = (fstar_primary_lower_threaded[Threads.threadid()],
+                     fstar_primary_upper_threaded[Threads.threadid()])
+
+            for position in 1:2
+                for i in eachnode(dg)
+                    normal_direction = get_normal_direction(cache.mpi_mortars, i,
+                                                            position, mortar)
+
+                    calc_mpi_mortar_flux_divergence!(fstar, mesh,
+                                                     equations_parabolic,
+                                                     dg, parabolic_scheme, cache,
+                                                     mortar, position,
+                                                     normal_direction, i)
+                end
+            end
+
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D does
+            mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,
+                                           equations_parabolic, mortar_l2, dg, cache,
+                                           mortar, fstar, fstar, u_buffer)
+        end
+
+        return nothing
+    end
+
+    @inline function calc_mpi_mortar_flux_divergence!(fstar,
+                                                      mesh::Union{P4estMeshParallel{2},
+                                                                  T8codeMeshParallel{2}},
+                                                      equations_parabolic,
+                                                      dg::DG, parabolic_scheme, cache,
+                                                      mortar_index, position_index,
+                                                      normal_direction,
+                                                      node_index)
+        @unpack u = cache.mpi_mortars
+
+        for v in eachvariable(equations_parabolic)
+            viscous_flux_normal_ll = u[1, v, position_index, node_index, mortar_index]
+            viscous_flux_normal_rr = u[2, v, position_index, node_index, mortar_index]
+
+            flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+                                   normal_direction, Divergence(),
+                                   equations_parabolic, parabolic_scheme)
+
+            # Same convention as local 2D: sign flip / scaling already handled in prolongation
+            fstar[position_index][v, node_index] = flux_
         end
 
         return nothing
