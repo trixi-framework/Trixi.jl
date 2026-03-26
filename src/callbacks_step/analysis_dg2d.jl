@@ -391,7 +391,8 @@ end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
-                             UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                             UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                             T8codeMesh{2}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
@@ -426,7 +427,7 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
-                             T8codeMesh{2}},
+                             P4estMeshView{2}, T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
@@ -484,7 +485,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
-                             T8codeMesh{2}},
+                             P4estMeshView{2}, T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
