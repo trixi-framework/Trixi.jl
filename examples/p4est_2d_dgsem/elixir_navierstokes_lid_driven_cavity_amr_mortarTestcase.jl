@@ -69,7 +69,7 @@ alive_callback = AliveCallback(alive_interval = 2000)
 analysis_interval = 2000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-function positional_rule(x, t)
+function positional_rule(u, x, t)
     xtar = sin(π * t)
     if ((x[1] < xtar) && (x[2] < xtar))
         return 1.0   # refine
@@ -78,7 +78,7 @@ function positional_rule(x, t)
     end
 end
 
-amr_indicator = IndicatorPositional(positional_rule, semi)
+amr_indicator = IndicatorNodalFunction(positional_rule, semi)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator;
                                       base_level = 0,

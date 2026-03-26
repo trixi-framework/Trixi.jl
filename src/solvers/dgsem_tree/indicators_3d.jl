@@ -256,9 +256,9 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
     return alpha
 end
 
-function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 5},
-                                           mesh, equations, dg::DGSEM, cache;
-                                           kwargs...)
+function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},
+                                              mesh, equations, dg::DGSEM, cache;
+                                              kwargs...)
     x = cache.elements.node_coordinates
     @unpack alpha = positional.cache
     resize!(alpha, nelements(dg, cache))
@@ -266,10 +266,12 @@ function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 5},
     indicator_function = positional.indicator_function
 
     @threaded for element in Trixi.eachelement(dg, cache)
-        estimate = -one(real(dg))
+        estimate = -Inf * one(real(dg))
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
             x_y_z_nodal = @view x[:, i, j, k, element]
-            estimate = max(estimate, indicator_function(x_y_z_nodal, kwargs[:t]))
+            estimate = max(estimate,
+                           indicator_function(u_local, x_y_z_nodal, kwargs[:t]))
         end
         alpha[element] = estimate
     end

@@ -918,7 +918,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl"),
                         tspan=(0.0, 2.5),)
-    # Ensure that the mesh size did not change to test IndicatorPositional
+    # Ensure that the mesh size did not change to test IndicatorNodalFunction
     @test length(sol.u[1]) == 36864
 end
 

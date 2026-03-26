@@ -491,32 +491,32 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    IndicatorPositional(f)
+    IndicatorNodalFunction(f)
 
-Create an AMR indicator from a space and time dependent indicator function `f(x, t)`.
-This allows user-defined mesh refinement/coarsening varying in space and time, similar to the `refinement_patches` keyword for the [`Treemesh`](@ref).
-The function `f` is evaluated at the element center `x::SVector{ndims,Float64}` and time `t`.
+Create an AMR indicator from a solution, space and time dependent indicator function `f(u, x, t)`.
+The function `f` is evaluated at the nodal points. The maximum of `f`` over all nodes in each element is used as indicator for the element.
+The function can be solution independent allowing for user-defined mesh refinement/coarsening varying in space and time, similar to the `refinement_patches` keyword for the [`Treemesh`](@ref).
 """
-struct IndicatorPositional{F, Cache} <: AbstractIndicator
+struct IndicatorNodalFunction{F, Cache} <: AbstractIndicator
     indicator_function::F
     cache::Cache
 end
 
 # this method is used when the indicator is constructed as for AMR
-function IndicatorPositional(indicator_function, semi::AbstractSemidiscretization)
-    cache = create_cache(IndicatorPositional, semi)
-    return IndicatorPositional{typeof(indicator_function), typeof(cache)}(indicator_function,
-                                                                          cache)
+function IndicatorNodalFunction(indicator_function, semi::AbstractSemidiscretization)
+    cache = create_cache(IndicatorNodalFunction, semi)
+    return IndicatorNodalFunction{typeof(indicator_function), typeof(cache)}(indicator_function,
+                                                                             cache)
 end
 
-function Base.show(io::IO, indicator::IndicatorPositional)
+function Base.show(io::IO, indicator::IndicatorNodalFunction)
     @nospecialize indicator # reduce precompilation time
-    print(io, "IndicatorPositional")
+    print(io, "IndicatorNodalFunction")
     print(io, indicator.indicator_function)
     return nothing
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorPositional)
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorNodalFunction)
     @nospecialize indicator # reduce precompilation time
     if get(io, :compact, false)
         show(io, indicator)
@@ -524,7 +524,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorPositional)
         setup = [
             "Indicator Function" => indicator.indicator_function
         ]
-        summary_box(io, "IndicatorPositional", setup)
+        summary_box(io, "IndicatorNodalFunction", setup)
     end
 end
 end # @muladd
