@@ -64,12 +64,14 @@ function rhs!(du, u, t,
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    backend = trixi_backend(u)
+
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -99,12 +101,13 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -122,7 +125,8 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                   element,
+                                   ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -143,7 +147,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           ::Type{<:Union{TreeMesh{1},
+                                                          StructuredMesh{1}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -172,7 +177,8 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           MeshT::Type{<:Union{TreeMesh{1},
+                                                               StructuredMesh{1}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -181,7 +187,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -207,7 +213,7 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                            MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
@@ -216,7 +222,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, u, mesh,
+    calcflux_fv!(fstar1_L, fstar1_R, u, MeshT,
                  have_nonconservative_terms, equations,
                  volume_flux_fv, dg, element, cache)
 
@@ -233,7 +239,7 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -245,7 +251,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
+    calcflux_fvO2!(fstar1_L, fstar1_R, u, MeshT, nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)
@@ -267,7 +273,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     for i in 2:nnodes(dg)
@@ -282,7 +288,7 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::TreeMesh{1},
+                              ::Type{<:TreeMesh{1}},
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
@@ -313,7 +319,7 @@ end
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
-                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -671,7 +677,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
@@ -701,7 +708,8 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
@@ -735,7 +743,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function apply_jacobian!(du, mesh::TreeMesh{1},
+function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 

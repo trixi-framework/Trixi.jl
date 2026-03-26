@@ -5,6 +5,33 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.16 from v0.15.x
+
+#### Added
+
+- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, Trixi.jl can
+  now partly be executed on GPUs. This includes simulations with flux differencing on
+  `P4estMesh` in 2D and 3D. Adaptive mesh refinement, multi-GPU, source terms, and callbacks
+  are not available, yet. Offloading is achieved via KernelAbstractions.jl kernels,
+  which, at the moment, execute the same code as usually run on CPUs. A backend is selected
+  by passing an appropriate data type as keyword argument `storage_type` to
+  `semidiscretize`. See the
+  [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
+  section for some instructions on how to port kernels. This is however still preliminaray
+  and will change.
+  GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
+  `TRIXI_TEST=CUDA` ([#2590]).
+
+#### Changed
+
+- The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
+In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
+i.e., summing up the normal components, the `ldg_switch` is now selected as 
+the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the dominant direction of the interface normal.
+This might change results slightly for some meshes where the sum of the normal might be close to zero,
+thus introducing some spurious switch assignments ([#2871]).
+
 ## Changes in the v0.15 lifecycle
 
 #### Added

@@ -527,7 +527,7 @@ end
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
                         cfl_diffusive=0.07,
-                        l2=[0.0041854757843498725], linf=[0.05166356737492643])
+                        l2=[0.004185076476662267], linf=[0.05166349548111486])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
