@@ -8,8 +8,8 @@
                             equations_parabolic::AbstractEquationsParabolic,
                             boundary_conditions_parabolic, source_terms_parabolic,
                             dg::DG, parabolic_scheme, cache, cache_parabolic)
-        @unpack viscous_container = cache_parabolic
-        @unpack u_transformed, gradients, flux_viscous = viscous_container
+        @unpack parabolic_container = cache_parabolic
+        @unpack u_transformed, gradients, flux_parabolic = parabolic_container
 
         # Stage 0: local variable transform
         #
@@ -84,15 +84,15 @@
             apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                       cache)
         end
-        # Stage 2: local viscous flux construction
+        # Stage 2: local parabolic flux construction
         #
-        @trixi_timeit timer() "calculate viscous fluxes" begin
-            calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                                 equations_parabolic, dg, cache)
+        @trixi_timeit timer() "calculate parabolic fluxes" begin
+            calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
+                                   equations_parabolic, dg, cache)
         end
 
         #
-        # Stage 3: divergence of viscous fluxes
+        # Stage 3: divergence of parabolic fluxes
         #
 
         # Start divergence-stage MPI receive
@@ -107,18 +107,18 @@
 
         # Local volume integral
         @trixi_timeit timer() "volume integral" begin
-            calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
+            calc_volume_integral!(du, flux_parabolic, mesh, equations_parabolic, dg, cache)
         end
 
-        # Prolong viscous fluxes to MPI mortars
+        # Prolong parabolic fluxes to MPI mortars
         # @trixi_timeit timer() "prolong2mpimortars divergence" begin
-        #     prolong2mpimortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
+        #     prolong2mpimortars_divergence!(cache, flux_parabolic, mesh, equations_parabolic,
         #                                    dg.mortar, dg)
         # end
 
-        # Prolong viscous fluxes to MPI interfaces
+        # Prolong parabolic fluxes to MPI interfaces
         @trixi_timeit timer() "prolong2mpiinterfaces divergence" begin
-            prolong2mpiinterfaces!(cache, flux_viscous, mesh, equations_parabolic, dg)
+            prolong2mpiinterfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
         end
         ########################## Divergence #################################
         # Start divergence-stage MPI send
@@ -128,7 +128,7 @@
 
         # Local interface fluxes
         @trixi_timeit timer() "prolong2interfaces" begin
-            prolong2interfaces!(cache, flux_viscous, mesh, equations_parabolic, dg)
+            prolong2interfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
         end
 
         @trixi_timeit timer() "interface flux" begin
@@ -138,7 +138,7 @@
 
         # Local boundary fluxes
         @trixi_timeit timer() "prolong2boundaries" begin
-            prolong2boundaries!(cache, flux_viscous, mesh, equations_parabolic, dg)
+            prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
         end
 
         @trixi_timeit timer() "boundary flux" begin
@@ -150,7 +150,7 @@
 
         # Local mortar fluxes
         @trixi_timeit timer() "prolong2mortars" begin
-            prolong2mortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
+            prolong2mortars_divergence!(cache, flux_parabolic, mesh, equations_parabolic,
                                         dg.mortar, dg)
         end
 
@@ -188,7 +188,7 @@
         # Stage 4: final assembly
         #
         @trixi_timeit timer() "surface integral" begin
-            calc_surface_integral!(du, u, mesh, equations_parabolic,
+            calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
                                    dg.surface_integral, dg, cache)
         end
 
@@ -222,7 +222,7 @@
         # Prolong solution to interfaces.
         # This reuses `prolong2interfaces` for the purely hyperbolic case.
         @trixi_timeit timer() "prolong2interfaces" begin
-            prolong2interfaces!(cache, u_transformed, mesh,
+            prolong2interfaces!(nothing, cache, u_transformed, mesh,
                                 equations_parabolic, dg)
         end
 
@@ -264,7 +264,7 @@
         return nothing
     end
 
-    function prolong2mpiinterfaces!(cache, flux_viscous::Tuple,
+    function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                     mesh::Union{P4estMeshParallel{2},
                                                 T8codeMeshParallel{2}},
                                     equations_parabolic, dg::DG)
@@ -272,7 +272,7 @@
         @unpack contravariant_vectors = cache.elements
         index_range = eachnode(dg)
 
-        flux_viscous_x, flux_viscous_y = flux_viscous
+        flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
         @threaded for interface in eachmpiinterface(dg, cache)
             local_element = local_neighbor_ids[interface]
@@ -294,8 +294,8 @@
                                                         local_element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_visc = SVector(flux_viscous_x[v, i_elem, j_elem, local_element],
-                                        flux_viscous_y[v, i_elem, j_elem, local_element])
+                    flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem, local_element],
+                                        flux_parabolic_y[v, i_elem, j_elem, local_element])
 
                     cache.mpi_interfaces.u[local_side, v, i, interface] = orientationFactor *
                                                                           dot(flux_visc,
@@ -468,24 +468,24 @@
                                                          local_element_index)
         @unpack u = cache.mpi_interfaces
 
-        viscous_flux_normal_ll, viscous_flux_normal_rr = get_surface_node_vars(u,
-                                                                               equations_parabolic,
-                                                                               dg,
-                                                                               interface_node_index,
-                                                                               interface_index)
+        parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(u,
+                                                                                   equations_parabolic,
+                                                                                   dg,
+                                                                                   interface_node_index,
+                                                                                   interface_index)
 
-        flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+        flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                normal_direction, Divergence(),
                                equations_parabolic, parabolic_scheme)
 
         if local_side == 1
-            flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+            flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                    normal_direction, Divergence(),
                                    equations_parabolic, parabolic_scheme)
             sign_ = 1
         else
             # side 2 must also use primary-oriented normal
-            flux_ = flux_parabolic(viscous_flux_normal_ll, viscous_flux_normal_rr,
+            flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                    -normal_direction, Divergence(),
                                    equations_parabolic, parabolic_scheme)
             sign_ = -1
