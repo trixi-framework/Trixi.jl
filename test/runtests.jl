@@ -133,7 +133,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "AMDGPU"
         import AMDGPU
         if AMDGPU.functional()
-            include("test_amdgpu_2d.jl")
+            include(joinpath(@__DIR__, "test_amdgpu_2d.jl"))
+            include(joinpath(@__DIR__, "test_amdgpu_3d.jl"))
         else
             @warn "Unable to run AMDGPU tests on this machine"
         end
