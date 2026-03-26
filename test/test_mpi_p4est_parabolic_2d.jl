@@ -122,5 +122,13 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
         @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
     end
+
+    @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl" begin
+        # Tests Mortars, AMR refinement, unrefinement and adaptive load balancing
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl"),
+                            tspan=(0.0, 2.5),)
+        # Ensure that the mesh size did not change to test IndicatorNodalFunction
+    end
 end
 end # module
