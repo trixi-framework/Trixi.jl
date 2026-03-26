@@ -136,6 +136,15 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_advection_restart.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                        l2=[0.00027987031148347556],
+                        linf=[0.001176523336826385])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end
 
 end # module
