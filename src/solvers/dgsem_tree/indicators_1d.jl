@@ -119,8 +119,18 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorNodalFunction},
+                      equations::AbstractEquations, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
+
+    return (; alpha)
+end
+
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax},
+                                 Type{IndicatorNodalFunction}},
                       mesh, equations::AbstractEquations, dg::DGSEM, cache)
     return create_cache(typ, equations, dg.basis)
 end
@@ -175,6 +185,28 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
         end
 
         alpha[element] = maximum(indicator)
+    end
+
+    return alpha
+end
+
+function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
+                                              mesh, equations, dg::DGSEM, cache;
+                                              kwargs...)
+    x = cache.elements.node_coordinates
+    @unpack alpha = positional.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `positional` in the threaded loop
+    indicator_function = positional.indicator_function
+
+    @threaded for element in Trixi.eachelement(dg, cache)
+        estimate = -Inf * one(real(dg))
+        for i in Trixi.eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, element)
+            x_nodal = x[1, i, element]
+            estimate = max(estimate, indicator_function(u_local, x_nodal, kwargs[:t]))
+        end
+        alpha[element] = estimate
     end
 
     return alpha
