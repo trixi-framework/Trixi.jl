@@ -924,6 +924,14 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl"),
+                        tspan=(0.0, 2.5),)
+    # Ensure that the mesh size did not change to test IndicatorNodalFunction
+    @test length(sol.u[1]) == 36864
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_nonconforming.jl"),
