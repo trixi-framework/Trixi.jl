@@ -5,7 +5,7 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-## Changes when updating to v0.16 from v0.15
+## Changes when updating to v0.16 from v0.15.x
 
 #### Added
 
