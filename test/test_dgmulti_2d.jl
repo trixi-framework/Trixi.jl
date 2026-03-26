@@ -224,7 +224,7 @@ end
                             1.1343379308081936e-5,
                             3.679395547040443e-5
                         ],
-                        rtol=2*sqrt(eps()))
+                        rtol=2 * sqrt(eps()))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

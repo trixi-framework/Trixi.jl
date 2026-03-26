@@ -112,7 +112,7 @@ end
                             6.627000273318195e-5,
                             6.62700027264096e-5
                         ],
-                        stepsize_callback=StepsizeCallback(cfl = x->1.6))
+                        stepsize_callback=StepsizeCallback(cfl = x -> 1.6))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
@@ -171,7 +171,7 @@ end
                             # Expected errors are exactly the same as in elixir_advection_basic!
                             l2=[8.311947673061856e-6],
                             linf=[6.627000273229378e-5],
-                            alpha=0.5*pi)
+                            alpha=0.5 * pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -413,7 +413,7 @@ end
                                 1.635260719945464e-5,
                                 4.886978754825577e-5
                             ],
-                            alpha=0.2*pi)
+                            alpha=0.2 * pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -435,7 +435,7 @@ end
                                 1.1707525976456523e-5,
                                 4.8869615580926506e-5
                             ],
-                            alpha=0.5*pi)
+                            alpha=0.5 * pi)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -841,8 +841,8 @@ end
     # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
     rhs_wrapped! = (du_ode,
-                    u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                          tspan[1])
+    u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                          tspan[1])
 
     @test_nowarn jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 end
