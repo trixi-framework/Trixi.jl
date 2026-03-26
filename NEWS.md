@@ -16,6 +16,13 @@ For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` an
 `ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
 For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
 Moreover, some internal functions have been renamed accordingly, including the results shown by the timer outputs after running a simulation.
+- The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
+In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
+i.e., summing up the normal components, the `ldg_switch` is now selected as 
+the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the dominant direction of the interface normal.
+This might change results slightly for some meshes where the sum of the normal might be close to zero,
+thus introducing some spurious switch assignments ([#2871]).
 
 ## Changes in the v0.15 lifecycle
 

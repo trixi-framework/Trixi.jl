@@ -100,11 +100,12 @@ f_{\text{gradient}} = u_{L}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
-For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding/downwinding.
-This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
+For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding.
+This is realized by selecting the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the "dominant" direction of the interface normal.
 ```math
-\sigma = \text{sign}(\vec{n} \cdot \vec{1})
-f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) - \sigma \big[f(u_{R}) - f(u_{L})\big]\Big)
+i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
+\sigma = \text{sign} (n_i)
 ```
 """
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
@@ -121,7 +122,9 @@ end
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ParabolicFormulationLocalDG)
-    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
+    # Use "Upwind in dominant direction" for LDG switch
+    abs_max_dir = argmax(abs.(normal_direction))
+    ldg_switch = sign(normal_direction[abs_max_dir])
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
@@ -145,11 +148,12 @@ f_{\text{divergence}} = u_{R}
 ```
 on the Cartesian [`TreeMesh`](@ref).
 
-For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the upwinding/downwinding.
-This is realized by taking the sign of the dot product of the normal and positive-coordinate direction vector:
+For the [`P4estMesh`](@ref), the `normal_direction` is used to compute the LDG "switch" ``\sigma`` for the downwinding.
+This is realized by selecting the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the "dominant" direction of the interface normal.
 ```math
-\sigma = \text{sign}(\vec{n} \cdot \vec{1})
-f = \frac{1}{2}\Big(f(u_{L}) + f(u_{R}) + \sigma \big[f(u_{R}) - f(u_{L})\big]\Big)
+i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots \end{pmatrix} \}
+\sigma = -\text{sign} (n_i)
 ```
 """
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
@@ -157,12 +161,14 @@ function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
                         parabolic_scheme::ParabolicFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end
-# Version or `P4estMesh`
+# Version for `P4estMesh`
 function flux_parabolic(u_ll, u_rr, normal_direction,
                         ::Divergence, equations_parabolic,
                         parabolic_scheme::ParabolicFormulationLocalDG)
-    ldg_switch = sign(sum(normal_direction)) # equivalent to sign(dot(normal_direction, ones))
-    return 0.5f0 * (u_ll + u_rr + ldg_switch * (u_rr - u_ll))
+    # Use "Downwind in dominant direction" for LDG switch
+    abs_max_dir = argmax(abs.(normal_direction))
+    ldg_switch = -sign(normal_direction[abs_max_dir])
+    return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
 default_parabolic_solver() = ParabolicFormulationBassiRebay1()
