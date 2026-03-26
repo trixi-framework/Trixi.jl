@@ -512,7 +512,7 @@ end
 function Base.show(io::IO, indicator::IndicatorPositional)
     @nospecialize indicator # reduce precompilation time
     print(io, "IndicatorPositional")
-    print(io, indicator.rule)
+    print(io, indicator.indicator_function)
     return nothing
 end
 
