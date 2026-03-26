@@ -33,7 +33,7 @@ function initial_condition_pure_diffusion_1d_convergence_test(x, t,
 end
 initial_condition = initial_condition_pure_diffusion_1d_convergence_test
 
-solver_parabolic = ViscousFormulationLocalDG()
+solver_parabolic = ParabolicFormulationLocalDG()
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver; solver_parabolic,
