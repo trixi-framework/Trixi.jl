@@ -32,7 +32,7 @@ mesh = P4estMesh(trees_per_dimension,
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationLocalDG(),
+                                             solver_parabolic = ParabolicFormulationLocalDG(),
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
 
