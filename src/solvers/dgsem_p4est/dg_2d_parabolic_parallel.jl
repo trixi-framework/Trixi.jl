@@ -28,10 +28,10 @@
         end
 
         # Prolong transformed variables to MPI mortars
-        # @trixi_timeit timer() "prolong2mpimortars gradient" begin
-        #     prolong2mpimortars!(cache, u_transformed, mesh, equations_parabolic,
-        #                         dg.mortar, dg)
-        # end
+        @trixi_timeit timer() "prolong2mpimortars gradient" begin
+            prolong2mpimortars!(cache, u_transformed, mesh, equations_parabolic,
+                                dg.mortar, dg)
+        end
 
         # Prolong transformed variables to MPI interfaces
         @trixi_timeit timer() "prolong2mpiinterfaces gradient" begin
@@ -67,11 +67,11 @@
         end
 
         # MPI mortar fluxes for gradient stage
-        # @trixi_timeit timer() "MPI mortar flux gradient" begin
-        #     calc_mpi_mortar_flux_gradient!(cache.elements.surface_flux_values,
-        #                                    mesh, equations_parabolic, dg.mortar,
-        #                                    dg, parabolic_scheme, cache)
-        # end
+        @trixi_timeit timer() "MPI mortar flux gradient" begin
+            calc_mpi_mortar_flux_gradient!(cache.elements.surface_flux_values,
+                                           mesh, equations_parabolic, dg.mortar,
+                                           dg, parabolic_scheme, cache)
+        end
 
         # Calculate surface integrals
         @trixi_timeit timer() "surface integral" begin
@@ -111,10 +111,10 @@
         end
 
         # Prolong viscous fluxes to MPI mortars
-        # @trixi_timeit timer() "prolong2mpimortars divergence" begin
-        #     prolong2mpimortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
-        #                                    dg.mortar, dg)
-        # end
+        @trixi_timeit timer() "prolong2mpimortars divergence" begin
+            prolong2mpimortars_divergence!(cache, flux_viscous, mesh, equations_parabolic,
+                                           dg.mortar, dg)
+        end
 
         # Prolong viscous fluxes to MPI interfaces
         @trixi_timeit timer() "prolong2mpiinterfaces divergence" begin
@@ -173,11 +173,11 @@
         end
 
         # MPI mortar fluxes for divergence stage
-        # @trixi_timeit timer() "MPI mortar flux divergence" begin
-        #     calc_mpi_mortar_flux_divergence!(cache.elements.surface_flux_values,
-        #                                      mesh, equations_parabolic, dg.mortar,
-        #                                      dg, parabolic_scheme, cache)
-        # end
+        @trixi_timeit timer() "MPI mortar flux divergence" begin
+            calc_mpi_mortar_flux_divergence!(cache.elements.surface_flux_values,
+                                             mesh, equations_parabolic, dg.mortar,
+                                             dg, parabolic_scheme, cache)
+        end
 
         # Finish divergence-stage MPI send
         @trixi_timeit timer() "finish MPI send divergence" begin
@@ -494,6 +494,233 @@
         for v in eachvariable(equations_parabolic)
             surface_flux_values[v, surface_node_index,
             local_direction_index, local_element_index] = sign_ * flux_[v]
+        end
+
+        return nothing
+    end
+
+    function calc_mpi_mortar_flux_gradient!(surface_flux_values,
+                                            mesh::Union{P4estMeshParallel{2},
+                                                        T8codeMeshParallel{2}},
+                                            equations_parabolic,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DG, parabolic_scheme, cache)
+        @unpack fstar_primary_threaded, fstar_secondary_threaded = cache
+
+        @threaded for mortar in eachmpimortar(dg, cache)
+            fstar_primary = fstar_primary_threaded[Threads.threadid()]
+            fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
+
+            for position in 1:2
+                for i in eachnode(dg)
+                    normal_direction = get_normal_direction(cache.mpi_mortars, i,
+                                                            position, mortar)
+
+                    calc_mpi_mortar_flux_gradient!(fstar_primary, fstar_secondary,
+                                                   mesh, equations_parabolic,
+                                                   dg, parabolic_scheme, cache,
+                                                   mortar, position,
+                                                   normal_direction, i)
+                end
+            end
+
+            u_buffer = cache.u_threaded[Threads.threadid()]
+
+            mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
+                                                    mesh, equations_parabolic, mortar_l2,
+                                                    dg, cache,
+                                                    mortar, fstar_primary, fstar_secondary,
+                                                    u_buffer)
+        end
+
+        return nothing
+    end
+
+    @inline function calc_mpi_mortar_flux_gradient!(fstar_primary, fstar_secondary,
+                                                    mesh::Union{P4estMeshParallel{2},
+                                                                T8codeMeshParallel{2}},
+                                                    equations_parabolic,
+                                                    dg::DG, parabolic_scheme, cache,
+                                                    mortar_index, position_index,
+                                                    normal_direction,
+                                                    node_index)
+        @unpack u = cache.mpi_mortars
+
+        u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
+                                           position_index, node_index, mortar_index)
+
+        flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
+                               equations_parabolic, parabolic_scheme)
+
+        set_node_vars!(fstar_primary[position_index], flux_, equations_parabolic, dg,
+                       node_index)
+        set_node_vars!(fstar_secondary[position_index], flux_, equations_parabolic, dg,
+                       node_index)
+
+        return nothing
+    end
+
+    @inline function mpi_mortar_fluxes_to_elements_gradient!(surface_flux_values,
+                                                             mesh::Union{P4estMeshParallel{2},
+                                                                         T8codeMeshParallel{2}},
+                                                             equations_parabolic,
+                                                             mortar_l2::LobattoLegendreMortarL2,
+                                                             dg::DGSEM, cache, mortar,
+                                                             fstar_primary, fstar_secondary,
+                                                             u_buffer)
+        @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
+        index_range = eachnode(dg)
+        index_end = last(index_range)
+
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+
+        for (element, position) in zip(local_neighbor_ids[mortar],
+                                       local_neighbor_positions[mortar])
+
+            # In 2D the large side is the third mortar neighbor slot.
+            if position == 3
+                # Project the two small-side traces to the large side.
+                multiply_dimensionwise!(u_buffer,
+                                        mortar_l2.reverse_upper,
+                                        fstar_secondary[2],
+                                        mortar_l2.reverse_lower,
+                                        fstar_secondary[1])
+
+                # Gradient stage: no extra sign flip / scale factor
+                # (same rationale as local 2D parabolic mortar_fluxes_to_elements!)
+                if :i_backward in large_indices
+                    for i in eachnode(dg)
+                        for v in eachvariable(equations_parabolic)
+                            surface_flux_values[v, index_end + 1 - i,
+                            large_direction, element] = u_buffer[v, i]
+                        end
+                    end
+                else
+                    for i in eachnode(dg)
+                        for v in eachvariable(equations_parabolic)
+                            surface_flux_values[v, i,
+                            large_direction, element] = u_buffer[v, i]
+                        end
+                    end
+                end
+            else
+                # Small sides copy directly
+                for i in eachnode(dg)
+                    for v in eachvariable(equations_parabolic)
+                        surface_flux_values[v, i,
+                        small_direction, element] = fstar_primary[position][v, i]
+                    end
+                end
+            end
+        end
+
+        return nothing
+    end
+
+    function prolong2mpimortars_divergence!(cache, flux_viscous,
+                                            mesh::Union{P4estMeshParallel{2},
+                                                        T8codeMeshParallel{2}},
+                                            equations_parabolic,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM)
+        @unpack node_indices = cache.mpi_mortars
+        @unpack contravariant_vectors = cache.elements
+        index_range = eachnode(dg)
+
+        flux_viscous_x, flux_viscous_y = flux_viscous
+
+        @threaded for mortar in eachmpimortar(dg, cache)
+            local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+            local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
+
+            # Small side indexing
+            small_indices = node_indices[1, mortar]
+            small_direction = indices2direction(small_indices)
+
+            i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                                 index_range)
+            j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                                 index_range)
+
+            # Large side indexing
+            large_indices = node_indices[2, mortar]
+            large_direction = indices2direction(large_indices)
+
+            i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                                 index_range)
+            j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                                 index_range)
+
+            for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
+                if position == 3
+                    # =========================
+                    # LARGE ELEMENT
+                    # =========================
+                    u_buffer = cache.u_threaded[Threads.threadid()]
+
+                    i_large = i_large_start
+                    j_large = j_large_start
+
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(large_direction,
+                                                                contravariant_vectors,
+                                                                i_large, j_large,
+                                                                element)
+
+                        for v in eachvariable(equations_parabolic)
+                            flux_node = SVector(flux_viscous_x[v, i_large, j_large,
+                                                               element],
+                                                flux_viscous_y[v, i_large, j_large,
+                                                               element])
+
+                            # Same convention as local 2D code:
+                            # prolong flux dotted with outward normal on the small element.
+                            # The large-element normal is -2x the small-element normal,
+                            # hence the factor -1/2 here.
+                            u_buffer[v, i] = -0.5f0 * dot(flux_node, normal_direction)
+                        end
+
+                        i_large += i_large_step
+                        j_large += j_large_step
+                    end
+
+                    multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :, mortar),
+                                            mortar_l2.forward_lower, u_buffer)
+                    multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :, mortar),
+                                            mortar_l2.forward_upper, u_buffer)
+
+                else
+                    # =========================
+                    # SMALL ELEMENT (1–2)
+                    # =========================
+                    i_small = i_small_start
+                    j_small = j_small_start
+
+                    for i in eachnode(dg)
+                        normal_direction = get_normal_direction(small_direction,
+                                                                contravariant_vectors,
+                                                                i_small, j_small,
+                                                                element)
+
+                        for v in eachvariable(equations_parabolic)
+                            flux_node = SVector(flux_viscous_x[v, i_small, j_small,
+                                                               element],
+                                                flux_viscous_y[v, i_small, j_small,
+                                                               element])
+
+                            cache.mpi_mortars.u[1, v, position, i, mortar] = dot(flux_node,
+                                                                                 normal_direction)
+                        end
+
+                        i_small += i_small_step
+                        j_small += j_small_step
+                    end
+                end
+            end
         end
 
         return nothing
