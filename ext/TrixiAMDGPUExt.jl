@@ -19,9 +19,11 @@ function Trixi.unsafe_wrap_or_alloc(::Type{<:ROCDeviceArray}, vec::ROCDeviceArra
 end
 
 @static if Trixi._PREFERENCE_LOG == "log_Trixi_NaN"
-    @device_override Trixi.log(x::Float64) = ccall("extern __ocml_log_f64", llvmcall, Cdouble,
+    @device_override Trixi.log(x::Float64) = ccall("extern __ocml_log_f64", llvmcall,
+                                                   Cdouble,
                                                    (Cdouble,), x)
-    @device_override Trixi.log(x::Float32) = ccall("extern __ocml_log_f32", llvmcall, Cfloat,
+    @device_override Trixi.log(x::Float32) = ccall("extern __ocml_log_f32", llvmcall,
+                                                   Cfloat,
                                                    (Cfloat,), x)
     # TODO: Trixi.log(x::Float16)
 end
