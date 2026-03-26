@@ -9,13 +9,6 @@ for human readability.
 
 #### Changed
 
-- The word "viscous" is now used only where it refers specifically to fluid viscosity.
-The word "parabolic" is used in more general contexts.
-In particular, viscosity is no longer used as a proxy for any parabolic/diffusive process such as heat conduction.
-For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` and
-`ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
-For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
-Moreover, some internal functions have been renamed accordingly, including the results shown by the timer outputs after running a simulation.
 - The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
 In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
 i.e., summing up the normal components, the `ldg_switch` is now selected as 
@@ -23,6 +16,29 @@ the sign of the maximum (in absolute value sense) normal direction component,
 which corresponds to the dominant direction of the interface normal.
 This might change results slightly for some meshes where the sum of the normal might be close to zero,
 thus introducing some spurious switch assignments ([#2871]).
+- The word "viscous" is now used only where it refers specifically to fluid viscosity.
+The word "parabolic" is used in more general contexts.
+In particular, viscosity is no longer used as a proxy for any parabolic/diffusive process such as heat conduction.
+For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` and
+`ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
+For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
+Moreover, some internal functions have been renamed accordingly, including the results shown by the timer outputs after running a simulation.
+
+#### Added
+
+- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, Trixi.jl can
+  now partly be executed on GPUs. This includes simulations with flux differencing on
+  `P4estMesh` in 2D and 3D. Adaptive mesh refinement, multi-GPU, source terms, and callbacks
+  are not available, yet. Offloading is achieved via KernelAbstractions.jl kernels,
+  which, at the moment, execute the same code as usually run on CPUs. A backend is selected
+  by passing an appropriate data type as keyword argument `storage_type` to
+  `semidiscretize`. See the
+  [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
+  section for some instructions on how to port kernels. This is however still preliminaray
+  and will change.
+  GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
+  `TRIXI_TEST=CUDA` ([#2590]).
+
 
 ## Changes in the v0.15 lifecycle
 
