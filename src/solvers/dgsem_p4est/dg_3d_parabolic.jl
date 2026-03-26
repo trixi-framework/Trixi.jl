@@ -298,13 +298,19 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
 
                 for v in eachvariable(equations_parabolic)
                     # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_parabolic = SVector(flux_parabolic_x[v, i_primary, j_primary,
+                    flux_parabolic = SVector(flux_parabolic_x[v,
+                                                              i_primary,
+                                                              j_primary,
                                                               k_primary,
                                                               primary_element],
-                                             flux_parabolic_y[v, i_primary, j_primary,
+                                             flux_parabolic_y[v,
+                                                              i_primary,
+                                                              j_primary,
                                                               k_primary,
                                                               primary_element],
-                                             flux_parabolic_z[v, i_primary, j_primary,
+                                             flux_parabolic_z[v,
+                                                              i_primary,
+                                                              j_primary,
                                                               k_primary,
                                                               primary_element])
 
@@ -349,15 +355,18 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
 
                 for v in eachvariable(equations_parabolic)
                     # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
-                    flux_parabolic = SVector(flux_parabolic_x[v, i_secondary,
+                    flux_parabolic = SVector(flux_parabolic_x[v,
+                                                              i_secondary,
                                                               j_secondary,
                                                               k_secondary,
                                                               secondary_element],
-                                             flux_parabolic_y[v, i_secondary,
+                                             flux_parabolic_y[v,
+                                                              i_secondary,
                                                               j_secondary,
                                                               k_secondary,
                                                               secondary_element],
-                                             flux_parabolic_z[v, i_secondary,
+                                             flux_parabolic_z[v,
+                                                              i_secondary,
                                                               j_secondary,
                                                               k_secondary,
                                                               secondary_element])
@@ -558,13 +567,19 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
                                                         element)
 
                 for v in eachvariable(equations_parabolic)
-                    flux_parabolic = SVector(flux_parabolic_x[v, i_large, j_large,
+                    flux_parabolic = SVector(flux_parabolic_x[v,
+                                                              i_large,
+                                                              j_large,
                                                               k_large,
                                                               element],
-                                             flux_parabolic_y[v, i_large, j_large,
+                                             flux_parabolic_y[v,
+                                                              i_large,
+                                                              j_large,
                                                               k_large,
                                                               element],
-                                             flux_parabolic_z[v, i_large, j_large,
+                                             flux_parabolic_z[v,
+                                                              i_large,
+                                                              j_large,
                                                               k_large,
                                                               element])
 

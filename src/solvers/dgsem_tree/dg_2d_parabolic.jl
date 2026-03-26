@@ -128,7 +128,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # Calculate surface integrals.
     # This reuses `calc_surface_integral!` for the purely hyperbolic case.
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
+        calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
     end
 
@@ -506,16 +506,14 @@ function calc_parabolic_fluxes!(flux_parabolic,
 
             # Calculate parabolic flux and store each component for later use
             flux_parabolic_node_x = flux(u_node, (gradients_1_node, gradients_2_node),
-                                         1,
-                                         equations_parabolic)
+                                         1, equations_parabolic)
             flux_parabolic_node_y = flux(u_node, (gradients_1_node, gradients_2_node),
-                                         2,
-                                         equations_parabolic)
-            set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
-                           dg,
+                                         2, equations_parabolic)
+            set_node_vars!(flux_parabolic_x, flux_parabolic_node_x,
+                           equations_parabolic, dg,
                            i, j, element)
-            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
-                           dg,
+            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y,
+                           equations_parabolic, dg,
                            i, j, element)
         end
     end
@@ -1175,7 +1173,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Prolong solution to interfaces
     # This reuses `prolong2interfaces!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u_transformed, mesh,
+        prolong2interfaces!(nothing, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 

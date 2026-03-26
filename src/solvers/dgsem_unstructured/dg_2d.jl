@@ -420,7 +420,7 @@ end
 #          -----------------                  -----------------
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
-function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
+function calc_surface_integral!(backend, du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements

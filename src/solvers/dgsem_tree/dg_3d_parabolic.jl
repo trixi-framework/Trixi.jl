@@ -318,14 +318,14 @@ function calc_parabolic_fluxes!(flux_parabolic,
             flux_parabolic_node_z = flux(u_node,
                                          (gradients_1_node, gradients_2_node,
                                           gradients_3_node), 3, equations_parabolic)
-            set_node_vars!(flux_parabolic_x, flux_parabolic_node_x, equations_parabolic,
-                           dg,
+            set_node_vars!(flux_parabolic_x, flux_parabolic_node_x,
+                           equations_parabolic, dg,
                            i, j, k, element)
-            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y, equations_parabolic,
-                           dg,
+            set_node_vars!(flux_parabolic_y, flux_parabolic_node_y,
+                           equations_parabolic, dg,
                            i, j, k, element)
-            set_node_vars!(flux_parabolic_z, flux_parabolic_node_z, equations_parabolic,
-                           dg,
+            set_node_vars!(flux_parabolic_z, flux_parabolic_node_z,
+                           equations_parabolic, dg,
                            i, j, k, element)
         end
     end

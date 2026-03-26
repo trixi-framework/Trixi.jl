@@ -11,7 +11,7 @@
 
 Set the time step size according to a CFL condition with hyperbolic CFL number `cfl`
 if the time integration method isn't adaptive itself.
-The hyperbolic CFL number must be either a `Real` number, corresponding to a constant
+The hyperbolic CFL number `cfl` must be either a `Real` number, corresponding to a constant
 CFL number, or a function of time `t` returning a `Real` number.
 The latter approach allows for variable CFL numbers that can be used to realize, e.g.,
 a ramp-up of the time step.
@@ -21,7 +21,7 @@ limit the admissible timestep also respecting parabolic restrictions.
 This is only applicable for semidiscretizations of type
 [`SemidiscretizationHyperbolicParabolic`](@ref) and [`SemidiscretizationParabolic`](@ref).
 To enable checking for parabolic timestep restrictions, provide a value greater than zero for `cfl_parabolic`.
-By default, `cfl_parabolic` is set to zero which means that only the hyperbolic CFL number is considered.
+By default, `cfl_parabolic` is set to zero which means that only the hyperbolic CFL number `cfl` is considered.
 The keyword argument `cfl_parabolic` must be either a `Real` number, corresponding to a constant
 parabolic CFL number, or a function of time `t` returning a `Real` number.
 
@@ -199,6 +199,51 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     else
         return dt_hyperbolic
     end
+end
+
+function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equations, dg,
+                               cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    max_scaled_speed = zero(eltype(u))
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
+                                                  equations, dg,
+                                                  contravariant_vectors,
+                                                  inverse_jacobian,
+                                                  element)
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
+    end
+    return max_scaled_speed
+end
+
+function calc_max_scaled_speed(backend::Backend, u, mesh, constant_speed, equations, dg,
+                               cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    num_elements = nelements(dg, cache)
+    max_scaled_speeds = allocate(backend, eltype(u), num_elements)
+
+    kernel! = max_scaled_speed_KAkernel!(backend)
+    kernel!(max_scaled_speeds, u, typeof(mesh), constant_speed, equations, dg,
+            contravariant_vectors,
+            inverse_jacobian;
+            ndrange = num_elements)
+
+    return maximum(max_scaled_speeds)
+end
+
+@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, MeshT, constant_speed,
+                                            equations,
+                                            dg, contravariant_vectors, inverse_jacobian)
+    element = @index(Global)
+    max_scaled_speeds[element] = max_scaled_speed_per_element(u, MeshT, constant_speed,
+                                                              equations, dg,
+                                                              contravariant_vectors,
+                                                              inverse_jacobian,
+                                                              element)
 end
 
 include("stepsize_dg1d.jl")

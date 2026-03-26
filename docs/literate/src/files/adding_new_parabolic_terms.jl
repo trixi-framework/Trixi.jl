@@ -66,7 +66,7 @@ end
 # \begin{aligned}
 # \bm{q} &= \nabla u \\
 # \bm{\sigma} &= \begin{pmatrix} g_1(u, \bm{q}) \\ g_2(u, \bm{q}) \end{pmatrix} \\
-# \text{parabolic contribution } &= \nabla \cdot \bm{\sigma}
+# \text{parabolic contribution} &= \nabla \cdot \bm{\sigma}
 # \end{aligned}
 # ```
 #
