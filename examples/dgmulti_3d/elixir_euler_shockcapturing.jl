@@ -4,14 +4,14 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 
 polydeg = 3
-basis = DGMultiBasis(Quad(), polydeg, approximation_type = GaussSBP())
+basis = DGMultiBasis(Hex(), polydeg, approximation_type = GaussSBP())
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
@@ -25,18 +25,16 @@ dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
 
-function mapping(xi, eta)
-    x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
-    y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
-    return SVector(x, y)
-end
-cells_per_dimension = (16, 16)
-mesh = DGMultiMesh(dg, cells_per_dimension, mapping)
+cells_per_dimension = (4, 4, 4)
+mesh = DGMultiMesh(dg, cells_per_dimension;
+                   coordinates_min = (-2.0, -2.0, -2.0),
+                   coordinates_max = (2.0, 2.0, 2.0),
+                   periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = boundary_condition_periodic)
 
-tspan = (0.0, 0.15)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
