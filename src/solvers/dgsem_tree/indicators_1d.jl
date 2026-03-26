@@ -202,7 +202,8 @@ function (positional::IndicatorPositional)(u::AbstractArray{<:Any, 3},
     @threaded for element in Trixi.eachelement(dg, cache)
         estimate = -one(real(dg))
         for i in Trixi.eachnode(dg)
-            estimate = max(estimate, indicator_function(x[1, i, element], kwargs[:t]))
+            x_nodal = x[1, i, element]
+            estimate = max(estimate, indicator_function(x_nodal, kwargs[:t]))
         end
         alpha[element] = estimate
     end
