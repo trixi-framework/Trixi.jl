@@ -920,7 +920,7 @@ function count_required_surfaces(mesh::P4estMesh)
 end
 
 # Return direction of the face, which is indexed by node_indices
-@inline function indices2direction(indices)
+@inline function indices2direction(indices::NTuple{3, Symbol})
     if indices[1] === :begin
         return 1
     elseif indices[1] === :end
@@ -936,7 +936,7 @@ end
     end
 end
 
-@inline function indices2direction2d(indices)
+@inline function indices2direction(indices::NTuple{2, Symbol})
     if indices[1] === :begin
         return 1
     elseif indices[1] === :end

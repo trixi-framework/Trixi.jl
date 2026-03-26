@@ -227,7 +227,7 @@ end
     # Get element and side index information on the primary element
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
-    primary_direction = indices2direction2d(primary_indices)
+    primary_direction = indices2direction(primary_indices)
 
     # Create the local i,j indexing on the primary element used to pull normal direction information
     i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -241,7 +241,7 @@ end
     # Get element and side index information on the secondary element
     secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
-    secondary_direction = indices2direction2d(secondary_indices)
+    secondary_direction = indices2direction(secondary_indices)
 
     # Initiate the secondary index to be used in the surface for loop.
     # This index on the primary side will always run forward but
