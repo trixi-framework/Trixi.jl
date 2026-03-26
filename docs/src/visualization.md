@@ -536,3 +536,22 @@ by providing an appropriate keyword argument. For example, `plot(sol, colormap=:
 
 ![makie-plot-example](https://user-images.githubusercontent.com/1156048/132954265-e7d395a8-f894-4056-841b-87711b7ba012.png)
 ![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)
+
+## Custom visualization
+
+If you want to extract the raw nodal coordinates and solution arrays to build your own custom plots or perform external data analysis, you can use the `get_coordinates` and `get_u` functions. 
+
+These functions use multiple dispatch to automatically reshape the flat ODE state vectors into intuitive, multidimensional tensors based on the underlying mesh type.
+
+```julia
+using Trixi
+
+# Run a basic simulation
+sol = trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"))
+
+# Extract the multidimensional coordinate and solution arrays
+coords = Trixi.get_coordinates(sol)
+u_nodal = Trixi.get_u(sol)
+
+# The arrays are now ready to be used with external tools like Makie.jl or Plots.jl
+```
