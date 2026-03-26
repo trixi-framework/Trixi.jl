@@ -62,10 +62,10 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 alive_callback = AliveCallback(analysis_interval = 100)
 
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
-# For coarser grids, linear stability is governed by the advective CFL condition,
+# For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 1.6,
-                                     cfl_diffusive = 0.3)
+                                     cfl_parabolic = 0.3)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
