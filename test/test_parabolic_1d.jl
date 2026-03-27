@@ -487,7 +487,7 @@ end
                         callbacks=CallbackSet(summary_callback, alive_callback,
                                               analysis_callback,
                                               StepsizeCallback(cfl = 0.5,
-                                                               cfl_diffusive = 0.1)),
+                                                               cfl_parabolic = 0.1)),
                         adaptive=false,
                         l2=[
                             3.804624387087144e-5,

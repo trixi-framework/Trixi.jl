@@ -68,7 +68,7 @@ Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationBassiRebay1(),
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
 
