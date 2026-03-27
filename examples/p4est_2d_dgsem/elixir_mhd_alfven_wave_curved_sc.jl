@@ -22,18 +22,13 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-
-coordinates_min = (0.0, 0.0)
-coordinates_max = (sqrt(2.0), sqrt(2.0))
-
-# Curved periodic mapping on [0, sqrt(2)]^2
+# Create a periodic P4estMesh by a mapping from [-1,1]^2 to [0, sqrt(2)]^2
 function mapping_twist(xi, eta)
     domain_length = sqrt(2.0)
-    half_length = 0.5 * domain_length
-    amplitude = 0.01 #* half_length
+    amplitude = 0.1
 
-    y_affine = half_length * (eta + 1.0)
-    x_affine = half_length * (xi + 1.0)
+    y_affine = 0.5 * domain_length * (eta + 1.0)
+    x_affine = 0.5 * domain_length * (xi + 1.0)
 
     y = y_affine + amplitude * sin(pi * xi) * cos(0.5 * pi * eta)
     x = x_affine + amplitude * sin(pi * eta) * cos(0.5 * pi * xi)
@@ -52,7 +47,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.5)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -62,7 +57,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-cfl = 0.1
+cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
