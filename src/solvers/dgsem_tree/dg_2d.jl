@@ -113,78 +113,67 @@ function rhs!(du, u, t,
     backend = trixi_backend(u)
 
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" begin
+    @trixi_timeit backend timer() "reset ∂u/∂t" begin
         set_zero!(du, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
+    @trixi_timeit backend timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
+    @trixi_timeit backend timer() "prolong2interfaces" begin
         prolong2interfaces!(backend, cache, u, mesh, equations, dg)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
+    @trixi_timeit backend timer() "interface flux" begin
         calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
+    @trixi_timeit backend timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u, mesh, equations, dg)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
+    @trixi_timeit backend timer() "boundary flux" begin
         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
+    @trixi_timeit backend timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
                          dg.mortar, dg)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
+    @trixi_timeit backend timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
+    @trixi_timeit backend timer() "surface integral" begin
         calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
+    @trixi_timeit backend timer() "Jacobian" begin
         apply_jacobian!(backend, du, mesh, equations, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
+    @trixi_timeit backend timer() "source terms" begin
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
-        KernelAbstractions.synchronize(backend)
     end
 
     return nothing

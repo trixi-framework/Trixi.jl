@@ -90,10 +90,22 @@ export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using TrixiBase: trixi_include
-using TrixiBase: TrixiBase, @trixi_timeit, timer
+using TrixiBase: TrixiBase, timer
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
+
+import TrixiBase: @trixi_timeit
+macro trixi_timeit(backend, timer_output, label, expr)
+    expr = quote
+        local val = $(esc(expr))
+        if $(esc(backend)) !== nothing
+            (KernelAbstractions.synchronize)($(esc(backend)))
+        end
+        val
+    end
+    return :(@trixi_timeit($(esc(timer_output)), $(esc(label)), $(expr)))
+end
 
 using UUIDs: UUID
 
