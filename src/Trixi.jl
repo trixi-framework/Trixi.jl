@@ -95,7 +95,6 @@ using TrixiBase: TrixiBase, @trixi_timeit, timer
 using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
 
-
 using UUIDs: UUID
 
 # finite difference SBP operators
