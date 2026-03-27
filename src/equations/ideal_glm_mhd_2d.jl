@@ -948,9 +948,9 @@ end
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-        B1_jump = B1_rr * normal_direction_rr[1] - B1_ll * normal_direction_ll[1] 
+        B1_jump = B1_rr * normal_direction_rr[1] - B1_ll * normal_direction_ll[1]
         B2_jump = B2_rr * normal_direction_rr[2] - B2_ll * normal_direction_ll[2]
-        
+
         B_dot_n_jump = B1_jump +
                        B2_jump
         f = SVector(0,

@@ -446,7 +446,8 @@ end
                                                   element)
 
             for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-                phi_jump = volume_flux_noncons(u_0, u_i, Ja1_node_0, Ja1_node_i, equations,
+                phi_jump = volume_flux_noncons(u_0, u_i, Ja1_node_0, Ja1_node_i,
+                                               equations,
                                                NonConservativeJump(), noncons)
 
                 for v in eachvariable(equations)
