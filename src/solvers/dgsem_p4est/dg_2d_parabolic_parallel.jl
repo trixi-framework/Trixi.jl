@@ -4,7 +4,8 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
     function rhs_parabolic!(du, u, t,
-                            mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                            mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2},
+                                        P4estMeshParallel{3}, T8codeMeshParallel{3}},
                             equations_parabolic::AbstractEquationsParabolic,
                             boundary_conditions_parabolic, source_terms_parabolic,
                             dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -205,7 +206,8 @@
     end
 
     function calc_gradient_local!(gradients, u_transformed, t,
-                                  mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                                  mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2},
+                                              P4estMeshParallel{3}, T8codeMeshParallel{3}},
                                   equations_parabolic, boundary_conditions_parabolic,
                                   dg::DG, parabolic_scheme, cache)
         # Reset gradients
