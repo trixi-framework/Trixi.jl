@@ -132,6 +132,7 @@ jobs:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # for authenticated downloads without strict rate limits
+          JULIA_DEBUG: "loading" # for debugging loading issues in CI
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ !cancelled() }}
         with:
