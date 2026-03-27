@@ -115,7 +115,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     return nothing
 end
 
-function apply_jacobian!(du, mesh::StructuredMesh{1},
+function apply_jacobian!(backend::Nothing, du, mesh::StructuredMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
