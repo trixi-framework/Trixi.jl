@@ -929,7 +929,8 @@ end
                                  "elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl"),
                         tspan=(0.0, 2.5),)
     # Ensure that the mesh size did not change to test IndicatorNodalFunction
-    @test length(sol.u[1]) == 36864
+    #expected N_ele(t=2.5) = 576, N_ele(t=5) = 303, N_ele(t=7.5) = 51, N_ele(t=10) = 111
+    @test nelements(semi.cache.elements) == 576
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" begin
