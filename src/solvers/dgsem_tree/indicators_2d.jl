@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -134,7 +135,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
     return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
     uEltype = real(basis)

@@ -14,6 +14,13 @@ function create_cache(typ::Type{IndicatorType},
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
+# this method is used when the indicator is constructed as for AMR
+function create_cache(typ::Type{IndicatorType},
+                      mesh, equations::AbstractEquations, dg::DGSEM,
+                      cache) where {IndicatorType <: AbstractIndicator}
+    return create_cache(typ, equations, dg.basis)
+end
+
 function get_element_variables!(element_variables, indicator::AbstractIndicator,
                                 ::AbstractVolumeIntegralShockCapturing)
     element_variables[:indicator_shock_capturing] = indicator.cache.alpha
