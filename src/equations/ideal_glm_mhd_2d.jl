@@ -657,7 +657,7 @@ struct FluxNonConservativePowellLocalJump <:
        FluxNonConservative{NonConservativeJump()}
 end
 
-n_nonconservative_terms(::FluxNonConservativePowellLocalJump) = 3
+n_nonconservative_terms(::FluxNonConservativePowellLocalJump) = 2
 
 const flux_nonconservative_powell_local_jump = FluxNonConservativePowellLocalJump()
 
@@ -696,40 +696,31 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
     v3_ll = rho_v3_ll / rho_ll
     v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
     psi_jump = psi_rr - psi_ll
-    phi_powell_local = SVector(0,
-                               B1_ll,
-                               B2_ll,
-                               B3_ll,
-                               v_dot_B_ll,
-                               v1_ll,
-                               v2_ll,
-                               v3_ll,
-                               0)
     if orientation == 1
         B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
-        phi_glm_local = SVector(0,
-                                0,
-                                0,
-                                0,
-                                v1_ll * psi_ll,
-                                0,
-                                0,
-                                0,
-                                v1_ll)
-        f = phi_powell_local .* B1_jump + phi_glm_local .* psi_jump
+        f = SVector(0,
+                    B1_ll * B1_jump,
+                    B2_ll * B1_jump,
+                    B3_ll * B1_jump,
+                    v_dot_B_ll * B1_jump + v1_ll * psi_ll * psi_jump,
+                    v1_ll * B1_jump,
+                    v2_ll * B1_jump,
+                    v3_ll * B1_jump,
+                    v1_ll * psi_jump)
     else # orientation == 2
         B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
-        phi_glm_local = SVector(0,
-                                0,
-                                0,
-                                0,
-                                v2_ll * psi_ll,
-                                0,
-                                0,
-                                0,
-                                v2_ll)
-        f = phi_powell_local .* B2_jump + phi_glm_local .* psi_jump
+        f = SVector(0,
+                    B1_ll * B2_jump,
+                    B2_ll * B2_jump,
+                    B3_ll * B2_jump,
+                    v_dot_B_ll * B2_jump + v2_ll * psi_ll * psi_jump,
+                    v1_ll * B2_jump,
+                    v2_ll * B2_jump,
+                    v3_ll * B2_jump,
+                    v2_ll * psi_jump)
     end
 
     return f
@@ -753,31 +744,17 @@ end
     B_dot_n_jump = B1_jump * normal_direction[1] + B2_jump * normal_direction[2]
     v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
 
-    # Product form of local and jump parts:
-    # local(Powell):   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    # jump(Powell):    n_1 * (B_1)_jump + n_2 * (B_2)_jump
-    # local(Galilean): (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    # jump(Galilean):  ψ_jump
-    phi_powell_local = SVector(0,
-                               B1_ll,
-                               B2_ll,
-                               B3_ll,
-                               v_dot_B_ll,
-                               v1_ll,
-                               v2_ll,
-                               v3_ll,
-                               0)
-    phi_glm_local = SVector(0,
-                            0,
-                            0,
-                            0,
-                            v_dot_n_ll * psi_ll,
-                            0,
-                            0,
-                            0,
-                            v_dot_n_ll)
-
-    f = phi_powell_local .* B_dot_n_jump + phi_glm_local .* psi_jump
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    f = SVector(0,
+                B1_ll * B_dot_n_jump,
+                B2_ll * B_dot_n_jump,
+                B3_ll * B_dot_n_jump,
+                v_dot_B_ll * B_dot_n_jump + v_dot_n_ll * psi_ll * psi_jump,
+                v1_ll * B_dot_n_jump,
+                v2_ll * B_dot_n_jump,
+                v3_ll * B_dot_n_jump,
+                v_dot_n_ll * psi_jump)
 
     return f
 end
@@ -806,39 +783,46 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                                                                     nonconservative_type::NonConservativeLocal,
                                                                     nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    # Powell local part: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v3_ll = rho_v3_ll / rho_ll
-    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
-    phi_mhd = SVector(0,
-                      B1_ll,
-                      B2_ll,
-                      B3_ll,
-                      v_dot_B_ll,
-                      v1_ll,
-                      v2_ll,
-                      v3_ll,
-                      0)
-
     if nonconservative_term == 1
-        # Contribution in x-direction
-        f = orientation == 1 ? phi_mhd : zero(u_ll)
-    elseif nonconservative_term == 2
-        # Contribution in y-direction
-        f = orientation == 2 ? phi_mhd : zero(u_ll)
-    else # nonconservative_term == 3
-        # Galilean local part: (0, 0, 0, 0, ψ v⋅n, 0, 0, 0, v⋅n)
-        v_orientation_ll = orientation == 1 ? v1_ll : v2_ll
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
         f = SVector(0,
-                    0,
-                    0,
-                    0,
-                    v_orientation_ll * psi_ll,
-                    0,
-                    0,
-                    0,
-                    v_orientation_ll)
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else #nonconservative_term ==2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        if orientation == 1
+            v1_ll = rho_v1_ll / rho_ll
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v1_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v1_ll)
+        else #orientation == 2
+            v2_ll = rho_v2_ll / rho_ll
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v2_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v2_ll)
+        end
     end
     return f
 end
@@ -850,30 +834,24 @@ end
                                                                     nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
-    # Compute velocities
-    v1_ll = rho_v1_ll / rho_ll
-    v2_ll = rho_v2_ll / rho_ll
-    v3_ll = rho_v3_ll / rho_ll
-
-    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
-
-    # Powell local part: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    phi_mhd = SVector(0,
-                B1_ll,
-                B2_ll,
-                B3_ll,
-                v_dot_B_ll,
-                v1_ll,
-                v2_ll,
-                v3_ll,
-                0)
-    
     if nonconservative_term == 1
-        f = phi_mhd .* normal_direction_ll[1]
-    elseif nonconservative_term == 2
-        f = phi_mhd .* normal_direction_ll[2]
-    else # nonconservative_term == 3
-        # Galilean local part: (0, 0, 0, 0, ψ v⋅n , 0, 0, 0, v⋅n)
+        # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else # nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         v1_ll = rho_v1_ll / rho_ll
         v2_ll = rho_v2_ll / rho_ll
         v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
@@ -917,33 +895,33 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
-
     if nonconservative_term == 1
-        # Powell jump part in x-direction
-        B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
-        f = SVector(0,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    0)
-    elseif nonconservative_term == 2
-        # Powell jump part in y-direction
-        B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
-        f = SVector(0,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    0)
-    else # nonconservative_term == 3
-        # Galilean jump part: (0, 0, 0, 0, ψ, 0, 0, 0, ψ)
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        if orientation == 1
+            B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+            f = SVector(0,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        0)
+        else # orientation == 2
+            B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
+            f = SVector(0,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        0)
+        end
+    else #nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         psi_jump = psi_rr - psi_ll # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     0,
@@ -960,40 +938,32 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 end
 
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
-                                                                    normal_direction_avg::AbstractVector,
+                                                                    normal_direction_ll::AbstractVector,
+                                                                    normal_direction_rr::AbstractVector,
                                                                     equations::IdealGlmMhdEquations2D,
                                                                     nonconservative_type::NonConservativeJump,
                                                                     nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
-
     if nonconservative_term == 1
-        # Powell jump part in x-direction
-        B1_jump = B1_rr - B1_ll
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        B1_jump = B1_rr * normal_direction_rr[1] - B1_ll * normal_direction_ll[1] 
+        B2_jump = B2_rr * normal_direction_rr[2] - B2_ll * normal_direction_ll[2]
+        
+        B_dot_n_jump = B1_jump +
+                       B2_jump
         f = SVector(0,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
-                    B1_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
+                    B_dot_n_jump,
                     0)
-    elseif nonconservative_term == 2
-        # Powell jump part in y-direction
-        B2_jump = B2_rr - B2_ll
-        f = SVector(0,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    B2_jump,
-                    0)
-    else # nonconservative_term == 3
-        # Galilean jump part: (0, 0, 0, 0, ψ, 0, 0, 0, ψ)
+    else # nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
         psi_jump = (psi_rr - psi_ll)
         f = SVector(0,
                     0,
