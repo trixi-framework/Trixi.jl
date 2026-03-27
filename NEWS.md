@@ -5,6 +5,11 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.16 lifecycle
+
+#### Added
+- GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
+
 ## Changes when updating to v0.16 from v0.15.x
 
 #### Changed
