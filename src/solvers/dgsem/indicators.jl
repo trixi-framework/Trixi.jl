@@ -16,7 +16,8 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function create_cache(typ::Type{IndicatorType},
-                      mesh, equations::AbstractEquations, dg::DGSEM, cache)
+                      mesh, equations::AbstractEquations, dg::DGSEM,
+                      cache) where {IndicatorType <: AbstractIndicator}
     return create_cache(typ, equations, dg.basis)
 end
 
