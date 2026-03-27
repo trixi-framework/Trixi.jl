@@ -1,3 +1,4 @@
+                     
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
@@ -24,7 +25,7 @@ source_terms = function (u, x, t, equations::LinearScalarAdvectionEquation1D)
 end
 
 source_terms_parabolic = function (u, gradients, x, t, equations::LaplaceDiffusion1D)
-    dudx = gradients[1][1]
+    dudx = gradients[1]
     return SVector(beta * dudx^2)
 end
 
@@ -54,14 +55,13 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
 cfl_hyperbolic = 0.5   # Not restrictive for this example
 cfl_parabolic = 0.025 # Restricts the timestep
-stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
-                                     cfl_parabolic = cfl_parabolic)
+stepsize_callback = StepsizeCallback(cfl = min(cfl_hyperbolic, cfl_parabolic))
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
@@ -71,3 +71,4 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 
 sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)
+
