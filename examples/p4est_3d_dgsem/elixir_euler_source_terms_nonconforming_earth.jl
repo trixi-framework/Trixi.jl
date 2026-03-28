@@ -27,8 +27,8 @@ end
     return source_terms_convergence_test(u, x_scaled, t_scaled, equations) / 6.371229e6
 end
 
-function indicator_test(u::AbstractArray{<:Any, 5},
-                        mesh, equations, dg::DGSEM, cache;
+function indicator_test(u::AbstractArray{<:Any},
+                        mesh::Trixi.AbstractMesh{3}, equations, dg::DGSEM, cache;
                         kwargs...)
     alpha = zeros(Int, nelements(dg, cache))
 

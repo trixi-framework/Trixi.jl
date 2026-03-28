@@ -185,8 +185,8 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
-                                   mesh, equations, dg::DGSEM, cache;
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any},
+                                   mesh::AbstractMesh{3}, equations, dg::DGSEM, cache;
                                    kwargs...)
     @assert nnodes(dg)>=3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
     @unpack alpha, indicator_threaded = löhner.cache
@@ -234,8 +234,9 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 5},
     return alpha
 end
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
-                                       mesh, equations, dg::DGSEM, cache;
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any},
+                                       mesh::AbstractMesh{3}, equations, dg::DGSEM,
+                                       cache;
                                        kwargs...)
     @unpack alpha, indicator_threaded = indicator_max.cache
     resize!(alpha, nelements(dg, cache))
