@@ -240,7 +240,7 @@ end
     end
 
     return amr_callback(u_ode, mesh, equations, dg, cache,
-                        semi.cache.parabolic,
+                        semi.cache_parabolic,
                         semi, t, iter; kwargs...)
 end
 

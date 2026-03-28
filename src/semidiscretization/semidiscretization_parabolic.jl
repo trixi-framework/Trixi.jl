@@ -5,26 +5,30 @@
 @muladd begin
 #! format: noindent
 
-@doc raw"""
+"""
     SemidiscretizationParabolic
 
-A struct containing everything needed to describe a spatial semidiscretization of a purely
+A struct containing everything needed to describe a spatial semidiscretization of a purely 
 parabolic PDE.
 """
 mutable struct SemidiscretizationParabolic{Mesh, Equations, InitialCondition,
                                            BoundaryConditions, SourceTerms,
-                                           Solver, SolverParabolic, Cache} <:
+                                           Solver, SolverParabolic,
+                                           Cache, CacheParabolic} <:
                AbstractSemidiscretization
     mesh::Mesh
     equations::Equations
 
     const initial_condition::InitialCondition
+
     const boundary_conditions::BoundaryConditions
     const source_terms::SourceTerms
+
     const solver::Solver
     const solver_parabolic::SolverParabolic
 
     cache::Cache
+    cache_parabolic::CacheParabolic
 
     performance_counter::PerformanceCounter
 end
@@ -52,18 +56,13 @@ function SemidiscretizationParabolic(mesh, equations::AbstractEquationsParabolic
                                      RealT = real(solver), uEltype = RealT)
     @assert ndims(mesh) == ndims(equations)
 
-    # Base cache containing data used for both parabolic and hyperbolic solvers
-    cache_base = create_cache(mesh, equations, solver, RealT, uEltype)
+    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
-                                                      cache_base)
+                                                      cache)
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    # Parabolic cache containing data only used for parabolic solvers
     cache_parabolic = create_cache_parabolic(mesh, equations, solver,
-                                             nelements(solver, cache_base), uEltype)
-
-    # Combine caches into a single cache struct for the semidiscretization
-    cache = (; base = cache_base, parabolic = cache_parabolic)
+                                             nelements(solver, cache), uEltype)
 
     performance_counter = PerformanceCounter()
 
@@ -73,14 +72,16 @@ function SemidiscretizationParabolic(mesh, equations::AbstractEquationsParabolic
                                        typeof(source_terms),
                                        typeof(solver),
                                        typeof(solver_parabolic),
-                                       typeof(cache)}(mesh, equations,
-                                                      initial_condition,
-                                                      _boundary_conditions,
-                                                      source_terms,
-                                                      solver,
-                                                      solver_parabolic,
-                                                      cache,
-                                                      performance_counter)
+                                       typeof(cache),
+                                       typeof(cache_parabolic)}(mesh, equations,
+                                                                initial_condition,
+                                                                _boundary_conditions,
+                                                                source_terms,
+                                                                solver,
+                                                                solver_parabolic,
+                                                                cache,
+                                                                cache_parabolic,
+                                                                performance_counter)
 end
 
 # @eval due to @muladd
@@ -150,15 +151,13 @@ end
 @inline Base.real(semi::SemidiscretizationParabolic) = real(semi.solver)
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationParabolic)
-    @unpack mesh, equations, solver = semi
-    cache = semi.cache.base
+    @unpack mesh, equations, solver, cache = semi
     return mesh, equations, solver, cache
 end
 
 function calc_error_norms(func, u_ode, t, analyzer,
                           semi::SemidiscretizationParabolic, cache_analysis)
-    @unpack mesh, equations, initial_condition, solver = semi
-    cache = semi.cache.base
+    @unpack mesh, equations, initial_condition, solver, cache = semi
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition,
@@ -166,7 +165,6 @@ function calc_error_norms(func, u_ode, t, analyzer,
 end
 
 function compute_coefficients(t, semi::SemidiscretizationParabolic)
-    # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
     return compute_coefficients(semi.initial_condition, t, semi)
 end
 
@@ -174,12 +172,8 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationParabolic)
     return compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
-# Method for `rhs!` that only computes the parabolic right-hand side with no hyperbolic
-# contribution.
 function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
-    @unpack mesh, equations, boundary_conditions, source_terms, solver, solver_parabolic = semi
-    cache = semi.cache.base
-    cache_parabolic = semi.cache.parabolic
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
