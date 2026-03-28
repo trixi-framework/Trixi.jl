@@ -531,7 +531,7 @@ end
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_amr_boundary_layer.jl"),
-                        l2=[0.588077335170678], linf=[0.9400281609880542])
+                        l2=[0.5881457102264551], linf=[0.9302621795999283])
     @trixi_test_nowarn show(stdout, semi) # not tested elsewhere
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

@@ -236,6 +236,34 @@ function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
                                  mesh_equations_solver_cache(semi)...)
 end
 
+function _linear_structure_from_rhs(semi::AbstractSemidiscretization, make_apply_rhs!;
+                                    t0 = zero(real(semi)))
+    # allocate memory
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+    du_ode = similar(u_ode)
+
+    apply_rhs! = make_apply_rhs!(u_ode, du_ode)
+
+    # get the right hand side from boundary conditions and optional source terms
+    u_ode .= zero(eltype(u_ode))
+    apply_rhs!(du_ode, u_ode)
+    b = -du_ode
+
+    # Create a copy of `b` used internally to extract the linear part of `semi`.
+    # This is necessary to get everything correct when the user updates the
+    # returned vector `b`.
+    b_tmp = copy(b)
+
+    # wrap the linear operator
+    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+        apply_rhs!(dest, src)
+        @. dest += b_tmp
+        return dest
+    end
+
+    return A, b
+end
+
 """
     linear_structure(semi::AbstractSemidiscretization;
                      t0 = zero(real(semi)))
@@ -270,28 +298,13 @@ function linear_structure(semi::AbstractSemidiscretization;
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
-    # allocate memory
-    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
-    du_ode = similar(u_ode)
-
-    # get the right hand side from boundary conditions and optional source terms
-    u_ode .= zero(eltype(u_ode))
-    rhs!(du_ode, u_ode, semi, t0)
-    b = -du_ode
-
-    # Create a copy of `b` used internally to extract the linear part of `semi`.
-    # This is necessary to get everything correct when the user updates the
-    # returned vector `b`.
-    b_tmp = copy(b)
-
-    # wrap the linear operator
-    A = LinearMap(length(u_ode), ismutating = true) do dest, src
-        rhs!(dest, src, semi, t0)
-        @. dest += b_tmp
-        return dest
+    make_apply_rhs! = function (_, _)
+        return function (dest, src)
+            return rhs!(dest, src, semi, t0)
+        end
     end
 
-    return A, b
+    return _linear_structure_from_rhs(semi, make_apply_rhs!; t0 = t0)
 end
 
 """

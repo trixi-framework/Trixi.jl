@@ -172,6 +172,21 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationParabolic)
     return compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
+function linear_structure(semi::SemidiscretizationParabolic;
+                          t0 = zero(real(semi)))
+    if have_constant_diffusivity(semi.equations) == False()
+        throw(ArgumentError("`linear_structure` expects equations with constant diffusive terms."))
+    end
+
+    make_apply_rhs! = function (_, _)
+        return function (dest, src)
+            return rhs!(dest, src, semi, t0)
+        end
+    end
+
+    return _linear_structure_from_rhs(semi, make_apply_rhs!; t0 = t0)
+end
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 

@@ -15,7 +15,7 @@ solver = DGSEM(polydeg = 3)
 solver_parabolic = ParabolicFormulationLocalDG()
 
 mesh = TreeMesh((0.0,), (1.0,),
-                initial_refinement_level = 1,
+                initial_refinement_level = 0,
                 periodicity = false,
                 n_cells_max = 30_000)
 
@@ -49,12 +49,12 @@ alive_callback = AliveCallback(analysis_interval = 200)
 
 amr_indicator = IndicatorLöhner(semi, variable = first)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 1,
-                                      med_level = -1,
-                                      med_threshold = 0.005,
-                                      max_level = 6, max_threshold = 0.025)
+                                      base_level = 0,
+                                      med_level = 3,
+                                      med_threshold = 0.01,
+                                      max_level = 6, max_threshold = 0.175)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 100,
+                           interval = 200,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = false)
 
