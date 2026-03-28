@@ -22,8 +22,9 @@ function IndicatorAlwaysRefine(semi)
     return IndicatorAlwaysRefine{typeof(cache)}(cache)
 end
 
-function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any, 4},
-                                            mesh, equations, dg, cache;
+function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any},
+                                            mesh::Trixi.AbstractMesh{2}, equations, dg,
+                                            cache;
                                             t, kwargs...)
     alpha = indicator.cache.alpha
     resize!(alpha, nelements(dg, cache))
