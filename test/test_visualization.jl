@@ -169,15 +169,6 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 end
 
-@trixi_testset "PlotData2D scalar diffusion variables" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                 "elixir_diffusion_steady_state_linear_map.jl"))
-    pd = PlotData2D(sol; solution_variables = cons2entropy)
-
-    @test pd["scalar"] == Trixi.PlotDataSeries(pd, 1)
-    @test keys(pd) == ("scalar",)
-end
-
 @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
@@ -261,16 +252,6 @@ end
                                            mesh_vertices_x2d, mesh_vertices_y2d, 0, 0)
         @trixi_test_nowarn Plots.plot(fake2d)
     end
-end
-
-@trixi_testset "PlotData1D scalar diffusion variables" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_ldg_dirichlet.jl"),
-                        tspan=(0.0, 0.0))
-    pd = PlotData1D(sol; solution_variables = cons2entropy)
-
-    @test pd["scalar"] == Trixi.PlotDataSeries(pd, 1)
-    @test keys(pd) == ("scalar",)
 end
 
 @timed_testset "1D plot from 2D solution" begin

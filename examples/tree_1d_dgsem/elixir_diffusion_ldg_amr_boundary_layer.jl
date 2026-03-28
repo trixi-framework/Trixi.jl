@@ -60,8 +60,22 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 
+# specify extra node variables to be saved in the `SaveSolutionCallback`
+extra_node_variables = (:dudx,)
+function Trixi.get_node_variable(::Val{:dudx}, u, mesh, equations, dg, cache,
+                                 cache_parabolic)
+    return copy(@view cache_parabolic.parabolic_container.gradients[1, :, :])
+end
+
+# save the solution at the last time step, including the extra node variables
+save_solution = SaveSolutionCallback(dt = 2.0,
+                                     save_initial_solution = false,
+                                     save_final_solution = true,
+                                     solution_variables = cons2cons,
+                                     extra_node_variables = extra_node_variables)
+
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
-                        amr_callback, stepsize_callback)
+                        save_solution, amr_callback, stepsize_callback)
 
 ###############################################################################
 # run the simulation
