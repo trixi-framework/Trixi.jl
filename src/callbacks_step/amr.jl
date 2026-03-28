@@ -223,6 +223,27 @@ end
                         semi, t, iter; kwargs...)
 end
 
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+                                             semi::SemidiscretizationParabolic,
+                                             t, iter;
+                                             kwargs...)
+    # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
+    # it when doing AMR while still dispatching on the `mesh` etc.
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    if !(mesh isa TreeMesh{1})
+        throw(ArgumentError("Purely parabolic AMR is currently implemented for `TreeMesh{1}` only."))
+    end
+
+    if mpi_isparallel()
+        throw(ArgumentError("Purely parabolic AMR is currently implemented for serial runs only."))
+    end
+
+    return amr_callback(u_ode, mesh, equations, dg, cache,
+                        semi.cache_parabolic,
+                        semi, t, iter; kwargs...)
+end
+
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
 # passively without querying its indicator, based on the assumption that both solvers use
 # the same mesh. That's a hack and should be improved in the future once we have more examples
@@ -381,13 +402,14 @@ end
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG,
                                      cache, cache_parabolic,
-                                     semi::SemidiscretizationHyperbolicParabolic,
+                                     semi::Union{SemidiscretizationHyperbolicParabolic,
+                                                 SemidiscretizationParabolic},
                                      t, iter;
                                      only_refine = false, only_coarsen = false)
     @unpack controller, adaptor = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
-    # Indicator kept based on hyperbolic variables
+    # Evaluate the indicator from the current semidiscrete solution.
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                           t = t, iter = iter)
 

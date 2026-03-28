@@ -27,6 +27,18 @@ if the diffusion term is linear in the variables/constant.
 @inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
 
 """
+    have_constant_speed(equations_parabolic::AbstractEquationsParabolic)
+
+Return whether the parabolic part is linear with constant diffusivity.
+
+This enables generic utilities such as [`linear_structure`](@ref) to treat
+purely parabolic semidiscretizations analogously to linear hyperbolic ones.
+"""
+@inline function have_constant_speed(equations_parabolic::AbstractEquationsParabolic)
+    return have_constant_diffusivity(equations_parabolic)
+end
+
+"""
     max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
 
 # Returns
@@ -39,6 +51,8 @@ see [`StepsizeCallback`](@ref).
     return equations_parabolic.diffusivity
 end
 
+include("linear_diffusion_equation_1d.jl")
+include("linear_diffusion_equation_2d.jl")
 include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
 include("laplace_diffusion_3d.jl")
