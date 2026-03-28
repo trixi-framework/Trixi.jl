@@ -55,24 +55,23 @@ function trixi_t8_get_local_element_levels(forest)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
-    levels = Vector{UInt8}(undef, t8_forest_get_local_num_elements(forest))
+    levels = Vector{UInt8}(undef, t8_forest_get_local_num_leaf_elements(forest))
 
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
     current_index = 0
-
+    scheme = t8_forest_get_scheme(forest)
     for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
         # Get the number of elements of this tree.
-        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_leaf_elements(forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(forest, itree, ielement)
+            element = t8_forest_get_leaf_element_in_tree(forest, itree, ielement)
             current_index += 1
-            levels[current_index] = UInt8(t8_element_level(eclass_scheme, element))
+            levels[current_index] = UInt8(t8_element_get_level(scheme, tree_class, element))
         end # for
     end # for
 
@@ -86,27 +85,31 @@ end
 # Otherwise `is_family` must equal zero and we consider the first entry
 # of the element array for refinement. 
 # Entries of the element array beyond the first `num_elements` are undefined.
-# \param [in] forest       the forest to which the new elements belong
-# \param [in] forest_from  the forest that is adapted.
-# \param [in] which_tree   the local tree containing `elements`
-# \param [in] lelement_id  the local element id in `forest_old` in the tree of the current element
-# \param [in] ts           the eclass scheme of the tree
-# \param [in] is_family    if 1, the first `num_elements` entries in `elements` form a family. If 0, they do not.
-# \param [in] num_elements the number of entries in `elements` that are defined
-# \param [in] elements     Pointers to a family or, if `is_family` is zero,
+# \param [in] forest       The forest to which the new elements belong.
+# \param [in] forest_from  The forest that is adapted.
+# \param [in] which_tree   The local tree containing \a elements.
+# \param [in] tree_class   The eclass of \a which_tree.
+# \param [in] lelement_id  The local element id in \a forest in the tree of the current
+#                          element.
+# \param [in] scheme       The scheme of the forest.
+# \param [in] is_family    If 1, the first \a num_elements entries in \a elements form a family. If 0, they do not.
+# \param [in] num_elements The number of entries in \a elements that are defined
+# \param [in] elements     Pointers to a family or, if \a is_family is zero,
 #                          pointer to one element.
-# \return greater zero if the first entry in `elements` should be refined,
-#         smaller zero if the family `elements` shall be coarsened,
-#         zero else.
+# \return 1 if the first entry in \a elements should be refined,
+#        -1 if the family \a elements shall be coarsened,
+#        -2 if the first entry in \a elements should be removed,
+#         0 else.
 function adapt_callback(forest::Ptr{t8_forest},
                         forest_from::Ptr{t8_forest},
                         which_tree,
+                        tree_class,
                         lelement_id,
-                        ts,
+                        scheme,
                         is_family,
                         num_elements,
                         elements)::Cint
-    num_levels = t8_forest_get_local_num_elements(forest_from)
+    num_levels = t8_forest_get_local_num_leaf_elements(forest_from)
 
     indicator_ptr = Ptr{Int}(t8_forest_get_user_data(forest))
     indicators = unsafe_wrap(Array, indicator_ptr, num_levels)
