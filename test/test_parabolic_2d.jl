@@ -393,17 +393,6 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                 "elixir_diffusion_steady_state_linear_map.jl"),
-                        l2=[2.9029783114293355e-5], linf=[0.00030225018027482675],
-                        # Relax error tols to avoid stochastic CI failures
-                        atol=1e-9)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -1330,6 +1319,27 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+end
+
+@testset "SemidiscretizationParabolic (2D)" begin
+#! format: noindent
+
+@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_diffusion_steady_state_linear_map.jl"),
+                        tspan=(0.0, 1.0e-4),
+                        analysis_callback=AnalysisCallback(semi,
+                                                           interval = 1,
+                                                           extra_analysis_errors = (:l2_error_primitive,
+                                                                                    :linf_error_primitive),
+                                                           extra_analysis_integrals = (entropy,)),
+                        l2=[2.9029783114293355e-5], linf=[0.00030225018027482675],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-9)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 

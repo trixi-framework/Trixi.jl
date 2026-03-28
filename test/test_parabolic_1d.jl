@@ -61,27 +61,6 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_ldg.jl"),
-                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-                        l2=[9.235894939144276e-6], linf=[5.402550135213957e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_ldg_newton_krylov.jl"),
-                        atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
-                        atol_ode_solve=1e-10, rtol_ode_solve=1e-9,
-                        l2=[4.14999791227157e-6], linf=[2.424658336047658e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
@@ -528,19 +507,55 @@ end
 @testset "SemidiscretizationParabolic (1D)" begin
 #! format: noindent
 
+@trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[9.235894939144276e-6], linf=[5.402550135213957e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg_newton_krylov.jl"),
+                        atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
+                        atol_ode_solve=1e-10, rtol_ode_solve=1e-9,
+                        l2=[4.14999791227157e-6], linf=[2.424658336047658e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg_amr_boundary_layer.jl"),
+                        l2=[0.588077335170678], linf=[0.9400281609880542])
+    @trixi_test_nowarn show(stdout, semi) # not tested elsewhere
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" begin
+    # Run the Dirichlet-Dirichlet elixir (uses `SemidiscretizationParabolic`)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_dirichlet.jl"),
-                        l2=[2.3481439150004898e-6],
-                        linf=[2.4576876189230656e-5])
-    @test semi isa SemidiscretizationParabolic
-
+                        analysis_callback=AnalysisCallback(semi,
+                                                           interval = 100,
+                                                           extra_analysis_errors = (:l2_error_primitive,
+                                                                                    :linf_error_primitive),
+                                                           extra_analysis_integrals = (entropy,)),
+                        l2=[2.3481439150004898e-6], linf=[2.4576876189230656e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
-    # Consistency check: compare to advection-diffusion equation with zero velocity
-    reference_solution = copy(sol.u[end]) # store reference solution for comparison
+    # Store reference solution for comparison
+    reference_solution = copy(sol.u[end])
+
+    # Run again using an advection-diffusion equation with advection velocity zero
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_dirichlet.jl"),
                         equations=LinearScalarAdvectionEquation1D(0.0),
@@ -553,20 +568,10 @@ end
                                                                    solver_parabolic = solver_parabolic,
                                                                    boundary_conditions = (boundary_conditions,
                                                                                           boundary_conditions)))
-    @test semi isa SemidiscretizationHyperbolicParabolic
-
-    # Use the same Float64 tolerance defaults as `@test_trixi_include` in TrixiTest.jl
+    # Check if the solutions for `SemidiscretizationParabolic` match those from 
+    # `SemidiscretizationHyperbolicParabolic` using the same Float64 tolerance defaults as
+    # `@test_trixi_include` in TrixiTest.jl.
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
-end
-
-@trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                 "elixir_diffusion_ldg_amr_boundary_layer.jl"),
-                        l2=[0.588077335170678], linf=[0.9400281609880542])
-    @trixi_test_nowarn show(stdout, semi) # not tested elsewhere
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 
