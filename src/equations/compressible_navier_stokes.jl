@@ -136,7 +136,7 @@ dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 # Returns
 - `False()`
 
-Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+Used in parabolic CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
 diffusivity is not constant in space and that [`max_diffusivity`](@ref) needs to be computed
 at every node in every element.
 

@@ -246,7 +246,7 @@ boundary_conditions = (; x_neg = boundary_condition_periodic,
                        z_neg = boundary_condition_periodic,
                        z_pos = boundary_condition_periodic)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_periodic,
                                  x_pos = boundary_condition_periodic,
                                  y_neg = boundary_condition_top_bottom,

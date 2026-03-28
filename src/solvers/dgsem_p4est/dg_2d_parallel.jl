@@ -140,7 +140,7 @@ end
 @inline function calc_mpi_interface_flux!(surface_flux_values,
                                           mesh::Union{P4estMeshParallel{2},
                                                       T8codeMeshParallel{2}},
-                                          nonconservative_terms::True, equations,
+                                          have_nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
@@ -321,7 +321,7 @@ end
 @inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
                                        mesh::Union{P4estMeshParallel{2},
                                                    T8codeMeshParallel{2}},
-                                       nonconservative_terms::True, equations,
+                                       have_nonconservative_terms::True, equations,
                                        surface_integral, dg::DG, cache,
                                        mortar_index, position_index, normal_direction,
                                        node_index)

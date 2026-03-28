@@ -192,7 +192,7 @@ function flux(u, gradients, orientation::Integer,
     mu = dynamic_viscosity(u, equations)
 
     if orientation == 1
-        # viscous flux components in the x-direction
+        # parabolic flux components in the x-direction
         f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
@@ -201,7 +201,7 @@ function flux(u, gradients, orientation::Integer,
 
         return SVector(f1, f2, f3, f4, f5)
     elseif orientation == 2
-        # viscous flux components in the y-direction
+        # parabolic flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
         g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
@@ -211,7 +211,7 @@ function flux(u, gradients, orientation::Integer,
 
         return SVector(g1, g2, g3, g4, g5)
     else # if orientation == 3
-        # viscous flux components in the z-direction
+        # parabolic flux components in the z-direction
         # Note, symmetry is exploited for tau_13 = tau_31, tau_23 = tau_32
         h1 = 0
         h2 = tau_13 * mu # tau_31 * mu
@@ -283,7 +283,7 @@ function entropy2cons(w, equations::CompressibleNavierStokesDiffusion3D)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
-# For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
+# For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
@@ -301,7 +301,7 @@ end
 # reverse engineers the gradients to be terms of the primitive variables (v1, v2, v3, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
-# TODO: parabolic; entropy stable viscous terms
+# TODO: parabolic; entropy stable parabolic terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
     return gradient
@@ -614,7 +614,7 @@ end
                                                                   x, t,
                                                                   operator_type::Divergence,
                                                                   equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
+    # for Dirichlet boundary conditions, we do not impose any conditions on the parabolic fluxes
     return flux_inner
 end
 end # @muladd
