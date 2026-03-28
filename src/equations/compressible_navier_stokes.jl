@@ -3,21 +3,16 @@
 abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVariables} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
 
-# This enables "forwarded" accesses to e.g.`equations.gamma` of the "underlying" `equations_hyperbolic`
+# This enables "forwarded" accesses to e.g.`equations_parabolic.gamma` of the "underlying" `equations_hyperbolic`
 # while keeping direct access to parabolic-specific fields like `mu` or `kappa`.
-@inline Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
-field::Symbol) = getproperty(equations_parabolic, Val(field))
-
-# General getter for the "parabolic" fields like `mu` or `kappa`
-@inline Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
-::Val{field}) where {field} = getfield(equations_parabolic, field)
-
-# Specialized getters for the "hyperbolic fields", i.e., `gamma` and `inv_gamma_minus_one`
-@inline Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
-::Val{:gamma}) = equations_parabolic.equations_hyperbolic.gamma
-
-@inline Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
-::Val{:inv_gamma_minus_one}) = equations_parabolic.equations_hyperbolic.inv_gamma_minus_one
+@inline function Base.getproperty(equations_parabolic::Trixi.AbstractCompressibleNavierStokesDiffusion,
+                                  field::Symbol)
+    if field === :gamma || field === :inv_gamma_minus_one
+        return getproperty(equations_parabolic.equations_hyperbolic, field)
+    else
+        return getfield(equations_parabolic, field)
+    end
+end
 
 # TODO: can we generalize this to V(R)-MHD?
 """
