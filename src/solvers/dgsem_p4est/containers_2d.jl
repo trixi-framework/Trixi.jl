@@ -87,51 +87,17 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-# For Gauss-Lobatto-Legendre (GLL) nodes, the interface normals are 
-# simply taken from the element face nodes.
+# For Gauss-Lobatto-Legendre (GLL) nodes, interface normals are computed on-the-fly
+# during flux evaluation and do not need dedicated storage in the interface container.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
-                                 basis::LobattoLegendreBasis,
-                                 elements::P4estElementContainer{2})
-    @unpack neighbor_ids, node_indices, normal_directions = interfaces
-    @unpack contravariant_vectors = elements
-    index_range = eachnode(basis)
-    index_begin = first(index_range)
-    index_end = last(index_range)
-
-    for interface in axes(neighbor_ids, 2)
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
-
-        i_primary, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                           index_begin,
-                                                           index_end)
-        j_primary, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                           index_begin,
-                                                           index_end)
-
-        for i in index_range
-            # Retrieve normal direction at element/volume nodes
-            normal_direction = get_normal_direction(primary_direction,
-                                                    contravariant_vectors,
-                                                    i_primary, j_primary,
-                                                    primary_element)
-            normal_directions[1, i, interface] = normal_direction[1]
-            normal_directions[2, i, interface] = normal_direction[2]
-
-            i_primary += i_primary_step
-            j_primary += j_primary_step
-        end
-    end
-
-    return interfaces
+                                 basis::LobattoLegendreBasis, elements)
+    return nothing
 end
 
 # For Gauss-Legendre (GL) nodes, the interface normals are
 # computed from interpolation of the volume node normals to the surface nodes.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
-                                 basis::GaussLegendreBasis,
-                                 elements::P4estElementContainer{2})
+                                 basis::GaussLegendreBasis, elements)
     @unpack neighbor_ids, node_indices, normal_directions = interfaces
     @unpack contravariant_vectors = elements
     @unpack boundary_interpolation = basis
@@ -205,7 +171,7 @@ function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
         end
     end
 
-    return interfaces
+    return nothing
 end
 
 # Initialize node_indices of interface container

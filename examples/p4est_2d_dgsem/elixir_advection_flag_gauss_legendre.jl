@@ -38,7 +38,7 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 100)
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
-callbacks = CallbackSet(summary_callback, #analysis_callback,
+callbacks = CallbackSet(summary_callback, analysis_callback,
                         stepsize_callback)
 
 ###############################################################################
