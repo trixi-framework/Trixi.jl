@@ -119,8 +119,8 @@ function Trixi.get_node_variable(::Val{:vorticity}, u, mesh, equations, dg, cach
                             n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
                             n_elements)
 
-    @unpack viscous_container = cache_parabolic
-    @unpack gradients = viscous_container
+    @unpack parabolic_container = cache_parabolic
+    @unpack gradients = parabolic_container
     gradients_x, gradients_y = gradients
 
     # We can accelerate the computation by thread-parallelizing the loop over elements

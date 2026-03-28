@@ -1,28 +1,32 @@
-module TestCUDA
+module TestCUDA3D
 
 using Test
 using Trixi
 
 include("test_trixi.jl")
 
+EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+
 # Start with a clean environment: remove Trixi.jl output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
+@testset "CUDA 3D" begin
+#! format: noindent
 
 @trixi_testset "elixir_advection_basic_gpu.jl native" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
-                        l2=8.311947673061856e-6,
-                        linf=6.627000273229378e-5)
+                        l2=[0.00016263963870641478],
+                        linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
-    # TODO: `mesh` is currently not `adapt`ed correctly
+    # TODO: remake ignores the mesh itself as well
     @test real(ode.p.mesh) == Float64
 
     @test ode.u0 isa Array
@@ -38,20 +42,20 @@ end
     # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using CUDA
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
-                        # Expected errors are exactly the same as with TreeMesh!
-                        l2=nothing,   # TODO: GPU. [Float32(8.311947673061856e-6)],
-                        linf=nothing, # TODO: GPU. [Float32(6.627000273229378e-5)],
+                        # Expected errors similar to reference on CPU
+                        l2=[Float32(0.00016263963870641478)],
+                        linf=[Float32(0.0014537194925779984)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
-                        storage_type=CuArray,
-                        sol=nothing,) # TODO: GPU. Remove this once we can run the simulation on the GPU
-    # # Ensure that we do not have excessive memory allocations
-    # # (e.g., from type instabilities)
-    # @test_allocations(Trixi.rhs!, semi, sol, 1000)
+                        storage_type=CuArray)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 1_700_000)
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
-    # TODO: `mesh` is currently not `adapt`ed correctly
+    # TODO: remake ignores the mesh itself as well
     @test real(ode.p.mesh) == Float64
 
     @test ode.u0 isa CuArray
@@ -65,5 +69,5 @@ end
 
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-
+end
 end # module

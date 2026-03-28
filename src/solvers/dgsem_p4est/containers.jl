@@ -960,7 +960,7 @@ function count_required_surfaces(mesh::P4estMesh)
 end
 
 # Return direction of the face, which is indexed by node_indices
-@inline function indices2direction(indices)
+@inline function indices2direction(indices::NTuple{3, Symbol})
     if indices[1] === :begin
         return 1
     elseif indices[1] === :end
@@ -974,6 +974,24 @@ end
     else # if indices[3] === :end
         return 6
     end
+end
+
+@inline function indices2direction(indices::NTuple{2, Symbol})
+    if indices[1] === :begin
+        return 1
+    elseif indices[1] === :end
+        return 2
+    elseif indices[2] === :begin
+        return 3
+    else # if indices[2] === :end
+        return 4
+    end
+end
+
+# Build a reduced cache which can be passed to GPU kernels
+@inline function kernel_filter_cache(cache)
+    return (;
+            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
 end
 
 include("containers_2d.jl")
