@@ -151,17 +151,12 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
 end
 
 # Case for a purely parabolic semidiscretization
-function calculate_dt(u_ode, t, _cfl_hyperbolic, cfl_parabolic,
+function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
                       semi::SemidiscretizationParabolic)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    cfl_para = cfl_parabolic(t)
-    if !(cfl_para > 0)
-        throw(ArgumentError("For `SemidiscretizationParabolic`, set `cfl_parabolic > 0` in `StepsizeCallback`."))
-    end
-
-    return cfl_para * max_dt(u, t, mesh,
+    return cfl_parabolic(t) * max_dt(u, t, mesh,
                   have_constant_diffusivity(equations), equations,
                   equations, solver, cache)
 end
