@@ -886,7 +886,7 @@ end
 
 max_level(controller::AbstractController) = controller.max_level
 
-function create_cache(controller_type::AbstractController, semi)
+function create_cache(controller_type::Type{<:AbstractController}, semi)
     return create_cache(controller_type, mesh_equations_solver_cache(semi)...)
 end
 

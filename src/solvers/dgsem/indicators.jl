@@ -11,13 +11,14 @@ abstract type AbstractIndicator end
 
 function create_cache(typ::Type{IndicatorType},
                       semi) where {IndicatorType <: AbstractIndicator}
-    return create_cache(typ, mesh_equations_solver_cache(semi)...)
+    return create_cache_indicator_for_amr(typ, mesh_equations_solver_cache(semi)...)
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorType},
-                      mesh, equations::AbstractEquations, dg::DGSEM,
-                      cache) where {IndicatorType <: AbstractIndicator}
+function create_cache_indicator_for_amr(typ::Type{IndicatorType},
+                                        mesh, equations::AbstractEquations, dg::DGSEM,
+                                        cache) where {IndicatorType <:
+                                                      AbstractIndicator}
     return create_cache(typ, equations, dg.basis)
 end
 
