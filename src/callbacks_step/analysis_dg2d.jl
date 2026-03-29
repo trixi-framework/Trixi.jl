@@ -138,7 +138,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, _u, t, analyzer,
+function calc_error_norms(func, u, t, analyzer,
                           mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                       UnstructuredMesh2D,
                                       P4estMesh{2}, P4estMeshView{2},
@@ -147,16 +147,13 @@ function calc_error_norms(func, _u, t, analyzer,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
+    @unpack node_coordinates, inverse_jacobian = cache.elements
 
-    # TODO GPU AnalysisCallback currently lives on CPU
-    backend = trixi_backend(_u)
-    if backend isa Nothing # TODO GPU KA CPU backend
-        @unpack node_coordinates, inverse_jacobian = cache.elements
-        u = _u
-    else
-        node_coordinates = Array(cache.elements.node_coordinates)
-        inverse_jacobian = Array(cache.elements.inverse_jacobian)
-        u = Array(_u)
+    # Calculate error norms on the CPU, to ensure the oder of summation is the same.
+    if trixi_backend(u) !== nothing
+        node_coordinates = Array(node_coordinates)
+        inverse_jacobian = Array(inverse_jacobian)
+        u = Array(u)
     end
 
     # Set up data structures
@@ -399,34 +396,34 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # `func(u, 1,1,1, equations, dg, args...)` might access GPU memory
     # so we have to rely on the compiler to correctly infer the type of the integral here.
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
-    integral₀ = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
+    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
                                      typeof(dg), map(typeof, args)...))
-    init = neutral = (integral₀, zero(real(mesh)))
+    init = neutral = (integral0, zero(real(mesh)))
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
-    _integral, _total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
+    integral, total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
                                                             backend; init,
                                                             neutral) do element
-        # Initialize integral with zeros of the right shape
-        integral, total_volume = neutral
+        # Initialize integral with zeros of the right shapeu
+        local_integral, local_total_volume = neutral
 
         for j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
-            integral += volume_jacobian * weights[i] * weights[j] *
-                        func(u, i, j, element, equations, dg, args...)
-            total_volume += volume_jacobian * weights[i] * weights[j]
+            local_integral += volume_jacobian * weights[i] * weights[j] *
+                              func(u, i, j, element, equations, dg, args...)
+            local_total_volume += volume_jacobian * weights[i] * weights[j]
         end
 
-        return (integral, total_volume)
+        return (local_integral, local_total_volume)
     end
 
     # Normalize with total volume
     if normalize
-        _integral = _integral / _total_volume
+        integral = integral / total_volume
     end
 
-    return _integral
+    return integral
 end
 
 function integrate(func::Func, u,
