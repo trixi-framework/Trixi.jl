@@ -94,8 +94,8 @@ See also [`@trixi_timeit`](@ref).
 macro trixi_timeit_ext(backend, timer_output, label, expr)
     expr = quote
         local val = $(esc(expr))
-        if $(esc(backend)) !== nothing
-            (KernelAbstractions.synchronize)($(esc(backend)))
+        if $(esc(backend)) !== nothing && $(TrixiBase).timeit_debug_enabled()
+            $(KernelAbstractions.synchronize)($(esc(backend)))
         end
         val
     end
