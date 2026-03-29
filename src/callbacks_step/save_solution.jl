@@ -42,8 +42,8 @@ function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
 end
 ```
 
-For hyperbolic-parabolic equations, `equations_parabolic` and `cache_parabolic`
-must be added:
+For hyperbolic-parabolic equations, `equations_parabolic` and `cache_parabolic` must be 
+added:
 ```julia
 function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
