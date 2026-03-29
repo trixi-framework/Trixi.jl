@@ -181,6 +181,20 @@ function get_node_variables!(node_variables, u_ode,
                                semi.cache_parabolic)
 end
 
+"""
+    linear_structure(semi::SemidiscretizationParabolic;
+                     t0 = zero(real(semi)))
+
+Wraps the right-hand side operator of the parabolic semidiscretization `semi`
+at time `t0` as an affine-linear operator given by a linear operator `A`
+and a vector `b`:
+```math
+\\partial_t u(t) = A u(t) - b.
+```
+Works only for equations for which `have_constant_diffusivity(equations) == True()`.
+As in [`linear_structure(semi::AbstractSemidiscretization)`](@ref), returns `A` and `b`,
+with `A` represented as a matrix-free `LinearMap`.
+"""
 function linear_structure(semi::SemidiscretizationParabolic;
                           t0 = zero(real(semi)))
     if have_constant_diffusivity(semi.equations) == False()
