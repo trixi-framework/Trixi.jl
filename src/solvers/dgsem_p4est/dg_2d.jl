@@ -95,8 +95,8 @@ end
 
 @kernel function prolong2interfaces_KAkernel!(interfaces_u, u,
                                               MeshT::Type{<:Union{P4estMesh{2},
-                                                               P4estMeshView{2},
-                                                               T8codeMesh{2}}},
+                                                                  P4estMeshView{2},
+                                                                  T8codeMesh{2}}},
                                               equations, neighbor_ids,
                                               node_indices, index_range)
     interface = @index(Global)
@@ -196,8 +196,8 @@ end
 
 @kernel function calc_interface_flux_KAkernel!(surface_flux_values,
                                                MeshT::Type{<:Union{P4estMesh{2},
-                                                                P4estMeshView{2},
-                                                                T8codeMesh{2}}},
+                                                                   P4estMeshView{2},
+                                                                   T8codeMesh{2}}},
                                                have_nonconservative_terms,
                                                equations, surface_integral,
                                                SolverT::Type{<:DG}, u_interface,
@@ -213,8 +213,8 @@ end
 
 @inline function calc_interface_flux_per_interface!(surface_flux_values,
                                                     MeshT::Type{<:Union{P4estMesh{2},
-                                                                     P4estMeshView{2},
-                                                                     T8codeMesh{2}}},
+                                                                        P4estMeshView{2},
+                                                                        T8codeMesh{2}}},
                                                     have_nonconservative_terms,
                                                     equations, surface_integral,
                                                     SolverT::Type{<:DG},
@@ -264,8 +264,8 @@ end
                                                 primary_element)
 
         calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
-                             equations, surface_integral, SolverT, u_interface, interface,
-                             normal_direction, node, primary_direction,
+                             equations, surface_integral, SolverT, u_interface,
+                             interface, normal_direction, node, primary_direction,
                              primary_element, node_secondary,
                              secondary_direction, secondary_element)
 
@@ -340,16 +340,16 @@ end
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::False,
                                       equations,
-                                      surface_integral, SolverT::Type{<:DG}, u_interface,
-                                      interface_index, normal_direction,
+                                      surface_integral, SolverT::Type{<:DG},
+                                      u_interface, interface_index, normal_direction,
                                       primary_node_index, primary_direction_index,
                                       primary_element_index,
                                       secondary_node_index, secondary_direction_index,
                                       secondary_element_index)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
-    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT, primary_node_index,
-                                       interface_index)
+    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
+                                       primary_node_index, interface_index)
 
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -378,16 +378,16 @@ end
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::True,
                                       equations,
-                                      surface_integral, SolverT::Type{<:DG}, u_interface,
-                                      interface_index, normal_direction,
+                                      surface_integral, SolverT::Type{<:DG},
+                                      u_interface, interface_index, normal_direction,
                                       primary_node_index, primary_direction_index,
                                       primary_element_index,
                                       secondary_node_index, secondary_direction_index,
                                       secondary_element_index)
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT, primary_node_index,
-                                       interface_index)
+    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
+                                       primary_node_index, interface_index)
 
     flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -935,8 +935,8 @@ end
 
 @kernel function calc_surface_integral_KAkernel!(du,
                                                  MeshT::Type{<:Union{P4estMesh{2},
-                                                                  P4estMeshView{2},
-                                                                  T8codeMesh{2}}},
+                                                                     P4estMeshView{2},
+                                                                     T8codeMesh{2}}},
                                                  equations,
                                                  surface_integral::SurfaceIntegralWeakForm,
                                                  dg::DGSEM, factor,

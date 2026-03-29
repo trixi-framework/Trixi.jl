@@ -769,11 +769,11 @@ end
 
 @kernel function apply_jacobian_KAkernel!(du,
                                           MeshT::Type{<:Union{StructuredMesh{2},
-                                                           StructuredMeshView{2},
-                                                           UnstructuredMesh2D,
-                                                           P4estMesh{2},
-                                                           P4estMeshView{2},
-                                                           T8codeMesh{2}}},
+                                                              StructuredMeshView{2},
+                                                              UnstructuredMesh2D,
+                                                              P4estMesh{2},
+                                                              P4estMeshView{2},
+                                                              T8codeMesh{2}}},
                                           equations, dg::DG, inverse_jacobian)
     element = @index(Global)
     apply_jacobian_per_element!(du, MeshT, equations, dg, inverse_jacobian, element)
