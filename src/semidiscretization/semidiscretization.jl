@@ -241,10 +241,6 @@ function _linear_structure_from_rhs(semi::AbstractSemidiscretization, apply_rhs!
     u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
     du_ode = similar(u_ode)
 
-    return _linear_structure_from_rhs(u_ode, du_ode, apply_rhs!)
-end
-
-function _linear_structure_from_rhs(u_ode, du_ode, apply_rhs!)
     # get the right hand side from boundary conditions and optional source terms
     u_ode .= zero(eltype(u_ode))
     apply_rhs!(du_ode, u_ode)
@@ -256,10 +252,10 @@ function _linear_structure_from_rhs(u_ode, du_ode, apply_rhs!)
     b_tmp = copy(b)
 
     # wrap the linear operator
-    A = LinearMap(length(u_ode), ismutating = true) do du_ode, u_ode
-        apply_rhs!(du_ode, u_ode)
-        @. du_ode += b_tmp
-        return du_ode
+    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+        apply_rhs!(dest, src)
+        @. dest += b_tmp
+        return dest
     end
 
     return A, b
@@ -299,8 +295,8 @@ function linear_structure(semi::AbstractSemidiscretization;
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
-    apply_rhs! = function (du_ode, u_ode)
-        return rhs!(du_ode, u_ode, semi, t0)
+    apply_rhs! = function (dest, src)
+        return rhs!(dest, src, semi, t0)
     end
 
     return _linear_structure_from_rhs(semi, apply_rhs!)

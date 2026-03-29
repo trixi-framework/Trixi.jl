@@ -73,7 +73,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 # Analysis callback quantifies discretization/interpolation error of the exact solution
-analysis_callback = AnalysisCallback(semi, analysis_integrals = ())
+analysis_callback = AnalysisCallback(semi)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback)
 

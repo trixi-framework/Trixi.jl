@@ -187,8 +187,8 @@ function linear_structure(semi::SemidiscretizationParabolic;
         throw(ArgumentError("`linear_structure` expects equations with constant diffusive terms."))
     end
 
-    apply_rhs! = function (du_ode, u_ode)
-        return rhs!(du_ode, u_ode, semi, t0)
+    apply_rhs! = function (dest, src)
+        return rhs!(dest, src, semi, t0)
     end
 
     return _linear_structure_from_rhs(semi, apply_rhs!)

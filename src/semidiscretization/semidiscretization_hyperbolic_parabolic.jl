@@ -427,19 +427,17 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
-    # Preallocate once to avoid repeated temporary allocations in `apply_rhs!`.
-    u_ode_template = allocate_coefficients(mesh_equations_solver_cache(semi)...)
-    du_ode_template = similar(u_ode_template)
-    du_ode_parabolic = similar(du_ode_template)
+    # additional storage for parabolic part
+    dest_para = allocate_coefficients(mesh_equations_solver_cache(semi)...)
 
-    apply_rhs! = function (du_ode, u_ode)
-        rhs!(du_ode, u_ode, semi, t0)
-        rhs_parabolic!(du_ode_parabolic, u_ode, semi, t0)
-        @. du_ode += du_ode_parabolic
-        return du_ode
+    apply_rhs! = function (dest, src)
+        rhs!(dest, src, semi, t0)
+        rhs_parabolic!(dest_para, src, semi, t0)
+        @. dest += dest_para
+        return dest
     end
 
-    return _linear_structure_from_rhs(u_ode_template, du_ode_template, apply_rhs!)
+    return _linear_structure_from_rhs(semi, apply_rhs!)
 end
 
 function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u0_ode,
@@ -496,8 +494,8 @@ function linear_structure_parabolic(semi::SemidiscretizationHyperbolicParabolic;
         throw(ArgumentError("`linear_structure_parabolic` expects equations with constant diffusive terms."))
     end
 
-    apply_rhs! = function (du_ode, u_ode)
-        return rhs_parabolic!(du_ode, u_ode, semi, t0)
+    apply_rhs! = function (dest, src)
+        return rhs_parabolic!(dest, src, semi, t0)
     end
 
     return _linear_structure_from_rhs(semi, apply_rhs!)
