@@ -25,7 +25,7 @@ and the second parameter is the equation struct.
 Additional nodal variables such as vorticity or the Mach number can be saved by passing a tuple of symbols
 to `extra_node_variables`, e.g., `extra_node_variables = (:vorticity, :mach)`.
 In that case the function `get_node_variable` must be defined for each symbol in the tuple.
-For purely hyperbolic equations, the expected signature is:
+The expected signature of the function for (purely) hyperbolic equations is:
 ```julia
 function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache)
     # Implementation goes here
