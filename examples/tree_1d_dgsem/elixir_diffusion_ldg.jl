@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the pure diffusion equation
+# semidiscretization of the (pure) linear diffusion equation
 
 diffusivity() = 0.5
 equations = LinearDiffusionEquation1D(diffusivity())
