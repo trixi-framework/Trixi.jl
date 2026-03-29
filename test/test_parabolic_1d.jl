@@ -550,7 +550,7 @@ end
     @test semi_remade isa SemidiscretizationParabolic
     @test semi_remade !== semi
     @test semi_remade.mesh === semi.mesh
-    @test ndofsglobal(semi_remade) == ndofsglobal(semi)
+    @test Trixi.ndofsglobal(semi_remade) == Trixi.ndofsglobal(semi)
 end
 
 @trixi_testset "TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" begin
