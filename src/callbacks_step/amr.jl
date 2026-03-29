@@ -213,33 +213,13 @@ end
 end
 
 @inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
-                                             semi::SemidiscretizationHyperbolicParabolic,
+                                             semi::Union{SemidiscretizationHyperbolicParabolic,
+                                                         SemidiscretizationParabolic},
                                              t, iter;
                                              kwargs...)
     # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
     # it when doing AMR while still dispatching on the `mesh` etc.
     return amr_callback(u_ode, mesh_equations_solver_cache(semi)...,
-                        semi.cache_parabolic,
-                        semi, t, iter; kwargs...)
-end
-
-@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
-                                             semi::SemidiscretizationParabolic,
-                                             t, iter;
-                                             kwargs...)
-    # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
-    # it when doing AMR while still dispatching on the `mesh` etc.
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-
-    if !(mesh isa TreeMesh{1})
-        throw(ArgumentError("Purely parabolic AMR is currently implemented for `TreeMesh{1}` only."))
-    end
-
-    if mpi_isparallel()
-        throw(ArgumentError("Purely parabolic AMR is currently implemented for serial runs only."))
-    end
-
-    return amr_callback(u_ode, mesh, equations, dg, cache,
                         semi.cache_parabolic,
                         semi, t, iter; kwargs...)
 end

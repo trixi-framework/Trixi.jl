@@ -532,16 +532,32 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_amr_boundary_layer.jl"),
                         l2=[0.5881457102264551], linf=[0.9302621795999283])
-    @trixi_test_nowarn show(stdout, semi) # not tested elsewhere
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test `show` method not exercised in elixirs
+    @trixi_test_nowarn show(IOContext(stdout, :compact => true), MIME"text/plain"(),
+                            semi)
+
+    # Test basic semidiscretization dispatches
+    @test ndims(semi) == ndims(semi.mesh)
+    @test nvariables(semi) == nvariables(semi.equations)
+    @test real(semi) == real(semi.solver)
+
+    # Test that `remake` works for `SemidiscretizationParabolic`
+    semi_remade = remake(semi)
+    @test semi_remade isa SemidiscretizationParabolic
+    @test semi_remade !== semi
+    @test semi_remade.mesh === semi.mesh
+    @test ndofsglobal(semi_remade) == ndofsglobal(semi)
 end
 
 @trixi_testset "TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" begin
     # Run the Dirichlet-Dirichlet elixir (uses `SemidiscretizationParabolic`)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_dirichlet.jl"),
+                        tspan=(0.0, 0.1),
                         analysis_callback=AnalysisCallback(semi,
                                                            interval = 100,
                                                            extra_analysis_errors = (:l2_error_primitive,
@@ -558,6 +574,7 @@ end
     # Run again using an advection-diffusion equation with advection velocity zero
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_dirichlet.jl"),
+                        tspan=(0.0, 0.1),
                         equations=LinearScalarAdvectionEquation1D(0.0),
                         semi=SemidiscretizationHyperbolicParabolic(mesh,
                                                                    (equations,
