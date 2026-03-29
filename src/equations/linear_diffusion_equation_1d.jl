@@ -8,10 +8,13 @@
 @doc raw"""
     LinearDiffusionEquation1D(diffusivity)
 
-The linear diffusion equation (or heat equation) in one space dimension with constant diffusivity `\kappa`:
+The linear diffusion equation (or heat equation) in one space dimension with constant `diffusivity` ``\kappa``:
 ```math
-\partial_t u = \partial_1 \left( \kappa \partial_1 u \right)
+\partial_t u = \partial_1 \left( \kappa \partial_1 u \right).
 ```
+Unlike [`LaplaceDiffusion1D`](@ref), which represents the parabolic part of a 
+hyperbolic-parabolic equation, `LinearDiffusionEquation1D` represents a purely parabolic
+equation without any hyperbolic part.
 """
 struct LinearDiffusionEquation1D{RealT <: Real} <: AbstractLaplaceDiffusion{1, 1}
     diffusivity::RealT
