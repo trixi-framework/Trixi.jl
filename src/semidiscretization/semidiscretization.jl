@@ -236,6 +236,7 @@ function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
                                  mesh_equations_solver_cache(semi)...)
 end
 
+# Helper function to compute linear structure for a given semidiscretization and `rhs!`
 function _linear_structure_from_rhs(semi::AbstractSemidiscretization, apply_rhs!)
     # allocate memory
     u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
