@@ -529,7 +529,6 @@ end
 end
 
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
-    @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_diffusion_ldg_amr_boundary_layer.jl"),
                         l2=[0.5881457102264551], linf=[0.9302621795999283])
@@ -537,7 +536,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
 end
 
 @trixi_testset "TreeMesh1D consistency check: elixir_diffusion_ldg_dirichlet.jl" begin
