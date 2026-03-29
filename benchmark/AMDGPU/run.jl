@@ -3,9 +3,6 @@ using AMDGPU
 using TimerOutputs
 using JSON
 
-import GPUArraysCore
-GPUArraysCore.allowscalar(false)
-
 function main(elixir_path)
 
     # setup
