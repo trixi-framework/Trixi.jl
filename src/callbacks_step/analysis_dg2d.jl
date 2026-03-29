@@ -149,7 +149,7 @@ function calc_error_norms(func, u, t, analyzer,
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
 
-    # Calculate error norms on the CPU, to ensure the oder of summation is the same.
+    # Calculate error norms on the CPU, to ensure the order of summation is the same.
     if trixi_backend(u) !== nothing
         node_coordinates = Array(node_coordinates)
         inverse_jacobian = Array(inverse_jacobian)
