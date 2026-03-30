@@ -25,11 +25,12 @@ const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", tru
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cross,
+using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
+                     cross,
                      normalize, I,
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
-using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
+using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
                     rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
@@ -59,7 +60,8 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
+using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend,
+                          allocate
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices
@@ -77,7 +79,6 @@ using P4est
 using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
-using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
@@ -147,6 +148,7 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_coupled_p4est.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
@@ -235,7 +237,7 @@ export boundary_condition_do_nothing,
        BoundaryConditionNavierStokesWall,
        NoSlip, Slip,
        Adiabatic, Isothermal,
-       BoundaryConditionCoupled
+       BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,
@@ -307,14 +309,14 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk53_3Sstar!,
        timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SemidiscretizationCoupled
+export SemidiscretizationCoupled, SemidiscretizationCoupledP4est
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback, LimitingAnalysisCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled,
+       TrivialCallback, AnalysisCallbackCoupled, AnalysisCallbackCoupledP4est,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
        DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
        DragCoefficientPressure3D, LiftCoefficientPressure3D
@@ -338,7 +340,7 @@ export convergence_test,
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
-export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
+export ParabolicFormulationBassiRebay1, ParabolicFormulationLocalDG
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
@@ -352,11 +354,6 @@ function __init__()
     init_t8code()
 
     register_error_hints()
-
-    # Enable features that depend on the availability of the Plots package
-    @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-        using .Plots: Plots
-    end
 end
 
 include("auxiliary/precompile.jl")

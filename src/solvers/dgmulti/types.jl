@@ -22,9 +22,10 @@ const DGMultiWeakForm{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxTyp
 const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
                                                       <:Union{VolumeIntegralFluxDifferencing,
-                                                              VolumeIntegralShockCapturingHGType}} where {
-                                                                                                          NDIMS
-                                                                                                          }
+                                                              VolumeIntegralShockCapturingHGType,
+                                                              VolumeIntegralAdaptiveEC_WF_DG}} where {
+                                                                                                      NDIMS
+                                                                                                      }
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
@@ -338,30 +339,6 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, filename::String;
     boundary_faces = Dict(Pair.(keys(md.mesh_type.boundary_faces),
                                 values(md.mesh_type.boundary_faces)))
     return DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_faces)
-end
-
-# Matrix type for lazy construction of physical differentiation matrices
-# Constructs a lazy linear combination of B = ∑_i coeffs[i] * A[i]
-struct LazyMatrixLinearCombo{Tcoeffs, N, Tv, TA <: AbstractMatrix{Tv}} <:
-       AbstractMatrix{Tv}
-    matrices::NTuple{N, TA}
-    coeffs::NTuple{N, Tcoeffs}
-    function LazyMatrixLinearCombo(matrices, coeffs)
-        @assert all(matrix -> size(matrix) == size(first(matrices)), matrices)
-        return new{typeof(first(coeffs)), length(matrices), eltype(first(matrices)),
-                   typeof(first(matrices))}(matrices, coeffs)
-    end
-end
-Base.eltype(A::LazyMatrixLinearCombo) = eltype(first(A.matrices))
-Base.IndexStyle(A::LazyMatrixLinearCombo) = IndexCartesian()
-Base.size(A::LazyMatrixLinearCombo) = size(first(A.matrices))
-
-@inline function Base.getindex(A::LazyMatrixLinearCombo{<:Real, N}, i, j) where {N}
-    val = zero(eltype(A))
-    for k in Base.OneTo(N)
-        val = val + A.coeffs[k] * getindex(A.matrices[k], i, j)
-    end
-    return val
 end
 
 # `SimpleKronecker` lazily stores a Kronecker product `kron(ntuple(A, NDIMS)...)`.

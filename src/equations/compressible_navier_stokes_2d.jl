@@ -96,7 +96,7 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
-    max_4over3_kappa::RealT    # max(4/3, kappa) used for diffusive CFL => `max_diffusivity`
+    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -185,7 +185,7 @@ function flux(u, gradients, orientation::Integer,
     mu = dynamic_viscosity(u, equations)
 
     if orientation == 1
-        # viscous flux components in the x-direction
+        # parabolic flux components in the x-direction
         f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
@@ -193,7 +193,7 @@ function flux(u, gradients, orientation::Integer,
 
         return SVector(f1, f2, f3, f4)
     else # if orientation == 2
-        # viscous flux components in the y-direction
+        # parabolic flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
         g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
@@ -263,7 +263,7 @@ function entropy2cons(w, equations::CompressibleNavierStokesDiffusion2D)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
-# For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
+# For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
@@ -281,7 +281,7 @@ end
 # reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
-# TODO: parabolic; entropy stable viscous terms
+# TODO: parabolic; entropy stable parabolic terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
     return gradient
@@ -579,7 +579,7 @@ end
                                                                   x, t,
                                                                   operator_type::Divergence,
                                                                   equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
-    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
+    # for Dirichlet boundary conditions, we do not impose any conditions on the parabolic fluxes
     return flux_inner
 end
 end # @muladd

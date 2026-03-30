@@ -498,6 +498,33 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        l2=[
+                            0.24806841083939926,
+                            0.07001337223874464,
+                            0.07001337223806398,
+                            0.0700133722383429,
+                            0.3620366037665587
+                        ],
+                        linf=[
+                            0.9384071822566761,
+                            0.573009568617271,
+                            0.5730095685845291,
+                            0.5730095686063774,
+                            4.861205850307592
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
 end
 
 end # module

@@ -35,61 +35,6 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
     return cache
 end
 
-function rhs!(du, u, t,
-              mesh::UnstructuredMesh2D, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    #  Note! this routine is reused from dgsem_structured/dg_2d.jl
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
-
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
 function prolong2interfaces!(cache, u, mesh::UnstructuredMesh2D, equations, dg::DG)
@@ -309,8 +254,7 @@ function prolong2boundaries!(cache, u,
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 
@@ -319,8 +263,7 @@ end
 
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
@@ -477,7 +420,7 @@ end
 #          -----------------                  -----------------
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
-function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
+function calc_surface_integral!(backend, du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral, dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements

@@ -441,6 +441,169 @@ end
     end
 end
 
+@testset "PlotData2D Regression Tests" begin
+    using Trixi
+    equations = CompressibleEulerEquations2D(1.4)
+    solver = DGSEM(polydeg = 3,
+                   surface_flux = FluxLaxFriedrichs(max_abs_speed_naive))
+
+    coordinates_min = (-1.0, -1.0)
+    coordinates_max = (1.0, 1.0)
+    initial_refinement_level = 3
+
+    # Manually initialize meshes
+    mesh_tree = TreeMesh(coordinates_min, coordinates_max;
+                         n_cells_max = 10^5,
+                         initial_refinement_level,
+                         periodicity = true)
+
+    trees_per_dimension = (1, 1)
+    mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 3,
+                           coordinates_min, coordinates_max,
+                           initial_refinement_level,
+                           periodicity = true)
+
+    cells_per_dimension = (2, 2) .^ initial_refinement_level
+    mesh_structured = StructuredMesh(cells_per_dimension,
+                                     coordinates_min, coordinates_max,
+                                     periodicity = true)
+
+    function initial_condition_taylor_green_vortex(x, t,
+                                                   equations::CompressibleEulerEquations2D)
+        A = 1.0 # magnitude of speed
+        Ms = 0.1 # maximum Mach number
+
+        rho = 1.0
+        v1 = A * sin(x[1]) * cos(x[2])
+        v2 = -A * cos(x[1]) * sin(x[2])
+        p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
+        p = p +
+            1.0 / 16.0 * A^2 * rho *
+            (cos(2 * x[1]) + 2 * cos(2 * x[2]) +
+             2 * cos(2 * x[1]) + cos(2 * x[2]))
+
+        return prim2cons(SVector(rho, v1, v2, p), equations)
+    end
+
+    @testset "Constant IC (Exact Checks)" begin
+        ic = initial_condition_constant
+
+        @testset "TreeMesh" begin
+            semi_tree = SemidiscretizationHyperbolic(mesh_tree, equations, ic, solver;
+                                                     boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_tree)
+            pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
+
+            ref_cons = Trixi.initial_condition_constant(SVector(0.0, 0.0), 0.0,
+                                                        semi_tree.equations)
+            ref_prim = cons2prim(ref_cons, semi_tree.equations)
+
+            @test all(x -> isapprox(x, ref_prim[1]), pd.data[1]) # rho
+            @test all(x -> isapprox(x, ref_prim[2]), pd.data[2]) # v1
+            @test all(x -> isapprox(x, ref_prim[3]), pd.data[3]) # v2
+            @test all(x -> isapprox(x, ref_prim[4]), pd.data[4]) # p
+        end
+
+        @testset "StructuredMesh" begin
+            semi_struct = SemidiscretizationHyperbolic(mesh_structured, equations, ic,
+                                                       solver;
+                                                       boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_struct)
+            pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
+
+            ref_cons = Trixi.initial_condition_constant(SVector(0.0, 0.0), 0.0,
+                                                        semi_struct.equations)
+            ref_prim = cons2prim(ref_cons, semi_struct.equations)
+
+            @test all(val -> isapprox(val[1], ref_prim[1]), pd.data) # rho
+            @test all(val -> isapprox(val[2], ref_prim[2]), pd.data) # v1
+            @test all(val -> isapprox(val[3], ref_prim[3]), pd.data) # v2
+            @test all(val -> isapprox(val[4], ref_prim[4]), pd.data) # p
+        end
+
+        @testset "P4estMesh" begin
+            semi_p4est = SemidiscretizationHyperbolic(mesh_p4est, equations, ic, solver;
+                                                      boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_p4est)
+            pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
+
+            ref_cons = Trixi.initial_condition_constant(SVector(0.0, 0.0), 0.0,
+                                                        semi_p4est.equations)
+            ref_prim = cons2prim(ref_cons, semi_p4est.equations)
+
+            @test all(val -> isapprox(val[1], ref_prim[1]), pd.data) # rho
+            @test all(val -> isapprox(val[2], ref_prim[2]), pd.data) # v1
+            @test all(val -> isapprox(val[3], ref_prim[3]), pd.data) # v2
+            @test all(val -> isapprox(val[4], ref_prim[4]), pd.data) # p
+        end
+    end
+
+    @testset "Non-Constant IC (Taylor-Green Vortex)" begin
+        ic = initial_condition_taylor_green_vortex
+
+        @testset "TreeMesh" begin
+            semi_tree = SemidiscretizationHyperbolic(mesh_tree, equations, ic, solver;
+                                                     boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_tree)
+            pd = PlotData2D(u_ode, semi_tree, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for (j, y) in enumerate(pd.y), (i, x) in enumerate(pd.x)
+                u_exact = ic(SVector(x, y), 0.0, semi_tree.equations)
+                prim_exact = cons2prim(u_exact, semi_tree.equations)
+                prim_interp = SVector(pd.data[1][i, j], pd.data[2][i, j],
+                                      pd.data[3][i, j], pd.data[4][i, j])
+
+                current_error = maximum(abs.(prim_interp - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            # Note that PlotData2D for TreeMesh uses a different algorithm that interpolates
+            # the solution onto a uniform Cartesian grid. This is less accurate than the
+            # exact nodal evaluations above, so we need to use a larger tolerance.
+            @test max_error < 1.05
+        end
+
+        @testset "StructuredMesh" begin
+            semi_struct = SemidiscretizationHyperbolic(mesh_structured, equations, ic,
+                                                       solver;
+                                                       boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_struct)
+            pd = PlotData2D(u_ode, semi_struct, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for i in eachindex(pd.x)
+                x = pd.x[i]
+                y = pd.y[i]
+                u_exact = ic(SVector(x, y), 0.0, semi_struct.equations)
+                prim_exact = cons2prim(u_exact, semi_struct.equations)
+
+                current_error = maximum(abs.(pd.data[i] - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            @test max_error < 1.0e-5
+        end
+
+        @testset "P4estMesh" begin
+            semi_p4est = SemidiscretizationHyperbolic(mesh_p4est, equations, ic, solver;
+                                                      boundary_conditions = boundary_condition_periodic)
+            u_ode = compute_coefficients(0.0, semi_p4est)
+            pd = PlotData2D(u_ode, semi_p4est, solution_variables = cons2prim)
+
+            max_error = 0.0
+            for i in eachindex(pd.x)
+                x = pd.x[i]
+                y = pd.y[i]
+                u_exact = ic(SVector(x, y), 0.0, semi_p4est.equations)
+                prim_exact = cons2prim(u_exact, semi_p4est.equations)
+
+                current_error = maximum(abs.(pd.data[i] - prim_exact))
+                max_error = max(max_error, current_error)
+            end
+            @test max_error < 1.0e-5
+        end
+    end
+end
+
 @timed_testset "PlotData1D (DGMulti)" begin
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`

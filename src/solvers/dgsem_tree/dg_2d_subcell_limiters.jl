@@ -29,7 +29,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                                  nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.maxthreadid()]
 
-    antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
+    n_elements = nelements(cache_containers.elements)
+    antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(n_elements,
                                                                  nvariables(equations),
                                                                  nnodes(dg))
 
@@ -62,9 +63,9 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
 end
 
 # Subcell limiting currently only implemented for certain mesh types
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           P4estMesh{2}, P4estMesh{3}},
+                                           P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache, t, boundary_conditions)
@@ -101,7 +102,7 @@ function calc_volume_integral!(du, u,
         # Loop over pure DG elements
         @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
             element = element_ids_dg[idx_element]
-            flux_differencing_kernel!(du, u, element, mesh,
+            flux_differencing_kernel!(du, u, element, typeof(mesh),
                                       have_nonconservative_terms, equations,
                                       volume_integral.volume_flux_dg, dg, cache)
         end
@@ -109,7 +110,7 @@ function calc_volume_integral!(du, u,
         # Loop over blended DG-FV elements
         @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
             element = element_ids_dgfv[idx_element]
-            volume_integral_kernel!(du, u, element, mesh,
+            volume_integral_kernel!(du, u, element, typeof(mesh),
                                     have_nonconservative_terms, equations,
                                     volume_integral, limiter,
                                     dg, cache)
@@ -118,7 +119,7 @@ function calc_volume_integral!(du, u,
         # Loop over all elements
         @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for element in eachelement(dg,
                                                                                                 cache)
-            volume_integral_kernel!(du, u, element, mesh,
+            volume_integral_kernel!(du, u, element, typeof(mesh),
                                     have_nonconservative_terms, equations,
                                     volume_integral, limiter,
                                     dg, cache)
@@ -129,8 +130,9 @@ function calc_volume_integral!(du, u,
 end
 
 @inline function volume_integral_kernel!(du, u, element,
-                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                     P4estMesh{2}},
+                                         MeshT::Type{<:Union{TreeMesh{2},
+                                                             StructuredMesh{2},
+                                                             P4estMesh{2}}},
                                          have_nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          limiter::SubcellLimiterIDP,
@@ -145,7 +147,7 @@ end
     fhat1_R = fhat1_R_threaded[Threads.threadid()]
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
-    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
+    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, MeshT,
                    have_nonconservative_terms, equations, volume_flux_dg, dg, element,
                    cache)
 
@@ -156,14 +158,15 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                  have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                            u, mesh, have_nonconservative_terms, equations, limiter, dg,
+                            u, MeshT, have_nonconservative_terms, equations, limiter,
+                            dg,
                             element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
@@ -180,8 +183,9 @@ end
 end
 
 @inline function volume_integral_kernel!(du, u, element,
-                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                     P4estMesh{2}},
+                                         MeshT::Type{<:Union{TreeMesh{2},
+                                                             StructuredMesh{2},
+                                                             P4estMesh{2}}},
                                          nonconservative_terms::False, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          limiter::SubcellLimiterMCL,
@@ -195,7 +199,7 @@ end
     fhat1_R = fhat1_R_threaded[Threads.threadid()]
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
-    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
+    calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, MeshT,
                    nonconservative_terms, equations, volume_flux_dg, dg, element,
                    cache)
 
@@ -205,18 +209,18 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                  nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                            u, mesh, nonconservative_terms, equations, limiter, dg,
+                            u, MeshT, nonconservative_terms, equations, limiter, dg,
                             element, cache)
 
     # limit antidiffusive flux
-    calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms, equations,
+    calcflux_antidiffusive_limited!(u, MeshT, nonconservative_terms, equations,
                                     limiter, dg, element, cache,
                                     fstar1_L, fstar2_L)
 
@@ -245,7 +249,8 @@ end
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, have_nonconservative_terms::False,
+                                ::Type{<:TreeMesh{2}},
+                                have_nonconservative_terms::False,
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
@@ -283,9 +288,11 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1), v in eachvariable(equations)
-        fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
-        fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
+            fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -304,9 +311,11 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg), v in eachvariable(equations)
-        fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
-        fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
+            fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
+        end
     end
 
     return nothing
@@ -324,7 +333,7 @@ end
 #   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, have_nonconservative_terms::True,
+                                ::Type{<:TreeMesh{2}}, have_nonconservative_terms::True,
                                 equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
@@ -503,7 +512,7 @@ end
 # The calculation of the non-conservative staggered "fluxes" requires non-conservative
 # terms that can be written as a product of local and jump contributions.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, nonconservative_terms::True,
+                                ::Type{<:TreeMesh{2}}, nonconservative_terms::True,
                                 equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
@@ -741,8 +750,8 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                     P4estMesh{2}},
+                                         ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                        P4estMesh{2}}},
                                          have_nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -778,8 +787,8 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                                     P4estMesh{2}},
+                                         ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                        P4estMesh{2}}},
                                          have_nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -2054,66 +2063,5 @@ end
     end
 
     return nothing
-end
-
-"""
-    get_boundary_outer_state(u_inner, t,
-                             boundary_condition::BoundaryConditionDirichlet,
-                             orientation_or_normal, direction,
-                             mesh, equations, dg, cache, indices...)
-For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
-outer state. This function returns the boundary value  for [`BoundaryConditionDirichlet`](@ref) at
-time `t` and for node with spatial indices `indices` at the boundary with `orientation_or_normal`
-and `direction`.
-
-Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-@inline function get_boundary_outer_state(u_inner, t,
-                                          boundary_condition::BoundaryConditionDirichlet,
-                                          orientation_or_normal, direction,
-                                          mesh::Union{TreeMesh, StructuredMesh},
-                                          equations, dg, cache, indices...)
-    (; node_coordinates) = cache.elements
-
-    x = get_node_coords(node_coordinates, equations, dg, indices...)
-    u_outer = boundary_condition.boundary_value_function(x, t, equations)
-
-    return u_outer
-end
-
-@inline function get_boundary_outer_state(u_inner, t,
-                                          boundary_condition::BoundaryConditionCharacteristic,
-                                          orientation_or_normal, direction,
-                                          mesh::Union{TreeMesh, StructuredMesh},
-                                          equations,
-                                          dg, cache, indices...)
-    (; node_coordinates) = cache.elements
-
-    x = get_node_coords(node_coordinates, equations, dg, indices...)
-    u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
-                                                         u_inner, orientation_or_normal,
-                                                         direction, x, t, equations)
-
-    return u_outer
-end
-
-@inline function get_boundary_outer_state(u_inner, t,
-                                          boundary_condition::BoundaryConditionCharacteristic,
-                                          normal_direction::AbstractVector,
-                                          mesh::P4estMesh, equations, dg, cache,
-                                          indices...)
-    (; node_coordinates) = cache.elements
-
-    x = get_node_coords(node_coordinates, equations, dg, indices...)
-
-    u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
-                                                         u_inner,
-                                                         normal_direction,
-                                                         x, t, equations)
-
-    return u_outer
 end
 end # @muladd

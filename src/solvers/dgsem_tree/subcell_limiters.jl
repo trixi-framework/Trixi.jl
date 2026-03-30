@@ -274,6 +274,8 @@ end
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys, bar_states) where {NDIMS}
+    # The number of elements is not yet known here. So, we initialize the container with 0 elements
+    # and resize it later while initializing the time integration method in `methods_SSP.jl`.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
@@ -799,5 +801,52 @@ function get_node_variable(::Val{:limiting_coefficient_mean_entropy}, u,
     end
     (; alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
     return alpha_mean_entropy
+end
+
+###############################################################################
+# Auxiliary routine `get_boundary_outer_state` for non-periodic domains
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::BoundaryConditionDirichlet,
+                             orientation_or_normal, direction,
+                             mesh, equations, dg, cache, indices...)
+For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
+outer state. This function returns the boundary value  for [`BoundaryConditionDirichlet`](@ref) at
+time `t` and for node with spatial indices `indices` at the boundary with `orientation_or_normal`
+and `direction`.
+
+Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionDirichlet,
+                                          orientation_or_normal, direction,
+                                          mesh::Union{TreeMesh, StructuredMesh},
+                                          equations, dg, cache, indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+    u_outer = boundary_condition.boundary_value_function(x, t, equations)
+
+    return u_outer
+end
+
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionCharacteristic,
+                                          orientation_or_normal, direction,
+                                          mesh::Union{TreeMesh, StructuredMesh},
+                                          equations,
+                                          dg, cache, indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+    u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                         u_inner, orientation_or_normal,
+                                                         direction, x, t, equations)
+
+    return u_outer
 end
 end # @muladd
