@@ -68,7 +68,6 @@ end
                                                  u, t, semi, mesh::TreeMesh3D,
                                                  equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
 
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
@@ -111,6 +110,18 @@ end
     end
 
     # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
+    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
+
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable,
+                                                u, t, boundary_conditions,
+                                                mesh::TreeMesh{3}, equations,
+                                                dg, cache)
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
         orientation = cache.boundaries.orientations[boundary]
@@ -218,7 +229,6 @@ end
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
                                                  semi, mesh::TreeMesh{3})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
 
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
@@ -260,6 +270,18 @@ end
     end
 
     # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
+    calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
+
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable,
+                                                u, t, boundary_conditions,
+                                                mesh::TreeMesh{3}, equations,
+                                                dg, cache)
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
         orientation = cache.boundaries.orientations[boundary]
