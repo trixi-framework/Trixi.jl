@@ -152,7 +152,7 @@ boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_ri
 boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                        x_pos = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
                                  x_pos = boundary_condition_right)
 

@@ -96,7 +96,7 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
-    max_1_kappa::RealT         # max(1, kappa) used for diffusive CFL => `max_diffusivity`
+    max_1_kappa::RealT         # max(1, kappa) used for parabolic CFL => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations1D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -176,7 +176,7 @@ function flux(u, gradients, orientation::Integer,
     # by dispatching on the type of `equations.mu`.
     mu = dynamic_viscosity(u, equations)
 
-    # viscous flux components in the x-direction
+    # parabolic flux components in the x-direction
     f1 = 0
     f2 = tau_11 * mu
     f3 = (v1 * tau_11 + q1) * mu
@@ -242,7 +242,7 @@ function entropy2cons(w, equations::CompressibleNavierStokesDiffusion1D)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
-# For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
+# For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
@@ -260,7 +260,7 @@ end
 # reverse engineers the gradients to be terms of the primitive variables (v1, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
-# TODO: parabolic; entropy stable viscous terms
+# TODO: parabolic; entropy stable parabolic terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     return gradient

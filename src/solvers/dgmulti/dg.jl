@@ -44,6 +44,22 @@ end
 
 @inline nelements(dg::DGMulti, cache) = size(cache.solution_container.u_values)[end]
 
+# Returns the components needed to iterate efficiently over the entries of either a
+# `SparseMatrixCSC` or `Adjoint{SparseMatrixCSC}`, for example when performing flux
+# differencing calculations. 
+# 
+# For `Adjoint{SparseMatrixCSC}` (used by `DGMultiFluxDiff`), since `parent(A)` is a 
+# `SparseMatrixCSC` stored in column-major order, iterating over its columns gives 
+# row-major access to `A`.
+# 
+# For `SparseMatrixCSC` (used by `DGMultiPeriodicFDSBP`, for example), `parent(A)` 
+# simply returns `A`. 
+@inline function sparse_operator_data(A::Union{<:SparseMatrixCSC,
+                                               <:Adjoint{<:Any, <:SparseMatrixCSC}})
+    A_base = parent(A)
+    return A_base, axes(A, 2), rowvals(A_base), nonzeros(A_base)
+end
+
 """
     eachdim(mesh)
 
@@ -370,7 +386,7 @@ function prolong2interfaces!(cache, u,
 end
 
 # CARE: This function requires that interpolation to quadrature points is performed before
-# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
+# to populate cache.solution_container.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for affine meshes
 @inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                          have_nonconservative_terms::False, equations,
@@ -398,7 +414,7 @@ end
 end
 
 # CARE: This function requires that interpolation to quadrature points is performed before
-# to populate cache.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
+# to populate cache.solution_container.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for curved meshes
 @inline function volume_integral_kernel!(du, u, element,
                                          mesh::DGMultiMesh{NDIMS, <:NonAffine},
@@ -517,7 +533,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     return nothing
 end
 
-# assumes cache.flux_face_values is computed and filled with
+# assumes cache.solution_container.flux_face_values is computed and filled with
 # for polynomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
