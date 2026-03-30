@@ -62,6 +62,9 @@ stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 
 # specify extra node variables to be saved in the `SaveSolutionCallback`
 extra_node_variables = (:dudx,)
+
+# note that `get_node_variable` requires the use of Trixi.jl internals that are not part
+# of the public API, so this specific usage is not guaranteed to be stable across releases
 function Trixi.get_node_variable(::Val{:dudx}, u, mesh, equations, dg, cache,
                                  cache_parabolic)
     return copy(@view cache_parabolic.parabolic_container.gradients[1, :, :])
