@@ -17,7 +17,7 @@ abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
 # Returns
 - `True()`
 
-Used in diffusive CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+Used in parabolic CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
 diffusivity is constant in space and that [`max_diffusivity`](@ref) needs **not** to be re-computed
 at every node in every element.
 
@@ -32,7 +32,7 @@ if the diffusion term is linear in the variables/constant.
 # Returns
 - `equations_parabolic.diffusivity`
 
-Returns isotropic diffusion coefficient for use in diffusive CFL condition computation,
+Returns isotropic diffusion coefficient for use in parabolic CFL condition computation,
 see [`StepsizeCallback`](@ref).
 """
 @inline function max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
