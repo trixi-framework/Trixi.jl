@@ -39,7 +39,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-rule(u, x, t) = u[1]
+indicator_function(u, x, t) = u[1]
 
 amr_controller = ControllerThreeLevel(semi, IndicatorNodalFunction(rule, semi),
                                       base_level = 4,

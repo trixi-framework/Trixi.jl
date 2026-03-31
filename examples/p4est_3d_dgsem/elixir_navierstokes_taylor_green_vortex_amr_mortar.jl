@@ -75,7 +75,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 # AMR: positional rule → creates 2 refinement bocks on the diagonal of the cube 
 # Used to explicitly include mortars in the parabolic MPI testscases
 
-function positional_rule(u, x, t)
+function indicator_function(u, x, t)
     if ((x[1] < 0) && (x[2] < 0) && (x[3] < 0)) ||
        ((x[1] > 0) && (x[2] > 0) && (x[3] > 0))
         return 1.0   # refine
@@ -84,7 +84,7 @@ function positional_rule(u, x, t)
     end
 end
 
-amr_indicator = IndicatorNodalFunction(positional_rule, semi)
+amr_indicator = IndicatorNodalFunction(indicator_function, semi)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator;
                                       base_level = 0,

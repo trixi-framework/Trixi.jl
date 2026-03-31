@@ -78,7 +78,7 @@ function indicator_function(u, x, t)
     end
 end
 
-amr_indicator = IndicatorNodalFunction(positional_rule, semi)
+amr_indicator = IndicatorNodalFunction(indicator_function, semi)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator;
                                       base_level = 0,

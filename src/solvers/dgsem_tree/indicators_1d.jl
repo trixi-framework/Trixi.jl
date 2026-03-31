@@ -202,9 +202,9 @@ function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
     @threaded for element in Trixi.eachelement(dg, cache)
         estimate = -Inf * one(real(dg))
         for i in Trixi.eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, element)
+            u_nodal = get_node_vars(u, equations, dg, i, element)
             x_nodal = x[1, i, element]
-            estimate = max(estimate, indicator_function(u_local, x_nodal, kwargs[:t]))
+            estimate = max(estimate, indicator_function(u_nodal, x_nodal, kwargs[:t]))
         end
         alpha[element] = estimate
     end
