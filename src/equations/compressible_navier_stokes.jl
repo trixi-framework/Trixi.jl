@@ -24,15 +24,7 @@ end
     names_para = collect(fieldnames(typeof(equations_parabolic)))
     names_hyp_para = vcat(names_hyp, names_para)
 
-    names_seen = Set{Symbol}()
-    result = Symbol[]
-    for name in names_hyp_para
-        if !(name in names_seen)
-            push!(result, name)
-            push!(names_seen, name)
-        end
-    end
-    return result
+    return names_hyp_para
 end
 
 # TODO: can we generalize this to V(R)-MHD?
