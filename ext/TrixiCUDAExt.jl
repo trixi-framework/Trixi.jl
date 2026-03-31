@@ -97,9 +97,8 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
         else
             query_cuda()
         end
-        push!(setup, "  - device $i" => "")
-        println(io,
-                "  $(i-1): $str (sm_$(cap.major)$(cap.minor), $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
+        push!(setup,
+              "  - device $i" => "$str (sm_$(cap.major)$(cap.minor), $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
     end
 end
 
