@@ -211,14 +211,14 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
-function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
                                               mesh, equations, dg::DGSEM, cache;
                                               kwargs...)
     x = cache.elements.node_coordinates
-    @unpack alpha = positional.cache
+    @unpack alpha = indicator.cache
     resize!(alpha, nelements(dg, cache))
-    # Extract function to local variable to avoid capturing `positional` in the threaded loop
-    indicator_function = positional.indicator_function
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
 
     @threaded for element in Trixi.eachelement(dg, cache)
         estimate = -Inf * one(real(dg))
