@@ -103,10 +103,8 @@ end
 
 @inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
                                                 boundary_conditions::BoundaryConditionPeriodic,
-                                                mesh::Union{TreeMesh{2}, TreeMesh{3},
-                                                            StructuredMesh{2},
-                                                            P4estMesh{2}, P4estMesh{3}},
-                                                equations, dg, cache)
+                                                mesh::TreeMesh{2}, equations,
+                                                dg, cache)
     return nothing
 end
 
@@ -245,10 +243,8 @@ end
 
 @inline function calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable, u, t,
                                                 boundary_conditions::BoundaryConditionPeriodic,
-                                                mesh::Union{TreeMesh{2}, TreeMesh{3},
-                                                            StructuredMesh{2},
-                                                            P4estMesh{2}, P4estMesh{3}},
-                                                equations, dg, cache)
+                                                mesh::TreeMesh{2}, equations,
+                                                dg, cache)
     return nothing
 end
 
