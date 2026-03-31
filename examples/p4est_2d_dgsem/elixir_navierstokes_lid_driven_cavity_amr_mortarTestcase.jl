@@ -69,7 +69,7 @@ alive_callback = AliveCallback(alive_interval = 2000)
 analysis_interval = 2000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-function positional_rule(u, x, t)
+function indicator_function(u, x, t)
     xtar = sin(π * t)
     if ((x[1] < xtar) && (x[2] < xtar))
         return 1.0   # refine
