@@ -924,10 +924,16 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl" begin
+@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl"),
+                                 "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 2.5),
+                        amr_indicator=IndicatorNodalFunction((u, x, t) -> ((x[1] <
+                                                                            sin(π * t)) &&
+                                                                           (x[2] <
+                                                                            sin(π * t))) ?
+                                                                          1.0 : 0.0,
+                                                             semi),
                         l2=[
                             0.000751796085921976,
                             0.10544344448905413,

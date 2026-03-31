@@ -191,8 +191,8 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
 end
 
 function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
-                                              mesh, equations, dg::DGSEM, cache;
-                                              kwargs...)
+                                             mesh, equations, dg::DGSEM, cache;
+                                             kwargs...)
     x = cache.elements.node_coordinates
     @unpack alpha = indicator.cache
     resize!(alpha, nelements(dg, cache))
