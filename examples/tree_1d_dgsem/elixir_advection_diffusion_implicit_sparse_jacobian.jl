@@ -1,7 +1,8 @@
 using Trixi
+using OrdinaryDiffEqBDF
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqBDF, ADTypes
+using ADTypes # To access the types choosing how to evaluate Jacobian-vector products
 
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
