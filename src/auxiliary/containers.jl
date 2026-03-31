@@ -298,6 +298,26 @@ function trixi_backend(x::VectorOfArray)
     return get_backend(u[1])
 end
 
+"""
+    trixi_backend_info!(setup, backend)
+
+Add information about the computational backend to `setup`, which is a vector of key-value pairs.
+Used by Trixi's summary callback to print information about the simulation setup.
+"""
+function trixi_backend_info!(_, ::Nothing)
+    return nothing
+end
+
+function trixi_backend_info!(setup, ::KernelAbstractions.CPU)
+    push!(setup, "Backend" => "KernelAbstractions CPU")
+    return nothing
+end
+
+function trixi_backend_info!(setup, ::KernelAbstractions.Backend)
+    push!(setup, "Backend" => "Unknown KernelAbstractions backend")
+    return nothing
+end
+
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see

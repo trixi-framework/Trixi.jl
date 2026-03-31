@@ -2,6 +2,7 @@
 module TrixiCUDAExt
 
 using CUDA: CUDA, CuArray, CuDeviceArray, KernelAdaptor, @device_override
+using CUDA: CUDABackend
 import Trixi
 
 function Trixi.storage_type(::Type{<:CuArray})
@@ -22,6 +23,12 @@ end
     @device_override Trixi.log(x::Float32) = ccall("extern __nv_logf", llvmcall, Cfloat,
                                                    (Cfloat,), x)
     # TODO: Trixi.log(x::Float16)
+end
+
+function Trixi.trixi_backend_info!(setup, ::CUDABackend)
+    push!(setup, "Backend" => "KernelAbstractions CUDA")
+    push!(setup, "CUDA" => sprint(CUDA.versioninfo))
+    return nothing
 end
 
 end
