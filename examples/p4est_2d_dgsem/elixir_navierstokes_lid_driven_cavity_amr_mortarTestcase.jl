@@ -66,7 +66,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 2000)
-analysis_interval = 2000
+analysis_interval = 250
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 function indicator_function(u, x, t)

@@ -927,7 +927,19 @@ end
 @trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr_mortarTestcase.jl"),
-                        tspan=(0.0, 2.5),)
+                        tspan=(0.0, 2.5),
+                        l2=[
+                            0.0007517975544931707,
+                            0.10544505063701441,
+                            0.055591278258204355,
+                            0.13538982047007656
+                        ],
+                        linf=[
+                            0.018685541272082773,
+                            0.969418111731706,
+                            0.6314932109881151,
+                            1.9961357624704874
+                        ])
     # Ensure that the mesh size did not change to test IndicatorNodalFunction
     #expected N_ele(t=2.5) = 576, N_ele(t=5) = 303, N_ele(t=7.5) = 51, N_ele(t=10) = 111
     @test nelements(semi.cache.elements) == 576
