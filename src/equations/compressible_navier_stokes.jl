@@ -14,9 +14,8 @@ abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVa
     end
 end
 
-# Provide property names for tab-completion and reflection tools by
-# combining the names from the underlying hyperbolic equations with
-# the fields of this parabolic struct.
+# Provide property names for e.g. tab-completion by combining
+# the names from the underlying hyperbolic equations with the fields of this parabolic part.
 @inline function Base.propertynames(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
                                     private::Bool = false)
     names_hyp = (:gamma, :inv_gamma_minus_one)
