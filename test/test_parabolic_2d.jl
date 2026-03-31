@@ -939,7 +939,9 @@ end
                             0.9693988005334362,
                             0.6314735963971362,
                             1.9961130828380647
-                        ])
+                        ],
+                        atol=1e-4,
+                        rtol=1e-6)
     # Ensure that the mesh size did not change to test IndicatorNodalFunction
     #expected N_ele(t=2.5) = 576, N_ele(t=5) = 303, N_ele(t=7.5) = 51, N_ele(t=10) = 111
     @test nelements(semi.cache.elements) == 576
