@@ -1,7 +1,7 @@
 # Package extension for adding AMDGPU-based features to Trixi.jl
 module TrixiAMDGPUExt
 
-using AMDGPU: AMDGPU, ROCArray, ROCDeviceArray
+using AMDGPU: AMDGPU, ROCBackend, ROCArray, ROCDeviceArray
 import AMDGPU.Device: @device_override
 import AMDGPU.Runtime: Adaptor
 import Trixi
@@ -26,6 +26,27 @@ end
                                                    Cfloat,
                                                    (Cfloat,), x)
     # TODO: Trixi.log(x::Float16)
+end
+
+function Trixi.trixi_backend_info!(setup, ::ROCBackend)
+    push!(setup, "Backend" => "KernelAbstractions AMDGPU")
+    # Reimplementation of AMDGPU.versioninfo() to fit with Trixi's summary box format
+    # see https://github.com/JuliaGPU/AMDGPU.jl/blob/e62d814e88a67ea58005802ee83632a68ef629ba/src/utils.jl
+    if !AMDGPU.functional()
+        push!(setup, "AMDGPU" => "AMDGPU not functional")
+        return nothing
+    end
+
+    devs = AMDGPU.devices()
+    if isempty(devs)
+        push!(setup, "AMDGPU devices" => "none")
+    else
+        push!(setup, "AMDGPU devices:" => "")
+    end
+    for (i, dev) in enumerate(devs)
+        push!(setup, "  - device $i" => string(dev))
+    end
+    return nothing
 end
 
 end
