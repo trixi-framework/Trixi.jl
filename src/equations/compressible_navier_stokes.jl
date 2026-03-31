@@ -14,6 +14,27 @@ abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVa
     end
 end
 
+# Provide property names for tab-completion and reflection tools by
+# combining the names from the underlying hyperbolic equations with
+# the fields of this parabolic struct.
+@inline function Base.propertynames(equations_parabolic::Trixi.AbstractCompressibleNavierStokesDiffusion,
+                                    private::Bool = false)
+    eq_hyp = getfield(equations_parabolic, :equations_hyperbolic)
+    names_hyp = collect(propertynames(eq_hyp, private))
+    names_para = collect(fieldnames(typeof(equations_parabolic)))
+    names_hyp_para = vcat(names_hyp, names_para)
+
+    names_seen = Set{Symbol}()
+    result = Symbol[]
+    for name in names_hyp_para
+        if !(name in names_seen)
+            push!(result, name)
+            push!(names_seen, name)
+        end
+    end
+    return result
+end
+
 # TODO: can we generalize this to V(R)-MHD?
 """
     struct BoundaryConditionNavierStokesWall
