@@ -19,7 +19,7 @@ end
 # the fields of this parabolic struct.
 @inline function Base.propertynames(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
                                     private::Bool = false)
-    eq_hyp = (:gamma, :inv_gamma_minus_one)
+    names_hyp = (:gamma, :inv_gamma_minus_one)
     names_para = collect(fieldnames(typeof(equations_parabolic)))
     names_hyp_para = (names_hyp..., names_para...)
 
