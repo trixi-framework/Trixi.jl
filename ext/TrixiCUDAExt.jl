@@ -40,12 +40,12 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
                            "artifact installation")
 
     if CUDA.has_nvml()
-        push!(setup, "  - driver" => string(CUDA.NVML.driver_version()))
+        driver_str = string(CUDA.NVML.driver_version())
     else
-        push!(setup, "  - driver" => "unknown")
+        driver_str = "unknown"
     end
-    push!(setup, "CUDA host:" => "")
-    push!(setup, "  - driver" => string(CUDA.driver_version()))
+    driver_str *= "for $(CUDA.driver_version())"
+    push!(setup, "  - driver" => driver_str)
     push!(setup, "  - compiler" => string(CUDA.compiler_version()))
 
     # Skip CUDA libraries
