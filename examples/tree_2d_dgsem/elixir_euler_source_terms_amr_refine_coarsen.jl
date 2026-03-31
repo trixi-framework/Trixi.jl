@@ -22,8 +22,9 @@ function IndicatorRefineCoarsen(semi)
     return IndicatorRefineCoarsen{typeof(cache)}(cache)
 end
 
-function (indicator::IndicatorRefineCoarsen)(u::AbstractArray{<:Any, 4},
-                                             mesh, equations, dg, cache;
+function (indicator::IndicatorRefineCoarsen)(u::AbstractArray{<:Any},
+                                             mesh::Trixi.AbstractMesh{2}, equations, dg,
+                                             cache;
                                              t, kwargs...)
     RealT = eltype(u)
     alpha = indicator.cache.alpha
