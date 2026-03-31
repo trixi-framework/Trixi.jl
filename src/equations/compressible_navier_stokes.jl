@@ -5,7 +5,7 @@ abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVa
 
 # This enables "forwarded" accesses to e.g.`equations_parabolic.gamma` of the "underlying" `equations_hyperbolic`
 # while keeping direct access to parabolic-specific fields like `mu` or `kappa`.
-@inline function Base.getproperty(equations_parabolic::Trixi.AbstractCompressibleNavierStokesDiffusion,
+@inline function Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
                                   field::Symbol)
     if field === :gamma || field === :inv_gamma_minus_one
         return getproperty(getfield(equations_parabolic, :equations_hyperbolic), field)
@@ -17,12 +17,11 @@ end
 # Provide property names for tab-completion and reflection tools by
 # combining the names from the underlying hyperbolic equations with
 # the fields of this parabolic struct.
-@inline function Base.propertynames(equations_parabolic::Trixi.AbstractCompressibleNavierStokesDiffusion,
+@inline function Base.propertynames(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
                                     private::Bool = false)
-    eq_hyp = getfield(equations_parabolic, :equations_hyperbolic)
-    names_hyp = collect(propertynames(eq_hyp, private))
+    eq_hyp = (:gamma, :inv_gamma_minus_one)
     names_para = collect(fieldnames(typeof(equations_parabolic)))
-    names_hyp_para = vcat(names_hyp, names_para)
+    names_hyp_para = (names_hyp..., names_para...)
 
     return names_hyp_para
 end
