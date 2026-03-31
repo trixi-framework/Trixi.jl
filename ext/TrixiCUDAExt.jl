@@ -44,7 +44,7 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
     else
         driver_str = "unknown"
     end
-    driver_str *= "for $(CUDA.driver_version())"
+    driver_str *= " for $(CUDA.driver_version())"
     push!(setup, "  - driver" => driver_str)
     push!(setup, "  - compiler" => string(CUDA.compiler_version()))
 
