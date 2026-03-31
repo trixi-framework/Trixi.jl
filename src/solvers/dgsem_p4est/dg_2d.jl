@@ -272,7 +272,6 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     return nothing
 end
 
-# Take for Gauss-Lobatto-Legendre (GLL) the interface normals from the outer volume nodes.
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
@@ -280,6 +279,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::DGSEM{<:LobattoLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
+    # Take for Gauss-Lobatto-Legendre (GLL) the interface normals from the outer volume nodes, i.e.,
+    # element data.
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
 
@@ -299,7 +300,8 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
-                              equations, surface_integral, dg::DG, cache)
+                              equations, surface_integral,
+                              dg::DGSEM{<:LobattoLegendreBasis}, cache)
     ninterfaces(cache.interfaces) == 0 && return nothing
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -337,7 +339,7 @@ end
                                                                         T8codeMesh{2}}},
                                                     have_nonconservative_terms,
                                                     equations, surface_integral,
-                                                    SolverT::Type{<:DG},
+                                                    SolverT::Type{<:DGSEM{<:LobattoLegendreBasis}},
                                                     u_interface, interface,
                                                     neighbor_ids,
                                                     node_indices, contravariant_vectors,
@@ -385,8 +387,9 @@ end
 
         calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                              equations, surface_integral, SolverT, u_interface,
-                             interface, normal_direction, node, primary_direction,
-                             primary_element, node_secondary,
+                             interface, normal_direction, node,
+                             primary_direction, primary_element,
+                             node_secondary,
                              secondary_direction, secondary_element)
 
         # Increment primary element indices to pull the normal direction
@@ -404,47 +407,71 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms,
                               equations, surface_integral,
                               dg::DGSEM{<:GaussLegendreBasis}, cache)
-    @unpack neighbor_ids, node_indices, normal_directions = cache.interfaces
+    @unpack neighbor_ids, node_indices = cache.interfaces
+    # Take for Gauss-Legendre (GL) the interface normals from the interfaces, i.e.,
+    # interface data.
+    @unpack normal_directions = cache.interfaces
     index_range = eachnode(dg)
-    index_end = last(index_range)
 
     @threaded for interface in eachinterface(dg, cache)
-        # Get element and side index information on the primary element
-        primary_element = neighbor_ids[1, interface]
-        primary_indices = node_indices[1, interface]
-        primary_direction = indices2direction(primary_indices)
+        calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
+                                           have_nonconservative_terms,
+                                           equations, surface_integral, typeof(dg),
+                                           cache.interfaces.u, interface,
+                                           neighbor_ids, node_indices,
+                                           normal_directions, index_range)
+    end
 
-        # Get element and side index information on the secondary element
-        secondary_element = neighbor_ids[2, interface]
-        secondary_indices = node_indices[2, interface]
-        secondary_direction = indices2direction(secondary_indices)
+    return nothing
+end
 
-        # Initiate the secondary index to be used in the surface for loop.
-        # This index on the primary side will always run forward but
-        # the secondary index might need to run backwards for flipped sides.
-        if :i_backward in secondary_indices
-            node_secondary = index_end
-            node_secondary_step = -1
-        else
-            node_secondary = 1
-            node_secondary_step = 1
-        end
+@inline function calc_interface_flux_per_interface!(surface_flux_values,
+                                                    MeshT::Type{<:Union{P4estMesh{2},
+                                                                        P4estMeshView{2}}},
+                                                    have_nonconservative_terms,
+                                                    equations, surface_integral,
+                                                    SolverT::Type{<:DGSEM{<:GaussLegendreBasis}},
+                                                    u_interface, interface,
+                                                    neighbor_ids,
+                                                    node_indices, normal_directions,
+                                                    index_range)
+    index_end = last(index_range)
 
-        for node in eachnode(dg)
-            # This seems to be faster than `@views normal_direction = normal_directions[:, node, interface]`
-            normal_direction = SVector(normal_directions[1, node, interface],
-                                       normal_directions[2, node, interface])
+    # Get element and side index information on the primary element
+    primary_element = neighbor_ids[1, interface]
+    primary_indices = node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
 
-            calc_interface_flux!(surface_flux_values, mesh, have_nonconservative_terms,
-                                 equations,
-                                 surface_integral, dg, cache,
-                                 interface, normal_direction,
-                                 node, primary_direction, primary_element,
-                                 node_secondary, secondary_direction, secondary_element)
+    # Get element and side index information on the secondary element
+    secondary_element = neighbor_ids[2, interface]
+    secondary_indices = node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
 
-            # Increment the surface node index along the secondary element
-            node_secondary += node_secondary_step
-        end
+    # Initiate the secondary index to be used in the surface for loop.
+    # This index on the primary side will always run forward but
+    # the secondary index might need to run backwards for flipped sides.
+    if :i_backward in secondary_indices
+        node_secondary = index_end
+        node_secondary_step = -1
+    else
+        node_secondary = 1
+        node_secondary_step = 1
+    end
+
+    for node in index_range
+        # This seems to be faster than `@views normal_direction = normal_directions[:, node, interface]`
+        normal_direction = SVector(normal_directions[1, node, interface],
+                                   normal_directions[2, node, interface])
+
+        calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
+                             equations, surface_integral, SolverT, u_interface,
+                             interface, normal_direction, node,
+                             primary_direction, primary_element,
+                             node_secondary,
+                             secondary_direction, secondary_element)
+
+        # Increment the surface node index along the secondary element
+        node_secondary += node_secondary_step
     end
 
     return nothing
