@@ -8,6 +8,8 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
+- A new semidiscretization type `SemidiscretizationParabolic` has been added to support purely parabolic equations with no hyperbolic part.
+The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality.
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 
 ## Changes when updating to v0.16 from v0.15.x
