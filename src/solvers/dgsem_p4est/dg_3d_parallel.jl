@@ -36,7 +36,8 @@ function rhs!(du, u, t,
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+                              have_nonconservative_terms(equations),
+                              have_aux_node_vars(equations), equations,
                               dg.volume_integral, dg, cache)
     end
 

@@ -5,6 +5,21 @@
 @muladd begin
 #! format: noindent
 
+@inline function convert_to_solution_variables_aux(u, solution_variables, cache,
+                                                   equations)
+    @unpack aux_node_vars = cache.aux_vars
+    # Reinterpret the solution array as an array of conservative variables,
+    # compute the solution variables via broadcasting, and reinterpret the
+    # result as a plain array of floating point numbers
+    return Array(reinterpret(eltype(u),
+                             solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                     eltype(u)}, u),
+                                                 reinterpret(SVector{n_aux_node_vars(equations),
+                                                                     eltype(aux_node_vars)},
+                                                             aux_node_vars),
+                                                 Ref(equations))))
+end
+
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{TreeMeshSerial, StructuredMesh,
                                         StructuredMeshView,
@@ -30,6 +45,10 @@ function save_solution_file(u, time, dt, timestep,
     if solution_variables === cons2cons
         data = u
         n_vars = nvariables(equations)
+    elseif have_aux_node_vars(equations) == Trixi.True()
+        data = convert_to_solution_variables_aux(u, solution_variables, cache,
+                                                 equations)
+        n_vars = size(data, 1)
     else
         # Reinterpret the solution array as an array of conservative variables,
         # compute the solution variables via broadcasting, and reinterpret the
@@ -205,6 +224,10 @@ function save_solution_file(u, time, dt, timestep,
     if solution_variables === cons2cons
         data = u
         n_vars = nvariables(equations)
+    elseif have_aux_node_vars(equations) == Trixi.True()
+        data = convert_to_solution_variables_aux(u, solution_variables, cache,
+                                                 equations)
+        n_vars = size(data, 1)
     else
         # Reinterpret the solution array as an array of conservative variables,
         # compute the solution variables via broadcasting, and reinterpret the

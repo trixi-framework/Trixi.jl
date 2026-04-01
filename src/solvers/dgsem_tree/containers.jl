@@ -72,6 +72,165 @@ abstract type AbstractTreeL2MPIMortarContainer <: AbstractMPIMortarContainer end
     return length(mpi_l2mortars.orientations)
 end
 
+# Container for storing values of auxiliary variables at volume/surface quadrature nodes
+mutable struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, NDIMSP3, AuxField}
+    aux_node_vars::Array{uEltype, NDIMSP2}              # [var, i, j, element]
+    aux_surface_node_vars::Array{uEltype, NDIMSP2}      # [leftright, var, i, interface]
+    aux_boundary_node_vars::Array{uEltype, NDIMSP2}     # [leftright, var, i, boundary]
+    aux_mortar_node_vars::Array{uEltype, NDIMSP3}       # [leftright, var, pos, i, mortar]
+
+    # internal `resize!`able storage
+    _aux_node_vars::Vector{uEltype}
+    _aux_surface_node_vars::Vector{uEltype}
+    _aux_boundary_node_vars::Vector{uEltype}
+    _aux_mortar_node_vars::Vector{uEltype}
+
+    # save initialization function
+    aux_field::AuxField
+end
+
+nvariables(aux_vars::AuxNodeVarsContainer) = size(aux_vars.aux_node_vars, 1)
+nnodes(aux_vars::AuxNodeVarsContainer) = size(aux_vars.aux_node_vars, 2)
+
+# Create auxiliary node variable container
+function init_aux_vars(mesh, equations, solver, cache, aux_field)
+    @unpack elements, interfaces, boundaries, mortars = cache
+
+    n_elements = nelements(elements)
+    n_interfaces = ninterfaces(interfaces)
+    n_boundaries = nboundaries(boundaries)
+    n_mortars = nmortars(mortars)
+    NDIMS = ndims(mesh)
+    uEltype = eltype(elements)
+    nan_uEltype = convert(uEltype, NaN)
+
+    _aux_node_vars = fill(nan_uEltype,
+                          n_aux_node_vars(equations) *
+                          nnodes(solver)^NDIMS * n_elements)
+    aux_node_vars = unsafe_wrap(Array, pointer(_aux_node_vars),
+                                (n_aux_node_vars(equations),
+                                 ntuple(_ -> nnodes(solver), NDIMS)...,
+                                 n_elements))
+    _aux_surface_node_vars = fill(nan_uEltype,
+                                  2 * n_aux_node_vars(equations) *
+                                  nnodes(solver)^(NDIMS - 1) *
+                                  n_interfaces)
+    aux_surface_node_vars = unsafe_wrap(Array,
+                                        pointer(_aux_surface_node_vars),
+                                        (2, n_aux_node_vars(equations),
+                                         ntuple(_ -> nnodes(solver),
+                                                NDIMS - 1)...,
+                                         n_interfaces))
+    _aux_boundary_node_vars = fill(nan_uEltype,
+                                   2 * n_aux_node_vars(equations) *
+                                   nnodes(solver)^(NDIMS - 1) *
+                                   n_boundaries)
+    aux_boundary_node_vars = unsafe_wrap(Array,
+                                         pointer(_aux_boundary_node_vars),
+                                         (2, n_aux_node_vars(equations),
+                                          ntuple(_ -> nnodes(solver),
+                                                 NDIMS - 1)...,
+                                          n_boundaries))
+    _aux_mortar_node_vars = fill(nan_uEltype,
+                                 2 * n_aux_node_vars(equations) *
+                                 2^(NDIMS - 1) * nnodes(solver)^(NDIMS - 1) *
+                                 n_mortars)
+    aux_mortar_node_vars = unsafe_wrap(Array,
+                                       pointer(_aux_mortar_node_vars),
+                                       (2, n_aux_node_vars(equations),
+                                        2^(NDIMS - 1),
+                                        ntuple(_ -> nnodes(solver),
+                                               NDIMS - 1)...,
+                                        n_mortars))
+
+    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2, NDIMS + 3,
+                                    typeof(aux_field)}(aux_node_vars,
+                                                       aux_surface_node_vars,
+                                                       aux_boundary_node_vars,
+                                                       aux_mortar_node_vars,
+                                                       _aux_node_vars,
+                                                       _aux_surface_node_vars,
+                                                       _aux_boundary_node_vars,
+                                                       _aux_mortar_node_vars,
+                                                       aux_field)
+    init_aux_vars!(aux_vars, mesh, equations, solver, cache)
+    return aux_vars
+end
+
+function init_aux_vars!(aux_vars, mesh, equations, solver, cache)
+    init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
+    init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
+    init_aux_boundary_node_vars!(aux_vars, mesh, equations, solver, cache)
+    init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver, cache)
+end
+
+# Initialize auxiliary node variables (generic implementation)
+function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
+    @unpack aux_node_vars, aux_field = aux_vars
+    @unpack node_coordinates = cache.elements
+
+    # all permutations of nodes indices for arbitrary dimension
+    node_cis = CartesianIndices(ntuple(_ -> nnodes(solver), ndims(mesh)))
+
+    @threaded for element in eachelement(solver, cache)
+        for node_ci in node_cis
+            x_local = get_node_coords(node_coordinates, equations, solver,
+                                      node_ci, element)
+            set_aux_node_vars!(aux_node_vars,
+                               aux_field(x_local, equations),
+                               equations, solver, node_ci, element)
+        end
+    end
+    return nothing
+end
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
+                      capacity_node_vars, capacity_surface_node_vars,
+                      capacity_boundary_node_vars,
+                      capacity_mortar_node_vars) where {NDIMS}
+    @unpack _aux_node_vars, _aux_surface_node_vars, _aux_boundary_node_vars, _aux_mortar_node_vars = aux_vars
+    n_nodes = nnodes(aux_vars)
+    n_variables = nvariables(aux_vars)
+
+    resize!(_aux_node_vars, n_variables * n_nodes^NDIMS * capacity_node_vars)
+    aux_vars.aux_node_vars = unsafe_wrap(Array,
+                                         pointer(_aux_node_vars),
+                                         (n_variables,
+                                          ntuple(_ -> n_nodes, NDIMS)...,
+                                          capacity_node_vars))
+
+    resize!(_aux_surface_node_vars,
+            2 * n_variables * n_nodes^(NDIMS - 1) *
+            capacity_surface_node_vars)
+    aux_vars.aux_surface_node_vars = unsafe_wrap(Array,
+                                                 pointer(_aux_surface_node_vars),
+                                                 (2, n_variables,
+                                                  ntuple(_ -> n_nodes, NDIMS - 1)...,
+                                                  capacity_surface_node_vars))
+    resize!(_aux_boundary_node_vars,
+            2 * n_variables * n_nodes^(NDIMS - 1) *
+            capacity_boundary_node_vars)
+    aux_vars.aux_boundary_node_vars = unsafe_wrap(Array,
+                                                  pointer(_aux_boundary_node_vars),
+                                                  (2, n_variables,
+                                                   ntuple(_ -> n_nodes, NDIMS - 1)...,
+                                                   capacity_boundary_node_vars))
+    resize!(_aux_mortar_node_vars,
+            2 * n_variables * 2^(NDIMS - 1) * n_nodes^(NDIMS - 1) *
+            capacity_mortar_node_vars)
+    aux_vars.aux_mortar_node_vars = unsafe_wrap(Array,
+                                                pointer(_aux_mortar_node_vars),
+                                                (2, n_variables, 2^(NDIMS - 1),
+                                                 ntuple(_ -> n_nodes, NDIMS - 1)...,
+                                                 capacity_mortar_node_vars))
+    return nothing
+end
+
 # Container data structure (structure-of-arrays style) for variables used for IDP limiting
 mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1} <:
                AbstractContainer
