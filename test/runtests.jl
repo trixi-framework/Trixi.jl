@@ -130,6 +130,16 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         end
     end
 
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "AMDGPU"
+        import AMDGPU
+        if AMDGPU.functional()
+            include(joinpath(@__DIR__, "test_amdgpu_2d.jl"))
+            include(joinpath(@__DIR__, "test_amdgpu_3d.jl"))
+        else
+            @warn "Unable to run AMDGPU tests on this machine"
+        end
+    end
+
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "kernelabstractions"
         previous_backend = Trixi._PREFERENCE_THREADING
         Trixi.set_threading_backend!(:kernelabstractions)

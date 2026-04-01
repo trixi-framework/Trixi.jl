@@ -241,14 +241,14 @@ end
 
 @kernel function calc_interface_flux_KAkernel!(surface_flux_values, MeshT,
                                                have_nonconservative_terms, equations,
-                                               surface_integral, solverT, u_interface,
+                                               surface_integral, SolverT, u_interface,
                                                neighbor_ids, node_indices,
                                                contravariant_vectors, index_range)
     interface = @index(Global)
     calc_interface_flux_per_interface!(surface_flux_values,
                                        MeshT,
                                        have_nonconservative_terms,
-                                       equations, surface_integral, solverT,
+                                       equations, surface_integral, SolverT,
                                        u_interface,
                                        neighbor_ids, node_indices,
                                        contravariant_vectors,
@@ -260,7 +260,7 @@ end
                                                                         T8codeMesh{3}}},
                                                     have_nonconservative_terms,
                                                     equations, surface_integral,
-                                                    solverT::Type{<:DG}, u_interface,
+                                                    SolverT::Type{<:DG}, u_interface,
                                                     neighbor_ids,
                                                     node_indices, contravariant_vectors,
                                                     index_range, interface)
@@ -308,7 +308,7 @@ end
 
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations,
-                                 surface_integral, solverT, u_interface,
+                                 surface_integral, SolverT, u_interface,
                                  interface, normal_direction,
                                  i, j, primary_direction, primary_element,
                                  i_secondary, j_secondary, secondary_direction,
@@ -337,7 +337,7 @@ end
 @inline function calc_interface_flux!(surface_flux_values,
                                       ::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                       have_nonconservative_terms::False, equations,
-                                      surface_integral, solverT::Type{<:DG},
+                                      surface_integral, SolverT::Type{<:DG},
                                       u_interface,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -347,7 +347,7 @@ end
                                       secondary_element_index)
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u_interface, equations, solverT,
+    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
                                        primary_i_node_index,
                                        primary_j_node_index, interface_index)
 
@@ -367,7 +367,7 @@ end
 @inline function calc_interface_flux!(surface_flux_values,
                                       MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                       have_nonconservative_terms::True, equations,
-                                      surface_integral, solverT::Type{<:DG},
+                                      surface_integral, SolverT::Type{<:DG},
                                       u_interface,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -378,7 +378,7 @@ end
     calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                          combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
                                                                          equations),
-                         equations, surface_integral, solverT, u_interface,
+                         equations, surface_integral, SolverT, u_interface,
                          interface_index,
                          normal_direction, primary_i_node_index, primary_j_node_index,
                          primary_direction_index, primary_element_index,
@@ -392,7 +392,7 @@ end
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::False,
                                       equations,
-                                      surface_integral, solverT::Type{<:DG},
+                                      surface_integral, SolverT::Type{<:DG},
                                       u_interface,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -401,7 +401,7 @@ end
                                       secondary_direction_index,
                                       secondary_element_index)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
-    u_ll, u_rr = get_surface_node_vars(u_interface, equations, solverT,
+    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
                                        primary_i_node_index,
                                        primary_j_node_index, interface_index)
 
@@ -433,7 +433,7 @@ end
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::True,
                                       equations,
-                                      surface_integral, solverT::Type{<:DG},
+                                      surface_integral, SolverT::Type{<:DG},
                                       u_interface,
                                       interface_index, normal_direction,
                                       primary_i_node_index, primary_j_node_index,
@@ -442,7 +442,7 @@ end
                                       secondary_direction_index,
                                       secondary_element_index)
     @unpack surface_flux = surface_integral
-    u_ll, u_rr = get_surface_node_vars(u_interface, equations, solverT,
+    u_ll, u_rr = get_surface_node_vars(u_interface, equations, SolverT,
                                        primary_i_node_index, primary_j_node_index,
                                        interface_index)
 
