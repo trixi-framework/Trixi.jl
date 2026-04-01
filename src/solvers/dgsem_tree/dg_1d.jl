@@ -112,7 +112,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms,
+                      have_aux_node_vars(equations), equations, dg, cache)
     end
 
     return nothing
@@ -772,11 +773,13 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
+                       have_aux_node_vars::False,
                        equations::AbstractEquations{1}, dg::DG, cache)
     return nothing
 end
 
 function calc_sources!(du, u, t, source_terms,
+                       have_aux_node_vars::False,
                        equations::AbstractEquations{1}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 

@@ -568,7 +568,8 @@ end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
-                              have_nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False,
+                              have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -603,7 +604,8 @@ end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
-                              have_nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True,
+                              have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -958,7 +960,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           have_nonconservative_terms::False, equations,
+                           have_nonconservative_terms::False,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -1016,7 +1019,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           have_nonconservative_terms::True, equations,
+                           have_nonconservative_terms::True,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
@@ -1423,11 +1427,13 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 function calc_sources!(du, u, t, source_terms::Nothing,
+                       have_aux_node_vars::False,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
 
 function calc_sources!(du, u, t, source_terms,
+                       have_aux_node_vars::False,
                        equations::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 

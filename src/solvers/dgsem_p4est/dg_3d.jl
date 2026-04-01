@@ -205,6 +205,7 @@ end
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                               have_nonconservative_terms,
+                              have_aux_node_vars::False,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -226,6 +227,7 @@ end
 function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                               have_nonconservative_terms,
+                              have_aux_node_vars::False,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -790,7 +792,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                           have_nonconservative_terms, equations,
+                           have_nonconservative_terms,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars

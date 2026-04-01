@@ -158,6 +158,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
+                              have_aux_node_vars::False,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
@@ -179,6 +180,7 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
                               have_nonconservative_terms,
+                              have_aux_node_vars::False,
                               equations, surface_integral, dg::DG, cache)
     ninterfaces(cache.interfaces) == 0 && return nothing
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -714,7 +716,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                           have_nonconservative_terms, equations,
+                           have_nonconservative_terms,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -1019,7 +1022,8 @@ function rhs!(du, u, t, u_parent, semis,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
+                             have_nonconservative_terms(equations),
+                             have_aux_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
@@ -1044,7 +1048,8 @@ function rhs!(du, u, t, u_parent, semis,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+                          have_nonconservative_terms(equations),
+                          have_aux_node_vars(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
