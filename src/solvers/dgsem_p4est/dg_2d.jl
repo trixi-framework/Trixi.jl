@@ -338,7 +338,8 @@ end
 end
 
 @inline function calc_interface_flux!(surface_flux_values,
-                                      ::Type{<:Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}},
+                                      ::Type{<:Union{P4estMesh{2}, P4estMeshView{2},
+                                                     T8codeMesh{2}}},
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::False,
                                       equations,
