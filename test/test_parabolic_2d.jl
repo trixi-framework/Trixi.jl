@@ -951,6 +951,10 @@ end
     # Ensure that the mesh size did not change to test IndicatorNodalFunction
     #expected N_ele(t=2.5) = 576, N_ele(t=5) = 303, N_ele(t=7.5) = 51, N_ele(t=10) = 111
     @test nelements(semi.cache.elements) == 576
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" begin

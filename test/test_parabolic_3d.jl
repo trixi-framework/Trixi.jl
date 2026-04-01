@@ -641,6 +641,8 @@ end
                             1.070081196321056,
                             3.332907472310012
                         ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin
