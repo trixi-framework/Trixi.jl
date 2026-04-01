@@ -266,7 +266,7 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},
     indicator_function = indicator.indicator_function
 
     @threaded for element in Trixi.eachelement(dg, cache)
-        estimate = -Inf * one(real(dg))
+        estimate = -Inf * one(eltype(u))
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_nodal = get_node_vars(u, equations, dg, i, j, k, element)
             x_y_z_nodal = @view x[:, i, j, k, element]
