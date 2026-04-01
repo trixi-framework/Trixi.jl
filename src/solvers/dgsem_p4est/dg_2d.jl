@@ -311,7 +311,9 @@ end
 
 # Inlined version of the interface flux computation for equations with conservative and nonconservative terms
 @inline function calc_interface_flux!(surface_flux_values,
-                                      MeshT::Type{<:Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}},
+                                      MeshT::Type{<:Union{P4estMesh{2},
+                                                          P4estMeshView{2},
+                                                          T8codeMesh{2}}},
                                       have_nonconservative_terms::True, equations,
                                       surface_integral, SolverT::Type{<:DG},
                                       u_interface, interface_index,
