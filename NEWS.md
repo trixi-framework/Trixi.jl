@@ -8,7 +8,7 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- A new AMR indicator `IndicatorNodalFunction` was introduced, which allows AMR depending on space and time coordinates. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
+- A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 
 ## Changes when updating to v0.16 from v0.15.x
