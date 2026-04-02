@@ -109,9 +109,12 @@ end
     semi = integrator.p
     @unpack cfl_hyperbolic, cfl_parabolic = stepsize_callback
 
+    backend = trixi_backend(u_ode)
     # Dispatch based on semidiscretization
-    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_hyperbolic,
-                                                           cfl_parabolic, semi)
+    dt = @trixi_timeit_ext backend timer() "calculate dt" calculate_dt(u_ode, t,
+                                                                       cfl_hyperbolic,
+                                                                       cfl_parabolic,
+                                                                       semi)
 
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
