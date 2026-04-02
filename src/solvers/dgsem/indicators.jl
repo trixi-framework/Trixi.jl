@@ -516,6 +516,13 @@ function IndicatorNodalFunction(indicator_function, semi::AbstractSemidiscretiza
     return IndicatorNodalFunction{typeof(indicator_function), typeof(cache)}(indicator_function,
                                                                              cache)
 end
+function create_cache(::Type{IndicatorNodalFunction},
+                      equations::AbstractEquations, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
+
+    return (; alpha)
+end
 
 function Base.show(io::IO, indicator::IndicatorNodalFunction)
     @nospecialize indicator # reduce precompilation time
