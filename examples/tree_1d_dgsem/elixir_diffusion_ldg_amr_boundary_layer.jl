@@ -5,11 +5,11 @@ using Trixi
 # Adaptive semidiscretization of the pure diffusion equation with mixed 
 # Dirichlet-Neumann BCs and an initial condition with a boundary layer.
 
-diffusivity = 0.25
-amplitude = 1.0
-boundary_layer_thickness = 0.01
+diffusivity() = 0.25
+amplitude() = 1.0
+boundary_layer_thickness() = 0.01
 
-equations = LinearDiffusionEquation1D(diffusivity)
+equations = LinearDiffusionEquation1D(diffusivity())
 
 solver = DGSEM(polydeg = 3)
 solver_parabolic = ParabolicFormulationLocalDG()
@@ -20,8 +20,8 @@ mesh = TreeMesh((0.0,), (1.0,),
                 n_cells_max = 30_000)
 
 function initial_condition_boundary_layer(x, t, equations)
-    return SVector(amplitude * (1 - exp(-x[1] / boundary_layer_thickness)) /
-                   (1 - exp(-1 / boundary_layer_thickness)))
+    return SVector(amplitude() * (1 - exp(-x[1] / boundary_layer_thickness())) /
+                   (1 - exp(-1 / boundary_layer_thickness())))
 end
 
 initial_condition = initial_condition_boundary_layer
