@@ -44,12 +44,24 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
         push!(setup, "AMDGPU devices:" => "")
     end
     for (i, dev) in enumerate(devs)
-        push!(setup, "  - device $i" => string(dev))
+        # TODO implement NVML like optimization
+        function query_amdgpu()
+            str = AMDGPU.name(dev)
+            arch = dev.gcn_arch
+            mem = AMDGPU.device!(dev) do
+                AMDGPU.Mem.total()
+            end
+
+            return (; str, arch, mem)
+        end
+        str, arch, mem = query_amdgpu()
+        push!(setup,
+              "  $i" => "$str ($arch, $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
     end
     return nothing
 end
 
-function Trixi.trixi_device_memory_use(backend::ROCBackend)
+function Trixi.trixi_device_memory_use(::ROCBackend)
     # This is raw memory used not the pool.
     return AMDGPU.Mem.used()
 end
