@@ -12,7 +12,9 @@ Specialized semidiscretization routines for coupled problems using P4est mesh vi
 This is analogous to the implementation for structured meshes.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
-The semidiscretizations can be coupled by gluing meshes together using [`BoundaryConditionCoupled`](@ref).
+The semidiscretizations can be coupled by glueing meshes together using [`BoundaryConditionCoupled`](@ref).
+
+See also: [`SemidiscretizationCoupled`](@ref)
 
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
@@ -53,23 +55,14 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
         u_indices[i] = range(offset, length = n_coefficients[i])
     end
 
-    # Create correspondence between global (to the parent mesh) cell IDs and local (to the mesh view) cell IDs.
-    n_cells = 0
-    for i in 1:length(semis)
-        n_cells += size(semis[i].cache.elements.node_coordinates)[end]
-    end
-    parent_tree_node_coordinates = Array{Real, 2 + 2}(undef, 2, ntuple(_ -> 4, 2)..., n_cells)
-    nodes = semis[1].mesh.parent.nodes
-    Trixi.calc_node_coordinates!(parent_tree_node_coordinates, semis[1].mesh.parent,
-                                 nodes)
-
-    global_element_ids = 1:size(parent_tree_node_coordinates)[end]
-    local_element_ids = zeros(Int, size(global_element_ids))
+    # Create correspondence between parent mesh cell IDs and view cell IDs.
+    global_element_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    local_element_ids = zeros(Int, length(global_element_ids))
     element_offset = ones(Int, length(semis))
-    mesh_ids = zeros(Int, size(global_element_ids))
+    mesh_ids = zeros(Int, length(global_element_ids))
     for i in eachindex(semis)
-        local_element_ids[semis[i].mesh.cell_ids] = global_cell_id_to_local(global_element_ids[semis[i].mesh.cell_ids],
-                                                                               semis[i].mesh)
+        local_element_ids[semis[i].mesh.cell_ids] = parent_cell_id_to_view(global_element_ids[semis[i].mesh.cell_ids],
+                                                                           semis[i].mesh)
         mesh_ids[semis[i].mesh.cell_ids] .= i
     end
 
@@ -174,6 +167,7 @@ end
     return @view u_ode[semi.u_indices[index]]
 end
 
+# RHS call for the coupled system.
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
@@ -287,17 +281,38 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     return nothing
 end
 
+# RHS call for the local system.
+# Here we require the data from u_parent for each semidiscretization in order
+# to exchange the correct boundary values.
+function rhs!(du_ode, u_ode, u_parent, semis,
+              semi::SemidiscretizationHyperbolic, t)
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    time_start = time_ns()
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_parent, semis, mesh, equations,
+                                      boundary_conditions, source_terms, solver, cache)
+    runtime = time_ns() - time_start
+    put!(semi.performance_counter, runtime)
+
+    return nothing
+end
+
 ################################################################################
 ### AnalysisCallback
 ################################################################################
 
 """
     AnalysisCallbackCoupledP4est(semi, callbacks...)
+
 Combine multiple analysis callbacks for coupled simulations with a
 [`SemidiscretizationCoupled`](@ref). For each coupled system, an indididual
 [`AnalysisCallback`](@ref) **must** be created and passed to the `AnalysisCallbackCoupledP4est` **in
 order**, i.e., in the same sequence as the indidvidual semidiscretizations are stored in the
 `SemidiscretizationCoupled`.
+
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
@@ -323,49 +338,6 @@ function AnalysisCallbackCoupledP4est(semi_coupled, callbacks...)
                      initialize = initialize!)
 end
 
-# This method gets called during initialization from OrdinaryDiffEq's `solve(...)`
-function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_coupled, t,
-                     integrator) where {Condition,
-                                        Affect! <: AnalysisCallbackCoupledP4est}
-    analysis_callback_coupled = cb_coupled.affect!
-    semi_coupled = integrator.p
-    du_ode_coupled = first(get_tmp_cache(integrator))
-
-    # Loop over coupled systems' callbacks and initialize them individually
-    # for i in eachsystem(semi_coupled)
-    #     cb = analysis_callback_coupled.callbacks[i]
-    #     semi = semi_coupled.semis[i]
-    #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
-    #     du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
-    #     initialize!(cb, u_ode, du_ode, t, integrator, semi)
-    # end
-end
-
-# This method gets called from OrdinaryDiffEq's `solve(...)`
-function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
-    semi_coupled = integrator.p
-    u_ode_coupled = integrator.u
-    du_ode_coupled = first(get_tmp_cache(integrator))
-
-    # Loop over coupled systems' callbacks and call them individually
-    # Due to changes in the rhs! calulcations this currently does not work.
-    # Taal: Get a proper coupled analysis callback working.
-    # for i in eachsystem(semi_coupled)
-    #     @unpack condition = analysis_callback_coupled.callbacks[i]
-    #     analysis_callback = analysis_callback_coupled.callbacks[i].affect!
-    #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
-
-    #     # Check condition and skip callback if it is not yet its turn
-    #     if !condition(u_ode, integrator.t, integrator)
-    #         continue
-    #     end
-
-    #     semi = semi_coupled.semis[i]
-    #     du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
-    #     analysis_callback(u_ode, du_ode, integrator, semi)
-    # end
-end
-
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
@@ -383,21 +355,17 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                              for i in eachindex(semi_coupled.semis))
     l2_error_collection = uEltype[]
     linf_error_collection = uEltype[]
-
     for i in eachsystem(semi_coupled)
-        #     analysis_callback = callbacks[i].affect!
-        #     @unpack analyzer = analysis_callback
-        #     cache_analysis = analysis_callback.cache
+        analysis_callback = callbacks[i].affect!
+        @unpack analyzer = analysis_callback
+        cache_analysis = analysis_callback.cache
 
-        #     semi = semi_coupled.semis[i]
-        #     u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
+        semi = semi_coupled.semis[i]
+        u_ode = get_system_u_ode(u_ode_coupled, i, semi_coupled)
 
-        # Due to changes in the rhs! calulcations this currently does not work.
-        # Taal: Get a proper coupled analysis callback working.
-        #     l2_error, linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
-        #                                             cache_analysis)
-        l2_error = zeros(nvariables(semi_coupled.semis[i].equations))
-        linf_error = zeros(nvariables(semi_coupled.semis[i].equations))
+        l2_error,
+        linf_error = calc_error_norms(u_ode, sol.t[end], analyzer, semi,
+                                      cache_analysis)
         append!(l2_error_collection, l2_error)
         append!(linf_error_collection, linf_error)
     end
@@ -443,11 +411,11 @@ end
 
 # In case of coupled system, use minimum timestep over all systems
 # Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
                       semi::SemidiscretizationCoupledP4est)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
+        calculate_dt(u_ode_slice, t, cfl_hyperbolic, cfl_parabolic, semi.semis[i])
     end
 
     return dt
@@ -494,44 +462,17 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
 end
 
 ################################################################################
-### Equations
+### Boundary conditions
 ################################################################################
 
 """
-    BoundaryConditionCoupled(other_semi_index, indices, uEltype, coupling_converter)
+    BoundaryConditionCoupledP4est(coupling_converter)
 
-Boundary condition to glue two meshes together. Solution values at the boundary
-of another mesh will be used as boundary values. This requires the use
-of [`SemidiscretizationCoupled`](@ref). The other mesh is specified by `other_semi_index`,
-which is the index of the mesh in the tuple of semidiscretizations.
-
-Note that the elements and nodes of the two meshes at the coupled boundary must coincide.
-This is currently only implemented for [`StructuredMesh`](@ref).
+Boundary condition struct where the user can specify the coupling converter function.
 
 # Arguments
-- `other_semi_index`: the index in `SemidiscretizationCoupled` of the semidiscretization
-                      from which the values are copied
-- `indices::Tuple`: node/cell indices at the boundary of the mesh in the other
-                    semidiscretization. See examples below.
-- `uEltype::Type`: element type of solution
 - `coupling_converter::CouplingConverter`: function to call for converting the solution
                                            state of one system to the other system
-
-# Examples
-```julia
-# Connect the left boundary of mesh 2 to our boundary such that our positive
-# boundary direction will match the positive y direction of the other boundary
-BoundaryConditionCoupled(2, (:begin, :i), Float64, fun)
-
-# Connect the same two boundaries oppositely oriented
-BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64, fun)
-
-# Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
-BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
-```
-
-!!! warning "Experimental code"
-    This is an experimental feature and can change any time.
 """
 mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     coupling_converter::CouplingConverter
@@ -555,19 +496,21 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              direction,
                                                              u_global, semi)
     n_nodes = length(mesh.parent.nodes)
+    # Using a projection onto e_x, -e_x, e_y, -e_y to determine which way our boundary interfaces points to.
+    # Knowing this, we then find the cell index in the global (parent) space of the neighboring cell.
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
         if sum(normal_direction .* (1.0, 0.0)) >
            sum(normal_direction .* (-1.0, 0.0))
-            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :x_pos) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
+                                                                     :x_pos) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         else
-            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :x_neg) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
+                                                                     :x_neg) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         end
         i_index_g = i_index
         # Make sure we do not leave the domain.
@@ -579,15 +522,15 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         j_index_g = j_index
     else
         if sum(normal_direction .* (0.0, 1.0)) > sum(normal_direction .* (0.0, -1.0))
-            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :y_pos) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
+                                                                     :y_pos) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         else
-            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
-                                                                        :y_neg) .*
-                                                                       (cache.boundaries.neighbor_ids .==
-                                                                        element_index))]
+            cell_index_parent = cache.neighbor_ids_parent[findfirst((cache.boundaries.name .==
+                                                                     :y_neg) .*
+                                                                    (cache.boundaries.neighbor_ids .==
+                                                                     element_index))]
         end
         j_index_g = j_index
         # Make sure we do not leave the domain.
@@ -600,13 +543,12 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     end
 
     # Determine the index and semi of the other semidiscretization.
-    idx_other = semi.mesh_ids[element_index_global]
+    idx_other = semi.mesh_ids[cell_index_parent]
     semi_other = semi.semis[idx_other]
 
     # Determine the index of this semidiscretization.
     idx_this = semi.mesh_ids[mesh.cell_ids[element_index]]
 
-    # @autoinfiltrate
     # Get the neighboring value and convert it.
     u_boundary_to_convert = Vector{real(semi)}(undef, nvariables(semi_other.equations))
     for var in 1:nvariables(semi_other.equations)
@@ -614,7 +556,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                               (var - 1) +
                                               nvariables(semi_other.equations) * (i_index_g - 1) +
                                               nvariables(semi_other.equations) * n_nodes * (j_index_g - 1) +
-                                              nvariables(semi_other.equations) * n_nodes^2 * (global_cell_id_to_local(element_index_global, semi_other.mesh) - 1)]
+                                              nvariables(semi_other.equations) * n_nodes^2 * (parent_cell_id_to_view(cell_index_parent, semi_other.mesh) - 1)]
     end
     x = cache.elements.node_coordinates[:, i_index, j_index, element_index]
     u_boundary = boundary_condition.coupling_converter[idx_this, idx_other](x,
@@ -633,9 +575,6 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                 0.5f0 *
                 surface_flux_function[2](u_inner, u_boundary, orientation,
                                          equations))
-        # Look into the flux flux function and if we supply correct values. They might be caused by improper 'orientation' too.
-        # Check if there are any uinitialized values. Perhaps within the flux function.
-        # Run with boundscheck on.
     else
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
     end

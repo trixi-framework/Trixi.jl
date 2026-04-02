@@ -53,20 +53,23 @@ end
     SemidiscretizationHyperbolicParabolic(mesh, both_equations, initial_condition, solver;
                                           solver_parabolic=default_parabolic_solver(),
                                           source_terms=nothing,
-                                          source_terms_parabolic=nothing,                                          
-                                          both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
+                                          source_terms_parabolic=nothing,
+                                          bboundary_conditions,
                                           RealT=real(solver),
                                           uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
+
+Boundary conditions must be provided explicitly as a tuple of two boundary conditions, where the first entry corresponds to the
+hyperbolic part and the second to the parabolic part. The boundary conditions for the hyperbolic and parabolic part can be
+either passed as `NamedTuple` or as a single boundary condition that is applied to all boundaries.
 """
 function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                initial_condition, solver;
                                                solver_parabolic = default_parabolic_solver(),
                                                source_terms = nothing,
                                                source_terms_parabolic = nothing,
-                                               boundary_conditions = (boundary_condition_periodic,
-                                                                      boundary_condition_periodic),
+                                               boundary_conditions,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
                                                RealT = real(solver), uEltype = RealT)
@@ -76,7 +79,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
     @assert ndims(mesh) == ndims(equations_parabolic)
 
     if !(nvariables(equations) == nvariables(equations_parabolic))
-        throw(ArgumentError("Current implementation of viscous terms requires the same number of conservative and gradient variables."))
+        throw(ArgumentError("Current implementation of parabolic terms requires the same number of conservative and gradient variables."))
     end
 
     boundary_conditions, boundary_conditions_parabolic = boundary_conditions
@@ -366,11 +369,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
+    @trixi_timeit_ext backend timer() "rhs!" rhs!(du, u, t, mesh, equations,
+                                                  boundary_conditions, source_terms,
+                                                  solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
@@ -382,15 +387,18 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
+    backend = trixi_backend(u)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
-                                                          equations_parabolic,
-                                                          boundary_conditions_parabolic,
-                                                          source_terms_parabolic,
-                                                          solver, solver_parabolic,
-                                                          cache, cache_parabolic)
+    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
+                                                                      equations_parabolic,
+                                                                      boundary_conditions_parabolic,
+                                                                      source_terms_parabolic,
+                                                                      solver,
+                                                                      solver_parabolic,
+                                                                      cache,
+                                                                      cache_parabolic)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[2], runtime)
 

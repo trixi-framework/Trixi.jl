@@ -20,7 +20,7 @@ function create_cache(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
 
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
@@ -100,69 +100,79 @@ end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
+# This function is valid for all non-conforming mesh types, i.e.,
+# all meshes that do involve mortar operations.
+# Thus, we can use it for the serial (i.e., non-distributed memory parallelized) 
+# 2D/3D `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es.
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
                           TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    backend = trixi_backend(u)
+
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+        set_zero!(du, dg, cache)
+    end
 
     # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+    @trixi_timeit_ext backend timer() "volume integral" begin
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
 
     # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg)
+    @trixi_timeit_ext backend timer() "prolong2interfaces" begin
+        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+    @trixi_timeit_ext backend timer() "interface flux" begin
+        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
     # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
+    @trixi_timeit_ext backend timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
+    @trixi_timeit_ext backend timer() "boundary flux" begin
         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
     # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
+    @trixi_timeit_ext backend timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
                          dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
+    @trixi_timeit_ext backend timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+    @trixi_timeit_ext backend timer() "surface integral" begin
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit_ext backend timer() "Jacobian" begin
+        apply_jacobian!(backend, du, mesh, equations, dg, cache)
+    end
 
     # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
+    @trixi_timeit_ext backend timer() "source terms" begin
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
@@ -177,12 +187,12 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::TreeMesh{2},
+                                   element, ::Type{<:TreeMesh{2}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
 
     # Calculate volume terms in one element
     for j in eachnode(dg), i in eachnode(dg)
@@ -190,13 +200,13 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 
         flux1 = flux(u_node, 1, equations)
         for ii in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i], flux1,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, j, element)
         end
 
         flux2 = flux(u_node, 2, equations)
         for jj in eachnode(dg)
-            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j], flux2,
+            multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
                                        equations, dg, i, jj, element)
         end
     end
@@ -204,8 +214,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::TreeMesh{2},
+@inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -243,8 +252,7 @@ end
     end
 end
 
-@inline function flux_differencing_kernel!(du, u,
-                                           element, mesh::TreeMesh{2},
+@inline function flux_differencing_kernel!(du, u, element, MeshT::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -253,7 +261,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -287,12 +295,13 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                          UnstructuredMesh2D, P4estMesh{2},
-                                          T8codeMesh{2}},
+                              MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                  UnstructuredMesh2D, P4estMesh{2},
+                                                  T8codeMesh{2}}},
                               have_nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
+                              cons2recon, recon2cons,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -302,10 +311,11 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+    calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                    have_nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
-                   sc_interface_coords, reconstruction_mode, slope_limiter)
+                   sc_interface_coords, reconstruction_mode, slope_limiter,
+                   cons2recon, recon2cons)
 
     # Calculate FV volume integral contribution
     for j in eachnode(dg), i in eachnode(dg)
@@ -322,10 +332,11 @@ end
 end
 
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                                mesh::TreeMesh{2},
+                                ::Type{<:TreeMesh{2}},
                                 have_nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
-                                sc_interface_coords, reconstruction_mode, slope_limiter)
+                                sc_interface_coords, reconstruction_mode, slope_limiter,
+                                cons2recon, recon2cons)
     for j in eachnode(dg), i in 2:nnodes(dg)
         # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
         # See `calcflux_fvO2!` in dg_1d.jl for a schematic of how it works
@@ -333,30 +344,30 @@ end
         # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
         # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
 
-        ## Obtain unlimited values in primitive variables ##
+        ## Obtain unlimited values in reconstruction variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_ll = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i - 1, j, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
         # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not strictly ruled out,
         # **unless** `reconstruction_mode` is set to `reconstruction_O2_inner`
-        u_rr = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
-                                       element), equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1), j,
+                                        element), equations)
 
         ## Reconstruct values at interfaces with limiting ##
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, i,
                                        slope_limiter, dg)
 
-        ## Convert primitive variables back to conservative variables ##
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        ## Convert reconstruction variables back to conservative variables ##
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               1, equations) # orientation 1: x direction
 
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
@@ -364,20 +375,20 @@ end
     end
 
     for j in 2:nnodes(dg), i in eachnode(dg)
-        u_ll = cons2prim(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
-                         equations)
-        u_lr = cons2prim(get_node_vars(u, equations, dg, i, j - 1, element),
-                         equations)
-        u_rl = cons2prim(get_node_vars(u, equations, dg, i, j, element),
-                         equations)
-        u_rr = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
-                                       element), equations)
+        u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
+                          equations)
+        u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
+                          equations)
+        u_rl = cons2recon(get_node_vars(u, equations, dg, i, j, element),
+                          equations)
+        u_rr = cons2recon(get_node_vars(u, equations, dg, i, min(nnodes(dg), j + 1),
+                                        element), equations)
 
         u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                        sc_interface_coords, j,
                                        slope_limiter, dg)
 
-        flux = volume_flux_fv(prim2cons(u_l, equations), prim2cons(u_r, equations),
+        flux = volume_flux_fv(recon2cons(u_l, equations), recon2cons(u_r, equations),
                               2, equations) # orientation 2: y direction
 
         set_node_vars!(fstar2_L, flux, equations, dg, i, j)
@@ -388,9 +399,9 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                        UnstructuredMesh2D, P4estMesh{2},
-                                        T8codeMesh{2}},
+                            MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                UnstructuredMesh2D, P4estMesh{2},
+                                                T8codeMesh{2}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
@@ -401,7 +412,7 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                  have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
 
@@ -424,7 +435,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::TreeMesh{2},
+                              ::Type{<:TreeMesh{2}},
                               have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     for j in eachnode(dg), i in 2:nnodes(dg)
@@ -447,7 +458,7 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::TreeMesh{2},
+                              ::Type{<:TreeMesh{2}},
                               have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
@@ -495,7 +506,8 @@ end
     return nothing
 end
 
-function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
+function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equations,
+                             dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -522,7 +534,64 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{2}, equations, dg::DG)
     return nothing
 end
 
-function calc_interface_flux!(surface_flux_values,
+function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equations,
+                             dg::DGSEM{<:GaussLegendreBasis})
+    @unpack interfaces = cache
+    @unpack orientations, neighbor_ids = interfaces
+    @unpack boundary_interpolation = dg.basis
+    interfaces_u = interfaces.u
+
+    @threaded for interface in eachinterface(dg, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(dg)
+                for v in eachvariable(equations)
+                    # Interpolate to the interfaces using a local variable for
+                    # the accumulation of values (to reduce global memory operations).
+                    interface_u_1 = zero(eltype(interfaces_u))
+                    interface_u_2 = zero(eltype(interfaces_u))
+                    for ii in eachnode(dg)
+                        # Not += to allow `@muladd` to turn these into FMAs
+                        # (see comment at the top of the file)
+                        interface_u_1 = (interface_u_1 +
+                                         u[v, ii, j, left_element] *
+                                         boundary_interpolation[ii, 2])
+                        interface_u_2 = (interface_u_2 +
+                                         u[v, ii, j, right_element] *
+                                         boundary_interpolation[ii, 1])
+                    end
+                    interfaces_u[1, v, j, interface] = interface_u_1
+                    interfaces_u[2, v, j, interface] = interface_u_2
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(dg)
+                for v in eachvariable(equations)
+                    interface_u_1 = zero(eltype(interfaces_u))
+                    interface_u_2 = zero(eltype(interfaces_u))
+                    for jj in eachnode(dg)
+                        interface_u_1 = (interface_u_1 +
+                                         u[v, i, jj, left_element] *
+                                         boundary_interpolation[jj, 2])
+                        interface_u_2 = (interface_u_2 +
+                                         u[v, i, jj, right_element] *
+                                         boundary_interpolation[jj, 1])
+                    end
+                    interfaces_u[1, v, i, interface] = interface_u_1
+                    interfaces_u[2, v, i, interface] = interface_u_2
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{2},
                               have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
@@ -556,7 +625,7 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_interface_flux!(surface_flux_values,
+function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{2},
                               have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
@@ -633,6 +702,82 @@ function prolong2boundaries!(cache, u,
                 # element in +y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, l, boundary] = u[v, l, 1, element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2boundaries!(cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             dg::DGSEM{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides = boundaries
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        # Interpolate to the boundaries using a local variable for
+                        # the accumulation of values (to reduce global memory operations).
+                        boundary_u = zero(eltype(boundaries.u))
+                        for ii in eachnode(dg)
+                            # Not += to allow `@muladd` to turn these into FMAs
+                            # (see comment at the top of the file)
+                            boundary_u = (boundary_u +
+                                          u[v, ii, l, element] *
+                                          boundary_interpolation[ii, 2])
+                        end
+                        boundaries.u[1, v, l, boundary] = boundary_u
+                    end
+                end
+            else # element in +x direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        boundary_u = zero(eltype(boundaries.u))
+                        for ii in eachnode(dg)
+                            boundary_u = (boundary_u +
+                                          u[v, ii, l, element] *
+                                          boundary_interpolation[ii, 1])
+                        end
+                        boundaries.u[2, v, l, boundary] = boundary_u
+                    end
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary => interpolate to right boundary node (+1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        boundary_u = zero(eltype(boundaries.u))
+                        for jj in eachnode(dg)
+                            boundary_u = (boundary_u +
+                                          u[v, l, jj, element] *
+                                          boundary_interpolation[jj, 2])
+                        end
+                        boundaries.u[1, v, l, boundary] = boundary_u
+                    end
+                end
+            else # element in +y direction of boundary => interpolate to left boundary node (-1)
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        boundary_u = zero(eltype(boundaries.u))
+                        for jj in eachnode(dg)
+                            boundary_u = (boundary_u +
+                                          u[v, l, jj, element] *
+                                          boundary_interpolation[jj, 1])
+                        end
+                        boundaries.u[2, v, l, boundary] = boundary_u
+                    end
                 end
             end
         end
@@ -987,6 +1132,16 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
+# For Gauss-Legendre DGSEM mortars are not yet implemented
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{2},
+                           have_nonconservative_terms, equations,
+                           mortar::Nothing, surface_integral,
+                           dg::DGSEM{<:GaussLegendreBasis}, cache)
+    @assert isempty(eachmortar(dg, cache))
+    return nothing
+end
+
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, equations,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation)
@@ -1078,42 +1233,43 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u,
+function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
-    @unpack boundary_interpolation = dg.basis
+    @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # Access the factors only once before beginning the loop to increase performance.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    factor_1 = boundary_interpolation[1, 1]
-    factor_2 = boundary_interpolation[nnodes(dg), 2]
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] -
                                         surface_flux_values[v, l, 1, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +x
                 du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
                                                  surface_flux_values[v, l, 2, element] *
-                                                 factor_2)
+                                                 factor)
 
                 # surface at -y
                 du[v, l, 1, element] = (du[v, l, 1, element] -
                                         surface_flux_values[v, l, 3, element] *
-                                        factor_1)
+                                        factor)
 
                 # surface at +y
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
-                                                 factor_2)
+                                                 factor)
             end
         end
     end
@@ -1121,11 +1277,70 @@ function calc_surface_integral!(du, u,
     return nothing
 end
 
-function apply_jacobian!(du, mesh::TreeMesh{2},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                            StructuredMeshView{2}},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM{<:GaussLegendreBasis}, cache)
+    @unpack boundary_interpolation_inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Legendre DGSEM M^{-1} * L)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus = surface_flux_values[v, l, 1, element]
+                surface_flux_plus = surface_flux_values[v, l, 2, element]
+                for ii in eachnode(dg)
+                    # surface at -x
+                    du[v, ii, l, element] = (du[v, ii, l, element] -
+                                             surface_flux_minus *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    1])
+
+                    # surface at +x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_plus *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    2])
+                end
+
+                surface_flux_minus = surface_flux_values[v, l, 3, element]
+                surface_flux_plus = surface_flux_values[v, l, 4, element]
+                for jj in eachnode(dg)
+                    # surface at -y
+                    du[v, l, jj, element] = (du[v, l, jj, element] -
+                                             surface_flux_minus *
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    1])
+
+                    # surface at +y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_plus *
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    2])
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{2},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
+        # Negative sign included to account for the negated surface and volume terms,
+        # see e.g. the computation of `derivative_hat` in the basis setup and
+        # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
         for j in eachnode(dg), i in eachnode(dg)

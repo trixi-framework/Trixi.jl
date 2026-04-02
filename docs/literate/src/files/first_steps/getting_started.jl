@@ -106,17 +106,17 @@
 # ```math
 # \frac{\partial}{\partial t}
 # \begin{pmatrix}
-# \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
+# \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e_{\text{total}}
 # \end{pmatrix}
 # +
 # \frac{\partial}{\partial x}
 # \begin{pmatrix}
-# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e + p) v_1
+# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e_{\text{total}} + p) v_1
 # \end{pmatrix}
 # +
 # \frac{\partial}{\partial y}
 # \begin{pmatrix}
-# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e + p) v_2
+# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e_{\text{total}} + p) v_2
 # \end{pmatrix}
 # =
 # \begin{pmatrix}
@@ -124,10 +124,10 @@
 # \end{pmatrix},
 # ```
 # for an ideal gas with the specific heat ratio ``\gamma``.
-# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e`` is the specific
+# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e_{\text{total}}`` is the specific
 # total energy, and
 # ```math
-# p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
+# p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
 # ```
 # is the pressure.
 
@@ -185,7 +185,7 @@ get_examples()
 
 # As an example, we will change the initial condition for calculations that occur in
 # `elixir_euler_ec.jl`. Initial conditions for [`CompressibleEulerEquations2D`](@ref) consist of
-# initial values for ``\rho``, ``\rho v_1``, ``\rho v_2`` and ``\rho e``. One of the common initial
+# initial values for ``\rho``, ``\rho v_1``, ``\rho v_2`` and ``\rho e_{\text{total}}``. One of the common initial
 # conditions for the compressible Euler equations is a simple density wave. Let's implement it.
 
 # - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
@@ -206,8 +206,8 @@ function initial_condition_density_waves(x, t, equations::CompressibleEulerEquat
     v2 = 0.2 # velocity along y-axis
     rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
     p = 20 # pressure
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
-    return SVector(rho, rho * v1, rho * v2, rho_e)
+    rho_e_total = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho * v1, rho * v2, rho_e_total)
 end
 initial_condition = initial_condition_density_waves
 nothing; #hide #md

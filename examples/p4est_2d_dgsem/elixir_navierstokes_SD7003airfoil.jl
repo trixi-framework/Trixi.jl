@@ -11,12 +11,12 @@ aoa = 4 * pi / 180
 rho_inf = 1.4 # with gamma = 1.4 => p_inf = 1.0
 
 Re = 10000.0
-airfoil_cord_length = 1.0
+airfoil_chord_length = 1.0
 
-t_c = airfoil_cord_length / U_inf
+t_c = airfoil_chord_length / U_inf
 
 prandtl_number() = 0.72
-mu() = rho_inf * U_inf * airfoil_cord_length / Re
+mu() = rho_inf * U_inf * airfoil_chord_length / Re
 
 equations = CompressibleEulerEquations2D(gamma)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
@@ -64,11 +64,11 @@ velocity_bc_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
 
-boundary_conditions_hyp = Dict(:FarField => boundary_condition_free_stream,
-                               :Airfoil => boundary_condition_slip_wall)
+boundary_conditions_hyp = (; FarField = boundary_condition_free_stream,
+                           Airfoil = boundary_condition_slip_wall)
 
-boundary_conditions_para = Dict(:FarField => boundary_condition_free_stream,
-                                :Airfoil => boundary_condition_airfoil)
+boundary_conditions_para = (; FarField = boundary_condition_free_stream,
+                            Airfoil = boundary_condition_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -92,7 +92,7 @@ summary_callback = SummaryCallback()
 f_aoa() = aoa
 f_rho_inf() = rho_inf
 f_U_inf() = U_inf
-f_linf() = airfoil_cord_length
+f_linf() = airfoil_chord_length
 
 force_boundary_symbol = (:Airfoil,)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,

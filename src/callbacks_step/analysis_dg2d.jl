@@ -138,7 +138,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func, _u, t, analyzer,
                           mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                       UnstructuredMesh2D,
                                       P4estMesh{2}, P4estMeshView{2},
@@ -146,8 +146,18 @@ function calc_error_norms(func, u, t, analyzer,
                           equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
-    @unpack node_coordinates, inverse_jacobian = cache.elements
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
+
+    # TODO GPU AnalysisCallback currently lives on CPU
+    backend = trixi_backend(_u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        @unpack node_coordinates, inverse_jacobian = cache.elements
+        u = _u
+    else
+        node_coordinates = Array(cache.elements.node_coordinates)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+        u = Array(_u)
+    end
 
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
@@ -185,6 +195,124 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# Use quadrature to numerically integrate a single element.
+# We do not multiply by the Jacobian to stay in reference space.
+# This avoids the need to divide the RHS of the DG scheme by the Jacobian when computing
+# the time derivative of entropy, see `entropy_change_reference_element`.
+function integrate_reference_element(func::Func, u, element,
+                                     ::Type{<:AbstractMesh{2}}, equations, dg::DGSEM,
+                                     cache,
+                                     args...) where {Func}
+    @unpack weights = dg.basis
+
+    # Initialize integral with zeros of the right shape
+    element_integral = zero(func(u, 1, 1, element, equations, dg, args...))
+
+    for j in eachnode(dg), i in eachnode(dg)
+        element_integral += weights[i] * weights[j] *
+                            func(u, i, j, element, equations, dg, args...)
+    end
+
+    return element_integral
+end
+
+# Calculate ∫_e (∂S/∂u ⋅ ∂u/∂t) dΩ_e where the result on element 'e' is kept in reference space
+# Note that ∂S/∂u = w(u) with entropy variables w
+function entropy_change_reference_element(du, u, element,
+                                          MeshT::Type{<:AbstractMesh{2}},
+                                          equations, dg::DGSEM, cache, args...)
+    return integrate_reference_element(u, element, MeshT, equations, dg, cache,
+                                       du) do u, i, j, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        du_node = get_node_vars(du, equations, dg, i, j, element)
+
+        dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+# calculate surface integral of func(u, equations) * normal on the reference element.
+function surface_integral_reference_element(func::Func, u, element,
+                                            ::Type{<:TreeMesh{2}}, equations, dg::DGSEM,
+                                            cache, args...) where {Func}
+    @unpack weights = dg.basis
+
+    u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
+    surface_integral = zero(func(u_tmp, 1, equations))
+    for i in eachnode(dg)
+        # integrate along x direction, normal in y (2) direction
+        u_bottom = get_node_vars(u, equations, dg, i, 1, element)
+        u_top = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+
+        surface_integral += weights[i] *
+                            (func(u_top, 2, equations) - func(u_bottom, 2, equations))
+
+        # integrate along y direction, normal in x (1) direction
+        u_left = get_node_vars(u, equations, dg, 1, i, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), i, element)
+
+        surface_integral += weights[i] *
+                            (func(u_right, 1, equations) - func(u_left, 1, equations))
+    end
+
+    return surface_integral
+end
+
+# calculate surface integral of func(u, normal_direction, equations) * normal on the reference element.
+# Note: `get_normal_direction` already returns an outward-pointing normal for all directions,
+# thus no +- flips are needed here.
+function surface_integral_reference_element(func::Func, u, element,
+                                            ::Type{<:Union{StructuredMesh{2},
+                                                           StructuredMeshView{2},
+                                                           UnstructuredMesh2D,
+                                                           P4estMesh{2},
+                                                           T8codeMesh{2}}},
+                                            equations, dg::DGSEM,
+                                            cache, args...) where {Func}
+    @unpack contravariant_vectors = cache.elements
+    @unpack weights = dg.basis
+
+    # Construct zero of right shape:
+    # Evaluate `func` at actual quadrature node and normal direction
+    u_tmp = get_node_vars(u, equations, dg, 1, 1, element)
+    normal_direction = get_normal_direction(1, contravariant_vectors,
+                                            1, 1, element)
+    surface_integral = zero(func(u_tmp, normal_direction, equations))
+
+    # Direction 1: face at i = 1 (x_min)
+    for j in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, 1, j, element)
+        normal_direction = get_normal_direction(1, contravariant_vectors,
+                                                1, j, element)
+        surface_integral += weights[j] * func(u_node, normal_direction, equations)
+    end
+
+    # Direction 2: face at i = nnodes(dg) (x_max)
+    for j in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+        normal_direction = get_normal_direction(2, contravariant_vectors,
+                                                nnodes(dg), j, element)
+        surface_integral += weights[j] * func(u_node, normal_direction, equations)
+    end
+
+    # Direction 3: face at j = 1 (y_min)
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, 1, element)
+        normal_direction = get_normal_direction(3, contravariant_vectors,
+                                                i, 1, element)
+        surface_integral += weights[i] * func(u_node, normal_direction, equations)
+    end
+
+    # Direction 4: face at j = nnodes(dg) (y_max)
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+        normal_direction = get_normal_direction(4, contravariant_vectors,
+                                                i, nnodes(dg), element)
+        surface_integral += weights[i] * func(u_node, normal_direction, equations)
+    end
+
+    return surface_integral
+end
+
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
@@ -210,14 +338,24 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate_via_indices(func::Func, u,
+function integrate_via_indices(func::Func, _u,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                            UnstructuredMesh2D,
                                            P4estMesh{2}, P4estMeshView{2},
                                            T8codeMesh{2}},
-                               equations,
-                               dg::DGSEM, cache, args...; normalize = true) where {Func}
-    @unpack weights = dg.basis
+                               equations, dg::DGSEM, cache,
+                               args...; normalize = true) where {Func}
+    # TODO GPU AnalysiCallback currently lives on CPU
+    backend = trixi_backend(_u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        @unpack weights = dg.basis
+        @unpack inverse_jacobian = cache.elements
+        u = _u
+    else
+        weights = Array(dg.basis.weights)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+        u = Array(_u)
+    end
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
@@ -227,7 +365,7 @@ function integrate_via_indices(func::Func, u,
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *
                         func(u, i, j, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j]
@@ -246,7 +384,8 @@ function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
                                T8codeMesh{2}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
+                   equations, dg::Union{DGSEM, FDSBP}, cache;
+                   normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, element)
@@ -256,10 +395,9 @@ end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                   equations, equations_parabolic,
-                   dg::DGSEM,
+                   equations, equations_parabolic, dg::DGSEM,
                    cache, cache_parabolic; normalize = true) where {Func}
-    gradients_x, gradients_y = cache_parabolic.viscous_container.gradients
+    gradients_x, gradients_y = cache_parabolic.parabolic_container.gradients
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, element)
@@ -272,10 +410,19 @@ function integrate(func::Func, u,
     end
 end
 
-function analyze(::typeof(entropy_timederivative), du, u, t,
+function analyze(::typeof(entropy_timederivative), _du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                              UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                 equations, dg::DG, cache)
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
+    # TODO GPU AnalysiCallback currently lives on CPU
+    backend = trixi_backend(u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        du = _du
+    else
+        du = Array(_du)
+    end
+
+    # Calculate
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, element, equations, dg, du
@@ -311,7 +458,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
                                                          dg, cache, derivative_matrix
@@ -332,7 +479,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
                      derivative_matrix[j, k] *
                      (Ja21 * B1_ik + Ja22 * B2_ik))
         end
-        divb *= cache.elements.inverse_jacobian[i, j, element]
+        divb *= inverse_jacobian[i, j, element]
         return divb^2
     end |> sqrt
 end
@@ -370,7 +517,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
                              T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
-    @unpack contravariant_vectors = cache.elements
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
@@ -395,7 +542,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
                          derivative_matrix[j, k] *
                          (Ja21 * B1_ik + Ja22 * B2_ik))
             end
-            divb *= cache.elements.inverse_jacobian[i, j, element]
+            divb *= inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))
         end
     end

@@ -41,10 +41,10 @@
 
 # The indicator is calculated for every DG element by itself. First, we calculate a smooth $\alpha$ by
 # ```math
-# \alpha = \frac{1}{1+\exp(-\frac{-s}{\mathbb{T}}(\mathbb{E}-\mathbb{T}))}
+# \alpha = \frac{1}{1+\exp(-\frac{s}{\mathbb{T}}(\mathbb{E}-\mathbb{T}))}
 # ```
 # with the total energy $\mathbb{E}=\max\big(\frac{m_N^2}{\sum_{j=0}^N m_j^2}, \frac{m_{N-1}^2}{\sum_{j=0}^{N-1} m_j^2}\big)$,
-# threshold $\mathbb{T}= 0.5 * 10^{-1.8*(N+1)^{1/4}}$ and parameter $s=ln\big(\frac{1-0.0001}{0.0001}\big)\approx 9.21024$.
+# threshold $\mathbb{T}= 0.5 * 10^{-1.8*(N+1)^{1/4}}$ and parameter $s=\ln\big(\frac{1-0.0001}{0.0001}\big)\approx 9.21024$.
 
 # For computational efficiency, $\alpha_{min}$ is introduced and used for
 # ```math
@@ -195,9 +195,11 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
@@ -316,9 +318,11 @@ coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

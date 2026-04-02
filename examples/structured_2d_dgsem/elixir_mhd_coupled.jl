@@ -63,7 +63,7 @@ boundary_conditions1 = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), 
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 
-semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition1, solver,
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition1, solver;
                                      boundary_conditions = boundary_conditions1)
 
 ###########
@@ -86,7 +86,7 @@ boundary_conditions2 = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), 
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 
-semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition2, solver,
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition2, solver;
                                      boundary_conditions = boundary_conditions2)
 
 # Create a semidiscretization that bundles all the semidiscretizations.

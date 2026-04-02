@@ -35,10 +35,13 @@ function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
 end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS,
+NDIMS_AMBIENT,
+RealT} = RealT
 
 @inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
+# Extract interfaces, boundaries and parent element ids from the neighbors.
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
                                  boundaries_parent,
@@ -72,12 +75,12 @@ function extract_p4est_mesh_view(elements_parent,
     # Extract mortars that are entirely within this mesh view.
     mortars = extract_mortars(mesh, mortars_parent)
 
-    # Get the global elements ids of the neighbors.
-    neighbor_ids_global = extract_neighbor_ids_global(mesh, boundaries_parent,
+    # Get the parent element ids of the neighbors.
+    neighbor_ids_parent = extract_neighbor_ids_parent(mesh, boundaries_parent,
                                                       interfaces_parent,
-                                                      boundaries, elements_parent)
+                                                      boundaries)
 
-    return elements, interfaces, boundaries, mortars, neighbor_ids_global
+    return elements, interfaces, boundaries, mortars, neighbor_ids_parent
 end
 
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
@@ -87,8 +90,10 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     # Loop over all interfaces (index 2).
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
-        mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
-                          (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
+        mask[interface] = (interfaces_parent.neighbor_ids[1,
+                           interface] in mesh.cell_ids) &&
+                          (interfaces_parent.neighbor_ids[2,
+                           interface] in mesh.cell_ids)
     end
 
     # Create deepcopy to get completely independent interfaces container
@@ -100,14 +105,16 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     @views interfaces.node_indices .= interfaces_parent.node_indices[.., mask]
     @views neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
 
-    # Transform the global (parent) indices into local (view) indices.
+    # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids)[2]
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
-                                                              neighbor_ids[1, interface],
+                                                              neighbor_ids[1,
+                                                                           interface],
                                                         mesh.cell_ids)[1]
         interfaces.neighbor_ids[2, interface] = findall(id -> id ==
-                                                              neighbor_ids[2, interface],
+                                                              neighbor_ids[2,
+                                                                           interface],
                                                         mesh.cell_ids)[1]
     end
 
@@ -122,17 +129,18 @@ function extract_boundaries(mesh::P4estMeshView,
     # Remove all boundaries that are not part of this p4est mesh view.
     boundaries = deepcopy(boundaries_parent)
     mask = BitArray(undef, nboundaries(boundaries_parent))
-    for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
+    for boundary in 1:nboundaries(boundaries_parent)
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
-    boundaries.neighbor_ids = global_cell_id_to_local(boundaries_parent.neighbor_ids[mask],
-                                                         mesh)
+    boundaries.neighbor_ids = parent_cell_id_to_view(boundaries_parent.neighbor_ids[mask],
+                                                     mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
     # Add new boundaries that were interfaces of the parent mesh.
     # Loop over all interfaces (index 2).
-    for interface in 1:size(interfaces_parent.neighbor_ids)[2]
+    for interface in 1:ninterfaces(interfaces_parent)
+        # Create new boundary if exactly one of the neighbor cells is in the mesh view ("exclusive or" with ⊻)
         if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) ⊻
             (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids))
             # Determine which of the ids is part of the mesh view.
@@ -146,16 +154,18 @@ function extract_boundaries(mesh::P4estMeshView,
 
             # Update the neighbor ids.
             push!(boundaries.neighbor_ids,
-                  global_cell_id_to_local(neighbor_id, mesh))
-            # Update the boundary names.
-            if interfaces_parent.node_indices[view_idx, interface] ==
-               (:end, :i_forward)
+                  parent_cell_id_to_view(neighbor_id, mesh))
+            # Update the boundary names to reflect where the neighboring cell is
+            # relative to this one, i.e. left, right, up, down.
+            # In 3d one would need to add the third dimension.
+            if (interfaces_parent.node_indices[view_idx, interface] ==
+                (:end, :i_forward))
                 push!(boundaries.name, :x_pos)
-            elseif interfaces_parent.node_indices[view_idx, interface] ==
-                   (:begin, :i_forward)
+            elseif (interfaces_parent.node_indices[view_idx, interface] ==
+                    (:begin, :i_forward))
                 push!(boundaries.name, :x_neg)
-            elseif interfaces_parent.node_indices[view_idx, interface] ==
-                   (:i_forward, :end)
+            elseif (interfaces_parent.node_indices[view_idx, interface] ==
+                    (:i_forward, :end))
                 push!(boundaries.name, :y_pos)
             else
                 push!(boundaries.name, :y_neg)
@@ -168,9 +178,15 @@ function extract_boundaries(mesh::P4estMeshView,
     end
 
     # Create the boundary vector for u, which will be populated later.
-    boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
-                         (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2],
-                          size(boundaries.node_indices)[end]))
+    n_dims = ndims(boundaries)
+    n_nodes = size(boundaries.u, 2)
+    n_variables = size(boundaries.u, 1)
+    capacity = length(boundaries.neighbor_ids)
+
+    resize!(boundaries._u, n_variables * n_nodes^(n_dims - 1) * capacity)
+    boundaries.u = unsafe_wrap(Array, pointer(boundaries._u),
+                               (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
+                                capacity))
 
     return boundaries
 end
@@ -210,7 +226,7 @@ function extract_mortars(mesh::P4estMeshView, mortars_parent)
     for (new_idx, old_idx) in enumerate(mortar_indices)
         for pos in 1:n_neighbors
             global_id = mortars_parent.neighbor_ids[pos, old_idx]
-            mortars.neighbor_ids[pos, new_idx] = global_cell_id_to_local(global_id, mesh)
+            mortars.neighbor_ids[pos, new_idx] = parent_cell_id_to_view(global_id, mesh)
         end
         # node_indices has shape (2, n_mortars): row 1 = small face, row 2 = large face.
         # Use column indexing to copy both entries correctly.
@@ -223,117 +239,74 @@ function extract_mortars(mesh::P4estMeshView, mortars_parent)
     return mortars
 end
 
-# Extract the ids of the neighboring elements using the global indexing of the parent mesh.
-function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
-                                     interfaces_parent,
-                                     boundaries, elements_parent)
-    # Determine the global indices of the boundaring elements.
-    neighbor_ids_global = zero.(boundaries.neighbor_ids)
+# Extract the ids of the neighboring elements using the parent mesh indexing.
+# For every boundary of the mesh view find the neighboring cell id in global (parent) indexing.
+# Such neighboring cells are either inside the domain and have an interface
+# in the parent mesh, or they are physical boundaries for which we then
+# construct a periodic coupling by assigning as neighbor id the cell id
+# on the other end of the domain.
+function extract_neighbor_ids_parent(mesh::P4estMeshView,
+                                     boundaries_parent, interfaces_parent,
+                                     boundaries)
+    # Determine the parent indices of the neighboring elements.
+    neighbor_ids_parent = similar(boundaries.neighbor_ids)
     for (idx, id) in enumerate(boundaries.neighbor_ids)
-        global_id = mesh.cell_ids[id]
+        parent_id = mesh.cell_ids[id]
         # Find this id in the parent's interfaces.
         for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
-            if global_id == interfaces_parent.neighbor_ids[1, interface] ||
-               global_id == interfaces_parent.neighbor_ids[2, interface]
-                if global_id == interfaces_parent.neighbor_ids[1, interface]
+            if (parent_id == interfaces_parent.neighbor_ids[1, interface] ||
+                parent_id == interfaces_parent.neighbor_ids[2, interface])
+                if parent_id == interfaces_parent.neighbor_ids[1, interface]
                     matching_boundary = 1
                 else
                     matching_boundary = 2
                 end
                 # Check if interfaces with this id have the right name/node_indices.
-                if boundaries.name[idx] ==
-                   node_indices_to_name(interfaces_parent.node_indices[matching_boundary,
-                                                                       interface])
-                    if global_id == interfaces_parent.neighbor_ids[1, interface]
-                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2,
+                if (boundaries.name[idx] ==
+                    node_indices_to_name(interfaces_parent.node_indices[matching_boundary,
+                                                                        interface]))
+                    if parent_id == interfaces_parent.neighbor_ids[1, interface]
+                        neighbor_ids_parent[idx] = interfaces_parent.neighbor_ids[2,
                                                                                   interface]
                     else
-                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1,
+                        neighbor_ids_parent[idx] = interfaces_parent.neighbor_ids[1,
                                                                                   interface]
                     end
                 end
             end
         end
 
-        # Find this id in the parent's boundaries and match to opposite side.
-        # Use coordinate-based matching to handle non-uniform refinement.
+        # Find this id in the parent's boundaries.
+        parent_xneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
+        parent_xpos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
+        parent_yneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
+        parent_ypos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
         for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
-            if global_id == boundary
+            if parent_id == boundary
                 # Check if boundaries with this id have the right name/node_indices.
                 if boundaries.name[idx] == boundaries_parent.name[parent_idx]
-                    # Find matching element on opposite boundary based on coordinate overlap.
-                    opposite_name = get_opposite_boundary_name(boundaries_parent.name[parent_idx])
-                    if opposite_name !== nothing
-                        neighbor_ids_global[idx] = find_matching_boundary_element(
-                            global_id, boundaries_parent.name[parent_idx],
-                            opposite_name, boundaries_parent, elements_parent)
+                    # Make the coupling periodic.
+                    if boundaries_parent.name[parent_idx] == :x_neg
+                        neighbor_ids_parent[idx] = parent_xpos_cell_ids[findfirst(parent_xneg_cell_ids .==
+                                                                                  boundary)]
+                    elseif boundaries_parent.name[parent_idx] == :x_pos
+                        neighbor_ids_parent[idx] = parent_xneg_cell_ids[findfirst(parent_xpos_cell_ids .==
+                                                                                  boundary)]
+                    elseif boundaries_parent.name[parent_idx] == :y_neg
+                        neighbor_ids_parent[idx] = parent_ypos_cell_ids[findfirst(parent_yneg_cell_ids .==
+                                                                                  boundary)]
+                    elseif boundaries_parent.name[parent_idx] == :y_pos
+                        neighbor_ids_parent[idx] = parent_yneg_cell_ids[findfirst(parent_ypos_cell_ids .==
+                                                                                  boundary)]
+                    else
+                        error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
                     end
                 end
             end
         end
     end
 
-    return neighbor_ids_global
-end
-
-# Get the opposite boundary name for periodic-like coupling
-function get_opposite_boundary_name(name::Symbol)
-    if name == :x_neg
-        return :x_pos
-    elseif name == :x_pos
-        return :x_neg
-    elseif name == :y_neg
-        return :y_pos
-    elseif name == :y_pos
-        return :y_neg
-    else
-        return nothing
-    end
-end
-
-# Find the element on the opposite boundary that best matches the given element's position.
-# For x boundaries, match by y-coordinate; for y boundaries, match by x-coordinate.
-function find_matching_boundary_element(element_id, boundary_name, opposite_name,
-                                        boundaries_parent, elements_parent)
-    # Get elements on the opposite boundary
-    opposite_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== opposite_name]
-
-    if isempty(opposite_element_ids)
-        return 0  # No matching element found
-    end
-
-    # Get the center coordinate of our element (perpendicular to boundary direction)
-    # For x boundaries, we match by y; for y boundaries, we match by x
-    if boundary_name in (:x_neg, :x_pos)
-        # Match by y-coordinate
-        coord_idx = 2  # y-coordinate
-    else
-        # Match by x-coordinate
-        coord_idx = 1  # x-coordinate
-    end
-
-    # Get center coordinate of source element
-    # node_coordinates has shape (ndims, nnodes, nnodes, nelements)
-    nnodes = size(elements_parent.node_coordinates, 2)
-    center_node = (nnodes + 1) ÷ 2
-    source_coord = elements_parent.node_coordinates[coord_idx, center_node, center_node,
-                                                    element_id]
-
-    # Find the element on the opposite side with the closest matching coordinate
-    best_match = opposite_element_ids[1]
-    best_distance = Inf
-
-    for opp_id in opposite_element_ids
-        opp_coord = elements_parent.node_coordinates[coord_idx, center_node, center_node,
-                                                     opp_id]
-        distance = abs(source_coord - opp_coord)
-        if distance < best_distance
-            best_distance = distance
-            best_match = opp_id
-        end
-    end
-
-    return best_match
+    return neighbor_ids_parent
 end
 
 """
@@ -384,14 +357,14 @@ function extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
             # Add small elements that are in this view
             for (pos, (small_id, in_view)) in enumerate(zip(small_ids, small_in_view))
                 if in_view
-                    push!(local_neighbor_ids, global_cell_id_to_local(small_id, mesh))
+                    push!(local_neighbor_ids, parent_cell_id_to_view(small_id, mesh))
                     push!(local_neighbor_positions, pos)
                 end
             end
 
             # Add large element if in this view
             if large_in_view
-                push!(local_neighbor_ids, global_cell_id_to_local(large_id, mesh))
+                push!(local_neighbor_ids, parent_cell_id_to_view(large_id, mesh))
                 push!(local_neighbor_positions, n_small + 1)  # 3 in 2D, 5 in 3D
             end
 
@@ -493,6 +466,7 @@ function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elemen
 end
 
 # Translate the interface indices into boundary names.
+# This works only in 2d currently.
 function node_indices_to_name(node_index)
     if node_index == (:end, :i_forward)
         return :x_pos
@@ -507,23 +481,22 @@ function node_indices_to_name(node_index)
     end
 end
 
-# Convert a global cell id to a local cell id in the mesh view.
-function global_cell_id_to_local(id::Int, mesh::P4estMeshView)
-    # Find the index of the cell id in the mesh view
-    local_id = findfirst(==(id), mesh.cell_ids)
+# Convert a parent cell id to a view cell id in the mesh view.
+function parent_cell_id_to_view(id::Integer, mesh::P4estMeshView)
+    # Find the index of the cell id in the mesh view.
+    # We use findfirst rather than searchsortedfirst to handle unsorted cell_ids correctly.
+    view_id = findfirst(==(id), mesh.cell_ids)
 
-    return local_id
+    return view_id
 end
 
-# Convert an array of global cell ids to a local cell id in the mesh view.
-function global_cell_id_to_local(id::AbstractArray, mesh::P4estMeshView)
-    # Find the index of the cell id in the mesh view
-    local_id = zeros(Int, length(id))
-    for i in eachindex(id)
-        local_id[i] = global_cell_id_to_local(id[i], mesh)
+# Convert an array of parent cell ids to view cell ids in the mesh view.
+function parent_cell_id_to_view(ids::AbstractArray, mesh::P4estMeshView)
+    view_id = zeros(Int, length(ids))
+    for i in eachindex(ids)
+        view_id[i] = parent_cell_id_to_view(ids[i], mesh)
     end
-
-    return local_id
+    return view_id
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
@@ -536,11 +509,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    # Determine file name based on existence of meaningful time step
-    filename = joinpath(output_directory,
-                        @sprintf("mesh_%s_%09d.h5", system, timestep))
-    p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
-
+    filename = joinpath(output_directory, "mesh.h5")
+    p4est_filename = "p4est_data"
     p4est_file = joinpath(output_directory, p4est_filename)
 
     # Save the complete connectivity and `p4est` data to disk.

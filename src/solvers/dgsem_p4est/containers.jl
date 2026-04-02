@@ -627,16 +627,17 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
 end
 
 function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+    n_cells = ncells(mesh)
+
     # Re-initialize elements container
     @unpack elements = cache
-    resize!(elements, ncells(mesh))
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
 
-    if dg.volume_integral isa AbstractVolumeIntegralSubcell
-        @unpack normal_vectors = cache
-        resize!(normal_vectors, ncells(mesh))
-        init_normal_vectors!(normal_vectors, mesh, dg, cache)
-    end
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
 
     required = count_required_surfaces(mesh)
 
@@ -919,7 +920,7 @@ function count_required_surfaces(mesh::P4estMesh)
 end
 
 # Return direction of the face, which is indexed by node_indices
-@inline function indices2direction(indices)
+@inline function indices2direction(indices::NTuple{3, Symbol})
     if indices[1] === :begin
         return 1
     elseif indices[1] === :end
@@ -933,6 +934,24 @@ end
     else # if indices[3] === :end
         return 6
     end
+end
+
+@inline function indices2direction(indices::NTuple{2, Symbol})
+    if indices[1] === :begin
+        return 1
+    elseif indices[1] === :end
+        return 2
+    elseif indices[2] === :begin
+        return 3
+    else # if indices[2] === :end
+        return 4
+    end
+end
+
+# Build a reduced cache which can be passed to GPU kernels
+@inline function kernel_filter_cache(cache)
+    return (;
+            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
 end
 
 include("containers_2d.jl")

@@ -371,21 +371,83 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (positivity bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
-                            0.1942700455652903,
-                            0.07557644365785855,
-                            0.07557644365785836,
-                            0.07557644365785698,
-                            0.3713893635249306
+                            0.19427117014566905,
+                            0.07557679851688888,
+                            0.07557679851688896,
+                            0.07557679851688917,
+                            0.3713893373335463
                         ],
                         linf=[
-                            2.7542157588958798,
-                            1.8885700263691245,
-                            1.888570026369125,
-                            1.8885700263691252,
-                            4.9712792944452096
+                            2.754292081408987,
+                            1.888627709320322,
+                            1.8886277093203232,
+                            1.888627709320322,
+                            4.971280431903264
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=30,
+                        l2=[
+                            0.16504564013491585,
+                            0.06461384162458203,
+                            0.06461384162461223,
+                            0.06461384162461678,
+                            0.36193245790622036
+                        ],
+                        linf=[
+                            0.9138327077620716,
+                            0.5707102472596818,
+                            0.5707102472739252,
+                            0.5707102472781822,
+                            4.777595503303726
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds, nonperiodic)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=50,
+                        periodicity=false,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition),
+                        l2=[
+                            0.16504564013491585,
+                            0.06461384162458203,
+                            0.06461384162461223,
+                            0.06461384162461678,
+                            0.36193245790622036
+                        ],
+                        linf=[
+                            0.9138327077620716,
+                            0.5707102472596818,
+                            0.5707102472739252,
+                            0.5707102472781822,
+                            4.777595503303726
                         ],
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations

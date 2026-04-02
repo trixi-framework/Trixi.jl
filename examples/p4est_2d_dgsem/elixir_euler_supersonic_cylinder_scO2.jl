@@ -52,11 +52,11 @@ end
     return flux(u_inner, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
-                           :Circle => boundary_condition_slip_wall,
-                           :Top => boundary_condition_slip_wall,
-                           :Right => boundary_condition_outflow,
-                           :Left => boundary_condition_supersonic_inflow)
+boundary_conditions = (; Bottom = boundary_condition_slip_wall,
+                       Circle = boundary_condition_slip_wall,
+                       Top = boundary_condition_slip_wall,
+                       Right = boundary_condition_outflow,
+                       Left = boundary_condition_supersonic_inflow)
 
 volume_flux = flux_ranocha_turbo
 surface_flux = flux_lax_friedrichs
@@ -82,7 +82,7 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000
 
 mesh = P4estMesh{2}(mesh_file)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -113,7 +113,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level = 5, max_threshold = 0.1)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 2,
+                           interval = 3,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
@@ -130,8 +130,9 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-
 ###############################################################################
 # run the simulation
 
-# We supply a small initial timestep to be able to use a larger AMR interval (2 instead of 1) throughout the simulation.
+# We supply a small initial timestep to be able to use a larger AMR interval (3 instead of 1) throughout the simulation.
 # This pays off almost immediately as only the first couple timesteps use this timestep before it is ramped up.
 dt0 = 1e-8
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
-            dt = dt0, ode_default_options()..., callback = callbacks);
+            adaptive = true, dt = dt0,
+            ode_default_options()..., callback = callbacks);

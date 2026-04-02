@@ -103,11 +103,13 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
-                                             source_terms = source_terms_navier_stokes_convergence_test)
+                                             initial_condition, solver;
+                                             source_terms = source_terms_navier_stokes_convergence_test,
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -123,10 +125,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
-# For coarser grids, linear stability is governed by the advective/convective CFL condition,
+# For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements (e.g. initial_refinement_level = 8) the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 2.7,
-                                     cfl_diffusive = 0.2)
+                                     cfl_parabolic = 0.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

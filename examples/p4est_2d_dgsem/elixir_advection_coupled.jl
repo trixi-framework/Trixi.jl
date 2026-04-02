@@ -10,6 +10,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
+# Define the physical domain for the parent mesh.
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
@@ -69,6 +70,7 @@ ode = semidiscretize(semi, (0.0, 2.0))
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+# We require this definition for the test, even though we don't use it in the CallbackSet.
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
 analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1,
