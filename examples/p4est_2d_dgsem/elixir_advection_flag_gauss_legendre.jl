@@ -14,8 +14,8 @@ solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs,
 # lower and upper faces are sinus curves, left and right are vertical lines.
 f1(s) = SVector(-1.0, s - 1.0)
 f2(s) = SVector(1.0, s + 1.0)
-f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
-f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
+f3(s) = SVector(s, -1.0 + sinpi(0.5 * s))
+f4(s) = SVector(s, 1.0 + sinpi(0.5 * s))
 
 # Create P4estMesh with 3 x 2 trees and 6 x 4 elements,
 # approximate the geometry with a smaller polydeg for testing.
