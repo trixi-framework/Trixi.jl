@@ -103,7 +103,7 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
 end
 
 function Trixi.trixi_device_memory_use(::CUDABackend)
-    info = CUDA.Mem.MemoryInfo()
+    info = CUDA.MemoryInfo()
     used_bytes = info.total_bytes - info.free_bytes
     return used_bytes
 end
