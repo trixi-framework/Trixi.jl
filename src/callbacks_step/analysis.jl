@@ -291,6 +291,10 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     #        release, just delete this analysis quantity from the callback.
     # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
     memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
+    device_memory_use = trixi_device_memory_use(trixi_backend(u_ode))
+    if device_memory_use !== nothing
+        device_memory_use /= 2^20 # bytes -> MiB
+    end
 
     @trixi_timeit timer() "analyze solution" begin
         # General information
@@ -315,6 +319,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofsglobal(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
+        if device_memory_use !== nothing
+            mpi_println(" device memory:  " * @sprintf("%14.3f MiB", device_memory_use))
+        end
         mpi_println(" #elements:      " *
                     @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
