@@ -52,9 +52,14 @@ ode = semidiscretize(semi, tspan; storage_type = nothing, real_type = nothing)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
 stepsize_callback = StepsizeCallback(cfl = 0.1)
 
-callbacks = CallbackSet(summary_callback,
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
 
 ###############################################################################
