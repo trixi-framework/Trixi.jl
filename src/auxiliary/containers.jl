@@ -318,6 +318,16 @@ function trixi_backend_info!(setup, ::KernelAbstractions.Backend)
     return nothing
 end
 
+"""
+    trixi_device_memory_use(backend)
+
+Return the device memory use in bytes for the given `backend`, or `nothing`.
+Reports the current active device and memory pool.
+"""
+function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Backend})
+    return nothing
+end
+
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
