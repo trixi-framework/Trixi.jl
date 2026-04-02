@@ -98,11 +98,11 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
             query_cuda()
         end
         push!(setup,
-              "  - device $i" => "$str (sm_$(cap.major)$(cap.minor), $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
+              "  $i" => "$str (sm_$(cap.major)$(cap.minor), $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
     end
 end
 
-function Trixi.trixi_device_memory_use(backend::CUDABackend)
+function Trixi.trixi_device_memory_use(::CUDABackend)
     info = CUDA.Mem.MemoryInfo()
     used_bytes = info.total_bytes - info.free_bytes
     return used_bytes

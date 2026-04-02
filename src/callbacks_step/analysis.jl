@@ -320,8 +320,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         if device_memory_use !== nothing
-            mpi_println(
-                    " device memory:  " * @sprintf("%14.3f MiB", device_memory_use))
+            mpi_println(" device memory:  " * @sprintf("%14.3f MiB", device_memory_use))
         end
         mpi_println(" #elements:      " *
                     @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
