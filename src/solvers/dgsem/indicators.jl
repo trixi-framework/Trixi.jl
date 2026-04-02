@@ -517,6 +517,8 @@ function IndicatorNodalFunction(indicator_function, semi::AbstractSemidiscretiza
                                                                              cache)
 end
 
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorNodalFunction},
                       equations::AbstractEquations, basis::LobattoLegendreBasis)
     uEltype = real(basis)
