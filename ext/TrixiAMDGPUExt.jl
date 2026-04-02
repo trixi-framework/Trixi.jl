@@ -49,4 +49,9 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
     return nothing
 end
 
+function Trixi.trixi_device_memory_use(backend::ROCBackend)
+    # This is raw memory used not the pool.
+    return AMDGPU.Mem.used()
+end
+
 end
