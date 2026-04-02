@@ -281,7 +281,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
         local_indices = node_indices[interface]
         local_direction = indices2direction(local_indices)
         local_side = local_sides[interface]
-        orientationFactor = local_side == 1 ? 1 : -1
+        orientation_factor = local_side == 1 ? 1 : -1
 
         i_start, i_step = index_to_start_step_2d(local_indices[1], index_range)
         j_start, j_step = index_to_start_step_2d(local_indices[2], index_range)
@@ -299,7 +299,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                 flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem, local_element],
                                     flux_parabolic_y[v, i_elem, j_elem, local_element])
 
-                cache.mpi_interfaces.u[local_side, v, i, interface] = orientationFactor *
+                cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
                                                                       dot(flux_visc,
                                                                           normal_direction)
             end
@@ -475,10 +475,6 @@ end
                                                                                dg,
                                                                                interface_node_index,
                                                                                interface_index)
-
-    flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
-                           normal_direction, Divergence(),
-                           equations_parabolic, parabolic_scheme)
 
     if local_side == 1
         flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
