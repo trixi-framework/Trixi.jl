@@ -46,10 +46,10 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
     for (i, dev) in enumerate(devs)
         # TODO implement NVML like optimization
         function query_amdgpu()
-            str = AMDGPU.name(dev)
+            str = AMDGPU.HIP.name(dev)
             arch = dev.gcn_arch
             mem = AMDGPU.device!(dev) do
-                AMDGPU.Mem.total()
+                AMDGPU.info()
             end
 
             return (; str, arch, mem)
@@ -63,7 +63,7 @@ end
 
 function Trixi.trixi_device_memory_use(::ROCBackend)
     # This is raw memory used not the pool.
-    return AMDGPU.Mem.used()
+    return AMDGPU.used()
 end
 
 end
