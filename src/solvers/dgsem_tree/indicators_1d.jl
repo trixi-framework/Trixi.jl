@@ -172,7 +172,7 @@ end
 
 function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
                                              mesh, equations, dg::DGSEM, cache;
-                                             kwargs...)
+                                             t, kwargs...)
     x = cache.elements.node_coordinates
     @unpack alpha = indicator.cache
     resize!(alpha, nelements(dg, cache))
@@ -180,11 +180,11 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
     indicator_function = indicator.indicator_function
 
     @threaded for element in Trixi.eachelement(dg, cache)
-        estimate = -Inf * one(eltype(u))
+        estimate = typemin(eltype(alpha))
         for i in Trixi.eachnode(dg)
             u_nodal = get_node_vars(u, equations, dg, i, element)
             x_nodal = x[1, i, element]
-            estimate = max(estimate, indicator_function(u_nodal, x_nodal, kwargs[:t]))
+            estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
         end
         alpha[element] = estimate
     end

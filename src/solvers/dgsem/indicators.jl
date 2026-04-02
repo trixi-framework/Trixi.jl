@@ -502,8 +502,8 @@ end
     IndicatorNodalFunction(f)
 
 Create an AMR indicator from a solution, space and time dependent indicator function `f(u, x, t)`.
-The function `f` is evaluated at the nodal points. The maximum of `f`` over all nodes in each element is used as indicator for the element.
-The function can be solution independent allowing for user-defined mesh refinement/coarsening varying in space and time, similar to the `refinement_patches` keyword for the [`Treemesh`](@ref).
+The function `f` is evaluated at the nodal points. The maximum of `f` over all nodes in each element is used as indicator for the element.
+The function can be solution independent allowing for user-defined mesh refinement/coarsening varying in space and time, similar to the `refinement_patches` keyword for the [`TreeMesh`](@ref).
 """
 struct IndicatorNodalFunction{F, Cache} <: AbstractIndicator
     indicator_function::F
