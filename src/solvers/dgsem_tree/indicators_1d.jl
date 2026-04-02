@@ -179,9 +179,9 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
     # Extract function to local variable to avoid capturing `indicator` in the threaded loop
     indicator_function = indicator.indicator_function
 
-    @threaded for element in Trixi.eachelement(dg, cache)
+    @threaded for element in eachelement(dg, cache)
         estimate = typemin(eltype(alpha))
-        for i in Trixi.eachnode(dg)
+        for i in eachnode(dg)
             u_nodal = get_node_vars(u, equations, dg, i, element)
             x_nodal = get_node_coords(node_coordinates, equations, dg,
                                       i, element)

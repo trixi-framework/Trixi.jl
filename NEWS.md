@@ -8,6 +8,7 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
+- A new AMR indicator `IndicatorNodalFunction` was introduced, which allows AMR depending on space and time coordinates. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 
 ## Changes when updating to v0.16 from v0.15.x
@@ -16,7 +17,7 @@ for human readability.
 
 - The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
 In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
-i.e., summing up the normal components, the `ldg_switch` is now selected as 
+i.e., summing up the normal components, the `ldg_switch` is now selected as
 the sign of the maximum (in absolute value sense) normal direction component,
 which corresponds to the dominant direction of the interface normal.
 This might change results slightly for some meshes where the sum of the normal might be close to zero,

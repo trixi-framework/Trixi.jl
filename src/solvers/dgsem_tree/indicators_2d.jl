@@ -222,7 +222,7 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
     # Extract function to local variable to avoid capturing `indicator` in the threaded loop
     indicator_function = indicator.indicator_function
 
-    @threaded for element in Trixi.eachelement(dg, cache)
+    @threaded for element in eachelement(dg, cache)
         estimate = typemin(eltype(alpha))
         for j in eachnode(dg), i in eachnode(dg)
             u_nodal = get_node_vars(u, equations, dg, i, j, element)
