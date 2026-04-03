@@ -39,6 +39,8 @@ end
 NDIMS_AMBIENT,
 RealT} = RealT
 
+@inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
+
 # Extract interfaces, boundaries and parent element ids from the neighbors.
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
@@ -84,7 +86,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     # Loop over all interfaces (index 2).
-    for interface in 1:size(interfaces_parent.neighbor_ids)[2]
+    for interface in 1:size(interfaces_parent.neighbor_ids, 2)
         mask[interface] = (interfaces_parent.neighbor_ids[1,
                            interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2,
@@ -102,7 +104,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
 
     # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
-    for interface in 1:size(neighbor_ids)[2]
+    for interface in 1:size(neighbor_ids, 2)
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
                                                               neighbor_ids[1,
                                                                            interface],
@@ -300,8 +302,11 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    filename = joinpath(output_directory, "mesh.h5")
-    p4est_filename = "p4est_data"
+    # Determine file name based on existence of meaningful time step
+    filename = joinpath(output_directory,
+                        @sprintf("mesh_%s_%09d.h5", system, timestep))
+    p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
+
     p4est_file = joinpath(output_directory, p4est_filename)
 
     # Save the complete connectivity and `p4est` data to disk.

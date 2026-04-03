@@ -75,6 +75,7 @@ end
                                                           StructuredMeshView{2},
                                                           UnstructuredMesh2D,
                                                           P4estMesh{2},
+                                                          P4estMeshView{2},
                                                           T8codeMesh{2}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -139,6 +140,7 @@ end
                                                                StructuredMeshView{2},
                                                                UnstructuredMesh2D,
                                                                P4estMesh{2},
+                                                               P4estMeshView{2},
                                                                T8codeMesh{2}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -156,6 +158,7 @@ end
                                                                StructuredMeshView{2},
                                                                UnstructuredMesh2D,
                                                                P4estMesh{2},
+                                                               P4estMeshView{2},
                                                                T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::False,
@@ -230,6 +233,7 @@ end
                                                           StructuredMeshView{2},
                                                           UnstructuredMesh2D,
                                                           P4estMesh{2},
+                                                          P4estMeshView{2},
                                                           T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
                                            combine_conservative_and_nonconservative_fluxes::True,
