@@ -441,16 +441,98 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            0.055659339125865195,
-                            0.042323245380073364,
-                            0.042323245380073315,
-                            0.20642426004746467
+                            0.055658468,
+                            0.0423231322,
+                            0.0423231322,
+                            0.206421330
                         ],
                         linf=[
-                            0.23633597150568753,
-                            0.16929779869845438,
-                            0.16929779869845438,
-                            0.8587814448153765
+                            0.236334646,
+                            0.169315478,
+                            0.169315478,
+                            0.858777061
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shockcapturing_curved.jl (SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
+                        l2=[
+                            5.18728232e-02,
+                            3.90002358e-02,
+                            3.79118767e-02,
+                            1.92041565e-01
+                        ],
+                        linf=[
+                            2.75190697e-01,
+                            2.45642985e-01,
+                            1.79725974e-01,
+                            9.86008024e-01
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shockcapturing.jl (Tri, SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        basis=DGMultiBasis(Tri(), 3, approximation_type = SBP()),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        l2=[
+                            5.30907189e-02,
+                            4.01774966e-02,
+                            4.20434426e-02,
+                            1.96899847e-01
+                        ],
+                        linf=[
+                            2.50415282e-01,
+                            2.05833653e-01,
+                            2.49680144e-01,
+                            9.03690862e-01
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
+                        polydeg=1, tspan=(0.0, 0.1),
+                        l2=[
+                            1.70502340e-02,
+                            2.65245374e-02,
+                            4.85334379e-03,
+                            8.07704996e-02
+                        ],
+                        linf=[
+                            2.33524849e+00,
+                            2.77505539e+00,
+                            5.45694674e-01,
+                            1.24699312e+01
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
+                        polydeg=1, tspan=(0.0, 0.1),
+                        l2=[
+                            1.51402732e-01,
+                            2.68652980e-01,
+                            1.79370065e-01,
+                            6.72488135e-01
+                        ],
+                        linf=[
+                            8.91248046e-01,
+                            1.32281118e+00,
+                            1.08533571e+00,
+                            3.74230652e+00
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
