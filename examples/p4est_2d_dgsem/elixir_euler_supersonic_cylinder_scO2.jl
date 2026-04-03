@@ -113,7 +113,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level = 5, max_threshold = 0.1)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 2,
+                           interval = 3,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
@@ -130,8 +130,9 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-
 ###############################################################################
 # run the simulation
 
-# We supply a small initial timestep to be able to use a larger AMR interval (2 instead of 1) throughout the simulation.
+# We supply a small initial timestep to be able to use a larger AMR interval (3 instead of 1) throughout the simulation.
 # This pays off almost immediately as only the first couple timesteps use this timestep before it is ramped up.
 dt0 = 1e-8
 sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
-            dt = dt0, ode_default_options()..., callback = callbacks);
+            adaptive = true, dt = dt0,
+            ode_default_options()..., callback = callbacks);

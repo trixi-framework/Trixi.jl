@@ -1,7 +1,8 @@
 using Trixi
+using OrdinaryDiffEqBDF
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqBDF, ADTypes
+using ADTypes # To access the types choosing how to evaluate Jacobian-vector products
 
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
@@ -126,5 +127,4 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 sol = solve(ode, SBDF2(; autodiff = AutoFiniteDiff());
             ode_default_options()...,
             dt = 0.01,
-            abstol = 1e-9, reltol = 1e-9,
             callback = callbacks)

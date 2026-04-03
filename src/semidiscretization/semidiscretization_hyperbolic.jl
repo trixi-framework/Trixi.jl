@@ -215,7 +215,8 @@ end
 # Allow NamedTuple for P4estMesh, UnstructuredMesh2D, and T8codeMesh
 # define in two functions to resolve ambiguities
 function digest_boundary_conditions(boundary_conditions::NamedTuple,
-                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                    mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
     return UnstructuredSortedBoundaryTypes(boundary_conditions, cache)
@@ -228,7 +229,8 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple,
 end
 
 function digest_boundary_conditions(boundary_conditions::UnstructuredSortedBoundaryTypes,
-                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                    mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
     return boundary_conditions
@@ -243,7 +245,8 @@ end
 # allow passing a single BC that get converted into a named tuple of BCs
 # on (mapped) hypercube domains
 function digest_boundary_conditions(boundary_conditions,
-                                    mesh::Union{P4estMesh{2}, UnstructuredMesh2D,
+                                    mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                UnstructuredMesh2D,
                                                 T8codeMesh{2}},
                                     solver, cache)
     bcs = (; x_neg = boundary_conditions, x_pos = boundary_conditions,
@@ -577,11 +580,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
+    @trixi_timeit_ext backend timer() "rhs!" rhs!(du, u, t, mesh, equations,
+                                                  boundary_conditions, source_terms,
+                                                  solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 

@@ -70,8 +70,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
@@ -195,8 +195,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
