@@ -38,7 +38,22 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 
     return nothing
 end
-# Version for parabolic-extended equations
+
+# Version for purely parabolic equations (adds cache_parabolic).
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache, cache_parabolic)
+        end
+    end
+
+    return nothing
+end
+
+# Version for hyperbolic-parabolic equations (adds equations_parabolic and cache_parabolic).
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              dg, cache,
                              equations_parabolic, cache_parabolic)

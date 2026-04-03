@@ -18,7 +18,8 @@ a ramp-up of the time step.
 
 One can additionally supply a parabolic CFL number `cfl_parabolic` to
 limit the admissible timestep also respecting parabolic restrictions.
-This is only applicable for semidiscretizations of type [`SemidiscretizationHyperbolicParabolic`](@ref).
+This is only applicable for semidiscretizations of type
+[`SemidiscretizationHyperbolicParabolic`](@ref) and [`SemidiscretizationParabolic`](@ref).
 To enable checking for parabolic timestep restrictions, provide a value greater than zero for `cfl_parabolic`.
 By default, `cfl_parabolic` is set to zero which means that only the hyperbolic CFL number `cfl` is considered.
 The keyword argument `cfl_parabolic` must be either a `Real` number, corresponding to a constant
@@ -150,6 +151,17 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     return cfl_hyperbolic(t) * max_dt(u, t, mesh,
                   have_constant_speed(equations), equations,
                   solver, cache)
+end
+
+# Case for a purely parabolic semidiscretization
+function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
+                      semi::SemidiscretizationParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    return cfl_parabolic(t) * max_dt(u, t, mesh,
+                  have_constant_diffusivity(equations), equations,
+                  equations, solver, cache)
 end
 
 # For Euler-Acoustic simulations with `EulerAcousticsCouplingCallback`
