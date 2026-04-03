@@ -215,7 +215,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
 
     if typeof(rd.approximation_type) <:
-       Union{SBP, AbstractNonperiodicDerivativeOperator}
+       Union{SBP, TensorProductWedgeSBP, AbstractNonperiodicDerivativeOperator}
         lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
     else
         lift_scalings = nothing
