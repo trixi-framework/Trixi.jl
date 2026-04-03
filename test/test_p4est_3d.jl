@@ -881,6 +881,29 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_DPW3_wing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_DPW3_wing.jl"),
+                        l2=[
+                            4.2547331738017483e-7,
+                            9.010222054195098e-5,
+                            3.860954036953216e-5,
+                            0.00012324669742687158,
+                            0.13281500414978178
+                        ],
+                        linf=[
+                            0.9957168626999782,
+                            256.73826802395587,
+                            252.75959349694128,
+                            265.3344109960917,
+                            329399.70874451497
+                        ],
+                        tspan=(0.0, 1e-6))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 # Multi-ion MHD tests
 include("test_p4est_3d_mhdmultiion.jl")
 end
