@@ -109,6 +109,72 @@ end
         end
     end
 
+    # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
+    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
+
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable,
+                                                u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::TreeMesh{3}, equations,
+                                                dg, cache)
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable,
+                                                u, t, boundary_conditions,
+                                                mesh::TreeMesh{3}, equations,
+                                                dg, cache)
+    for boundary in eachboundary(dg, cache)
+        element = cache.boundaries.neighbor_ids[boundary]
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+        for j in eachnode(dg), i in eachnode(dg)
+            # Define node indices and boundary index based on the orientation and neighbor_side
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                if orientation == 1 # boundary in x-direction
+                    node_index = (1, i, j)
+                    boundary_index = 1
+                elseif orientation == 2 # boundary in y-direction
+                    node_index = (i, 1, j)
+                    boundary_index = 3
+                else # orientation == 3 # boundary in z-direction
+                    node_index = (i, j, 1)
+                    boundary_index = 5
+                end
+            else # Element is on the left, boundary on the right
+                if orientation == 1 # boundary in x-direction
+                    node_index = (nnodes(dg), i, j)
+                    boundary_index = 2
+                elseif orientation == 2 # boundary in y-direction
+                    node_index = (i, nnodes(dg), j)
+                    boundary_index = 4
+                else # orientation == 3 # boundary in z-direction
+                    node_index = (i, j, nnodes(dg))
+                    boundary_index = 6
+                end
+            end
+            u_inner = get_node_vars(u, equations, dg, node_index..., element)
+            u_outer = get_boundary_outer_state(u_inner, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg, cache,
+                                               node_index..., element)
+            var_outer = u_outer[variable]
+
+            var_min[node_index..., element] = min(var_min[node_index..., element],
+                                                  var_outer)
+            var_max[node_index..., element] = max(var_max[node_index..., element],
+                                                  var_outer)
+        end
+    end
+
     return nothing
 end
 
@@ -208,6 +274,71 @@ end
             var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
                                                                             left_element],
                                                                  var_right)
+        end
+    end
+
+    # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
+    calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
+
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable,
+                                                u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::TreeMesh{3}, equations,
+                                                dg, cache)
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable,
+                                                u, t, boundary_conditions,
+                                                mesh::TreeMesh{3}, equations,
+                                                dg, cache)
+    for boundary in eachboundary(dg, cache)
+        element = cache.boundaries.neighbor_ids[boundary]
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
+
+        for j in eachnode(dg), i in eachnode(dg)
+            # Define node indices and boundary index based on the orientation and neighbor_side
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                if orientation == 1 # boundary in x-direction
+                    node_index = (1, i, j)
+                    boundary_index = 1
+                elseif orientation == 2 # boundary in y-direction
+                    node_index = (i, 1, j)
+                    boundary_index = 3
+                else # orientation == 3 # boundary in z-direction
+                    node_index = (i, j, 1)
+                    boundary_index = 5
+                end
+            else # Element is on the left, boundary on the right
+                if orientation == 1 # boundary in x-direction
+                    node_index = (nnodes(dg), i, j)
+                    boundary_index = 2
+                elseif orientation == 2 # boundary in y-direction
+                    node_index = (i, nnodes(dg), j)
+                    boundary_index = 4
+                else # orientation == 3 # boundary in z-direction
+                    node_index = (i, j, nnodes(dg))
+                    boundary_index = 6
+                end
+            end
+            u_inner = get_node_vars(u, equations, dg, node_index..., element)
+            u_outer = get_boundary_outer_state(u_inner, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg, cache,
+                                               node_index..., element)
+            var_outer = variable(u_outer, equations)
+
+            var_minmax[node_index..., element] = min_or_max(var_minmax[node_index...,
+                                                                       element],
+                                                            var_outer)
         end
     end
 
