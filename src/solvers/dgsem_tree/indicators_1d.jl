@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -18,12 +19,6 @@ function create_cache(::Type{IndicatorHennemannGassner},
     modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner},
-                      mesh, equations::AbstractEquations, dg::DGSEM, cache)
-    return create_cache(typ, equations, dg.basis)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -106,7 +101,8 @@ function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
     return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -119,6 +115,7 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
+<<<<<<< MPI_P4est_Parabolic2D_nonconforming
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorNodalFunction},
                       equations::AbstractEquations, basis::LobattoLegendreBasis)
@@ -135,6 +132,8 @@ function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax},
     return create_cache(typ, equations, dg.basis)
 end
 
+=======
+>>>>>>> main
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
@@ -190,6 +189,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
     return alpha
 end
 
+<<<<<<< MPI_P4est_Parabolic2D_nonconforming
 function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
                                               mesh, equations, dg::DGSEM, cache;
                                               kwargs...)
@@ -205,6 +205,24 @@ function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
             u_local = get_node_vars(u, equations, dg, i, element)
             x_nodal = x[1, i, element]
             estimate = max(estimate, indicator_function(u_local, x_nodal, kwargs[:t]))
+=======
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
+
+    @threaded for element in eachelement(dg, cache)
+        estimate = typemin(eltype(alpha))
+        for i in eachnode(dg)
+            u_nodal = get_node_vars(u, equations, dg, i, element)
+            x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                      i, element)
+            estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
+>>>>>>> main
         end
         alpha[element] = estimate
     end
