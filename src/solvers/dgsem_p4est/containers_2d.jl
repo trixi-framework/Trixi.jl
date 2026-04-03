@@ -8,7 +8,7 @@
 # Initialize data structures in element container
 function init_elements!(elements,
                         mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                        basis::LobattoLegendreBasis)
+                        basis::AbstractBasisSBP)
     @unpack node_coordinates, jacobian_matrix,
     contravariant_vectors, inverse_jacobian = elements
 
@@ -29,7 +29,7 @@ end
 function calc_node_coordinates!(node_coordinates,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                             T8codeMesh{2}},
-                                basis::LobattoLegendreBasis)
+                                basis::AbstractBasisSBP)
     # Hanging nodes will cause holes in the mesh if its polydeg is higher
     # than the polydeg of the solver.
     @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
@@ -85,6 +85,93 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
+end
+
+# For Gauss-Lobatto-Legendre (GLL) nodes, interface normals are computed on-the-fly
+# during flux evaluation and do not need dedicated storage in the interface container.
+function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
+                                 basis::LobattoLegendreBasis, elements)
+    return nothing
+end
+
+# For Gauss-Legendre (GL) nodes, the interface normals are
+# computed from interpolation of the volume node normals to the surface nodes.
+function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
+                                 basis::GaussLegendreBasis, elements)
+    @unpack neighbor_ids, node_indices, normal_directions = interfaces
+    @unpack contravariant_vectors = elements
+    @unpack boundary_interpolation = basis
+    index_range = eachnode(basis)
+    index_begin = first(index_range)
+    index_end = last(index_range)
+
+    for interface in axes(neighbor_ids, 2)
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+        primary_direction = indices2direction(primary_indices)
+
+        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                 index_begin,
+                                                                 index_end)
+        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                 index_begin,
+                                                                 index_end)
+
+        # The index direction is identified based on `{i,j}_{primary, secondary}_step`.
+        # For step = 0, the direction identified by this index is normal to the face.
+        # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+
+        if i_primary_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(primary_indices[1])
+            for i in index_range
+                normal_1 = zero(eltype(normal_directions))
+                normal_2 = zero(eltype(normal_directions))
+                for ii in index_range
+                    factor = boundary_interpolation[ii, side]
+                    # Retrieve normal directions at element/volume nodes
+                    normal_direction = get_normal_direction(primary_direction,
+                                                            contravariant_vectors,
+                                                            ii, j_primary,
+                                                            primary_element)
+                    normal_1 = normal_1 + normal_direction[1] * factor
+                    normal_2 = normal_2 + normal_direction[2] * factor
+                end
+                normal_directions[1, i, interface] = normal_1
+                normal_directions[2, i, interface] = normal_2
+                j_primary += j_primary_step # incrementing j_primary suffices (i_primary_step = 0)
+            end
+        else # j_primary_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(primary_indices[2])
+            for i in index_range
+                normal_1 = zero(eltype(normal_directions))
+                normal_2 = zero(eltype(normal_directions))
+                for jj in index_range
+                    factor = boundary_interpolation[jj, side]
+                    # Retrieve normal directions at element/volume nodes
+                    normal_direction = get_normal_direction(primary_direction,
+                                                            contravariant_vectors,
+                                                            i_primary, jj,
+                                                            primary_element)
+                    normal_1 = normal_1 + normal_direction[1] * factor
+                    normal_2 = normal_2 + normal_direction[2] * factor
+                end
+                normal_directions[1, i, interface] = normal_1
+                normal_directions[2, i, interface] = normal_2
+                i_primary += i_primary_step # incrementing i_primary suffices (j_primary_step = 0)
+            end
+        end
+    end
+
+    return nothing
 end
 
 # Initialize node_indices of interface container
