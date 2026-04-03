@@ -39,6 +39,17 @@ isdir(outdir) && rm(outdir, recursive = true)
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
                                          n_cells_max = 0,
                                          RealT = Float64)
+
+    @testset "Nodal API" begin
+        semi = sol.prob.p
+
+        coords = Trixi.get_coordinates(sol)
+        @test coords == semi.mesh.md.xyz
+
+        u_nodal = Trixi.get_u(sol)
+        @test size(u_nodal) == size(Trixi.wrap_array(sol.u[end], semi))
+        @test u_nodal == Trixi.wrap_array(sol.u[end], semi)
+    end
 end
 
 @trixi_testset "elixir_euler_weakform.jl (SBP)" begin
@@ -262,9 +273,10 @@ end
 
 @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     using Trixi: convergence_test
-    eocs, _ = convergence_test(@__MODULE__,
-                               joinpath(EXAMPLES_DIR,
-                                        "elixir_euler_weakform.jl"), 2)
+    eocs,
+    _ = convergence_test(@__MODULE__,
+                         joinpath(EXAMPLES_DIR,
+                                  "elixir_euler_weakform.jl"), 2)
     mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [
@@ -536,7 +548,8 @@ end
 
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
-                        xmin=-200.0, xmax=100.0, #= parameters for reference interval =#
+                        xmin=-200.0, xmax=100.0,
+                        #= parameters for reference interval =#
                         surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             1.333332034149886e-6,
