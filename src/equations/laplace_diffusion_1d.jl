@@ -3,6 +3,10 @@
 
 `LaplaceDiffusion1D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
+This is intended for use as the parabolic part of a hyperbolic-parabolic partial 
+differential equation, where the hyperbolic part is defined by `equations`. For a purely 
+parabolic diffusion equation without any hyperbolic part, see 
+[`LinearDiffusionEquation1D`](@ref).
 """
 struct LaplaceDiffusion1D{E, N, T} <: AbstractLaplaceDiffusion{1, N}
     diffusivity::T
