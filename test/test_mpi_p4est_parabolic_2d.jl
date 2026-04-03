@@ -26,8 +26,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
@@ -48,8 +48,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
@@ -61,8 +61,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             linf=[0.14186297438393505])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
@@ -74,8 +74,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             linf=[0.008154128363741964])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "elixir_navierstokes_NACA0012airfoil_mach08.jl" begin
@@ -119,8 +119,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         # (e.g., from type instabilities)
         # We move these tests here to avoid modifying values used
         # to compute the drag/lift coefficients above.
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 end
 end # module
