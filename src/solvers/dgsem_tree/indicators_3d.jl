@@ -257,4 +257,27 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
 
     return alpha
 end
+
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
+
+    @threaded for element in eachelement(dg, cache)
+        estimate = typemin(eltype(alpha))
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_nodal = get_node_vars(u, equations, dg, i, j, k, element)
+            x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, k, element)
+            estimate = max(estimate,
+                           indicator_function(u_nodal, x_nodal, t))
+        end
+        alpha[element] = estimate
+    end
+    return alpha
+end
 end # @muladd
