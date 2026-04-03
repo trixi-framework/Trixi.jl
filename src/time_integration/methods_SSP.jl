@@ -138,6 +138,13 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
         # `subcell_limiter_coefficients` was created with 0 elements
         resize!(dg.volume_integral.limiter.cache.subcell_limiter_coefficients,
                 nelements(dg, cache))
+        if dg.volume_integral.limiter isa SubcellLimiterMCL ||
+           (dg.volume_integral.limiter isa SubcellLimiterIDP &&
+            dg.volume_integral.limiter.bar_states)
+            # `container_bar_states` was created with 0 elements
+            resize!(dg.volume_integral.limiter.cache.container_bar_states,
+                    nelements(dg, cache))
+        end
     end
 
     # Standard callbacks

@@ -102,7 +102,7 @@ end
 
 # This function is valid for all non-conforming mesh types, i.e.,
 # all meshes that do involve mortar operations.
-# Thus, we can use it for the serial (i.e., non-distributed memory parallelized) 
+# Thus, we can use it for the serial (i.e., non-distributed memory parallelized)
 # 2D/3D `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es.
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
@@ -121,7 +121,8 @@ function rhs!(du, u, t,
     @trixi_timeit_ext backend timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
+                              dg.volume_integral, dg, cache,
+                              t, boundary_conditions)
     end
 
     # Prolong solution to interfaces
@@ -175,6 +176,17 @@ function rhs!(du, u, t,
     @trixi_timeit_ext backend timer() "source terms" begin
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
+
+    return nothing
+end
+
+function calc_volume_integral!(backend, du, u, mesh,
+                               nonconservative_terms, equations,
+                               volume_integral::AbstractVolumeIntegral,
+                               dg, cache, t, boundary_conditions)
+    calc_volume_integral!(backend, du, u, mesh,
+                          nonconservative_terms, equations,
+                          volume_integral, dg, cache)
 
     return nothing
 end
