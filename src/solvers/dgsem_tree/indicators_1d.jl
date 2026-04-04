@@ -115,25 +115,6 @@ function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
     return (; alpha, indicator_threaded)
 end
 
-<<<<<<< MPI_P4est_Parabolic2D_nonconforming
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorNodalFunction},
-                      equations::AbstractEquations, basis::LobattoLegendreBasis)
-    uEltype = real(basis)
-    alpha = Vector{uEltype}()
-
-    return (; alpha)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Union{Type{IndicatorLöhner}, Type{IndicatorMax},
-                                 Type{IndicatorNodalFunction}},
-                      mesh, equations::AbstractEquations, dg::DGSEM, cache)
-    return create_cache(typ, equations, dg.basis)
-end
-
-=======
->>>>>>> main
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
                                    mesh, equations, dg::DGSEM, cache;
                                    kwargs...)
@@ -189,23 +170,6 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
     return alpha
 end
 
-<<<<<<< MPI_P4est_Parabolic2D_nonconforming
-function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
-                                              mesh, equations, dg::DGSEM, cache;
-                                              kwargs...)
-    x = cache.elements.node_coordinates
-    @unpack alpha = positional.cache
-    resize!(alpha, nelements(dg, cache))
-    # Extract function to local variable to avoid capturing `positional` in the threaded loop
-    indicator_function = positional.indicator_function
-
-    @threaded for element in Trixi.eachelement(dg, cache)
-        estimate = -Inf * one(real(dg))
-        for i in Trixi.eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, element)
-            x_nodal = x[1, i, element]
-            estimate = max(estimate, indicator_function(u_local, x_nodal, kwargs[:t]))
-=======
 function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
                                              mesh, equations, dg::DGSEM, cache;
                                              t, kwargs...)
@@ -222,7 +186,6 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
             x_nodal = get_node_coords(node_coordinates, equations, dg,
                                       i, element)
             estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
->>>>>>> main
         end
         alpha[element] = estimate
     end
