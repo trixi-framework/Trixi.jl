@@ -26,7 +26,6 @@ function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}
     return cache
 end
 
-#     index_to_start_step_2d(index::Symbol, index_begin, index_end)
 #     index_to_start_step_2d(index::Symbol, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
