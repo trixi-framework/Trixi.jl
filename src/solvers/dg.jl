@@ -427,6 +427,7 @@ for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
 The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+TODO: Adapt
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -443,10 +444,6 @@ function VolumeIntegralAdaptive(;
                                 indicator = IndicatorEntropyChange(),
                                 volume_integral_default,
                                 volume_integral_stabilized)
-    if !(indicator isa IndicatorEntropyChange)
-        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
-    end
-
     return VolumeIntegralAdaptive{typeof(indicator),
                                   typeof(volume_integral_default),
                                   typeof(volume_integral_stabilized)}(indicator,

@@ -209,6 +209,39 @@ end
                             equations, volume_integral, dg, cache)
 end
 
+@inline function calc_volume_integral!(backend::Nothing, du, u, mesh,
+                                       have_nonconservative_terms, equations,
+                                       volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
+                                       dg::DGSEM, cache)
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+
+    # Calculate stabilization selector
+    alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
+                                                        dg, cache)
+
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    RealT = eltype(alpha)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+    @threaded for element in eachelement(dg, cache)
+        alpha_element = alpha[element]
+        # Clip blending factor for values close to zero (-> defaul volume integral)
+        default_volume_integral = isapprox(alpha_element, 0, atol = atol)
+
+        if default_volume_integral
+            volume_integral_kernel!(du, u, element, typeof(mesh),
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_default, dg, cache)
+        else
+            volume_integral_kernel!(du, u, element, typeof(mesh),
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_stabilized, dg, cache)
+        end
+    end
+
+    return nothing
+end
+
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHGType,
