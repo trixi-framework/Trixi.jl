@@ -219,7 +219,7 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     time_start = time_ns()
-    @trixi_timeit timer() "rhs_parabolic!" rhs_parabolic!(du, u, t, mesh, equations,
+    @trixi_timeit timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh, equations,
                                                           boundary_conditions,
                                                           source_terms,
                                                           solver, solver_parabolic,
