@@ -202,11 +202,15 @@ function linear_structure(semi::SemidiscretizationParabolic;
     end
 
     apply_rhs! = function (dest, src)
-        return rhs!(dest, src, semi, t0)
+        return rhs_parabolic!(dest, src, semi, t0)
     end
 
     return _linear_structure_from_rhs(semi, apply_rhs!)
 end
+
+# For a purely parabolic semidiscretization, the right-hand side is `rhs_parabolic!`
+# instead of the default `rhs!`.
+@inline default_rhs(::SemidiscretizationParabolic) = rhs_parabolic!
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
@@ -215,17 +219,15 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs_parabolic!(du, u, t, mesh, equations,
-                                                boundary_conditions, source_terms,
-                                                solver, solver_parabolic, cache,
-                                                cache_parabolic)
+    @trixi_timeit timer() "rhs_parabolic!" rhs_parabolic!(du, u, t, mesh, equations,
+                                                          boundary_conditions,
+                                                          source_terms,
+                                                          solver, solver_parabolic,
+                                                          cache,
+                                                          cache_parabolic)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
     return nothing
-end
-
-@inline function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
-    return rhs_parabolic!(du_ode, u_ode, semi, t)
 end
 end # @muladd

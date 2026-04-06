@@ -514,7 +514,7 @@ end
                         l2=[9.235894939144276e-6], linf=[5.402550135213957e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_newton_krylov.jl" begin
@@ -525,7 +525,7 @@ end
                         l2=[4.14999791227157e-6], linf=[2.424658336047658e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh1D: elixir_diffusion_ldg_amr_boundary_layer.jl" begin
@@ -534,7 +534,7 @@ end
                         l2=[0.5881457102264551], linf=[0.9302621795999283])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 
     # Test `show` method not exercised in elixirs
     @trixi_test_nowarn show(IOContext(stdout, :compact => true), MIME"text/plain"(),
@@ -566,7 +566,7 @@ end
                         l2=[2.3481439150004898e-6], linf=[2.4576876189230656e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 
     # Store reference solution for comparison
     reference_solution = copy(sol.u[end])
