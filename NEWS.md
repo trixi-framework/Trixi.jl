@@ -5,6 +5,47 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.16 lifecycle
+
+#### Added
+- A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
+- GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
+
+## Changes when updating to v0.16 from v0.15.x
+
+#### Changed
+
+- The implementation of the local DG (`ViscousFormulationLocalDG`) `solver_parabolic` has been changed for the `P4estMesh`.
+In particular, instead of computing the `ldg_switch` as the dot product of the normal direction with ones,
+i.e., summing up the normal components, the `ldg_switch` is now selected as
+the sign of the maximum (in absolute value sense) normal direction component,
+which corresponds to the dominant direction of the interface normal.
+This might change results slightly for some meshes where the sum of the normal might be close to zero,
+thus introducing some spurious switch assignments ([#2871]).
+- The word "viscous" is now used only where it refers specifically to fluid viscosity.
+The word "parabolic" is used in more general contexts.
+In particular, viscosity is no longer used as a proxy for any parabolic/diffusive process such as heat conduction.
+For example, `ViscousFormulationLocalDG` is now `ParabolicFormulationLocalDG` and
+`ViscousFormulationBassiRebay1` is now `ParabolicFormulationBassiRebay1`.
+For consistency, `cfl_advective` and `cfl_diffusive` have also been renamed `cfl_hyperbolic` and `cfl_parabolic` ([#2868]).
+Moreover, some internal functions have been renamed accordingly, including the results shown by the timer outputs after running a simulation.
+
+#### Added
+
+- Introducing GPU support: Based on work by Jan Kraus and Lars Christmann, Trixi.jl can
+  now partly be executed on GPUs. This includes simulations with flux differencing on
+  `P4estMesh` in 2D and 3D. Adaptive mesh refinement, multi-GPU, source terms, and callbacks
+  are not available, yet. Offloading is achieved via KernelAbstractions.jl kernels,
+  which, at the moment, execute the same code as usually run on CPUs. A backend is selected
+  by passing an appropriate data type as keyword argument `storage_type` to
+  `semidiscretize`. See the
+  [heterogeneous](https://trixi-framework.github.io/TrixiDocumentation/dev/heterogeneous/)
+  section for some instructions on how to port kernels. This is however still preliminaray
+  and will change.
+  GPU kernels are currently CI-tested on NVIDIA GPUs in a buildkite workflow using
+  `TRIXI_TEST=CUDA` ([#2590]).
+
+
 ## Changes in the v0.15 lifecycle
 
 #### Added
@@ -14,15 +55,24 @@ This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
 - Added functionality to `ScalarPlotData2D` allowing visualization a field provided by a user-defined scalar function ([#2796]).
 - Added `NonIdealCompressibleEuler2D` ([#2768]).
-- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the 
+- Generalization of `VolumeIntegralShockCapturingHG` and `VolumeIntegralShockCapturingRRG` to support different volume integrals on the
   non-stabilized and stabilized elements/cells.
   The generalized volume integral is called `VolumeIntegralShockCapturingHGType` and takes the three keyword arguments `volume_integral_default`,
   `volume_integral_blend_high_order`, and `volume_integral_blend_low_order` besides the usual `indicator` argument.
   In particular, `volume_integral_default` may be e.g.  `VolumeIntegralWeakForm` or `VolumeIntegralAdaptive`, i.e.,
   the non-stabilized elements/cells are no longer restricted to `VolumeIntegralFluxDifferencing` only ([#2802]).
+- Added `IndicatorEntropyCorrection`. When combined with `VolumeIntegralAdaptive`, this blends together a stabilized and non-stabilized
+  volume integral based on the violation of a volume entropy condition. `IndicatorEntropyCorrectionShockCapturingCombined` additionally
+  guides the blending by taking the maximum of the entropy correction indicator and a shock capturing indicator ([#2764]).
 - The second-order subcell volume integral is no longer limited to reconstruction in primitive variables.
   Instead, it is possible to reconstruct in custom variables, if functions `cons2recon` and `recon2cons` are provided to
   `VolumeIntegralPureLGLFiniteVolumeO2` and `VolumeIntegralShockCapturingRRG`([#2817]).
+- Add Legendre-Gauss basis for DGSEM and implement solver (`VolumeIntegralWeakForm` and `SurfaceIntegralWeakForm` only) support for conforming 1D & 2D `TreeMesh`es ([#1965]).
+- Extended 3D support for subcell limiting was added ([#2763], [#2846], [#2844], [#2848]).
+  In the new version, local (minimum and maximum) limiting for conservative variables (using the
+  keyword `local_twosided_variables_cons` in `SubcellLimiterIDP()`) with `P4estMesh` is supported.
+  The support was extended to nonperiodic `P4estMesh{3}`es.
+  Moreover, initial support for `TreeMesh{3}` including positivity limiting and local limiting on periodic meshes was added.
 
 ## Changes when updating to v0.15 from v0.14.x
 

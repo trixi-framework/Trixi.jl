@@ -34,7 +34,7 @@ boundary_conditions = (; left = boundary_condition_left,
                        top = boundary_condition_do_nothing,
                        right = boundary_condition_do_nothing)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; left = boundary_condition_left,
                                  bottom = boundary_condition_zero,
                                  top = boundary_condition_zero,

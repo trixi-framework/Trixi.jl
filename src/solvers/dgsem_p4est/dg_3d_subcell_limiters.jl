@@ -119,7 +119,7 @@ end
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
-                                u, mesh::P4estMesh{3},
+                                u, ::Type{<:P4estMesh{3}},
                                 nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
     (; contravariant_vectors) = cache.elements
@@ -170,12 +170,12 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1),
-        v in eachvariable(equations)
-
-        fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
-                                  weights[i] * flux_temp[v, i, j, k]
-        fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
+    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        for v in eachvariable(equations)
+            fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
+                                      weights[i] * flux_temp[v, i, j, k]
+            fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
+        end
     end
 
     # Split form volume flux in orientation 2: y direction
@@ -205,12 +205,12 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg),
-        v in eachvariable(equations)
-
-        fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
-                                  weights[j] * flux_temp[v, i, j, k]
-        fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
+    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
+                                      weights[j] * flux_temp[v, i, j, k]
+            fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
+        end
     end
 
     # Split form volume flux in orientation 3: z direction
@@ -240,12 +240,12 @@ end
     end
 
     # FV-form flux `fhat` in z direction
-    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg),
-        v in eachvariable(equations)
-
-        fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
-                                  weights[k] * flux_temp[v, i, j, k]
-        fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
+    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg)
+        for v in eachvariable(equations)
+            fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
+                                      weights[k] * flux_temp[v, i, j, k]
+            fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
+        end
     end
 
     return nothing
@@ -263,7 +263,7 @@ end
 #   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
-                                u, mesh::P4estMesh{3},
+                                u, ::Type{<:P4estMesh{3}},
                                 nonconservative_terms::True, equations,
                                 volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
                                 element,
@@ -537,105 +537,6 @@ end
                                       phi[v, noncons, i, j, k] * value
             fhat3_R[v, i, j, k + 1] = fhat3_R[v, i, j, k + 1] +
                                       phi[v, noncons, i, j, k + 1] * value
-        end
-    end
-
-    return nothing
-end
-
-# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
-@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R,
-                                         fhat2_L, fhat2_R,
-                                         fhat3_L, fhat3_R,
-                                         fstar1_L, fstar1_R,
-                                         fstar2_L, fstar2_R,
-                                         fstar3_L, fstar3_R,
-                                         u, mesh::P4estMesh{3},
-                                         nonconservative_terms::False, equations,
-                                         limiter::SubcellLimiterIDP, dg, element, cache)
-    @unpack antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
-
-    # Due to the use of LGL nodes, the DG staggered fluxes `fhat` and FV fluxes `fstar` are equal
-    # on the element interfaces. So, they are not computed in the volume integral and set to zero
-    # in their respective computation.
-    # The antidiffusive fluxes are therefore zero on the element interfaces and don't need to be
-    # computed either. They are set to zero directly after resizing the container.
-    # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
-    # `antidiffusive_flux1_R` and analogously for the other two directions.
-
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        for v in eachvariable(equations)
-            antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
-                                                         fstar1_L[v, i, j, k]
-            antidiffusive_flux1_R[v, i, j, k, element] = antidiffusive_flux1_L[v,
-                                                                               i, j, k,
-                                                                               element]
-        end
-    end
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
-            antidiffusive_flux2_L[v, i, j, k, element] = fhat2_L[v, i, j, k] -
-                                                         fstar2_L[v, i, j, k]
-            antidiffusive_flux2_R[v, i, j, k, element] = antidiffusive_flux2_L[v,
-                                                                               i, j, k,
-                                                                               element]
-        end
-    end
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
-            antidiffusive_flux3_L[v, i, j, k, element] = fhat3_L[v, i, j, k] -
-                                                         fstar3_L[v, i, j, k]
-            antidiffusive_flux3_R[v, i, j, k, element] = antidiffusive_flux3_L[v,
-                                                                               i, j, k,
-                                                                               element]
-        end
-    end
-
-    return nothing
-end
-
-# Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
-@inline function calcflux_antidiffusive!(fhat1_L, fhat1_R,
-                                         fhat2_L, fhat2_R,
-                                         fhat3_L, fhat3_R,
-                                         fstar1_L, fstar1_R,
-                                         fstar2_L, fstar2_R,
-                                         fstar3_L, fstar3_R,
-                                         u, mesh::P4estMesh{3},
-                                         nonconservative_terms::True, equations,
-                                         limiter::SubcellLimiterIDP, dg, element, cache)
-    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R = cache.antidiffusive_fluxes
-
-    # Due to the use of LGL nodes, the DG staggered fluxes `fhat` and FV fluxes `fstar` are equal
-    # on the element interfaces. So, they are not computed in the volume integral and set to zero
-    # in their respective computation.
-    # The antidiffusive fluxes are therefore zero on the element interfaces and don't need to be
-    # computed either. They are set to zero directly after resizing the container.
-    # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
-    # `antidiffusive_flux1_R` and analogously for the other two directions.
-
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        for v in eachvariable(equations)
-            antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
-                                                         fstar1_L[v, i, j, k]
-            antidiffusive_flux1_R[v, i, j, k, element] = fhat1_R[v, i, j, k] -
-                                                         fstar1_R[v, i, j, k]
-        end
-    end
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
-            antidiffusive_flux2_L[v, i, j, k, element] = fhat2_L[v, i, j, k] -
-                                                         fstar2_L[v, i, j, k]
-            antidiffusive_flux2_R[v, i, j, k, element] = fhat2_R[v, i, j, k] -
-                                                         fstar2_R[v, i, j, k]
-        end
-    end
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
-            antidiffusive_flux3_L[v, i, j, k, element] = fhat3_L[v, i, j, k] -
-                                                         fstar3_L[v, i, j, k]
-            antidiffusive_flux3_R[v, i, j, k, element] = fhat3_R[v, i, j, k] -
-                                                         fstar3_R[v, i, j, k]
         end
     end
 
