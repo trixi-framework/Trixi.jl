@@ -102,8 +102,6 @@ function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
     @unpack contravariant_vectors = elements
     @unpack boundary_interpolation = basis
     index_range = eachnode(basis)
-    index_begin = first(index_range)
-    index_end = last(index_range)
 
     for interface in axes(neighbor_ids, 2)
         primary_element = neighbor_ids[1, interface]
@@ -111,11 +109,9 @@ function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
         primary_direction = indices2direction(primary_indices)
 
         i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
-                                                                 index_begin,
-                                                                 index_end)
+                                                                 index_range)
         j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
-                                                                 index_begin,
-                                                                 index_end)
+                                                                 index_range)
 
         # The index direction is identified based on `{i,j}_{primary, secondary}_step`.
         # For step = 0, the direction identified by this index is normal to the face.
