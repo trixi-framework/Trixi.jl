@@ -208,7 +208,7 @@ function linear_structure(semi::SemidiscretizationParabolic;
     return _linear_structure_from_rhs(semi, apply_rhs!)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
+function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -223,5 +223,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     put!(semi.performance_counter, runtime)
 
     return nothing
+end
+
+@inline function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
+    return rhs_parabolic!(du_ode, u_ode, semi, t)
 end
 end # @muladd
