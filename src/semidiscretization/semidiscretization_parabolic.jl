@@ -217,14 +217,17 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u)
 
     time_start = time_ns()
-    @trixi_timeit timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh, equations,
-                                                          boundary_conditions,
-                                                          source_terms,
-                                                          solver, solver_parabolic,
-                                                          cache,
-                                                          cache_parabolic)
+    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
+                                                                      equations,
+                                                                      boundary_conditions,
+                                                                      source_terms,
+                                                                      solver,
+                                                                      solver_parabolic,
+                                                                      cache,
+                                                                      cache_parabolic)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
