@@ -48,7 +48,10 @@ end
 #       i_volume += i_volume_step
 #       j_volume += j_volume_step
 #     end
-@inline function index_to_start_step_2d(index::Symbol, index_begin, index_end)
+@inline function index_to_start_step_2d(index::Symbol, index_range)
+    index_begin = first(index_range)
+    index_end = last(index_range)
+
     if index === :begin
         return index_begin, 0
     elseif index === :end
@@ -58,12 +61,6 @@ end
     else # if index === :i_backward
         return index_end, -1
     end
-end
-@inline function index_to_start_step_2d(index::Symbol, index_range)
-    index_begin = first(index_range)
-    index_end = last(index_range)
-
-    return index_to_start_step_2d(index, index_begin, index_end)
 end
 
 # Infer interpolation side, i.e., left (1) or right (2) for an element.
