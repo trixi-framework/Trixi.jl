@@ -35,7 +35,7 @@ include("containers.jl")
 include("dg_parallel.jl")
 
 # Helper structs for parabolic AMR
-include("containers_viscous.jl")
+include("containers_parabolic.jl")
 
 # Some functions for a second-order Finite-Volume (MUSCL) alike 
 # scheme on DG-subcells.
