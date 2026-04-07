@@ -24,11 +24,11 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
-    # Calculate primitive variables         "normal" medium blast wave
-    rho = r > 0.5f0 ? RealT(0.1) : RealT(0.2691)            # rho = r > 0.5 ? 1 : 1.1691
+    # Calculate primitive variables
+    rho = r > 0.5f0 ? RealT(0.1) : RealT(0.2691)
     v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
     v2 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * sin_phi
-    p = r > 0.5f0 ? RealT(1.0E-1) : RealT(1.245)          # p   = r > 0.5 ? 1.0E-3 : 1.245
+    p = r > 0.5f0 ? RealT(1.0E-1) : RealT(1.245)
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -42,13 +42,19 @@ basis = LobattoLegendreBasis(polydeg)
 volume_integral_weakform = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
-# TODO: Comments
+# Use Hennemann-Gassner shock indicator to identify cells which need the stabilized volume integral.
+# The only relevant parameter in this case is `alpha_min`, which governs the sensitivity,
+# i.e., the minimum shock indicator value at which the stabilized volume integral becomes active.
+# `alpha_max` is not relevant for the volume integral, as there is no blending of fluxes performed.
+# However, for the AMR callback below, `alpha_max` is relevant.
 indicator = IndicatorHennemannGassner(equations, basis,
                                       alpha_max = 0.5,
                                       alpha_min = 0.001,
                                       alpha_smooth = true,
                                       variable = density_pressure)
 
+# Adaptive volume integral using the Hennemann-Gassner shock indicator to perform the
+# stabilized/EC volume integral when needed.
 volume_integral = VolumeIntegralAdaptive(indicator = indicator,
                                          volume_integral_default = volume_integral_weakform,
                                          volume_integral_stabilized = volume_integral_fluxdiff)

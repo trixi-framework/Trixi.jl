@@ -215,7 +215,7 @@ end
                                        dg::DGSEM, cache)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
 
-    # Calculate stabilization selector
+    # Calculate a-priori stabilization indicator
     alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
                                                         dg, cache)
 

@@ -426,8 +426,7 @@ an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`
 for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
-The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
-TODO: Adapt
+The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref) and [`IndicatorHennemannGassner`](@ref).
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
