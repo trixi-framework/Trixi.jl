@@ -179,10 +179,9 @@ function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    return (; u_values, invJ = inv.(md.J))
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+    return (; solution_container, invJ = inv.(md.J))
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
@@ -208,11 +207,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # This would have to be changed if `have_nonconservative_terms = False()`
             # because then `volume_flux` is non-symmetric.
             A = dg.basis.Drst[dim]
-
-            A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-            row_ids = axes(A, 2)
-            rows = rowvals(A_base)
-            vals = nonzeros(A_base)
+            A_base, row_ids, rows, vals = sparse_operator_data(A)
 
             @threaded for i in row_ids
                 u_i = u[i]
@@ -234,19 +229,35 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
     else # if using two threads or fewer
 
-        # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
-        # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
-        # volume integral unless we have >2 threads (which should yield >2 speedup).
+        # Exploit skew-symmetry to halve the number of flux evaluations (≈2x speedup).
+        # A = Drst[dim] is skew-symmetric for periodic FD-SBP on uniform grids, so
+        # A[i,j] = -A[j,i]. The stored CSC value vals[id] = A[j,i] = -A[i,j], hence
+        # we use -vals[id] to recover A[i,j], matching the multithreaded branch above.
         for dim in eachdim(mesh)
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             A = dg.basis.Drst[dim]
+            A_base, row_ids, rows, vals = sparse_operator_data(A)
 
-            # since have_nonconservative_terms::False,
-            # the volume flux is symmetric.
-            flux_is_symmetric = True()
-            hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
-                          normal_direction, u, equations)
+            for i in row_ids
+                u_i = u[i]
+                du_i = du[i]
+                for id in nzrange(A_base, i)
+                    j = rows[id]
+                    # We use the symmetry of the volume flux and the anti-symmetry
+                    # of the derivative operator to save half of the volume flux
+                    # computations.
+                    if j > i
+                        A_ij = -vals[id]  # A[j,i] stored; skew-symmetry: -A[j,i] = A[i,j]
+                        u_j = u[j]
+                        AF_ij = 2 * A_ij *
+                                volume_flux(u_i, u_j, normal_direction, equations)
+                        du_i = du_i + AF_ij
+                        du[j] = du[j] - AF_ij # Due to skew-symmetry
+                    end
+                end
+                du[i] = du_i
+            end
         end
     end
 
