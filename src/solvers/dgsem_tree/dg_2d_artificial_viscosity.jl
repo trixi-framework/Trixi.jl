@@ -210,7 +210,7 @@
                            dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}
         (; u_transformed, flux_viscous, gradients) = cache_parabolic.viscous_container
         # Reset du
-        @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+        @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
         # ========= hyperbolic part ============
 
@@ -262,7 +262,7 @@
         # Convert conservative variables to a form more suitable for viscous flux calculations
         @trixi_timeit timer() "transform variables" begin
             transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                                 dg, parabolic_scheme, cache)
+                                 dg, cache)
         end
 
         # Compute the gradients of the transformed variables
