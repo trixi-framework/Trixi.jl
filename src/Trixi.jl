@@ -60,8 +60,8 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend,
-                          allocate
+using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
+using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices
@@ -322,7 +322,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
 export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
 
