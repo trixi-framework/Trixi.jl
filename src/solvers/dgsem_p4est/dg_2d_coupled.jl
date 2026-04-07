@@ -498,9 +498,10 @@ function calc_coupled_mortar_surface_integral!(du, u,
                         # At -y face, nodes are at (l, 1)
                         jacobian_factor = -inverse_jacobian[l, 1, element]
                         du[v, l, 1, element] = (du[v, l, 1, element] +
-                                               surface_flux_values[v, l, direction, element] *
-                                               factor_1 * jacobian_factor)
-                    # surface at +y
+                                                surface_flux_values[v, l, direction,
+                                                                    element] *
+                                                factor_1 * jacobian_factor)
+                        # surface at +y
                     else # direction == 4
                         # At +y face, nodes are at (l, nnodes)
                         jacobian_factor = -inverse_jacobian[l, nnodes(dg), element]
