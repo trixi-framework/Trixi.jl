@@ -283,15 +283,15 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
             # Compute and apply coupled mortar fluxes
             @trixi_timeit timer() "coupled mortar flux" begin
                 calc_coupled_mortar_flux!(cache.elements.surface_flux_values,
-                                        mesh,
-                                        have_nonconservative_terms(equations),
-                                        equations,
-                                        solver.mortar,
-                                        solver.surface_integral,
-                                        solver,
-                                        cache,
-                                        u_global,
-                                        semi)
+                                          mesh,
+                                          have_nonconservative_terms(equations),
+                                          equations,
+                                          solver.mortar,
+                                          solver.surface_integral,
+                                          solver,
+                                          cache,
+                                          u_global,
+                                          semi)
             end
 
             # Apply surface integral for coupled mortar contributions
