@@ -197,19 +197,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
 
-    # Prime each BoundaryConditionCoupledP4est with the current solution and index.
-    # Priming and rhs! must be interleaved (not separated) because multiple semis
-    # may share the same BC objects, so self_index must be set immediately before use.
-    foreach_enumerate(semi.semis) do (i, semi_)
-        for bc in semi_.boundary_conditions.boundary_condition_types
-            if bc isa BoundaryConditionCoupledP4est
-                bc.semi_coupled = semi
-                bc.u_ode = u_ode
-                bc.self_index = i
-            end
-        end
-    end
-
     # Update element_offset for the current AMR state (cell counts may have changed).
     semi.element_offset[1] = 1
     for i in 2:nsystems(semi)
@@ -255,11 +242,21 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         end
     end
 
-    # Call rhs! for each semidiscretization
+    # Prime BCs and call rhs! for each semi in the same loop iteration.
+    # Priming and rhs! MUST be interleaved: if multiple semis share the same BC
+    # objects, a separate priming loop followed by a separate rhs! loop would
+    # leave all BCs with self_index from the last semi when the first rhs! runs.
     foreach_enumerate(semi.semis) do (i, semi_)
+        for bc in semi_.boundary_conditions.boundary_condition_types
+            if bc isa BoundaryConditionCoupledP4est
+                bc.semi_coupled = semi
+                bc.u_ode = u_ode
+                bc.self_index = i
+            end
+        end
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        return rhs!(du_loc, u_loc, semi_, t)
+        rhs!(du_loc, u_loc, semi_, t)
     end
 
     # Handle coupled mortars (hanging nodes at mesh view boundaries)
