@@ -219,13 +219,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         for (local_element, _) in enumerate(semi_.mesh.cell_ids)
             for j_node in 1:n_nodes, i_node in 1:n_nodes, var in 1:n_vars
                 u_global[semi.element_offset[i] +
-                         (var - 1) +
-                         n_vars * (i_node - 1) +
-                         n_vars * n_nodes * (j_node - 1) +
-                         n_vars * n_nodes^2 * (local_element - 1)] = u_loc_reshape[var,
-                                                                                    i_node,
-                                                                                    j_node,
-                                                                                    local_element]
+                (var - 1) +
+                n_vars * (i_node - 1) +
+                n_vars * n_nodes * (j_node - 1) +
+                n_vars * n_nodes^2 * (local_element - 1)] = u_loc_reshape[var,
+                                                                          i_node,
+                                                                          j_node,
+                                                                          local_element]
             end
         end
     end
