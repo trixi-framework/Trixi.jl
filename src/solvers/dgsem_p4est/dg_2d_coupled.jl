@@ -515,5 +515,4 @@ function calc_coupled_mortar_surface_integral!(du, u,
 
     return nothing
 end
-
 end # @muladd
