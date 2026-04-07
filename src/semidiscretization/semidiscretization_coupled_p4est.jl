@@ -264,7 +264,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
 
         # Check if this mesh view has coupled mortars
-        if isdefined(cache, :coupled_mortars) && ncoupledmortars(cache.coupled_mortars) > 0
+        if isdefined(cache, :coupled_mortars) &&
+           ncoupledmortars(cache.coupled_mortars) > 0
             u_loc = get_system_u_ode(u_ode, i, semi)
             du_loc = get_system_u_ode(du_ode, i, semi)
 
