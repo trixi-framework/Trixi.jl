@@ -197,7 +197,7 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
 
                 # Interpolate converted large face data to small element positions.
                 multiply_dimensionwise!(view(coupled_mortars.u, 2, :, 1, :, mortar),
-                                       mortar_l2.forward_lower, u_buffer)
+                                        mortar_l2.forward_lower, u_buffer)
                 multiply_dimensionwise!(view(coupled_mortars.u, 2, :, 2, :, mortar),
                                         mortar_l2.forward_upper, u_buffer)
             end
