@@ -205,31 +205,25 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
     return max_scaled_speed
 end
 
-function calc_max_scaled_speed(backend::Backend, u, mesh, constant_speed, equations, dg,
-                               cache)
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equations,
+                               dg,
+                               cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     num_elements = nelements(dg, cache)
-    max_scaled_speeds = allocate(backend, eltype(u), num_elements)
+    init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
 
-    kernel! = max_scaled_speed_KAkernel!(backend)
-    kernel!(max_scaled_speeds, u, typeof(mesh), constant_speed, equations, dg,
-            contravariant_vectors,
-            inverse_jacobian;
-            ndrange = num_elements)
+    # Provide a custom neutral and init element since we "reduce" over 1:num_elements
+    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
+                                                    init, neutral) do element
+        max_scaled_speed_per_element(u, MeshT, constant_speed,
+                                     equations, dg,
+                                     contravariant_vectors,
+                                     inverse_jacobian,
+                                     element)
+    end
 
-    return maximum(max_scaled_speeds)
-end
-
-@kernel function max_scaled_speed_KAkernel!(max_scaled_speeds, u, MeshT, constant_speed,
-                                            equations,
-                                            dg, contravariant_vectors, inverse_jacobian)
-    element = @index(Global)
-    max_scaled_speeds[element] = max_scaled_speed_per_element(u, MeshT, constant_speed,
-                                                              equations, dg,
-                                                              contravariant_vectors,
-                                                              inverse_jacobian,
-                                                              element)
+    return max_scaled_speed
 end
 
 include("stepsize_dg1d.jl")

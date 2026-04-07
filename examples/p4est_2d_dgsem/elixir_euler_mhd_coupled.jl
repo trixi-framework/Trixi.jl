@@ -6,8 +6,8 @@ using Trixi
 
 # Pressure wave, same for the Euler system.
 function initial_condition_mhd(x, t, equations::IdealGlmMhdEquations2D)
-    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)))
-    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)))
+    rho = 1.0 + 0.01 * sin(x[1] * 2 * pi)
+    v1 = 0.01 * sin((x[1] - 1 / 2) * 2 * pi)
     v2 = 0.0
     v3 = 0.0
     p = rho^equations.gamma
@@ -21,10 +21,10 @@ end
 
 # Pressure wave, same as for the MHD system.
 function initial_condition_euler(x, t, equations::CompressibleEulerEquations2D)
-    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)))
-    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)))
+    rho = 1.0 + 0.01 * sin(x[1] * 2 * pi)
+    v1 = 0.01 * sin((x[1] - 1 / 2) * 2 * pi)
     v2 = 0.0
-    p = rho .^ equations.gamma
+    p = rho^equations.gamma
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -33,7 +33,7 @@ end
 coordinates_min = (-2.0, -2.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (2.0, 2.0) # maximum coordinates (max(x), max(y))
 trees_per_dimension = (8, 8)
-# Here we set the priodicity to false for the coupling.
+# Here we set the periodicity to false for the coupling.
 # Since we couple through the physical boundaries the system is effectively periodic.
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
@@ -61,10 +61,10 @@ volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver1 = DGSEM(polydeg = 3,
                 surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
-boundary_conditions1 = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
-                            :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
+boundary_conditions1 = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                        y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                        y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                        x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 semi1 = SemidiscretizationHyperbolic(mesh1, equations1, initial_condition_mhd, solver1,
                                      boundary_conditions = boundary_conditions1)
 
@@ -73,10 +73,10 @@ cell_ids2 = Vector(9:31)
 mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 solver2 = DGSEM(polydeg = 3, surface_flux = flux_hll,
                 volume_integral = VolumeIntegralWeakForm())
-boundary_conditions2 = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_neg => BoundaryConditionCoupledP4est(coupling_functions),
-                            :y_pos => BoundaryConditionCoupledP4est(coupling_functions),
-                            :x_pos => BoundaryConditionCoupledP4est(coupling_functions))
+boundary_conditions2 = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                        y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                        y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                        x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 semi2 = SemidiscretizationHyperbolic(mesh2, equations2, initial_condition_euler, solver2,
                                      boundary_conditions = boundary_conditions2)
 
@@ -96,7 +96,8 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback1 = AnalysisCallback(semi1, interval = 100)
 analysis_callback2 = AnalysisCallback(semi2, interval = 100)
-analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
+analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1,
+                                                 analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
@@ -110,7 +111,7 @@ glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.8,
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
-                        #                         analysis_callback,
+                        analysis_callback,
                         save_solution,
                         stepsize_callback,
                         glm_speed_callback)

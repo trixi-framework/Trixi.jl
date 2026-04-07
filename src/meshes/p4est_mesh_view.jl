@@ -89,7 +89,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     # Loop over all interfaces (index 2).
-    for interface in 1:size(interfaces_parent.neighbor_ids)[2]
+    for interface in 1:size(interfaces_parent.neighbor_ids, 2)
         mask[interface] = (interfaces_parent.neighbor_ids[1,
                            interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2,
@@ -107,7 +107,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
 
     # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
-    for interface in 1:size(neighbor_ids)[2]
+    for interface in 1:size(neighbor_ids, 2)
         interfaces.neighbor_ids[1, interface] = findall(id -> id ==
                                                               neighbor_ids[1,
                                                                            interface],
@@ -123,7 +123,7 @@ end
 
 # Remove all boundaries that are not part of this p4est mesh view and add new boundaries
 # that were interfaces of the parent mesh.
-function extract_boundaries(mesh::P4estMeshView,
+function extract_boundaries(mesh::P4estMeshView{2},
                             boundaries_parent, interfaces_parent,
                             interfaces)
     # Remove all boundaries that are not part of this p4est mesh view.
@@ -483,15 +483,15 @@ end
 
 # Convert a parent cell id to a view cell id in the mesh view.
 function parent_cell_id_to_view(id::Integer, mesh::P4estMeshView)
-    # Find the index of the cell id in the mesh view.
-    # We use findfirst rather than searchsortedfirst to handle unsorted cell_ids correctly.
-    view_id = findfirst(==(id), mesh.cell_ids)
+    # Find the index of the cell id in the mesh view
+    view_id = searchsortedfirst(mesh.cell_ids, id)
 
     return view_id
 end
 
 # Convert an array of parent cell ids to view cell ids in the mesh view.
 function parent_cell_id_to_view(ids::AbstractArray, mesh::P4estMeshView)
+    # Find the index of the cell id in the mesh view
     view_id = zeros(Int, length(ids))
     for i in eachindex(ids)
         view_id[i] = parent_cell_id_to_view(ids[i], mesh)

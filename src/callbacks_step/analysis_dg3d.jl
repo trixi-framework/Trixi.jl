@@ -167,6 +167,14 @@ function calc_error_norms(func, _u, t, analyzer,
                           dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
+    @unpack node_coordinates, inverse_jacobian = cache.elements
+
+    # Calculate error norms on the CPU, to ensure the order of summation is the same.
+    if trixi_backend(u) !== nothing
+        node_coordinates = Array(node_coordinates)
+        inverse_jacobian = Array(inverse_jacobian)
+        u = Array(u)
+    end
 
     # TODO GPU AnalysisCallback currently lives on CPU
     backend = trixi_backend(_u)
@@ -394,17 +402,17 @@ function integrate_via_indices(func::Func, _u,
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
-    # TODO GPU AnalysiCallback currently lives on CPU
-    backend = trixi_backend(_u)
-    if backend isa Nothing # TODO GPU KA CPU backend
-        @unpack weights = dg.basis
-        @unpack inverse_jacobian = cache.elements
-        u = _u
-    else
-        weights = Array(dg.basis.weights)
-        inverse_jacobian = Array(cache.elements.inverse_jacobian)
-        u = Array(_u)
-    end
+    return integrate_via_indices(func, trixi_backend(u), u, mesh, equations, dg, cache,
+                                 args...; normalize = normalize)
+end
+
+function integrate_via_indices(func::Func, ::Nothing, u,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               equations, dg::DGSEM, cache,
+                               args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
@@ -419,6 +427,51 @@ function integrate_via_indices(func::Func, _u,
                         func(u, i, j, k, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
         end
+    end
+
+    # Normalize with total volume
+    if normalize
+        integral = integral / total_volume
+    end
+
+    return integral
+end
+
+function integrate_via_indices(func::Func, backend::Backend, u,
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
+                               equations, dg::DGSEM, cache,
+                               args...; normalize = true) where {Func}
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    function local_plus((integral, total_volume), (integral_element, volume_element))
+        return (integral + integral_element, total_volume + volume_element)
+    end
+
+    # `func(u, 1,1,1,1, equations, dg, args...)` might access GPU memory
+    # so we have to rely on the compiler to correctly infer the type of the integral here.
+    # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
+    integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, Int,
+                                     typeof(equations), typeof(dg),
+                                     map(typeof, args)...))
+    init = neutral = (integral0, zero(real(mesh)))
+
+    # Use quadrature to numerically integrate over entire domain
+    num_elements = nelements(dg, cache)
+    integral, total_volume = AcceleratedKernels.mapreduce(local_plus, 1:num_elements,
+                                                          backend; init,
+                                                          neutral) do element
+        # Initialize integral with zeros of the right shape
+        local_integral, local_total_volume = neutral
+
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, k, element]))
+            local_integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
+                              func(u, i, j, k, element, equations, dg, args...)
+            local_total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
+        end
+        return local_integral, local_total_volume
     end
 
     # Normalize with total volume
@@ -464,14 +517,6 @@ function analyze(::typeof(entropy_timederivative), _du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
-    # TODO GPU AnalysiCallback currently lives on CPU
-    backend = trixi_backend(u)
-    if backend isa Nothing # TODO GPU KA CPU backend
-        du = _du
-    else
-        du = Array(_du)
-    end
-
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
