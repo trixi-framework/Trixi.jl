@@ -429,8 +429,10 @@ function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elemen
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
-        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
 
         # Get element IDs from parent mortar
         small_element_ids = mortars_parent.neighbor_ids[1:2, mortar_id]
