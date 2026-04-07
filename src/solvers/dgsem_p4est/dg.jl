@@ -62,7 +62,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
 
     # Extract and populate coupled mortars
     coupled_mortar_indices, local_neighbor_ids_list, local_neighbor_positions_list, global_neighbor_ids_list = extract_coupled_mortars(mesh,
-                                                                                                                                        mortars_parent)
+                                                                                                                                       mortars_parent)
     populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elements_parent,
                              coupled_mortar_indices, local_neighbor_ids_list,
                              local_neighbor_positions_list, global_neighbor_ids_list,
