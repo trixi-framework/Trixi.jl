@@ -214,10 +214,10 @@ end
 Compute fluxes at coupled mortar boundaries and distribute to elements.
 """
 function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
-                                  have_nonconservative_terms::False,
-                                  equations, mortar_l2::LobattoLegendreMortarL2,
-                                  surface_integral, dg::DG, cache,
-                                  u_global, semi)
+                                   have_nonconservative_terms::False,
+                                   equations, mortar_l2::LobattoLegendreMortarL2,
+                                   surface_integral, dg::DG, cache,
+                                   u_global, semi)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.coupled_mortars
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, u_threaded = cache
     @unpack surface_flux = surface_integral
