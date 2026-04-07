@@ -68,7 +68,7 @@ end
                                                  u, t, semi, mesh::TreeMesh3D,
                                                  equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
+
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
@@ -229,7 +229,6 @@ end
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
                                                  semi, mesh::TreeMesh{3})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
 
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
