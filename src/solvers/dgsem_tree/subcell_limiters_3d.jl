@@ -119,14 +119,6 @@ end
 end
 
 @inline function calc_bounds_twosided_boundary!(var_min, var_max, variable,
-                                                u, t,
-                                                boundary_conditions::BoundaryConditionPeriodic,
-                                                mesh::TreeMesh{3}, equations,
-                                                dg, cache)
-    return nothing
-end
-
-@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable,
                                                 u, t, boundary_conditions,
                                                 mesh::TreeMesh{3}, equations,
                                                 dg, cache)
@@ -283,14 +275,6 @@ end
                                    boundary_conditions,
                                    mesh, equations, dg, cache)
 
-    return nothing
-end
-
-@inline function calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable,
-                                                u, t,
-                                                boundary_conditions::BoundaryConditionPeriodic,
-                                                mesh::TreeMesh{3}, equations,
-                                                dg, cache)
     return nothing
 end
 
