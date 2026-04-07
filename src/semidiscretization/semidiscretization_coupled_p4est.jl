@@ -298,8 +298,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
             # (the regular surface integral was already computed before coupled mortar fluxes)
             @trixi_timeit timer() "coupled mortar surface integral" begin
                 calc_coupled_mortar_surface_integral!(du, u, mesh, equations,
-                                                     solver.surface_integral,
-                                                     solver, cache)
+                                                      solver.surface_integral,
+                                                      solver, cache)
             end
         end
     end
