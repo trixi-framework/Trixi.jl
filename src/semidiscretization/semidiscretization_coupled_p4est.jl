@@ -19,7 +19,7 @@ See also: [`SemidiscretizationCoupled`](@ref)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{Semis, Indices} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices, CF} <:
                AbstractSemidiscretization
     semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
@@ -27,6 +27,7 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices} <:
     view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
     coupling_functions::CF # [i, j] converts system j variables to system i variable space
+    element_offset::Vector{Int} # 1-based offset into u_global for each system's data block
     # Precomputed lookup: boundary_parent_lookup[i][boundary_index] → parent cell ID
     # for each semidiscretization i. Avoids per-node linear scans at runtime.
     boundary_parent_lookup::Vector{Vector{Int}}
@@ -68,6 +69,16 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
 
     performance_counter = PerformanceCounter()
 
+    # Precompute element offsets (1-based) into u_global for each system.
+    n_nodes = length(semis[1].mesh.parent.nodes)
+    element_offset = zeros(Int, length(semis))
+    element_offset[1] = 1
+    for i in 2:length(semis)
+        element_offset[i] = element_offset[i - 1] +
+                            n_nodes^2 * nvariables(semis[i - 1].equations) *
+                            length(semis[i - 1].mesh.cell_ids)
+    end
+
     # Precompute boundary → parent cell ID lookup for each semidiscretization.
     # boundary_parent_lookup[i] is a vector indexed by boundary index.
     boundary_parent_lookup = Vector{Vector{Int}}(undef, length(semis))
@@ -75,12 +86,14 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
         boundary_parent_lookup[i] = semis[i].cache.neighbor_ids_parent
     end
 
-    SemidiscretizationCoupledP4est{typeof(semis),
-                                   typeof(u_indices)}(semis, u_indices,
-                                                      performance_counter,
-                                                      view_cell_ids,
-                                                      mesh_ids,
-                                                      boundary_parent_lookup)
+    SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
+                                   typeof(coupling_functions)}(semis, u_indices,
+                                                               performance_counter,
+                                                               view_cell_ids,
+                                                               mesh_ids,
+                                                               coupling_functions,
+                                                               element_offset,
+                                                               boundary_parent_lookup)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
@@ -182,25 +195,33 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    # For each semidiscretization, first prime its BoundaryConditionCoupledP4est
-    # instances with the current solution and index, then call rhs!.
+    n_nodes = length(semi.semis[1].mesh.parent.nodes)
+
+    # Prime each BoundaryConditionCoupledP4est with the current solution and index.
     # Priming and rhs! must be interleaved (not separated) because multiple semis
     # may share the same BC objects, so self_index must be set immediately before use.
     foreach_enumerate(semi.semis) do (i, semi_)
-        global ndofs_nvars_global
-        ndofs_nvars_global += nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
+        for bc in semi_.boundary_conditions.boundary_condition_types
+            if bc isa BoundaryConditionCoupledP4est
+                bc.semi_coupled = semi
+                bc.u_ode = u_ode
+                bc.self_index = i
+            end
+        end
     end
 
-    # Determine the element indecx offset for the global solutions array.
-    # @autoinfiltrate
+    # Update element_offset for the current AMR state (cell counts may have changed).
+    semi.element_offset[1] = 1
     for i in 2:nsystems(semi)
         semi.element_offset[i] = semi.element_offset[i - 1] +
-                                 n_nodes^2 * nvariables(semi.semis[i - 1]) *
+                                 n_nodes^2 * nvariables(semi.semis[i - 1].equations) *
                                  length(semi.semis[i - 1].mesh.cell_ids)
     end
 
-    # Create the global solution vector.
-    u_global = Vector{real(semi)}(undef, ndofs_nvars_global * n_nodes^2)
+    # Build the global solution vector for coupled mortar flux computation.
+    ndofs_nvars_global = sum(nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
+                             for semi_ in semi.semis)
+    u_global = Vector{real(semi)}(undef, n_nodes^2 * ndofs_nvars_global)
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
@@ -751,36 +772,4 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
     return nothing
 end
 
-# Coupled boundary condition on P4estMeshView - uses the coupled call interface
-# with u_global and semi for cross-view data exchange.
-# This overrides the fallback method in dg_2d.jl for BoundaryConditionCoupledP4est.
-@inline function calc_boundary_flux!(surface_flux_values, t,
-                                     boundary_condition::BoundaryConditionCoupledP4est,
-                                     mesh::P4estMeshView{2},
-                                     nonconservative_terms, equations,
-                                     surface_integral, dg::DG, cache,
-                                     i_index, j_index,
-                                     node_index, direction_index, element_index,
-                                     boundary_index, u_global, semi)
-    @unpack boundaries = cache
-    @unpack contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
-
-    # Extract solution data from boundary container
-    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
-
-    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
-                               element_index, normal_direction, surface_flux,
-                               normal_direction, u_global, semi)
-
-    # Copy flux to element storage in the correct orientation
-    for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
-    end
-    return nothing
-end
 end # @muladd

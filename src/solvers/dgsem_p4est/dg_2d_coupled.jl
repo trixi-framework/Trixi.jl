@@ -121,7 +121,7 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
             view_id = semi.mesh_ids[global_id]
             semi_other = semi.semis[view_id]
             n_vars_other = nvariables(semi_other.equations)
-            local_id = global_cell_id_to_local(global_id, semi_other.mesh)
+            local_id = parent_cell_id_to_view(global_id, semi_other.mesh)
             offset = semi.element_offset[view_id]
 
             if pos <= 2  # Small element
