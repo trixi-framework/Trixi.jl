@@ -26,6 +26,20 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
     return cache
 end
 
+function create_cache(mesh::Union{TreeMesh{2},UnstructuredMesh2D}, equations,
+    volume_integral::VolumeIntegralFluxDifferencing,
+    dg::FDSBP, cache_containers, uEltype)
+    prototype = Array{SVector{nvariables(equations),uEltype},ndims(mesh)}(undef, ntuple(_ -> Trixi.nnodes(dg), ndims(mesh))...)
+    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
+
+    D = Matrix(dg.basis)
+    M = mass_matrix(dg.basis)
+    derivative_split = 2 .* D
+    derivative_split[1, 1] += 1 / M[1, 1] # B[1, 1] = -1
+    derivative_split[end, end] -= 1 / M[end, end] # B[end, end] = 1
+    return (; f_threaded, derivative_split)
+end
+
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 # OBS! This is the standard (not de-aliased) form of the volume integral.
 # So it is not provably stable for variable coefficients due to the the metric terms.
@@ -164,6 +178,150 @@ function calc_volume_integral!(backend::Nothing, du, u,
                  one(eltype(du)), one(eltype(du)))
             mul!(view(du_vectors, i, :, element), D_plus, view(f_minus_element, i, :),
                  one(eltype(du)), one(eltype(du)))
+        end
+    end
+
+    return nothing
+end
+
+# 2D volume integral contributions for `VolumeIntegralFluxDifferencing`.
+function calc_volume_integral!(du, u,
+    mesh::UnstructuredMesh2D,
+    have_nonconservative_terms::False, equations,
+    volume_integral::VolumeIntegralFluxDifferencing,
+    dg::FDSBP, cache)
+
+    D = cache.derivative_split # SBP derivative operator
+    @unpack contravariant_vectors = cache.elements
+    @unpack volume_flux = volume_integral
+
+    if nvariables(equations) == 1
+        u_vectors = reshape(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+            nnodes(dg), nnodes(dg), nelements(dg, cache))
+    else
+        u_vectors = reinterpret(reshape, SVector{nvariables(equations),eltype(u)}, u)
+    end
+
+    @threaded for element in eachelement(dg, cache)
+        u_element = view(u_vectors, :, :, element)
+
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
+            u_node = u_element[i, j]
+            Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+            Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+
+            for ii in (i+1):nnodes(dg)
+                d_i_ii = D[i, ii]
+                d_ii_i = D[ii, i]
+
+                if iszero(d_i_ii) && iszero(d_ii_i)
+                    continue
+                end
+
+                u_node_ii = u_element[ii, j]
+                Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+                Ja1_avg = (Ja1_node + Ja1_node_ii) * 0.5f0
+
+                fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+
+                    @inbounds for v in eachvariable(equations)
+                        du[v, i, j, element] += d_i_ii * fluxtilde1[v]
+                        du[v, ii, j, element] += d_ii_i * fluxtilde1[v]
+                    end
+            end
+
+            for jj in (j+1):nnodes(dg)
+                d_j_jj = D[j, jj]
+                d_jj_j = D[jj, j]
+
+                if iszero(d_j_jj) && iszero(d_jj_j)
+                    continue
+                end
+
+                u_node_jj = u_element[i, jj]
+                Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
+                Ja2_avg = (Ja2_node + Ja2_node_jj) * 0.5f0
+
+                fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+
+                    @inbounds for v in eachvariable(equations)
+                        du[v, i, j, element] += d_j_jj * fluxtilde2[v]
+                        du[v, i, jj, element] += d_jj_j * fluxtilde2[v]
+                    end
+            end
+        end
+    end
+
+    return nothing
+end
+
+
+
+function calc_volume_integral!(du, u,
+    mesh::UnstructuredMesh2D,
+    have_nonconservative_terms::True, combine_conservative_and_nonconservative_fluxes::True, equations,
+    volume_integral::VolumeIntegralFluxDifferencing,
+    dg::FDSBP, cache)
+    D = cache.derivative_split # SBP derivative operator
+    @unpack contravariant_vectors = cache.elements
+    @unpack volume_flux = volume_integral
+
+    if nvariables(equations) == 1
+        u_vectors = reshape(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+            nnodes(dg), nnodes(dg), nelements(dg, cache))
+    else
+        u_vectors = reinterpret(reshape, SVector{nvariables(equations),eltype(u)}, u)
+    end
+
+    @threaded for element in eachelement(dg, cache)
+        u_element = view(u_vectors, :, :, element)
+
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
+            u_node = u_element[i, j]
+            Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+            Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+
+            for ii in (i+1):nnodes(dg)
+                d_i_ii = D[i, ii]
+                d_ii_i = D[ii, i]
+
+                if iszero(d_i_ii) && iszero(d_ii_i)
+                    continue
+                end
+
+                u_node_ii = u_element[ii, j]
+                Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, element)
+                Ja1_avg = (Ja1_node + Ja1_node_ii) * 0.5f0
+
+                fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+
+                    @inbounds for v in eachvariable(equations)
+                        du[v, i, j, element] += d_i_ii * fluxtilde1_left[v]
+                        du[v, ii, j, element] += d_ii_i * fluxtilde1_right[v]
+                    end
+            end
+
+            for jj in (j+1):nnodes(dg)
+                d_j_jj = D[j, jj]
+                d_jj_j = D[jj, j]
+
+                if iszero(d_j_jj) && iszero(d_jj_j)
+                    continue
+                end
+
+                u_node_jj = u_element[i, jj]
+                Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, element)
+                Ja2_avg = (Ja2_node + Ja2_node_jj) * 0.5f0
+
+                fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+
+                if !iszero(d_j_jj)
+                    @inbounds for v in eachvariable(equations)
+                        du[v, i, j, element] += d_j_jj * fluxtilde2_left[v]
+                        du[v, i, jj, element] += d_jj_j * fluxtilde2_right[v]
+                    end
+                end
+            end
         end
     end
 
