@@ -768,5 +768,4 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
                                      equations, surface_integral, dg::DG)
     return nothing
 end
-
 end # @muladd
