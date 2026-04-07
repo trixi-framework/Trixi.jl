@@ -391,12 +391,13 @@ end
 Populate the coupled mortar container with data from parent mortars.
 This includes computing normal directions from the parent elements' contravariant vectors.
 """
-function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elements_parent,
-                                  coupled_mortar_indices,
-                                  local_neighbor_ids_list,
-                                  local_neighbor_positions_list,
-                                  global_neighbor_ids_list,
-                                  dg)
+function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent,
+                                   elements_parent,
+                                   coupled_mortar_indices,
+                                   local_neighbor_ids_list,
+                                   local_neighbor_positions_list,
+                                   global_neighbor_ids_list,
+                                   dg)
     n_coupled = length(coupled_mortar_indices)
 
     if n_coupled == 0
