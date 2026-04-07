@@ -225,7 +225,7 @@ end
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
     @threaded for element in eachelement(dg, cache)
         alpha_element = alpha[element]
-        # Clip blending factor for values close to zero (-> defaul volume integral)
+        # Clip blending factor for values close to zero (-> default volume integral)
         default_volume_integral = isapprox(alpha_element, 0, atol = atol)
 
         if default_volume_integral

@@ -588,8 +588,8 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_medium_blast_wave.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_medium_blast_wave.jl"),
+@trixi_testset "elixir_euler_medium_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_medium_blast_wave_amr.jl"),
                         l2=[
                             0.07516809124651969,
                             0.06704693534133646,
