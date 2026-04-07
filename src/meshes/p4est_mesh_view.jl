@@ -426,8 +426,10 @@ function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elemen
         small_direction = indices2direction(small_indices)
         large_direction = indices2direction(large_indices)
 
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
 
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
