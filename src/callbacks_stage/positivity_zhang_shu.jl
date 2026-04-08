@@ -25,7 +25,7 @@ struct PositivityPreservingLimiterZhangShu{N, Thresholds <: NTuple{N, <:Real},
 end
 
 function PositivityPreservingLimiterZhangShu(; thresholds, variables)
-    PositivityPreservingLimiterZhangShu(thresholds, variables)
+    return PositivityPreservingLimiterZhangShu(thresholds, variables)
 end
 
 function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,

@@ -23,7 +23,7 @@ struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquatio
     v_max::RealT
 
     function TrafficFlowLWREquations1D(v_max = 1.0)
-        new{typeof(v_max)}(v_max)
+        return new{typeof(v_max)}(v_max)
     end
 end
 
@@ -102,7 +102,7 @@ end
 
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    min_max_speed_naive(u_ll, u_rr, orientation, equations)
+    return min_max_speed_naive(u_ll, u_rr, orientation, equations)
 end
 
 @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
@@ -115,11 +115,18 @@ end
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
 
-# Calculate entropy for a conservative state `cons`
+@doc raw"""
+    entropy(u, equations::TrafficFlowLWREquations1D)
+
+Calculate entropy for a conservative state `u` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
 @inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline energy_total(u, equations::TrafficFlowLWREquations1D) = energy_total(u[1],
                                                                              equations)

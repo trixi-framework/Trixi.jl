@@ -64,10 +64,10 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
 end
 
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
-    ("v1", "sigma11")
+    return ("v1", "sigma11")
 end
 function varnames(::typeof(cons2prim), ::LinearElasticityEquations1D)
-    ("v1", "sigma11")
+    return ("v1", "sigma11")
 end
 
 """
@@ -97,6 +97,15 @@ end
     return SVector(f1, f2)
 end
 
+"""
+    have_constant_speed(::LinearElasticityEquations1D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearElasticityEquations1D) = True()
 
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -129,15 +138,45 @@ end
     return u[1]
 end
 
+@doc raw"""
+    energy_kinetic(u, equations::LinearElasticityEquations1D)
+
+Calculate kinetic energy for a conservative state `u` as
+```math
+E_{kin} = \frac{1}{2} \rho v_1^2
+```
+"""
 @inline function energy_kinetic(u, equations::LinearElasticityEquations1D)
     return 0.5f0 * equations.rho * u[1]^2
 end
+
+@doc raw"""
+    energy_internal(u, equations::LinearElasticityEquations1D)
+
+Calculate internal energy for a conservative state `u` as
+```math
+E_{int} = \frac{1}{2} \frac{\sigma_{11}^2}{E}
+```
+"""
 @inline function energy_internal(u, equations::LinearElasticityEquations1D)
     return 0.5f0 * u[2]^2 / equations.E
 end
+
+"""
+    energy_total(u, equations::LinearElasticityEquations1D)
+
+Calculate total energy for a conservative state `u` as the sum of
+[`energy_kinetic`](@ref) and [`energy_internal`](@ref).
+"""
 @inline function energy_total(u, equations::LinearElasticityEquations1D)
     return energy_kinetic(u, equations) + energy_internal(u, equations)
 end
 
+"""
+    entropy(u, equations::LinearElasticityEquations1D)
+
+Calculate entropy for a conservative state `u`,
+here same as [`energy_total(u, equations::AbstractLinearElasticityEquations)`](@ref).
+"""
 @inline entropy(u, equations::LinearElasticityEquations1D) = energy_total(u, equations)
 end # muladd

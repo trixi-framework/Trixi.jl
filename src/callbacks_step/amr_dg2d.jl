@@ -134,7 +134,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
             end
         end
 
-        reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -214,8 +216,8 @@ function refine!(u_ode::AbstractVector, adaptor,
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
@@ -330,7 +332,9 @@ function coarsen!(u_ode::AbstractVector, adaptor,
             end
         end
 
-        reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -416,8 +420,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
@@ -539,7 +543,9 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
             end
         end
 
-        reinitialize_containers!(mesh, equations, dg, cache)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
 
         resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)

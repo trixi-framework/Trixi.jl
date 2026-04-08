@@ -343,4 +343,242 @@ function initialize_left_neighbor_connectivity!(left_neighbors, mesh::Structured
 
     return left_neighbors
 end
+
+# Compute the normal vectors for freestream-preserving FV method on curvilinear subcells, see
+# equations (14) and (B.53) in:
+# - Hennemann, Rueda-Ramírez, Hindenlang, Gassner (2020)
+#   A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations
+#   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
+function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
+                                        normal_vectors_3,
+                                        mesh::Union{StructuredMesh{3},
+                                                    P4estMesh{3}, T8codeMesh{3}},
+                                        dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    @unpack weights, derivative_matrix = dg.basis
+
+    @threaded for element in eachelement(dg, cache_containers)
+        # First contravariant vector/direction
+        for k in eachnode(dg), j in eachnode(dg)
+            # We do not store i = 1, as it is never used, see `calcflux_fv!`.
+            # => Store i = 2 at position 1
+            @views normal_vectors_1[:, 1, j, k, element] .= get_contravariant_vector(1,
+                                                                                     contravariant_vectors,
+                                                                                     1,
+                                                                                     j,
+                                                                                     k,
+                                                                                     element)
+            for m in eachnode(dg)
+                wD_im = weights[1] * derivative_matrix[1, m]
+                @views normal_vectors_1[:, 1, j, k, element] .+= wD_im *
+                                                                 get_contravariant_vector(1,
+                                                                                          contravariant_vectors,
+                                                                                          m,
+                                                                                          j,
+                                                                                          k,
+                                                                                          element)
+            end
+
+            for i in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
+                @views normal_vectors_1[:, i, j, k, element] .= normal_vectors_1[:,
+                                                                                 i - 1,
+                                                                                 j,
+                                                                                 k,
+                                                                                 element]
+                for m in eachnode(dg)
+                    wD_im = weights[i] * derivative_matrix[i, m]
+                    @views normal_vectors_1[:, i, j, k, element] .+= wD_im *
+                                                                     get_contravariant_vector(1,
+                                                                                              contravariant_vectors,
+                                                                                              m,
+                                                                                              j,
+                                                                                              k,
+                                                                                              element)
+                end
+            end
+        end
+
+        # Second contravariant vector/direction
+        for k in eachnode(dg), i in eachnode(dg)
+            # We do not store j = 1, as it is never used.
+            # => Store physical j = 2 at position 1
+            @views normal_vectors_2[:, i, 1, k, element] .= get_contravariant_vector(2,
+                                                                                     contravariant_vectors,
+                                                                                     i,
+                                                                                     1,
+                                                                                     k,
+                                                                                     element)
+            for m in eachnode(dg)
+                wD_jm = weights[1] * derivative_matrix[1, m]
+                @views normal_vectors_2[:, i, 1, k, element] .+= wD_jm *
+                                                                 get_contravariant_vector(2,
+                                                                                          contravariant_vectors,
+                                                                                          i,
+                                                                                          m,
+                                                                                          k,
+                                                                                          element)
+            end
+
+            for j in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
+                @views normal_vectors_2[:, i, j, k, element] .= normal_vectors_2[:,
+                                                                                 i,
+                                                                                 j - 1,
+                                                                                 k,
+                                                                                 element]
+
+                for m in eachnode(dg)
+                    wD_jm = weights[j] * derivative_matrix[j, m]
+                    @views normal_vectors_2[:, i, j, k, element] .+= wD_jm *
+                                                                     get_contravariant_vector(2,
+                                                                                              contravariant_vectors,
+                                                                                              i,
+                                                                                              m,
+                                                                                              k,
+                                                                                              element)
+                end
+            end
+        end
+
+        # Third contravariant vector/direction
+        for j in eachnode(dg), i in eachnode(dg)
+            # We do not store k = 1, as it is never used.
+            # => Store physical k = 2 at position 1
+            @views normal_vectors_3[:, i, j, 1, element] .= get_contravariant_vector(3,
+                                                                                     contravariant_vectors,
+                                                                                     i,
+                                                                                     j,
+                                                                                     1,
+                                                                                     element)
+            for m in eachnode(dg)
+                wD_km = weights[1] * derivative_matrix[1, m]
+                @views normal_vectors_3[:, i, j, 1, element] .+= wD_km *
+                                                                 get_contravariant_vector(3,
+                                                                                          contravariant_vectors,
+                                                                                          i,
+                                                                                          j,
+                                                                                          m,
+                                                                                          element)
+            end
+
+            for k in 2:(nnodes(dg) - 1) # Actual indices: 3 to nnodes(dg)
+                @views normal_vectors_3[:, i, j, k, element] .= normal_vectors_3[:,
+                                                                                 i,
+                                                                                 j,
+                                                                                 k - 1,
+                                                                                 element]
+                for m in eachnode(dg)
+                    wD_km = weights[k] * derivative_matrix[k, m]
+                    @views normal_vectors_3[:, i, j, k, element] .+= wD_km *
+                                                                     get_contravariant_vector(3,
+                                                                                              contravariant_vectors,
+                                                                                              i,
+                                                                                              j,
+                                                                                              m,
+                                                                                              element)
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+# Used for both fixed (`StructuredMesh{3}`) 
+# and adaptive meshes (`P4estMesh{3}` or `T8codeMesh{3}`)
+mutable struct NormalVectorContainer3D{RealT <: Real} <:
+               AbstractNormalVectorContainer
+    const n_nodes::Int
+    # For normal vectors computed from first contravariant vectors
+    normal_vectors_1::Array{RealT, 5} # [NDIMS, NNODES - 1, NNODES, NNODES, NELEMENTS]
+    # For normal vectors computed from second contravariant vectors
+    normal_vectors_2::Array{RealT, 5} # [NDIMS, NNODES, NNODES - 1, NNODES, NELEMENTS]
+    # For normal vectors computed from third contravariant vectors
+    normal_vectors_3::Array{RealT, 5} # [NDIMS, NNODES, NNODES, NNODES - 1, NELEMENTS]
+
+    # internal `resize!`able storage
+    _normal_vectors_1::Vector{RealT}
+    _normal_vectors_2::Vector{RealT}
+    _normal_vectors_3::Vector{RealT}
+end
+
+function NormalVectorContainer3D(mesh::Union{StructuredMesh{3},
+                                             P4estMesh{3}, T8codeMesh{3}},
+                                 dg, cache_containers)
+    @unpack contravariant_vectors = cache_containers.elements
+    RealT = eltype(contravariant_vectors)
+    n_elements = nelements(dg, cache_containers)
+    n_nodes = nnodes(dg.basis)
+
+    _normal_vectors_1 = Vector{RealT}(undef,
+                                      3 * (n_nodes - 1) * n_nodes * n_nodes *
+                                      n_elements)
+    normal_vectors_1 = unsafe_wrap(Array, pointer(_normal_vectors_1),
+                                   (3, n_nodes - 1, n_nodes, n_nodes,
+                                    n_elements))
+
+    _normal_vectors_2 = Vector{RealT}(undef,
+                                      3 * n_nodes * (n_nodes - 1) * n_nodes *
+                                      n_elements)
+    normal_vectors_2 = unsafe_wrap(Array, pointer(_normal_vectors_2),
+                                   (3, n_nodes, n_nodes - 1, n_nodes,
+                                    n_elements))
+
+    _normal_vectors_3 = Vector{RealT}(undef,
+                                      3 * n_nodes * n_nodes * (n_nodes - 1) *
+                                      n_elements)
+    normal_vectors_3 = unsafe_wrap(Array, pointer(_normal_vectors_3),
+                                   (3, n_nodes, n_nodes, n_nodes - 1,
+                                    n_elements))
+
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2, normal_vectors_3,
+                                   mesh, dg, cache_containers)
+
+    return NormalVectorContainer3D{RealT}(n_nodes,
+                                          normal_vectors_1, normal_vectors_2,
+                                          normal_vectors_3,
+                                          _normal_vectors_1, _normal_vectors_2,
+                                          _normal_vectors_3)
+end
+
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function Base.resize!(normal_vectors::NormalVectorContainer3D, capacity)
+    @unpack n_nodes, _normal_vectors_1, _normal_vectors_2, _normal_vectors_3 = normal_vectors
+    ArrayType = storage_type(normal_vectors)
+
+    resize!(_normal_vectors_1, 3 * (n_nodes - 1) * n_nodes * n_nodes * capacity)
+    normal_vectors.normal_vectors_1 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_1,
+                                                           (3,
+                                                            n_nodes - 1,
+                                                            n_nodes,
+                                                            n_nodes,
+                                                            capacity))
+
+    resize!(_normal_vectors_2, 3 * n_nodes * (n_nodes - 1) * n_nodes * capacity)
+    normal_vectors.normal_vectors_2 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_2,
+                                                           (3,
+                                                            n_nodes,
+                                                            n_nodes - 1,
+                                                            n_nodes,
+                                                            capacity))
+
+    resize!(_normal_vectors_3, 3 * n_nodes * n_nodes * (n_nodes - 1) * capacity)
+    normal_vectors.normal_vectors_3 = unsafe_wrap_or_alloc(ArrayType, _normal_vectors_3,
+                                                           (3,
+                                                            n_nodes,
+                                                            n_nodes,
+                                                            n_nodes - 1,
+                                                            capacity))
+
+    return nothing
+end
+
+# Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)
+function init_normal_vectors!(normal_vectors::NormalVectorContainer3D,
+                              mesh::Union{P4estMesh{3}, T8codeMesh{3}}, dg, cache)
+    @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = normal_vectors
+    calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2, normal_vectors_3,
+                                   mesh, dg, cache)
+
+    return nothing
+end
 end # @muladd

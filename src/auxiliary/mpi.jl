@@ -102,7 +102,7 @@ recursive_sum_abs2(u::Number) = abs2(u)
 # However, what you have is good enough for us for now, so we don't need this
 # additional dependency at the moment.
 function recursive_sum_abs2(u::AbstractArray)
-    mapreduce(recursive_sum_abs2, +, u; init = zero(eltype(eltype(u))))
+    return mapreduce(recursive_sum_abs2, +, u; init = zero(eltype(eltype(u))))
 end
 
 recursive_length(u::Number) = length(u)
@@ -110,7 +110,7 @@ recursive_length(u::AbstractArray{<:Number}) = length(u)
 recursive_length(u::AbstractArray{<:AbstractArray}) = sum(recursive_length, u)
 function recursive_length(u::AbstractArray{<:StaticArrays.StaticArray{S,
                                                                       <:Number}}) where {S}
-    prod(StaticArrays.Size(eltype(u))) * length(u)
+    return prod(StaticArrays.Size(eltype(u))) * length(u)
 end
 
 """

@@ -134,7 +134,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
                                 1.2910938760258899,
                                 6.473385481404865
                             ],
-                            tspan=(0.0, 1.0),)
+                            tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         if VERSION >= v"1.12"
@@ -204,7 +204,7 @@ end
                             linf=[0.0015194252169410394],
                             rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                             elixir_file="elixir_advection_waving_flag.jl",
-                            restart_file="restart_000000021.h5",)
+                            restart_file="restart_000000021.h5")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

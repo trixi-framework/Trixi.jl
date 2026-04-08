@@ -11,7 +11,7 @@ equations = InviscidBurgersEquation1D()
 
 function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquation1D)
     k = 1
-    2 + sinpi(k * (x[1] - 0.7)) |> SVector
+    return 2 + sinpi(k * (x[1] - 0.7)) |> SVector
 end
 
 D_upw = upwind_operators(SummationByPartsOperators.Mattsson2017,
@@ -28,10 +28,11 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_linear_stability,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -4,7 +4,7 @@
 # This method is called when a `SemidiscretizationHyperbolic` is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg::DG,
+function create_cache(mesh::T8codeMeshParallel, equations::AbstractEquations, dg::DG,
                       ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance and partition the forest before creating any
@@ -47,24 +47,26 @@ function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg
     init_normal_directions!(mpi_mortars, dg.basis, elements)
     exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
 
-    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars, mpi_mortars,
-             mpi_cache)
+    # Container cache
+    cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_mortars, mpi_cache)
 
-    # Add specialized parts of the cache required to compute the volume integral etc.
+    # Add Volume-Integral cache
     cache = (; cache...,
-             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+             create_cache(mesh, equations, dg.volume_integral, dg, cache, uEltype)...)
+    # Add Mortar cache
     cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
     return cache
 end
 
-function init_mpi_cache(mesh::ParallelT8codeMesh, mpi_mesh_info, nvars, nnodes, uEltype)
+function init_mpi_cache(mesh::T8codeMeshParallel, mpi_mesh_info, nvars, nnodes, uEltype)
     mpi_cache = P4estMPICache(uEltype)
     init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvars, nnodes, uEltype)
     return mpi_cache
 end
 
-function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh,
+function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::T8codeMeshParallel,
                          mpi_mesh_info, nvars, nnodes, uEltype)
     mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_mesh_info,
                                                                                                        mesh)
@@ -100,7 +102,7 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh,
     return mpi_cache
 end
 
-function init_mpi_neighbor_connectivity(mpi_mesh_info, mesh::ParallelT8codeMesh)
+function init_mpi_neighbor_connectivity(mpi_mesh_info, mesh::T8codeMeshParallel)
     @unpack mpi_interfaces, mpi_mortars, global_interface_ids, neighbor_ranks_interface, global_mortar_ids, neighbor_ranks_mortar = mpi_mesh_info
 
     mpi_neighbor_ranks = vcat(neighbor_ranks_interface, neighbor_ranks_mortar...) |>

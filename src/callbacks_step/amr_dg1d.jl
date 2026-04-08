@@ -39,13 +39,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
             end
         end
 
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-        # re-initialize elements container
-        @unpack elements = cache
-        resize!(elements, length(leaf_cell_ids))
-        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
         @assert nelements(dg, cache) > old_n_elements
 
         resize!(u_ode,
@@ -74,19 +70,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
-    # re-initialize interfaces container
-    @unpack interfaces = cache
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
-
     # Sanity check
     if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
     # Apply the positivity limiter to the solution
@@ -110,8 +96,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end
@@ -179,13 +165,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-        # Get new list of leaf cells
-        leaf_cell_ids = local_leaf_cells(mesh.tree)
-
-        # re-initialize elements container
-        @unpack elements = cache
-        resize!(elements, length(leaf_cell_ids))
-        init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+        @trixi_timeit timer() "reinitialize data structures" begin
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
         @assert nelements(dg, cache) < old_n_elements
 
         resize!(u_ode,
@@ -223,19 +205,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
-    # re-initialize interfaces container
-    @unpack interfaces = cache
-    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
-    init_interfaces!(interfaces, elements, mesh)
-
-    # re-initialize boundaries container
-    @unpack boundaries = cache
-    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
-    init_boundaries!(boundaries, elements, mesh)
-
     # Sanity check
     if isperiodic(mesh.tree)
-        @assert ninterfaces(interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
+        @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
     # Apply the positivity limiter to the solution
@@ -258,8 +230,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
 
     # Resize parabolic helper variables
-    @unpack viscous_container = cache_parabolic
-    resize!(viscous_container, equations, dg, cache)
+    @unpack parabolic_container = cache_parabolic
+    resize!(parabolic_container, equations, dg, cache)
 
     return nothing
 end

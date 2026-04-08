@@ -353,7 +353,7 @@ end
 
 # Create boundaries container and initialize boundary data in `elements`.
 function init_boundaries(cell_ids, mesh::TreeMesh2D,
-                         elements::TreeElementContainer2D)
+                         elements::TreeElementContainer2D, basis)
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer2D{real(elements), eltype(elements)}(n_boundaries,
@@ -361,7 +361,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh2D,
                                                                            nnodes(elements))
 
     # Connect elements with boundaries
-    init_boundaries!(boundaries, elements, mesh)
+    init_boundaries!(boundaries, elements, mesh, basis)
     return boundaries
 end
 
@@ -390,8 +390,89 @@ function count_required_boundaries(mesh::TreeMesh2D, cell_ids)
     return count
 end
 
+# For Lobatto points, we can simply use the outer nodes of the elements as boundary nodes.
+function calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                         elements, mesh::TreeMesh2D,
+                                         basis::LobattoLegendreBasis)
+    el_node_coords = elements.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
+
+    if direction == 1 # -x direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, 1, :, element]
+    elseif direction == 2 # +x direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, end, :, element]
+    elseif direction == 3 # -y direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, :, 1, element]
+    elseif direction == 4 # +y direction
+        @views bnd_node_coords[:, :, count] .= el_node_coords[:, :, end, element]
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
+# For Gauss points, we need to interpolate the boundary node coordinates.
+function calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                         elements, mesh::TreeMesh2D,
+                                         basis::GaussLegendreBasis)
+    boundary_matrix = basis.boundary_interpolation
+    el_node_coords = elements.node_coordinates
+    bnd_node_coords = boundaries.node_coordinates
+
+    if direction == 1 # -x direction: interpolate in x for each y node j
+        for j in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, j, count] = dot(boundary_matrix[:,
+                                                                                    1],
+                                                                    el_node_coords[orientation,
+                                                                                   :,
+                                                                                   j,
+                                                                                   element])
+            end
+        end
+    elseif direction == 2 # +x direction: interpolate in x for each y node j
+        for j in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, j, count] = dot(boundary_matrix[:,
+                                                                                    2],
+                                                                    el_node_coords[orientation,
+                                                                                   :,
+                                                                                   j,
+                                                                                   element])
+            end
+        end
+    elseif direction == 3 # -y direction: interpolate in y for each x node i
+        for i in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, i, count] = dot(boundary_matrix[:,
+                                                                                    1],
+                                                                    el_node_coords[orientation,
+                                                                                   i,
+                                                                                   :,
+                                                                                   element])
+            end
+        end
+    elseif direction == 4 # +y direction: interpolate in y for each x node i
+        for i in eachnode(basis)
+            for orientation in 1:2 # Need to set both x and y coordinate of boundary node
+                @views bnd_node_coords[orientation, i, count] = dot(boundary_matrix[:,
+                                                                                    2],
+                                                                    el_node_coords[orientation,
+                                                                                   i,
+                                                                                   :,
+                                                                                   element])
+            end
+        end
+    else
+        error("should not happen")
+    end
+
+    return nothing
+end
+
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
+function init_boundaries!(boundaries, elements, mesh::TreeMesh2D, basis)
     # Exit early if there are no boundaries to initialize
     if nboundaries(boundaries) == 0
         # In this case n_boundaries_per_direction still needs to be reset!
@@ -441,24 +522,14 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
 
             # Set orientation (x -> 1, y -> 2)
             if direction in (1, 2)
-                boundaries.orientations[count] = 1
+                boundaries.orientations[count] = 1 # x direction
             else
-                boundaries.orientations[count] = 2
+                boundaries.orientations[count] = 2 # y direction
             end
 
-            # Store node coordinates
-            enc = elements.node_coordinates
-            if direction == 1 # -x direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, 1, :, element]
-            elseif direction == 2 # +x direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, end, :, element]
-            elseif direction == 3 # -y direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, :, 1, element]
-            elseif direction == 4 # +y direction
-                boundaries.node_coordinates[:, :, count] .= enc[:, :, end, element]
-            else
-                error("should not happen")
-            end
+            # Calculate node coordinates
+            calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                            elements, mesh, basis)
         end
     end
 
@@ -568,6 +639,7 @@ function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer2D)
     println(io, "c.large_sides = $(c.large_sides)")
     println(io, "c.orientations = $(c.orientations)")
     print(io, '*'^20)
+    return nothing
 end
 
 # Create mortar container and initialize mortar data in `elements`.
@@ -1270,6 +1342,9 @@ function ContainerAntidiffusiveFlux2D{uEltype}(capacity::Integer, n_variables,
     antidiffusive_flux2_R = unsafe_wrap(Array, pointer(_antidiffusive_flux2_R),
                                         (n_variables, n_nodes, n_nodes + 1, capacity))
 
+    reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                antidiffusive_flux2_L, antidiffusive_flux2_R)
+
     return ContainerAntidiffusiveFlux2D{uEltype}(antidiffusive_flux1_L,
                                                  antidiffusive_flux1_R,
                                                  antidiffusive_flux2_L,
@@ -1308,17 +1383,73 @@ function Base.resize!(fluxes::ContainerAntidiffusiveFlux2D, capacity)
                                                (n_variables, n_nodes, n_nodes + 1,
                                                 capacity))
 
-    uEltype = eltype(fluxes.antidiffusive_flux1_L)
-    @threaded for element in axes(fluxes.antidiffusive_flux1_L, 4)
-        fluxes.antidiffusive_flux1_L[:, 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_L[:, n_nodes + 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_R[:, 1, :, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux1_R[:, n_nodes + 1, :, element] .= zero(uEltype)
+    return nothing
+end
 
-        fluxes.antidiffusive_flux2_L[:, :, 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_L[:, :, n_nodes + 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
-        fluxes.antidiffusive_flux2_R[:, :, n_nodes + 1, element] .= zero(uEltype)
+function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_R,
+                                     antidiffusive_flux2_L, antidiffusive_flux2_R)
+    uEltype = eltype(antidiffusive_flux1_L)
+    @threaded for element in axes(antidiffusive_flux1_L, 4)
+        antidiffusive_flux1_L[:, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux1_L[:, end, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, 1, :, element] .= zero(uEltype)
+        antidiffusive_flux1_R[:, end, :, element] .= zero(uEltype)
+
+        antidiffusive_flux2_L[:, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux2_L[:, :, end, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, 1, element] .= zero(uEltype)
+        antidiffusive_flux2_R[:, :, end, element] .= zero(uEltype)
+    end
+
+    return nothing
+end
+
+function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+                                  dg::DGSEM, cache)
+    # Get new list of leaf cells
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+    n_cells = length(leaf_cell_ids)
+
+    # re-initialize elements container
+    @unpack elements = cache
+    resize!(elements, n_cells)
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
+
+    # re-initialize interfaces container
+    @unpack interfaces = cache
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    # re-initialize boundaries container
+    @unpack boundaries = cache
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh, dg.basis)
+
+    # re-initialize mortars container
+    @unpack mortars = cache
+    resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+    init_mortars!(mortars, elements, mesh)
+
+    if mpi_isparallel() # currently only implemented for 2D
+        # re-initialize mpi_interfaces container
+        @unpack mpi_interfaces = cache
+        resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+        init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+
+        # re-initialize mpi_mortars container
+        @unpack mpi_mortars = cache
+        resize!(mpi_mortars, count_required_mpi_mortars(mesh, leaf_cell_ids))
+        init_mpi_mortars!(mpi_mortars, elements, mesh)
+
+        # re-initialize mpi cache
+        @unpack mpi_cache = cache
+        init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars,
+                        nvariables(equations), nnodes(dg), eltype(elements))
     end
 
     return nothing

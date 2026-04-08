@@ -217,8 +217,8 @@ end
 
 initial_condition = initial_condition_baroclinic_instability
 
-boundary_conditions = Dict(:inside => boundary_condition_slip_wall,
-                           :outside => boundary_condition_slip_wall)
+boundary_conditions = (; inside = boundary_condition_slip_wall,
+                       outside = boundary_condition_slip_wall)
 
 # This is a good estimate for the speed of sound in this example.
 # Other values between 300 and 400 should work as well.

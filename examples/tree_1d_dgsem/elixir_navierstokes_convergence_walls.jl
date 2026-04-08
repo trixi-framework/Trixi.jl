@@ -58,10 +58,10 @@ end
     RealT = eltype(x)
     x = x[1]
 
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -99,7 +99,7 @@ end
     E_x = p_x * inv_gamma_minus_one + 0.5f0 * rho_x * v1^2 + rho * v1 * v1_x
 
     # Some convenience constants
-    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    T_const = gamma * inv_gamma_minus_one / Pr
     inv_rho_cubed = 1 / (rho^3)
 
     # compute the source terms
@@ -135,10 +135,10 @@ velocity_bc_left_right = NoSlip() do x, t, equations_parabolic
 end
 
 heat_bc_left = Isothermal() do x, t, equations_parabolic
-    temperature(initial_condition_navier_stokes_convergence_test(x,
-                                                                 t,
-                                                                 equations_parabolic),
-                equations_parabolic)
+    return temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                        t,
+                                                                        equations_parabolic),
+                       equations_parabolic)
 end
 
 heat_bc_right = Adiabatic((x, t, equations_parabolic) -> 0.0)
@@ -152,7 +152,7 @@ boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_ri
 boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                        x_pos = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
                                  x_pos = boundary_condition_right)
 

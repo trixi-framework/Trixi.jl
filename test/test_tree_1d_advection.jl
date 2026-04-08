@@ -19,6 +19,14 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_gauss_legendre.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_gauss_legendre.jl"),
+                        l2=[2.515203865524688e-6], linf=[8.660338936650191e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_basic.jl (max_abs_speed)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         surface_flux=FluxLaxFriedrichs(max_abs_speed),
@@ -51,6 +59,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         analysis_callback=AnalysisCallback(semi, interval = 42,
                                                            analysis_errors = Symbol[]))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_convergence_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_convergence_fvO2.jl"),
+                        l2=[0.0024544920169555706], linf=[0.007837347144210138])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

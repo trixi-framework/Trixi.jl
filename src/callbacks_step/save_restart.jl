@@ -23,6 +23,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
 
     restart_callback = cb.affect!
     print(io, "SaveRestartCallback(interval=", restart_callback.interval, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -50,9 +51,9 @@ function SaveRestartCallback(; interval = 0,
     restart_callback = SaveRestartCallback(interval, save_final_restart,
                                            output_directory)
 
-    DiscreteCallback(restart_callback, restart_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(restart_callback, restart_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -109,7 +110,8 @@ end
                                    semi::AbstractSemidiscretization, restart_callback)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
-    save_restart_file(u, t, dt, iter, mesh, equations, solver, cache, restart_callback)
+    return save_restart_file(u, t, dt, iter, mesh, equations, solver, cache,
+                             restart_callback)
 end
 
 """
@@ -119,7 +121,7 @@ Load the time saved in a `restart_file`.
 """
 function load_time(restart_file::AbstractString)
     h5open(restart_file, "r") do file
-        read(attributes(file)["time"])
+        return read(attributes(file)["time"])
     end
 end
 
@@ -130,7 +132,7 @@ Load the time step number (`iter` in OrdinaryDiffEq.jl) saved in a `restart_file
 """
 function load_timestep(restart_file::AbstractString)
     h5open(restart_file, "r") do file
-        read(attributes(file)["timestep"])
+        return read(attributes(file)["timestep"])
     end
 end
 
@@ -143,7 +145,7 @@ number and and the number of accepted steps
 """
 function load_timestep!(integrator, restart_file::AbstractString)
     integrator.iter = load_timestep(restart_file)
-    integrator.stats.naccept = integrator.iter
+    return integrator.stats.naccept = integrator.iter
 end
 
 """
@@ -153,12 +155,12 @@ Load the time step size (`dt` in OrdinaryDiffEq.jl) saved in a `restart_file`.
 """
 function load_dt(restart_file::AbstractString)
     h5open(restart_file, "r") do file
-        read(attributes(file)["dt"])
+        return read(attributes(file)["dt"])
     end
 end
 
 function load_restart_file(semi::AbstractSemidiscretization, restart_file)
-    load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
+    return load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
 end
 
 """
