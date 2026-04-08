@@ -86,9 +86,22 @@ function gradient_variable_transformation(::ViscoResistiveMhd2D{GradientVariable
     cons2prim
 end
 
-# Delegate cons2prim to the hyperbolic equations
+# cons2prim returns (rho, v1, v2, v3, T, B1, B2, B3, psi) where T = p/rho is temperature.
+# This differs from the hyperbolic cons2prim which returns pressure as the 5th variable.
+# Gradients are taken of these transformed variables, so the 5th gradient component is dT/dx,
+# which is what the heat flux needs.
 @inline function cons2prim(u, equations::ViscoResistiveMhd2D)
-    cons2prim(u, equations.equations_hyperbolic)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    p = (equations.gamma - 1) * (rho_e -
+         0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+                  + B1^2 + B2^2 + B3^2 + psi^2))
+    T = p / rho
+
+    return SVector(rho, v1, v2, v3, T, B1, B2, B3, psi)
 end
 
 # Explicit formulas for the diffusive MHD fluxes are available, e.g., in Section 2
@@ -97,7 +110,7 @@ end
 #  MHD Equations. Part II: Subcell Finite Volume Shock Capturing"
 function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
-    rho, v1, v2, v3, E, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
+    rho, v1, v2, v3, T, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, v3, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
