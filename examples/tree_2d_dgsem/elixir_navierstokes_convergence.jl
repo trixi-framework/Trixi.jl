@@ -60,10 +60,10 @@ end
     RealT = eltype(x)
     y = x[2]
 
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -123,7 +123,7 @@ end
     E_y = p_y * inv_gamma_minus_one + rho_y * v1^2 + 2 * rho * v1 * v1_y
 
     # Some convenience constants
-    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    T_const = gamma * inv_gamma_minus_one / Pr
     inv_rho_cubed = 1 / (rho^3)
 
     # compute the source terms
