@@ -8,9 +8,9 @@ gradient_variable_transformation(::AbstractEquationsParabolic) = cons2cons
 struct GradientVariablesConservative end
 
 include("laplace_diffusion.jl")
-include("linear_diffusion_equation_1d.jl")
-include("linear_diffusion_equation_2d.jl")
 
 include("laplace_diffusion_entropy_variables.jl")
+
+include("linear_diffusion_equation.jl")
 
 include("compressible_navier_stokes.jl")
