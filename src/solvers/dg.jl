@@ -417,7 +417,7 @@ end
 
 This volume integral allows for a-priori and a-posteriori style adaptation of the volume integral/term computation.
 
-[`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
+Choosing `indicator` as [`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
 At every Runge-Kutta stage and for every element, the volume update is computed using
 `volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
 If the `indicator` deems the default volume integral unstable, the default update is discarded
@@ -435,11 +435,11 @@ For reference, see
 
 especially Sections 3 and 3.1 for a detailed description of the method.
 
-In turn, [`IndicatorHennemannGassner`](@ref) corresponds to the a-priori implementation.
-Similar to [`VolumeIntegralShockCapturingHGType`], the indicator is evaluated before any volume update is performed.
+In turn, choosing `indicator` as [`IndicatorHennemannGassner`](@ref) corresponds to the a-priori implementation.
+Similar to [`VolumeIntegralShockCapturingHGType`](@ref), the indicator is evaluated before any volume update is performed.
 If the indicator value ``\alpha`` is zero (i.e., below ``\alpha_\text{min}``) the `volume_integral_default` is used.
 Otherwise, the `volume_integral_stabilized` is used.
-This strategy was for certain choices of the default and stabilized volume integrals already presented as the "ES-DG" scheme in
+This kind strategy was for certain choices of the default and stabilized volume integrals already presented as the "ES-DG" scheme in
 - Bilocq, Borbouse, Levaux, Terrapon, Hillewaert (2025)
   Comparison of stabilization strategies applied to scale-resolved simulations using the discontinuous Galerkin method
   [DOI: 10.1016/j.jcp.2025.114238](https://doi.org/10.1016/j.jcp.2025.114238)
