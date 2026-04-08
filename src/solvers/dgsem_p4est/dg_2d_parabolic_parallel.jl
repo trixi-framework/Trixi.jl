@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent    
 function rhs_parabolic!(du, u, t,
-                        mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                        mesh::P4estMeshParallel{2},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -207,7 +207,7 @@ function rhs_parabolic!(du, u, t,
 end
 
 function calc_gradient_local!(gradients, u_transformed, t,
-                              mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                              mesh::P4estMeshParallel{2},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
     # Reset gradients
@@ -267,8 +267,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
 end
 
 function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
-                                mesh::Union{P4estMeshParallel{2},
-                                            T8codeMeshParallel{2}},
+                                mesh::P4estMeshParallel{2},
                                 equations_parabolic, dg::DG)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
@@ -313,8 +312,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
 end
 
 function calc_mpi_interface_flux_gradient!(surface_flux_values,
-                                           mesh::Union{P4estMeshParallel{2},
-                                                       T8codeMeshParallel{2}},
+                                            mesh::P4estMeshParallel{2},
                                            equations_parabolic,
                                            dg::DG, parabolic_scheme, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -374,8 +372,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
 end
 
 @inline function calc_mpi_interface_flux_gradient!(surface_flux_values,
-                                                   mesh::Union{P4estMeshParallel{2},
-                                                               T8codeMeshParallel{2}},
+                                                    mesh::P4estMeshParallel{2},
                                                    equations_parabolic,
                                                    dg::DG, parabolic_scheme, cache,
                                                    interface_index, normal_direction,
@@ -401,8 +398,7 @@ end
 end
 
 function calc_mpi_interface_flux_divergence!(surface_flux_values,
-                                             mesh::Union{P4estMeshParallel{2},
-                                                         T8codeMeshParallel{2}},
+                                             mesh::P4estMeshParallel{2},
                                              equations_parabolic,
                                              dg::DG, parabolic_scheme, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -459,8 +455,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 end
 
 @inline function calc_mpi_interface_flux_divergence!(surface_flux_values,
-                                                     mesh::Union{P4estMeshParallel{2},
-                                                                 T8codeMeshParallel{2}},
+                                                     mesh::P4estMeshParallel{2},
                                                      equations_parabolic,
                                                      dg::DG, parabolic_scheme, cache,
                                                      interface_index, normal_direction,
