@@ -320,7 +320,10 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
             j_node += j_node_step
         end
     end
-    return accumulate(surface_integral, mesh)
+   if mpi_isparallel()
+       surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+   end
+   return surface_integral
 end
 
 # Serial/default: do nothing
@@ -328,9 +331,9 @@ accumulate(val, mesh) = val
 
 # Parallel: sum over all ranks
 function accumulate(val, mesh::Union{P4estMeshParallel{2}})
-    comm = MPI.COMM_WORLD
-    buf = [val]
-    MPI.Allreduce!(buf, MPI.SUM, comm)
-    return buf[1]
+    comm = mpi_comm()
+    buf = Ref(val)
+    global_val = MPI.Allreduce!(buf, +, comm)[]
+    return global_val
 end
 end # muladd
