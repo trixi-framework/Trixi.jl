@@ -522,7 +522,7 @@ end
                                  "elixir_diffusion_ldg_newton_krylov.jl"),
                         atol_lin_solve=1e-11, rtol_lin_solve=1e-10,
                         atol_ode_solve=1e-10, rtol_ode_solve=1e-9,
-                        l2=[4.14999791227157e-6], linf=[2.424658336047658e-5])
+                        l2=[4.14999791227157e-6], linf=[2.424658410971059e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)

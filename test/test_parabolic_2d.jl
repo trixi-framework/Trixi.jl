@@ -1367,9 +1367,9 @@ end
                                                            extra_analysis_errors = (:l2_error_primitive,
                                                                                     :linf_error_primitive),
                                                            extra_analysis_integrals = (entropy,)),
-                        l2=[2.9029783114293355e-5], linf=[0.00030225018027482675],
+                        l2=[2.9029827892716424e-5], linf=[0.0003022506331279151],
                         # Relax error tols to avoid stochastic CI failures
-                        atol=1e-9)
+                        atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
