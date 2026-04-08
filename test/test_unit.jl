@@ -399,10 +399,11 @@ end
         coordinates_max = (1.0,)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000)
+                        n_cells_max = 1_000, periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
-                                            initial_condition_discontinuity, solver)
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
 
         u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
 
@@ -435,10 +436,11 @@ end
         coordinates_max = (1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000)
+                        n_cells_max = 1_000, periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
-                                            initial_condition_discontinuity, solver)
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
 
         u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
 
@@ -471,10 +473,11 @@ end
         coordinates_max = (1.0, 1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000)
+                        n_cells_max = 1_000, periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
-                                            initial_condition_discontinuity, solver)
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
 
         u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
 
