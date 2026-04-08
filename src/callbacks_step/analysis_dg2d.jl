@@ -461,12 +461,35 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
                              UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate
+    return analyze(entropy_timederivative, du, u, t, mesh,
+                   have_aux_node_vars(equations), equations, dg, cache)
+end
+
+function analyze(::typeof(entropy_timederivative), du, u, t,
+                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                             UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                 have_aux_node_vars::False, equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
         return dot(cons2entropy(u_node, equations), du_node)
+    end
+end
+
+function analyze(::typeof(entropy_timederivative), du, u, t,
+                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                             UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                 have_aux_node_vars::True, equations, dg::Union{DGSEM, FDSBP}, cache)
+    @unpack aux_node_vars = cache.aux_vars
+    # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
+    integrate_via_indices(u, mesh, equations, dg, cache,
+                          du) do u, i, j, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, element)
+        du_node = get_node_vars(du, equations, dg, i, j, element)
+        return dot(cons2entropy(u_node, aux_node, equations), du_node)
     end
 end
 

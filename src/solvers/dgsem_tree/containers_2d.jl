@@ -1452,6 +1452,181 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
                         nvariables(equations), nnodes(dg), eltype(elements))
     end
 
+    # re-initialize auxiliary variables container
+    if hasproperty(cache, :aux_vars)
+        @unpack aux_vars = cache
+        resize!(aux_vars, n_cells,
+                count_required_interfaces(mesh, leaf_cell_ids),
+                count_required_boundaries(mesh, leaf_cell_ids),
+                count_required_mortars(mesh, leaf_cell_ids))
+        init_aux_vars!(aux_vars, mesh, equations, dg, cache)
+    end
+
+    return nothing
+end
+
+# Initialize auxiliary surface node variables
+# 2D TreeMesh implementation, similar to prolong2interfaces
+function init_aux_surface_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                     cache)
+    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
+    @unpack orientations, neighbor_ids = cache.interfaces
+
+    @threaded for interface in eachinterface(solver, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(solver)
+                for v in axes(aux_surface_node_vars, 2)
+                    aux_surface_node_vars[1, v, j, interface] = aux_node_vars[v,
+                                                                              nnodes(solver),
+                                                                              j,
+                                                                              left_element]
+                    aux_surface_node_vars[2, v, j, interface] = aux_node_vars[v,
+                                                                              1,
+                                                                              j,
+                                                                              right_element]
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(solver)
+                for v in axes(aux_surface_node_vars, 2)
+                    aux_surface_node_vars[1, v, i, interface] = aux_node_vars[v,
+                                                                              i,
+                                                                              nnodes(solver),
+                                                                              left_element]
+                    aux_surface_node_vars[2, v, i, interface] = aux_node_vars[v,
+                                                                              i,
+                                                                              1,
+                                                                              right_element]
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary boundary node variables
+# 2D TreeMesh implementation, similar to prolong2boundaries
+function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                      cache)
+    @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
+    @unpack orientations, neighbor_ids, neighbor_sides = cache.boundaries
+
+    @threaded for boundary in eachboundary(solver, cache)
+        element = neighbor_ids[boundary]
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v,
+                                                                              nnodes(solver),
+                                                                              l,
+                                                                              element]
+                end
+            else # Element in +x direction of boundary
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l,
+                                                                              element]
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l,
+                                                                              nnodes(solver),
+                                                                              element]
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1,
+                                                                              element]
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary mortar node variables
+# 2D TreeMesh implementation, similar to prolong2mortars
+# Each mortar has two sides (identified by first variable of u_upper / u_lower)
+# On the side with two small elements, values can be copied from the aux vars field
+# On the side with one large element, values are usually interpolated to small elements
+# We do this differently here and use the same small element values on both side. This
+# assumes that the `aux_field` function computes a field with no jumps.
+function init_aux_mortar_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                    cache)
+    @unpack aux_node_vars, aux_mortar_node_vars = aux_vars
+
+    @threaded for mortar in eachmortar(solver, cache)
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Copy solution small to small
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if cache.mortars.orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, 1,
+                                                                                 l,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, 1,
+                                                                                 l,
+                                                                                 lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, l,
+                                                                                 1,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, l,
+                                                                                 1,
+                                                                                 lower_element]
+                    end
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if cache.mortars.orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v,
+                                                                                 nnodes(solver),
+                                                                                 l,
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v,
+                                                                                 nnodes(solver),
+                                                                                 l,
+                                                                                 lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[1, v, 2, l, mortar] = aux_node_vars[v, l,
+                                                                                 nnodes(solver),
+                                                                                 upper_element]
+                        aux_mortar_node_vars[1, v, 1, l, mortar] = aux_node_vars[v, l,
+                                                                                 nnodes(solver),
+                                                                                 lower_element]
+                    end
+                end
+            end
+        end
+    end
     return nothing
 end
 end # @muladd
