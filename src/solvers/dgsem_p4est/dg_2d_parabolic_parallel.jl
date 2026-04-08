@@ -276,10 +276,17 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
     @threaded for interface in eachmpiinterface(dg, cache)
+        # Copy solution data from the local element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the index of the primary side
+        # will always run forwards.
         local_element = local_neighbor_ids[interface]
         local_indices = node_indices[interface]
         local_direction = indices2direction(local_indices)
         local_side = local_sides[interface]
+        # store the normal flux with respect to the primary normal direction, 
+        # which is the negative of the secondary normal direction
         orientation_factor = local_side == 1 ? 1 : -1
 
         i_start, i_step = index_to_start_step_2d(local_indices[1], index_range)
@@ -297,7 +304,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
             for v in eachvariable(equations_parabolic)
                 flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem, local_element],
                                     flux_parabolic_y[v, i_elem, j_elem, local_element])
-
+                #writes data to the mpi cache exchanged with the other ranks
                 cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
                                                                       dot(flux_visc,
                                                                           normal_direction)
@@ -312,7 +319,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
 end
 
 function calc_mpi_interface_flux_gradient!(surface_flux_values,
-                                            mesh::P4estMeshParallel{2},
+                                           mesh::P4estMeshParallel{2},
                                            equations_parabolic,
                                            dg::DG, parabolic_scheme, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -372,7 +379,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
 end
 
 @inline function calc_mpi_interface_flux_gradient!(surface_flux_values,
-                                                    mesh::P4estMeshParallel{2},
+                                                   mesh::P4estMeshParallel{2},
                                                    equations_parabolic,
                                                    dg::DG, parabolic_scheme, cache,
                                                    interface_index, normal_direction,
@@ -475,18 +482,20 @@ end
         flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                normal_direction, Divergence(),
                                equations_parabolic, parabolic_scheme)
-        sign_ = 1
+        orientation_factor = 1
     else
         # side 2 must also use primary-oriented normal
         flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                -normal_direction, Divergence(),
                                equations_parabolic, parabolic_scheme)
-        sign_ = -1
+        # Sign flip required for divergence calculation since the divergence interface flux 
+        # involves the normal direction.
+        orientation_factor = -1
     end
 
     for v in eachvariable(equations_parabolic)
         surface_flux_values[v, surface_node_index,
-        local_direction_index, local_element_index] = sign_ * flux_[v]
+        local_direction_index, local_element_index] = orientation_factor * flux_[v]
     end
 
     return nothing
