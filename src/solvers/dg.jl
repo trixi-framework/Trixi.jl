@@ -415,7 +415,7 @@ end
                            volume_integral_default,
                            volume_integral_stabilized)
 
-This volume integral allows for a--priori and a-posteriori style adaptation of the volume integral/term computation.
+This volume integral allows for a-priori and a-posteriori style adaptation of the volume integral/term computation.
 
 [`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
 At every Runge-Kutta stage and for every element, the volume update is computed using
