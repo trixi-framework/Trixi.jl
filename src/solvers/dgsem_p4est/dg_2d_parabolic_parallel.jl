@@ -305,6 +305,8 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                 flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem, local_element],
                                     flux_parabolic_y[v, i_elem, j_elem, local_element])
                 #writes data to the mpi cache exchanged with the other ranks
+                #Side 1 and 2 must be consistent, thus the orientation_factor changes the orientation
+                # So flux entering side 1 leaves side 2. 
                 cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
                                                                       dot(flux_visc,
                                                                           normal_direction)
@@ -489,7 +491,7 @@ end
                                -normal_direction, Divergence(),
                                equations_parabolic, parabolic_scheme)
         # Sign flip required for divergence calculation since the divergence interface flux 
-        # involves the normal direction.
+        # involves the normal direction. local_side=2 must be inverted to stay consistent.
         orientation_factor = -1
     end
 
