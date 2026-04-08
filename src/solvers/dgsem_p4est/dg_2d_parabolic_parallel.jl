@@ -57,10 +57,6 @@ function rhs_parabolic!(du, u, t,
     @trixi_timeit timer() "finish MPI receive gradient" begin
         finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
-    # Finish gradient-stage MPI send
-    @trixi_timeit timer() "finish MPI send gradient" begin
-        finish_mpi_send!(cache.mpi_cache)
-    end
     # MPI interface fluxes for gradient stage
     @trixi_timeit timer() "MPI interface flux gradient" begin
         calc_mpi_interface_flux_gradient!(cache.elements.surface_flux_values,
@@ -86,6 +82,12 @@ function rhs_parabolic!(du, u, t,
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                   cache)
     end
+
+    # Finish gradient-stage MPI send
+    @trixi_timeit timer() "finish MPI send gradient" begin
+        finish_mpi_send!(cache.mpi_cache)
+    end
+
     # Stage 2: local parabolic flux construction
     #
     @trixi_timeit timer() "calculate parabolic fluxes" begin
