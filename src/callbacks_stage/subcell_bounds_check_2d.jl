@@ -6,7 +6,7 @@
 #! format: noindent
 
 @inline function check_bounds(u, equations::AbstractEquations{2},
-                              dg, cache, limiter::SubcellLimiterIDP)
+                              solver, cache, limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
@@ -26,10 +26,10 @@
             key_max = Symbol(v_string, "_max")
             deviation_min = idp_bounds_delta_local[key_min]
             deviation_max = idp_bounds_delta_local[key_max]
-            @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(dg,
+            @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
                                                                                                      cache)
-                if perform_subcell_limiting(dg.volume_integral, element)
-                    for j in eachnode(dg), i in eachnode(dg)
+                if perform_subcell_limiting(solver.volume_integral, element)
+                    for j in eachnode(solver), i in eachnode(solver)
                         var = u[v, i, j, element]
                         # Note: We always save the absolute deviations >= 0 and therefore use the
                         # `max` operator for the lower and upper bound. The different directions of
@@ -53,10 +53,10 @@
             key = Symbol(string(variable), "_", string(min_or_max))
             deviation = idp_bounds_delta_local[key]
             sign_ = min_or_max(1.0, -1.0)
-            @batch reduction=(max, deviation) for element in eachelement(dg, cache)
-                if perform_subcell_limiting(dg.volume_integral, element)
-                    for j in eachnode(dg), i in eachnode(dg)
-                        v = variable(get_node_vars(u, equations, dg, i, j, element),
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+                if perform_subcell_limiting(solver.volume_integral, element)
+                    for j in eachnode(solver), i in eachnode(solver)
+                        v = variable(get_node_vars(u, equations, solver, i, j, element),
                                      equations)
                         # Note: We always save the absolute deviations >= 0 and therefore use the
                         # `max` operator for lower and upper bounds. The different directions of
@@ -79,9 +79,9 @@
             end
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
-            @batch reduction=(max, deviation) for element in eachelement(dg, cache)
-                if perform_subcell_limiting(dg.volume_integral, element)
-                    for j in eachnode(dg), i in eachnode(dg)
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+                if perform_subcell_limiting(solver.volume_integral, element)
+                    for j in eachnode(solver), i in eachnode(solver)
                         var = u[v, i, j, element]
                         deviation = max(deviation,
                                         variable_bounds[key][i, j, element] - var)
@@ -93,10 +93,10 @@
         for variable in limiter.positivity_variables_nonlinear
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
-            @batch reduction=(max, deviation) for element in eachelement(dg, cache)
-                if perform_subcell_limiting(dg.volume_integral, element)
-                    for j in eachnode(dg), i in eachnode(dg)
-                        var = variable(get_node_vars(u, equations, dg, i, j,
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+                if perform_subcell_limiting(solver.volume_integral, element)
+                    for j in eachnode(solver), i in eachnode(solver)
+                        var = variable(get_node_vars(u, equations, solver, i, j,
                                                      element),
                                        equations)
                         deviation = max(deviation,
