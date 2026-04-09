@@ -31,59 +31,59 @@ function perform_idp_correction!(u, dt,
 
     @threaded for element in eachelement(dg, cache)
         if perform_subcell_limiting(dg.volume_integral, element)
-        # Perform correction in 1st/x-direction
-        for j in eachnode(dg), i in 2:nnodes(dg)
-            # Subcell interface between nodes (i - 1, j) and (i, j)
-            alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
+            # Perform correction in 1st/x-direction
+            for j in eachnode(dg), i in 2:nnodes(dg)
+                # Subcell interface between nodes (i - 1, j) and (i, j)
+                alpha1 = max(alpha[i - 1, j, element], alpha[i, j, element])
 
-            # Apply to right node (i, j)
-            # Sign switch as in apply_jacobian!
-            inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j, element)
-            flux1 = get_node_vars(antidiffusive_flux1_R, equations, dg,
-                                    i, j, element)
-            dg_factor = -dt * inverse_jacobian * inverse_weights[i] * (1 - alpha1)
-            multiply_add_to_node_vars!(u, dg_factor, flux1,
-                                        equations, dg, i, j, element)
+                # Apply to right node (i, j)
+                # Sign switch as in apply_jacobian!
+                inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                         mesh, i, j, element)
+                flux1 = get_node_vars(antidiffusive_flux1_R, equations, dg,
+                                      i, j, element)
+                dg_factor = -dt * inverse_jacobian * inverse_weights[i] * (1 - alpha1)
+                multiply_add_to_node_vars!(u, dg_factor, flux1,
+                                           equations, dg, i, j, element)
 
-            # Apply to left node (i - 1, j)
-            # Sign switch as in apply_jacobian!
-            inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i - 1, j, element)
-            flux1_ip1 = get_node_vars(antidiffusive_flux1_L, equations, dg,
-                                        i, j, element)
-            dg_factor = dt * inverse_jacobian * inverse_weights[i - 1] *
-                        (1 - alpha1)
-            multiply_add_to_node_vars!(u, dg_factor, flux1_ip1,
-                                        equations, dg, i - 1, j, element)
-        end
+                # Apply to left node (i - 1, j)
+                # Sign switch as in apply_jacobian!
+                inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                         mesh, i - 1, j, element)
+                flux1_ip1 = get_node_vars(antidiffusive_flux1_L, equations, dg,
+                                          i, j, element)
+                dg_factor = dt * inverse_jacobian * inverse_weights[i - 1] *
+                            (1 - alpha1)
+                multiply_add_to_node_vars!(u, dg_factor, flux1_ip1,
+                                           equations, dg, i - 1, j, element)
+            end
 
-        # Perform correction in 2nd/y-direction
-        for j in 2:nnodes(dg), i in eachnode(dg)
-            # Subcell interface between nodes (i, j - 1) and (i, j)
-            alpha2 = max(alpha[i, j - 1, element], alpha[i, j, element])
+            # Perform correction in 2nd/y-direction
+            for j in 2:nnodes(dg), i in eachnode(dg)
+                # Subcell interface between nodes (i, j - 1) and (i, j)
+                alpha2 = max(alpha[i, j - 1, element], alpha[i, j, element])
 
-            # Apply to right node (i, j)
-            # Sign switch as in apply_jacobian!
-            inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j, element)
-            flux2 = get_node_vars(antidiffusive_flux2_R, equations, dg,
-                                    i, j, element)
-            dg_factor = -dt * inverse_jacobian * inverse_weights[j] * (1 - alpha2)
-            multiply_add_to_node_vars!(u, dg_factor, flux2,
-                                        equations, dg, i, j, element)
+                # Apply to right node (i, j)
+                # Sign switch as in apply_jacobian!
+                inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                         mesh, i, j, element)
+                flux2 = get_node_vars(antidiffusive_flux2_R, equations, dg,
+                                      i, j, element)
+                dg_factor = -dt * inverse_jacobian * inverse_weights[j] * (1 - alpha2)
+                multiply_add_to_node_vars!(u, dg_factor, flux2,
+                                           equations, dg, i, j, element)
 
-            # Apply to left node (i, j - 1)
-            # Sign switch as in apply_jacobian!
-            inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j - 1, element)
-            flux2_jp1 = get_node_vars(antidiffusive_flux2_L, equations, dg,
-                                        i, j, element)
-            dg_factor = dt * inverse_jacobian * inverse_weights[j - 1] *
-                        (1 - alpha2)
-            multiply_add_to_node_vars!(u, dg_factor, flux2_jp1,
-                                        equations, dg, i, j - 1, element)
-        end
+                # Apply to left node (i, j - 1)
+                # Sign switch as in apply_jacobian!
+                inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                         mesh, i, j - 1, element)
+                flux2_jp1 = get_node_vars(antidiffusive_flux2_L, equations, dg,
+                                          i, j, element)
+                dg_factor = dt * inverse_jacobian * inverse_weights[j - 1] *
+                            (1 - alpha2)
+                multiply_add_to_node_vars!(u, dg_factor, flux2_jp1,
+                                           equations, dg, i, j - 1, element)
+            end
         end
     end
 
