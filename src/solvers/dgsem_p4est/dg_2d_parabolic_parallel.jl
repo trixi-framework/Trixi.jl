@@ -12,18 +12,14 @@ function rhs_parabolic!(du, u, t,
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
 
-    # Stage 0: local variable transform
-    #
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
                              dg, cache)
     end
 
-    #
-    # Stage 1: gradient computation
-    #
+    ### Gradient computation ###
 
-    # Start gradient-stage MPI receive
+    # Start gradient MPI receive
     @trixi_timeit timer() "start MPI receive gradient" begin
         start_mpi_receive!(cache.mpi_cache)
     end
@@ -41,7 +37,7 @@ function rhs_parabolic!(du, u, t,
                                dg.surface_integral, dg)
     end
 
-    # Start gradient-stage MPI send
+    # Start gradient MPI send
     @trixi_timeit timer() "start MPI send gradient" begin
         start_mpi_send!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
@@ -53,18 +49,19 @@ function rhs_parabolic!(du, u, t,
                              dg, parabolic_scheme, cache)
     end
 
-    # Finish gradient-stage MPI receive
+    # Finish gradient MPI receive
     @trixi_timeit timer() "finish MPI receive gradient" begin
         finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
-    # MPI interface fluxes for gradient stage
+    
+    # MPI interface fluxes for gradients
     @trixi_timeit timer() "MPI interface flux gradient" begin
         calc_mpi_interface_flux_gradient!(cache.elements.surface_flux_values,
                                           mesh, equations_parabolic,
                                           dg, parabolic_scheme, cache)
     end
 
-    # MPI mortar fluxes for gradient stage
+    # MPI mortar fluxes for gradients
     # @trixi_timeit timer() "MPI mortar flux gradient" begin
     #     calc_mpi_mortar_flux_gradient!(cache.elements.surface_flux_values,
     #                                    mesh, equations_parabolic, dg.mortar,
@@ -95,11 +92,9 @@ function rhs_parabolic!(du, u, t,
                                equations_parabolic, dg, cache)
     end
 
-    #
-    # Stage 3: divergence of parabolic fluxes
-    #
+    ### Divergence of parabolic/gradient fluxes ###
 
-    # Start divergence-stage MPI receive
+    # Start divergence MPI receive
     @trixi_timeit timer() "start MPI receive divergence" begin
         start_mpi_receive!(cache.mpi_cache)
     end
@@ -124,8 +119,7 @@ function rhs_parabolic!(du, u, t,
     @trixi_timeit timer() "prolong2mpiinterfaces divergence" begin
         prolong2mpiinterfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
     end
-    ########################## Divergence #################################
-    # Start divergence-stage MPI send
+    # Start divergence MPI send
     @trixi_timeit timer() "start MPI send divergence" begin
         start_mpi_send!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
@@ -169,28 +163,25 @@ function rhs_parabolic!(du, u, t,
         finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
 
-    # MPI interface fluxes for divergence stage
+    # MPI interface fluxes for divergence
     @trixi_timeit timer() "MPI interface flux divergence" begin
         calc_mpi_interface_flux_divergence!(cache.elements.surface_flux_values,
                                             mesh, equations_parabolic,
                                             dg, parabolic_scheme, cache)
     end
 
-    # MPI mortar fluxes for divergence stage
+    # MPI mortar fluxes for divergence
     # @trixi_timeit timer() "MPI mortar flux divergence" begin
     #     calc_mpi_mortar_flux_divergence!(cache.elements.surface_flux_values,
     #                                      mesh, equations_parabolic, dg.mortar,
     #                                      dg, parabolic_scheme, cache)
     # end
 
-    # Finish divergence-stage MPI send
+    # Finish divergence MPI send
     @trixi_timeit timer() "finish MPI send divergence" begin
         finish_mpi_send!(cache.mpi_cache)
     end
 
-    #
-    # Stage 4: final assembly
-    #
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
@@ -306,8 +297,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
             for v in eachvariable(equations_parabolic)
                 flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem, local_element],
                                     flux_parabolic_y[v, i_elem, j_elem, local_element])
-                #writes data to the mpi cache exchanged with the other ranks
-                #Side 1 and 2 must be consistent, thus the orientation_factor changes the orientation
+                # Side 1 and 2 must be consistent, thus the orientation_factor changes the orientation
                 # So flux entering side 1 leaves side 2. 
                 cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
                                                                       dot(flux_visc,
@@ -364,8 +354,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                                                     local_element)
 
             u_ll, u_rr = get_surface_node_vars(u, equations_parabolic, dg,
-                                               i,
-                                               interface)
+                                               i, interface)
 
             flux_ = flux_parabolic(u_ll, u_rr, normal_direction, Gradient(),
                                    equations_parabolic, parabolic_scheme)
@@ -433,9 +422,8 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                                                                                        i,
                                                                                        interface)
 
-            # side 2 must also use primary-oriented normal
-            # Sign flip required for divergence calculation since the divergence interface flux 
-            # involves the normal direction. local_side=2 must be inverted to stay consistent.                                                                   
+            # Sign flip for `local_side = 2` required for divergence calculation since the divergence interface flux 
+            # involves the normal direction. `local_side=2` is thus flipped (opposite of primary side)
             orientation_factor = local_side == 1 ? 1 : -1
             flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                    orientation_factor * normal_direction, Divergence(),
