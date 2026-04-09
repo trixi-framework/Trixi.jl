@@ -377,54 +377,54 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
-        if cache.volume_integral.indicator.alpha[element] > 0
-        for j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, element)
-            var = u[variable, i, j, element]
-            if var < 0
-                error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
+        if dg.volume_integral.indicator.cache.alpha[element] > 0
+            for j in eachnode(dg), i in eachnode(dg)
+                inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                        mesh, i, j, element)
+                var = u[variable, i, j, element]
+                if var < 0
+                    error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
+                end
+
+                # Compute bound
+                if limiter.local_twosided &&
+                   (variable in limiter.local_twosided_variables_cons) &&
+                   (var_min[i, j, element] >= positivity_correction_factor * var)
+                    # Local limiting is more restrictive that positivity limiting
+                    # => Skip positivity limiting for this node
+                    continue
+                end
+                var_min[i, j, element] = positivity_correction_factor * var
+
+                # Real one-sided Zalesak-type limiter
+                # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+                # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+                # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+                #       for each interface, not each node
+                Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+                # Calculate Pm
+                # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+                val_flux1_local = inverse_weights[i] *
+                                  antidiffusive_flux1_R[variable, i, j, element]
+                val_flux1_local_ip1 = -inverse_weights[i] *
+                                      antidiffusive_flux1_L[variable, i + 1, j, element]
+                val_flux2_local = inverse_weights[j] *
+                                  antidiffusive_flux2_R[variable, i, j, element]
+                val_flux2_local_jp1 = -inverse_weights[j] *
+                                      antidiffusive_flux2_L[variable, i, j + 1, element]
+
+                Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                     min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+                Pm = inverse_jacobian * Pm
+
+                # Compute blending coefficient avoiding division by zero
+                # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+                Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
+
+                # Calculate alpha
+                alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
             end
-
-            # Compute bound
-            if limiter.local_twosided &&
-               (variable in limiter.local_twosided_variables_cons) &&
-               (var_min[i, j, element] >= positivity_correction_factor * var)
-                # Local limiting is more restrictive that positivity limiting
-                # => Skip positivity limiting for this node
-                continue
-            end
-            var_min[i, j, element] = positivity_correction_factor * var
-
-            # Real one-sided Zalesak-type limiter
-            # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
-            # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
-            # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
-            #       for each interface, not each node
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
-
-            # Calculate Pm
-            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-            val_flux1_local = inverse_weights[i] *
-                              antidiffusive_flux1_R[variable, i, j, element]
-            val_flux1_local_ip1 = -inverse_weights[i] *
-                                  antidiffusive_flux1_L[variable, i + 1, j, element]
-            val_flux2_local = inverse_weights[j] *
-                              antidiffusive_flux2_R[variable, i, j, element]
-            val_flux2_local_jp1 = -inverse_weights[j] *
-                                  antidiffusive_flux2_L[variable, i, j + 1, element]
-
-            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
-                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-            Pm = inverse_jacobian * Pm
-
-            # Compute blending coefficient avoiding division by zero
-            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
-
-            # Calculate alpha
-            alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
-        end
         end
     end
 

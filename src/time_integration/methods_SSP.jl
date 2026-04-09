@@ -138,7 +138,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
         # `subcell_limiter_coefficients` was created with 0 elements
         resize!(dg.volume_integral.limiter.cache.subcell_limiter_coefficients,
                 nelements(dg, cache))
-    # TODO: Quick & dirty, need function that dispatches here correctly!
+        # TODO: Quick & dirty, need function that dispatches here correctly!
     elseif dg.volume_integral isa VolumeIntegralAdaptive
         # `subcell_limiter_coefficients` was created with 0 elements
         resize!(dg.volume_integral.volume_integral_stabilized.limiter.cache.subcell_limiter_coefficients,

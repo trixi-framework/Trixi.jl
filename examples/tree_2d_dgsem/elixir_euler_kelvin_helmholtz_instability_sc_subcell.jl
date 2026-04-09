@@ -46,14 +46,14 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure])
 volume_integral_stab = VolumeIntegralSubcellLimiting(limiter_idp;
-                                                volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+                                                     volume_flux_dg = volume_flux,
+                                                     volume_flux_fv = surface_flux)
 
 indicator = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.1, # irrelevant
-                                         alpha_min = 0.0001, # governs when subcell limiting is considered
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
+                                      alpha_max = 0.1, # irrelevant
+                                      alpha_min = 0.0001, # governs when subcell limiting is considered
+                                      alpha_smooth = true,
+                                      variable = density_pressure)
 # Adaptive volume integral using the entropy increase indicator to perform the
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(indicator = indicator,
@@ -73,7 +73,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.7)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -96,7 +96,7 @@ stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
+                        stepsize_callback
                         #save_restart, save_solution
                         )
 
