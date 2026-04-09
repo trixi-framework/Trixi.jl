@@ -45,12 +45,6 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
-
     return nothing
 end
 
