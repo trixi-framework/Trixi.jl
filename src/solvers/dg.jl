@@ -722,6 +722,11 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+# Check if subcell limiting should be performed for a given element.
+# Always true for pure `VolumeIntegralSubcellLimiting`,
+# but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
+@inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
+
 # Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
 Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
 

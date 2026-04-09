@@ -377,7 +377,7 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
-        if dg.volume_integral.indicator.cache.alpha[element] > 0
+        if perform_subcell_limiting(dg.volume_integral, element)
             for j in eachnode(dg), i in eachnode(dg)
                 inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                         mesh, i, j, element)
