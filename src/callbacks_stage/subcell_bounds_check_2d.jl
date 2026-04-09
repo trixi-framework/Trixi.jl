@@ -73,13 +73,13 @@
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
-                #if cache.subcell_limited[element]
+                if cache.subcell_limited[element]
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
                     deviation = max(deviation,
                                     variable_bounds[key][i, j, element] - var)
                 end
-                #end
+                end
             end
             idp_bounds_delta_local[key] = deviation
         end
@@ -87,14 +87,14 @@
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
-                #if cache.subcell_limited[element]
+                if cache.subcell_limited[element]
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)
                     deviation = max(deviation,
                                     variable_bounds[key][i, j, element] - var)
                 end
-                #end
+                end
             end
             idp_bounds_delta_local[key] = deviation
         end

@@ -30,7 +30,7 @@ function perform_idp_correction!(u, dt,
     # interfaces.
 
     @threaded for element in eachelement(dg, cache)
-        #if cache.subcell_limited[element]
+        if cache.subcell_limited[element]
         # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)
             # Subcell interface between nodes (i - 1, j) and (i, j)
@@ -82,7 +82,7 @@ function perform_idp_correction!(u, dt,
             multiply_add_to_node_vars!(u, dg_factor, flux2_jp1,
                                        equations, dg, i, j - 1, element)
         end
-        #end
+        end
     end
 
     return nothing

@@ -49,7 +49,11 @@ volume_integral_stab = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
 
-indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
+indicator = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max = 0.1, # irrelevant
+                                         alpha_min = 0.0001, # governs when subcell limiting is considered
+                                         alpha_smooth = true,
+                                         variable = density_pressure)
 # Adaptive volume integral using the entropy increase indicator to perform the
 # stabilized/EC volume integral when needed
 volume_integral = VolumeIntegralAdaptive(indicator = indicator,
