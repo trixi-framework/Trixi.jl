@@ -79,7 +79,7 @@ function calc_reverse_upper(n_nodes, ::Val{:gauss}, RealT = Float64)
         end
     end
 
-    # Calculate Vandermondes
+    # Calculate Vandermondes for quadrature-interpolation basis transform
     lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes, lobatto_nodes)
     lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
@@ -106,7 +106,7 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss}, RealT = Float64)
         end
     end
 
-    # Calculate Vandermondes
+    # Calculate Vandermondes for quadrature-interpolation basis transform
     lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes, lobatto_nodes)
     lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
@@ -150,5 +150,57 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
     end
 
     return operator
+end
+
+# Compute the L2 projection matrix for projecting polynomials 
+# from a higher degree to a lower degree using Gauss-Legendre quadrature.
+#
+# Arguments
+# - `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
+# - `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
+# - `::Val{:gauss}`: Use Gauss-Legendre quadrature (accuracy 2N - 1)
+# - `RealT`: Type of the output matrix (default: Float64)
+#
+# Returns
+# The projection matrix such that multiplying with it projects 
+# a higher degree Lagrange interpolation/solution polynomial
+# to a lower degree Lagrange interpolation/solution polynomial.
+function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
+                                        RealT = Float64)
+    n_high = length(nodes_high)
+    n_low = length(nodes_low)
+
+    # Get Gauss-Legendre nodes and weights for quadrature
+    # Use enough nodes to exactly integrate polynomials of degree n_high + n_low - 1
+    n_quad = div(n_high + n_low + 1, 2)
+    gauss_nodes, gauss_weights = gauss_nodes_weights(n_quad, RealT)
+
+    # Get barycentric weights for interpolation
+    wbary_high = barycentric_weights(nodes_high)
+    wbary_low = barycentric_weights(nodes_low)
+
+    # Weights for the low-degree mass matrix (diagonal for Gauss-Lobatto)
+    weights_low = gauss_lobatto_nodes_weights(n_low, RealT)[2]
+
+    # Build projection matrix
+    projection_matrix = zeros(RealT, n_low, n_high)
+
+    for q in 1:n_quad
+        # Evaluate low-degree basis functions at Gauss quadrature point
+        poly_low = lagrange_interpolating_polynomials(gauss_nodes[q], nodes_low,
+                                                      wbary_low)
+
+        # Evaluate high-degree basis functions at Gauss quadrature point
+        poly_high = lagrange_interpolating_polynomials(gauss_nodes[q], nodes_high,
+                                                       wbary_high)
+
+        for i in 1:n_low, j in 1:n_high
+            # Build integral using Gauss quadrature
+            projection_matrix[i, j] += poly_low[i] * poly_high[j] * gauss_weights[q] /
+                                       weights_low[i]
+        end
+    end
+
+    return projection_matrix
 end
 end # @muladd
