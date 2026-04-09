@@ -53,7 +53,7 @@ function rhs_parabolic!(du, u, t,
     @trixi_timeit timer() "finish MPI receive gradient" begin
         finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
-    
+
     # MPI interface fluxes for gradients
     @trixi_timeit timer() "MPI interface flux gradient" begin
         calc_mpi_interface_flux_gradient!(cache.elements.surface_flux_values,
