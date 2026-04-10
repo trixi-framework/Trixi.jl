@@ -737,6 +737,10 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+# This function is currently only needed for `init`, as
+# neither AMR is not supported for subcell limiting.
+# This is because in 2D and 3D mortars are not yet implemented
+# and a 1D implementation of subcell limiting is also not implemented.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        new_size)
