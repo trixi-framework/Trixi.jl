@@ -1318,60 +1318,6 @@ function calc_surface_integral_per_element!(du,
     return nothing
 end
 
-function calc_surface_integral!(du, u,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2}},
-                                equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM{<:GaussLegendreBasis}, cache)
-    @unpack boundary_interpolation_inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
-
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # This computes the **negative** surface integral contribution,
-    # i.e., M^{-1} * boundary_interpolation^T
-    # and the missing "-" is taken care of by `apply_jacobian!`.
-    #
-    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-    # into FMAs (see comment at the top of the file).
-    @threaded for element in eachelement(dg, cache)
-        for l in eachnode(dg)
-            for v in eachvariable(equations)
-                # Aliases for repeatedly accessed variables
-                surface_flux_minus_x = surface_flux_values[v, l, 1, element]
-                surface_flux_plus_x = surface_flux_values[v, l, 2, element]
-                for ii in eachnode(dg)
-                    # surface at -x
-                    du[v, ii, l, element] = (du[v, ii, l, element] +
-                                             surface_flux_minus_x *
-                                             boundary_interpolation_inverse_weights[ii,
-                                                                                    1])
-                    # surface at +x
-                    du[v, ii, l, element] = (du[v, ii, l, element] +
-                                             surface_flux_plus_x *
-                                             boundary_interpolation_inverse_weights[ii,
-                                                                                    2])
-                end
-
-                surface_flux_minus_y = surface_flux_values[v, l, 3, element]
-                surface_flux_plus_y = surface_flux_values[v, l, 4, element]
-                for jj in eachnode(dg)
-                    # surface at -y
-                    du[v, l, jj, element] = (du[v, l, jj, element] +
-                                             surface_flux_minus_y *
-                                             boundary_interpolation_inverse_weights[jj,
-                                                                                    1])
-                    # surface at +y
-                    du[v, l, jj, element] = (du[v, l, jj, element] +
-                                             surface_flux_plus_y *
-                                             boundary_interpolation_inverse_weights[jj,
-                                                                                    2])
-                end
-            end
-        end
-    end
-
-    return nothing
-end
-
 # Call this for coupled P4estMeshView simulations.
 # The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
 # the additional variable u_parent is needed, compared to non-coupled systems.

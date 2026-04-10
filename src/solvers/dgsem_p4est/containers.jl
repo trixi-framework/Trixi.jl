@@ -396,7 +396,6 @@ end
 mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       uArray <: DenseArray{uEltype, NDIMSP1},
                                       CoordinateArray <: DenseArray{<:Real, NDIMSP1},
-                                      NormalArray <: DenseArray{<:Real, NDIMSP1},
                                       IdsVector <: DenseVector{Int},
                                       IndicesVector <:
                                       DenseVector{NTuple{NDIMS, Symbol}},
@@ -405,7 +404,6 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                AbstractBoundaryContainer
     u::uArray                         # [variables, i, j, boundary]
     node_coordinates::CoordinateArray # [orientation, i, j, boundary]
-    normal_directions::NormalArray    # [dimension, i, j, boundary]
     neighbor_ids::IdsVector           # [boundary]
     node_indices::IndicesVector       # [boundary]
     name::Vector{Symbol}              # [boundary]
@@ -413,7 +411,6 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
     # internal `resize!`able storage
     _u::uVector
     _node_coordinates::CoordVector
-    _normal_directions::CoordVector
 end
 
 @inline function nboundaries(boundaries::P4estBoundaryContainer)
@@ -445,12 +442,6 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
                                               (n_dims,
                                                ntuple(_ -> n_nodes, n_dims - 1)...,
                                                capacity))
-
-    resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
-    boundaries.normal_directions = unsafe_wrap(ArrayType, pointer(_normal_directions),
-                                               (n_dims,
-                                                ntuple(_ -> n_nodes, n_dims - 1)...,
-                                                capacity))
 
     resize!(neighbor_ids, capacity)
 
@@ -486,21 +477,12 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                                     ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                                     n_boundaries))
 
-    _normal_directions = Vector{RealT}(undef,
-                                       NDIMS * nnodes(basis)^(NDIMS - 1) *
-                                       n_boundaries)
-    normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
-                                    (NDIMS,
-                                     ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                     n_boundaries))
-
     neighbor_ids = Vector{Int}(undef, n_boundaries)
     node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
     names = Vector{Symbol}(undef, n_boundaries)
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1, typeof(u),
                                         typeof(node_coordinates),
-                                        typeof(normal_directions),
                                         typeof(neighbor_ids), typeof(node_indices),
                                         typeof(_u), typeof(_node_coordinates)}(u,
                                                                                node_coordinates,
@@ -509,20 +491,17 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                                                                                node_indices,
                                                                                names,
                                                                                _u,
-                                                                               _node_coordinates,
-                                                                               _normal_directions)
+                                                                               _node_coordinates)
 
     if n_boundaries > 0
         init_boundaries!(boundaries, mesh)
         init_boundary_node_coordinates!(boundaries, elements, basis)
-        init_boundary_normal_directions!(boundaries, elements, basis)
     end
 
     return boundaries
 end
 
 @inline init_boundary_node_coordinates!(boundaries, elements, basis) = nothing
-@inline init_boundary_normal_directions!(boundaries, elements, basis) = nothing
 
 function init_boundaries!(boundaries, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(nothing, nothing, boundaries, mesh)
@@ -574,8 +553,6 @@ function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))
     node_coordinates = unsafe_wrap_or_alloc(to, _node_coordinates,
                                             size(boundaries.node_coordinates))
-    normal_directions = unsafe_wrap_or_alloc(to, _normal_directions,
-                                             size(boundaries.normal_directions))
     neighbor_ids = adapt(to, boundaries.neighbor_ids)
     node_indices = adapt(to, boundaries.node_indices)
     name = boundaries.name
@@ -583,17 +560,14 @@ function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     NDIMS = ndims(boundaries)
     return P4estBoundaryContainer{NDIMS, eltype(_u), NDIMS + 1, typeof(u),
                                   typeof(node_coordinates),
-                                  typeof(normal_directions),
                                   typeof(neighbor_ids), typeof(node_indices),
                                   typeof(_u), typeof(_node_coordinates)}(u,
                                                                          node_coordinates,
-                                                                         normal_directions,
                                                                          neighbor_ids,
                                                                          node_indices,
                                                                          name,
                                                                          _u,
-                                                                         _node_coordinates,
-                                                                         _normal_directions)
+                                                                         _node_coordinates)
 end
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
@@ -779,7 +753,6 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
     init_boundary_node_coordinates!(boundaries, elements, dg.basis)
-    init_boundary_normal_directions!(boundaries, elements, dg.basis)
 
     return nothing
 end

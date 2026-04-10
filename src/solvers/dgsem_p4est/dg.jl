@@ -57,7 +57,6 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                                                                              dg,
                                                                                              uEltype)
     init_boundary_node_coordinates!(boundaries, elements, dg.basis)
-    init_boundary_normal_directions!(boundaries, elements, dg.basis)
 
     cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
 
