@@ -67,7 +67,7 @@ volume_integral = VolumeIntegralAdaptive(indicator = indicator,
                                          volume_integral_default = volume_integral_default,
                                          volume_integral_stabilized = volume_integral_stabilized)
 
-solver = DGSEM(basis, surface_flux, volume_integral_stabilized)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
