@@ -49,9 +49,15 @@
         end
     end
 
-    # Values at element boundary
+    # Values at element interfaces
     calc_bounds_twosided_interface!(var_min, var_max, variable,
                                     u, t, semi, mesh, equations)
+
+    # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
+    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
     return nothing
 end
 
@@ -94,12 +100,6 @@ end
                                                                left_element], var_right)
         end
     end
-
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end
