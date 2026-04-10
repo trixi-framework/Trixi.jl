@@ -742,20 +742,15 @@ end
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
 @inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
-# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-
-function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       new_size)
     # Resize container antidiffusive_fluxes
-    resize!(semi.cache.antidiffusive_fluxes, new_size)
+    resize!(cache.antidiffusive_fluxes, new_size)
 
     # Resize container subcell_limiter_coefficients
     @unpack limiter = volume_integral
     return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
-end
-function Base.resize!(semi, volume_integral::VolumeIntegralAdaptive, new_size)
-    @unpack volume_integral_stabilized = volume_integral
-    return resize!(semi, volume_integral_stabilized, new_size)
 end
 
 # TODO: FD. Should this definition live in a different file because it is

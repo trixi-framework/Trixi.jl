@@ -61,7 +61,7 @@
     return nothing
 end
 
-# TODO: Checks for limiting activation!
+# TODO: How to check for limiting activation? What if left is limited, right not?
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable,
                                                  u, t, semi, mesh::TreeMesh2D,
                                                  equations)
@@ -196,7 +196,7 @@ end
     return nothing
 end
 
-# TODO: Checks for limiting activation!
+# TODO: How to check for limiting activation? What if left is limited, right not?
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
                                                  semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
