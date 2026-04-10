@@ -499,8 +499,6 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     return boundaries
 end
 
-@inline init_boundary_node_coordinates!(boundaries, elements, basis) = nothing
-
 function init_boundaries!(boundaries, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(nothing, nothing, boundaries, mesh)
 
