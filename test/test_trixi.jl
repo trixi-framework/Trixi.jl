@@ -16,7 +16,7 @@ macro test_trixi_include(expr, args...)
         r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:136 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n",
         # Warnings for upstream problems in OrdinaryDiffEqSDIRK.jl/OrdinaryDiffEqDifferentiation.jl
         r"┌ Warning: The call to compilecache failed to create a usable precompiled cache file for OrdinaryDiffEqSDIRK \[2d112036-d095-4a1e-ab9a-08536f3ecdbf\]\n│   exception = Required dependency OrdinaryDiffEqDifferentiation \[4302a76b-040a-498a-8c04-15b101fed76b\] failed to load from a cache file.\n└ @ Base loading.jl:.+\n",
-        r"┌ Warning: Module OrdinaryDiffEqSDIRK with build ID.+\n│ This may mean OrdinaryDiffEqSDIRK \[2d112036-d095-4a1e-ab9a-08536f3ecdbf\].+\n└ @ Base loading.jl:.+\n"
+        r"\e\[33m\e\[1m┌ \e\[22m\e\[39m\e\[33m\e\[1mWarning: \e\[22m\e\[39mModule OrdinaryDiffEqSDIRK with build ID .+ is missing from the cache.\n\e\[33m\e\[1m│ \e\[22m\e\[39mThis may mean OrdinaryDiffEqSDIRK \[2d112036-d095-4a1e-ab9a-08536f3ecdbf\] does not support precompilation but is imported by a module that does.\n\e\[33m\e\[1m└ \e\[22m\e\[39m\e\[90m@ Base loading.jl:.+\e\[39m\n"
     ]
     # if `maxiters` is set in tests, it is usually set to a small number to
     # run only a few steps - ignore possible warnings coming from that
