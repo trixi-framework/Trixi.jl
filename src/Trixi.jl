@@ -25,11 +25,12 @@ const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", tru
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cross,
+using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
+                     cross,
                      normalize, I,
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
-using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
+using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
                     rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
@@ -60,6 +61,7 @@ using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
+using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices
@@ -77,7 +79,6 @@ using P4est
 using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
-using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
@@ -144,6 +145,7 @@ include("solvers/solvers.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
+include("semidiscretization/semidiscretization_parabolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
@@ -185,7 +187,8 @@ export AcousticPerturbationEquations2D,
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
 export IdealGas, VanDerWaals, PengRobinson
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
+       LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
        LaplaceDiffusionEntropyVariables3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -294,6 +297,8 @@ export nelements, nnodes, nvariables,
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
+export SemidiscretizationParabolic
+
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
 
@@ -321,7 +326,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
 export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
 
@@ -336,7 +341,7 @@ export convergence_test,
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 
-export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
+export ParabolicFormulationBassiRebay1, ParabolicFormulationLocalDG
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
@@ -350,11 +355,6 @@ function __init__()
     init_t8code()
 
     register_error_hints()
-
-    # Enable features that depend on the availability of the Plots package
-    @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-        using .Plots: Plots
-    end
 end
 
 include("auxiliary/precompile.jl")

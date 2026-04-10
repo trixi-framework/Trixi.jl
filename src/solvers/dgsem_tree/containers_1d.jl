@@ -374,9 +374,9 @@ function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
 end
 
 # For Lobtto points, we can simply use the outer nodes of the elements as boundary nodes.
-function set_boundary_node_coordinates!(boundaries, element, count, direction,
-                                        elements, mesh::TreeMesh1D,
-                                        basis::LobattoLegendreBasis)
+function calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                         elements, mesh::TreeMesh1D,
+                                         basis::LobattoLegendreBasis)
     el_node_coords = elements.node_coordinates
     bnd_node_coords = boundaries.node_coordinates
 
@@ -395,9 +395,9 @@ function set_boundary_node_coordinates!(boundaries, element, count, direction,
 end
 
 # For Gauss points, we need to interpolate the boundary node coordinates.
-function set_boundary_node_coordinates!(boundaries, element, count, direction,
-                                        elements, mesh::TreeMesh1D,
-                                        basis::GaussLegendreBasis)
+function calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                         elements, mesh::TreeMesh1D,
+                                         basis::GaussLegendreBasis)
     boundary_matrix = basis.boundary_interpolation
     el_node_coords = elements.node_coordinates
     bnd_node_coords = boundaries.node_coordinates
@@ -465,9 +465,9 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D, basis)
             # Set orientation (x -> 1)
             boundaries.orientations[count] = 1
 
-            # Store node coordinates
-            set_boundary_node_coordinates!(boundaries, element, count, direction,
-                                           elements, mesh, basis)
+            # Calculate node coordinates
+            calc_boundary_node_coordinates!(boundaries, element, count, direction,
+                                            elements, mesh, basis)
         end
     end
 
