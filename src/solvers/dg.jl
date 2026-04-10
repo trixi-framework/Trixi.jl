@@ -742,6 +742,10 @@ end
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
 @inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
+# This function is currently only needed for `init`, as
+# AMR is not supported for subcell limiting.
+# This is because in 2D and 3D mortars are not yet implemented
+# and a 1D implementation of subcell limiting is also not implemented.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        new_size)

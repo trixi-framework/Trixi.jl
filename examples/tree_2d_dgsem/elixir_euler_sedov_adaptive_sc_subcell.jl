@@ -57,7 +57,7 @@ volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
 
 indicator = IndicatorHennemannGassner(equations, basis,
                                       alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
-                                      alpha_min = 0.005, # governs when subcell limiting is considered
+                                      alpha_min = 0.01, # governs when subcell limiting is considered
                                       alpha_smooth = true,
                                       variable = density_pressure)
 
@@ -67,12 +67,12 @@ volume_integral = VolumeIntegralAdaptive(indicator = indicator,
                                          volume_integral_default = volume_integral_default,
                                          volume_integral_stabilized = volume_integral_stabilized)
 
-solver = DGSEM(basis, surface_flux, volume_integral)
+solver = DGSEM(basis, surface_flux, volume_integral_stabilized)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
+                initial_refinement_level = 6,
                 n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -99,18 +99,9 @@ save_solution = SaveSolutionCallback(interval = 1000,
 
 stepsize_callback = StepsizeCallback(cfl = 0.4)
 
-amr_controller = ControllerThreeLevel(semi, indicator,
-                                      base_level = 3,
-                                      max_level = 6, max_threshold = 0.01)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution, #amr_callback,
-                        stepsize_callback)
+                        save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation
