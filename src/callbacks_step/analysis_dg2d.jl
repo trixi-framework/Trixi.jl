@@ -149,13 +149,6 @@ function calc_error_norms(func, _u, t, analyzer,
     @unpack u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
 
-    # Calculate error norms on the CPU, to ensure the order of summation is the same.
-    if trixi_backend(u) !== nothing
-        node_coordinates = Array(node_coordinates)
-        inverse_jacobian = Array(inverse_jacobian)
-        u = Array(u)
-    end
-
     # TODO GPU AnalysisCallback currently lives on CPU
     backend = trixi_backend(_u)
     if backend isa Nothing # TODO GPU KA CPU backend
@@ -353,7 +346,7 @@ function integrate_via_indices(func::Func, _u,
                                            T8codeMesh{2}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
-    return integrate_via_indices(func, trixi_backend(u), u, mesh, equations, dg, cache,
+    return integrate_via_indices(func, trixi_backend(_u), _u, mesh, equations, dg, cache,
                                  args...; normalize = normalize)
 end
 
@@ -475,7 +468,7 @@ function analyze(::typeof(entropy_timederivative), _du, u, t,
     # Calculate
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
-                          du) do u, i, j, element, equations, dg, du
+                          _du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
         return dot(cons2entropy(u_node, equations), du_node)

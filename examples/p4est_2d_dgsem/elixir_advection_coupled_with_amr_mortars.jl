@@ -155,16 +155,15 @@ function build_view_bcs(mesh_view, equations, solver,
                                     initial_condition_convergence_test, Float64)
     actual_names = unique(cache_temp.boundaries.name)
 
-    bc_dict = Dict{Symbol, Any}()
-    for name in actual_names
-        if name in view_interface_names
-            bc_dict[name] = coupled_bc
-        else
-            bc_dict[name] = dirichlet_bc
-        end
-    end
+    # Build as a NamedTuple so digest_boundary_conditions routes to
+    # UnstructuredSortedBoundaryTypes (the Dict path would be treated as a
+    # single BC value and silently expanded to all four sides).
+    sorted_names = Tuple(sort(collect(actual_names)))
+    bc_values = Tuple(name in view_interface_names ? coupled_bc : dirichlet_bc
+                      for name in sorted_names)
+    bc_nt = NamedTuple{sorted_names}(bc_values)
     println("  Boundary names: $actual_names → $(Dict(n => (n in view_interface_names ? "Coupled" : "Dirichlet") for n in actual_names))")
-    return bc_dict
+    return bc_nt
 end
 
 println("Building left view BCs...")

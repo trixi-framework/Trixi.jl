@@ -5,6 +5,12 @@
 @muladd begin
 #! format: noindent
 
+# Abstract supertype for coupled P4est boundary conditions.
+# Defined here (in the meshes module, included before solvers) so that solver
+# code in dg_2d.jl can dispatch on it before BoundaryConditionCoupledP4est
+# itself is defined in the semidiscretization module.
+abstract type AbstractCoupledP4estBC end
+
 """
     P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
 
@@ -249,7 +255,16 @@ function extract_neighbor_ids_parent(mesh::P4estMeshView,
                                      boundaries_parent, interfaces_parent,
                                      boundaries)
     # Determine the parent indices of the neighboring elements.
-    neighbor_ids_parent = similar(boundaries.neighbor_ids)
+    # Initialize to zero; entries for physical-domain boundaries that don't use
+    # coupled BCs will remain 0 and are never accessed by the coupling routines.
+    neighbor_ids_parent = zeros(Int, length(boundaries.neighbor_ids))
+
+    # Precompute per-direction boundary cell lists for periodic pairing.
+    parent_xneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
+    parent_xpos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
+    parent_yneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
+    parent_ypos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
+
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         parent_id = mesh.cell_ids[id]
         # Find this id in the parent's interfaces.
@@ -277,27 +292,36 @@ function extract_neighbor_ids_parent(mesh::P4estMeshView,
         end
 
         # Find this id in the parent's boundaries.
-        parent_xneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
-        parent_xpos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
-        parent_yneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
-        parent_ypos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
         for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
             if parent_id == boundary
                 # Check if boundaries with this id have the right name/node_indices.
                 if boundaries.name[idx] == boundaries_parent.name[parent_idx]
                     # Make the coupling periodic.
+                    # Guard against non-matching counts (can occur with AMR where
+                    # opposite boundary sides have different refinement levels).
+                    # In that case the entry stays 0; it will only be accessed
+                    # if the corresponding BC is a BoundaryConditionCoupledP4est,
+                    # which is the caller's responsibility to avoid for AMR cases.
                     if boundaries_parent.name[parent_idx] == :x_neg
-                        neighbor_ids_parent[idx] = parent_xpos_cell_ids[findfirst(parent_xneg_cell_ids .==
-                                                                                  boundary)]
+                        pair_idx = findfirst(parent_xneg_cell_ids .== boundary)
+                        if !isnothing(pair_idx) && pair_idx <= length(parent_xpos_cell_ids)
+                            neighbor_ids_parent[idx] = parent_xpos_cell_ids[pair_idx]
+                        end
                     elseif boundaries_parent.name[parent_idx] == :x_pos
-                        neighbor_ids_parent[idx] = parent_xneg_cell_ids[findfirst(parent_xpos_cell_ids .==
-                                                                                  boundary)]
+                        pair_idx = findfirst(parent_xpos_cell_ids .== boundary)
+                        if !isnothing(pair_idx) && pair_idx <= length(parent_xneg_cell_ids)
+                            neighbor_ids_parent[idx] = parent_xneg_cell_ids[pair_idx]
+                        end
                     elseif boundaries_parent.name[parent_idx] == :y_neg
-                        neighbor_ids_parent[idx] = parent_ypos_cell_ids[findfirst(parent_yneg_cell_ids .==
-                                                                                  boundary)]
+                        pair_idx = findfirst(parent_yneg_cell_ids .== boundary)
+                        if !isnothing(pair_idx) && pair_idx <= length(parent_ypos_cell_ids)
+                            neighbor_ids_parent[idx] = parent_ypos_cell_ids[pair_idx]
+                        end
                     elseif boundaries_parent.name[parent_idx] == :y_pos
-                        neighbor_ids_parent[idx] = parent_yneg_cell_ids[findfirst(parent_ypos_cell_ids .==
-                                                                                  boundary)]
+                        pair_idx = findfirst(parent_ypos_cell_ids .== boundary)
+                        if !isnothing(pair_idx) && pair_idx <= length(parent_yneg_cell_ids)
+                            neighbor_ids_parent[idx] = parent_yneg_cell_ids[pair_idx]
+                        end
                     else
                         error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
                     end

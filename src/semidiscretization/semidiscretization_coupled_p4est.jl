@@ -58,7 +58,8 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
     end
 
     # Create correspondence between parent mesh cell IDs and view cell IDs.
-    n_parent_cells = size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    # Use ncells to get the actual number of (possibly AMR-refined) elements.
+    n_parent_cells = ncells(semis[1].mesh.parent)
     view_cell_ids = zeros(Int, n_parent_cells)
     mesh_ids = zeros(Int, n_parent_cells)
     for i in eachindex(semis)
@@ -558,7 +559,7 @@ Boundary condition struct where the user can specify the coupling converter func
 - `coupling_converter::CouplingConverter`: function to call for converting the solution
                                            state of one system to the other system
 """
-mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
+mutable struct BoundaryConditionCoupledP4est{CouplingConverter} <: AbstractCoupledP4estBC
     const coupling_converter::CouplingConverter
     # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
     semi_coupled::Union{Nothing, AbstractSemidiscretization}

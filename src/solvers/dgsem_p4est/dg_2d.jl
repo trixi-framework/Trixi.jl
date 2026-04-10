@@ -512,11 +512,11 @@ end
     return nothing
 end
 
-# inlined version of the boundary flux calculation along a physical interface
-# Inlined version of the boundary flux calculation for P4estMeshView{2}.
-# BoundaryConditionCoupledP4est reads neighbor state from its stored fields,
-# so no extra u_parent argument is needed.
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+# Inlined version of the boundary flux for BoundaryConditionCoupledP4est on P4estMeshView{2}.
+# BoundaryConditionCoupledP4est reads neighbor state from its stored primed fields
+# and takes boundary_index instead of the usual (x, t) coordinates.
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::AbstractCoupledP4estBC,
                                      mesh::P4estMeshView{2},
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
@@ -537,37 +537,6 @@ end
     flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
                                element_index, normal_direction, surface_flux,
                                normal_direction, boundary_index)
-
-    # Copy flux to element storage in the correct orientation
-    for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
-    end
-    return nothing
-end
-
-# Inlined version of the boundary flux with nonconservative terms for P4estMeshView{2}.
-# The boundary condition functor handles combining conservative and nonconservative fluxes internally.
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::P4estMeshView{2},
-                                     nonconservative_terms::False, equations,
-                                     surface_integral, dg::DG, cache,
-                                     i_index, j_index,
-                                     node_index, direction_index, element_index,
-                                     boundary_index, u_parent)
-    @unpack boundaries = cache
-    @unpack contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
-
-    # Extract solution data from boundary container
-    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
-
-    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
-                               element_index, normal_direction, surface_flux,
-                               normal_direction, u_parent)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
@@ -677,11 +646,11 @@ end
 
 # Function barrier for type stability.
 # BoundaryConditionCoupledP4est reads the coupled solution from its stored fields
-# (set by priming in SemidiscretizationCoupledP4est.rhs!), so u_parent does not
-# need to be threaded through the boundary flux chain.
+# (set by priming in SemidiscretizationCoupledP4est.rhs!), so no extra argument
+# needs to be threaded through the boundary flux chain.
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::P4estMeshView,
-                             equations, surface_integral, dg::DG, u_parent)
+                             equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
     calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
