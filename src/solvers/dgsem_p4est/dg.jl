@@ -88,7 +88,8 @@ end
 
 # Extract outward-pointing normal direction from boundaries (required for Gauss-Legendre nodes)
 @inline function get_node_normal_direction(normal_directions, equations,
-                                           solver::DG, indices...)
+                                           solver::DGSEM{<:GaussLegendreBasis},
+                                           indices...)
     return SVector(ntuple(@inline(idx->normal_directions[idx, indices...]),
                           Val(ndims(equations))))
 end
