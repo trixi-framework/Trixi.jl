@@ -737,6 +737,17 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       new_size)
+    # Resize container antidiffusive_fluxes
+    resize!(cache.antidiffusive_fluxes, new_size)
+
+    # Resize container subcell_limiter_coefficients
+    @unpack limiter = volume_integral
+    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+end
+
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
