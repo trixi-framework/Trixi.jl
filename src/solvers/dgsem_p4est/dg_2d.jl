@@ -661,14 +661,15 @@ function prolong2boundaries!(cache, u,
         if i_node_step == 0
             # i is the normal direction (constant), j varies along the surface
             # => Interpolate in first/normal direction
-            interp_side = (node_indices[1] === :begin) ? 1 : 2
-            for i in eachnode(dg)
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[1])
+            for i in index_range
                 for v in eachvariable(equations)
                     boundary_u = zero(eltype(boundaries.u))
-                    for ii in eachnode(dg)
+                    for ii in index_range
                         boundary_u = (boundary_u +
                                       u[v, ii, j_node, element] *
-                                      boundary_interpolation[ii, interp_side])
+                                      boundary_interpolation[ii, side])
                     end
                     boundaries.u[v, i, boundary] = boundary_u
                 end
@@ -677,14 +678,15 @@ function prolong2boundaries!(cache, u,
         else # j_node_step == 0
             # j is the normal direction (constant), i varies along the surface
             # => Interpolate in second/normal direction
-            interp_side = (node_indices[2] === :begin) ? 1 : 2
-            for i in eachnode(dg)
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[2])
+            for i in index_range
                 for v in eachvariable(equations)
                     boundary_u = zero(eltype(boundaries.u))
-                    for jj in eachnode(dg)
+                    for jj in index_range
                         boundary_u = (boundary_u +
                                       u[v, i_node, jj, element] *
-                                      boundary_interpolation[jj, interp_side])
+                                      boundary_interpolation[jj, side])
                     end
                     boundaries.u[v, i, boundary] = boundary_u
                 end
