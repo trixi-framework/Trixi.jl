@@ -752,8 +752,9 @@ end
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates = boundaries
+    @unpack contravariant_vectors = elements
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
@@ -765,7 +766,7 @@ end
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        node_index, boundary_index)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
@@ -785,8 +786,9 @@ end
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index, u_parent)
-    @unpack boundaries = cache
-    @unpack contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates = boundaries
+    @unpack contravariant_vectors = elements
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
@@ -835,8 +837,9 @@ end
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates = boundaries
+    @unpack contravariant_vectors = elements
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
@@ -847,7 +850,7 @@ end
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        node_index, boundary_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
@@ -876,8 +879,9 @@ end
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates = boundaries
+    @unpack contravariant_vectors = elements
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
@@ -888,7 +892,7 @@ end
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        node_index, boundary_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
