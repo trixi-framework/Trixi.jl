@@ -242,9 +242,9 @@ function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
         for i in eachnode(basis)
             for orientation in 1:2
                 boundaries.node_coordinates[orientation, i, boundary] = node_coordinates[orientation,
-                                                                                          i_node,
-                                                                                          j_node,
-                                                                                          element]
+                                                                                         i_node,
+                                                                                         j_node,
+                                                                                         element]
             end
             i_node += i_node_step
             j_node += j_node_step
@@ -271,33 +271,45 @@ function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
         i_node = i_node_start
         j_node = j_node_start
         if i_node_step == 0
-            # Interpolate in first/normal direction.
-            interp_side = (node_indices[1] === :begin) ? 1 : 2
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[1])
+            # Loop over face/surface/boundary nodes
             for i in eachnode(basis)
                 for orientation in 1:2
                     x_boundary = zero(eltype(boundaries.node_coordinates))
+                    # Interpolation loop
                     for ii in eachnode(basis)
                         x_boundary = (x_boundary +
-                                      node_coordinates[orientation, ii, j_node, element] *
-                                      boundary_interpolation[ii, interp_side])
+                                      node_coordinates[orientation, ii, j_node,
+                                                       element] *
+                                      boundary_interpolation[ii, side])
                     end
                     boundaries.node_coordinates[orientation, i, boundary] = x_boundary
                 end
+                # incrementing j_node suffices (i_node_step = 0)
                 j_node += j_node_step
             end
         else # j_node_step == 0
-            # Interpolate in second/normal direction.
-            interp_side = (node_indices[2] === :begin) ? 1 : 2
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            # Interpolation side is governed by element orientation
+            interp_side = interpolation_side(node_indices[2])
+            # Loop over face/surface/boundary nodes
             for i in eachnode(basis)
                 for orientation in 1:2
                     x_boundary = zero(eltype(boundaries.node_coordinates))
+                    # Interpolation loop
                     for jj in eachnode(basis)
                         x_boundary = (x_boundary +
-                                      node_coordinates[orientation, i_node, jj, element] *
+                                      node_coordinates[orientation, i_node, jj,
+                                                       element] *
                                       boundary_interpolation[jj, interp_side])
                     end
                     boundaries.node_coordinates[orientation, i, boundary] = x_boundary
                 end
+                # incrementing i_node suffices (j_node_step = 0)
                 i_node += i_node_step
             end
         end
