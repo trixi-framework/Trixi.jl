@@ -154,6 +154,49 @@ end
     return boundaries
 end
 
+function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{3},
+                                         elements,
+                                         basis::LobattoLegendreBasis)
+    @unpack node_coordinates = elements
+    index_range = eachnode(basis)
+
+    for boundary in eachindex(boundaries.neighbor_ids)
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                            index_range)
+        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                            index_range)
+        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                            index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        k_node = k_node_start
+        # Loop over face/surface/boundary nodes
+        for j in index_range
+            for i in index_range
+                for orientation in 1:3
+                    boundaries.node_coordinates[orientation, i, j, boundary] = node_coordinates[orientation,
+                                                                                                i_node,
+                                                                                                j_node,
+                                                                                                k_node,
+                                                                                                element]
+                end
+                i_node += i_node_step_i
+                j_node += j_node_step_i
+                k_node += k_node_step_i
+            end
+            i_node += i_node_step_j
+            j_node += j_node_step_j
+            k_node += k_node_step_j
+        end
+    end
+
+    return nothing
+end
+
 # Initialize node_indices of mortar container
 # faces[1] is expected to be the face of the small side.
 @inline function init_mortar_node_indices!(mortars::P4estMortarContainer{3},
