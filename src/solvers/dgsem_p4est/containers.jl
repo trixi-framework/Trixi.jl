@@ -424,8 +424,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
-    @unpack _u, _node_coordinates, _normal_directions, neighbor_ids, node_indices,
-    name = boundaries
+    @unpack _u, _node_coordinates, neighbor_ids, node_indices, name = boundaries
 
     n_dims = ndims(boundaries)
     n_nodes = size(boundaries.u, 2)
@@ -486,7 +485,6 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                                         typeof(neighbor_ids), typeof(node_indices),
                                         typeof(_u), typeof(_node_coordinates)}(u,
                                                                                node_coordinates,
-                                                                               normal_directions,
                                                                                neighbor_ids,
                                                                                node_indices,
                                                                                names,
@@ -549,7 +547,6 @@ end
 function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     _u = adapt(to, boundaries._u)
     _node_coordinates = adapt(to, boundaries._node_coordinates)
-    _normal_directions = adapt(to, boundaries._normal_directions)
     u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))
     node_coordinates = unsafe_wrap_or_alloc(to, _node_coordinates,
                                             size(boundaries.node_coordinates))
