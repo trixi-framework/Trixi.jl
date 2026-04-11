@@ -73,11 +73,11 @@ TrixiPlotsExt = "Plots"
 TrixiSparseConnectivityTracerExt = "SparseConnectivityTracer"
 
 [compat]
+AMDGPU = "2.2.1"
 AcceleratedKernels = "0.4.3"
 Accessors = "0.1.42"
-AMDGPU = "2.2.1"
 Adapt = "4.4"
-CUDA = "5.9.1"
+CUDA = "5.9.1, 6"
 CodeTracking = "1.0.5, 2, 3"
 ConstructionBase = "1.5.8"
 Convex = "0.16"
