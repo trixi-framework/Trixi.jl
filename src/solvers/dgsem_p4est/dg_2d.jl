@@ -291,7 +291,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::DGSEM{<:LobattoLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
-    # Take for Gauss-Lobatto-Legendre (GLL) the interface normals from the outer volume nodes, i.e.,
+    # Take for Lobatto-Gauss-Legendre (LGL) the interface normals from the outer volume nodes, i.e.,
     # element data.
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)

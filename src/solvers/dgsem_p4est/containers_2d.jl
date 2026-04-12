@@ -87,13 +87,6 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-# For Gauss-Lobatto-Legendre (GLL) nodes, interface normals are computed on-the-fly
-# during flux evaluation and do not need dedicated storage in the interface container.
-function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
-                                 basis::LobattoLegendreBasis, elements)
-    return nothing
-end
-
 # For Gauss-Legendre (GL) nodes, the interface normals are
 # computed from interpolation of the volume node normals to the surface nodes.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
