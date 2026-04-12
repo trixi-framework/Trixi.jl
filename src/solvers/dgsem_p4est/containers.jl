@@ -451,12 +451,10 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
     return nothing
 end
 
-
 # Boundary nodes are for LGL taken from element surface nodes
 function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer,
                                          elements,
                                          basis::LobattoLegendreBasis)
-
     return nothing
 end
 
