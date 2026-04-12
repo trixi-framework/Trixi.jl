@@ -226,37 +226,6 @@ end
 
 function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
                                          elements,
-                                         basis::LobattoLegendreBasis)
-    @unpack node_coordinates = elements
-    index_range = eachnode(basis)
-
-    for boundary in eachindex(boundaries.neighbor_ids)
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
-
-        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
-        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
-
-        i_node = i_node_start
-        j_node = j_node_start
-        # Loop over face/surface/boundary nodes
-        for i in eachnode(basis)
-            for orientation in 1:2
-                boundaries.node_coordinates[orientation, i, boundary] = node_coordinates[orientation,
-                                                                                         i_node,
-                                                                                         j_node,
-                                                                                         element]
-            end
-            i_node += i_node_step
-            j_node += j_node_step
-        end
-    end
-
-    return nothing
-end
-
-function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
-                                         elements,
                                          basis::GaussLegendreBasis)
     @unpack boundary_interpolation = basis
     @unpack node_coordinates = elements

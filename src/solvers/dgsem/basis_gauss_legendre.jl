@@ -114,6 +114,11 @@ In particular, not the nodes themselves are returned.
 
 @inline get_nodes(basis::GaussLegendreBasis) = basis.nodes
 
+# For Gauss-Legendre basis, ALL boundary data needs to be interpolated.
+# This is queried e.g. in the containers to decide if for the interfaces, boundaries, mortars etc.
+# interpolation is required (true) or if the data can be taken from the outer/surface element nodes (false).
+@inline surface_interpolation_needed(::GaussLegendreBasis) = true
+
 """
     integrate(f, u, basis::GaussLegendreBasis)
 
