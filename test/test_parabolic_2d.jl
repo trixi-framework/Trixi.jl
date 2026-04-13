@@ -393,18 +393,6 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                 "elixir_diffusion_steady_state_linear_map.jl"),
-                        l2=[2.9029827892716424e-5], linf=[0.0003022506331279151],
-                        # Relax error tols to avoid stochastic CI failures
-                        atol=1e-10)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-end
-
 @trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -924,6 +912,39 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity_amr.jl"),
+                        tspan=(0.0, 2.5),
+                        amr_indicator=IndicatorNodalFunction((u, x, t) -> ((x[1] <
+                                                                            sin(π * t)) &&
+                                                                           (x[2] <
+                                                                            sin(π * t))) ?
+                                                                          1.0 : 0.0,
+                                                             semi),
+                        l2=[
+                            0.000751796085921976,
+                            0.10544344448905413,
+                            0.05559123730159854,
+                            0.13538844542176662
+                        ],
+                        linf=[
+                            0.018687948537448595,
+                            0.9693988005334362,
+                            0.6314735963971362,
+                            1.9961130828380647
+                        ],
+                        atol=1e-4,
+                        rtol=1e-6)
+    # Ensure that the mesh size did not change to test IndicatorNodalFunction
+    #expected N_ele(t=2.5) = 576, N_ele(t=5) = 303, N_ele(t=7.5) = 51, N_ele(t=10) = 111
+    @test nelements(semi.cache.elements) == 576
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_nonconforming.jl"),
@@ -1330,6 +1351,27 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+end
+
+@testset "SemidiscretizationParabolic (2D)" begin
+#! format: noindent
+
+@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_diffusion_steady_state_linear_map.jl"),
+                        tspan=(0.0, 1.0e-4),
+                        analysis_callback=AnalysisCallback(semi,
+                                                           interval = 1,
+                                                           extra_analysis_errors = (:l2_error_primitive,
+                                                                                    :linf_error_primitive),
+                                                           extra_analysis_integrals = (entropy,)),
+                        l2=[2.9029827892716424e-5], linf=[0.0003022506331279151],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 end

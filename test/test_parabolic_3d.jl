@@ -605,6 +605,46 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl static AMR" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
+                        tspan=(0.0, 5.0),
+                        amr_indicator=IndicatorNodalFunction((u, x, t) -> (((x[1] < 0) &&
+                                                                            (x[2] < 0) &&
+                                                                            (x[3] < 0)) ||
+                                                                           ((x[1] > 0) &&
+                                                                            (x[2] > 0) &&
+                                                                            (x[3] > 0))) ?
+                                                                          1.0 : 0, semi),
+                        amr_controller=ControllerThreeLevel(semi, amr_indicator;
+                                                            base_level = 0,
+                                                            med_level = 1,
+                                                            med_threshold = 0.5,
+                                                            max_level = 2,
+                                                            max_threshold = 0.9),
+                        amr_callback=AMRCallback(semi,
+                                                 amr_controller;
+                                                 interval = typemax(Int),                 # no further AMR
+                                                 adapt_initial_condition = true,
+                                                 adapt_initial_condition_only_refine = true),
+                        l2=[
+                            0.001716903538135598,
+                            0.2566781540081305,
+                            0.2566781540081202,
+                            0.22556320347015937,
+                            0.33779107381452556
+                        ],
+                        linf=[
+                            0.01139265672066836,
+                            1.4145605813055888,
+                            1.4145605813076223,
+                            1.070081196321056,
+                            3.332907472310012
+                        ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
