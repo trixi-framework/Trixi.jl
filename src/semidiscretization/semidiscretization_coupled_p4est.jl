@@ -606,6 +606,12 @@ end
 
     # Look up the parent cell ID directly by boundary index.
     cell_index_parent = lookup[boundary_index]
+    if cell_index_parent == 0
+        error("BoundaryConditionCoupledP4est: no neighbor found for boundary_index=$boundary_index " *
+              "(semi $(boundary_condition.self_index)). " *
+              "Check that the coupling interface boundary name matches the view_interface_names " *
+              "used in build_view_bcs, and that extract_neighbor_ids_parent set the lookup correctly.")
+    end
 
     # Determine which direction the boundary faces to compute the neighbor node indices.
     if abs(normal_direction[1]) > abs(normal_direction[2])
