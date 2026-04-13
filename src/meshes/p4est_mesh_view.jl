@@ -538,8 +538,16 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    filename = joinpath(output_directory, "mesh.h5")
-    p4est_filename = "p4est_data"
+    # Include system tag in the filename so that multiple views in a coupled
+    # setup each get their own mesh file rather than overwriting each other.
+    system_str = string(system)
+    if isempty(system_str)
+        filename = joinpath(output_directory, "mesh.h5")
+        p4est_filename = "p4est_data"
+    else
+        filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system_str))
+        p4est_filename = @sprintf("p4est_data_%s", system_str)
+    end
     p4est_file = joinpath(output_directory, p4est_filename)
 
     # Save the complete connectivity and `p4est` data to disk.
