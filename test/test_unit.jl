@@ -925,8 +925,8 @@ end
                                            flux_lax_friedrichs, equations)
     end
 
-    # check that the fallback temperature and specialized temperature 
-    # return the same value 
+    # check that the fallback temperature and specialized temperature
+    # return the same value
     V, v1, v2, T = cons2thermo(u, equations)
     e = energy_internal_specific(V, T, eos)
     @test temperature(V, e, eos) ≈
@@ -2691,6 +2691,8 @@ end
     equations = CompressibleEulerEquations2D(gamma)
     equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                               Prandtl = prandtl_number())
+    @test equations_parabolic.gamma == gamma
+    @test :gamma in @inferred(propertynames(equations_parabolic))
 
     # Flow at rest
     u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)

@@ -5,13 +5,12 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, mesh::P4estMesh{2}, equations)
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                         semi, mesh::P4estMesh{2})
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     index_range = eachnode(dg)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = cache.interfaces.neighbor_ids[1, interface]
@@ -66,7 +65,15 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at mortars
+    return nothing
+end
+
+@inline function calc_bounds_twosided_mortar!(var_min, var_max, variable, u,
+                                              semi, mesh::P4estMesh{2})
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    index_range = eachnode(dg)
+
     # TODO: How to include values at mortar interfaces?
     # See comment above TreeMesh version
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
@@ -164,12 +171,6 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
-
     return nothing
 end
 
@@ -230,7 +231,7 @@ end
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, semi,
                                          mesh::P4estMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
@@ -285,7 +286,15 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
         end
     end
 
-    # Calc bounds at mortars
+    return nothing
+end
+
+@inline function calc_bounds_onesided_mortar!(var_minmax, minmax, variable, u,
+                                              semi, mesh::P4estMesh{2})
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    index_range = eachnode(dg)
+
     # TODO: How to include values at mortar interfaces?
     # See comment above TreeMesh version
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
@@ -369,12 +378,6 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
             j_large += j_large_step
         end
     end
-
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end

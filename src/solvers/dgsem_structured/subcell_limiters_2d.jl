@@ -5,11 +5,10 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, mesh::StructuredMesh{2}, equations)
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                         semi, mesh::StructuredMesh{2})
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids
         left = cache.elements.left_neighbors[1, element]
@@ -45,12 +44,11 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
+    return nothing
+end
 
+@inline function calc_bounds_twosided_mortar!(var_min, var_max, variable, u,
+                                              semi, mesh::StructuredMesh{2})
     return nothing
 end
 
@@ -144,11 +142,10 @@ end
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, semi,
                                          mesh::StructuredMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
-    # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids
         left = cache.elements.left_neighbors[1, element]
@@ -181,12 +178,11 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
         end
     end
 
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
+    return nothing
+end
 
+@inline function calc_bounds_onesided_mortar!(var_minmax, min_or_max, variable, u,
+                                              semi, mesh::StructuredMesh{2})
     return nothing
 end
 
