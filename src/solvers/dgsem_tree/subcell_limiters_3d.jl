@@ -14,8 +14,9 @@
 
 @inline function calc_bounds_twosided!(var_min, var_max, variable,
                                        u::AbstractArray{<:Any, 5}, t,
-                                       semi)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+                                       semi, equations)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         # Calculate bounds at Gauss-Lobatto nodes
@@ -61,7 +62,7 @@
 
     # Calc bounds at element interfaces and periodic boundaries
     calc_bounds_twosided_interface!(var_min, var_max, variable, u,
-                                    semi, mesh)
+                                    semi, mesh, equations)
 
     # Calc bounds at physical boundaries
     (; boundary_conditions) = semi
@@ -72,7 +73,7 @@
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
-                                                 semi, mesh::TreeMesh3D)
+                                                 semi, mesh::TreeMesh3D, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     for interface in eachinterface(dg, cache)
