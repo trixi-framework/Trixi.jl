@@ -17,35 +17,36 @@
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        if perform_subcell_limiting(dg.volume_integral, element)
-            # Calculate bounds at Gauss-Lobatto nodes
-            for j in eachnode(dg), i in eachnode(dg)
-                var = u[variable, i, j, element]
-                var_min[i, j, element] = var
-                var_max[i, j, element] = var
-            end
 
-            # Apply values in x direction
-            for j in eachnode(dg), i in 2:nnodes(dg)
-                var = u[variable, i - 1, j, element]
-                var_min[i, j, element] = min(var_min[i, j, element], var)
-                var_max[i, j, element] = max(var_max[i, j, element], var)
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        # Calculate bounds at Gauss-Lobatto nodes
+        for j in eachnode(dg), i in eachnode(dg)
+            var = u[variable, i, j, element]
+            var_min[i, j, element] = var
+            var_max[i, j, element] = var
+        end
 
-                var = u[variable, i, j, element]
-                var_min[i - 1, j, element] = min(var_min[i - 1, j, element], var)
-                var_max[i - 1, j, element] = max(var_max[i - 1, j, element], var)
-            end
+        # Apply values in x direction
+        for j in eachnode(dg), i in 2:nnodes(dg)
+            var = u[variable, i - 1, j, element]
+            var_min[i, j, element] = min(var_min[i, j, element], var)
+            var_max[i, j, element] = max(var_max[i, j, element], var)
 
-            # Apply values in y direction
-            for j in 2:nnodes(dg), i in eachnode(dg)
-                var = u[variable, i, j - 1, element]
-                var_min[i, j, element] = min(var_min[i, j, element], var)
-                var_max[i, j, element] = max(var_max[i, j, element], var)
+            var = u[variable, i, j, element]
+            var_min[i - 1, j, element] = min(var_min[i - 1, j, element], var)
+            var_max[i - 1, j, element] = max(var_max[i - 1, j, element], var)
+        end
 
-                var = u[variable, i, j, element]
-                var_min[i, j - 1, element] = min(var_min[i, j - 1, element], var)
-                var_max[i, j - 1, element] = max(var_max[i, j - 1, element], var)
-            end
+        # Apply values in y direction
+        for j in 2:nnodes(dg), i in eachnode(dg)
+            var = u[variable, i, j - 1, element]
+            var_min[i, j, element] = min(var_min[i, j, element], var)
+            var_max[i, j, element] = max(var_max[i, j, element], var)
+
+            var = u[variable, i, j, element]
+            var_min[i, j - 1, element] = min(var_min[i, j - 1, element], var)
+            var_max[i, j - 1, element] = max(var_max[i, j - 1, element], var)
         end
     end
 
@@ -110,35 +111,36 @@ end
                                                 dg, cache)
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
-        if perform_subcell_limiting(dg.volume_integral, element)
-            orientation = cache.boundaries.orientations[boundary]
-            neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-            for i in eachnode(dg)
-                if neighbor_side == 2 # Element is on the right, boundary on the left
-                    node_index = (1, i)
-                    boundary_index = 1
-                else # Element is on the left, boundary on the right
-                    node_index = (nnodes(dg), i)
-                    boundary_index = 2
-                end
-                if orientation == 2
-                    node_index = reverse(node_index)
-                    boundary_index += 2
-                end
-                u_inner = get_node_vars(u, equations, dg, node_index..., element)
-                u_outer = get_boundary_outer_state(u_inner, t,
-                                                   boundary_conditions[boundary_index],
-                                                   orientation, boundary_index,
-                                                   mesh, equations, dg, cache,
-                                                   node_index..., element)
-                var_outer = u_outer[variable]
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-                var_min[node_index..., element] = min(var_min[node_index..., element],
-                                                      var_outer)
-                var_max[node_index..., element] = max(var_max[node_index..., element],
-                                                      var_outer)
+        for i in eachnode(dg)
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                node_index = (1, i)
+                boundary_index = 1
+            else # Element is on the left, boundary on the right
+                node_index = (nnodes(dg), i)
+                boundary_index = 2
             end
+            if orientation == 2
+                node_index = reverse(node_index)
+                boundary_index += 2
+            end
+            u_inner = get_node_vars(u, equations, dg, node_index..., element)
+            u_outer = get_boundary_outer_state(u_inner, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg, cache,
+                                               node_index..., element)
+            var_outer = u_outer[variable]
+
+            var_min[node_index..., element] = min(var_min[node_index..., element],
+                                                  var_outer)
+            var_max[node_index..., element] = max(var_max[node_index..., element],
+                                                  var_outer)
         end
     end
 
@@ -154,38 +156,39 @@ end
 
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        if perform_subcell_limiting(dg.volume_integral, element)
-            # Reset bounds
-            for j in eachnode(dg), i in eachnode(dg)
-                if min_or_max === max
-                    var_minmax[i, j, element] = typemin(eltype(var_minmax))
-                else
-                    var_minmax[i, j, element] = typemax(eltype(var_minmax))
-                end
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        # Reset bounds
+        for j in eachnode(dg), i in eachnode(dg)
+            if min_or_max === max
+                var_minmax[i, j, element] = typemin(eltype(var_minmax))
+            else
+                var_minmax[i, j, element] = typemax(eltype(var_minmax))
             end
+        end
 
-            # Calculate bounds at Gauss-Lobatto nodes
-            for j in eachnode(dg), i in eachnode(dg)
-                var = variable(get_node_vars(u, equations, dg, i, j, element),
-                               equations)
-                var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element], var)
+        # Calculate bounds at Gauss-Lobatto nodes
+        for j in eachnode(dg), i in eachnode(dg)
+            var = variable(get_node_vars(u, equations, dg, i, j, element),
+                           equations)
+            var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element], var)
 
-                if i > 1
-                    var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1, j,
-                                                                          element], var)
-                end
-                if i < nnodes(dg)
-                    var_minmax[i + 1, j, element] = min_or_max(var_minmax[i + 1, j,
-                                                                          element], var)
-                end
-                if j > 1
-                    var_minmax[i, j - 1, element] = min_or_max(var_minmax[i, j - 1,
-                                                                          element], var)
-                end
-                if j < nnodes(dg)
-                    var_minmax[i, j + 1, element] = min_or_max(var_minmax[i, j + 1,
-                                                                          element], var)
-                end
+            if i > 1
+                var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1, j,
+                                                                      element], var)
+            end
+            if i < nnodes(dg)
+                var_minmax[i + 1, j, element] = min_or_max(var_minmax[i + 1, j,
+                                                                      element], var)
+            end
+            if j > 1
+                var_minmax[i, j - 1, element] = min_or_max(var_minmax[i, j - 1,
+                                                                      element], var)
+            end
+            if j < nnodes(dg)
+                var_minmax[i, j + 1, element] = min_or_max(var_minmax[i, j + 1,
+                                                                      element], var)
             end
         end
     end
@@ -249,34 +252,35 @@ end
                                                 dg, cache)
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
-        if perform_subcell_limiting(dg.volume_integral, element)
-            orientation = cache.boundaries.orientations[boundary]
-            neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-            for i in eachnode(dg)
-                if neighbor_side == 2 # Element is on the right, boundary on the left
-                    node_index = (1, i)
-                    boundary_index = 1
-                else # Element is on the left, boundary on the right
-                    node_index = (nnodes(dg), i)
-                    boundary_index = 2
-                end
-                if orientation == 2
-                    node_index = reverse(node_index)
-                    boundary_index += 2
-                end
-                u_inner = get_node_vars(u, equations, dg, node_index..., element)
-                u_outer = get_boundary_outer_state(u_inner, t,
-                                                   boundary_conditions[boundary_index],
-                                                   orientation, boundary_index,
-                                                   mesh, equations, dg, cache,
-                                                   node_index..., element)
-                var_outer = variable(u_outer, equations)
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        orientation = cache.boundaries.orientations[boundary]
+        neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-                var_minmax[node_index..., element] = min_or_max(var_minmax[node_index...,
-                                                                           element],
-                                                                var_outer)
+        for i in eachnode(dg)
+            if neighbor_side == 2 # Element is on the right, boundary on the left
+                node_index = (1, i)
+                boundary_index = 1
+            else # Element is on the left, boundary on the right
+                node_index = (nnodes(dg), i)
+                boundary_index = 2
             end
+            if orientation == 2
+                node_index = reverse(node_index)
+                boundary_index += 2
+            end
+            u_inner = get_node_vars(u, equations, dg, node_index..., element)
+            u_outer = get_boundary_outer_state(u_inner, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg, cache,
+                                               node_index..., element)
+            var_outer = variable(u_outer, equations)
+
+            var_minmax[node_index..., element] = min_or_max(var_minmax[node_index...,
+                                                                       element],
+                                                            var_outer)
         end
     end
 
@@ -299,49 +303,50 @@ end
     calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
 
     @threaded for element in eachelement(dg, semi.cache)
-        if perform_subcell_limiting(dg.volume_integral, element)
-            for j in eachnode(dg), i in eachnode(dg)
-                inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j, element)
-                var = u[variable, i, j, element]
-                # Real Zalesak type limiter
-                #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
-                #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
-                #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
-                #         for each interface, not each node
 
-                Qp = max(0, (var_max[i, j, element] - var) / dt)
-                Qm = min(0, (var_min[i, j, element] - var) / dt)
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        for j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
+            var = u[variable, i, j, element]
+            # Real Zalesak type limiter
+            #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #         for each interface, not each node
 
-                # Calculate Pp and Pm
-                # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-                val_flux1_local = inverse_weights[i] *
-                                  antidiffusive_flux1_R[variable, i, j, element]
-                val_flux1_local_ip1 = -inverse_weights[i] *
-                                      antidiffusive_flux1_L[variable, i + 1, j, element]
-                val_flux2_local = inverse_weights[j] *
-                                  antidiffusive_flux2_R[variable, i, j, element]
-                val_flux2_local_jp1 = -inverse_weights[j] *
-                                      antidiffusive_flux2_L[variable, i, j + 1, element]
+            Qp = max(0, (var_max[i, j, element] - var) / dt)
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
 
-                Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
-                     max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
-                Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
-                     min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+            # Calculate Pp and Pm
+            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            val_flux1_local = inverse_weights[i] *
+                              antidiffusive_flux1_R[variable, i, j, element]
+            val_flux1_local_ip1 = -inverse_weights[i] *
+                                  antidiffusive_flux1_L[variable, i + 1, j, element]
+            val_flux2_local = inverse_weights[j] *
+                              antidiffusive_flux2_R[variable, i, j, element]
+            val_flux2_local_jp1 = -inverse_weights[j] *
+                                  antidiffusive_flux2_L[variable, i, j + 1, element]
 
-                Pp = inverse_jacobian * Pp
-                Pm = inverse_jacobian * Pm
+            Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
+                 max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
+            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
 
-                # Compute blending coefficient avoiding division by zero
-                # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-                Qp = abs(Qp) /
-                     (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
-                Qm = abs(Qm) /
-                     (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
+            Pp = inverse_jacobian * Pp
+            Pm = inverse_jacobian * Pm
 
-                # Calculate alpha at nodes
-                alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
-            end
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qp = abs(Qp) /
+                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
+            Qm = abs(Qm) /
+                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
+
+            # Calculate alpha at nodes
+            alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
         end
     end
 
@@ -360,18 +365,19 @@ end
 
     # Perform Newton's bisection method to find new alpha
     @threaded for element in eachelement(dg, cache)
-        if perform_subcell_limiting(dg.volume_integral, element)
-            for j in eachnode(dg), i in eachnode(dg)
-                inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j, element)
-                u_local = get_node_vars(u, equations, dg, i, j, element)
-                newton_loops_alpha!(alpha, var_minmax[i, j, element], u_local,
-                                    i, j, element, variable, min_or_max,
-                                    initial_check_local_onesided_newton_idp,
-                                    final_check_local_onesided_newton_idp,
-                                    inverse_jacobian,
-                                    dt, equations, dg, cache, limiter)
-            end
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        for j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            newton_loops_alpha!(alpha, var_minmax[i, j, element], u_local,
+                                i, j, element, variable, min_or_max,
+                                initial_check_local_onesided_newton_idp,
+                                final_check_local_onesided_newton_idp,
+                                inverse_jacobian,
+                                dt, equations, dg, cache, limiter)
         end
     end
 
@@ -393,54 +399,55 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
-        if perform_subcell_limiting(dg.volume_integral, element)
-            for j in eachnode(dg), i in eachnode(dg)
-                inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j, element)
-                var = u[variable, i, j, element]
-                if var < 0
-                    error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
-                end
 
-                # Compute bound
-                if limiter.local_twosided &&
-                   (variable in limiter.local_twosided_variables_cons) &&
-                   (var_min[i, j, element] >= positivity_correction_factor * var)
-                    # Local limiting is more restrictive that positivity limiting
-                    # => Skip positivity limiting for this node
-                    continue
-                end
-                var_min[i, j, element] = positivity_correction_factor * var
-
-                # Real one-sided Zalesak-type limiter
-                # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
-                # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
-                # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
-                #       for each interface, not each node
-                Qm = min(0, (var_min[i, j, element] - var) / dt)
-
-                # Calculate Pm
-                # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
-                val_flux1_local = inverse_weights[i] *
-                                  antidiffusive_flux1_R[variable, i, j, element]
-                val_flux1_local_ip1 = -inverse_weights[i] *
-                                      antidiffusive_flux1_L[variable, i + 1, j, element]
-                val_flux2_local = inverse_weights[j] *
-                                  antidiffusive_flux2_R[variable, i, j, element]
-                val_flux2_local_jp1 = -inverse_weights[j] *
-                                      antidiffusive_flux2_L[variable, i, j + 1, element]
-
-                Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
-                     min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-                Pm = inverse_jacobian * Pm
-
-                # Compute blending coefficient avoiding division by zero
-                # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-                Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
-
-                # Calculate alpha
-                alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        for j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
+            var = u[variable, i, j, element]
+            if var < 0
+                error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
             end
+
+            # Compute bound
+            if limiter.local_twosided &&
+               (variable in limiter.local_twosided_variables_cons) &&
+               (var_min[i, j, element] >= positivity_correction_factor * var)
+                # Local limiting is more restrictive that positivity limiting
+                # => Skip positivity limiting for this node
+                continue
+            end
+            var_min[i, j, element] = positivity_correction_factor * var
+
+            # Real one-sided Zalesak-type limiter
+            # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #       for each interface, not each node
+            Qm = min(0, (var_min[i, j, element] - var) / dt)
+
+            # Calculate Pm
+            # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
+            val_flux1_local = inverse_weights[i] *
+                              antidiffusive_flux1_R[variable, i, j, element]
+            val_flux1_local_ip1 = -inverse_weights[i] *
+                                  antidiffusive_flux1_L[variable, i + 1, j, element]
+            val_flux2_local = inverse_weights[j] *
+                              antidiffusive_flux2_R[variable, i, j, element]
+            val_flux2_local_jp1 = -inverse_weights[j] *
+                                  antidiffusive_flux2_L[variable, i, j + 1, element]
+
+            Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
+                 min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+            Pm = inverse_jacobian * Pm
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
+
+            # Calculate alpha
+            alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
         end
     end
 
@@ -460,27 +467,28 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
-        if perform_subcell_limiting(dg.volume_integral, element)
-            for j in eachnode(dg), i in eachnode(dg)
-                inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                        mesh, i, j, element)
 
-                # Compute bound
-                u_local = get_node_vars(u, equations, dg, i, j, element)
-                var = variable(u_local, equations)
-                if var < 0
-                    error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
-                end
-                var_min[i, j, element] = positivity_correction_factor * var
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+        for j in eachnode(dg), i in eachnode(dg)
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
 
-                # Perform Newton's bisection method to find new alpha
-                newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j,
-                                    element,
-                                    variable, min, initial_check_nonnegative_newton_idp,
-                                    final_check_nonnegative_newton_idp,
-                                    inverse_jacobian,
-                                    dt, equations, dg, cache, limiter)
+            # Compute bound
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            var = variable(u_local, equations)
+            if var < 0
+                error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
+            var_min[i, j, element] = positivity_correction_factor * var
+
+            # Perform Newton's bisection method to find new alpha
+            newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j,
+                                element,
+                                variable, min, initial_check_nonnegative_newton_idp,
+                                final_check_nonnegative_newton_idp,
+                                inverse_jacobian,
+                                dt, equations, dg, cache, limiter)
         end
     end
 
