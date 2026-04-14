@@ -159,6 +159,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_extended.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        save_restart=TrivialCallback(),
+                        cfl=0.8,
+                        l2=[4.242946764689567e-6], linf=[3.863499426071115e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_extended.jl (Gauss-Legendre)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        basis_type=GaussLegendreBasis,
+                        save_restart=TrivialCallback(),
+                        cfl=0.8,
+                        l2=[1.9055059413792332e-6], linf=[1.018946654784969e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_subsonic_constant.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_subsonic_constant.jl"),
