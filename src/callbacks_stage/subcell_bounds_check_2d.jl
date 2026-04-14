@@ -98,8 +98,7 @@
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
                 for j in eachnode(solver), i in eachnode(solver)
-                    var = variable(get_node_vars(u, equations, solver, i, j,
-                                                 element),
+                    var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)
                     deviation = max(deviation,
                                     variable_bounds[key][i, j, element] - var)
