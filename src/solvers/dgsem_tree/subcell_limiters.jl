@@ -7,6 +7,8 @@
 
 abstract type AbstractSubcellLimiter end
 
+resize_subcell_limiter_cache!(limiter::AbstractSubcellLimiter, new_size) = nothing
+
 function create_cache(typ::Type{LimiterType},
                       semi) where {LimiterType <: AbstractSubcellLimiter}
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
@@ -247,6 +249,12 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
 
     return (; subcell_limiter_coefficients, idp_bounds_delta_local,
             idp_bounds_delta_global)
+end
+
+function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    return nothing
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
