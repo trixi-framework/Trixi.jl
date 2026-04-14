@@ -253,6 +253,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                 bc.semi_coupled = semi
                 bc.u_ode = u_ode
                 bc.self_index = i
+                bc.t = t
             end
         end
         u_loc = get_system_u_ode(u_ode, i, semi)
@@ -388,6 +389,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
                 bc.semi_coupled = semi_coupled
                 bc.u_ode = u_ode_coupled
                 bc.self_index = i
+                bc.t = t
             end
         end
         cb = analysis_callback_coupled.callbacks[i]
@@ -421,6 +423,7 @@ function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
                 bc.semi_coupled = semi_coupled
                 bc.u_ode = u_ode_coupled
                 bc.self_index = i
+                bc.t = integrator.t
             end
         end
         du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
@@ -559,15 +562,24 @@ Boundary condition struct where the user can specify the coupling converter func
 - `coupling_converter::CouplingConverter`: function to call for converting the solution
                                            state of one system to the other system
 """
-mutable struct BoundaryConditionCoupledP4est{CouplingConverter} <: AbstractCoupledP4estBC
+mutable struct BoundaryConditionCoupledP4est{CouplingConverter, FallbackBC} <:
+               AbstractCoupledP4estBC
     const coupling_converter::CouplingConverter
     # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
     semi_coupled::Union{Nothing, AbstractSemidiscretization}
     u_ode::Union{Nothing, AbstractVector}
     self_index::Int # index of the system this BC belongs to
+    t::Float64     # current time, set before each rhs!
+    # Optional fallback BC (e.g. BoundaryConditionDirichlet) called when
+    # neighbor_ids_parent == 0, i.e. for physical-domain boundaries in
+    # mixed-geometry splits where a face name appears at both the view
+    # interface and the physical domain edge.
+    const fallback_bc::FallbackBC # Nothing or a callable BC
 
-    function BoundaryConditionCoupledP4est(coupling_converter)
-        new{typeof(coupling_converter)}(coupling_converter, nothing, nothing, 0)
+    function BoundaryConditionCoupledP4est(coupling_converter; fallback_bc = nothing)
+        new{typeof(coupling_converter), typeof(fallback_bc)}(coupling_converter,
+                                                             nothing, nothing,
+                                                             0, 0.0, fallback_bc)
     end
 end
 
@@ -607,10 +619,21 @@ end
     # Look up the parent cell ID directly by boundary index.
     cell_index_parent = lookup[boundary_index]
     if cell_index_parent == 0
-        error("BoundaryConditionCoupledP4est: no neighbor found for boundary_index=$boundary_index " *
-              "(semi $(boundary_condition.self_index)). " *
-              "Check that the coupling interface boundary name matches the view_interface_names " *
-              "used in build_view_bcs, and that extract_neighbor_ids_parent set the lookup correctly.")
+        fallback = boundary_condition.fallback_bc
+        if fallback === nothing
+            error("BoundaryConditionCoupledP4est: no neighbor found for boundary_index=$boundary_index " *
+                  "(semi $(boundary_condition.self_index)). " *
+                  "Check that the coupling interface boundary name matches the view_interface_names " *
+                  "used in build_view_bcs, and that extract_neighbor_ids_parent set the lookup correctly. " *
+                  "For mixed-geometry splits where the same face name appears at both view interfaces " *
+                  "and physical boundaries, pass fallback_bc = BoundaryConditionDirichlet(...) " *
+                  "to BoundaryConditionCoupledP4est.")
+        end
+        # Physical-domain boundary in a mixed-geometry split: delegate to the fallback BC.
+        x = SVector(cache.elements.node_coordinates[1, i_index, j_index, element_index],
+                    cache.elements.node_coordinates[2, i_index, j_index, element_index])
+        return fallback(u_inner, normal_direction, x, boundary_condition.t,
+                        surface_flux_function, equations)
     end
 
     # Determine which direction the boundary faces to compute the neighbor node indices.

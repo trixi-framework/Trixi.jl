@@ -82,8 +82,7 @@ function extract_p4est_mesh_view(elements_parent,
     mortars = extract_mortars(mesh, mortars_parent)
 
     # Get the parent element ids of the neighbors.
-    neighbor_ids_parent = extract_neighbor_ids_parent(mesh, boundaries_parent,
-                                                      interfaces_parent,
+    neighbor_ids_parent = extract_neighbor_ids_parent(mesh, interfaces_parent,
                                                       boundaries)
 
     return elements, interfaces, boundaries, mortars, neighbor_ids_parent
@@ -247,27 +246,25 @@ end
 
 # Extract the ids of the neighboring elements using the parent mesh indexing.
 # For every boundary of the mesh view find the neighboring cell id in global (parent) indexing.
-# Such neighboring cells are either inside the domain and have an interface
-# in the parent mesh, or they are physical boundaries for which we then
-# construct a periodic coupling by assigning as neighbor id the cell id
-# on the other end of the domain.
+# A non-zero entry means the boundary lies at a view interface: the neighbor is the cell
+# on the other side of the interface in the parent mesh (found via interfaces_parent).
+# A zero entry means the boundary is a physical domain boundary with no coupling neighbor;
+# callers use the zero to trigger a Dirichlet fallback.
+#
+# Note: for periodic p4est meshes the periodic face connections appear as entries in
+# interfaces_parent (not boundaries_parent), so the interfaces_parent search below
+# handles them correctly without any special periodic-pairing logic.
 function extract_neighbor_ids_parent(mesh::P4estMeshView,
-                                     boundaries_parent, interfaces_parent,
+                                     interfaces_parent,
                                      boundaries)
-    # Determine the parent indices of the neighboring elements.
-    # Initialize to zero; entries for physical-domain boundaries that don't use
-    # coupled BCs will remain 0 and are never accessed by the coupling routines.
+    # Initialize to zero; physical-domain boundaries that have no coupling neighbor
+    # remain 0 and trigger the Dirichlet fallback in _boundary_condition_coupled.
     neighbor_ids_parent = zeros(Int, length(boundaries.neighbor_ids))
-
-    # Precompute per-direction boundary cell lists for periodic pairing.
-    parent_xneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
-    parent_xpos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
-    parent_yneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
-    parent_ypos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
 
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         parent_id = mesh.cell_ids[id]
-        # Find this id in the parent's interfaces.
+        # Search interfaces_parent for a conforming interface that has parent_id on
+        # one side and whose face direction matches the boundary name.
         for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
             if (parent_id == interfaces_parent.neighbor_ids[1, interface] ||
                 parent_id == interfaces_parent.neighbor_ids[2, interface])
@@ -286,44 +283,6 @@ function extract_neighbor_ids_parent(mesh::P4estMeshView,
                     else
                         neighbor_ids_parent[idx] = interfaces_parent.neighbor_ids[1,
                                                                                   interface]
-                    end
-                end
-            end
-        end
-
-        # Find this id in the parent's boundaries.
-        for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
-            if parent_id == boundary
-                # Check if boundaries with this id have the right name/node_indices.
-                if boundaries.name[idx] == boundaries_parent.name[parent_idx]
-                    # Make the coupling periodic.
-                    # Guard against non-matching counts (can occur with AMR where
-                    # opposite boundary sides have different refinement levels).
-                    # In that case the entry stays 0; it will only be accessed
-                    # if the corresponding BC is a BoundaryConditionCoupledP4est,
-                    # which is the caller's responsibility to avoid for AMR cases.
-                    if boundaries_parent.name[parent_idx] == :x_neg
-                        pair_idx = findfirst(parent_xneg_cell_ids .== boundary)
-                        if !isnothing(pair_idx) && pair_idx <= length(parent_xpos_cell_ids)
-                            neighbor_ids_parent[idx] = parent_xpos_cell_ids[pair_idx]
-                        end
-                    elseif boundaries_parent.name[parent_idx] == :x_pos
-                        pair_idx = findfirst(parent_xpos_cell_ids .== boundary)
-                        if !isnothing(pair_idx) && pair_idx <= length(parent_xneg_cell_ids)
-                            neighbor_ids_parent[idx] = parent_xneg_cell_ids[pair_idx]
-                        end
-                    elseif boundaries_parent.name[parent_idx] == :y_neg
-                        pair_idx = findfirst(parent_yneg_cell_ids .== boundary)
-                        if !isnothing(pair_idx) && pair_idx <= length(parent_ypos_cell_ids)
-                            neighbor_ids_parent[idx] = parent_ypos_cell_ids[pair_idx]
-                        end
-                    elseif boundaries_parent.name[parent_idx] == :y_pos
-                        pair_idx = findfirst(parent_ypos_cell_ids .== boundary)
-                        if !isnothing(pair_idx) && pair_idx <= length(parent_yneg_cell_ids)
-                            neighbor_ids_parent[idx] = parent_yneg_cell_ids[pair_idx]
-                        end
-                    else
-                        error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
                     end
                 end
             end
