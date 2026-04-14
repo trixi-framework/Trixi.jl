@@ -551,9 +551,8 @@ end
             flux_large_high_order = surface_flux_values_high_order[var_index, i,
                                                                    large_direction,
                                                                    large_element]
-            flux_large_low_order = surface_flux_values_high_order[var_index, i,
-                                                                  large_direction,
-                                                                  large_element]
+            flux_large_low_order = surface_flux_values[var_index, i, large_direction,
+                                                       large_element]
             flux_difference_large = factor *
                                     (flux_large_high_order - flux_large_low_order)
 
