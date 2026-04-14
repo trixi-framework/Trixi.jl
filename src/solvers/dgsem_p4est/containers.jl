@@ -461,8 +461,7 @@ end
 # For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrived from
 # the element container and are thus not doubled in the interface container.
 function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer,
-                                         elements,
-                                         basis::LobattoLegendreBasis)
+                                         basis::LobattoLegendreBasis, elements)
     return nothing
 end
 
@@ -513,7 +512,7 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
 
     if n_boundaries > 0
         init_boundaries!(boundaries, mesh)
-        init_boundary_node_coordinates!(boundaries, elements, basis)
+        init_boundary_node_coordinates!(boundaries, basis, elements)
     end
 
     return boundaries
@@ -769,7 +768,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
-    init_boundary_node_coordinates!(boundaries, elements, dg.basis)
+    init_boundary_node_coordinates!(boundaries, dg.basis, elements)
 
     return nothing
 end

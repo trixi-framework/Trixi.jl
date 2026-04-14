@@ -218,8 +218,7 @@ end
 end
 
 function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
-                                         elements,
-                                         basis::GaussLegendreBasis)
+                                         basis::GaussLegendreBasis, elements)
     @unpack boundary_interpolation = basis
     @unpack node_coordinates = elements
     index_range = eachnode(basis)

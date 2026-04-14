@@ -27,7 +27,7 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
 
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names)
-    init_boundary_node_coordinates!(boundaries, elements, dg.basis)
+    init_boundary_node_coordinates!(boundaries, dg.basis, elements)
 
     return nothing
 end
