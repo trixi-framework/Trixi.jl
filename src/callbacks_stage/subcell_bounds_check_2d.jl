@@ -38,11 +38,9 @@
                     # upper and lower bound are considered in their calculations with a
                     # different sign.
                     deviation_min = max(deviation_min,
-                                        variable_bounds[key_min][i, j, element] -
-                                        var)
+                                        variable_bounds[key_min][i, j, element] - var)
                     deviation_max = max(deviation_max,
-                                        var -
-                                        variable_bounds[key_max][i, j, element])
+                                        var - variable_bounds[key_max][i, j, element])
                 end
             end
             idp_bounds_delta_local[key_min] = deviation_min
@@ -65,8 +63,7 @@
                     # `max` operator for lower and upper bounds. The different directions of
                     # upper and lower bounds are considered with `sign_`.
                     deviation = max(deviation,
-                                    sign_ *
-                                    (v - variable_bounds[key][i, j, element]))
+                                    sign_ * (v - variable_bounds[key][i, j, element]))
                 end
             end
             idp_bounds_delta_local[key] = deviation

@@ -54,8 +54,7 @@ function perform_idp_correction!(u, dt,
                                                      mesh, i - 1, j, element)
             flux1_ip1 = get_node_vars(antidiffusive_flux1_L, equations, dg,
                                       i, j, element)
-            dg_factor = dt * inverse_jacobian * inverse_weights[i - 1] *
-                        (1 - alpha1)
+            dg_factor = dt * inverse_jacobian * inverse_weights[i - 1] * (1 - alpha1)
             multiply_add_to_node_vars!(u, dg_factor, flux1_ip1,
                                        equations, dg, i - 1, j, element)
         end
@@ -81,8 +80,7 @@ function perform_idp_correction!(u, dt,
                                                      mesh, i, j - 1, element)
             flux2_jp1 = get_node_vars(antidiffusive_flux2_L, equations, dg,
                                       i, j, element)
-            dg_factor = dt * inverse_jacobian * inverse_weights[j - 1] *
-                        (1 - alpha2)
+            dg_factor = dt * inverse_jacobian * inverse_weights[j - 1] * (1 - alpha2)
             multiply_add_to_node_vars!(u, dg_factor, flux2_jp1,
                                        equations, dg, i, j - 1, element)
         end

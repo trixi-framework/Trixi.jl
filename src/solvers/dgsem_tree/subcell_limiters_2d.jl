@@ -170,8 +170,7 @@ end
 
         # Calculate bounds at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
-            var = variable(get_node_vars(u, equations, dg, i, j, element),
-                           equations)
+            var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
             var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element], var)
 
             if i > 1
@@ -375,8 +374,7 @@ end
             newton_loops_alpha!(alpha, var_minmax[i, j, element], u_local,
                                 i, j, element, variable, min_or_max,
                                 initial_check_local_onesided_newton_idp,
-                                final_check_local_onesided_newton_idp,
-                                inverse_jacobian,
+                                final_check_local_onesided_newton_idp, inverse_jacobian,
                                 dt, equations, dg, cache, limiter)
         end
     end
@@ -483,11 +481,9 @@ end
             var_min[i, j, element] = positivity_correction_factor * var
 
             # Perform Newton's bisection method to find new alpha
-            newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j,
-                                element,
+            newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
                                 variable, min, initial_check_nonnegative_newton_idp,
-                                final_check_nonnegative_newton_idp,
-                                inverse_jacobian,
+                                final_check_nonnegative_newton_idp, inverse_jacobian,
                                 dt, equations, dg, cache, limiter)
         end
     end
