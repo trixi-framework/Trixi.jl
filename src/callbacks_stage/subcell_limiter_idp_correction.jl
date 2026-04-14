@@ -57,8 +57,8 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     @trixi_timeit timer() "blending factors" limiter(u, semi, equations, solver,
                                                      t, dt)
 
-    perform_idp_correction!(u, dt, mesh, equations, dg,
-                            dg.volume_integral, cache)
+    perform_idp_correction!(u, dt, mesh, equations, solver,
+                            solver.volume_integral, cache)
 
     return nothing
 end
