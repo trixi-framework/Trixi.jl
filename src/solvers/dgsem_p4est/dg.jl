@@ -69,7 +69,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
     return cache
 end
 
-# Extract outward-pointing normal direction from elements (valid for Lobatto nodes)
+# Extract outward-pointing normal direction from element-data
 # (contravariant vector ±Ja^i, i = index)
 # Note that this vector is not normalized
 @inline function get_normal_direction(direction, contravariant_vectors, indices...)
