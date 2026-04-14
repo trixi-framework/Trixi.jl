@@ -334,7 +334,7 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     return interfaces
 end
 
-# For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrived from
+# For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrieved from
 # the element container and are thus not doubled in the interface container.
 function init_normal_directions!(interfaces::P4estInterfaceContainer,
                                  basis::LobattoLegendreBasis, elements)
@@ -458,7 +458,7 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
     return nothing
 end
 
-# For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrived from
+# For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrieved from
 # the element container and are thus not doubled in the interface container.
 function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer,
                                          basis::LobattoLegendreBasis, elements)
