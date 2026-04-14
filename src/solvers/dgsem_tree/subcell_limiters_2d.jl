@@ -337,8 +337,8 @@ end
 ##############################################################################
 # Local minimum or maximum limiting of nonlinear variables
 
-@inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4}, t, dt,
-                                     semi, variable, min_or_max)
+@inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4},
+                                     t, dt, semi, variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
