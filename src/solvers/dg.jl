@@ -38,7 +38,22 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 
     return nothing
 end
-# Version for parabolic-extended equations
+
+# Version for purely parabolic equations (adds cache_parabolic).
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache, cache_parabolic)
+        end
+    end
+
+    return nothing
+end
+
+# Version for hyperbolic-parabolic equations (adds equations_parabolic and cache_parabolic).
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -409,13 +424,15 @@ function reinit_volume_integral_cache!(cache, mesh, dg,
     return nothing
 end
 
-"""
+@doc raw"""
     VolumeIntegralAdaptive(;
                            indicator = IndicatorEntropyChange(),
                            volume_integral_default,
                            volume_integral_stabilized)
 
-This volume integral allows for a-posteriori style adaptation of the volume integral/term computation.
+This volume integral allows for a-priori and a-posteriori style adaptation of the volume integral/term computation.
+
+Choosing `indicator` as [`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
 At every Runge-Kutta stage and for every element, the volume update is computed using
 `volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
 If the `indicator` deems the default volume integral unstable, the default update is discarded
@@ -426,7 +443,21 @@ an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`
 for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
-The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+For reference, see 
+- Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
+  Volume Term Adaptivity for Discontinuous Galerkin Schemes
+  [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
+
+especially Sections 3 and 3.1 for a detailed description of the method.
+
+In turn, choosing `indicator` as [`IndicatorHennemannGassner`](@ref) corresponds to the a-priori implementation.
+Similar to [`VolumeIntegralShockCapturingHGType`](@ref), the indicator is evaluated before any volume update is performed.
+If the indicator value ``\alpha`` is zero (i.e., below ``\alpha_\text{min}``) the `volume_integral_default` is used.
+Otherwise, the `volume_integral_stabilized` is used.
+This kind strategy was for certain choices of the default and stabilized volume integrals already presented as the "ES-DG" scheme in
+- Bilocq, Borbouse, Levaux, Terrapon, Hillewaert (2025)
+  Comparison of stabilization strategies applied to scale-resolved simulations using the discontinuous Galerkin method
+  [DOI: 10.1016/j.jcp.2025.114238](https://doi.org/10.1016/j.jcp.2025.114238)
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -443,10 +474,6 @@ function VolumeIntegralAdaptive(;
                                 indicator = IndicatorEntropyChange(),
                                 volume_integral_default,
                                 volume_integral_stabilized)
-    if !(indicator isa IndicatorEntropyChange)
-        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
-    end
-
     return VolumeIntegralAdaptive{typeof(indicator),
                                   typeof(volume_integral_default),
                                   typeof(volume_integral_stabilized)}(indicator,

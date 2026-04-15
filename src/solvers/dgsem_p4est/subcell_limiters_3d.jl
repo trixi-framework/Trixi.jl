@@ -5,14 +5,13 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, mesh::P4estMesh{3}, equations)
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                         semi, mesh::P4estMesh{3}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
@@ -94,12 +93,6 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
-
     return nothing
 end
 
@@ -177,14 +170,13 @@ end
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
-                                         mesh::P4estMesh{3})
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
+                                         semi, mesh::P4estMesh{3})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
@@ -257,12 +249,6 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
             k_secondary += k_secondary_step_j
         end
     end
-
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end

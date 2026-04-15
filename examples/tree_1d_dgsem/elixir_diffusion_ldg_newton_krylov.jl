@@ -5,15 +5,12 @@ using LinearSolve # For Jacobian-free Newton-Krylov (GMRES) solver
 using ADTypes # For automatic differentiation via finite differences
 
 ###############################################################################
-# semidiscretization of the linear (advection) diffusion equation
+# semidiscretization of the pure diffusion equation
 
-advection_velocity = 0.0 # Note: This renders the equation mathematically purely parabolic
-equations = LinearScalarAdvectionEquation1D(advection_velocity)
 diffusivity() = 0.5
-equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
+equations = LinearDiffusionEquation1D(diffusivity())
 
-# surface flux does not matter for pure diffusion problem
-solver = DGSEM(polydeg = 3, surface_flux = flux_central)
+solver = DGSEM(polydeg = 3)
 
 coordinates_min = -convert(Float64, pi)
 coordinates_max = convert(Float64, pi)
@@ -34,11 +31,9 @@ end
 initial_condition = initial_condition_pure_diffusion_1d_convergence_test
 
 solver_parabolic = ParabolicFormulationLocalDG()
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition,
-                                             solver; solver_parabolic,
-                                             boundary_conditions = (boundary_condition_periodic,
-                                                                    boundary_condition_periodic))
+semi = SemidiscretizationParabolic(mesh, equations, initial_condition, solver;
+                                   solver_parabolic = solver_parabolic,
+                                   boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
