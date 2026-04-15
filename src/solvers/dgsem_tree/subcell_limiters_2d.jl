@@ -63,7 +63,6 @@
     return nothing
 end
 
-# TODO: How to check for limiting activation? What if left is limited, right not?
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                                  semi, mesh::TreeMesh2D, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
@@ -72,6 +71,14 @@ end
         # Get neighboring element ids
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
+
+        if perform_subcell_limiting(dg.volume_integral, left_element) ||
+           perform_subcell_limiting(dg.volume_integral, right_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
 
         orientation = cache.interfaces.orientations[interface]
 
@@ -205,7 +212,6 @@ end
     return nothing
 end
 
-# TODO: How to check for limiting activation? What if left is limited, right not?
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u,
                                                  semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
@@ -214,6 +220,14 @@ end
         # Get neighboring element ids
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
+
+        if perform_subcell_limiting(dg.volume_integral, left_element) ||
+           perform_subcell_limiting(dg.volume_integral, right_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
 
         orientation = cache.interfaces.orientations[interface]
 
