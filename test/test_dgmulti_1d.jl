@@ -155,6 +155,19 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cgsbp_periodic.jl"),
+                        l2=[
+                            0.0030643365365693146, 0.0056093572654631815,
+                            0.011240286005407774
+                        ],
+                        linf=[
+                            0.0047804372853939014, 0.011405499196598612,
+                            0.024614180281316678
+                        ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "DGMulti with periodic SBP unit test" begin
     using Trixi: periodic_derivative_operator, DGMulti, Line, DGMultiMesh
     # see https://github.com/trixi-framework/Trixi.jl/pull/1013
