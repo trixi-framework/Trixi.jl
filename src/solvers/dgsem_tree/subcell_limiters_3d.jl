@@ -13,8 +13,10 @@
 # Calculation of local bounds using low-order FV solution
 
 @inline function calc_bounds_twosided!(var_min, var_max, variable,
-                                       u::AbstractArray{<:Any, 5}, t, semi, equations)
+                                       u::AbstractArray{<:Any, 5}, t,
+                                       semi, equations)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         # Calculate bounds at Gauss-Lobatto nodes
@@ -58,9 +60,9 @@
         end
     end
 
-    # Values at element interfaces
-    calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                    u, t, semi, mesh, equations)
+    # Calc bounds at element interfaces and periodic boundaries
+    calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                    semi, mesh, equations)
 
     # Calc bounds at physical boundaries
     (; boundary_conditions) = semi
@@ -70,12 +72,10 @@
     return nothing
 end
 
-@inline function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                                 u, t, semi, mesh::TreeMesh3D,
-                                                 equations)
+@inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                                 semi, mesh::TreeMesh3D, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
         left_element = cache.interfaces.neighbor_ids[1, interface]
@@ -171,13 +171,14 @@ end
 end
 
 @inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
-                                       u::AbstractArray{<:Any, 5}, t, semi)
+                                       u::AbstractArray{<:Any, 5}, t,
+                                       semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    # Calc bounds inside elements
 
     # The approach used in `calc_bounds_twosided!` is not used here because it requires more
     # evaluations of the variable and is therefore slower.
 
+    # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         # Reset bounds
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -220,17 +221,23 @@ end
         end
     end
 
-    # Values at element boundary
-    calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
+    # Calc bounds at element interfaces and periodic boundaries
+    calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u,
+                                    semi, mesh)
+
+    # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
+    calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
 
     return nothing
 end
 
-@inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
+@inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u,
                                                  semi, mesh::TreeMesh{3})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
         left_element = cache.interfaces.neighbor_ids[1, interface]
@@ -268,12 +275,6 @@ end
                                                                  var_right)
         end
     end
-
-    # Calc bounds at physical boundaries
-    (; boundary_conditions) = semi
-    calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end

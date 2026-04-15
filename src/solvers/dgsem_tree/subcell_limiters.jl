@@ -305,6 +305,12 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global)
 end
 
+function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    return nothing
+end
+
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
 # called here to get up-to-date values for IO, this is not easily possible in this case
 # because the calculation is very integrated into the method.
