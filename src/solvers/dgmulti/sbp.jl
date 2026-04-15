@@ -182,9 +182,15 @@ function create_cache(mesh::DGMultiMesh, equations,
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
                                                                uEltype)
 
-    # since dg.basis.Drst is not skew-symmetric for CG operators, we explicitly construct 
+    # since dg.basis.Drst is not skew-symmetric for CG operators, we explicitly construct
     # the skew-symmetric operators for flux differencing
     Qrst = map(A -> dg.basis.M * A, dg.basis.Drst)
+
+    # check for skew-symmetry
+    for dim in eachdim(mesh)
+        Q = Qrst[dim]
+        @assert isapprox(Q, -Q', atol = 1e-12, rtol = 0.0)
+    end
     return (; solution_container, Qrst, invM = inv(dg.basis.M), invJ = inv.(md.J))
 end
 
@@ -208,7 +214,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # This would have to be changed if `have_nonconservative_terms = False()`
             # because then `volume_flux` is non-symmetric.
             A = cache.Qrst[dim]
-            A_base, row_ids, rows, vals = sparse_operator_data(A)
+            A_base, row_ids, rows, vals = sparse_operator_data(A')
 
             @threaded for i in row_ids
                 u_i = u[i]
@@ -238,7 +244,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             A = cache.Qrst[dim]
-            A_base, row_ids, rows, vals = sparse_operator_data(A)
+            A_base, row_ids, rows, vals = sparse_operator_data(A')
 
             for i in row_ids
                 u_i = u[i]
