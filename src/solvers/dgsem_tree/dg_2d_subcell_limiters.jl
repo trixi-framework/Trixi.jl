@@ -51,6 +51,9 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                  fhat_nonconservative_temp_threaded, phi_threaded)
     end
 
+    # The limiter cache was created with 0 elements
+    resize_subcell_limiter_cache!(dg.volume_integral.limiter, n_elements)
+
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
             fhat2_L_threaded, fhat2_R_threaded,

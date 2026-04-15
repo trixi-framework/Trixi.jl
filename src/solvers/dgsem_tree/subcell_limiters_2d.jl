@@ -13,8 +13,9 @@
 # Calculation of local bounds using low-order FV solution
 
 @inline function calc_bounds_twosided!(var_min, var_max, variable,
-                                       u::AbstractArray{<:Any, 4}, t, semi)
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+                                       u::AbstractArray{<:Any, 4}, t,
+                                       semi, equations)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
         # Calculate bounds at Gauss-Lobatto nodes
@@ -47,9 +48,9 @@
         end
     end
 
-    # Calc bounds at interfaces and periodic boundaries
-    calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                    u, semi, mesh)
+    # Calc bounds at element interfaces and periodic boundaries
+    calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                    semi, mesh, equations)
 
     # Calc bounds at mortars
     calc_bounds_twosided_mortar!(var_min, var_max, variable, u, semi, mesh)
@@ -63,7 +64,7 @@
 end
 
 @inline function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
-                                                 semi, mesh::TreeMesh2D)
+                                                 semi, mesh::TreeMesh2D, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     for interface in eachinterface(dg, cache)
@@ -245,7 +246,8 @@ end
 end
 
 @inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
-                                       u::AbstractArray{<:Any, 4}, t, semi)
+                                       u::AbstractArray{<:Any, 4}, t,
+                                       semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     # The approach used in `calc_bounds_twosided!` is not used here because it requires more
@@ -286,8 +288,9 @@ end
         end
     end
 
-    # Calc bounds at interfaces and periodic boundaries
-    calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, semi, mesh)
+    # Calc bounds at element interfaces and periodic boundaries
+    calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u,
+                                    semi, mesh)
 
     # Calc bounds at mortars
     calc_bounds_onesided_mortar!(var_minmax, min_or_max, variable, u, semi, mesh)
@@ -305,7 +308,6 @@ end
                                                  semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
         left_element = cache.interfaces.neighbor_ids[1, interface]
@@ -542,8 +544,8 @@ end
 ##############################################################################
 # Local minimum or maximum limiting of nonlinear variables
 
-@inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4}, t, dt,
-                                     semi, variable, min_or_max)
+@inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4},
+                                     t, dt, semi, variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]

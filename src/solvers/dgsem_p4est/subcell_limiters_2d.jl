@@ -6,7 +6,7 @@
 #! format: noindent
 
 function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
-                                         semi, mesh::P4estMesh{2})
+                                         semi, mesh::P4estMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     index_range = eachnode(dg)
@@ -231,13 +231,12 @@ end
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, semi,
-                                         mesh::P4estMesh{2})
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
+                                         semi, mesh::P4estMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     index_range = eachnode(dg)
 
-    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = cache.interfaces.neighbor_ids[1, interface]

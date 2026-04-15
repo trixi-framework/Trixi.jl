@@ -6,7 +6,7 @@
 #! format: noindent
 
 function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
-                                         semi, mesh::P4estMesh{3})
+                                         semi, mesh::P4estMesh{3}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, node_indices) = cache.interfaces
@@ -170,8 +170,8 @@ end
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, semi,
-                                         mesh::P4estMesh{3})
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
+                                         semi, mesh::P4estMesh{3})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, node_indices) = cache.interfaces
