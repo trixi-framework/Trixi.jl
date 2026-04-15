@@ -7,8 +7,6 @@
 
 abstract type AbstractSubcellLimiter end
 
-resize_subcell_limiter_cache!(limiter::AbstractSubcellLimiter, new_size) = nothing
-
 function create_cache(typ::Type{LimiterType},
                       semi) where {LimiterType <: AbstractSubcellLimiter}
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
