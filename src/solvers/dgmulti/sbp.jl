@@ -233,8 +233,13 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                             volume_flux(u_i, u_j, normal_direction, equations)
                     du_i = du_i + AF_ij
                 end
-                du[i] = du_i * cache.invM[i, i]
+                du[i] = du_i
             end
+        end
+
+        # apply M^{-1} once after all spatial dimensions.
+        for i in eachindex(du)
+            du[i] = du[i] * cache.invM[i, i]
         end
 
     else # if using two threads or fewer
@@ -272,7 +277,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             end
         end
 
-        # invert mass matrix only after all skew-symmetric contributions are 
+        # apply M^{-1} only after all skew-symmetric contributions are 
         # accumulated over each dimension.
         for i in eachindex(du)
             du[i] = du[i] * cache.invM[i, i]
