@@ -213,7 +213,8 @@ end
 end
 
 @inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
-                                             semi::SemidiscretizationHyperbolicParabolic,
+                                             semi::Union{SemidiscretizationHyperbolicParabolic,
+                                                         SemidiscretizationParabolic},
                                              t, iter;
                                              kwargs...)
     # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
@@ -381,13 +382,13 @@ end
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG,
                                      cache, cache_parabolic,
-                                     semi::SemidiscretizationHyperbolicParabolic,
+                                     semi::Union{SemidiscretizationHyperbolicParabolic,
+                                                 SemidiscretizationParabolic},
                                      t, iter;
                                      only_refine = false, only_coarsen = false)
     @unpack controller, adaptor = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
-    # Indicator kept based on hyperbolic variables
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                           t = t, iter = iter)
 
@@ -846,6 +847,8 @@ function original2refined(original_cell_ids, refined_original_cells, mesh)
     return shifted_cell_ids[original_cell_ids]
 end
 
+abstract type AbstractController end
+
 """
     ControllerThreeLevel(semi, indicator; base_level=1,
                                           med_level=base_level, med_threshold=0.0,
@@ -857,7 +860,7 @@ An AMR controller based on three levels (in descending order of precedence):
   if `med_level < 0`, set the target level to the current level
 - set the target level to `base_level` otherwise
 """
-struct ControllerThreeLevel{RealT <: Real, Indicator, Cache}
+struct ControllerThreeLevel{RealT <: Real, Indicator, Cache} <: AbstractController
     base_level::Int
     med_level::Int
     max_level::Int
@@ -882,10 +885,10 @@ function ControllerThreeLevel(semi, indicator; base_level = 1,
                                                cache)
 end
 
-max_level(controller::ControllerThreeLevel) = controller.max_level
+max_level(controller::AbstractController) = controller.max_level
 
-function create_cache(indicator_type::Type{ControllerThreeLevel}, semi)
-    return create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
+function create_cache(controller_type::Type{<:AbstractController}, semi)
+    return create_cache(controller_type, mesh_equations_solver_cache(semi)...)
 end
 
 function Base.show(io::IO, controller::ControllerThreeLevel)
@@ -1044,7 +1047,7 @@ If `indicator_secondary >= max_threshold_secondary`,
 set the target level to `max_level`.
 """
 struct ControllerThreeLevelCombined{RealT <: Real, IndicatorPrimary, IndicatorSecondary,
-                                    Cache}
+                                    Cache} <: AbstractController
     base_level::Int
     med_level::Int
     max_level::Int
@@ -1076,12 +1079,6 @@ function ControllerThreeLevelCombined(semi, indicator_primary, indicator_seconda
                                                                                     indicator_primary,
                                                                                     indicator_secondary,
                                                                                     cache)
-end
-
-max_level(controller::ControllerThreeLevelCombined) = controller.max_level
-
-function create_cache(indicator_type::Type{ControllerThreeLevelCombined}, semi)
-    return create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 end
 
 function Base.show(io::IO, controller::ControllerThreeLevelCombined)

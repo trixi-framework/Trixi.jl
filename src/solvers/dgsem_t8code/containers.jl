@@ -54,7 +54,8 @@ function count_required_surfaces(mesh::T8codeMesh)
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
-function init_interfaces!(interfaces, mesh::T8codeMesh)
+function init_interfaces!(interfaces, elements,
+                          mesh::T8codeMesh, basis)
     # Already computed. Do nothing.
     return nothing
 end
