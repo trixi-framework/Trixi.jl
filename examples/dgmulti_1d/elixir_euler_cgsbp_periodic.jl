@@ -1,7 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using SummationByPartsOperators: couple_continuously, legendre_derivative_operator,
-                                 UniformPeriodicMesh1D
 
 D = couple_continuously(legendre_derivative_operator(xmin = 0.0, xmax = 1.0, N = 3),
                         UniformPeriodicMesh1D(xmin = -1.0, xmax = 1.0, Nx = 32))
