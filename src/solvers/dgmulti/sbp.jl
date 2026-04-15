@@ -263,7 +263,12 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                         du[j] = du[j] - AF_ij # Due to skew-symmetry
                     end
                 end
-                du[i] = du_i * cache.invM[i, i]
+                du[i] = du_i
+            end
+
+            # invert mass matrix after skew-symmetric contributions are accumulated
+            for i in row_ids
+                du[i] = du[i] * cache.invM[i, i]
             end
         end
     end
