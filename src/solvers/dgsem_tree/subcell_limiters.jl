@@ -305,8 +305,13 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global)
 end
 
-function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+function resize_subcell_limiter_cache!(limiter::Union{SubcellLimiterIDP, SubcellLimiterMCL}, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    if limiter isa SubcellLimiterMCL ||
+       (limiter isa SubcellLimiterIDP && limiter.bar_states)
+        resize!(limiter.cache.container_bar_states, new_size)
+    end
 
     return nothing
 end
