@@ -15,11 +15,6 @@ equations_parabolic = ViscoResistiveMhd2D(equations, mu = mu_const,
                                           eta = eta_const,
                                           gradient_variables = GradientVariablesPrimitive())
 
-# volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-# solver = DGSEM(polydeg = 3,
-#                surface_flux = (flux_hindenlang_gassner, flux_nonconservative_powell),
-#                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
-#
 volume_flux = (flux_central, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,
                surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
@@ -127,10 +122,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-#             dt = 1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             save_everystep = false, callback = callbacks);
 
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
