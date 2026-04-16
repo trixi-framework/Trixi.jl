@@ -26,6 +26,7 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
+                periodicity = true,
                 n_cells_max = 10_000) # set maximum capacity of tree data structure
 
 # This is a modified 2D Alfvén wave with a periodic density variation, following
@@ -58,8 +59,6 @@ end
 
 # Source terms for the manufactured solution. Derived with SymPy using the
 # visco_resistive_mhd2d.py script.
-# TODO: parabolic; we currently need to hardcode mu and eta here until we fix the
-# "combined equation" issue, see https://github.com/trixi-framework/Trixi.jl/pull/1160
 @inline function source_terms_mhd_convergence_test_2d(u, x, t, equations)
     # 2D Alfvén wave manufactured solution residuals
     mu_ = mu()
@@ -90,6 +89,8 @@ initial_condition = initial_condition_constant_alfven_2d
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic),
                                              source_terms = source_terms_mhd_convergence_test_2d)
 
 ###############################################################################
@@ -113,17 +114,12 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 200,
                                      solution_variables = cons2prim)
 
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-cfl = 0.5
-stepsize_callback = StepsizeCallback(cfl = cfl)
-
-glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
+glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
-                        stepsize_callback,
                         glm_speed_callback)
 
 ###############################################################################
