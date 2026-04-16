@@ -45,10 +45,13 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
+stepsize_callback = StepsizeCallback(cfl = 0.7)                                     
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()..., callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 0.5 * estimate_dt(mesh, dg),
+            ode_default_options()...,
+            callback = callbacks);
