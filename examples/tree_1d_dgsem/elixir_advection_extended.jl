@@ -1,5 +1,6 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
+using Plots # For visualization callback
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -12,8 +13,6 @@ initial_condition = initial_condition_convergence_test
 # you can either use a single function to impose the BCs weakly in all
 # 1*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
 boundary_conditions = boundary_condition_periodic
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -29,7 +28,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -64,10 +63,14 @@ save_solution = SaveSolutionCallback(interval = 100,
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
+# Enable in-situ visualization with a new plot generated at every time step
+visualization = VisualizationCallback(semi; interval = 1)
+
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_restart,
+                        save_solution, visualization,
                         stepsize_callback)
 
 ###############################################################################

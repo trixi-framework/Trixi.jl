@@ -301,5 +301,7 @@ function record_state_at_points!(point_data, u, solution_variables,
             end
         end
     end
+
+    return nothing
 end
 end # @muladd

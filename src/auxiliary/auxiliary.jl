@@ -35,7 +35,7 @@ end
 
 @inline function Base.put!(counter::PerformanceCounter, runtime::Real)
     counter.ncalls_since_readout += 1
-    counter.runtime += runtime
+    return counter.runtime += runtime
 end
 
 @inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
@@ -83,6 +83,26 @@ end
 end
 
 """
+    @trixi_timeit_ext backend timer() "some label" expression
+
+This macro is an extension of [`@trixi_timeit`](@ref) that also synchronizes the given `backend` after executing the given `expression`.
+This is useful to get accurate timing measurements for GPU backends, where the execution of kernels is asynchronous.
+The synchronization ensures that all GPU operations are completed before the timer is stopped.
+
+See also [`@trixi_timeit`](@ref).
+"""
+macro trixi_timeit_ext(backend, timer_output, label, expr)
+    expr = quote
+        local val = $(esc(expr))
+        if $(esc(backend)) !== nothing && $(TrixiBase).timeit_debug_enabled()
+            $(KernelAbstractions.synchronize)($(esc(backend)))
+        end
+        val
+    end
+    return :(@trixi_timeit($(esc(timer_output)), $(esc(label)), $(expr)))
+end
+
+"""
     examples_dir()
 
 Return the directory where the example files provided with Trixi.jl are located. If Trixi.jl is
@@ -122,7 +142,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 [`TreeMesh`](@ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 function default_example()
-    joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
+    return joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 end
 
 """
@@ -133,7 +153,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 given in the Trixi.jl documentation regarding unstructured meshes.
 """
 function default_example_unstructured()
-    joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+    return joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 end
 
 """
@@ -165,6 +185,7 @@ function print_startup_message()
          ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
       """
     mpi_println(s)
+    return nothing
 end
 
 """
@@ -206,16 +227,19 @@ and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-re
 macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
-    expr = if _PREFERENCE_POLYESTER
+    expr = @static if _PREFERENCE_THREADING === :polyester
         # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
         quote
             $Trixi.@batch $(expr)
         end
-    else
+    elseif _PREFERENCE_THREADING === :static ||
+           _PREFERENCE_THREADING === :kernelabstractions
         # The following code is a simple version using only `Threads.@threads` from the
         # standard library with an additional check whether only a single thread is used
         # to reduce some overhead (and allocations) for serial execution.
+        # If we want to execute on KernelAbstractions, we use the static backend here to fallback on,
+        # for loops that do not yet support GPU execution.
         quote
             let
                 if $Threads.nthreads() == 1
@@ -224,6 +248,10 @@ macro threaded(expr)
                     $Threads.@threads :static $(expr)
                 end
             end
+        end
+    elseif _PREFERENCE_THREADING === :serial
+        quote
+            $(expr)
         end
     end
     # Use `esc(quote ... end)` for nested macro calls as suggested in
@@ -311,12 +339,24 @@ Download a file from given `src_url` to given `file_path` if
 `file_path`.
 This is a small wrapper of `Downloads.download(src_url, file_path)`
 that avoids race conditions when multiple MPI ranks are used.
+Furthermore, when run as part of a GitHub Action, it uses
+token-authenticated downloads to avoid GitHub's rate limiting
+for unauthenticated HTTP request. To use this feature, provide
+the environment variable `GITHUB_TOKEN`.
 """
 function download(src_url, file_path)
     # Note that `mpi_isroot()` is also `true` if running
     # in serial (without MPI).
     if mpi_isroot()
-        isfile(file_path) || Downloads.download(src_url, file_path)
+        if !isfile(file_path)
+            headers = Pair{String, String}[]
+            # Pass the GITHUB_TOKEN through to prevent rate-limiting
+            token = get(ENV, "GITHUB_TOKEN", nothing)
+            if token !== nothing
+                push!(headers, "authorization" => "Bearer $token")
+            end
+            Downloads.download(src_url, file_path; headers)
+        end
     end
 
     if mpi_isparallel()

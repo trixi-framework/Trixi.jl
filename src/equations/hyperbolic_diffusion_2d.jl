@@ -22,17 +22,17 @@ end
 
 function HyperbolicDiffusionEquations2D(; nu = 1.0, Lr = inv(2pi))
     Tr = Lr^2 / nu
-    HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
+    return HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
 end
 
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 function default_analysis_errors(::HyperbolicDiffusionEquations2D)
-    (:l2_error, :linf_error, :residual)
+    return (:l2_error, :linf_error, :residual)
 end
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations2D)
-    abs(du[1])
+    return abs(du[1])
 end
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -45,9 +45,8 @@ end
         q1 = one(RealT)
         q2 = one(RealT)
     else
-        # TODO: sincospi
-        sinpi_x1, cospi_x1 = sincos(convert(RealT, pi) * x[1])
-        sinpi_2x2, cospi_2x2 = sincos(convert(RealT, pi) * 2 * x[2])
+        sinpi_x1, cospi_x1 = sincospi(x[1])
+        sinpi_2x2, cospi_2x2 = sincospi(2 * x[2])
         phi = 2 * cospi_x1 * sinpi_2x2 + 2 # ϕ
         q1 = -2 * convert(RealT, pi) * sinpi_x1 * sinpi_2x2     # ϕ_x
         q2 = 4 * convert(RealT, pi) * cospi_x1 * cospi_2x2     # ϕ_y
@@ -130,7 +129,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return SVector(phi, q1, q2)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::HyperbolicDiffusionEquations2D)
     phi, q1, q2 = u
@@ -166,12 +165,12 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::HyperbolicDiffusionEquations2D)
-    sqrt(equations.nu * equations.inv_Tr)
+    return sqrt(equations.nu * equations.inv_Tr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::HyperbolicDiffusionEquations2D)
-    sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
+    return sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
 """
@@ -225,6 +224,15 @@ end
     return SVector(f1, f2, f3)
 end
 
+"""
+    have_constant_speed(::HyperbolicDiffusionEquations2D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::HyperbolicDiffusionEquations2D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
@@ -247,7 +255,7 @@ end
 
 # Calculate entropy for a conservative state `u` (here: same as total energy)
 @inline function entropy(u, equations::HyperbolicDiffusionEquations2D)
-    energy_total(u, equations)
+    return energy_total(u, equations)
 end
 
 # Calculate total energy for a conservative state `u`

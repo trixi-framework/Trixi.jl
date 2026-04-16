@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -15,9 +15,10 @@ coordinates_min = (-5.0,)
 coordinates_max = (5.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -38,7 +39,10 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+indicator_function(u, x, t) = u[1]
+
+amr_controller = ControllerThreeLevel(semi,
+                                      IndicatorNodalFunction(indicator_function, semi),
                                       base_level = 4,
                                       med_level = 5, med_threshold = 0.1,
                                       max_level = 6, max_threshold = 0.6)

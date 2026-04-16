@@ -1,5 +1,5 @@
 using Trixi
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 
 equations = InviscidBurgersEquation1D()
 
@@ -40,8 +40,8 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 
 semi = SemidiscretizationHyperbolic(mesh,
                                     equations,
-                                    initial_condition_convergence_test,
-                                    dg)
+                                    initial_condition_convergence_test, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
@@ -55,11 +55,16 @@ summary_callback = SummaryCallback()
 # analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 
+# SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
+
 # handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 # collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 # ###############################################################################
 # # run the simulation

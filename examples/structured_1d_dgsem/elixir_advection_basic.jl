@@ -1,7 +1,7 @@
 # The same setup as tree_1d_dgsem/elixir_advection_basic.jl
 # to verify the StructuredMesh implementation against TreeMesh
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -18,11 +18,13 @@ coordinates_max = (1.0,) # maximum coordinate
 cells_per_dimension = (16,)
 
 # Create curved mesh with 16 cells
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

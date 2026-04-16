@@ -34,6 +34,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # KPP problem
     include("test_tree_2d_kpp.jl")
+
+    # Passive tracers
+    include("test_tree_2d_passive_tracers.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

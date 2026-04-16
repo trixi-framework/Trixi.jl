@@ -4,7 +4,7 @@
 # However, on this non-rectangular mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected.
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # initial_condition_convergence_test transformed to the parallelogram
@@ -52,7 +52,8 @@ mesh = StructuredMesh(cells_per_dimension, mapping; periodicity = (true, true))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_parallelogram,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

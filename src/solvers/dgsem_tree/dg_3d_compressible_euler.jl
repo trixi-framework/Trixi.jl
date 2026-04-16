@@ -17,8 +17,8 @@
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{3},
-                                           nonconservative_terms::False,
+                                           element, MeshT::Type{<:TreeMesh{3}},
+                                           have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -28,13 +28,13 @@
     # indices `[i, j, k, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -42,13 +42,13 @@
         rho_v1 = u_cons[2, i, j, k, element]
         rho_v2 = u_cons[3, i, j, k, element]
         rho_v3 = u_cons[4, i, j, k, element]
-        rho_e = u_cons[5, i, j, k, element]
+        rho_e_total = u_cons[5, i, j, k, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         p = (equations.gamma - 1) *
-            (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+            (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
 
         u_prim[i, j, k, 1] = rho
         u_prim[i, j, k, 2] = v1
@@ -263,8 +263,8 @@
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{3},
-                                           nonconservative_terms::False,
+                                           element, MeshT::Type{<:TreeMesh{3}},
+                                           have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations3D,
                                            volume_flux::typeof(flux_ranocha_turbo),
                                            dg::DGSEM, cache, alpha)
@@ -274,7 +274,7 @@ end
     # indices `[i, j, k, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`. In addition
@@ -283,7 +283,7 @@ end
     # values.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -291,13 +291,13 @@ end
         rho_v1 = u_cons[2, i, j, k, element]
         rho_v2 = u_cons[3, i, j, k, element]
         rho_v3 = u_cons[4, i, j, k, element]
-        rho_e = u_cons[5, i, j, k, element]
+        rho_e_total = u_cons[5, i, j, k, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         p = (equations.gamma - 1) *
-            (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+            (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
 
         u_prim[i, j, k, 1] = rho
         u_prim[i, j, k, 2] = v1

@@ -1,7 +1,7 @@
 # !!! warning "Experimental implementation (upwind SBP)"
 #     This is an experimental feature and may change in future releases.
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -15,10 +15,10 @@ source_term = source_terms_convergence_test
 
 boundary_condition_eoc = BoundaryConditionDirichlet(initial_condition)
 
-boundary_conditions = Dict(:Top => boundary_condition_eoc,
-                           :Bottom => boundary_condition_eoc,
-                           :Right => boundary_condition_eoc,
-                           :Left => boundary_condition_eoc)
+boundary_conditions = (; Top = boundary_condition_eoc,
+                       Bottom = boundary_condition_eoc,
+                       Right = boundary_condition_eoc,
+                       Left = boundary_condition_eoc)
 
 ###############################################################################
 # Get the Upwind FDSBP approximation space

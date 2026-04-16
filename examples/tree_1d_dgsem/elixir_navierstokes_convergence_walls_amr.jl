@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -13,7 +13,15 @@ equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
                                                           gradient_variables = GradientVariablesEntropy())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 coordinates_min = -1.0
@@ -50,10 +58,10 @@ end
     RealT = eltype(x)
     x = x[1]
 
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -91,7 +99,7 @@ end
     E_x = p_x * inv_gamma_minus_one + 0.5f0 * rho_x * v1^2 + rho * v1 * v1_x
 
     # Some convenience constants
-    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    T_const = gamma * inv_gamma_minus_one / Pr
     inv_rho_cubed = 1 / (rho^3)
 
     # compute the source terms
@@ -127,10 +135,10 @@ velocity_bc_left_right = NoSlip() do x, t, equations_parabolic
 end
 
 heat_bc_left = Isothermal() do x, t, equations_parabolic
-    Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
-                                                                       t,
-                                                                       equations_parabolic),
-                      equations_parabolic)
+    return temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                        t,
+                                                                        equations_parabolic),
+                       equations_parabolic)
 end
 
 heat_bc_right = Adiabatic((x, t, equations_parabolic) -> 0.0)
@@ -144,7 +152,7 @@ boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_ri
 boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                        x_pos = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
                                  x_pos = boundary_condition_right)
 

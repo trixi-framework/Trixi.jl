@@ -12,7 +12,7 @@ This checklist is meant to assist creators of PRs (to let them know what reviewe
 - [ ] Newly introduced names for variables etc. are self-descriptive and consistent with existing naming conventions.
 - [ ] There are no redundancies that can be removed by simple modularization/refactoring.
 - [ ] There are no leftover debug statements or commented code sections.
-- [ ] The code adheres to our [conventions](https://trixi-framework.github.io/Trixi.jl/stable/conventions/) and [style guide](https://trixi-framework.github.io/Trixi.jl/stable/styleguide/), and to the [Julia guidelines](https://docs.julialang.org/en/v1/manual/style-guide/).
+- [ ] The code adheres to our [conventions](https://trixi-framework.github.io/TrixiDocumentation/stable/conventions/) and [style guide](https://trixi-framework.github.io/TrixiDocumentation/stable/styleguide/), and to the [Julia guidelines](https://docs.julialang.org/en/v1/manual/style-guide/).
 
 #### Documentation
 - [ ] New functions and types are documented with a docstring or top-level comment.
@@ -28,7 +28,7 @@ This checklist is meant to assist creators of PRs (to let them know what reviewe
 
 #### Performance
 - [ ] There are no type instabilities or memory allocations in performance-critical parts.
-- [ ] If the PR intent is to improve performance, before/after [time measurements](https://trixi-framework.github.io/Trixi.jl/stable/performance/#Manual-benchmarking) are posted in the PR.
+- [ ] If the PR intent is to improve performance, before/after [time measurements](https://trixi-framework.github.io/TrixiDocumentation/stable/performance/#Manual-benchmarking) are posted in the PR.
 
 #### Verification
 - [ ] The correctness of the code was verified using appropriate tests.

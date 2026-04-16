@@ -76,6 +76,24 @@ set via the keywords
   documented with a docstring (but maybe with comments using `#`).
 
 
+## Structure of the `solver` directory
+
+If some functionality is shared by multiple combinations of meshes/solvers,
+it is defined in the directory of the most basic mesh and solver type.
+An example for this is the `rhs!` function, which lays out the sequence of functions 
+that compose the overall right-hand-side function provided to the ODE integrator.
+Since this general "recipe" can be unified for different meshes of a certain dimension,
+a shared implementation is used to minimize code duplication.
+
+The most basic (in the sense that it is most tested and developed) solver type in Trixi.jl is
+[`DGSEM`](@ref) due to historic reasons and background of the main contributors.
+We consider the [`TreeMesh`](@ref) to be the most basic mesh type since it is Cartesian
+and was the first mesh in Trixi.jl.
+Thus, shared implementations for more advanced meshes such as the [`P4estMesh`](@ref) can be found in
+the `src/solvers/dgsem_tree/` directory, while only necessary specifics are actually placed in
+`src/solvers/dgsem_p4est/`.
+
+
 ## Array types and wrapping
 
 To allow adaptive mesh refinement efficiently when using time integrators from
@@ -106,6 +124,16 @@ based on the following rules.
 - `wrap_array` should be used as default option. `wrap_array_native` should only
   be used when necessary, e.g., to avoid additional overhead when interfacing
   with external C libraries such as HDF5, MPI, or visualization.
+
+### Usage of statically sized arrays
+
+Trixi.jl employs statically sized vectors and arrays from the
+[StaticArrays.jl](https://github.com/JuliaArrays/StaticArrays.jl) package, i.e., 
+`SVector, SMatrix` for the immutable versions and `MVector, MMatrix` for the mutable variants.
+These types are preferred for "small" (StaticArrays.jl [recommends as a rule of thumb about 100 entries](https://juliaarrays.github.io/StaticArrays.jl/stable/#When-Static-Arrays-may-be-useful)) arrays with a size known at compile time.
+Inspired by this recommendation, Trixi.jl uses the static size `SVector` most notably for numerical fluxes and initial/boundary conditions.
+The mutable statically sized `MArray` type is used for **arrays up to two dimensions** which show up in mortars, indicators, and certain volume integrals.
+For arrays of higher dimensions (mostly three and four) we use standard Julia `Array` types.
 
 ## Numeric types and type stability
 

@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -31,7 +31,8 @@ aoa() = 10.0 * pi / 180.0 # 10 degree angle of attack
 l_inf() = 1.0
 mach_inf() = 0.8
 u_inf(equations) = mach_inf() * sqrt(equations.gamma * p_inf() / rho_inf())
-@inline function initial_condition_mach08_flow(x, t, equations)
+@inline function initial_condition_mach08_flow(x, t,
+                                               equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     gamma = equations.gamma
     u_inf = mach_inf() * sqrt(gamma * p_inf() / rho_inf())
@@ -45,7 +46,14 @@ end
 
 initial_condition = initial_condition_mach08_flow
 
-surface_flux = flux_lax_friedrichs
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux)
@@ -65,15 +73,15 @@ mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 1)
                                                       equations::CompressibleEulerEquations2D)
     u_boundary = initial_condition_mach08_flow(x, t, equations)
 
-    return Trixi.flux_hll(u_inner, u_boundary, normal_direction, equations)
+    return flux_hll(u_inner, u_boundary, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:Left => boundary_condition_subsonic_constant,
-                           :Right => boundary_condition_subsonic_constant,
-                           :Top => boundary_condition_subsonic_constant,
-                           :Bottom => boundary_condition_subsonic_constant,
-                           :AirfoilBottom => boundary_condition_slip_wall,
-                           :AirfoilTop => boundary_condition_slip_wall)
+boundary_conditions = (; Left = boundary_condition_subsonic_constant,
+                       Right = boundary_condition_subsonic_constant,
+                       Top = boundary_condition_subsonic_constant,
+                       Bottom = boundary_condition_subsonic_constant,
+                       AirfoilBottom = boundary_condition_slip_wall,
+                       AirfoilTop = boundary_condition_slip_wall)
 
 velocity_airfoil = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0))
 
@@ -82,25 +90,26 @@ heat_airfoil = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
 
-function velocities_initial_condition_mach08_flow(x, t, equations)
+function velocities_initial_condition_mach08_flow(x, t,
+                                                  equations::CompressibleEulerEquations2D)
     u_cons = initial_condition_mach08_flow(x, t, equations)
     return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
 
 velocity_bc_square = NoSlip((x, t, equations_parabolic) -> velocities_initial_condition_mach08_flow(x,
                                                                                                     t,
-                                                                                                    equations))
+                                                                                                    equations_parabolic.equations_hyperbolic))
 
 heat_bc_square = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
                                                               heat_bc_square)
 
-boundary_conditions_parabolic = Dict(:Left => boundary_condition_square,
-                                     :Right => boundary_condition_square,
-                                     :Top => boundary_condition_square,
-                                     :Bottom => boundary_condition_square,
-                                     :AirfoilBottom => boundary_conditions_airfoil,
-                                     :AirfoilTop => boundary_conditions_airfoil)
+boundary_conditions_parabolic = (; Left = boundary_condition_square,
+                                 Right = boundary_condition_square,
+                                 Top = boundary_condition_square,
+                                 Bottom = boundary_condition_square,
+                                 AirfoilBottom = boundary_conditions_airfoil,
+                                 AirfoilTop = boundary_conditions_airfoil)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -122,26 +131,26 @@ analysis_interval = 2000
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           DragCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations),
-                                                                   l_inf()))
+                                           DragCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf()))
 
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
-                                           LiftCoefficientPressure(aoa(), rho_inf(),
-                                                                   u_inf(equations),
-                                                                   l_inf()))
+                                           LiftCoefficientPressure2D(aoa(), rho_inf(),
+                                                                     u_inf(equations),
+                                                                     l_inf()))
 
 drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
-                                                       DragCoefficientShearStress(aoa(),
-                                                                                  rho_inf(),
-                                                                                  u_inf(equations),
-                                                                                  l_inf()))
+                                                       DragCoefficientShearStress2D(aoa(),
+                                                                                    rho_inf(),
+                                                                                    u_inf(equations),
+                                                                                    l_inf()))
 
 lift_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
-                                                       LiftCoefficientShearStress(aoa(),
-                                                                                  rho_inf(),
-                                                                                  u_inf(equations),
-                                                                                  l_inf()))
+                                                       LiftCoefficientShearStress2D(aoa(),
+                                                                                    rho_inf(),
+                                                                                    u_inf(equations),
+                                                                                    l_inf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",

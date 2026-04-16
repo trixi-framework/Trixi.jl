@@ -45,7 +45,7 @@ struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, # spatial 
 end
 
 function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
-    ("scalar", "advection_velocity")
+    return ("scalar", "advection_velocity")
 end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
@@ -82,9 +82,9 @@ end
 # The implementation of nonconservative terms uses a single "nonconservative flux"
 # function `flux_nonconservative`. It will basically be applied in a loop of the
 # form
-# ```julia
+# ````julia
 # du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x
-# ```
+# ````
 # where `D` is the derivative matrix and `u` contains the nodal solution values.
 
 # Now, we can run a simple simulation using a DGSEM discretization.
@@ -101,12 +101,12 @@ function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEq
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advection_velocity = 2 + cos(x[1])
-    SVector(scalar, advection_velocity)
+    return SVector(scalar, advection_velocity)
 end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -117,7 +117,8 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)
@@ -150,9 +151,10 @@ error_1 = analysis_callback(sol).l2 |> first
 # simulation again.
 
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 5, n_cells_max = 10^4)
+                initial_refinement_level = 5, n_cells_max = 10^4, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
@@ -174,7 +176,7 @@ error_1 / error_2
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
 
 # For non-trivial boundary conditions involving non-conservative terms,
-# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
+# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
 
 # ## Summary of the code
 
@@ -199,7 +201,7 @@ struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, # spatial 
 end
 
 function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
-    ("scalar", "advection_velocity")
+    return ("scalar", "advection_velocity")
 end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
@@ -249,12 +251,12 @@ function initial_condition_sine(x, t,
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advection_velocity = 2 + cos(x[1])
-    SVector(scalar, advection_velocity)
+    return SVector(scalar, advection_velocity)
 end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -265,7 +267,8 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create an ODE problem with given time span
 tspan = (0.0, 1.0)
@@ -296,3 +299,77 @@ versioninfo()
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEqTsit5", "Plots"],
            mode = PKGMODE_MANIFEST)
+
+# ## Additional modifications
+
+# When one carries auxiliary variable(s) in the solution vector, e.g., for non-constant
+# coefficient advection problems some routines may require modification to avoid adding
+# dissipation to the variable coefficient quantity `a` that is carried as an auxiliary variable in
+# the solution vector. In particular, a specialized [`DissipationLocalLaxFriedrichs`](@ref) term
+# used together with the numerical surface flux [`flux_lax_friedrichs`](@ref) prevents "smearing"
+# the variable coefficient `a` artificially.
+
+## Specialized dissipation term for the Lax-Friedrichs surface flux
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              orientation::Integer,
+                                                              equation::NonconservativeLinearAdvectionEquation)
+    λ = dissipation.max_abs_speed(u_ll, u_rr, orientation, equation)
+
+    diss = -0.5 * λ * (u_rr - u_ll)
+    ## do not add dissipation to the variable coefficient a used as last entry of u
+    return SVector(diss[1], zero(u_ll))
+end
+
+# Another modification is necessary if one wishes to use the stage limiter [`PositivityPreservingLimiterZhangShu`](@ref)
+# during the time integration. This limiter takes in a `variable` (or set of variables) to limit and ensure positivity.
+# However, these variables are used to compute the limiter quantities that are then applied to every
+# variable in the solution vector `u`. To avoid artificially limiting (and in turn changing) the variable coefficient
+# quantity that should remain unchanged, a specialized implementation of the `limiter_zhang_shu!` function is required.
+# For the example equation given in this tutorial, this new function for the limiting would take the form
+
+## Specialized positivity limiter that avoids modification of the auxiliary variable `a`
+function Trixi.limiter_zhang_shu!(u, threshold, variable, mesh,
+                                  equations::NonconservativeLinearAdvectionEquation,
+                                  dg, cache)
+    weights = dg.basis
+
+    for element in eachelement(dg, cache)
+        ## determine minimum value
+        value_min = typemax(eltype(u))
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            value_min = min(value_min, variable(u_node, equations))
+        end
+
+        ## detect if limiting is necessary
+        value_min < threshold || continue
+
+        ## compute mean value
+        u_mean = zero(get_node_vars(u, equations, dg, 1, element))
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            u_mean += u_node * weights[i]
+        end
+        ## note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
+        u_mean = u_mean / 2^ndims(mesh)
+
+        ## Compute the value directly with the mean values, as we assume that
+        ## Jensen's inequality holds.
+        value_mean = variable(u_mean, equations)
+        theta = (value_mean - threshold) / (value_mean - value_min)
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+
+            _, a_node = u_node
+            scalar_mean, _ = u_mean
+
+            ## mean values of variable coefficient not used as it must not be overwritten
+            u_mean = SVector(scalar_mean, a_node)
+
+            set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
+                           equations, dg, i, element)
+        end
+    end
+
+    return nothing
+end

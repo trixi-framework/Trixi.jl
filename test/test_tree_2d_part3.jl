@@ -26,9 +26,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Lattice-Boltzmann
     include("test_tree_2d_lbm.jl")
 
-    # Shallow water
-    include("test_tree_2d_shallowwater.jl")
-
     # FDSBP methods on the TreeMesh
     include("test_tree_2d_fdsbp.jl")
 end

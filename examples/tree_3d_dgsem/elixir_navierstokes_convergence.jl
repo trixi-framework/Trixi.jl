@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -13,7 +13,15 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+
+# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
+# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
+# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
+# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
+# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# `StepsizeCallback` (CFL-Condition) and less diffusion.
+solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
 
 coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
@@ -53,10 +61,10 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
 end
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -141,8 +149,8 @@ end
     E_y = p_y * inv_gamma_minus_one + 1.5 * rho_y * v1^2 + 3.0 * rho * v1 * v1_y
     E_z = p_z * inv_gamma_minus_one + 1.5 * rho_z * v1^2 + 3.0 * rho * v1 * v1_z
 
-    # Divergence of Fick's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
-    kappa = equations.gamma * inv_gamma_minus_one / Pr
+    # Divergence of Fourier's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
+    kappa = gamma * inv_gamma_minus_one / Pr
     q_xx = kappa * rho_xx # kappa T_xx
     q_yy = kappa * rho_yy # kappa T_yy
     q_zz = kappa * rho_zz # kappa T_zz
@@ -238,7 +246,7 @@ boundary_conditions = (; x_neg = boundary_condition_periodic,
                        z_neg = boundary_condition_periodic,
                        z_pos = boundary_condition_periodic)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_periodic,
                                  x_pos = boundary_condition_periodic,
                                  y_neg = boundary_condition_top_bottom,
