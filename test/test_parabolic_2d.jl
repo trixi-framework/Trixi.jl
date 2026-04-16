@@ -712,6 +712,38 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_mhd_diffusive_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_mhd_diffusive_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        l2=[
+                            4.11604274e-04,
+                            3.68150055e-04,
+                            1.84075027e-04,
+                            4.11604274e-04,
+                            6.17324064e-04,
+                            3.68150055e-04,
+                            1.84075027e-04,
+                            4.11604274e-04,
+                            0.00000000e+00
+                        ],
+                        linf=[
+                            9.55562817e-04,
+                            8.21951192e-04,
+                            4.10975596e-04,
+                            9.18969369e-04,
+                            1.43317312e-03,
+                            8.21951192e-04,
+                            4.10975596e-04,
+                            9.18969369e-04,
+                            0.00000000e+00
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
