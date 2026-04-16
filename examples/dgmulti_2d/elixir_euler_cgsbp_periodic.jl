@@ -5,7 +5,6 @@ D = couple_continuously(legendre_derivative_operator(xmin = 0.0, xmax = 1.0, N =
                         UniformPeriodicMesh1D(xmin = -1.0, xmax = 1.0, Nx = 32))
 dg = DGMulti(element_type = Quad(),
              approximation_type = D,
-             surface_flux = flux_hll,
              volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
 
 equations = CompressibleEulerEquations2D(1.4)

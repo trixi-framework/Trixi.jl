@@ -6,7 +6,6 @@ D = couple_continuously(legendre_derivative_operator(xmin = 0.0, xmax = 1.0, N =
 
 dg = DGMulti(element_type = Line(),
              approximation_type = D,
-             surface_flux = flux_hll,
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
 equations = CompressibleEulerEquations1D(1.4)
