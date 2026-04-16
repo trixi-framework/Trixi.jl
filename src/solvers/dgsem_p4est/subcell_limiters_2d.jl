@@ -9,16 +9,17 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                          semi, mesh::P4estMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
-        primary_element = cache.interfaces.neighbor_ids[1, interface]
-        primary_indices = cache.interfaces.node_indices[1, interface]
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
 
         # Get element and side index information on the secondary element
-        secondary_element = cache.interfaces.neighbor_ids[2, interface]
-        secondary_indices = cache.interfaces.node_indices[2, interface]
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
 
         # Create the local i,j indexing
         i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -72,24 +73,25 @@ end
                                               semi, mesh::P4estMesh{2})
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, node_indices) = cache.mortars
     index_range = eachnode(dg)
 
     # TODO: How to include values at mortar interfaces?
     # See comment above TreeMesh version
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     for mortar in eachmortar(dg, cache)
-        large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
 
         # Get index information on the small elements
-        small_indices = cache.mortars.node_indices[1, mortar]
+        small_indices = node_indices[1, mortar]
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
 
-        large_indices = cache.mortars.node_indices[2, mortar]
+        large_indices = node_indices[2, mortar]
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
@@ -235,16 +237,17 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
                                          semi, mesh::P4estMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
-        primary_element = cache.interfaces.neighbor_ids[1, interface]
-        primary_indices = cache.interfaces.node_indices[1, interface]
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
 
         # Get element and side index information on the secondary element
-        secondary_element = cache.interfaces.neighbor_ids[2, interface]
-        secondary_indices = cache.interfaces.node_indices[2, interface]
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
 
         # Create the local i,j indexing
         i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -292,24 +295,25 @@ end
                                               semi, mesh::P4estMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, node_indices) = cache.mortars
     index_range = eachnode(dg)
 
     # TODO: How to include values at mortar interfaces?
     # See comment above TreeMesh version
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     for mortar in eachmortar(dg, cache)
-        large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
 
         # Get index information on the small elements
-        small_indices = cache.mortars.node_indices[1, mortar]
+        small_indices = node_indices[1, mortar]
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
 
-        large_indices = cache.mortars.node_indices[2, mortar]
+        large_indices = node_indices[2, mortar]
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],

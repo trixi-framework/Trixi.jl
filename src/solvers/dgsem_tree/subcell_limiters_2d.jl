@@ -107,17 +107,19 @@ end
                                               semi, mesh::TreeMesh2D)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+
     # TODO: How to include values at mortar interfaces?
     # - For LobattoLegendreMortarIDP: include only values of nodes with nonnegative local weights
     # - For LobattoLegendreMortarL2: include all neighboring values (TODO?)
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     for mortar in eachmortar(dg, cache)
-        large_element = cache.mortars.neighbor_ids[3, mortar]
+        large_element = neighbor_ids[3, mortar]
 
-        orientation = cache.mortars.orientations[mortar]
+        orientation = orientations[mortar]
 
         for i in eachnode(dg)
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if large_sides[mortar] == 1 # -> small elements on right side
                 if orientation == 1
                     # L2 mortars in x-direction
                     indices_small = (1, i)
@@ -139,21 +141,19 @@ end
                 end
             end
             # Get solution data
-            var_small = (u[variable, indices_small...,
-                           cache.mortars.neighbor_ids[1, mortar]],
-                         u[variable, indices_small...,
-                           cache.mortars.neighbor_ids[2, mortar]])
+            var_small = (u[variable, indices_small..., neighbor_ids[1, mortar]],
+                         u[variable, indices_small..., neighbor_ids[2, mortar]])
             # Using the following version with `ntuple` creates allocations due to a type instability of `indices_small`.
-            # var_small = index -> u[variable, indices_small..., cache.mortars.neighbor_ids[index, mortar]]
+            # var_small = index -> u[variable, indices_small..., neighbor_ids[index, mortar]]
             # Theoretically, that could be fixed with the following version:
             # f = let indices_small = indices_small
-            #     index -> u[variable, indices_small..., cache.mortars.neighbor_ids[index, mortar]]
+            #     index -> u[variable, indices_small..., neighbor_ids[index, mortar]]
             # end
             # var_small = ntuple(f, Val(2))
             var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
-                if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                if large_sides[mortar] == 1 # -> small elements on right side
                     if orientation == 1
                         # L2 mortars in x-direction
                         indices_small_inner = (1, j)
@@ -176,8 +176,7 @@ end
                 end
 
                 for small_element_index in 1:2
-                    small_element = cache.mortars.neighbor_ids[small_element_index,
-                                                               mortar]
+                    small_element = neighbor_ids[small_element_index, mortar]
                     # from large to small element
                     if l2_mortars ||
                        dg.mortar.mortar_weights[i, j, small_element_index] > 0
@@ -347,18 +346,20 @@ end
                                               semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+
     # TODO: How to include values at mortar interfaces?
     # See comment above two-sided version
     l2_mortars = dg.mortar isa LobattoLegendreMortarL2
     for mortar in eachmortar(dg, cache)
-        large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
 
-        orientation = cache.mortars.orientations[mortar]
+        orientation = orientations[mortar]
 
         for i in eachnode(dg)
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if large_sides[mortar] == 1 # -> small elements on right side
                 if orientation == 1
                     # L2 mortars in x-direction
                     indices_small = (1, i)
@@ -387,7 +388,7 @@ end
             var_large = variable(u_large, equations)
 
             for j in eachnode(dg)
-                if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+                if large_sides[mortar] == 1 # -> small elements on right side
                     if orientation == 1
                         # L2 mortars in x-direction
                         indices_small_inner = (1, j)
