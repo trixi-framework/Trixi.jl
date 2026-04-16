@@ -222,7 +222,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             @threaded for i in row_ids
                 u_i = u[i]
                 du_i = du[i]
-                for id in nzrange(A_base, i)
+                @inbounds for id in nzrange(A_base, i)
                     j = cols[id]
                     u_j = u[j]
 
@@ -238,8 +238,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
         end
 
         # apply M^{-1} once after all spatial dimensions.
-        for i in eachindex(du)
-            du[i] = du[i] * cache.invM[i, i]
+        @inbounds for i in eachindex(du)
+            du[i] = du[i] * cache.invM.diag[i]
         end
 
     else # if using two threads or fewer
@@ -256,7 +256,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             # A is skew-symmetric, these are also the row indices and column offsets.
             A_base, row_ids, cols, vals = sparse_operator_data(A)
 
-            for i in row_ids
+            @inbounds for i in row_ids
                 u_i = u[i]
                 du_i = du[i]
                 for id in nzrange(A_base, i)
@@ -279,8 +279,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
         # apply M^{-1} only after all skew-symmetric contributions are 
         # accumulated over each dimension.
-        for i in eachindex(du)
-            du[i] = du[i] * cache.invM[i, i]
+        @inbounds for i in eachindex(du)
+            du[i] = du[i] * cache.invM.diag[i]
         end
     end
 
