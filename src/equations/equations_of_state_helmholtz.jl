@@ -49,7 +49,6 @@ function HelmholtzIdealGas(gamma = 1.4, R = 287)
     return HelmholtzIdealGas(promote(gamma, R)...)
 end
 
-
 @doc raw"""
     helmholtz(V, T, eos::HelmholtzIdealGas)
 
@@ -63,7 +62,6 @@ function helmholtz(V, T, eos::HelmholtzIdealGas)
     alpha = inv(eos.gamma - 1)   # = c_v / R
     return -eos.R * T * (1 + log((T^alpha) * V))
 end
-
 
 @doc raw"""
     pressure(V, T, eos::AbstractHelmholtzEOS)
