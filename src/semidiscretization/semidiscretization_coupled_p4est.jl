@@ -608,6 +608,24 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                 boundary_index)
 end
 
+# Dispatch on have_nonconservative_terms so the fallback BC is invoked correctly.
+# For conservative equations the fallback returns a single flux; for non-conservative
+# equations (e.g. MHD) it returns (flux, noncons_flux) which we combine here to
+# match what _compute_boundary_flux returns on the coupled path.
+@inline function _invoke_fallback_bc(fallback, ::False,
+                                     u_inner, normal_direction, x, t,
+                                     surface_flux_function, equations)
+    return fallback(u_inner, normal_direction, x, t, surface_flux_function, equations)
+end
+
+@inline function _invoke_fallback_bc(fallback, ::True,
+                                     u_inner, normal_direction, x, t,
+                                     surface_flux_function, equations)
+    flux, noncons_flux = fallback(u_inner, normal_direction, x, t,
+                                  surface_flux_function, equations)
+    return flux + 0.5f0 * noncons_flux
+end
+
 @inline function _boundary_condition_coupled(boundary_condition, semi_coupled, u_ode,
                                              u_inner, mesh, equations, cache,
                                              i_index, j_index, element_index,
@@ -632,8 +650,9 @@ end
         # Physical-domain boundary in a mixed-geometry split: delegate to the fallback BC.
         x = SVector(cache.elements.node_coordinates[1, i_index, j_index, element_index],
                     cache.elements.node_coordinates[2, i_index, j_index, element_index])
-        return fallback(u_inner, normal_direction, x, boundary_condition.t,
-                        surface_flux_function, equations)
+        return _invoke_fallback_bc(fallback, have_nonconservative_terms(equations),
+                                   u_inner, normal_direction, x, boundary_condition.t,
+                                   surface_flux_function, equations)
     end
 
     # Determine which direction the boundary faces to compute the neighbor node indices.

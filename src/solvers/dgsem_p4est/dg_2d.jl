@@ -545,6 +545,63 @@ end
     return nothing
 end
 
+# Specializations for AbstractCoupledP4estBC with nonconservative terms.
+# The coupled BC already returns a single combined flux (conservative + 0.5*nonconservative),
+# so we just store it directly regardless of the combine dispatch tag.
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::AbstractCoupledP4estBC,
+                                     mesh::P4estMeshView{2},
+                                     have_nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::False,
+                                     equations, surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
+                               element_index, normal_direction, surface_flux,
+                               normal_direction, boundary_index)
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+    return nothing
+end
+
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::AbstractCoupledP4estBC,
+                                     mesh::P4estMeshView{2},
+                                     have_nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::True,
+                                     equations, surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
+                               element_index, normal_direction, surface_flux,
+                               normal_direction, boundary_index)
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+    return nothing
+end
+
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, P4estMeshView{2},
