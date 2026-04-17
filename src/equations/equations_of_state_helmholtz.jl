@@ -111,6 +111,21 @@ function energy_internal_specific(V, T, eos::AbstractHelmholtzEOS)
 end
 
 @doc raw"""
+    temperature(V, e_internal, eos::HelmholtzIdealGas)
+
+This is not a required interface function, but specializing it if an explicit function is
+available can improve performance. For general EOS, this is calculated via a Newton solve.
+
+For [`HelmholtzIdealGas`](@ref), ``e_{\text{internal}} = c_v T`` with
+``c_v = R / (\gamma - 1)``, so ``T = e_{\text{internal}} / c_v``. The specific volume `V` is
+unused.
+"""
+function temperature(V, e_internal, eos::HelmholtzIdealGas)
+    cv = eos.R / (eos.gamma - 1)
+    return e_internal / cv
+end
+
+@doc raw"""
     gibbs_free_energy(V, T, eos::AbstractHelmholtzEOS)
 
 Computes the specific Gibbs energy using Klein et al., equation~(C.6), expressed in mass
