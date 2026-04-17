@@ -114,19 +114,24 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 200,
                                      solution_variables = cons2prim)
 
-glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = 0.5)
+cfl = 1.0
+stepsize_callback = StepsizeCallback(cfl = cfl)
+
+glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
+                        stepsize_callback,
                         glm_speed_callback)
 
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
+# RDPK3SpFSAL49 in non-adaptive mode gives 4th-order temporal accuracy,
+# matching the polydeg=3 spatial accuracy for convergence testing.
+sol = solve(ode, RDPK3SpFSAL49(); adaptive = false, dt = 1.0,
             ode_default_options()..., callback = callbacks)
 
 # Print the timer summary
