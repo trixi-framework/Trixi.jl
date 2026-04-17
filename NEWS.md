@@ -8,9 +8,7 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- `HelmholtzIdealGas` implements an ideal gas equation of state in Klein et al.'s Helmholtz
-  form (Appendix~E), as a subtype of `AbstractHelmholtzEOS`, with specialized thermodynamic
-  identities from Appendix~C including Gibbs energy (C.6) and speed of sound (C.8)
+- A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in 
   ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).
 - A new semidiscretization type `SemidiscretizationParabolic` has been added to support purely parabolic equations with no hyperbolic part.
 The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality ([#2874]).
