@@ -670,6 +670,20 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl IdealGas vs HelmholtzIdealGas" begin
+    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl");
+                  eos = IdealGas(1.4), surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+    l2_ideal, linf_ideal = analysis_callback(sol)
+    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl");
+                  eos = HelmholtzIdealGas(1.4),
+                  surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+    l2_helm, linf_helm = analysis_callback(sol)
+    @test l2_ideal ≈ l2_helm
+    @test linf_ideal ≈ linf_helm
+end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" begin
