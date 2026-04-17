@@ -766,6 +766,34 @@ end
     end
 end
 
+@timed_testset "Helmholtz ideal gas equation of state (AD vs analytical)" begin
+    # Closed forms for ideal gas from Klein et al., Appendix E (E.1), in (V, T) variables
+    function ideal_gas_analytical_helmholtz(V, T, eos::HelmholtzIdealGas)
+        alpha = inv(eos.gamma - 1)
+        p = eos.R * T / V
+        s = eos.R * (1 + alpha + log((T^alpha) * V))
+        e = eos.R * T * alpha
+        return (; p, s, e)
+    end
+
+    rho = 1.225
+    T = 300.15
+    V = inv(rho)
+    eos = HelmholtzIdealGas()
+    ref = ideal_gas_analytical_helmholtz(V, T, eos)
+    @test isapprox(pressure(V, T, eos), ref.p; rtol = 1e-12, atol = 1e-9)
+    @test isapprox(Trixi.entropy_specific(V, T, eos), ref.s; rtol = 1e-12, atol = 1e-9)
+    @test isapprox(Trixi.energy_internal_specific(V, T, eos), ref.e; rtol = 1e-12,
+                   atol = 1e-9)
+
+    ig = IdealGas(1.4, eos.R)
+    @test Trixi.speed_of_sound(V, T, eos) ≈ Trixi.speed_of_sound(V, T, ig)
+    e_h = Trixi.energy_internal_specific(V, T, eos)
+    p_h = pressure(V, T, eos)
+    s_h = Trixi.entropy_specific(V, T, eos)
+    @test Trixi.gibbs_free_energy(V, T, eos) ≈ e_h + p_h * V - T * s_h
+end
+
 @timed_testset "boundary_condition_do_nothing" begin
     rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
