@@ -672,17 +672,22 @@ end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl IdealGas vs HelmholtzIdealGas" begin
-    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl");
+    trixi_include(joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
                   eos = IdealGas(1.4), surface_flux = FluxHLL(min_max_speed_naive),
                   tspan = (0.0, 0.1))
-    l2_ideal, linf_ideal = analysis_callback(sol)
-    trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl");
+
+    sol_ideal = deepcopy(sol)
+    trixi_include(joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
                   eos = HelmholtzIdealGas(1.4),
                   surface_flux = FluxHLL(min_max_speed_naive),
                   tspan = (0.0, 0.1))
-    l2_helm, linf_helm = analysis_callback(sol)
-    @test l2_ideal ≈ l2_helm
-    @test linf_ideal ≈ linf_helm
+
+    # check that the IdealGas EOS recovers the same solution as 
+    # HelmholtzIdealGas EOS
+    using LinearAlgebra: norm
+    @test norm(sol.u[end] - sol_ideal.u[end]) < 10 * eps() * length(sol.u[end])
 end
 end
 
