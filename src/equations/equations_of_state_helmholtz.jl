@@ -166,3 +166,17 @@ function speed_of_sound(V, T, eos::AbstractHelmholtzEOS)
     c2 = 2 * rho * Ar + rho^2 * Arr - (rho * Art)^2 / Att
     return sqrt(c2)
 end
+
+@doc raw"""
+    speed_of_sound(V, T, eos::HelmholtzIdealGas)
+
+Computes the speed of sound as ``\sqrt{\gamma p V}`` with ``p`` from [`pressure`](@ref) at
+`(V, T, eos)`, matching [`IdealGas`](@ref) and equivalent to Klein et al., equation~(C.8),
+for this EOS. The general [`AbstractHelmholtzEOS`](@ref) implementation evaluates (C.8) from
+derivatives of ``A(\rho, T)`` in natural variables ``(\rho, T)``.
+"""
+function speed_of_sound(V, T, eos::HelmholtzIdealGas)
+    (; gamma) = eos
+    p = pressure(V, T, eos)
+    return sqrt(gamma * p * V)
+end

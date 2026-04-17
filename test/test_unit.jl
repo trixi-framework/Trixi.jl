@@ -788,6 +788,12 @@ end
 
     ig = IdealGas(1.4, eos.R)
     @test Trixi.speed_of_sound(V, T, eos) ≈ Trixi.speed_of_sound(V, T, ig)
+    c_direct = Trixi.speed_of_sound(V, T, eos)
+    c_fallback = invoke(Trixi.speed_of_sound,
+                        Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
+                        V, T, eos)
+    @test c_direct≈c_fallback rtol=sqrt(eps(Float64))
+    @test Trixi.temperature(V, ref.e, eos)≈T rtol=sqrt(eps(Float64))
     e_h = Trixi.energy_internal_specific(V, T, eos)
     p_h = pressure(V, T, eos)
     s_h = Trixi.entropy_specific(V, T, eos)
