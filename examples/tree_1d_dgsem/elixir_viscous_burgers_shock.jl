@@ -51,8 +51,8 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
-# Timestep is limited by diffusive CFL
-stepsize_callback = StepsizeCallback(cfl = 0.8, cfl_diffusive = 0.15)
+# Timestep is limited by parabolic CFL
+stepsize_callback = StepsizeCallback(cfl = 0.8, cfl_parabolic = 0.15)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

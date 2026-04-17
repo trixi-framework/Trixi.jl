@@ -38,6 +38,7 @@ are listed in alphabetical order:
 * Lucas Gemein
 * Sven Goldberg
 * Joshua Lampert
+* Tristan Montoya
 * Julia Odenthal
 * Sigrun Ortleb
 * Hendrik Ranocha
