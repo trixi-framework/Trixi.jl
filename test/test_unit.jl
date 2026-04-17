@@ -792,8 +792,8 @@ end
     c_fallback = invoke(Trixi.speed_of_sound,
                         Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
                         V, T, eos)
-    @test c_direct≈c_fallback rtol=sqrt(eps(Float64))
-    @test Trixi.temperature(V, ref.e, eos)≈T rtol=sqrt(eps(Float64))
+    @test c_direct ≈ c_fallback
+    @test Trixi.temperature(V, ref.e, eos) ≈ T
     e_h = Trixi.energy_internal_specific(V, T, eos)
     p_h = pressure(V, T, eos)
     s_h = Trixi.entropy_specific(V, T, eos)
