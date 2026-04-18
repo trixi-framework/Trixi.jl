@@ -1,6 +1,8 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
+# Create a 1D global CGSEM operator with periodic BCs
+# In multiple space dimensions, tensor products of the 1D operator are used.
 D = couple_continuously(legendre_derivative_operator(xmin = 0.0, xmax = 1.0, N = 3),
                         UniformPeriodicMesh1D(xmin = -1.0, xmax = 1.0, Nx = 32))
 dg = DGMulti(element_type = Quad(),
