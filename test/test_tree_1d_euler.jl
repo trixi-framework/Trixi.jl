@@ -671,7 +671,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl IdealGas vs HelmholtzIdealGas" begin
+@trixi_testset "elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" begin
     trixi_include(joinpath(EXAMPLES_DIR,
                            "elixir_euler_nonideal_density_wave.jl"),
                   eos = IdealGas(1.4), surface_flux = FluxHLL(min_max_speed_naive),
@@ -688,7 +688,6 @@ end
     # HelmholtzIdealGas EOS
     using LinearAlgebra: norm
     @test norm(sol.u[end] - sol_ideal.u[end]) < 10 * eps() * length(sol.u[end])
-end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" begin
@@ -817,4 +816,5 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+end # testset 
 end # module
