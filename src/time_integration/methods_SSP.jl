@@ -132,10 +132,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                                                 kwargs...),
                                      false, true, false)
 
-    # Resize container of volume integral for subcell limiting
-    mesh, _, dg, cache = mesh_equations_solver_cache(integrator.p)
-    resize_volume_integral_cache!(cache, mesh, dg.volume_integral, nelements(dg, cache))
-
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
 
