@@ -742,21 +742,6 @@ end
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
 @inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
-# This function is currently only needed for `init`, as
-# AMR is not supported for subcell limiting.
-# This is because in 2D and 3D mortars are not yet implemented
-# and a 1D implementation of subcell limiting is also not implemented.
-function resize_volume_integral_cache!(cache, mesh,
-                                       volume_integral::VolumeIntegralSubcellLimiting,
-                                       new_size)
-    # Resize container antidiffusive_fluxes
-    resize!(cache.antidiffusive_fluxes, new_size)
-
-    # Resize container subcell_limiter_coefficients
-    @unpack limiter = volume_integral
-    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
-end
-
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
