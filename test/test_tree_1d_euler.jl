@@ -656,12 +656,12 @@ end
     # check that the IdealGas EOS recovers the same solution as 
     # CompressibleEulerEquations1D
     sol_nonideal = deepcopy(sol)
-    trixi_include(joinpath(EXAMPLES_DIR,
-                           "elixir_euler_nonideal_density_wave.jl"),
-                  equations = CompressibleEulerEquations1D(1.4),
-                  initial_condition = Trixi.initial_condition_density_wave,
-                  surface_flux = FluxHLL(min_max_speed_naive),
-                  tspan = (0.0, 0.1))
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        equations=CompressibleEulerEquations1D(1.4),
+                        initial_condition=Trixi.initial_condition_density_wave,
+                        surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.1))
 
     using LinearAlgebra: norm
     @test norm(sol.u[end] - sol_nonideal.u[end]) < 10 * eps() * length(sol.u[end])
