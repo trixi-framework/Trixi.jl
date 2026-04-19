@@ -676,10 +676,13 @@ end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_nonideal_density_wave.jl"),
-                        eos=IdealGas(1.4), surface_flux=FluxHLL(min_max_speed_naive),
-                        tspan=(0.0, 0.1))
+    # we pass @__MODULE__ to ensure that variables defined during the test 
+    # are visible inside the @trixi_testset block    
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  eos = IdealGas(1.4), surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
 
     sol_ideal = deepcopy(sol)
 
