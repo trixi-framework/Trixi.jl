@@ -672,18 +672,17 @@ end
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" begin
-    using Trixi: IdealGas, HelmholtzIdealGas, FluxHLL, min_max_speed_naive
-    trixi_include(joinpath(EXAMPLES_DIR,
-                           "elixir_euler_nonideal_density_wave.jl"),
-                  eos = IdealGas(1.4), surface_flux = FluxHLL(min_max_speed_naive),
-                  tspan = (0.0, 0.1))
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        eos=IdealGas(1.4), surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.1))
 
     sol_ideal = deepcopy(sol)
-    trixi_include(joinpath(EXAMPLES_DIR,
-                           "elixir_euler_nonideal_density_wave.jl"),
-                  eos = HelmholtzIdealGas(1.4),
-                  surface_flux = FluxHLL(min_max_speed_naive),
-                  tspan = (0.0, 0.1))
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_nonideal_density_wave.jl"),
+                        eos=HelmholtzIdealGas(1.4),
+                        surface_flux=FluxHLL(min_max_speed_naive),
+                        tspan=(0.0, 0.1))
 
     # check that the IdealGas EOS recovers the same solution as 
     # HelmholtzIdealGas EOS
