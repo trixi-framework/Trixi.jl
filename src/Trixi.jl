@@ -107,7 +107,9 @@ import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators: SummationByPartsOperators, derivative_operator,
                                            periodic_derivative_operator,
-                                           upwind_operators
+                                           upwind_operators, couple_continuously,
+                                           legendre_derivative_operator,
+                                           UniformPeriodicMesh1D
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, Gauss, TensorProductWedge, SBP, Line, Tri,
