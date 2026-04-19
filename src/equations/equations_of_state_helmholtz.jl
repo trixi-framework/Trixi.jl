@@ -6,7 +6,7 @@ Abstract base type for a thermodynamic description based on the specific Helmhol
 
 Subtypes specialize [`helmholtz`](@ref) for arguments `(V, T, eos)`.
 
-Derived quantities follow Klein et al., Appendix~C: (C.3)--(C.5) for entropy, pressure, and
+Derived quantities follow Klein et al., Appendix C: (C.3)--(C.5) for entropy, pressure, and
 internal energy; (C.6) for specific Gibbs energy; (C.8) for speed of sound. All use specific
 volume `V`, temperature `T`, and `eos` as arguments.
 
@@ -26,7 +26,7 @@ Computes pressure from specific volume `V` and temperature `T` using the Helmhol
 ```math
 p = -\frac{\partial A}{\partial V}
 ```
-(Klein et al., equation~(C.4)), where ``A`` is given by [`helmholtz`](@ref) at
+(Klein et al., equation (C.4)), where ``A`` is given by [`helmholtz`](@ref) at
 `(V, T, eos)`.
 """
 function pressure(V, T, eos::AbstractHelmholtzEOS)
@@ -40,7 +40,7 @@ Computes specific entropy from specific volume `V` and temperature `T` using
 ```math
 s = -\frac{\partial A}{\partial T}
 ```
-(Klein et al., equation~(C.3)), where ``A`` is given by [`helmholtz`](@ref) at
+(Klein et al., equation (C.3)), where ``A`` is given by [`helmholtz`](@ref) at
 `(V, T, eos)`.
 
 This uses the same name and `(V, T, eos)` argument order as [`entropy_specific`](@ref) on
@@ -57,7 +57,7 @@ Computes specific internal energy from specific volume `V` and temperature `T` u
 ```math
 e = A - T \frac{\partial A}{\partial T}
 ```
-(Klein et al., equation~(C.5)), where ``A`` is given by [`helmholtz`](@ref) at
+(Klein et al., equation (C.5)), where ``A`` is given by [`helmholtz`](@ref) at
 `(V, T, eos)`.
 """
 function energy_internal_specific(V, T, eos::AbstractHelmholtzEOS)
@@ -69,7 +69,7 @@ end
 @doc raw"""
     gibbs_free_energy(V, T, eos::AbstractHelmholtzEOS)
 
-Computes the specific Gibbs energy using Klein et al., equation~(C.6), expressed in mass
+Computes the specific Gibbs energy using Klein et al., equation (C.6), expressed in mass
 density ``\rho = 1/V`` as ``g = A + \rho \, \partial A / \partial\rho``, which is
 equivalent to ``g = A + p V`` when ``A`` is the specific Helmholtz energy as a function of
 `(V, T)` with ``p = -\partial A / \partial V``.
@@ -83,7 +83,7 @@ end
 @doc raw"""
     speed_of_sound(V, T, eos::AbstractHelmholtzEOS)
 
-Computes the speed of sound using Klein et al., equation~(C.8), with ``A`` expressed in the
+Computes the speed of sound using Klein et al., equation (C.8), with ``A`` expressed in the
 natural variables ``(\rho, T)`` and ``\rho = 1/V``:
 ```math
 c^2 = 2\rho \frac{\partial A}{\partial \rho}

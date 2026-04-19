@@ -2,7 +2,7 @@
 @doc raw"""
     HelmholtzIdealGas{RealT <: Real} <: AbstractHelmholtzEOS
 
-Ideal-gas specific Helmholtz energy from Klein et al., Appendix~E, equation~(E.1).
+Ideal-gas specific Helmholtz energy from Klein et al., Appendix E, equation (E.1).
 The specific Helmholtz energy is
 ```math
 A = - R T \left(1 + \ln\left(T^{1/(\gamma-1)} V\right)\right),
@@ -33,7 +33,7 @@ end
     helmholtz(V, T, eos::HelmholtzIdealGas)
 
 Returns the specific Helmholtz energy ``A(V, T)`` for an ideal gas, Klein et al.,
-equation~(E.1), with ``\alpha = 1/(\gamma - 1) = c_v/R``,
+equation (E.1), with ``\alpha = 1/(\gamma - 1) = c_v/R``,
 ```math
 A = - R T \left(1 + \ln\left(T^{\alpha} V\right)\right).
 ```
@@ -62,7 +62,7 @@ end
     speed_of_sound(V, T, eos::HelmholtzIdealGas)
 
 Computes the speed of sound as ``\sqrt{\gamma p V}`` with ``p`` from [`pressure`](@ref) at
-`(V, T, eos)`, matching [`IdealGas`](@ref) and equivalent to Klein et al., equation~(C.8),
+`(V, T, eos)`, matching [`IdealGas`](@ref) and equivalent to Klein et al., equation (C.8),
 for this EOS. The general [`AbstractHelmholtzEOS`](@ref) implementation evaluates (C.8) from
 derivatives of ``A(\rho, T)`` in natural variables ``(\rho, T)``.
 """
