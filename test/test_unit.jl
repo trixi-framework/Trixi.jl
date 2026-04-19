@@ -781,10 +781,9 @@ end
     V = inv(rho)
     eos = HelmholtzIdealGas()
     ref = ideal_gas_analytical_helmholtz(V, T, eos)
-    @test isapprox(pressure(V, T, eos), ref.p; rtol = 1e-12, atol = 1e-9)
-    @test isapprox(Trixi.entropy_specific(V, T, eos), ref.s; rtol = 1e-12, atol = 1e-9)
-    @test isapprox(Trixi.energy_internal_specific(V, T, eos), ref.e; rtol = 1e-12,
-                   atol = 1e-9)
+    @test isapprox(pressure(V, T, eos), ref.p)
+    @test isapprox(Trixi.entropy_specific(V, T, eos), ref.s)
+    @test isapprox(energy_internal_specific(V, T, eos), ref.e)
 
     ig = IdealGas(1.4, eos.R)
     @test Trixi.speed_of_sound(V, T, eos) ≈ Trixi.speed_of_sound(V, T, ig)
@@ -793,8 +792,8 @@ end
                         Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
                         V, T, eos)
     @test c_direct ≈ c_fallback
-    @test Trixi.temperature(V, ref.e, eos) ≈ T
-    e_h = Trixi.energy_internal_specific(V, T, eos)
+    @test temperature(V, ref.e, eos) ≈ T
+    e_h = energy_internal_specific(V, T, eos)
     p_h = pressure(V, T, eos)
     s_h = Trixi.entropy_specific(V, T, eos)
     @test Trixi.gibbs_free_energy(V, T, eos) ≈ e_h + p_h * V - T * s_h
