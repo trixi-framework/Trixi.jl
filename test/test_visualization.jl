@@ -32,7 +32,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                                "elixir_euler_basic.jl"),
                         "P4estMesh" => ("p4est_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
+                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
+                        "DGMulti (FDSBP)" => ("dgmulti_2d",
+                                              "elixir_euler_cgsbp_periodic.jl"))
 
 @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
