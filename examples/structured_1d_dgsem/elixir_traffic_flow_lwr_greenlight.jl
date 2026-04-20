@@ -42,12 +42,12 @@ function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t
     return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
+boundary_conditions = (; x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow)
 
 initial_condition = initial_condition_greenlight
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

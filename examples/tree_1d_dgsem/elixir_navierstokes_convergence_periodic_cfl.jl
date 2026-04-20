@@ -32,9 +32,9 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
+    @unpack gamma, inv_gamma_minus_one = equations
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -68,7 +68,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     E_x = p_x * inv_gamma_minus_one + 0.5 * rho_x * v1^2 + rho * v1 * v1_x
 
     # Some convenience constants
-    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    T_const = gamma * inv_gamma_minus_one / Pr
     inv_rho_cubed = 1.0 / (rho^3)
 
     # compute the source terms
@@ -103,11 +103,13 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
-                                             source_terms = source_terms_navier_stokes_convergence_test)
+                                             initial_condition, solver;
+                                             source_terms = source_terms_navier_stokes_convergence_test,
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -123,10 +125,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
-# For coarser grids, linear stability is governed by the advective/convective CFL condition,
+# For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements (e.g. initial_refinement_level = 8) the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 2.7,
-                                     cfl_diffusive = 0.2)
+                                     cfl_parabolic = 0.2)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

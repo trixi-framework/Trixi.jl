@@ -42,7 +42,23 @@ end
     end
 end
 
-@inline nelements(dg::DGMulti, cache) = size(cache.u_values)[end]
+@inline nelements(dg::DGMulti, cache) = size(cache.solution_container.u_values)[end]
+
+# Returns the components needed to iterate efficiently over the entries of either a
+# `SparseMatrixCSC` or `Adjoint{SparseMatrixCSC}`, for example when performing flux
+# differencing calculations. 
+# 
+# For `Adjoint{SparseMatrixCSC}` (used by `DGMultiFluxDiff`), since `parent(A)` is a 
+# `SparseMatrixCSC` stored in column-major order, iterating over its columns gives 
+# row-major access to `A`.
+# 
+# For `SparseMatrixCSC` (used by `DGMultiPeriodicFDSBP`, for example), `parent(A)` 
+# simply returns `A`. 
+@inline function sparse_operator_data(A::Union{<:SparseMatrixCSC,
+                                               <:Adjoint{<:Any, <:SparseMatrixCSC}})
+    A_base = parent(A)
+    return A_base, axes(A, 2), rowvals(A_base), nonzeros(A_base)
+end
 
 """
     eachdim(mesh)
@@ -139,8 +155,7 @@ end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
-                                    mesh::DGMultiMesh,
-                                    dg::DGMulti,
+                                    mesh::DGMultiMesh, dg::DGMulti,
                                     cache) where {Keys, ValueTypes <: NTuple{N, Any}
                                                   } where {N}
     return boundary_conditions
@@ -162,6 +177,31 @@ function set_zero!(du, dg::DGMulti, other_args...)
     return nothing
 end
 
+# Holds arrays shared across most DGMulti cache types:
+# solution values at volume/face quadrature points and thread-local scratch storage.
+struct DGMultiSolutionContainer{uType, ufType, ffType, lType}
+    u_values::uType
+    u_face_values::ufType
+    flux_face_values::ffType
+    local_values_threaded::lType
+end
+
+# Allocates arrays shared across most DGMulti cache types.
+function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
+                                               dg::DGMulti,
+                                               uEltype)
+    rd = dg.basis
+    md = mesh.md
+    nvars = nvariables(equations)
+    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
+    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
+    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
+                             for _ in 1:Threads.maxthreadid()]
+    return DGMultiSolutionContainer(u_values, u_face_values, flux_face_values,
+                                    local_values_threaded)
+end
+
 # Constructs cache variables for both affine and non-affine (curved) DGMultiMeshes
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, RealT,
                       uEltype) where {NDIMS}
@@ -174,22 +214,12 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     # ∫f(u) * dv/dx_i = ∑_j (Vq*Drst[i])'*diagm(wq)*(rstxyzJ[i,j].*f(Vq*u))
     weak_differentiation_matrices = map(D -> -M \ ((Vq * D)' * Diagonal(wq)), Drst)
 
-    nvars = nvariables(equations)
-
-    # storage for volume quadrature values, face quadrature values, flux values
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    u_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
-    flux_face_values = allocate_nested_array(uEltype, nvars, size(md.xf), dg)
     if typeof(rd.approximation_type) <:
        Union{SBP, AbstractNonperiodicDerivativeOperator}
         lift_scalings = rd.wf ./ rd.wq[rd.Fmask] # lift scalings for diag-norm SBP operators
     else
         lift_scalings = nothing
     end
-
-    # local storage for volume integral and source computations
-    local_values_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                             for _ in 1:Threads.maxthreadid()]
 
     # For curved meshes, we interpolate geometric terms from nodal points to quadrature points.
     # For affine meshes, we just access one element of this interpolated data.
@@ -199,21 +229,24 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     invJ = inv.(rd.Vq * md.J)
 
     # for scaling by curved geometric terms (not used by affine DGMultiMesh)
+    nvars = nvariables(equations)
     flux_threaded = [[allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                       for _ in 1:NDIMS] for _ in 1:Threads.maxthreadid()]
     rotated_flux_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
                              for _ in 1:Threads.maxthreadid()]
 
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
-            u_values, u_face_values, flux_face_values,
-            local_values_threaded, flux_threaded, rotated_flux_threaded)
+            solution_container, flux_threaded, rotated_flux_threaded)
 end
 
 function compute_coefficients!(::Nothing, u, initial_condition, t,
                                mesh::DGMultiMesh, equations, dg::DGMulti, cache)
     md = mesh.md
     rd = dg.basis
-    @unpack u_values = cache
+    (; u_values) = cache.solution_container
 
     # evaluate the initial condition at quadrature points
     @threaded for i in each_quad_node_global(mesh, dg, cache)
@@ -346,88 +379,98 @@ end
 function prolong2interfaces!(cache, u,
                              mesh::DGMultiMesh, equations, dg::DGMulti)
     rd = dg.basis
-    @unpack u_face_values = cache
+    (; u_face_values) = cache.solution_container
     apply_to_each_field(mul_by!(rd.Vf), u_face_values, u)
 
     return nothing
 end
 
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.solution_container.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for affine meshes
-function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
-                               cache)
-    rd = dg.basis
-    md = mesh.md
-    @unpack weak_differentiation_matrices, dxidxhatj, u_values, local_values_threaded = cache
-    @unpack rstxyzJ = md # geometric terms
+@inline function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                         have_nonconservative_terms::False, equations,
+                                         volume_integral::VolumeIntegralWeakForm,
+                                         dg::DGMulti, cache)
+    @unpack weak_differentiation_matrices, dxidxhatj = cache
+    (; u_values, local_values_threaded) = cache.solution_container
 
-    # interpolate to quadrature points
-    apply_to_each_field(mul_by!(rd.Vq), u_values, u)
-
-    @threaded for e in eachelement(mesh, dg, cache)
-        flux_values = local_values_threaded[Threads.threadid()]
-        for i in eachdim(mesh)
-            # Here, the broadcasting operation does allocate
-            #flux_values .= flux.(view(u_values, :, e), i, equations)
-            # Use loop instead
-            for j in eachindex(flux_values)
-                flux_values[j] = flux(u_values[j, e], i, equations)
-            end
-            for j in eachdim(mesh)
-                apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j],
-                                                  dxidxhatj[i, j][1, e]),
-                                    view(du, :, e), flux_values)
-            end
+    flux_values = local_values_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+        # Here, the broadcasting operation does allocate
+        #flux_values .= flux.(view(u_values, :, e), i, equations)
+        # Use loop instead
+        for j in eachindex(flux_values)
+            flux_values[j] = flux(u_values[j, element], i, equations)
+        end
+        for j in eachdim(mesh)
+            apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j],
+                                              dxidxhatj[i, j][1, element]),
+                                view(du, :, element), flux_values)
         end
     end
 
     return nothing
 end
 
+# CARE: This function requires that interpolation to quadrature points is performed before
+# to populate cache.solution_container.u_values, see `calc_volume_integral!` for `VolumeIntegralWeakForm`.
 # version for curved meshes
-function calc_volume_integral!(du, u, mesh::DGMultiMesh{NDIMS, <:NonAffine},
-                               have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
-                               cache) where {NDIMS}
-    rd = dg.basis
-    (; weak_differentiation_matrices, u_values) = cache
-    (; dxidxhatj) = cache
+@inline function volume_integral_kernel!(du, u, element,
+                                         mesh::DGMultiMesh{NDIMS, <:NonAffine},
+                                         have_nonconservative_terms::False, equations,
+                                         volume_integral::VolumeIntegralWeakForm,
+                                         dg::DGMulti, cache) where {NDIMS}
+    (; weak_differentiation_matrices, dxidxhatj) = cache
+    (; u_values) = cache.solution_container
 
+    flux_values = cache.flux_threaded[Threads.threadid()]
+    for i in eachdim(mesh)
+        # Here, the broadcasting operation does not allocate
+        flux_values[i] .= flux.(view(u_values, :, element), i, equations)
+    end
+
+    # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
+    # Example: df_x/dx + df_y/dy = dr/dx * df_x/dr + ds/dx * df_x/ds
+    #                  + dr/dy * df_y/dr + ds/dy * df_y/ds
+    #                  = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
+    #                  = Dr * (f_r) + Ds * (f_s)
+
+    rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
+    for j in eachdim(mesh)
+        fill!(rotated_flux_values, zero(eltype(rotated_flux_values)))
+
+        # compute rotated fluxes
+        for i in eachdim(mesh)
+            for ii in eachindex(rotated_flux_values)
+                flux_i_node = flux_values[i][ii]
+                dxidxhatj_node = dxidxhatj[i, j][ii, element]
+                rotated_flux_values[ii] = rotated_flux_values[ii] +
+                                          dxidxhatj_node * flux_i_node
+            end
+        end
+
+        # apply weak differentiation matrices to rotated fluxes
+        apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j]),
+                            view(du, :, element), rotated_flux_values)
+    end
+
+    return nothing
+end
+
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakForm, dg::DGMulti,
+                               cache)
+    rd = dg.basis
+    (; u_values) = cache.solution_container
     # interpolate to quadrature points
     apply_to_each_field(mul_by!(rd.Vq), u_values, u)
 
-    @threaded for e in eachelement(mesh, dg, cache)
-        flux_values = cache.flux_threaded[Threads.threadid()]
-        for i in eachdim(mesh)
-            # Here, the broadcasting operation does not allocate
-            flux_values[i] .= flux.(view(u_values, :, e), i, equations)
-        end
-
-        # rotate flux with df_i/dx_i = sum_j d(x_i)/d(x̂_j) * d(f_i)/d(x̂_j).
-        # Example: df_x/dx + df_y/dy = dr/dx * df_x/dr + ds/dx * df_x/ds
-        #                  + dr/dy * df_y/dr + ds/dy * df_y/ds
-        #                  = Dr * (dr/dx * fx + dr/dy * fy) + Ds * (...)
-        #                  = Dr * (f_r) + Ds * (f_s)
-
-        rotated_flux_values = cache.rotated_flux_threaded[Threads.threadid()]
-        for j in eachdim(mesh)
-            fill!(rotated_flux_values, zero(eltype(rotated_flux_values)))
-
-            # compute rotated fluxes
-            for i in eachdim(mesh)
-                for ii in eachindex(rotated_flux_values)
-                    flux_i_node = flux_values[i][ii]
-                    dxidxhatj_node = dxidxhatj[i, j][ii, e]
-                    rotated_flux_values[ii] = rotated_flux_values[ii] +
-                                              dxidxhatj_node * flux_i_node
-                end
-            end
-
-            # apply weak differentiation matrices to rotated fluxes
-            apply_to_each_field(mul_by_accum!(weak_differentiation_matrices[j]),
-                                view(du, :, e), rotated_flux_values)
-        end
+    @threaded for element in eachelement(mesh, dg, cache)
+        volume_integral_kernel!(du, u, element, mesh,
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
 
     return nothing
@@ -440,7 +483,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     @unpack surface_flux = surface_integral
     md = mesh.md
     @unpack mapM, mapP, nxyzJ, Jf = md
-    @unpack u_face_values, flux_face_values = cache
+    (; u_face_values, flux_face_values) = cache.solution_container
 
     @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
 
@@ -462,7 +505,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     flux_conservative, flux_nonconservative = surface_integral.surface_flux
     md = mesh.md
     @unpack mapM, mapP, nxyzJ, Jf = md
-    @unpack u_face_values, flux_face_values = cache
+    (; u_face_values, flux_face_values) = cache.solution_container
 
     @threaded for face_node_index in each_face_node_global(mesh, dg, cache)
 
@@ -490,13 +533,14 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     return nothing
 end
 
-# assumes cache.flux_face_values is computed and filled with
+# assumes cache.solution_container.flux_face_values is computed and filled with
 # for polynomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)
     rd = dg.basis
-    apply_to_each_field(mul_by_accum!(rd.LIFT), du, cache.flux_face_values)
+    apply_to_each_field(mul_by_accum!(rd.LIFT), du,
+                        cache.solution_container.flux_face_values)
 
     return nothing
 end
@@ -506,7 +550,7 @@ function prolong2interfaces!(cache, u,
                              mesh::DGMultiMesh, equations, dg::DGMultiSBP)
     rd = dg.basis
     @unpack Fmask = rd
-    @unpack u_face_values = cache
+    (; u_face_values) = cache.solution_container
     @threaded for e in eachelement(mesh, dg, cache)
         for (i, fid) in enumerate(Fmask)
             u_face_values[i, e] = u[fid, e]
@@ -522,7 +566,8 @@ function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiSBP, cache)
     rd = dg.basis
-    @unpack flux_face_values, lift_scalings = cache
+    (; flux_face_values) = cache.solution_container
+    @unpack lift_scalings = cache
 
     @threaded for e in eachelement(mesh, dg, cache)
         for i in each_face_node(mesh, dg, cache)
@@ -556,7 +601,7 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
                                     dg::DGMulti{NDIMS}) where {NDIMS}
     rd = dg.basis
     md = mesh.md
-    @unpack u_face_values, flux_face_values = cache
+    (; u_face_values, flux_face_values) = cache.solution_container
     @unpack xyzf, nxyzJ, Jf = md
     @unpack surface_flux = dg.surface_integral
 
@@ -591,8 +636,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
         end
     end
 
-    # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
-    # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+    # Note: modifying the values of the reshaped array modifies the values of cache.solution_container.flux_face_values.
+    # However, we don't have to re-reshape, since cache.solution_container.flux_face_values still retains its original shape.
 
     return nothing
 end
@@ -615,8 +660,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
     # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
     reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
 
-    u_face_values = reshape_by_face(cache.u_face_values)
-    flux_face_values = reshape_by_face(cache.flux_face_values)
+    u_face_values = reshape_by_face(cache.solution_container.u_face_values)
+    flux_face_values = reshape_by_face(cache.solution_container.flux_face_values)
     Jf = reshape_by_face(md.Jf)
     nxyzJ, xyzf = reshape_by_face.(md.nxyzJ), reshape_by_face.(md.xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
 
@@ -641,8 +686,8 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
         end
     end
 
-    # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.
-    # However, we don't have to re-reshape, since cache.flux_face_values still retains its original shape.
+    # Note: modifying the values of the reshaped array modifies the values of cache.solution_container.flux_face_values.
+    # However, we don't have to re-reshape, since cache.solution_container.flux_face_values still retains its original shape.
 
     return nothing
 end
@@ -668,7 +713,8 @@ function invert_jacobian!(du, mesh::DGMultiMesh{NDIMS, <:NonAffine}, equations,
                           dg::DGMulti, cache; scaling = -1) where {NDIMS}
     # Vq = interpolation matrix to quadrature points, Pq = quadrature-based L2 projection matrix
     (; Pq, Vq) = dg.basis
-    (; local_values_threaded, invJ) = cache
+    (; invJ) = cache
+    (; local_values_threaded) = cache.solution_container
 
     @threaded for e in eachelement(mesh, dg, cache)
         du_at_quad_points = local_values_threaded[Threads.threadid()]
@@ -704,7 +750,7 @@ function calc_sources!(du, u, t, source_terms,
     rd = dg.basis
     md = mesh.md
     @unpack Pq = rd
-    @unpack u_values, local_values_threaded = cache
+    (; u_values, local_values_threaded) = cache.solution_container
     @threaded for e in eachelement(mesh, dg, cache)
         source_values = local_values_threaded[Threads.threadid()]
 

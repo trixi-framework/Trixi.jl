@@ -47,7 +47,7 @@ initial_condition = initial_condition_subsonic
     return flux(u_surface, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_outflow_general,
+boundary_conditions = (; x_neg = boundary_condition_outflow_general,
                        x_pos = boundary_condition_outflow_general,
                        y_neg = boundary_condition_outflow_general,
                        y_pos = boundary_condition_outflow_general)
@@ -69,7 +69,7 @@ volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

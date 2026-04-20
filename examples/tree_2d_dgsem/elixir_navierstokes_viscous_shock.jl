@@ -123,7 +123,7 @@ function boundary_condition_outflow(u_inner, orientation, direction, x, t,
     return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
+boundary_conditions = (; x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -153,6 +153,7 @@ boundary_conditions_parabolic = (x_neg = boundary_condition_parabolic,
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -170,12 +171,12 @@ alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-# Admissible stepsize is governed by the diffusive CFL condition.
-# Unless the advective cfl number `cfl` is not reduced to e.g. `0.1` 
+# Admissible stepsize is governed by the parabolic CFL condition.
+# Unless the hyperbolic CFL number `cfl` is reduced to e.g. `0.1`
 # (which is overly restrictive for this problem),
-# the diffusive CFL restricts the timestep for this problem.
+# the parabolic CFL restricts the timestep for this problem.
 stepsize_callback = StepsizeCallback(cfl = 0.2,
-                                     cfl_diffusive = 0.2)
+                                     cfl_parabolic = 0.2)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)

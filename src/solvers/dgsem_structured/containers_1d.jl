@@ -6,8 +6,8 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::StructuredMesh{1}, basis::LobattoLegendreBasis)
-    @unpack node_coordinates, left_neighbors,
+function init_elements!(elements, mesh::StructuredMesh{1}, basis::AbstractBasisSBP)
+    @unpack node_coordinates, boundary_node_coordinates, left_neighbors,
     jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
     # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
@@ -23,6 +23,39 @@ function init_elements!(elements, mesh::StructuredMesh{1}, basis::LobattoLegendr
     fill!(contravariant_vectors, NaN)
 
     initialize_left_neighbor_connectivity!(left_neighbors, mesh)
+    calc_boundary_node_coordinates!(boundary_node_coordinates, node_coordinates,
+                                    mesh, basis)
+
+    return nothing
+end
+
+function calc_boundary_node_coordinates!(boundary_node_coordinates,
+                                         node_coordinates,
+                                         mesh::StructuredMesh{1},
+                                         basis::LobattoLegendreBasis)
+    nelements = size(mesh, 1)
+
+    dim = 1 # spatial dimension
+    boundary_node_coordinates[dim, 1] = node_coordinates[dim, 1, 1]
+    boundary_node_coordinates[dim, 2] = node_coordinates[dim, nnodes(basis), nelements]
+
+    return nothing
+end
+
+function calc_boundary_node_coordinates!(boundary_node_coordinates,
+                                         node_coordinates,
+                                         mesh::StructuredMesh{1},
+                                         basis::GaussLegendreBasis)
+    nelements = size(mesh, 1)
+    boundary_matrix = basis.boundary_interpolation
+
+    dim = 1 # spatial dimension
+    # For structured mesh:
+    # Left/right boundaries are really left(-1)/right(+1) [first/second column of boundary matrix]
+    @views boundary_node_coordinates[dim, 1] = dot(boundary_matrix[:, 1],
+                                                   node_coordinates[dim, :, 1])
+    @views boundary_node_coordinates[dim, 2] = dot(boundary_matrix[:, 2],
+                                                   node_coordinates[dim, :, nelements])
 
     return nothing
 end
@@ -31,7 +64,7 @@ end
 # `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, cell_x, mapping,
                                 mesh::StructuredMesh{1},
-                                basis::LobattoLegendreBasis)
+                                basis::AbstractBasisSBP)
     @unpack nodes = basis
 
     # Get cell length in reference mesh
@@ -51,7 +84,7 @@ end
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element,
                                node_coordinates::AbstractArray{<:Any, 3},
-                               basis::LobattoLegendreBasis)
+                               basis::AbstractBasisSBP)
     @views mul!(jacobian_matrix[1, 1, :, element], basis.derivative_matrix,
                 node_coordinates[1, :, element]) # x_ξ
 

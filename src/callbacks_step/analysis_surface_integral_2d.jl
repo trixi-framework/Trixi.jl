@@ -250,6 +250,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
             j_node += j_node_step
         end
     end
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
     return surface_integral
 end
 
@@ -261,7 +264,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
                  mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache, semi,
-                 cache_parabolic) where {Variable <: VariableViscous}
+                 cache_parabolic) where {Variable <: VariableParabolic}
     @unpack boundaries = cache
     @unpack node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
@@ -271,8 +274,8 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
     boundary_indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
     # Additions for parabolic
-    @unpack viscous_container = cache_parabolic
-    @unpack gradients = viscous_container
+    @unpack parabolic_container = cache_parabolic
+    @unpack gradients = parabolic_container
 
     gradients_x, gradients_y = gradients
 
@@ -319,6 +322,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
             i_node += i_node_step
             j_node += j_node_step
         end
+    end
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
     end
     return surface_integral
 end

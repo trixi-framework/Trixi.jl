@@ -34,7 +34,16 @@ end
 and must return an array of dimension
 `(ntuple(_ -> n_nodes, ndims(mesh))..., n_elements)`.
 
-For parabolic-hyperbolic equations `equations_parabolic` and `cache_parabolic` must be added:
+For purely parabolic equations, `cache_parabolic` must be added:
+```julia
+function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
+                           cache_parabolic)
+    # Implementation goes here
+end
+```
+
+For hyperbolic-parabolic equations, `equations_parabolic` and `cache_parabolic` must be 
+added:
 ```julia
 function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
@@ -287,6 +296,11 @@ end
                                     element_variables = Dict{Symbol, Any}(),
                                     node_variables = Dict{Symbol, Any}();
                                     system = "")
+    # TODO GPU currently on CPU
+    backend = trixi_backend(u_ode)
+    if backend !== nothing
+        u_ode = Array(u_ode)
+    end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
     save_solution_file(u, t, dt, iter, mesh, equations, solver, cache,

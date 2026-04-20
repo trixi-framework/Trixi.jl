@@ -12,7 +12,7 @@ The ideal compressible GLM-MHD equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho \\ \rho \mathbf{v} \\ \rho e \\ \mathbf{B} \\ \psi
+\rho \\ \rho \mathbf{v} \\ \rho e_{\text{total}} \\ \mathbf{B} \\ \psi
 \end{pmatrix}
 +
 \nabla \cdot
@@ -40,9 +40,9 @@ c_h \mathbf{B}
 for an ideal gas in two space dimensions.
 Here, ``\mathbf{v}`` is the velocity, ``\mathbf{B}`` the magnetic field, ``c_h`` the hyperbolic divergence cleaning speed,
 ``\psi`` the generalized Lagrangian Multiplier (GLM),
-``e`` the specific total energy **rather than** specific internal energy, and
+``e_{\text{total}}`` the specific total energy, and
 ```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
+p = (\gamma - 1) \left( \rho e_{\text{total}} - \frac{1}{2} \rho \Vert \mathbf{v} \Vert_2 ^2 - \frac{1}{2} \Vert \mathbf{B} \Vert_2 ^2 - \frac{1}{2} \psi^2 \right)
 ```
 the pressure, ``\gamma`` the total heat capacity ratio and ``\underline{I}`` the ``3\times 3`` identity matrix.
 """
@@ -71,7 +71,7 @@ end
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
-    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
+    return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e_total", "B1", "B2", "B3", "psi")
 end
 function varnames(::typeof(cons2prim), ::IdealGlmMhdEquations2D)
     return ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
@@ -95,12 +95,12 @@ function initial_condition_constant(x, t, equations::IdealGlmMhdEquations2D)
     rho_v1 = convert(RealT, 0.1)
     rho_v2 = -convert(RealT, 0.2)
     rho_v3 = -0.5f0
-    rho_e = 50
+    rho_e_total = 50
     B1 = 3
     B2 = -convert(RealT, 1.2)
     B3 = 0.5f0
     psi = 0
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi)
 end
 
 """
@@ -108,7 +108,7 @@ end
 
 An Alfvén wave as smooth initial condition used for convergence tests.
 See for reference section 4.2 in
-- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, and Stefanie Walch (2016) 
+- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, and Stefanie Walch (2016)
   A novel high-order, entropy stable, 3D AMR MHD solver with guaranteed positive pressure
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
@@ -164,13 +164,13 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     kin_en = 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
     mag_en = 0.5f0 * (B1 * B1 + B2 * B2 + B3 * B3)
-    p_over_gamma_minus_one = (rho_e - kin_en - mag_en - 0.5f0 * psi^2)
+    p_over_gamma_minus_one = (rho_e_total - kin_en - mag_en - 0.5f0 * psi^2)
     p = (equations.gamma - 1) * p_over_gamma_minus_one
     if orientation == 1
         f1 = rho_v1
@@ -203,13 +203,13 @@ end
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     kin_en = 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
     mag_en = 0.5f0 * (B1 * B1 + B2 * B2 + B3 * B3)
-    p_over_gamma_minus_one = (rho_e - kin_en - mag_en - 0.5f0 * psi^2)
+    p_over_gamma_minus_one = (rho_e_total - kin_en - mag_en - 0.5f0 * psi^2)
     p = (equations.gamma - 1) * p_over_gamma_minus_one
 
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
@@ -244,7 +244,7 @@ Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations2D`](@ref).
 
-On curvilinear meshes, the implementation differs from the reference since we use the averaged 
+On curvilinear meshes, the implementation differs from the reference since we use the averaged
 normal direction for the metrics dealiasing.
 
 ## References
@@ -256,8 +256,8 @@ normal direction for the metrics dealiasing.
 """
 @inline function flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
                                              equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -294,8 +294,8 @@ end
 @inline function flux_nonconservative_powell(u_ll, u_rr,
                                              normal_direction::AbstractVector,
                                              equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -321,7 +321,7 @@ end
     return f
 end
 
-# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to
 # enable dispatch on the type of the nonconservative term (symmetric / jump).
 struct FluxNonConservativePowellLocalSymmetric <:
        FluxNonConservative{NonConservativeSymmetric()}
@@ -361,8 +361,8 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          orientation::Integer,
                                                                          equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -402,8 +402,8 @@ end
 @inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                                          normal_direction::AbstractVector,
                                                                          equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -455,7 +455,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                                                                          equations::IdealGlmMhdEquations2D,
                                                                          nonconservative_type::NonConservativeLocal,
                                                                          nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -506,7 +506,7 @@ end
                                                                          equations::IdealGlmMhdEquations2D,
                                                                          nonconservative_type::NonConservativeLocal,
                                                                          nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
     if nonconservative_term == 1
         # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -564,8 +564,8 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                                                                          equations::IdealGlmMhdEquations2D,
                                                                          nonconservative_type::NonConservativeSymmetric,
                                                                          nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -614,8 +614,8 @@ end
                                                                          equations::IdealGlmMhdEquations2D,
                                                                          nonconservative_type::NonConservativeSymmetric,
                                                                          nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -651,7 +651,7 @@ end
     return f
 end
 
-# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to
 # enable dispatch on the type of the nonconservative term (symmetric / jump).
 struct FluxNonConservativePowellLocalJump <:
        FluxNonConservative{NonConservativeJump()}
@@ -674,7 +674,7 @@ Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations2D`](@ref).
 
 This implementation uses a non-conservative term that can be written as the product
-of local and jump parts. 
+of local and jump parts.
 
 The two other flux functions with the same name return either the local
 or jump portion of the non-conservative flux based on the type of the
@@ -688,8 +688,8 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     orientation::Integer,
                                                                     equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -729,8 +729,8 @@ end
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     normal_direction::AbstractVector,
                                                                     equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -770,7 +770,7 @@ end
                                             nonconservative_term::Integer)
 
 Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
-the non-conservative staggered "fluxes" for subcell limiting. 
+the non-conservative staggered "fluxes" for subcell limiting.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
 ## References
@@ -782,7 +782,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                                                                     equations::IdealGlmMhdEquations2D,
                                                                     nonconservative_type::NonConservativeLocal,
                                                                     nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         v1_ll = rho_v1_ll / rho_ll
@@ -832,7 +832,7 @@ end
                                                                     equations::IdealGlmMhdEquations2D,
                                                                     nonconservative_type::NonConservativeLocal,
                                                                     nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
 
     if nonconservative_term == 1
         # Powell nonconservative term: (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -880,7 +880,7 @@ end
                                            nonconservative_term::Integer)
 
 Jump part of the Powell and GLM non-conservative terms. Needed for the calculation of
-the non-conservative staggered "fluxes" for subcell limiting. 
+the non-conservative staggered "fluxes" for subcell limiting.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
 ## References
@@ -892,8 +892,8 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                                                                     equations::IdealGlmMhdEquations2D,
                                                                     nonconservative_type::NonConservativeJump,
                                                                     nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -942,8 +942,8 @@ end
                                                                     equations::IdealGlmMhdEquations2D,
                                                                     nonconservative_type::NonConservativeJump,
                                                                     nonconservative_term::Integer)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -989,8 +989,8 @@ Entropy conserving two-point flux by
 function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
                           equations::IdealGlmMhdEquations2D)
     # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     v1_ll = rho_v1_ll / rho_ll
     v2_ll = rho_v2_ll / rho_ll
@@ -1003,10 +1003,10 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
     p_ll = (equations.gamma - 1) *
-           (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+           (rho_e_total_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
             0.5f0 * psi_ll^2)
     p_rr = (equations.gamma - 1) *
-           (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+           (rho_e_total_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
             0.5f0 * psi_rr^2)
     beta_ll = 0.5f0 * rho_ll / p_ll
     beta_rr = 0.5f0 * rho_rr / p_rr
@@ -1580,12 +1580,12 @@ end
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    p = (equations.gamma - 1) * (rho_e -
+    p = (equations.gamma - 1) * (rho_e_total -
          0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
           + B1 * B1 + B2 * B2 + B3 * B3
           + psi * psi))
@@ -1595,14 +1595,15 @@ end
 
 # Convert conservative variables to entropy variables
 @inline function cons2entropy(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     v_square = v1^2 + v2^2 + v3^2
     p = (equations.gamma - 1) *
-        (rho_e - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2) - 0.5f0 * psi^2)
+        (rho_e_total - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+         0.5f0 * psi^2)
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 
@@ -1654,11 +1655,11 @@ end
     rho_v1 = rho * v1
     rho_v2 = rho * v2
     rho_v3 = rho * v3
-    rho_e = p * equations.inv_gamma_minus_one +
-            0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-            0.5f0 * (B1^2 + B2^2 + B3^2) + 0.5f0 * psi^2
+    rho_e_total = p * equations.inv_gamma_minus_one +
+                  0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+                  0.5f0 * (B1^2 + B2^2 + B3^2) + 0.5f0 * psi^2
 
-    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi)
 end
 
 @inline function density(u, equations::IdealGlmMhdEquations2D)
@@ -1687,15 +1688,15 @@ Computes the pressure for an ideal equation of state with
 isentropic exponent/adiabatic index ``\gamma`` from the conserved variables `u`.
 ```math
 \begin{aligned}
-p &= (\gamma - 1) \left( E_\mathrm{tot} - E_\mathrm{kin} - E_\mathrm{mag} - \frac{1}{2}\psi^2 \right) \\
-  &= (\gamma - 1) \left( \rho e - \frac{1}{2} 
+p &= (\gamma - 1) \left( \rho e_{\text{total}} - \rho e_{\text{kinetic}} - \rho e_{\text{magnetic}} - \frac{1}{2}\psi^2 \right) \\
+  &= (\gamma - 1) \left( \rho e - \frac{1}{2}
   \left[\rho \Vert v \Vert_2^2  + \Vert B \Vert_2^2 + \psi^2 \right] \right)
 \end{aligned}
 ```
 """
 @inline function pressure(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    p = (equations.gamma - 1) * (rho_e -
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
+    p = (equations.gamma - 1) * (rho_e_total -
          0.5f0 *
          ((rho_v1^2 + rho_v2^2 + rho_v3^2) / rho +
           B1^2 + B2^2 + B3^2 + psi^2))
@@ -1705,7 +1706,7 @@ end
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
                                        u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -1717,8 +1718,8 @@ end
 end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-    rho_times_p = (equations.gamma - 1) * (rho * rho_e -
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = u
+    rho_times_p = (equations.gamma - 1) * (rho * rho_e_total -
                    0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2 +
                     rho * (B1^2 + B2^2 + B3^2 + psi^2)))
     return rho_times_p
@@ -1727,13 +1728,13 @@ end
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
 @inline function calc_fast_wavespeed(cons, orientation::Integer,
                                      equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = cons
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     kin_en = 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
     mag_en = 0.5f0 * (B1 * B1 + B2 * B2 + B3 * B3)
-    p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5f0 * psi^2)
+    p = (equations.gamma - 1) * (rho_e_total - kin_en - mag_en - 0.5f0 * psi^2)
     a_square = equations.gamma * p / rho
     sqrt_rho = sqrt(rho)
     b1 = B1 / sqrt_rho
@@ -1752,13 +1753,13 @@ end
 
 @inline function calc_fast_wavespeed(cons, normal_direction::AbstractVector,
                                      equations::IdealGlmMhdEquations2D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total, B1, B2, B3, psi = cons
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     kin_en = 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
     mag_en = 0.5f0 * (B1 * B1 + B2 * B2 + B3 * B3)
-    p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5f0 * psi^2)
+    p = (equations.gamma - 1) * (rho_e_total - kin_en - mag_en - 0.5f0 * psi^2)
     a_square = equations.gamma * p / rho
     sqrt_rho = sqrt(rho)
     b1 = B1 / sqrt_rho
@@ -1788,8 +1789,8 @@ as given by
 """
 @inline function calc_fast_wavespeed_roe(u_ll, u_rr, orientation::Integer,
                                          equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     # Calculate primitive variables
     v1_ll = rho_v1_ll / rho_ll
@@ -1798,7 +1799,7 @@ as given by
     kin_en_ll = 0.5f0 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll + rho_v3_ll * v3_ll)
     mag_norm_ll = B1_ll * B1_ll + B2_ll * B2_ll + B3_ll * B3_ll
     p_ll = (equations.gamma - 1) *
-           (rho_e_ll - kin_en_ll - 0.5f0 * mag_norm_ll - 0.5f0 * psi_ll^2)
+           (rho_e_total_ll - kin_en_ll - 0.5f0 * mag_norm_ll - 0.5f0 * psi_ll^2)
 
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
@@ -1806,7 +1807,7 @@ as given by
     kin_en_rr = 0.5f0 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr + rho_v3_rr * v3_rr)
     mag_norm_rr = B1_rr * B1_rr + B2_rr * B2_rr + B3_rr * B3_rr
     p_rr = (equations.gamma - 1) *
-           (rho_e_rr - kin_en_rr - 0.5f0 * mag_norm_rr - 0.5f0 * psi_rr^2)
+           (rho_e_total_rr - kin_en_rr - 0.5f0 * mag_norm_rr - 0.5f0 * psi_rr^2)
 
     # compute total pressure which is thermal + magnetic pressures
     p_total_ll = p_ll + 0.5f0 * mag_norm_ll
@@ -1828,8 +1829,8 @@ as given by
     B2_roe = B2_ll * rho_ll_roe + B2_rr * rho_rr_roe
     B3_roe = B3_ll * rho_ll_roe + B3_rr * rho_rr_roe
     # enthalpy
-    H_ll = (rho_e_ll + p_total_ll) / rho_ll
-    H_rr = (rho_e_rr + p_total_rr) / rho_rr
+    H_ll = (rho_e_total_ll + p_total_ll) / rho_ll
+    H_rr = (rho_e_total_rr + p_total_rr) / rho_rr
     H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
     # temporary variable see equation (4.12) in Cargo and Gallice
     X = 0.5f0 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
@@ -1860,8 +1861,8 @@ end
 
 @inline function calc_fast_wavespeed_roe(u_ll, u_rr, normal_direction::AbstractVector,
                                          equations::IdealGlmMhdEquations2D)
-    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
     # Calculate primitive variables
     v1_ll = rho_v1_ll / rho_ll
@@ -1870,7 +1871,7 @@ end
     kin_en_ll = 0.5f0 * (rho_v1_ll * v1_ll + rho_v2_ll * v2_ll + rho_v3_ll * v3_ll)
     mag_norm_ll = B1_ll * B1_ll + B2_ll * B2_ll + B3_ll * B3_ll
     p_ll = (equations.gamma - 1) *
-           (rho_e_ll - kin_en_ll - 0.5f0 * mag_norm_ll - 0.5f0 * psi_ll^2)
+           (rho_e_total_ll - kin_en_ll - 0.5f0 * mag_norm_ll - 0.5f0 * psi_ll^2)
 
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
@@ -1878,7 +1879,7 @@ end
     kin_en_rr = 0.5f0 * (rho_v1_rr * v1_rr + rho_v2_rr * v2_rr + rho_v3_rr * v3_rr)
     mag_norm_rr = B1_rr * B1_rr + B2_rr * B2_rr + B3_rr * B3_rr
     p_rr = (equations.gamma - 1) *
-           (rho_e_rr - kin_en_rr - 0.5f0 * mag_norm_rr - 0.5f0 * psi_rr^2)
+           (rho_e_total_rr - kin_en_rr - 0.5f0 * mag_norm_rr - 0.5f0 * psi_rr^2)
 
     # compute total pressure which is thermal + magnetic pressures
     p_total_ll = p_ll + 0.5f0 * mag_norm_ll
@@ -1900,8 +1901,8 @@ end
     B2_roe = B2_ll * rho_ll_roe + B2_rr * rho_rr_roe
     B3_roe = B3_ll * rho_ll_roe + B3_rr * rho_rr_roe
     # enthalpy
-    H_ll = (rho_e_ll + p_total_ll) / rho_ll
-    H_rr = (rho_e_rr + p_total_rr) / rho_rr
+    H_ll = (rho_e_total_ll + p_total_ll) / rho_ll
+    H_rr = (rho_e_total_rr + p_total_rr) / rho_rr
     H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
     # temporary variable see equation (4.12) in Cargo and Gallice
     X = 0.5f0 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *

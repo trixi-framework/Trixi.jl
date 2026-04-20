@@ -242,7 +242,7 @@ end
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::ParallelTreeMesh{2}, equations,
+function create_cache(mesh::TreeMeshParallel{2}, equations,
                       dg::DG, RealT, ::Type{uEltype}) where {uEltype <: Real}
     # Get cells for which an element needs to be created (i.e. all leaf cells)
     leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -253,7 +253,7 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations,
 
     mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
 
-    boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+    boundaries = init_boundaries(leaf_cell_ids, mesh, elements, dg.basis)
 
     mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
@@ -451,10 +451,12 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
 end
 
 function rhs!(du, u, t,
-              mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2},
-                          ParallelT8codeMesh{2}}, equations,
+              mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
+                          T8codeMeshParallel{2}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    backend = trixi_backend(u)
+
     # Start to receive MPI data
     @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 
@@ -479,7 +481,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -487,12 +489,12 @@ function rhs!(du, u, t,
     # Prolong solution to interfaces
     # TODO: Taal decide order of arguments, consistent vs. modified cache first?
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg)
+        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
     end
@@ -542,12 +544,13 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -561,7 +564,7 @@ function rhs!(du, u, t,
 end
 
 function prolong2mpiinterfaces!(cache, u,
-                                mesh::ParallelTreeMesh{2},
+                                mesh::TreeMeshParallel{2},
                                 equations, surface_integral, dg::DG)
     @unpack mpi_interfaces = cache
 
@@ -597,7 +600,7 @@ function prolong2mpiinterfaces!(cache, u,
 end
 
 function prolong2mpimortars!(cache, u,
-                             mesh::ParallelTreeMesh{2}, equations,
+                             mesh::TreeMeshParallel{2}, equations,
                              mortar_l2::LobattoLegendreMortarL2,
                              dg::DGSEM)
     @unpack mpi_mortars = cache
@@ -723,7 +726,7 @@ function prolong2mpimortars!(cache, u,
 end
 
 function calc_mpi_interface_flux!(surface_flux_values,
-                                  mesh::ParallelTreeMesh{2},
+                                  mesh::TreeMeshParallel{2},
                                   have_nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -764,7 +767,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
 end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
-                               mesh::ParallelTreeMesh{2},
+                               mesh::TreeMeshParallel{2},
                                have_nonconservative_terms::False, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
@@ -801,7 +804,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
-                                                mesh::ParallelTreeMesh{2}, equations,
+                                                mesh::TreeMeshParallel{2}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache,
                                                 mortar, fstar_primary_upper,

@@ -179,10 +179,19 @@ function create_cache(mesh::DGMultiMesh, equations,
                       dg::DGMultiFluxDiffPeriodicFDSBP, RealT, uEltype)
     md = mesh.md
 
-    # storage for volume quadrature values, face quadrature values, flux values
-    nvars = nvariables(equations)
-    u_values = allocate_nested_array(uEltype, nvars, size(md.xq), dg)
-    return (; u_values, invJ = inv.(md.J))
+    solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
+                                                               uEltype)
+
+    # since dg.basis.Drst is not skew-symmetric for CG operators, we explicitly construct
+    # the skew-symmetric operators for flux differencing
+    Qrst = map(A -> dg.basis.M * A, dg.basis.Drst)
+
+    # check for skew-symmetry
+    for dim in eachdim(mesh)
+        Q = Qrst[dim]
+        @assert isapprox(Q, -Q', atol = 1e-12, rtol = 0.0)
+    end
+    return (; solution_container, Qrst, invM = inv(dg.basis.M), invJ = inv.(md.J))
 end
 
 # Specialize calc_volume_integral for periodic SBP operators (assumes the operator is sparse).
@@ -199,26 +208,22 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
         for dim in eachdim(mesh)
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
-            # These are strong-form operators of the form `D = M \ Q` where `M` is diagonal
-            # and `Q` is skew-symmetric. Since `M` is diagonal, `inv(M)` scales the rows of `Q`.
-            # Then, `1 / M[i,i] * ∑_j Q[i,j] * volume_flux(u[i], u[j])` is equivalent to
-            #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
-            #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
+            # These are weak-form operators of the form `Q = M * D` where `M` is diagonal
+            # and `Q` is skew-symmetric. 
             # TODO: DGMulti.
             # This would have to be changed if `have_nonconservative_terms = False()`
             # because then `volume_flux` is non-symmetric.
-            A = dg.basis.Drst[dim]
+            A = cache.Qrst[dim]
 
-            A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
-            row_ids = axes(A, 2)
-            rows = rowvals(A_base)
-            vals = nonzeros(A_base)
+            # sparse_operator_data retrieves column indices and row offsets, but because 
+            # A is skew-symmetric, these are also the row indices and column offsets.
+            A_base, row_ids, cols, vals = sparse_operator_data(A)
 
             @threaded for i in row_ids
                 u_i = u[i]
                 du_i = du[i]
-                for id in nzrange(A_base, i)
-                    j = rows[id]
+                @inbounds for id in nzrange(A_base, i)
+                    j = cols[id]
                     u_j = u[j]
 
                     # we use the negative of A_ij since A is skew-symmetric, 
@@ -232,22 +237,53 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             end
         end
 
+        # apply M^{-1} once after all spatial dimensions.
+        @inbounds for i in eachindex(du)
+            du[i] = du[i] * cache.invM.diag[i]
+        end
+
     else # if using two threads or fewer
 
-        # Calls `hadamard_sum!``, which uses symmetry to reduce flux evaluations. Symmetry
-        # is expected to yield about a 2x speedup, so we default to the symmetry-exploiting
-        # volume integral unless we have >2 threads (which should yield >2 speedup).
+        # Exploit skew-symmetry to halve the number of flux evaluations (≈2x speedup).
+        # A = Qrst[dim] is skew-symmetric for periodic SBP operators on uniform grids, so
+        # A[i,j] = -A[j,i]. The stored CSC value vals[id] = A[j,i] = -A[i,j], hence
+        # we use -vals[id] to recover A[i,j], matching the multithreaded branch above.
         for dim in eachdim(mesh)
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
-            A = dg.basis.Drst[dim]
+            A = cache.Qrst[dim]
+            # sparse_operator_data retrieves column indices and row offsets, but because 
+            # A is skew-symmetric, these are also the row indices and column offsets.
+            A_base, row_ids, cols, vals = sparse_operator_data(A)
 
-            # since have_nonconservative_terms::False,
-            # the volume flux is symmetric.
-            flux_is_symmetric = True()
-            hadamard_sum!(du, A, flux_is_symmetric, volume_flux,
-                          normal_direction, u, equations)
+            @inbounds for i in row_ids
+                u_i = u[i]
+                du_i = du[i]
+                for id in nzrange(A_base, i)
+                    j = cols[id]
+                    # We use the symmetry of the volume flux and the anti-symmetry
+                    # of the derivative operator to save half of the volume flux
+                    # computations.
+                    if j > i
+                        A_ij = -vals[id]  # A[j,i] stored; skew-symmetry: -A[j,i] = A[i,j]
+                        u_j = u[j]
+                        AF_ij = 2 * A_ij *
+                                volume_flux(u_i, u_j, normal_direction, equations)
+                        du_i = du_i + AF_ij
+                        du[j] = du[j] - AF_ij # Due to skew-symmetry
+                    end
+                end
+                du[i] = du_i
+            end
+        end
+
+        # apply M^{-1} only after all skew-symmetric contributions are 
+        # accumulated over each dimension.
+        @inbounds for i in eachindex(du)
+            du[i] = du[i] * cache.invM.diag[i]
         end
     end
+
+    return nothing
 end
 end # @muladd

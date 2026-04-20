@@ -357,11 +357,12 @@ end
 ### StepsizeCallback
 ################################################################################
 # In case of coupled system, use minimum timestep over all systems
-function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        return calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
+        return calculate_dt(u_ode_slice, t, cfl_hyperbolic, cfl_parabolic,
+                            semi.semis[i])
     end
 
     return dt
@@ -646,7 +647,7 @@ end
 ### DGSEM/structured
 ################################################################################
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
@@ -656,12 +657,15 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The normal vector must be oriented in the direction
@@ -686,7 +690,7 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
@@ -696,12 +700,15 @@ end
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
-    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
     @unpack surface_flux = surface_integral
 
     cell_indices = get_boundary_indices(element, orientation, mesh)
 
-    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+    u_inner = get_node_vars(boundaries_u, equations, dg, surface_node_indices...,
+                            direction, element)
 
     # If the mapping is orientation-reversing, the contravariant vectors' orientation
     # is reversed as well. The normal vector must be oriented in the direction
@@ -777,7 +784,8 @@ function analyze_convergence(errors_coupled, iterations,
         append!(errors[i][:linf], errors_coupled[:linf][first:last])
     end
 
-    eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+    eocs = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
+    errorsmatrix = Vector{Dict{Symbol, Matrix{Float64}}}(undef, nsystems(semi_coupled))
     for i in eachsystem(semi_coupled)
         # Use visual cues to separate output from multiple systems
         println()
@@ -790,9 +798,10 @@ function analyze_convergence(errors_coupled, iterations,
         _, equations, _, _ = mesh_equations_solver_cache(semi)
         variablenames = varnames(cons2cons, equations)
 
-        eoc_mean_values[i] = analyze_convergence(errors[i], iterations, variablenames)
+        eocs[i], errorsmatrix[i] = analyze_convergence(errors[i], iterations,
+                                                       variablenames)
     end
 
-    return eoc_mean_values
+    return eocs, errorsmatrix
 end
 end # @muladd

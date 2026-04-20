@@ -262,9 +262,10 @@ end
 
 @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     using Trixi: convergence_test
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_weakform.jl"), 2)
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR,
+                                        "elixir_euler_weakform.jl"), 2)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [
                        4.243843382379403,
@@ -347,6 +348,28 @@ end
                             0.1662111846065654,
                             0.12344140473946856,
                             0.26978428189564774
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        maximum_entropy_increase=0.0,
+                        tspan=(0.0, 0.2),
+                        l2=[
+                            0.05570371489805444,
+                            0.03299286402646503,
+                            0.05224508023471742,
+                            0.08011545946002244
+                        ],
+                        linf=[
+                            0.24323216643032874,
+                            0.1685158282708948,
+                            0.12357902305982191,
+                            0.26981068435988087
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -508,6 +531,19 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cgsbp_periodic.jl"),
+                        l2=[
+                            1.2713306233672395e-4, 1.5304132439425007e-4,
+                            1.5304132439424308e-4, 3.192754742776865e-4
+                        ],
+                        linf=[
+                            3.6081264672516156e-4, 3.4235010781946684e-4,
+                            3.423501078176905e-4, 9.824814197632037e-4
+                        ])
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
