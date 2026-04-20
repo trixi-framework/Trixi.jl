@@ -456,7 +456,6 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     @unpack u = cache.mpi_mortars
     @threaded for mortar in eachmpimortar(dg, cache)
-        # Match local 2D API
         fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
                          fstar_primary_upper_threaded[Threads.threadid()])
 
@@ -523,7 +522,7 @@ end
                                     fstar_secondary[1])
 
             # Gradient stage: no extra sign flip / scale factor
-            # (same rationale as local 2D parabolic mortar_fluxes_to_elements!)
+            # (same as local 2D parabolic mortar_fluxes_to_elements!)
             if :i_backward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
@@ -613,7 +612,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                         # prolong flux dotted with outward normal on the small element.
                         # The large-element normal is -2x the small-element normal,
                         # hence the factor -1/2 here.
-                        u_buffer[v, i] = -0.5f0 * dot(flux_node, normal_direction)
+                        u_buffer[v, i] = -0.5 * dot(flux_node, normal_direction)
                     end
 
                     i_large += i_large_step
@@ -667,7 +666,7 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
     @unpack u = cache.mpi_mortars
     @threaded for mortar in eachmpimortar(dg, cache)
-        # Match local 2D structure: one tuple is sufficient
+        # Match local 2D structure as one tuple
         fstar = (fstar_primary_lower_threaded[Threads.threadid()],
                  fstar_primary_upper_threaded[Threads.threadid()])
 
@@ -693,7 +692,7 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
 
         u_buffer = cache.u_threaded[Threads.threadid()]
 
-        # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D does
+        # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D 
         mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,
                                        equations_parabolic, mortar_l2, dg, cache,
                                        mortar, fstar, fstar, u_buffer)
