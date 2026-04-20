@@ -250,6 +250,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
             j_node += j_node_step
         end
     end
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
     return surface_integral
 end
 
@@ -319,6 +322,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
             i_node += i_node_step
             j_node += j_node_step
         end
+    end
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
     end
     return surface_integral
 end
