@@ -276,8 +276,9 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
             e = ((f - 1) ÷ num_faces) + 1
             fid = i + ((f - 1) % num_faces) * num_pts_per_face
 
-            face_normal = SVector{NDIMS}(getindex.(nxyz, fid, e))
-            face_coordinates = SVector{NDIMS}(getindex.(xyzf, fid, e))
+            face_normal = SVector(ntuple(j -> @inbounds(nxyz[j][fid, e]), Val(NDIMS)))
+            face_coordinates = SVector(ntuple(j -> @inbounds(xyzf[j][fid, e]),
+                                              Val(NDIMS)))
 
             # for both the gradient and the divergence, the boundary flux is scalar valued.
             # for the gradient, it is the solution; for divergence, it is the normal flux.
@@ -298,9 +299,10 @@ function calc_single_boundary_flux!(flux_face_values, u_face_values, t,
     return nothing
 end
 
-function calc_parabolic_fluxes!(flux_parabolic, u, gradients, mesh::DGMultiMesh,
+function calc_parabolic_fluxes!(flux_parabolic, u, gradients,
+                                mesh::DGMultiMesh{NDIMS},
                                 equations::AbstractEquationsParabolic,
-                                dg::DGMulti, cache, cache_parabolic)
+                                dg::DGMulti, cache, cache_parabolic) where {NDIMS}
     for dim in eachdim(mesh)
         set_zero!(flux_parabolic[dim], dg)
     end
@@ -318,7 +320,8 @@ function calc_parabolic_fluxes!(flux_parabolic, u, gradients, mesh::DGMultiMesh,
         # compute parabolic flux at quad points
         for i in eachindex(local_u_values)
             u_i = local_u_values[i]
-            gradients_i = getindex.(gradients, i, e)
+            gradients_i = SVector(ntuple(d -> @inbounds(gradients[d][i, e]),
+                                         Val(NDIMS)))
             for dim in eachdim(mesh)
                 flux_parabolic_i = flux(u_i, gradients_i, dim, equations)
                 setindex!(flux_parabolic[dim], flux_parabolic_i, i, e)
