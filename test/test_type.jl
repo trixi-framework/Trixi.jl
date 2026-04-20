@@ -220,8 +220,9 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                        b,
                                                                                        gamma,
                                                                                        R))
-
-            for equations in (equations_ideal_gas, equations_vdw)
+            equations_helmholtz_ideal_gas = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzIdealGas(RealT(2)))
+            for equations in (equations_ideal_gas, equations_vdw,
+                              equations_helmholtz_ideal_gas)
                 x = SVector(zero(RealT))
                 t = zero(RealT)
                 u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
