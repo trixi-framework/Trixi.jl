@@ -236,8 +236,25 @@ function calc_boundary_flux!(flux, u, t, operator_type, ::BoundaryConditionPerio
     return nothing
 end
 
-# "lispy tuple programming" instead of for loop for type stability
-function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
+# Unroll over `NamedTuple` boundary tags at compile time to avoid runtime allocations from
+# `first(keys(...))`, `first(...)`, and `Base.tail` during recursive peeling.
+@generated function calc_boundary_flux!(flux, u, t, operator_type,
+                                        bc::NamedTuple{Names, Types},
+                                        mesh, equations, dg::DGMulti, cache,
+                                        cache_parabolic) where {Names, Types}
+    stmts = Expr[]
+    for i in 1:length(Names)
+        push!(stmts,
+              :(calc_single_boundary_flux!(flux, u, t, operator_type, getfield(bc, $i),
+                                           $(QuoteNode(Names[i])), mesh, equations, dg,
+                                           cache, cache_parabolic)))
+    end
+    push!(stmts, :(return nothing))
+    return Expr(:block, stmts...)
+end
+
+# "lispy tuple programming" instead of for loop for type stability (plain `Tuple` BC lists)
+function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions::Tuple,
                              mesh, equations, dg::DGMulti, cache, cache_parabolic)
 
     # peel off first boundary condition
@@ -252,9 +269,8 @@ function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
     return nothing
 end
 
-# terminate recursion
-function calc_boundary_flux!(flux, u, t, operator_type,
-                             boundary_conditions::NamedTuple{(), Tuple{}},
+# terminate tuple recursion (e.g., `(periodic, periodic)` after peeling both entries)
+function calc_boundary_flux!(flux, u, t, operator_type, ::Tuple{},
                              mesh, equations, dg::DGMulti, cache, cache_parabolic)
     return nothing
 end
