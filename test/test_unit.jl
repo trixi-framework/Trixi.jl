@@ -3546,8 +3546,8 @@ end
                      coordinates_max = coordinates_max,
                      periodicity = (true, false), initial_refinement_level = 0)
 
-    boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall,
-                               :y_pos => boundary_condition_slip_wall)
+    boundary_conditions = (; y_neg = boundary_condition_slip_wall,
+                           y_pos = boundary_condition_slip_wall)
 
     initial_condition = initial_condition_convergence_test
 
@@ -3563,4 +3563,4 @@ end
 end
 end
 
-end
+end #module
