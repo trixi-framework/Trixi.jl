@@ -1278,8 +1278,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
 end
 
 function calc_surface_integral!(backend::Nothing, du, u,
-                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                            StructuredMeshView{2}},
+                                mesh::Union{TreeMesh{2},
+                                            StructuredMesh{2}, StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis

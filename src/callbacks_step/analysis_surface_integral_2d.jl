@@ -250,7 +250,10 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
             j_node += j_node_step
         end
     end
-    return distribute_surface_integral(surface_integral, mesh)
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
+    return surface_integral
 end
 
 # 2D version of the `analyze` function for `AnalysisSurfaceIntegral` of viscous, i.e.,
@@ -320,19 +323,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
             j_node += j_node_step
         end
     end
-    return distribute_surface_integral(surface_integral, mesh)
-end
-
-# Serial/default: do nothing
-distribute_surface_integral(val, mesh) = val
-
-# Parallel: sum over all ranks
-function distribute_surface_integral(val,
-                                     mesh::Union{P4estMeshParallel{2},
-                                                 T8codeMeshParallel{2}})
-    comm = MPI.COMM_WORLD
-    buf = [val]
-    MPI.Allreduce!(buf, MPI.SUM, comm)
-    return buf[1]
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
+    return surface_integral
 end
 end # muladd
