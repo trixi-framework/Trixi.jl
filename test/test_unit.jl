@@ -3524,7 +3524,6 @@ end
                                                                                        z_pos = bc_dn))
     end
 end
-end
 
 @testset "ndims function for SemidiscretizaionHyperbolicSplit" begin
     gamma = 1004 / 717
@@ -3563,4 +3562,5 @@ end
     @test Trixi.ndims(semi) == 2
 end
 end
-end #module
+
+end

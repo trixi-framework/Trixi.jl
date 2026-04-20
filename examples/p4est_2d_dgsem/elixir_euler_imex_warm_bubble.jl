@@ -203,8 +203,9 @@ mesh = P4estMesh(trees_per_dimension; polydeg = polydeg,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (true, false), initial_refinement_level = 0)
 
-boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall_2,
-                           :y_pos => boundary_condition_slip_wall_2)
+boundary_conditions = (;
+                       y_neg = boundary_condition_slip_wall_2,
+                       y_pos = boundary_condition_slip_wall_2)
 
 initial_condition = initial_condition_warm_bubble
 

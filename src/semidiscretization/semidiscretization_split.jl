@@ -132,7 +132,10 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_line(io, "hyperbolic equations nonstiff",
                      semi.equations_nonstiff |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
-
+        summary_line(io, "boundary condition stiff",
+                     typeof(semi.boundary_conditions_stiff))
+        summary_line(io, "boundary condition nonstiff",
+                     typeof(semi.boundary_conditions_nonstiff))
         summary_line(io, "source terms stiff", semi.source_terms_stiff)
         summary_line(io, "source terms nonstiff", semi.source_terms_nonstiff)
         summary_line(io, "solver stiff", semi.solver_stiff |> typeof |> nameof)
