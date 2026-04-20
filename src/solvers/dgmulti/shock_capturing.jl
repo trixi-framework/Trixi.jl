@@ -75,6 +75,110 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
     return inverse_vandermonde
 end
 
+# calculates the inverse of the vandermonde matrix for shock capturing purposes.
+# This version is for nodal simplicial SBP elements
+function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
+
+    # the inverse vandermonde matrix here should first project from SBP nodes to degree N polynomials
+    (; N, element_type, r, s) = basis
+    interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
+                                   basis.VDM
+    M = interp_matrix_to_quad_points' * Diagonal(basis.wq) *
+        interp_matrix_to_quad_points
+    Pq = M \ (interp_matrix_to_quad_points' * Diagonal(basis.wq))
+    return basis.VDM \ Pq
+end
+
+function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
+                                                   equations,
+                                                   dg::DGMulti{NDIMS, <:Union{Tri, Tet},
+                                                               <:SBP},
+                                                   cache;
+                                                   kwargs...) where {NDIMS}
+    (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
+    (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde) = indicator_hg.cache
+    (; N) = dg.basis # polynomial degree
+
+    resize!(alpha, nelements(mesh, dg))
+    if alpha_smooth
+        resize!(alpha_tmp, nelements(mesh, dg))
+    end
+
+    # magic parameters; reuses the quad/hex parameters
+    threshold = 0.5f0 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
+    parameter_s = log((1 - 0.0001) / 0.0001)
+
+    @threaded for element in eachelement(mesh, dg)
+        indicator = indicator_threaded[Threads.threadid()]
+        modal = modal_threaded[Threads.threadid()]
+
+        # Calculate indicator variable at interpolation (Lobatto) nodes.
+        # TODO: calculate indicator variables at Gauss nodes or using `cache.entropy_projected_u_values`
+        for i in eachnode(dg)
+            indicator[i] = variable(u[i, element], equations)
+        end
+
+        # multiply by invVDM
+        LinearAlgebra.mul!(modal, inverse_vandermonde, indicator)
+        total_energy = sum(abs2, modal)
+
+        # Calculate total energies for all modes, all modes minus the highest mode, and
+        # all modes without the two highest modes. For simplices, we cut off the "highest
+        # mode", which corresponds to the last "layer" of modes in a Pascal's triangle or
+        # simplex representation of the modal coefficients.
+        #
+        # For example, for a degree N=3 triangle, the modal coefficients are ordered
+        #
+        # 1
+        # 2 3
+        # 4 5 6
+        # 7 8 9 10
+        #
+        # The modal coefficients corresponding to degree 2 are coefficients are then (1:6),
+        # while the modal coefficients for degree 1 are (1:3).
+        clip_1_range = 1:num_modes(N - 1, dg.basis.element_type)
+        clip_2_range = 1:num_modes(N - 2, dg.basis.element_type)
+        total_energy_clip1 = sum(abs2, view(modal, clip_1_range))
+        total_energy_clip2 = sum(abs2, view(modal, clip_2_range))
+
+        # Calculate energy in higher modes
+        if !(iszero(total_energy))
+            energy_frac_1 = (total_energy - total_energy_clip1) / total_energy
+        else
+            energy_frac_1 = zero(total_energy)
+        end
+        if !(iszero(total_energy_clip1))
+            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) /
+                            total_energy_clip1
+        else
+            energy_frac_2 = zero(total_energy_clip1)
+        end
+        energy = max(energy_frac_1, energy_frac_2)
+
+        alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
+
+        # Take care of the case close to pure DG
+        if alpha_element < alpha_min
+            alpha_element = zero(alpha_element)
+        end
+
+        # Take care of the case close to pure FV
+        if alpha_element > 1 - alpha_min
+            alpha_element = one(alpha_element)
+        end
+
+        # Clip the maximum amount of FV allowed
+        alpha[element] = min(alpha_max, alpha_element)
+    end
+
+    # smooth element indices after they're all computed
+    if alpha_smooth
+        apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+    end
+
+    return alpha
+end
+
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
                                                    equations,
                                                    dg::DGMulti{NDIMS,
