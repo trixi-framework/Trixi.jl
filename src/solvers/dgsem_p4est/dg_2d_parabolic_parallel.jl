@@ -612,7 +612,7 @@ function prolong2mpimortars_divergence!(cache, flux_parabolic,
                         # prolong flux dotted with outward normal on the small element.
                         # The large-element normal is -2x the small-element normal,
                         # hence the factor -1/2 here.
-                        u_buffer[v, i] = -0.5 * dot(flux_node, normal_direction)
+                        u_buffer[v, i] = -0.5f0 * dot(flux_node, normal_direction)
                     end
 
                     i_large += i_large_step
