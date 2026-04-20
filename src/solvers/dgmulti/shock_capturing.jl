@@ -39,7 +39,7 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
 
     MVec_nodes = MVector{nnodes(basis), uEltype}
     indicator_threaded = MVec_nodes[MVec_nodes(undef) for _ in 1:Threads.maxthreadid()]
-    MVec_modes = MVector{num_modes(basis.N, basis.element_type), uEltype}
+    MVec_modes = MVector{nmodes(basis.N, basis.element_type), uEltype}
     modal_threaded = MVec_modes[MVec_modes(undef) for _ in 1:Threads.maxthreadid()]
 
     inverse_vandermonde = calc_inverse_vandermonde(basis)
