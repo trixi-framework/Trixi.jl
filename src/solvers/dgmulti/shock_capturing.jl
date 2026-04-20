@@ -46,7 +46,7 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
 end
 
-# calculates the inverse of the vandermonde matrix for shock capturing purposes.
+# calculates the inverse of the Vandermonde matrix for shock capturing purposes.
 # This version is for tensor product elements (Line, Quad, Hex)
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad, Hex}}) where {NDIMS}
     # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
