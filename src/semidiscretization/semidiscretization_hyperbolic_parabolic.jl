@@ -11,10 +11,10 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a mixed hyperbolic-parabolic conservation law.
 """
-struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
-                                             InitialCondition,
-                                             BoundaryConditions,
-                                             BoundaryConditionsParabolic,
+mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
+                                                     InitialCondition,
+                                                     BoundaryConditions,
+                                                     BoundaryConditionsParabolic,
                                              SourceTerms, SourceTermsParabolic,
                                              Solver, SolverParabolic,
                                              Cache, CacheParabolic} <:
