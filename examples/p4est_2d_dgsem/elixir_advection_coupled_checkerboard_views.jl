@@ -3,7 +3,7 @@ using Trixi
 using P4est
 
 ###############################################################################
-# Coupled mesh views with non-rectangular (checkerboard) geometry
+# Coupled mesh views with non-rectangular (checkerboard) geometry.
 #
 # The parent mesh is split into two non-rectangular mesh views based on the
 # sign of x*y.  Elements in quadrants I and III (x*y >= 0) form one view;
@@ -40,8 +40,8 @@ coordinates_max = (1.0, 1.0)
 #    1  2  3  4   (y ∈ [-1, -0.5])
 #   col: 1  2  3  4   (x: -1→-0.5, -0.5→0, 0→0.5, 0.5→1)
 #
-# Refine a selection of trees to create internal hanging nodes; after 2:1
-# balancing these hanging nodes will also appear at the checkerboard interface.
+# Refining trees near the origin creates hanging nodes that cross the
+# checkerboard interface after 2:1 balancing.
 trees_per_dimension = (4, 4)
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
@@ -49,13 +49,6 @@ parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         initial_refinement_level = 0,
                         periodicity = false)
 
-println("\n" * "="^80)
-println("STEP 1: Create non-uniform refinement")
-println("="^80)
-println("Initial mesh: $(Trixi.ncells(parent_mesh)) elements (trees)")
-
-# Refine trees near the origin to concentrate resolution at the checkerboard
-# interface and ensure hanging nodes cross it.
 function refine_selected_trees_checkerboard(p4est_ptr, which_tree, quadrant_ptr)
     tree_id = which_tree + 1  # p4est is 0-indexed
     return tree_id in (1, 3, 5, 6, 9, 10, 13, 14) ? Cint(1) : Cint(0)
@@ -68,18 +61,15 @@ init_fn_c = @cfunction(Trixi.init_fn, Cvoid,
                        (Ptr{Trixi.p4est_t}, Trixi.p4est_topidx_t,
                         Ptr{Trixi.p4est_quadrant_t}))
 
-println("Refining selected trees...")
+# Refine selected trees (non-recursive, one level) then balance for 2:1 constraint.
 Trixi.refine_p4est!(parent_mesh.p4est, false, refine_fn_c, init_fn_c)
-
-println("Balancing mesh (enforces 2:1 constraint)...")
 Trixi.balance!(parent_mesh, init_fn_c)
 Trixi.update_ghost_layer!(parent_mesh)
 
-n_cells_after = Trixi.ncells(parent_mesh)
-println("After refinement + balance: $(n_cells_after) elements")
+###############################################################################
+# Build a temporary semidiscretization on the parent mesh to obtain element
+# coordinates needed for splitting elements between the two views.
 
-# Build parent cache to access element coordinates
-println("Building parent mesh cache...")
 boundary_conditions_parent = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition_convergence_test),
                                   :x_pos => BoundaryConditionDirichlet(initial_condition_convergence_test),
                                   :y_neg => BoundaryConditionDirichlet(initial_condition_convergence_test),
@@ -89,23 +79,14 @@ semi_parent = SemidiscretizationHyperbolic(parent_mesh, equations,
                                            solver,
                                            boundary_conditions = boundary_conditions_parent)
 cache_parent = semi_parent.cache
-println("Parent mesh has $(Trixi.nmortars(cache_parent.mortars)) mortars (hanging nodes)")
-println("="^80)
 
 ###############################################################################
-# STEP 2: Split into two non-rectangular mesh views
-#
-# View 1: quadrants I and III  (x*y >= 0)
-# View 2: quadrants II and IV  (x*y < 0)
+# Checkerboard split: view 1 = QI ∪ QIII (x*y ≥ 0), view 2 = QII ∪ QIV (x*y < 0).
 
-println("\n" * "="^80)
-println("STEP 2: Checkerboard split into two non-rectangular mesh views")
-println("="^80)
+view1_elements = Int[]
+view2_elements = Int[]
 
-view1_elements = Int[]  # QI ∪ QIII
-view2_elements = Int[]  # QII ∪ QIV
-
-for element in 1:n_cells_after
+for element in 1:ncells(parent_mesh)
     x_c = cache_parent.elements.node_coordinates[1, 2, 2, element]
     y_c = cache_parent.elements.node_coordinates[2, 2, 2, element]
     if x_c * y_c >= 0.0
@@ -115,25 +96,16 @@ for element in 1:n_cells_after
     end
 end
 
-println("Total elements : $n_cells_after")
-println("View 1 (QI∪QIII, x*y≥0): $(length(view1_elements)) elements")
-println("View 2 (QII∪QIV, x*y<0): $(length(view2_elements)) elements")
-
 mesh1 = P4estMeshView(parent_mesh, view1_elements)
 mesh2 = P4estMeshView(parent_mesh, view2_elements)
 
 ###############################################################################
-# STEP 3: Boundary conditions
+# Boundary conditions.
 #
-# Because neither mesh view is rectangular, every face direction (:x_neg,
-# :x_pos, :y_neg, :y_pos) appears at both the view interface and a physical
-# domain edge within the same view.  We therefore assign
-# BoundaryConditionCoupledP4est to all four names and provide a Dirichlet
-# fallback for the physical-domain faces (those with neighbor_ids_parent == 0).
-
-println("\n" * "="^80)
-println("STEP 3: Build boundary conditions")
-println("="^80)
+# Because neither view is rectangular, every face direction can appear at both
+# a view interface and a physical domain edge within the same view.  All four
+# names are therefore assigned BoundaryConditionCoupledP4est; the Dirichlet
+# fallback handles the physical-domain faces (those with no coupling neighbor).
 
 coupling_functions = Array{Function}(undef, 2, 2)
 coupling_functions[1, 1] = (x, u, equations_other, equations_own) -> u
@@ -142,12 +114,8 @@ coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> u
 coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
 dirichlet_bc = BoundaryConditionDirichlet(initial_condition_convergence_test)
-
-# fallback_bc = dirichlet_bc: physical-domain boundaries (neighbor_ids_parent == 0)
-# fall back to Dirichlet; view-interface boundaries couple normally.
 coupled_bc = BoundaryConditionCoupledP4est(coupling_functions; fallback_bc = dirichlet_bc)
 
-# All four face directions can be view-interface faces in a non-rectangular split.
 all_faces = Set([:x_neg, :x_pos, :y_neg, :y_pos])
 
 function build_view_bcs(mesh_view, equations, solver, dirichlet_bc, coupled_bc,
@@ -158,14 +126,10 @@ function build_view_bcs(mesh_view, equations, solver, dirichlet_bc, coupled_bc,
     sorted_names = Tuple(sort(collect(actual_names)))
     bc_values = Tuple(name in view_interface_names ? coupled_bc : dirichlet_bc
                       for name in sorted_names)
-    bc_nt = NamedTuple{sorted_names}(bc_values)
-    println("  Boundary names: $actual_names → $(Dict(n => (n in view_interface_names ? "Coupled(+fallback)" : "Dirichlet") for n in actual_names))")
-    return bc_nt
+    return NamedTuple{sorted_names}(bc_values)
 end
 
-println("Building view 1 BCs...")
 bc1 = build_view_bcs(mesh1, equations, solver, dirichlet_bc, coupled_bc, all_faces)
-println("Building view 2 BCs...")
 bc2 = build_view_bcs(mesh2, equations, solver, dirichlet_bc, coupled_bc, all_faces)
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
@@ -174,36 +138,9 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
                                      solver, boundary_conditions = bc2)
 
 semi = SemidiscretizationCoupledP4est(semi1, semi2; coupling_functions = coupling_functions)
-println("="^80)
 
 ###############################################################################
-# STEP 4: Mortar analysis
-
-println("\n" * "="^80)
-println("STEP 4: Mortar analysis")
-println("="^80)
-
-total_coupled_mortars = 0
-for (i, semi_local) in enumerate(semi.semis)
-    n_regular = Trixi.nmortars(semi_local.cache.mortars)
-    n_coupled = Trixi.ncoupledmortars(semi_local.cache.coupled_mortars)
-    global total_coupled_mortars += n_coupled
-    println("Mesh view $i ($(length(semi_local.mesh.cell_ids)) elements):")
-    println("  Regular mortars (internal hanging nodes): $n_regular")
-    println("  Coupled mortars (hanging nodes at view boundary): $n_coupled")
-end
-
-if total_coupled_mortars > 0
-    println("\nSUCCESS! $total_coupled_mortars coupled mortars with hanging nodes!")
-else
-    println("\nNo coupled mortars at view boundary.")
-end
-println("="^80)
-
-###############################################################################
-# STEP 5: Run simulation
-
-println("\nRunning simulation...")
+# ODE problem and callbacks.
 
 ode = semidiscretize(semi, (0.0, 20.0))
 
@@ -229,8 +166,4 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             save_everystep = false,
             ode_default_options()..., callback = callbacks)
 
-println("\n" * "="^80)
-println("SIMULATION COMPLETED")
-println("="^80)
-println("Demonstrated coupled mesh views with non-rectangular (checkerboard) geometry!")
-println("="^80)
+summary_callback()
