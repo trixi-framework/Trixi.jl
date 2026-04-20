@@ -62,15 +62,14 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
+callbacks = CallbackSet(summary_callback, alive_callback,
+                        analysis_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
 solver = SSPRK43()
-callbacks = CallbackSet(summary_callback, alive_callback,
-                        analysis_callback, save_solution)
 
-sol = solve(ode, solver;
-            dt = 1e-6, abstol = 1e-5, reltol = 1e-3,
+sol = solve(ode, solver; dt = 1e-5, adaptive = true, abstol = 1e-5, reltol = 1e-3,
             ode_default_options()...,
             callback = callbacks);
