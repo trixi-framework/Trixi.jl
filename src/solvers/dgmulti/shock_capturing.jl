@@ -43,6 +43,7 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
     modal_threaded = MVec_modes[MVec_modes(undef) for _ in 1:Threads.maxthreadid()]
 
     inverse_vandermonde = calc_inverse_vandermonde(basis)
+
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
 end
 
@@ -308,8 +309,8 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             u_j = u_local[j]
 
             # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh,
-                                                              cache)
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element,
+                                                              mesh, cache)
             reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
             normal_direction_ij = geometric_matrix * reference_operator_entries
 
