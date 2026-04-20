@@ -289,15 +289,6 @@ function extract_neighbor_ids_parent(mesh::P4estMeshView,
         end
     end
 
-    # DEBUG: print any zero entries so we can diagnose which boundaries were not found.
-    for (idx, val) in enumerate(neighbor_ids_parent)
-        if val == 0
-            println("[extract_neighbor_ids_parent] boundary idx=$idx name=$(boundaries.name[idx]) " *
-                    "view_id=$(boundaries.neighbor_ids[idx]) parent_id=$(mesh.cell_ids[boundaries.neighbor_ids[idx]]) " *
-                    "→ NO NEIGHBOR FOUND (stays 0)")
-        end
-    end
-
     return neighbor_ids_parent
 end
 

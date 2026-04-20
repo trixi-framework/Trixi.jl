@@ -554,13 +554,21 @@ end
 ################################################################################
 
 """
-    BoundaryConditionCoupledP4est(coupling_converter)
+    BoundaryConditionCoupledP4est(coupling_converter; fallback_bc = nothing)
 
-Boundary condition struct where the user can specify the coupling converter function.
+Boundary condition for coupling two [`P4estMeshView`](@ref) semidiscretizations.
+At each call the neighbor's solution is read from the other mesh view and a numerical
+flux is computed across the interface.
 
 # Arguments
-- `coupling_converter::CouplingConverter`: function to call for converting the solution
-                                           state of one system to the other system
+- `coupling_converter`: 2×2 array of functions `f(x, u, equations_other, equations_own)`
+  that convert the solution state of one system into the variable space of the other.
+- `fallback_bc`: optional boundary condition (e.g. [`BoundaryConditionDirichlet`](@ref))
+  applied at faces with no coupling neighbor (`neighbor_ids_parent == 0`).  This arises
+  for physical-domain boundaries in non-rectangular mesh-view splits, where the same face
+  name appears at both a view interface and a domain edge within the same view.
+  When `fallback_bc = nothing` (the default), encountering a zero neighbor triggers an
+  error, which is the safe default for axis-aligned rectangular splits.
 """
 mutable struct BoundaryConditionCoupledP4est{CouplingConverter, FallbackBC} <:
                AbstractCoupledP4estBC
