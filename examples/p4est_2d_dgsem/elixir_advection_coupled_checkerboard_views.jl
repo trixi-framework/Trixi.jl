@@ -56,14 +56,12 @@ println("Initial mesh: $(Trixi.ncells(parent_mesh)) elements (trees)")
 
 # Refine trees near the origin to concentrate resolution at the checkerboard
 # interface and ensure hanging nodes cross it.
-const TREES_TO_REFINE_CB = Set([1, 3, 5, 6, 9, 10, 13, 14])
-
-function refine_checkerboard(p4est_ptr, which_tree, quadrant_ptr)
+function refine_selected_trees_checkerboard(p4est_ptr, which_tree, quadrant_ptr)
     tree_id = which_tree + 1  # p4est is 0-indexed
-    return tree_id in TREES_TO_REFINE_CB ? Cint(1) : Cint(0)
+    return tree_id in (1, 3, 5, 6, 9, 10, 13, 14) ? Cint(1) : Cint(0)
 end
 
-refine_fn_c = @cfunction(refine_checkerboard, Cint,
+refine_fn_c = @cfunction(refine_selected_trees_checkerboard, Cint,
                          (Ptr{Trixi.p4est_t}, Trixi.p4est_topidx_t,
                           Ptr{Trixi.p4est_quadrant_t}))
 init_fn_c = @cfunction(Trixi.init_fn, Cvoid,

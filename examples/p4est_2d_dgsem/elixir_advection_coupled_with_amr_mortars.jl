@@ -43,22 +43,15 @@ println("Initial mesh: $(Trixi.ncells(parent_mesh)) elements (trees)")
 # - Tree 3 on the right (x > 0)
 # This creates coupled mortars where BOTH views have hanging nodes at the interface.
 
-# Global variable to track which trees to refine
-const TREES_TO_REFINE = Set([1, 3, 5, 6, 9, 10, 13, 14])
-
-# Custom refine function - refines quadrants in specified trees
-function refine_left_half(p4est_ptr, which_tree, quadrant_ptr)
-    # which_tree is 0-indexed in p4est
-    tree_id = which_tree + 1
-    if tree_id in TREES_TO_REFINE
-        return Cint(1)  # refine
-    else
-        return Cint(0)  # don't refine
-    end
+# Custom refine function - refines quadrants in specified trees.
+# Trees are inlined as a tuple so no global constant is needed.
+function refine_selected_trees(p4est_ptr, which_tree, quadrant_ptr)
+    tree_id = which_tree + 1  # p4est is 0-indexed
+    return tree_id in (1, 3, 5, 6, 9, 10, 13, 14) ? Cint(1) : Cint(0)
 end
 
 # Create C-callable function pointers
-refine_fn_c = @cfunction(refine_left_half, Cint,
+refine_fn_c = @cfunction(refine_selected_trees, Cint,
                          (Ptr{Trixi.p4est_t}, Trixi.p4est_topidx_t,
                           Ptr{Trixi.p4est_quadrant_t}))
 init_fn_c = @cfunction(Trixi.init_fn, Cvoid,
