@@ -27,6 +27,7 @@ abstract type AbstractEquationOfState end
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_vdw.jl")
 include("equation_of_state_peng_robinson.jl")
+include("equation_of_state_stiffened_gas.jl")
 
 include("equations_of_state_helmholtz.jl")
 include("equation_of_state_helmholtz_ideal_gas.jl")
