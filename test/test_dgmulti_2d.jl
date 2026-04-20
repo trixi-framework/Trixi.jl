@@ -309,6 +309,44 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
+                        polydeg=2, adaptive=false, tspan=(0.0, 1e-3),
+                        l2=[
+                            0.00045155999383061246,
+                            0.0007997114439550152,
+                            2.370224947246212e-6,
+                            0.002037206524508959
+                        ],
+                        linf=[
+                            0.07544209921557377,
+                            0.17673745170823008,
+                            0.0009825284037637686,
+                            0.3386662161532019
+                        ])
+    # No `@test_allocations`: HG shock capturing on this Gmsh mesh allocates in `rhs!`.
+end
+
+@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
+                        h=0.1, tspan=(0.0, 0.1),
+                        l2=[
+                            0.14885556661320176,
+                            0.2644917535403877,
+                            0.17695468500087722,
+                            0.6616841782760599
+                        ],
+                        linf=[
+                            0.9552906049227556,
+                            1.3131254178491245,
+                            1.104963060639221,
+                            3.6468143028334676
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
