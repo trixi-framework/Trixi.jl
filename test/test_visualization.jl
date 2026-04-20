@@ -102,7 +102,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         @trixi_test_nowarn Plots.plot(getmesh(pd))
 
         semi = sol.prob.p
-        if mesh == "DGMulti" || mesh == "DGMulti (FDSBP)"
+        if mesh == "DGMulti"
             if sol.u[end] isa Trixi.VectorOfArray
                 u = parent(sol.u[end])
             else
