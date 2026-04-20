@@ -437,6 +437,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_shockcapturing.jl (SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
+                        l2=[
+                            0.05129831642485092,
+                            0.039517715980085494,
+                            0.03848661835112726,
+                            0.19012341472661642
+                        ],
+                        linf=[
+                            0.2614338442900679,
+                            0.23682649740800532,
+                            0.18038616721760867,
+                            0.9416996652630321
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_shockcapturing_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
@@ -451,27 +472,6 @@ end
                             0.16929779869845438,
                             0.16929779869845438,
                             0.8587814448153765
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_euler_shockcapturing_curved.jl (SBP)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
-                        cells_per_dimension=4, tspan=(0.0, 0.1),
-                        basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
-                        l2=[
-                            0.05187282047700845,
-                            0.039000213723259514,
-                            0.0379119559819322,
-                            0.19204157803784797
-                        ],
-                        linf=[
-                            0.2751801628995022,
-                            0.24564207380861122,
-                            0.1797267630206182,
-                            0.9859761812776182
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
