@@ -80,13 +80,12 @@ function rhs_parabolic!(du, u, t,
                                   cache)
     end
 
-    # Finish gradient-stage MPI send
+    # Finish gradient MPI send
     @trixi_timeit timer() "finish MPI send gradient" begin
         finish_mpi_send!(cache.mpi_cache)
     end
 
-    # Stage 2: local parabolic flux construction
-    #
+    # Local parabolic flux construction
     @trixi_timeit timer() "calculate parabolic fluxes" begin
         calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
                                equations_parabolic, dg, cache)
@@ -119,6 +118,7 @@ function rhs_parabolic!(du, u, t,
     @trixi_timeit timer() "prolong2mpiinterfaces divergence" begin
         prolong2mpiinterfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
     end
+
     # Start divergence MPI send
     @trixi_timeit timer() "start MPI send divergence" begin
         start_mpi_send!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
@@ -158,7 +158,7 @@ function rhs_parabolic!(du, u, t,
                                      dg, parabolic_scheme, cache)
     end
 
-    # Finish divergence-stage MPI receive
+    # Finish divergence MPI receive
     @trixi_timeit timer() "finish MPI receive divergence" begin
         finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
@@ -365,6 +365,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
             end
 
             # Increment local element indices to pull the normal direction
+            # from the element data
             i_element += i_element_step
             j_element += j_element_step
 
@@ -422,8 +423,9 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                                                                                        i,
                                                                                        interface)
 
-            # Sign flip for `local_side = 2` required for divergence calculation since the divergence interface flux 
-            # involves the normal direction. `local_side=2` is thus flipped (opposite of primary side)
+            # Sign flip for `local_side = 2` required for divergence calculation since
+            # the divergence interface flux involves the normal direction.
+            # `local_side=2` is thus flipped (opposite of primary side)
             orientation_factor = local_side == 1 ? 1 : -1
             flux_ = flux_parabolic(parabolic_flux_normal_ll, parabolic_flux_normal_rr,
                                    orientation_factor * normal_direction, Divergence(),
