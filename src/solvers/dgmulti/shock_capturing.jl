@@ -55,7 +55,7 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
     lobatto_node_coordinates_1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, N)
     VDM_1D = StartUpDG.vandermonde(Line(), N, lobatto_node_coordinates_1D)
     inverse_vandermonde = SimpleKronecker(NDIMS, inv(VDM_1D))
-    
+
     return inverse_vandermonde
 end
 
