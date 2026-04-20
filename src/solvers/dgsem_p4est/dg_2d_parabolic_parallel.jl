@@ -297,8 +297,9 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
             for v in eachvariable(equations_parabolic)
                 flux_visc = SVector(flux_parabolic_x[v, i_elem, j_elem, local_element],
                                     flux_parabolic_y[v, i_elem, j_elem, local_element])
-                # Side 1 and 2 must be consistent, thus the orientation_factor changes the orientation
-                # So flux entering side 1 leaves side 2. 
+                # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
+                # Thus, the `orientation_factor` changes the logic such that the
+                # flux which enters side 1 leaves side 2. 
                 cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
                                                                       dot(flux_visc,
                                                                           normal_direction)
