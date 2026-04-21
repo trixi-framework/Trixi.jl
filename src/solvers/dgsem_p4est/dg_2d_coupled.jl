@@ -314,7 +314,8 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
 
         coupled_mortar_fluxes_to_elements!(surface_flux_values,
                                            mesh, equations, mortar_l2, dg, cache,
-                                           mortar, fstar_primary_lower, fstar_primary_upper,
+                                           mortar, fstar_primary_lower,
+                                           fstar_primary_upper,
                                            u_buffer)
     end
 
