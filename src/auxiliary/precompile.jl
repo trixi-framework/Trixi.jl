@@ -306,7 +306,7 @@ function _precompile_manual_()
     # Nevertheless, we can still precompile methods used to construct the bases.
     #Base.precompile(Tuple{Type{LobattoLegendreBasis}, Int})
     for RealT in (Float64,)
-    #    Base.precompile(Tuple{Type{LobattoLegendreBasis}, RealT, Int})
+        #    Base.precompile(Tuple{Type{LobattoLegendreBasis}, RealT, Int})
         @assert Base.precompile(Tuple{typeof(Trixi.calc_dhat), Vector{RealT},
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.calc_dsplit), Vector{RealT},
@@ -340,9 +340,9 @@ function _precompile_manual_()
     for RealT in (Float64,), polydeg in 1:7
         nnodes_ = polydeg + 1
         basis_type = basis_type_dgsem(RealT, nnodes_)
-#        @assert Base.precompile(Tuple{typeof(Trixi.MortarL2), basis_type})
-#        @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer}, basis_type})
-#        @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2}, basis_type})
+        #        @assert Base.precompile(Tuple{typeof(Trixi.MortarL2), basis_type})
+        #        @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer}, basis_type})
+        #        @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2}, basis_type})
     end
 
     # Constructors: callbacks

@@ -8,12 +8,12 @@ equations = CompressibleEulerEquations2D(1.4)
 
 seed!(1)
 function initial_condition_random_field(x, t, equations::CompressibleEulerEquations2D)
-amplitude = 1.5
-rho = 2 + amplitude * rand() 
-v1 = -3.1 + amplitude * rand()
-v2 = 1.3 + amplitude * rand() 
-p = 7.54 + amplitude * rand()
-return prim2cons(SVector(rho, v1, v2, p), equations)
+    amplitude = 1.5
+    rho = 2 + amplitude * rand()
+    v1 = -3.1 + amplitude * rand()
+    v2 = 1.3 + amplitude * rand()
+    p = 7.54 + amplitude * rand()
+    return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 # initial_condition = initial_condition_weak_blast_wave
 initial_condition = initial_condition_random_field
@@ -69,11 +69,13 @@ callbacks = CallbackSet(summary_callback,
 
 # Create modal filter and filter initial condition
 modal_filter = ModalFilter(solver; polydeg_cutoff = 3,
-                                   cons2filter = cons2prim, filter2cons = prim2cons)
+                           cons2filter = cons2prim, filter2cons = prim2cons)
 modal_filter(ode.u0, semi)
 
 # sol = solve(ode, CarpenterKennedy2N54(; williamson_condition = false),
-sol = solve(ode, CarpenterKennedy2N54(; stage_limiter! = modal_filter, williamson_condition = false),
+sol = solve(ode,
+            CarpenterKennedy2N54(; stage_limiter! = modal_filter,
+                                 williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

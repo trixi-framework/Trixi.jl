@@ -43,7 +43,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 
         setup = [
             "absolute tolerance" => steady_state_callback.abstol,
-            "relative tolerance" => steady_state_callback.reltol,
+            "relative tolerance" => steady_state_callback.reltol
         ]
         summary_box(io, "SteadyStateCallback", setup)
     end

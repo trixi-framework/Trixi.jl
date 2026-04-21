@@ -40,26 +40,27 @@ import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
 
 ## Since there is no native support for variable coefficients, we use two
 ## variables: one for the basic unknown `u` and another one for the coefficient `a`
-struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial dimension =#,
-                                                                   2 #= two variables (u,a) =#}
+struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, #= spatial dimension =#
+                                                                   2} #= two variables (u,a) =#
 end
 
-varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advection_velocity")
+function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
+    ("scalar", "advection_velocity")
+end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
-
 
 ## The conservative part of the flux is zero
 flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
 ## Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                             ::NonconservativeLinearAdvectionEquation)
     _, advection_velocity_ll = u_ll
     _, advection_velocity_rr = u_rr
 
     return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
 end
-
 
 ## We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
@@ -73,7 +74,7 @@ have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.Tru
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
     _, advection_velocity = u_mine
-    scalar, _             = u_other
+    scalar, _ = u_other
 
     return SVector(advection_velocity * scalar, zero(scalar))
 end
@@ -105,15 +106,15 @@ end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level=4, n_cells_max=10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
 ## as `surface_flux` and `volume_flux` when working with nonconservative terms
-volume_flux  = (flux_central, flux_nonconservative)
+volume_flux = (flux_central, flux_nonconservative)
 surface_flux = (flux_lax_friedrichs, flux_nonconservative)
-solver = DGSEM(polydeg=3, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
@@ -125,13 +126,13 @@ ode = semidiscretize(semi, tspan)
 ## Set up some standard callbacks summarizing the simulation setup and computing
 ## errors of the numerical solution
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi, interval=50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
-sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks)
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
+            save_everystep = false, callback = callbacks)
 
 ## Print the timer summary
 summary_callback()
@@ -152,7 +153,7 @@ error_1 = analysis_callback(sol).l2 |> first
 # simulation again.
 
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level=5, n_cells_max=10^4)
+                initial_refinement_level = 5, n_cells_max = 10^4)
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
@@ -160,23 +161,21 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi, interval=50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback);
 
-sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
+            save_everystep = false, callback = callbacks);
 summary_callback()
 
 #nb #-
 error_2 = analysis_callback(sol).l2 |> first
-@test isapprox(error_2, 1.860295931682964e-5, rtol=0.05) #src
+@test isapprox(error_2, 1.860295931682964e-5, rtol = 0.05) #src
 #-
 error_1 / error_2
-@test isapprox(error_1 / error_2, 15.916970234784808, rtol=0.05) #src
+@test isapprox(error_1 / error_2, 15.916970234784808, rtol = 0.05) #src
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
-
-
 
 # ## Summary of the code
 
@@ -185,7 +184,6 @@ error_1 / error_2
 # In addition, we create the `struct` inside the new module `NonconservativeLinearAdvection`.
 # That ensures that we can re-create `struct`s defined therein without having to
 # restart Julia.
-
 
 # Define new physics
 module NonconservativeLinearAdvection
@@ -197,26 +195,27 @@ import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
 
 ## Since there is not yet native support for variable coefficients, we use two
 ## variables: one for the basic unknown `u` and another one for the coefficient `a`
-struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1 #= spatial dimension =#,
-                                                                   2 #= two variables (u,a) =#}
+struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, #= spatial dimension =#
+                                                                   2} #= two variables (u,a) =#
 end
 
-varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar", "advection_velocity")
+function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
+    ("scalar", "advection_velocity")
+end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
-
 
 ## The conservative part of the flux is zero
 flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
 ## Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                             ::NonconservativeLinearAdvectionEquation)
     _, advection_velocity_ll = u_ll
     _, advection_velocity_rr = u_rr
 
     return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
 end
-
 
 ## We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
@@ -230,14 +229,12 @@ have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.Tru
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
     _, advection_velocity = u_mine
-    scalar, _            = u_other
+    scalar, _ = u_other
 
     return SVector(advection_velocity * scalar, zero(scalar))
 end
 
 end # module
-
-
 
 ## Create a simulation setup
 import .NonconservativeLinearAdvection
@@ -248,7 +245,8 @@ equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation
 
 ## You can derive the exact solution for this setup using the method of
 ## characteristics
-function initial_condition_sine(x, t, equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
+function initial_condition_sine(x, t,
+                                equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advection_velocity = 2 + cos(x[1])
@@ -257,15 +255,15 @@ end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level=4, n_cells_max=10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
 ## as `surface_flux` and `volume_flux` when working with nonconservative terms
-volume_flux  = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
+volume_flux = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
 surface_flux = (flux_lax_friedrichs, NonconservativeLinearAdvection.flux_nonconservative)
-solver = DGSEM(polydeg=3, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## Setup the spatial semidiscretization containing all ingredients
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
@@ -277,18 +275,17 @@ ode = semidiscretize(semi, tspan);
 ## Set up some standard callbacks summarizing the simulation setup and computing
 ## errors of the numerical solution
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi, interval=50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback);
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
-sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
+            save_everystep = false);
 
 ## Plot the numerical solution at the final time
 using Plots: plot
 plot(sol);
-
 
 # ## Package versions
 
@@ -299,4 +296,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+           mode = PKGMODE_MANIFEST)

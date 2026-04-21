@@ -50,7 +50,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "variable names" => visualization_callback.variable_names,
             "show mesh" => visualization_callback.show_mesh,
             "plot creator" => visualization_callback.plot_creator,
-            "plot data creator" => visualization_callback.plot_data_creator,
+            "plot data creator" => visualization_callback.plot_data_creator
         ]
         summary_box(io, "VisualizationCallback", setup)
     end

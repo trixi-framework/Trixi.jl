@@ -517,5 +517,4 @@ include("traffic_flow_lwr_1d.jl")
 abstract type AbstractJinXinEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("jin_xin_compressible_euler_2d.jl")
-
 end # @muladd

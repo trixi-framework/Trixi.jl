@@ -245,7 +245,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     result = integrate_via_indices(u, mesh, equations, dg, cache,
-                          du) do u, i, j, element, equations, dg, du
+                                   du) do u, i, j, element, equations, dg, du
         u_node = get_node_vars(u, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
         dot(cons2entropy(u_node, equations), du_node)

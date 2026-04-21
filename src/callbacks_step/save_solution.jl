@@ -62,7 +62,7 @@ function Base.show(io::IO, ::MIME"text/plain",
                                        "yes" : "no",
             "save final solution" => save_solution_callback.save_final_solution ?
                                      "yes" : "no",
-            "output directory" => abspath(normpath(save_solution_callback.output_directory)),
+            "output directory" => abspath(normpath(save_solution_callback.output_directory))
         ]
         summary_box(io, "SaveSolutionCallback", setup)
     end
@@ -85,7 +85,7 @@ function Base.show(io::IO, ::MIME"text/plain",
                                        "yes" : "no",
             "save final solution" => save_solution_callback.save_final_solution ?
                                      "yes" : "no",
-            "output directory" => abspath(normpath(save_solution_callback.output_directory)),
+            "output directory" => abspath(normpath(save_solution_callback.output_directory))
         ]
         summary_box(io, "SaveSolutionCallback", setup)
     end

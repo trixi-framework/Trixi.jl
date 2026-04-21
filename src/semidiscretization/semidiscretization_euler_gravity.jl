@@ -59,7 +59,7 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
             "gravitational constant (G)" => parameters.gravitational_constant,
             "CFL (gravity)" => parameters.cfl,
             "max. #iterations" => parameters.n_iterations_max,
-            "time integrator" => parameters.timestep_gravity,
+            "time integrator" => parameters.timestep_gravity
         ]
         summary_box(io, "ParametersEulerGravity", setup)
     end
