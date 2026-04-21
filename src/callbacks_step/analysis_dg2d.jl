@@ -346,7 +346,8 @@ function integrate_via_indices(func::Func, _u,
                                            T8codeMesh{2}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
-    return integrate_via_indices(func, trixi_backend(_u), _u, mesh, equations, dg, cache,
+    return integrate_via_indices(func, trixi_backend(_u), _u, mesh, equations, dg,
+                                 cache,
                                  args...; normalize = normalize)
 end
 
