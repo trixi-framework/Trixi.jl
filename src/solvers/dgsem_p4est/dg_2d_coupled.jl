@@ -299,7 +299,8 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
                 normal_direction = get_normal_direction(cache.coupled_mortars.normal_directions,
                                                        i, position, mortar)
                 flux = surface_flux(u_small, u_large, normal_direction, equations)
-                noncons = nonconservative_flux(u_small, u_large, normal_direction, equations)
+                noncons = nonconservative_flux(u_small, u_large, normal_direction,
+                                               equations)
                 flux = flux + 0.5f0 * noncons
 
                 if position == 1
