@@ -279,7 +279,7 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
 
     @threaded for mortar in eachcoupledmortar(dg, cache)
         fill_coupled_mortar_from_global!(cache.coupled_mortars, mortar, u_global,
-                                        semi, mesh, equations, dg, mortar_l2)
+                                         semi, mesh, equations, dg, mortar_l2)
 
         fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
         fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
