@@ -358,8 +358,8 @@ function coupled_mortar_fluxes_to_elements!(surface_flux_values, mesh, equations
         if position == 3 # Large element
             # Project small fluxes to large element using reverse operators
             multiply_dimensionwise!(u_buffer,
-                                   mortar_l2.reverse_upper, fstar_upper,
-                                   mortar_l2.reverse_lower, fstar_lower)
+                                    mortar_l2.reverse_upper, fstar_upper,
+                                    mortar_l2.reverse_lower, fstar_lower)
 
             # The flux is calculated in the outward direction of the small elements,
             # so the sign must be switched to get the flux in outward direction
