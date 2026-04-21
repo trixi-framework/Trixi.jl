@@ -656,7 +656,11 @@ end
     # check that the IdealGas EOS recovers the same solution as 
     # CompressibleEulerEquations1D
     sol_nonideal = deepcopy(sol)
-    trixi_include(joinpath(EXAMPLES_DIR,
+
+    # we pass @__MODULE__ to ensure that variables defined during the test 
+    # are visible inside the @trixi_testset block    
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
                            "elixir_euler_nonideal_density_wave.jl"),
                   equations = CompressibleEulerEquations1D(1.4),
                   initial_condition = Trixi.initial_condition_density_wave,
@@ -670,6 +674,33 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" begin
+    using Trixi: IdealGas, HelmholtzIdealGas, FluxHLL, min_max_speed_naive
+
+    # we pass @__MODULE__ to ensure that variables defined during the test 
+    # are visible inside the @trixi_testset block 
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  eos = IdealGas(1.4), surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+
+    sol_ideal = deepcopy(sol)
+
+    # we pass @__MODULE__ to ensure that variables defined during the test 
+    # are visible inside the @trixi_testset block    
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  eos = HelmholtzIdealGas(1.4),
+                  surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+
+    # check that the IdealGas EOS recovers the same solution as 
+    # HelmholtzIdealGas EOS
+    using LinearAlgebra: norm
+    @test norm(sol.u[end] - sol_ideal.u[end]) < 10 * eps() * length(sol.u[end])
 end
 
 @trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" begin
@@ -677,7 +708,8 @@ end
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(polydeg = 3,
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_terashima_etal),
-                                     surface_flux = flux_lax_friedrichs), tspan=(0.0, 0.1),
+                                     surface_flux = flux_lax_friedrichs),
+                        tspan=(0.0, 0.1),
                         l2=[
                             0.00142950049295259,
                             0.00015714474261267127,
@@ -699,7 +731,8 @@ end
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(polydeg = 3,
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_central_terashima_etal),
-                                     surface_flux = flux_lax_friedrichs), tspan=(0.0, 0.1),
+                                     surface_flux = flux_lax_friedrichs),
+                        tspan=(0.0, 0.1),
                         l2=[
                             0.0014281751347953525,
                             0.0001541528829242385,
@@ -721,7 +754,11 @@ end
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         tspan=(0.0, 0.1),
                         l2=[0.18464446565258658, 0.3140498549283543, 0.6496099923312244],
-                        linf=[0.5635649557004835, 0.8086426785591834, 1.7109218921081835])
+                        linf=[
+                            0.5635649557004835,
+                            0.8086426785591834,
+                            1.7109218921081835
+                        ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -740,7 +777,11 @@ end
                         indicator=IndicatorEntropyCorrection(equations, basis),
                         tspan=(0.0, 0.1),
                         l2=[0.18410518515764235, 0.3151497970340809, 0.6485302765750537],
-                        linf=[0.5561756505040076, 0.8355026358832652, 1.6896042720266948])
+                        linf=[
+                            0.5561756505040076,
+                            0.8355026358832652,
+                            1.6896042720266948
+                        ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -753,7 +794,11 @@ end
                         tspan=(0.0, 0.001),
                         # note that errors are large because the solution magnitude is large
                         l2=[3.5624314278401767, 307.08047341497075, 671891.3209204172],
-                        linf=[11.245466632528647, 1012.4992037314532, 2.193707958061479e6])
+                        linf=[
+                            11.245466632528647,
+                            1012.4992037314532,
+                            2.193707958061479e6
+                        ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -797,5 +842,5 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-
+end # testset 
 end # module
