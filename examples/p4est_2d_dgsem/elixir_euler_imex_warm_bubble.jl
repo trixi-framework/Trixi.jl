@@ -190,11 +190,11 @@ equations = CompressibleEulerEquations2D(gamma)
 polydeg = 2
 basis = LobattoLegendreBasis(polydeg)
 
-volume_integral_explicit = VolumeIntegralFluxDifferencing(flux_kennedy_gruber_slow)
-solver_explicit = DGSEM(basis, flux_lmars_slow, volume_integral_explicit)
+volume_integral_nonstiff = VolumeIntegralFluxDifferencing(flux_kennedy_gruber_slow)
+solver_nonstiff = DGSEM(basis, flux_lmars_slow, volume_integral_nonstiff)
 
-volume_integral_implicit = VolumeIntegralFluxDifferencing(flux_kennedy_gruber_fast)
-solver_implicit = DGSEM(basis, flux_lmars_fast, volume_integral_implicit)
+volume_integral_stiff = VolumeIntegralFluxDifferencing(flux_kennedy_gruber_fast)
+solver_stiff = DGSEM(basis, flux_lmars_fast, volume_integral_stiff)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (20_000.0, 10_000.0)
@@ -212,7 +212,7 @@ initial_condition = initial_condition_warm_bubble
 semi = SemidiscretizationHyperbolicSplit(mesh,
                                          (equations, equations),
                                          initial_condition,
-                                         (solver_implicit, solver_explicit);
+                                         (solver_stiff, solver_nonstiff);
                                          boundary_conditions = (boundary_conditions,
                                                                 boundary_conditions),
                                          source_terms = (nothing, source_terms_gravity),)
