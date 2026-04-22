@@ -381,7 +381,8 @@ function coupled_mortar_fluxes_to_elements!(surface_flux_values, mesh, equations
             else
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
-                        surface_flux_values[v, i, large_direction, element] = u_buffer[v, i]
+                        surface_flux_values[v, i, large_direction, element] = u_buffer[v,
+                                                                                       i]
                     end
                 end
             end
