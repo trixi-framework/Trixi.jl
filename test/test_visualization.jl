@@ -32,7 +32,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                                "elixir_euler_basic.jl"),
                         "P4estMesh" => ("p4est_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
+                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
+                        "DGMulti (FDSBP)" => ("dgmulti_2d",
+                                              "elixir_euler_cgsbp_periodic.jl"))
 
 @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
@@ -114,9 +116,12 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             u = Trixi.wrap_array_native(sol.u[end], semi)
             scalar_data = u[1, :, :, :]
         end
-        @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
-        @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
-                                                       sol.u[end], semi))
+
+        if mesh != "DGMulti (FDSBP)"
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                           sol.u[end], semi))
+        end
 
         # test for consistency between the two ScalarPlotData2D constructions
         if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
@@ -148,7 +153,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 
     @testset "1D plot from 2D solution" begin
-        if mesh != "DGMulti"
+        if mesh != "DGMulti" && mesh != "DGMulti (FDSBP)"
             @testset "Create 1D plot as slice" begin
                 @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
                                    PlotData1D
