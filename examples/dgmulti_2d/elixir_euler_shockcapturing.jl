@@ -6,27 +6,23 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# use a continuous version of the blast wave initial condition to avoid 
-# floating point issues when evaluating at the interface between the two regions
+# a version of the blast wave initial condition to avoid floating point 
+# issues when evaluating polar coordinates or evaluating at the discontinuity
 function initial_condition_weak_C0_blast_wave(x, t,
                                               equations::CompressibleEulerEquations2D)
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-    # Set up polar coordinates
     RealT = eltype(x)
     inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
-    sin_phi, cos_phi = sincos(phi)
 
     rho_outer = one(RealT)
     v1_outer = zero(RealT)
     v2_outer = zero(RealT)
     p_outer = one(RealT)
     rho_inner = 1.1691
-    v1_inner = 0.1882 * cos_phi
-    v2_inner = 0.1882 * sin_phi
+    v1_inner = 0.1882
+    v2_inner = 0.1882
     p_inner = 1.245
 
     # Calculate primitive variables
