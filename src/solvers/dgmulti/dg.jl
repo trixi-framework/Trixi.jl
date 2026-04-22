@@ -143,12 +143,12 @@ In particular, not the face nodes themselves are returned.
     return Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
 end
 
-# The `num_modes` functions returns the number of polynomial modes for a degree N
+# The `nmodes` functions returns the number of polynomial modes for a degree N
 # approximation on a specific type of element. For tensor product elements (Quad, Hex),
 # this is the total number of modes in all dimensions, i.e., (N+1)^NDIMS.
-@inline num_modes(N, ::Line) = N + 1
-@inline num_modes(N, ::Quad) = (N + 1)^2
-@inline num_modes(N, ::Hex) = (N + 1)^3
+@inline nmodes(N, ::Line) = N + 1
+@inline nmodes(N, ::Quad) = (N + 1)^2
+@inline nmodes(N, ::Hex) = (N + 1)^3
 
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
