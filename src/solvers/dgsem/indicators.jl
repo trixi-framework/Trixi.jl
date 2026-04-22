@@ -147,6 +147,21 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     return alpha
 end
 
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
+                                dg, cache)
+    # call the indicator to get up-to-date values for IO
+    volume_integral.indicator(u, mesh, equations, dg, cache)
+    return get_element_variables!(element_variables, volume_integral.indicator,
+                                  volume_integral)
+end
+
+function get_element_variables!(element_variables, indicator::IndicatorHennemannGassner,
+                                ::VolumeIntegralAdaptive)
+    element_variables[:indicator_volume_integral_adaptive] = indicator.cache.alpha
+    return nothing
+end
+
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
 

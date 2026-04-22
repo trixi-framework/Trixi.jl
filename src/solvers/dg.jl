@@ -465,7 +465,7 @@ This kind strategy was for certain choices of the default and stabilized volume 
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
        AbstractVolumeIntegral
-    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    indicator::Indicator # A-priori or A-posteriori indicator to determine whether the default or stabilized volume integral should be used for a given element
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
 end
