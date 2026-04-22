@@ -5,12 +5,12 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
-                      equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, cache_containers, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, cache_containers, uEltype)
+function create_cache_subcell_limiting(mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                   P4estMesh{2}},
+                                       equations,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       dg::DG, cache_containers, uEltype)
+    cache = NamedTuple()
     if volume_integral.limiter.smoothness_indicator
         element_ids_dg = Int[]
         element_ids_dgfv = Int[]
