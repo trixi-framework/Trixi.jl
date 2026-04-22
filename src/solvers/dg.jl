@@ -38,7 +38,22 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 
     return nothing
 end
-# Version for parabolic-extended equations
+
+# Version for purely parabolic equations (adds cache_parabolic).
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache, cache_parabolic)
+        end
+    end
+
+    return nothing
+end
+
+# Version for hyperbolic-parabolic equations (adds equations_parabolic and cache_parabolic).
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -141,6 +156,12 @@ create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = N
 # finite volume schemes on the subcells.
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
+
+function create_cache_subcell_limiting(mesh, equations,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       dg, cache_containers, uEltype)
+    return NamedTuple()
+end
 
 struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
                                           VolumeIntegralBlendHighOrder,
@@ -691,7 +712,7 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     with a high-order mortar is not invariant domain preserving.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
-       AbstractVolumeIntegral
+       AbstractVolumeIntegralSubcell
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
     limiter::Limiter

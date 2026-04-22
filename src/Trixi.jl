@@ -107,7 +107,9 @@ import SummationByPartsOperators: integrate, semidiscretize,
                                   left_boundary_weight, right_boundary_weight
 @reexport using SummationByPartsOperators: SummationByPartsOperators, derivative_operator,
                                            periodic_derivative_operator,
-                                           upwind_operators
+                                           upwind_operators, couple_continuously,
+                                           legendre_derivative_operator,
+                                           UniformPeriodicMesh1D
 
 # DGMulti solvers
 @reexport using StartUpDG: StartUpDG, Polynomial, Gauss, TensorProductWedge, SBP, Line, Tri,
@@ -145,6 +147,7 @@ include("solvers/solvers.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
+include("semidiscretization/semidiscretization_parabolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
@@ -184,9 +187,10 @@ export AcousticPerturbationEquations2D,
        PassiveTracerEquations
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
-export IdealGas, VanDerWaals, PengRobinson
+export IdealGas, VanDerWaals, PengRobinson, HelmholtzIdealGas
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
+       LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
        LaplaceDiffusionEntropyVariables3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -294,6 +298,8 @@ export nelements, nnodes, nvariables,
        get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
+
+export SemidiscretizationParabolic
 
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
