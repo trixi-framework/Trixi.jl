@@ -171,4 +171,16 @@ function flux_parabolic(u_ll, u_rr, normal_direction,
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
-default_parabolic_solver() = ParabolicFormulationBassiRebay1()
+default_parabolic_solver() = ViscousFormulationBassiRebay1()
+
+function default_artificial_viscosity(equations)
+
+    # set diffusivity equal to 1, but scale in rhs
+    if ndims(equations) == 1
+        return LaplaceDiffusionEntropyVariables1D(1, equations)
+    elseif ndims(equations) == 2
+        return LaplaceDiffusionEntropyVariables2D(1, equations)
+    else # if ndims(equations)==3
+        return LaplaceDiffusionEntropyVariables3D(1, equations)
+    end
+end
