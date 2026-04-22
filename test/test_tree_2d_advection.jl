@@ -308,4 +308,19 @@ end
     end
 end
 
+@testset "Nodal API" begin
+    trixi_include(@__MODULE__,
+                  joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"))
+
+    semi = sol.prob.p
+
+    coords = Trixi.get_coordinates(sol)
+    @test size(coords) == (2, 4, 4, 256)
+    @test coords == semi.cache.elements.node_coordinates
+
+    u_nodal = Trixi.get_u(sol)
+    @test size(u_nodal) == (1, 4, 4, 256)
+    @test u_nodal == Trixi.wrap_array(sol.u[end], semi)
+end
+
 end # module
