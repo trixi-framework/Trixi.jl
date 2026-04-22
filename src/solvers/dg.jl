@@ -162,6 +162,7 @@ function create_cache_subcell_limiting(mesh, equations,
                                        dg, cache_containers, uEltype)
     return NamedTuple()
 end
+
 struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
                                           VolumeIntegralBlendHighOrder,
                                           VolumeIntegralBlendLowOrder} <:
