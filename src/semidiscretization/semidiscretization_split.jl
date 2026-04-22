@@ -9,7 +9,7 @@
 	SemidiscretizationHyperbolicSplit
 
 A struct containing everything needed to describe a spatial semidiscretization
-of a split-rhs corresponding to a hyperbolic conservation/balance law.
+of a split-RHS corresponding to a hyperbolic conservation/balance law.
 """
 struct SemidiscretizationHyperbolicSplit{Mesh,
                                          EquationsStiff, EquationsNonStiff,
@@ -52,6 +52,8 @@ end
                                   initial_caches=(NamedTuple(), NamedTuple()))
 
 Construct a semidiscretization of a hyperbolic-split PDE.
+
+For the tuples `equations, source_terms, boundary_conditions, initial_caches` the first argument is discretized with `solver_stiff` and the second argument with `solver_nonstiff`.
 """
 function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                            initial_condition, solvers::Tuple;
@@ -127,9 +129,9 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_header(io, "SemidiscretizationHyperbolicSplit")
         summary_line(io, "#spatial dimensions", ndims(semi.equations_stiff))
         summary_line(io, "mesh", semi.mesh)
-        summary_line(io, "hyperbolic equations stiff",
+        summary_line(io, "equations stiff",
                      semi.equations_stiff |> typeof |> nameof)
-        summary_line(io, "hyperbolic equations nonstiff",
+        summary_line(io, "equations nonstiff",
                      semi.equations_nonstiff |> typeof |> nameof)
         summary_line(io, "initial condition", semi.initial_condition)
         summary_line(io, "boundary condition stiff",
