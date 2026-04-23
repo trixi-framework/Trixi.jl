@@ -1,5 +1,6 @@
 using Trixi
 using CUDA
+using NVTX # Load to get tracing support for Trixi
 using TimerOutputs
 using JSON
 
