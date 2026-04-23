@@ -23,7 +23,31 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                             linf=[6.627000273229378e-5])
     end
 
-    @trixi_testset "elixir_advection_restart.jl" begin
+    @trixi_testset "elixir_advection_restart.jl based on elixir_advection_extended.jl" begin
+        # Perform a standard simulation
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() && println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                      tspan = (0.0, 10.0))
+        l2_expected, linf_expected = analysis_callback(sol)
+
+        # Perform a simulation restarting from an intermediate state
+        mpi_isroot() && println("═"^100)
+        mpi_isroot() &&
+            println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+        l2_actual, linf_actual = analysis_callback(sol)
+
+        # Check whether the errors are exactly the same as in the uninterrupted run
+        # using the default low-storage RK method with a StepsizeCallback.
+        mpi_isroot() && @test l2_actual == l2_expected
+        mpi_isroot() && @test linf_actual == linf_expected
+    end
+
+    @trixi_testset "elixir_advection_restart.jl based on elixir_advection_timeintegration_adaptive.jl" begin
+        # Perform a standard simulation
         using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
         mpi_isroot() && println("═"^100)
         mpi_isroot() &&
@@ -35,16 +59,18 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                       alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
+        # Perform a simulation restarting from an intermediate state
         mpi_isroot() && println("═"^100)
         mpi_isroot() &&
             println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
-        # Errors are exactly the same as in the elixir_advection_extended.jl
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                       alg = RDPK3SpFSAL49(),
                       base_elixir = "elixir_advection_timeintegration_adaptive.jl")
         l2_actual, linf_actual = analysis_callback(sol)
 
+        # Check whether the errors are exactly the same as in the uninterrupted run
+        # using the same low-storage RK method with error-based step size control.
         mpi_isroot() && @test l2_actual == l2_expected
         mpi_isroot() && @test linf_actual == linf_expected
     end

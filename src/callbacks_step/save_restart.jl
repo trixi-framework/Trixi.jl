@@ -188,8 +188,21 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
         # Load additional parameters for PIDController
-        if hasproperty(controller, :err) # Distinguish PIDController from PIController
+        # For `PIDController`s, we also restore the history from the last few steps since
+        # they are used to predict the next time step sizes. OrdinaryDiffEqCore.jl
+        # refactored some internal code: in earlier versions (up to version 3.31), they
+        # used an array `err` to store the error history. Aftwerwards, they switched to
+        # three scalar values `err1, err2, err3` to store the error history.
+        # We need to check for both cases to ensure that we can handle restart files
+        # with different versions of the OrdinaryDiffEq.jl ecosystem.
+        if hasproperty(controller, :err)
             controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
+        elseif hasproperty(controller, :err1) && hasproperty(controller, :err2) &&
+               hasproperty(controller, :err3)
+            err = read(attributes(file)["time_integrator_controller_err"])
+            controller.err1 = err[1]
+            controller.err2 = err[2]
+            controller.err3 = err[3]
         end
     end
 end
