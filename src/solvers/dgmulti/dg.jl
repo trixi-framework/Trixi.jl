@@ -150,6 +150,14 @@ end
 @inline nmodes(N, ::Quad) = (N + 1)^2
 @inline nmodes(N, ::Hex) = (N + 1)^3
 
+@inline function num_modes(N, ::Tri)
+    return (N + 1) * (N + 2) ÷ 2
+end
+
+@inline function num_modes(N, ::Tet)
+    return (N + 1) * (N + 2) * (N + 3) ÷ 6
+end
+
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode

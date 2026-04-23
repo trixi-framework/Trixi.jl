@@ -309,6 +309,44 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
+                        polydeg=2, adaptive=false, tspan=(0.0, 1e-3),
+                        l2=[
+                            0.00045155999383061246,
+                            0.0007997114439550152,
+                            2.370224947246212e-6,
+                            0.002037206524508959
+                        ],
+                        linf=[
+                            0.07544209921557377,
+                            0.17673745170823008,
+                            0.0009825284037637686,
+                            0.3386662161532019
+                        ])
+    # No `@test_allocations`: HG shock capturing on this Gmsh mesh allocates in `rhs!`.
+end
+
+@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
+                        h=0.1, tspan=(0.0, 0.1),
+                        l2=[
+                            0.14885556661320176,
+                            0.2644917535403877,
+                            0.17695468500087722,
+                            0.6616841782760599
+                        ],
+                        linf=[
+                            0.9552906049227556,
+                            1.3131254178491245,
+                            1.104963060639221,
+                            3.6468143028334676
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
@@ -421,16 +459,37 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            0.05685180852320552,
-                            0.04308097439005265,
-                            0.04308097439005263,
-                            0.21098250258804
+                            0.04459267863712344,
+                            0.04466070180923881,
+                            0.044660701809239055,
+                            0.16853101962882136
                         ],
                         linf=[
-                            0.2360805191601203,
-                            0.16684117462697776,
-                            0.16684117462697767,
-                            0.8573034682049414
+                            0.18547384414190626,
+                            0.20141544103810083,
+                            0.20141544103810224,
+                            0.6954971316946836
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shockcapturing.jl (SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
+                        l2=[
+                            0.03901629442791245,
+                            0.03830525262399631,
+                            0.03830525262399637,
+                            0.14746814850975215
+                        ],
+                        linf=[
+                            0.16680108480009226,
+                            0.21077037377694813,
+                            0.2107703737769464,
+                            0.6400748796169138
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

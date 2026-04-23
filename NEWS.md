@@ -55,6 +55,7 @@ Moreover, some internal functions have been renamed accordingly, including the r
 
 #### Added
 
+- Added shock capturing support for `DGMulti` solvers with `SBP()` approximation types on triangular (`Tri`), tetrahedral (`Tet`), quadrilateral (`Quad`), and hexahedral (`Hex`) elements. `GaussSBP()` approximation types are also supported on `Quad` and `Hex` elements.
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).
