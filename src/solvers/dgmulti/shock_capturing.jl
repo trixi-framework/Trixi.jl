@@ -355,7 +355,7 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                  dg::DGMultiFluxDiffSBP, cache, alpha = true)
     (; volume_flux_fv) = volume_integral
 
-    (; sparsity_pattern) = cache
+    (; inv_wq, sparsity_pattern) = cache
     A_base, row_ids, rows, _ = sparse_operator_data(sparsity_pattern)
     for i in row_ids
         u_i = u[i, element]
@@ -376,7 +376,7 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
             du_i = du_i + 2 * f_ij
         end
-        du[i, element] = du[i, element] + alpha * du_i * cache.inv_wq[i]
+        du[i, element] = du[i, element] + alpha * du_i * inv_wq[i]
     end
 
     return nothing
