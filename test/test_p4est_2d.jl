@@ -124,6 +124,22 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              RealT = typeof(parent_mesh).parameters[3])
     end
 
+    @trixi_testset "elixir_advection_coupled_with_amr_mortars.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_coupled_with_amr_mortars.jl"),
+                            tspan=(0.0, 1.0),
+                            l2=[7.31983574e-04, 1.98523544e-03],
+                            linf=[8.31049386e-03, 9.00392882e-03])
+    end
+
+    @trixi_testset "elixir_advection_coupled_checkerboard_views.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_coupled_checkerboard_views.jl"),
+                            tspan=(0.0, 1.0),
+                            l2=[1.53615948e-03, 1.45505111e-03],
+                            linf=[9.00392882e-03, 8.19687184e-03])
+    end
+
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             # Expected errors are exactly the same as with P4estMeshView!

@@ -72,7 +72,7 @@ cache_parent = semi_parent.cache
 left_elements = Int[]
 right_elements = Int[]
 
-for element in 1:ncells(parent_mesh)
+for element in 1:Trixi.ncells(parent_mesh)
     x_center = cache_parent.elements.node_coordinates[1, 2, 2, element]
     if x_center < 0.0
         push!(left_elements, element)
@@ -133,7 +133,8 @@ semi = SemidiscretizationCoupledP4est(semi1, semi2; coupling_functions = couplin
 ###############################################################################
 # ODE problem and callbacks.
 
-ode = semidiscretize(semi, (0.0, 20.0))
+tspan = (0.0, 20.0)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

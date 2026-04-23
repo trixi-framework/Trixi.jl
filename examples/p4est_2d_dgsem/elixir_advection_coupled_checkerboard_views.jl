@@ -86,7 +86,7 @@ cache_parent = semi_parent.cache
 view1_elements = Int[]
 view2_elements = Int[]
 
-for element in 1:ncells(parent_mesh)
+for element in 1:Trixi.ncells(parent_mesh)
     x_c = cache_parent.elements.node_coordinates[1, 2, 2, element]
     y_c = cache_parent.elements.node_coordinates[2, 2, 2, element]
     if x_c * y_c >= 0.0
@@ -142,7 +142,8 @@ semi = SemidiscretizationCoupledP4est(semi1, semi2; coupling_functions = couplin
 ###############################################################################
 # ODE problem and callbacks.
 
-ode = semidiscretize(semi, (0.0, 20.0))
+tspan = (0.0, 20.0)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
