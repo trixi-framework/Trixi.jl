@@ -339,6 +339,10 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
         @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
+        # Update `du` with corrections from `SubcellLimiterIDPCorrection` for a-posteriori subcell limiting
+        du_correction_subcell_limiting!(du_ode, u_ode, integrator,
+                                        integrator.p.solver.volume_integral)
+
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
         # Compute l2_error, linf_error
@@ -491,6 +495,21 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     analyze_integrals(analysis_integrals, io, du, u, t, semi)
 
     return nothing
+end
+
+# Correct `du` to ensure that the a-posteriori modifications for subcell limiting are included in the analysis callback
+du_correction_subcell_limiting!(du_ode, u_ode, integrator, volume_integral) = nothing
+function du_correction_subcell_limiting!(du_ode, u_ode,
+                                         integrator::Trixi.SimpleIntegratorSSP,
+                                         volume_integral::VolumeIntegralSubcellLimiting)
+    if isempty(integrator.alg.stage_callbacks)
+        return nothing
+    end
+
+    # `SubcellLimiterIDPCorrection` is the first entry in the tuple of stage callbacks.
+    return first(integrator.alg.stage_callbacks)(du_ode, u_ode, integrator.p,
+                                                 integrator.t, integrator.dt,
+                                                 volume_integral.limiter)
 end
 
 function print_level_information(mesh, solver, cache, min_level, max_level)
