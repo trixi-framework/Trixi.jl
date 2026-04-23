@@ -222,6 +222,7 @@ end
 function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Tri})
     # this assumes that the nodes of the first face on the reference element correspond to a face where
     # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis. 
+    @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
     return reshape(basis.r[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
 end
 
@@ -229,6 +230,7 @@ function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Quad})
     # this assumes that the nodes of the first face on the reference element correspond to a face where
     # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis. 
     # For quadrilateral elements, this is true since the faces are ordered r = ±1, s = ±1.
+    @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
     return reshape(basis.s[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
 end
 
