@@ -340,7 +340,8 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         # hyperbolic-parabolic systems.
         @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
         # Update `du` with corrections from `SubcellLimiterIDPCorrection` for a-posteriori subcell limiting
-        du_correction_subcell_limiting!(du_ode, u_ode, integrator, integrator.p.solver.volume_integral)
+        du_correction_subcell_limiting!(du_ode, u_ode, integrator,
+                                        integrator.p.solver.volume_integral)
 
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
