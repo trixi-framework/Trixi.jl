@@ -1,3 +1,4 @@
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -107,8 +108,11 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (BoundsCheckCallback(save_errors = false),)
+# TODO: The `BoundsCheckCallback` is currently not supported as a `step_callback`.
+# As a `stage_callback` it is called but doesn't give any useful information
+# since `finalize!` is not called.
+# stage_callbacks = (BoundsCheckCallback(save_errors = false),)
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()..., callback = callbacks);
+sol = solve(ode, SSPRK33();
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
