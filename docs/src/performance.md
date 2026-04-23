@@ -291,12 +291,12 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
 
 ## Tracing support for profilers
 
-Trixi supports tracing profiler integration through [ittapi](https://github.com/intel/ittapi) for Intel VTune and [NVTX](https://github.com/NVIDIA/NVTX) for [NVIDIA Nsight Systems](https://developer.nvidia.com/nsight-systems).
+Trixi.jl supports tracing profiler integration through [ittapi](https://github.com/intel/ittapi) for Intel VTune and [NVTX](https://github.com/NVIDIA/NVTX) for [NVIDIA Nsight Systems](https://developer.nvidia.com/nsight-systems).
 
 !!! note "Extensions"
     Tracing support is implemented through extensions and requires trigger packages to be loaded.
 
-Tracing support is only available for regions that are instrumented with `@trixi_timeit_ext`.
+Tracing support is only available for regions that are instrumented with [`@trixi_timeit_ext`](@ref).
 
 ### Using Intel VTune
 
@@ -308,6 +308,7 @@ We can use Intel VTune to profile CPU code. For more information see the [Julia 
     ```
 
 To get the most out of Intel VTune we recommend passing the environment flag `ENABLE_JITPROFILING=1` to Julia, which will allow you to symbolize JIT compiled call frames.
+Otherwise, instead of the Julia function names you will only see anonymous C function calls in the trace.
 
 !!! note "Usage of `juliaup`"
     Sometime `juliaup` can make it harder for a profiler to attach to the right process. You can use `Base.julia_cmd()` in the REPL to obtain the path to the actual Julia binary you will be running.
@@ -328,4 +329,4 @@ We recommend reading the CUDA.jl documentation on using [Nsight Systems](https:/
 You can also just use `CUDA.@profile` (see [Integrated Profiler](https://cuda.juliagpu.org/stable/development/profiling/#Integrated-profiler)) to obtain profiler results that include the NVTX ranges.
 
 #### Known limitation
-Nsight Systems can also be used for CPU and in particular MPI codes. The Trixi extension will only be enabled when GPU backend is being used. 
+Nsight Systems can also be used for CPU and in particular MPI codes. The Trixi.jl extension will only be enabled when GPU backend is being used.
