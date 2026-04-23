@@ -174,6 +174,19 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 end
 
+# check that ScalarPlotData2D works for Quad elements
+@timed_testset "ScalarPlotData2D with DGMulti Quad elements" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        tspan=(0.0, 0.0),
+                        element_type=Quad(),
+                        cells_per_dimension=(2, 2))
+    semi = sol.prob.p
+    u = parent(sol.u[end])
+    scalar_data = StructArrays.component(u, 1)
+    @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+end
+
 @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
