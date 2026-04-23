@@ -323,6 +323,11 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         u_i = u_local[i]
         du_i = zero(u_i)
         for id in nzrange(A_base, i)
+            # nonzero column indices for row i of the sparse operator. 
+            # note that because Julia uses SparseMatrixCSC, rows[id] 
+            # are efficient to access. We assume here that `sparsity_pattern`
+            # is symmetric (which is true since A_base is skew-symmetric), 
+            # so nonzero row indices are the same as nonzero column indices.
             j = rows[id]
             u_j = u_local[j]
 
@@ -335,6 +340,13 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             # note that we do not need to normalize `normal_direction_ij` since
             # it is typically normalized within the flux computation.
             f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+
+            # the factor of 2 is for consistency; for example, if f_ij is the central 
+            # flux, flux differencing with a differentiation matrix should recover the 
+            # flux derivative via
+            #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
+            #                           = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
+            #                        = 0 (since \sum_j D_ij = 0) + (D * f(u))_i
             du_i = du_i + 2 * f_ij
         end
         rhs_local[i] = du_i
@@ -361,6 +373,11 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         u_i = u[i, element]
         du_i = zero(u_i)
         for id in nzrange(A_base, i)
+            # nonzero column indices for row i of the sparse operator. 
+            # note that because Julia uses SparseMatrixCSC, rows[id] 
+            # are efficient to access. We assume here that `sparsity_pattern`
+            # is symmetric (which is true since A_base is skew-symmetric), 
+            # so nonzero row indices are the same as nonzero column indices.
             j = rows[id]
             u_j = u[j, element]
 
@@ -374,6 +391,13 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             # note that we do not need to normalize `normal_direction_ij` since
             # it is typically normalized within the flux computation.
             f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+
+            # the factor of 2 is for consistency; for example, if f_ij is the central 
+            # flux, flux differencing with a differentiation matrix should recover the 
+            # flux derivative via
+            #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
+            #                           = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
+            #                        = 0 (since \sum_j D_ij = 0) + (D * f(u))_i
             du_i = du_i + 2 * f_ij
         end
         du[i, element] = du[i, element] + alpha * du_i * cache.inv_wq[i]
