@@ -57,6 +57,24 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     return nothing
 end
 
+# Alternative function to apply a-posteriori corrections to `du` instead of `u`
+function (limiter!::SubcellLimiterIDPCorrection)(du_ode, u_ode, semi, t, dt,
+                                                 limiter::SubcellLimiterIDP)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+
+    @trixi_timeit timer() "blending factors" limiter(u, semi, equations, solver,
+                                                     t, dt)
+
+    # Apply `perform_idp_correction!` to `du` instead of `u`:
+    # Pass `du` and `1.0` instead of `u` and `dt`
+    perform_idp_correction!(du, 1.0, mesh, equations, solver, cache)
+
+    return nothing
+end
+
 init_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
 
 finalize_callback(limiter!::SubcellLimiterIDPCorrection, semi) = nothing
