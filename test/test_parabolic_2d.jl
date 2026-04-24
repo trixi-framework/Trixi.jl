@@ -744,7 +744,8 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
     # Check specialised methods on ViscoResistiveMhd2D for coverage
     equations_parabolic = semi.equations_parabolic
-    @test Trixi.gradient_variable_transformation(equations_parabolic) === Trixi.cons2prim
+    @test Trixi.gradient_variable_transformation(equations_parabolic) ===
+          Trixi.cons2prim
     u_node = initial_condition(SVector(0.0, 0.0), 0.0, semi.equations)
     @test Trixi.max_diffusivity(u_node, equations_parabolic) isa Real
     @test Trixi.energy_magnetic_mhd(u_node, equations_parabolic) isa Real
