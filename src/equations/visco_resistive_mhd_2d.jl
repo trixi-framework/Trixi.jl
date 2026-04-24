@@ -80,10 +80,15 @@ function ViscoResistiveMhd2D(equations::IdealGlmMhdEquations2D;
     kappa = gamma * inv_gamma_minus_one / Pr
     max_4over3_kappa = max(4 / 3, kappa)
 
-    ViscoResistiveMhd2D{typeof(gradient_variables), typeof(gamma), typeof(equations)
-                        }(gamma, inv_gamma_minus_one,
-                          μ, Pr, eta, kappa, max_4over3_kappa,
-                          equations, gradient_variables)
+    ViscoResistiveMhd2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma,
+                                                                                      inv_gamma_minus_one,
+                                                                                      μ,
+                                                                                      Pr,
+                                                                                      eta,
+                                                                                      kappa,
+                                                                                      max_4over3_kappa,
+                                                                                      equations,
+                                                                                      gradient_variables)
 end
 
 # We specialize this function to compute gradients of primitive variables instead of
