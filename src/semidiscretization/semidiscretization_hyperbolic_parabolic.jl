@@ -11,7 +11,8 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a mixed hyperbolic-parabolic conservation law.
 """
-mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
+mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations,
+                                                     EquationsParabolic,
                                                      InitialCondition,
                                                      BoundaryConditions,
                                                      BoundaryConditionsParabolic,
