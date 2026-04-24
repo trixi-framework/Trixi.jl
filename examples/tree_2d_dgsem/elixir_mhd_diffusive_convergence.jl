@@ -68,7 +68,109 @@ end
               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) +
               1)
 
-    r_2 = -mu_*(0.04*sqrt(5)*pi^2*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1) - 0.0016*sqrt(5)*pi^2*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 - 0.0008*sqrt(5)*pi^2*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 - 3.2e-5*sqrt(5)*pi^2*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)^2*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^3) - 0.0016*sqrt(5)*pi*(-0.01*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + sqrt(5))*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.016*sqrt(5)*pi*(-0.004*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + 2*sqrt(5)/5)*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + 0.008*sqrt(5)*pi*(0.008*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + sqrt(5)/5)*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.0016*sqrt(5)*pi*(0.04*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + sqrt(5))*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.0004*pi*(-0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) - 1)^2*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 + 8.0e-6*pi*(-0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) - 1)^2*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))^2*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^3 + 8.0e-6*pi*(-0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) - 1)*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))^2*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 + 0.04*pi*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.02*pi*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)
+    r_2 = -mu_ * (0.04 * sqrt(5) * pi^2 *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) /
+           (0.02 * cos(-sqrt(5) * pi * t +
+                sqrt(5) * pi *
+                (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1) -
+           0.0016 * sqrt(5) * pi^2 *
+           sin(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) *
+           sin(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) /
+           (0.02 * cos(-sqrt(5) * pi * t +
+                sqrt(5) * pi *
+                (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1)^2 -
+           0.0008 * sqrt(5) * pi^2 *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) *
+           cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) /
+           (0.02 * cos(-sqrt(5) * pi * t +
+                sqrt(5) * pi *
+                (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1)^2 -
+           3.2e-5 * sqrt(5) * pi^2 *
+           sin(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1)^2 *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) /
+           (0.02 * cos(-sqrt(5) * pi * t +
+                sqrt(5) * pi *
+                (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1)^3) -
+          0.0016 * sqrt(5) * pi *
+          (-0.01 * sqrt(5) *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) +
+           sqrt(5)) *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) -
+          0.016 * sqrt(5) * pi *
+          (-0.004 * sqrt(5) *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) +
+           2 * sqrt(5) / 5) *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) +
+          0.008 * sqrt(5) * pi *
+          (0.008 * sqrt(5) *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) +
+           sqrt(5) / 5) *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) -
+          0.0016 * sqrt(5) * pi *
+          (0.04 * sqrt(5) *
+           cos(sqrt(5) * pi * t -
+               sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) +
+           sqrt(5)) *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) -
+          0.0004 * pi *
+          (-0.02 * cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) - 1)^2 *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) *
+          cos(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) /
+          (0.02 * cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1)^2 +
+          8.0e-6 * pi *
+          (-0.02 * cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) - 1)^2 *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5))^2 *
+          sin(-sqrt(5) * pi * t +
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) +
+              1) /
+          (0.02 * cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1)^3 +
+          8.0e-6 * pi *
+          (-0.02 * cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) - 1) *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5))^2 *
+          sin(-sqrt(5) * pi * t +
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) +
+              1) /
+          (0.02 * cos(-sqrt(5) * pi * t +
+               sqrt(5) * pi *
+               (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) + 1) + 1)^2 +
+          0.04 * pi *
+          sin(sqrt(5) * pi * t -
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5)) -
+          0.02 * pi *
+          sin(-sqrt(5) * pi * t +
+              sqrt(5) * pi * (sqrt(5) * (x[1] - 1.0) / 5 + 2 * sqrt(5) * (x[2] - 1.0) / 5) +
+              1)
 
     r_3 = -mu_*(-0.02*sqrt(5)*pi^2*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1) + 0.0008*sqrt(5)*pi^2*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 + 0.0004*sqrt(5)*pi^2*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 + 1.6e-5*sqrt(5)*pi^2*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)^2*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^3) + 0.0032*sqrt(5)*pi*(-0.01*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + sqrt(5))*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.008*sqrt(5)*pi*(-0.004*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + 2*sqrt(5)/5)*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + 0.004*sqrt(5)*pi*(0.008*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + sqrt(5)/5)*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + 0.0032*sqrt(5)*pi*(0.04*sqrt(5)*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) + sqrt(5))*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.0008*pi*(-0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) - 1)^2*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))*cos(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 + 1.6e-5*pi*(-0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) - 1)^2*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))^2*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^3 + 1.6e-5*pi*(-0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) - 1)*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5))^2*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)/(0.02*cos(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1) + 1)^2 - 0.02*pi*sin(sqrt(5)*pi*t - sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5)) - 0.04*pi*sin(-sqrt(5)*pi*t + sqrt(5)*pi*(sqrt(5)*(x[1] - 1.0)/5 + 2*sqrt(5)*(x[2] - 1.0)/5) + 1)
 
