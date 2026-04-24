@@ -81,8 +81,6 @@ end
 
     r_9 = zero(x[1])
 
-
-
     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
