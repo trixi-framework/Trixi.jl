@@ -197,9 +197,7 @@ end
 # For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
-                                                  equations::ViscoResistiveMhd2D{
-                                                                                 GradientVariablesPrimitive
-                                                                                 })
+                                                  equations::ViscoResistiveMhd2D{GradientVariablesPrimitive})
     return u_transformed
 end
 
