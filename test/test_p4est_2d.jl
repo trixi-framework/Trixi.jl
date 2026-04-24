@@ -728,6 +728,36 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_mhd_alfven_wave_curved_sc.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_curved_sc.jl"),
+                        l2=[
+                            8.734161001340276e-5,
+                            7.04349259260781e-5,
+                            7.304689823506568e-5,
+                            9.92093392020509e-5,
+                            0.00011361367590438308,
+                            8.157677703567097e-5,
+                            8.371460865716162e-5,
+                            9.903542165155269e-5,
+                            1.9078417024984365e-5
+                        ],
+                        linf=[
+                            0.0007014635549347226,
+                            0.000694024655786385,
+                            0.0007390899913683746,
+                            0.0006263154590383929,
+                            0.0009844014894829778,
+                            0.0006486785360533265,
+                            0.000717736479387665,
+                            0.0006245665969066005,
+                            0.0001736150196794418
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonconforming.jl"),
