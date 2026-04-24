@@ -10,7 +10,7 @@ mu = 6.25e-4 # equivalent to Re = 1600
 equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
                                                           Prandtl = prandtl_number(),
-                                                          gradient_variables = GradientVariablesEntropy())
+                                                          gradient_variables = GradientVariablesPrimitive())
 
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
