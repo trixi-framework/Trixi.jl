@@ -402,6 +402,19 @@ Computes the (node-wise) vorticity, defined in 3D as
     return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
 end
 
+@inline function vorticity(u, gradients,
+                           equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
+    # Need to convert to entropy variables first for `convert_derivative_to_primitive` to work correctly.
+    w = cons2entropy(u, equations)
+
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, _, dv2dx, dv3dx, _ = convert_derivative_to_primitive(w, gradients[1], equations)
+    _, dv1dy, _, dv3dy, _ = convert_derivative_to_primitive(w, gradients[2], equations)
+    _, dv1dz, dv2dz, _, _ = convert_derivative_to_primitive(w, gradients[3], equations)
+
+    return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
+end
+
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
