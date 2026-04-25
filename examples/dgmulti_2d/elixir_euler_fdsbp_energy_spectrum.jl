@@ -6,12 +6,13 @@ using Trixi
 
 save_plot = false
 plot_filename = joinpath("out", "energy_spectrum_2d.png")
+n_points_per_coordinate = 64
 
 dg = DGMulti(element_type = Quad(),
              approximation_type = periodic_derivative_operator(derivative_order = 1,
                                                                accuracy_order = 4,
                                                                xmin = -pi, xmax = pi,
-                                                               N = 64),
+                                                               N = n_points_per_coordinate),
              surface_flux = flux_hll,
              volume_integral = VolumeIntegralWeakForm())
 
