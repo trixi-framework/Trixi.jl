@@ -138,7 +138,6 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
-include("auxiliary/spectral_analysis.jl")
 include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
@@ -160,6 +159,9 @@ include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
+
+# Postprocessing utilities
+include("postprocessing/spectral_analysis.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
@@ -341,6 +343,7 @@ export ode_norm, ode_unstable_check
 
 export convergence_test,
        compute_energy_spectrum,
+       interpolate_to_uniform_cartesian,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
        linear_structure, linear_structure_parabolic
 
