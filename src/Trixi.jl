@@ -58,6 +58,7 @@ using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
+using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
@@ -158,6 +159,9 @@ include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
+
+# Postprocessing utilities
+include("postprocessing/spectral_analysis.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
@@ -338,6 +342,8 @@ export trixi_include, examples_dir, get_examples, default_example,
 export ode_norm, ode_unstable_check
 
 export convergence_test,
+       compute_energy_spectrum,
+       interpolate_to_uniform_cartesian,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
        linear_structure, linear_structure_parabolic
 

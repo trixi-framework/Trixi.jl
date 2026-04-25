@@ -1133,6 +1133,18 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 100)
 end
 
+@trixi_testset "elixir_euler_energy_spectrum.jl" begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_energy_spectrum.jl"),
+                  initial_refinement_level = 2, nvisnodes = 4, tspan = (0.0, 0.01))
+
+    @test length(energy_spectrum) == length(wavenumbers)
+    @test all(isfinite, energy_spectrum)
+    @test all(energy_spectrum .>= 0)
+    @test isapprox(sum(energy_spectrum), mean_kinetic_energy,
+                   rtol = sqrt(eps(real(solver))))
+end
+
 # Coverage test for all initial conditions
 @testset "Compressible Euler: Tests for initial conditions" begin
     @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_constant" begin
