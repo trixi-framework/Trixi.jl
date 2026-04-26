@@ -267,7 +267,8 @@ function get_node_variable(::Val{:limiting_coefficient},
 end
 function get_node_variable(::Val{:limiting_coefficient},
                            volume_integral::VolumeIntegralAdaptive)
-    return volume_integral.volume_integral_stabilized.limiter.cache.subcell_limiter_coefficients.alpha
+    return get_node_variable(Val(:limiting_coefficient),
+                             volume_integral.volume_integral_stabilized)
 end
 
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
