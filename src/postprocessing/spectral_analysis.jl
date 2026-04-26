@@ -5,56 +5,13 @@
 @muladd begin
 #! format: noindent
 
-"""
-    compute_energy_spectrum(rho_cartesian, velocity_cartesian...; normalize = true)
-    compute_energy_spectrum(sol; solution_variables = nothing, nvisnodes = nnodes(solver))
-
-Computes the radially averaged kinetic energy spectrum of a numerical solution sampled on a
-uniform Cartesian grid.
-
-The first method expects density and velocity arrays that have already been sampled on a uniform
-Cartesian grid. The second method extracts these arrays from a Trixi solution. For standard
-`TreeMesh`/`DGSEM` discretizations, the solution is interpolated from Legendre-Gauss-Lobatto nodes
-to a uniform Cartesian grid. For `DGMulti`/finite-difference SBP discretizations, the solution is
-already represented on a uniform Cartesian grid and no interpolation is applied.
-
-If `normalize` is `true`, the spectrum is normalized consistently with Julia's unnormalized FFT
-such that `sum(energy_spectrum)` is equal to the mean kinetic energy on the Cartesian grid.
-
-Returns `(energy_spectrum, wavenumbers)` where `energy_spectrum[i]` contains the energy in the
-shell centered at integer wavenumber `wavenumbers[i]`.
-"""
-function compute_energy_spectrum(rho_cartesian::AbstractArray,
-                                 velocity_cartesian::AbstractArray...;
-                                 normalize = true)
-    # FFT indexing and Cartesian shell binning below assume standard Julia indexing.
-    Base.require_one_based_indexing(rho_cartesian, velocity_cartesian...)
-
-    ndims_cartesian = ndims(rho_cartesian)
-    if ndims_cartesian != 2 && ndims_cartesian != 3
-        throw(ArgumentError("`rho_cartesian` must be a 2D or 3D array sampled " *
-                            "on a uniform Cartesian grid"))
-    end
-
-    if length(velocity_cartesian) != ndims_cartesian
-        throw(ArgumentError("expected $ndims_cartesian velocity components for " *
-                            "$(ndims_cartesian)D input, got $(length(velocity_cartesian))"))
-    end
-
-    for velocity in velocity_cartesian
-        if size(velocity) != size(rho_cartesian)
-            throw(ArgumentError("all velocity component arrays must have the same size " *
-                                "as `rho_cartesian`"))
-        end
-    end
-
-    # Calculates density weighted velocities in Fourier space using FFTW
-    density_weighted_velocity_hat = map(velocity -> fft(sqrt.(rho_cartesian) .*
-                                                        velocity),
-                                        velocity_cartesian)
-    energy_modes = zero(0.5 .* abs2.(first(density_weighted_velocity_hat)))
-    for velocity_hat in density_weighted_velocity_hat
-        energy_modes .+= 0.5 .* abs2.(velocity_hat)
+# Internal Cartesian grid FFT kernel that computes the energy spectrum; called from internal methods and power spectra methods
+function _compute_energy_spectrum(velocity_cartesian::AbstractArray...;
+                                  normalize = true)
+    velocity_hat = map(fft, velocity_cartesian)
+    energy_modes = zeros(real(eltype(first(velocity_hat))), size(first(velocity_hat)))
+    for velocity_component_hat in velocity_hat
+        energy_modes .+= 0.5 .* abs2.(velocity_component_hat)
     end
 
     # Accounts for unnormalized FFT convention if specified
@@ -62,7 +19,9 @@ function compute_energy_spectrum(rho_cartesian::AbstractArray,
         energy_modes ./= length(energy_modes)^2
     end
 
-    # Bin Cartesian Fourier modes into isotropic shells
+    # Convert the multi-dimensional Fourier energy into the
+    # 1d isotropic spectrum E by summing all modes whose
+    # wavenumber rounds to the same integer shell, accounting for the FFT convention
     ndims_energy_modes = ndims(energy_modes)
     maximum_wavenumber = floor(Int,
                                sqrt(sum((size(energy_modes, dim) ÷ 2)^2
@@ -88,78 +47,62 @@ function compute_energy_spectrum(rho_cartesian::AbstractArray,
     return energy_spectrum, wavenumbers
 end
 
-# Entry point for ODE solutions
+"""
+    compute_energy_spectrum(sol; kwargs...)
+
+Compute the energy spectrum from the final state of an ODE solution returned by
+`solve`. Keyword arguments are forwarded to the semidiscretization-specific method.
+"""
 function compute_energy_spectrum(sol; kwargs...)
     return compute_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
 end
 
-# Entry point for raw state vectors together with semidiscretization
+"""
+    compute_energy_spectrum(u_ode, semi; kwargs...)
+
+Compute the energy spectrum from an ODE state vector `u_ode` and a Trixi
+semidiscretization `semi`. The state is converted to the solver-native array
+layout before dispatching to the mesh/solver-specific method.
+"""
 function compute_energy_spectrum(u_ode, semi::AbstractSemidiscretization; kwargs...)
     return compute_energy_spectrum(wrap_array_native(u_ode, semi),
                                    mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
-# Specifcally for 2D and 3D Treemeshes that interpolate from the LGL nodes to a uniform Cartesian grid
-function compute_energy_spectrum(u, mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+"""
+    compute_energy_spectrum(u, mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
+                            solver::DGSEM, cache; normalize = true)
+
+Compute the energy spectrum for a non-AMR `TreeMesh`/`DGSEM` solution by first
+interpolating the solution from LGL nodes to a uniform Cartesian grid.
+"""
+function compute_energy_spectrum(u, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                                 equations::AbstractCompressibleEulerEquations,
                                  solver::DGSEM, cache;
-                                 solution_variables = nothing,
-                                 nvisnodes = nnodes(solver),
-                                 density_variable = "rho", velocity_variables = nothing,
                                  normalize = true)
-    data, variable_names = interpolate_lgl_to_uniform_cartesian(u, mesh, equations,
-                                                                solver,
-                                                                cache;
-                                                                solution_variables,
-                                                                nvisnodes)
-
-    # Checks for fields by name since the current scope does not neccasiraly gaurentee correctness, for example if the user passes a custom solution_variables
-    density_id = findfirst(isequal(String(density_variable)), variable_names)
-    if isnothing(density_id)
-        throw(ArgumentError("could not find variable `$density_variable` in solution variables"))
-    end
-
-    velocity_variables_ = velocity_variables === nothing ?
-                          ntuple(dim -> "v$dim", ndims(first(data))) :
-                          velocity_variables
-    velocity_ids = map(variable -> begin
-                           variable_id = findfirst(isequal(String(variable)),
-                                                   variable_names)
-                           if isnothing(variable_id)
-                               throw(ArgumentError("could not find variable `$variable` in solution variables"))
-                           end
-                           variable_id
-                       end, velocity_variables_)
-
-    rho = data[density_id]
-    velocities = ntuple(dim -> data[velocity_ids[dim]], length(velocity_ids))
-    return compute_energy_spectrum(rho, velocities...; normalize)
+    data = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
+    rho = data[1]
+    velocities = ntuple(dim -> data[dim + 1], ndims(mesh))
+    density_weighted_velocities = ntuple(dim -> sqrt.(rho) .* velocities[dim],
+                                         length(velocities))
+    return _compute_energy_spectrum(density_weighted_velocities...; normalize)
 end
 
-# DGMulti path used for  uniform Cartesian discretizations that dont need to be interpolated
-function compute_energy_spectrum(u, mesh::DGMultiMesh{NDIMS}, equations, dg::DGMulti,
+"""
+    compute_energy_spectrum(u, mesh::DGMultiMesh{NDIMS}, equations, dg::DGMulti, cache;
+                            normalize = true)
+
+Compute the energy spectrum for a `DGMulti` finite-difference SBP solution whose
+nodes already form a uniform Cartesian grid.
+"""
+function compute_energy_spectrum(u, mesh::Union{DGMultiMesh{2}, DGMultiMesh{3}},
+                                 equations::AbstractCompressibleEulerEquations,
+                                 dg::DGMultiSBP,
                                  cache;
-                                 solution_variables = nothing,
-                                 density_variable = "rho", velocity_variables = nothing,
-                                 normalize = true) where {NDIMS}
-    if NDIMS != 2 && NDIMS != 3
-        throw(ArgumentError("only 2D and 3D DGMulti discretizations are supported"))
-    end
-    if !(dg.basis.approximation_type isa AbstractPeriodicDerivativeOperator)
-        throw(ArgumentError("only DGMulti finite-difference SBP data on uniform " *
-                            "Cartesian grids is supported"))
-    end
+                                 normalize = true)
+    NDIMS = ndims(mesh)
 
     # Select physically relevant fields by name
-    solution_variables_ = if isnothing(solution_variables)
-        if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
-            cons2prim
-        else
-            cons2cons
-        end
-    else
-        solution_variables
-    end
-    variable_names = SVector(varnames(solution_variables_, equations))
     u_values = u isa StructArray ? u : Base.parent(u)
     n_points = length(u_values)
     n_points_per_dimension = round(Int, n_points^(1 / NDIMS))
@@ -169,45 +112,27 @@ function compute_energy_spectrum(u, mesh::DGMultiMesh{NDIMS}, equations, dg::DGM
 
     # Repack solution components into arrays by the number of points per dimension to handle direct Cartesian FFT
     data = [Array{real(dg)}(undef, ntuple(_ -> n_points_per_dimension, NDIMS))
-            for _ in eachindex(variable_names)]
+            for _ in 1:(NDIMS + 1)]
     for index in eachindex(u_values)
-        u_node = solution_variables_(u_values[index], equations)
-        for variable in eachindex(variable_names)
+        u_node = cons2prim(u_values[index], equations)
+        for variable in eachindex(data)
             data[variable][index] = u_node[variable]
         end
     end
 
-    # Still checks for fields by name since the current scope does not neccasiraly gaurentee correctness
-    density_id = findfirst(isequal(String(density_variable)), variable_names)
-    if isnothing(density_id)
-        throw(ArgumentError("could not find variable `$density_variable` in solution variables"))
-    end
-    velocity_variables_ = velocity_variables === nothing ?
-                          ntuple(dim -> "v$dim", ndims(first(data))) :
-                          velocity_variables
-    velocity_ids = map(variable -> begin
-                           variable_id = findfirst(isequal(String(variable)),
-                                                   variable_names)
-                           if isnothing(variable_id)
-                               throw(ArgumentError("could not find variable `$variable` in solution variables"))
-                           end
-                           variable_id
-                       end, velocity_variables_)
-
-    rho = data[density_id]
-    velocities = ntuple(dim -> data[velocity_ids[dim]], length(velocity_ids))
-    return compute_energy_spectrum(rho, velocities...; normalize)
+    rho = data[1]
+    velocities = ntuple(dim -> data[dim + 1], NDIMS)
+    density_weighted_velocities = ntuple(dim -> sqrt.(rho) .* velocities[dim],
+                                         length(velocities))
+    return _compute_energy_spectrum(density_weighted_velocities...; normalize)
 end
 
 # Interpolate DGSEM LGL data on uniform TreeMesh cells to a global Cartesian grid since LGL nodes are not equidistant for FFTs
-function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{NDIMS}, equations,
-                                              solver::DGSEM, cache;
-                                              solution_variables = nothing,
-                                              nvisnodes = nnodes(solver)) where {NDIMS}
+function interpolate_lgl_to_uniform_cartesian(u, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+                                              equations::AbstractCompressibleEulerEquations,
+                                              solver::DGSEM, cache)
+    NDIMS = ndims(mesh)
     # Restrict to straightforward non AMR setups
-    if !(nvisnodes isa Integer && nvisnodes >= 2)
-        throw(ArgumentError("`nvisnodes` must be an integer >= 2"))
-    end
     leaf_cell_ids = leaf_cells(mesh.tree)
     levels = mesh.tree.levels[leaf_cell_ids]
     if !all(==(first(levels)), levels)
@@ -217,24 +142,15 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{NDIMS}, equation
     level = first(levels)
     cells_per_dimension = 2^level
     if length(levels) != cells_per_dimension^NDIMS
-        throw(ArgumentError("only complete uniform TreeMesh discretizations are " *
-                            "supported"))
+        throw(ArgumentError("energy spectrum interpolation requires a complete " *
+                            "uniform TreeMesh without missing leaf cells"))
     end
+    nvisnodes = polydeg(solver) + 1
 
-    solution_variables_ = if isnothing(solution_variables)
-        if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
-            cons2prim
-        else
-            cons2cons
-        end
-    else
-        solution_variables
-    end
-    variable_names = SVector(varnames(solution_variables_, equations))
     data = [Array{real(solver)}(undef,
                                 ntuple(_ -> nvisnodes * cells_per_dimension,
                                        NDIMS))
-            for _ in eachindex(variable_names)]
+            for _ in 1:(NDIMS + 1)]
 
     # Interpolate from LGL nodes to cell centered equidistant nodes in each element
     dx_reference = 2 / nvisnodes
@@ -251,16 +167,16 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{NDIMS}, equation
     for element in eachelement(solver, cache)
         # Gather local nodal values for all solution variables in this element
         first_node = ntuple(_ -> 1, Val(NDIMS))
-        u_node = solution_variables_(get_node_vars(u, equations, solver, first_node...,
-                                                   element),
-                                     equations)
-        local_data = Array{eltype(u_node)}(undef, length(variable_names),
+        u_node = cons2prim(get_node_vars(u, equations, solver, first_node...,
+                                         element),
+                           equations)
+        local_data = Array{eltype(u_node)}(undef, length(data),
                                            ntuple(_ -> nnodes(solver), NDIMS)...)
         for node in CartesianIndices(Base.tail(size(local_data)))
-            u_node = solution_variables_(get_node_vars(u, equations, solver,
-                                                       Tuple(node)..., element),
-                                         equations)
-            for variable in eachindex(variable_names)
+            u_node = cons2prim(get_node_vars(u, equations, solver,
+                                             Tuple(node)..., element),
+                               equations)
+            for variable in eachindex(data)
                 local_data[variable, Tuple(node)...] = u_node[variable]
             end
         end
@@ -278,11 +194,11 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{NDIMS}, equation
                              Val(NDIMS))
         element_indices = ntuple(dim -> first_index[dim]:(first_index[dim] + nvisnodes - 1),
                                  Val(NDIMS))
-        for variable in eachindex(variable_names)
+        for variable in eachindex(data)
             data[variable][element_indices...] .= selectdim(interpolated, 1, variable)
         end
     end
 
-    return data, variable_names
+    return data
 end
 end # @muladd
