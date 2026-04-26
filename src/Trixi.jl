@@ -343,7 +343,6 @@ export ode_norm, ode_unstable_check
 
 export convergence_test,
        compute_energy_spectrum,
-       interpolate_to_uniform_cartesian,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
        linear_structure, linear_structure_parabolic
 
