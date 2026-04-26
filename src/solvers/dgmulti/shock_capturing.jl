@@ -396,7 +396,7 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             # flux, flux differencing with a differentiation matrix should recover the 
             # flux derivative via
             #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
-            #                           = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
+            #                          = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
             #                        = 0 (since \sum_j D_ij = 0) + (D * f(u))_i
             du_i = du_i + 2 * f_ij
         end
