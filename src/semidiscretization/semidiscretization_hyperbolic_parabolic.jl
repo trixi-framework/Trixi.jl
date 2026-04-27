@@ -16,10 +16,10 @@ mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations,
                                                      InitialCondition,
                                                      BoundaryConditions,
                                                      BoundaryConditionsParabolic,
-                                             SourceTerms, SourceTermsParabolic,
-                                             Solver, SolverParabolic,
-                                             Cache, CacheParabolic} <:
-       AbstractSemidiscretization
+                                                     SourceTerms, SourceTermsParabolic,
+                                                     Solver, SolverParabolic,
+                                                     Cache, CacheParabolic} <:
+               AbstractSemidiscretization
     mesh::Mesh
 
     equations::Equations
@@ -384,7 +384,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-    @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms_parabolic, solver, solver_parabolic, cache, cache_parabolic = semi
+    @unpack mesh, equations_parabolic, boundary_conditions_parabolic,
+            source_terms_parabolic, solver, solver_parabolic, cache,
+            cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
