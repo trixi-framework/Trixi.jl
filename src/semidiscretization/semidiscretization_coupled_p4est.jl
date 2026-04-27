@@ -592,9 +592,7 @@ mutable struct BoundaryConditionCoupledP4est{CouplingConverter, FallbackBC} <:
 end
 
 """
-Extract the boundary values from the neighboring element.
-This requires values from other mesh views.
-This currently only works for Cartesian meshes.
+Extract the boundary values from the neighboring element in the coupled mesh view.
 """
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations,
                                                              cache,
