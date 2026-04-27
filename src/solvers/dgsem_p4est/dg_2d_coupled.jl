@@ -245,7 +245,7 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
                                                          equations, dg,
                                                          position, i, mortar)
                 normal_direction = get_normal_direction(cache.coupled_mortars.normal_directions,
-                                                       i, position, mortar)
+                                                        i, position, mortar)
                 flux = surface_flux(u_small, u_large, normal_direction, equations)
 
                 if position == 1
