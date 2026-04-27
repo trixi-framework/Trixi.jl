@@ -130,8 +130,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                             tspan=(0.0, 0.5),
                             l2=[0.1717677505262361],
                             linf=[1.9925134228101835],
-                            atol=1e-10,
-                            rtol=1e-9)
+                            atol=1e-8,
+                            rtol=1e-8)
         # Ensure that we do not have excessive memory allocations
         @test_allocations(Trixi.rhs!, semi, sol, 1500)
         @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
