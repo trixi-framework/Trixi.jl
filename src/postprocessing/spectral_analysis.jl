@@ -101,6 +101,12 @@ function compute_energy_spectrum(u, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                                  equations::AbstractCompressibleEulerEquations,
                                  solver::DGSEM, cache;
                                  normalize = true)
+    leaf_cell_ids = leaf_cells(mesh.tree)
+    levels = mesh.tree.levels[leaf_cell_ids]
+    if !all(==(first(levels)), levels)
+        throw(ArgumentError("AMR meshes are not supported yet"))
+    end
+
     NDIMS = ndims(mesh)
     data = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
     rho = data[1]
