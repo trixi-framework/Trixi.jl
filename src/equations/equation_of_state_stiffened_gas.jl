@@ -55,8 +55,8 @@ function StiffenedGas(; RealT = Float64)
     q = -1167*1e3
     R = 0.08314 / 0.01802
     gamma = 2.35 
-    cv = 1816.0
-    return StiffenedGas(pInf, q, R, gamma, cv);
+    cv0 = 1816.0
+    return StiffenedGas(pInf, q, R, gamma, cv0);
 end
 """
     pressure(V, T, eos::StiffenedGas)
@@ -91,10 +91,16 @@ function entropy_specific(V, T, eos::StiffenedGas)
 end
 
 function speed_of_sound(V, T, eos::StiffenedGas)
-    (; gamma) = eos 
-    p = pressure(V, T, eos);
-    rho = inv(V);
+    (; gamma, cv0) = eos 
     return sqrt((gamma - 1)* gamma * cv0 * T)
+end
+
+# This is not a required interface function, but 
+# temperature of a StiffenedGas can be computed analytically.
+function temperature(V, e_internal, eos::StiffenedGas)
+     (; q, pInf, gamma, cv0) = eos
+    p = (e_internal - q) * (gamma - 1)/V - gamma * pInf
+    return  V* (p + pInf)/((gamma - 1) * cv0)
 end
 
 @doc raw"""
