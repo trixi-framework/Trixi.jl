@@ -1219,6 +1219,29 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_navierstokes_vortex_street.jl (GradientVariablesEntropy)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_vortex_street.jl"),
+                        gradient_variables=GradientVariablesEntropy(),
+                        l2=[
+                            0.01242797973116292,
+                            0.02892502142448505,
+                            0.0230829131666028,
+                            0.11323126134096527
+                        ],
+                        linf=[
+                            0.4544189333202735,
+                            1.269315313304855,
+                            0.7082067255956892,
+                            3.6951068269010645
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_navierstokes_poiseuille_flow.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_poiseuille_flow.jl"),
