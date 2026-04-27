@@ -1,5 +1,5 @@
 # This elixir demonstrates how an implicit-explicit (IMEX) time integration scheme can be applied to the stiff and non-stiff parts of a right hand side, respectively. 
-# We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with `OrdinaryDiffEqBDF`, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-DIRK .
+# We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with `OrdinaryDiffEqBDF`, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF.
 # Note: This is currently more of a proof of concept and not particularly useful in practice, as fully explicit methods are still faster at the moment.
 
 using Trixi
@@ -52,10 +52,11 @@ end
 # which always returns boundary condition values for the entire right-hand side. 
 # This function computes the boundary condition based on the surface flux function of the 
 # explicit and implicit parts, where the splitting has been defined and thus accounts for it.
-@inline function boundary_condition_slip_wall_2(u_inner, normal_direction::AbstractVector,
-                                                x, t,
-                                                surface_flux_function,
-                                                equations::CompressibleEulerEquations2D)
+@inline function boundary_condition_slip_wall_simple(u_inner,
+                                                     normal_direction::AbstractVector,
+                                                     x, t,
+                                                     surface_flux_function,
+                                                     equations::CompressibleEulerEquations2D)
     # normalize the outward pointing direction
     normal = normal_direction / Trixi.norm(normal_direction)
 
@@ -204,8 +205,8 @@ mesh = P4estMesh(trees_per_dimension; polydeg = polydeg,
                  periodicity = (true, false), initial_refinement_level = 0)
 
 boundary_conditions = (;
-                       y_neg = boundary_condition_slip_wall_2,
-                       y_pos = boundary_condition_slip_wall_2)
+                       y_neg = boundary_condition_slip_wall_simple,
+                       y_pos = boundary_condition_slip_wall_simple)
 
 initial_condition = initial_condition_warm_bubble
 
