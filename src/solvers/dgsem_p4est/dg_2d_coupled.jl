@@ -287,8 +287,10 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
         u_buffer = u_threaded[Threads.threadid()]
 
         small_indices = node_indices[1, mortar]
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
 
         for position in 1:2
             i_small = i_small_start
