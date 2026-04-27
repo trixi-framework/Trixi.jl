@@ -303,7 +303,7 @@ Returns indices of mortars that cross the view boundary and information about
 which elements are local vs. remote.
 """
 function extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
-    # For minimal prototype: find mortars where elements are split across view boundary
+    # Find mortars where elements are split across the view boundary.
     coupled_mortar_indices = Int[]
     local_neighbor_ids_list = Vector{Int}[]
     local_neighbor_positions_list = Vector{Int}[]

@@ -80,10 +80,7 @@ end
     init_coupled_mortars(mesh::P4estMeshView, equations, basis, elements)
 
 Initialize coupled mortar container for a mesh view. This function creates an empty
-container that will be populated during mesh view extraction.
-
-For the minimal prototype, this returns an empty container. Full initialization
-happens in `extract_coupled_mortars` in mesh view extraction.
+container that will be populated during mesh view extraction by `extract_coupled_mortars`.
 """
 function init_coupled_mortars(mesh, equations, basis, elements)
     NDIMS = ndims(mesh)
