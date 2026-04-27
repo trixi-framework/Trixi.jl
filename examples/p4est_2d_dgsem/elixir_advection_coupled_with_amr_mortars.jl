@@ -143,7 +143,7 @@ analysis_callback2 = AnalysisCallback(semi2, interval = 50)
 analysis_callback = AnalysisCallbackCoupledP4est(semi, analysis_callback1,
                                                  analysis_callback2)
 
-save_solution = SaveSolutionCallback(interval = 1,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
