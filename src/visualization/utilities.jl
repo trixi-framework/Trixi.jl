@@ -241,7 +241,7 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
     @unpack N, Fmask = rd
 
     # number of points on a single face, assuming all faces have the same number of points
-    # note that since ScalarPlotData2D is restricted to Tri and Quad types, this should always be true.
+    # note that since `ScalarPlotData2D` is restricted to Tri and Quad types, this should always be true.
     num_face_points = size(Fmask, 1) ÷ num_faces(rd.element_type)
 
     # extract a set of interpolation nodes for the face nodes. For Polynomial approximations, 
