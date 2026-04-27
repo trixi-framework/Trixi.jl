@@ -90,7 +90,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                                          velocity_3_3d^2)) /
                                  length(rho_3d)
         @test sum(energy_spectrum_3d) ≈ mean_kinetic_energy_3d
-
     end
 end
 

@@ -535,11 +535,14 @@ end
 
     # Test Spectral Analysis Post Processing
     energy_spectrum, wavenumbers = compute_energy_spectrum(sol)
-    @test length(energy_spectrum) == length(wavenumbers)
-    @test all(isfinite, energy_spectrum)
-    @test all(energy_spectrum .>= 0)
-    @test isfinite(sum(energy_spectrum))
-    @test sum(energy_spectrum) > 0
+    @test energy_spectrum[1:6]≈[
+        1.9993746822149545,
+        0.0006252933292684037,
+        6.304463474188994e-34,
+        2.4451950680133744e-8,
+        3.8251012684404834e-12,
+        2.0213567255546664e-34
+    ] rtol=1.0e-12
 end
 
 @trixi_testset "elixir_euler_cgsbp_periodic.jl" begin

@@ -5,12 +5,24 @@
 @muladd begin
 #! format: noindent
 
-# Internal Cartesian grid FFT kernel that computes the energy spectrum; called from internal methods and power spectra methods
-function _compute_energy_spectrum(velocity_cartesian::AbstractArray...;
+# Internal Cartesian grid FFT kernel that computes the energy spectrum
+function _compute_energy_spectrum(velocity_cartesian...;
                                   normalize = true)
-    velocity_hat = map(fft, velocity_cartesian)
-    energy_modes = zeros(real(eltype(first(velocity_hat))), size(first(velocity_hat)))
-    for velocity_component_hat in velocity_hat
+
+    # Handles the case where the user passes a tuple of velocity components
+    if length(velocity_cartesian) == 1 && first(velocity_cartesian) isa Tuple
+        velocity_cartesian = first(velocity_cartesian)
+    end
+
+    # `velocity_cartesian` is expected to contain one array per spatial velocity component,
+    # ordered as `(v1, v2)` in 2D or `(v1, v2, v3)` in 3D. Each array must contain values
+    # sampled on the same uniform Cartesian grid. For compressible Euler spectra, callers pass
+    # density-weighted velocities `sqrt(rho) * v_i`
+    first_velocity_hat = fft(first(velocity_cartesian))
+    energy_modes = 0.5 .* abs2.(first_velocity_hat)
+
+    for component_id in 2:length(velocity_cartesian)
+        velocity_component_hat = fft(velocity_cartesian[component_id])
         energy_modes .+= 0.5 .* abs2.(velocity_component_hat)
     end
 
@@ -23,21 +35,25 @@ function _compute_energy_spectrum(velocity_cartesian::AbstractArray...;
     # 1d isotropic spectrum E by summing all modes whose
     # wavenumber rounds to the same integer shell, accounting for the FFT convention
     ndims_energy_modes = ndims(energy_modes)
-    maximum_wavenumber = floor(Int,
-                               sqrt(sum((size(energy_modes, dim) ÷ 2)^2
-                                        for dim in 1:ndims_energy_modes)) + 0.5)
+    maximum_wavenumber_squared = 0
+    for dim in 1:ndims_energy_modes
+        maximum_wavenumber_squared += (size(energy_modes, dim) ÷ 2)^2
+    end
+    maximum_wavenumber = floor(Int, sqrt(maximum_wavenumber_squared) + 0.5)
     energy_spectrum = zeros(eltype(energy_modes), maximum_wavenumber + 1)
     wavenumbers = collect(0:maximum_wavenumber)
 
     for index in CartesianIndices(energy_modes)
-        effective_wavenumber = sqrt(sum(begin
-                                            wavenumber = index[dim] - 1
-                                            if wavenumber > size(energy_modes, dim) ÷ 2
-                                                wavenumber -= size(energy_modes, dim)
-                                            end
-                                            wavenumber^2
-                                        end
-                                        for dim in 1:ndims_energy_modes))
+        effective_wavenumber_squared = 0
+        for dim in 1:ndims_energy_modes
+            wavenumber = index[dim] - 1
+            if wavenumber > size(energy_modes, dim) ÷ 2
+                wavenumber -= size(energy_modes, dim)
+            end
+            effective_wavenumber_squared += wavenumber^2
+        end
+
+        effective_wavenumber = sqrt(effective_wavenumber_squared)
         shell = floor(Int, effective_wavenumber + 0.5)
         if shell <= maximum_wavenumber
             energy_spectrum[shell + 1] += energy_modes[index]
@@ -52,6 +68,11 @@ end
 
 Compute the energy spectrum from the final state of an ODE solution returned by
 `solve`. Keyword arguments are forwarded to the semidiscretization-specific method.
+
+For density-weighted kinetic energy spectra in compressible turbulence, see Winters AR,
+Moura RC, Mengaldo G, Gassner GJ, Walch S, Peiro J, et al. A comparative study on
+polynomial dealiasing and split form discontinuous Galerkin schemes for under-resolved
+turbulence computations. Journal of Computational Physics 372 (2018), 1-21.
 """
 function compute_energy_spectrum(sol; kwargs...)
     return compute_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
@@ -80,12 +101,23 @@ function compute_energy_spectrum(u, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                                  equations::AbstractCompressibleEulerEquations,
                                  solver::DGSEM, cache;
                                  normalize = true)
+    NDIMS = ndims(mesh)
     data = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
     rho = data[1]
-    velocities = ntuple(dim -> data[dim + 1], ndims(mesh))
-    density_weighted_velocities = ntuple(dim -> sqrt.(rho) .* velocities[dim],
-                                         length(velocities))
-    return _compute_energy_spectrum(density_weighted_velocities...; normalize)
+
+    if NDIMS == 2
+        density_weighted_velocity_1 = sqrt.(rho) .* data[2]
+        density_weighted_velocity_2 = sqrt.(rho) .* data[3]
+        return _compute_energy_spectrum(density_weighted_velocity_1,
+                                        density_weighted_velocity_2; normalize)
+    else
+        density_weighted_velocity_1 = sqrt.(rho) .* data[2]
+        density_weighted_velocity_2 = sqrt.(rho) .* data[3]
+        density_weighted_velocity_3 = sqrt.(rho) .* data[4]
+        return _compute_energy_spectrum(density_weighted_velocity_1,
+                                        density_weighted_velocity_2,
+                                        density_weighted_velocity_3; normalize)
+    end
 end
 
 """
@@ -102,7 +134,7 @@ function compute_energy_spectrum(u, mesh::Union{DGMultiMesh{2}, DGMultiMesh{3}},
                                  normalize = true)
     NDIMS = ndims(mesh)
 
-    # Select physically relevant fields by name
+    # Uses primitive variables from the solution vector
     u_values = u isa StructArray ? u : Base.parent(u)
     n_points = length(u_values)
     n_points_per_dimension = round(Int, n_points^(1 / NDIMS))
@@ -110,9 +142,22 @@ function compute_energy_spectrum(u, mesh::Union{DGMultiMesh{2}, DGMultiMesh{3}},
         throw(ArgumentError("DGMulti data does not form a uniform Cartesian grid"))
     end
 
-    # Repack solution components into arrays by the number of points per dimension to handle direct Cartesian FFT
-    data = [Array{real(dg)}(undef, ntuple(_ -> n_points_per_dimension, NDIMS))
-            for _ in 1:(NDIMS + 1)]
+    # Repack solution components into Cartesian arrays for the FFT kernel.
+    # `data` stores primitive variables as `[rho, v1, v2]` in 2D or
+    # `[rho, v1, v2, v3]` in 3D. Each entry has size
+    # `(n_points_per_dimension, n_points_per_dimension)` in 2D or
+    # `(n_points_per_dimension, n_points_per_dimension, n_points_per_dimension)` in 3D
+    data_size = if NDIMS == 2
+        (n_points_per_dimension, n_points_per_dimension)
+    else
+        (n_points_per_dimension, n_points_per_dimension, n_points_per_dimension)
+    end
+
+    data = Vector{Array{real(dg), NDIMS}}(undef, NDIMS + 1)
+    for variable in eachindex(data)
+        data[variable] = Array{real(dg)}(undef, data_size)
+    end
+
     for index in eachindex(u_values)
         u_node = cons2prim(u_values[index], equations)
         for variable in eachindex(data)
@@ -121,17 +166,25 @@ function compute_energy_spectrum(u, mesh::Union{DGMultiMesh{2}, DGMultiMesh{3}},
     end
 
     rho = data[1]
-    velocities = ntuple(dim -> data[dim + 1], NDIMS)
-    density_weighted_velocities = ntuple(dim -> sqrt.(rho) .* velocities[dim],
-                                         length(velocities))
-    return _compute_energy_spectrum(density_weighted_velocities...; normalize)
+    if NDIMS == 2
+        density_weighted_velocity_1 = sqrt.(rho) .* data[2]
+        density_weighted_velocity_2 = sqrt.(rho) .* data[3]
+        return _compute_energy_spectrum(density_weighted_velocity_1,
+                                        density_weighted_velocity_2; normalize)
+    else
+        density_weighted_velocity_1 = sqrt.(rho) .* data[2]
+        density_weighted_velocity_2 = sqrt.(rho) .* data[3]
+        density_weighted_velocity_3 = sqrt.(rho) .* data[4]
+        return _compute_energy_spectrum(density_weighted_velocity_1,
+                                        density_weighted_velocity_2,
+                                        density_weighted_velocity_3; normalize)
+    end
 end
 
-# Interpolate DGSEM LGL data on uniform TreeMesh cells to a global Cartesian grid since LGL nodes are not equidistant for FFTs
+# Interpolate DGSEM LGL data on uniform TreeMesh cells to a global Cartesian grid
 function interpolate_lgl_to_uniform_cartesian(u, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                                               equations::AbstractCompressibleEulerEquations,
                                               solver::DGSEM, cache)
-    NDIMS = ndims(mesh)
     # Restrict to straightforward non AMR setups
     leaf_cell_ids = leaf_cells(mesh.tree)
     levels = mesh.tree.levels[leaf_cell_ids]
@@ -139,20 +192,29 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::Union{TreeMesh{2}, TreeMe
         throw(ArgumentError("AMR meshes are not supported yet"))
     end
 
+    NDIMS = ndims(mesh)
     level = first(levels)
     cells_per_dimension = 2^level
-    if length(levels) != cells_per_dimension^NDIMS
-        throw(ArgumentError("energy spectrum interpolation requires a complete " *
-                            "uniform TreeMesh without missing leaf cells"))
-    end
+
     nvisnodes = polydeg(solver) + 1
+    grid_points_per_dimension = nvisnodes * cells_per_dimension
 
-    data = [Array{real(solver)}(undef,
-                                ntuple(_ -> nvisnodes * cells_per_dimension,
-                                       NDIMS))
-            for _ in 1:(NDIMS + 1)]
+    # `data` stores primitive variables as `[rho, v1, v2]` in 2D or
+    # `[rho, v1, v2, v3]` in 3D after interpolation to the global Cartesian grid
+    # Each entry has `grid_points_per_dimension` points in every coordinate direction
+    data_size = if NDIMS == 2
+        (grid_points_per_dimension, grid_points_per_dimension)
+    else
+        (grid_points_per_dimension, grid_points_per_dimension,
+         grid_points_per_dimension)
+    end
 
-    # Interpolate from LGL nodes to cell centered equidistant nodes in each element
+    data = Vector{Array{real(solver), NDIMS}}(undef, NDIMS + 1)
+    for variable in eachindex(data)
+        data[variable] = Array{real(solver)}(undef, data_size)
+    end
+
+    # Interpolate from LGL nodes to cell-centered equidistant nodes in each element
     dx_reference = 2 / nvisnodes
     nodes_out = collect(range(-1 + dx_reference / 2, 1 - dx_reference / 2,
                               length = nvisnodes))
@@ -165,13 +227,17 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::Union{TreeMesh{2}, TreeMe
     dx_global = 2 / (nvisnodes * cells_per_dimension)
 
     for element in eachelement(solver, cache)
-        # Gather local nodal values for all solution variables in this element
+        # Gather local nodal values for all primitive variables in this element
         first_node = ntuple(_ -> 1, Val(NDIMS))
         u_node = cons2prim(get_node_vars(u, equations, solver, first_node...,
                                          element),
                            equations)
-        local_data = Array{eltype(u_node)}(undef, length(data),
-                                           ntuple(_ -> nnodes(solver), NDIMS)...)
+        local_data_size = if NDIMS == 2
+            (length(data), nnodes(solver), nnodes(solver))
+        else
+            (length(data), nnodes(solver), nnodes(solver), nnodes(solver))
+        end
+        local_data = Array{eltype(u_node)}(undef, local_data_size)
         for node in CartesianIndices(Base.tail(size(local_data)))
             u_node = cons2prim(get_node_vars(u, equations, solver,
                                              Tuple(node)..., element),
@@ -184,16 +250,23 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::Union{TreeMesh{2}, TreeMe
         # Interpolate in each dimension using the tensor product structure
         interpolated = multiply_dimensionwise(vandermonde, local_data)
 
-        first_index = ntuple(dim -> begin
-                                 lower_left = normalized_coordinates[dim, element] -
-                                              (nvisnodes - 1) / 2 * dx_global
-                                 round(Int,
-                                       (lower_left - (-1 + dx_global / 2)) /
-                                       dx_global) + 1
-                             end,
-                             Val(NDIMS))
-        element_indices = ntuple(dim -> first_index[dim]:(first_index[dim] + nvisnodes - 1),
-                                 Val(NDIMS))
+        first_index = Vector{Int}(undef, NDIMS)
+        for dim in 1:NDIMS
+            lower_left = normalized_coordinates[dim, element] -
+                         (nvisnodes - 1) / 2 * dx_global
+            first_index[dim] = round(Int,
+                                     (lower_left - (-1 + dx_global / 2)) /
+                                     dx_global) + 1
+        end
+
+        element_indices = if NDIMS == 2
+            (first_index[1]:(first_index[1] + nvisnodes - 1),
+             first_index[2]:(first_index[2] + nvisnodes - 1))
+        else
+            (first_index[1]:(first_index[1] + nvisnodes - 1),
+             first_index[2]:(first_index[2] + nvisnodes - 1),
+             first_index[3]:(first_index[3] + nvisnodes - 1))
+        end
         for variable in eachindex(data)
             data[variable][element_indices...] .= selectdim(interpolated, 1, variable)
         end

@@ -1134,11 +1134,14 @@ end
 
     # Test Spectral Analysis Post Processing
     energy_spectrum, wavenumbers = compute_energy_spectrum(sol)
-    @test length(energy_spectrum) == length(wavenumbers)
-    @test all(isfinite, energy_spectrum)
-    @test all(energy_spectrum .>= 0)
-    @test isfinite(sum(energy_spectrum))
-    @test sum(energy_spectrum) > 0
+    @test energy_spectrum[1:6]≈[
+        151.35861767838597,
+        7.114099114846343,
+        1.775784102831901,
+        0.7908299061239447,
+        0.44703605619909004,
+        0.2886969558334658
+    ] rtol=1.0e-12
 end
 
 # Coverage test for all initial conditions
