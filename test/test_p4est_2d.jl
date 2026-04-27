@@ -124,18 +124,26 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              RealT = typeof(parent_mesh).parameters[3])
     end
 
-@trixi_testset "elixir_advection_restart_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
-                        l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5])
-end
+    @trixi_testset "elixir_advection_coupled_with_amr_mortars.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_coupled_with_amr_mortars.jl"),
+                            tspan=(0.0, 1.0),
+                            l2=[0.0007319835742861697, 0.001985235435356559],
+                            linf=[0.008310493861112489, 0.009003928823673624])
+    end
 
     @trixi_testset "elixir_advection_coupled_checkerboard_views.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_coupled_checkerboard_views.jl"),
                             tspan=(0.0, 1.0),
-                            l2=[1.53615948e-03, 1.45505111e-03],
-                            linf=[9.00392882e-03, 8.19687184e-03])
+                            l2=[0.0015361594792012185, 0.001455051112944291],
+                            linf=[0.00900392882367318, 0.008196871838623832])
+    end
+
+    @trixi_testset "elixir_advection_restart_amr.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
+                            l2=[2.869137983727866e-6],
+                            linf=[3.8353423270964804e-5])
     end
 
     @trixi_testset "elixir_advection_basic.jl" begin
