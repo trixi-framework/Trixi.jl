@@ -46,7 +46,8 @@ function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_famil
                         elements, user_data)
     vertex = Vector{Cdouble}(undef, 3)
 
-    Trixi.t8_element_get_vertex_reference_coords(scheme, tree_class, elements[1], 0, pointer(vertex))
+    Trixi.t8_element_get_vertex_reference_coords(scheme, tree_class, elements[1], 0,
+                                                 pointer(vertex))
 
     level = Trixi.t8_element_get_level(scheme, tree_class, elements[1])
 

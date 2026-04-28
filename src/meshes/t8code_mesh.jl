@@ -1104,7 +1104,8 @@ function count_interfaces(forest, ndims)
 
             # Note: This works only for forests of one element class.
             current_linear_id = global_itree * max_tree_num_elements +
-                                t8_element_get_linear_id(scheme, tree_class, element, max_level)
+                                t8_element_get_linear_id(scheme, tree_class, element,
+                                                         max_level)
 
             for iface in 0:(num_faces - 1)
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
@@ -1132,7 +1133,8 @@ function count_interfaces(forest, ndims)
                 if num_neighbors == 0
                     local_num_boundary += 1
                 else
-                    neighbor_level = t8_element_get_level(scheme, neighbor_eclass, neighbor_leaves[1])
+                    neighbor_level = t8_element_get_level(scheme, neighbor_eclass,
+                                                          neighbor_leaves[1])
 
                     if all(neighbor_ielements .< num_local_elements)
                         # Conforming interface: The second condition ensures we
@@ -1170,7 +1172,8 @@ function count_interfaces(forest, ndims)
                         end
                     end
 
-                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors, neighbor_leaves)
+                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors,
+                                       neighbor_leaves)
                     t8_free(dual_faces_ref[])
                     t8_free(pneighbor_leaves_ref[])
                     t8_free(pelement_indices_ref[])
@@ -1272,7 +1275,8 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
             # Note: This works only for forests of one element class.
             current_linear_id = global_itree * max_tree_num_elements +
-                                t8_element_get_linear_id(scheme, tree_class, element, max_level)
+                                t8_element_get_linear_id(scheme, tree_class, element,
+                                                         max_level)
 
             # Loop over all faces of the current local element.
             for iface in 0:(num_faces - 1)
@@ -1340,13 +1344,15 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     # Interface or mortar.
                 else
-                    neighbor_level = t8_element_get_level(scheme, neighbor_eclass, neighbor_leaves[1])
+                    neighbor_level = t8_element_get_level(scheme, neighbor_eclass,
+                                                          neighbor_leaves[1])
 
                     # Compute the `orientation` of the touching faces.
                     if t8_element_is_root_boundary(scheme, tree_class, element, iface) == 1
                         itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest,
                                                                             itree)
-                        iface_in_tree = t8_element_get_tree_face(scheme, tree_class, element, iface)
+                        iface_in_tree = t8_element_get_tree_face(scheme, tree_class,
+                                                                 element, iface)
                         orientation_ref = Ref{Cint}()
 
                         t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree,
@@ -1515,7 +1521,8 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                         end
                     end
 
-                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors, neighbor_leaves)
+                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors,
+                                       neighbor_leaves)
                     t8_free(dual_faces_ref[])
                     t8_free(pneighbor_leaves_ref[])
                     t8_free(pelement_indices_ref[])

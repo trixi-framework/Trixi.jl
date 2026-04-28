@@ -42,7 +42,7 @@ function calc_node_coordinates!(node_coordinates,
 
             element_coords = Vector{RealT}(undef, 3)
             t8_element_get_vertex_reference_coords(scheme, tree_class, element, 0,
-                                               pointer(element_coords))
+                                                   pointer(element_coords))
 
             nodes_out_x = (2 *
                            (element_length * 0.5f0 * (nodes .+ 1) .+ element_coords[1]) .-
