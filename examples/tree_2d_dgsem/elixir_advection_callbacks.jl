@@ -5,7 +5,7 @@ using Trixi
 module TrixiExtensionExample
 
 using Trixi
-using OrdinaryDiffEqSSPRK: DiscreteCallback, u_modified!
+using OrdinaryDiffEqSSPRK: DiscreteCallback, derivative_discontinuity!
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
@@ -67,7 +67,7 @@ function (example_callback::ExampleStepCallback)(integrator)
     push!(example_callback.max_values, max_val)
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 
