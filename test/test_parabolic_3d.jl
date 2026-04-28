@@ -274,6 +274,51 @@ end
                             0.07483494924031157,
                             0.150181591534448
                         ])
+
+    # For testing other solution functionals
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+
+    enstrophy_ = Trixi.analyze(enstrophy, du, u, tspan[end], semi)
+    @test isapprox(enstrophy_, 0.3773381126096875, atol = 1e-13)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@trixi_testset "TreeMesh3D: elixir_navierstokes_taylor_green_vortex.jl (GradientVariablesEntropy)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.25),
+                        gradient_variables=GradientVariablesEntropy(),
+                        l2=[
+                            0.000241730983009407,
+                            0.015684271361255244,
+                            0.015684271361255223,
+                            0.021991915828078544,
+                            0.028253810752858436
+                        ],
+                        linf=[
+                            0.0008410544911241491,
+                            0.04740230181893817,
+                            0.047402301818937974,
+                            0.07483473947005896,
+                            0.15017808325123383
+                        ])
+
+    # For testing other solution functionals
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+
+    enstrophy_ = Trixi.analyze(enstrophy, du, u, tspan[end], semi)
+    @test isapprox(enstrophy_, 0.37731523193564825, atol = 1e-13)
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -605,10 +650,28 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr_mortar.jl" begin
+@trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl static AMR" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                 "elixir_navierstokes_taylor_green_vortex_amr_mortar.jl"),
+                                 "elixir_navierstokes_taylor_green_vortex_amr.jl"),
                         tspan=(0.0, 5.0),
+                        amr_indicator=IndicatorNodalFunction((u, x, t) -> (((x[1] < 0) &&
+                                                                            (x[2] < 0) &&
+                                                                            (x[3] < 0)) ||
+                                                                           ((x[1] > 0) &&
+                                                                            (x[2] > 0) &&
+                                                                            (x[3] > 0))) ?
+                                                                          1.0 : 0, semi),
+                        amr_controller=ControllerThreeLevel(semi, amr_indicator;
+                                                            base_level = 0,
+                                                            med_level = 1,
+                                                            med_threshold = 0.5,
+                                                            max_level = 2,
+                                                            max_threshold = 0.9),
+                        amr_callback=AMRCallback(semi,
+                                                 amr_controller;
+                                                 interval = typemax(Int),                 # no further AMR
+                                                 adapt_initial_condition = true,
+                                                 adapt_initial_condition_only_refine = true),
                         l2=[
                             0.001716903538135598,
                             0.2566781540081305,
@@ -623,6 +686,8 @@ end
                             1.070081196321056,
                             3.332907472310012
                         ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @trixi_testset "TreeMesh3D: elixir_navierstokes_viscous_shock.jl" begin

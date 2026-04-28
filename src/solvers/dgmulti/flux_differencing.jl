@@ -73,12 +73,28 @@ end
 
 # Build element-to-element connectivity from face-to-face connectivity.
 # Used for smoothing of shock capturing blending parameters (see `apply_smoothing!`).
+#
+# Here, `mesh.md.FToF` is a `(num_faces_per_element × num_elements)` array where
+# `FToF[f, e]` stores the global face index of the neighbor of local face `f` on
+# element `e`. 
+#
+# Global face indices are laid out as
+#
+#   global_face_index = (element_index - 1) * num_faces + local_face_index,
+# 
+# so that the element index can be recovered by integer division:
+#
+#   element_index = (global_face_index - 1) ÷ num_faces + 1.
+# 
+# For a non-periodic boundary face, `FToF[f, e]` points back to face `f` of element 
+# `e` itself, so boundary elements are listed as their own neighbor.
 function build_element_to_element_connectivity(mesh::DGMultiMesh, dg::DGMulti)
     face_to_face_connectivity = mesh.md.FToF
     element_to_element_connectivity = similar(face_to_face_connectivity)
     for e in axes(face_to_face_connectivity, 2)
         for f in axes(face_to_face_connectivity, 1)
             neighbor_face_index = face_to_face_connectivity[f, e]
+
             # Reverse-engineer element index from face index. Assumes all elements
             # have the same number of faces.
             neighbor_element_index = ((neighbor_face_index - 1) ÷ dg.basis.num_faces) +

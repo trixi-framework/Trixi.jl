@@ -135,6 +135,8 @@ end
 # This is required for drag and lift coefficients based on shear stress,
 # as well as for the non-integrated quantities such as
 # skin friction coefficient (to be added).
+# NOTE: This function is only valid for the compressible Navier-Stokes diffusion operator with
+# `gradient_variables = GradientVariablesPrimitive()`.
 function viscous_stress_tensor(u, normal_direction, equations_parabolic,
                                gradients_1, gradients_2)
     _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients_1,
@@ -250,7 +252,10 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
             j_node += j_node_step
         end
     end
-    return distribute_surface_integral(surface_integral, mesh)
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
+    return surface_integral
 end
 
 # 2D version of the `analyze` function for `AnalysisSurfaceIntegral` of viscous, i.e.,
@@ -320,19 +325,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
             j_node += j_node_step
         end
     end
-    return distribute_surface_integral(surface_integral, mesh)
-end
-
-# Serial/default: do nothing
-distribute_surface_integral(val, mesh) = val
-
-# Parallel: sum over all ranks
-function distribute_surface_integral(val,
-                                     mesh::Union{P4estMeshParallel{2},
-                                                 T8codeMeshParallel{2}})
-    comm = MPI.COMM_WORLD
-    buf = [val]
-    MPI.Allreduce!(buf, MPI.SUM, comm)
-    return buf[1]
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
+    return surface_integral
 end
 end # muladd

@@ -1,0 +1,16 @@
+[deps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+OrdinaryDiffEqLowStorageRK = "b0944070-b475-4768-8dec-fb6eb410534d"
+TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
+Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
+
+[sources]
+Trixi = {path = "../.."}
+
+[compat]
+AMDGPU = "2.3"
+JSON = "1.4.0"
+OrdinaryDiffEqLowStorageRK = "1.12.0"
+TimerOutputs = "0.5.25"
+Trixi = "0.16"

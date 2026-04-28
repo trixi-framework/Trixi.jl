@@ -534,6 +534,19 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cgsbp_periodic.jl"),
+                        l2=[
+                            1.2713306233672395e-4, 1.5304132439425007e-4,
+                            1.5304132439424308e-4, 3.192754742776865e-4
+                        ],
+                        linf=[
+                            3.6081264672516156e-4, 3.4235010781946684e-4,
+                            3.423501078176905e-4, 9.824814197632037e-4
+                        ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         xmin=-200.0, xmax=100.0, #= parameters for reference interval =#

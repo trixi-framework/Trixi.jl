@@ -57,7 +57,7 @@ where ``\underline{I}`` is the ``2\times 2`` identity matrix and the heat flux i
 ```math
 \mathbf{q} = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
-where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
+where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fourier's law.
 Under the assumption that the gas has a constant Prandtl number,
 the thermal conductivity is
 ```math
@@ -88,15 +88,12 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, Mu,
                                            E <: AbstractCompressibleEulerEquations{2}} <:
        AbstractCompressibleNavierStokesDiffusion{2, 4, GradientVariables}
     # TODO: parabolic
-    # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
-    # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
-    gamma::RealT               # ratio of specific heats
-    inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+    # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
-    kappa::RealT               # thermal diffusivity for Fick's law
-    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic CFL => `max_diffusivity`
+    kappa::RealT               # thermal diffusivity for Fourier's law
+    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic cfl => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -106,21 +103,18 @@ end
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
                                              mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
-    gamma = equations.gamma
-    inv_gamma_minus_one = equations.inv_gamma_minus_one
+    @unpack gamma, inv_gamma_minus_one = equations
 
+    Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Prandtl
+    kappa = gamma * inv_gamma_minus_one / Pr
 
     return CompressibleNavierStokesDiffusion2D{typeof(gradient_variables),
-                                               typeof(gamma),
-                                               typeof(mu),
-                                               typeof(equations)}(gamma,
-                                                                  inv_gamma_minus_one,
-                                                                  mu, Prandtl, kappa,
+                                               typeof(Pr), typeof(mu),
+                                               typeof(equations)}(mu, Pr, kappa,
                                                                   max(4 / 3, kappa),
                                                                   equations,
                                                                   gradient_variables)
@@ -170,7 +164,7 @@ function flux(u, gradients, orientation::Integer,
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
     tau_22 = (4 * dv2dy - 2 * dv1dx) / 3
 
-    # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
+    # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
     # Note, the gas constant cancels under this formulation, so it is not present
     # in the implementation
@@ -325,8 +319,9 @@ T = \\frac{p}{\\rho}
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e_total = u
+    @unpack gamma = equations
 
-    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
     T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end
@@ -367,6 +362,18 @@ Computes the (node-wise) vorticity, defined in 2D as
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
     _, _, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
     _, dv1dy, _, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+
+    return dv2dx - dv1dy
+end
+
+@inline function vorticity(u, gradients,
+                           equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+    # Need to convert to entropy variables first for `convert_derivative_to_primitive` to work correctly.
+    w = cons2entropy(u, equations)
+
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, _, dv2dx, _ = convert_derivative_to_primitive(w, gradients[1], equations)
+    _, dv1dy, _, _ = convert_derivative_to_primitive(w, gradients[2], equations)
 
     return dv2dx - dv1dy
 end

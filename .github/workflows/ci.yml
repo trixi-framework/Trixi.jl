@@ -118,7 +118,7 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
         with:
           include-matrix: false
       - uses: julia-actions/julia-buildpkg@v1
@@ -136,7 +136,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           directories: src,examples,ext
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         if: ${{ !cancelled() }}
         with:
           files: ./lcov.info

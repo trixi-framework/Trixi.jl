@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -134,7 +135,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
     return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -211,21 +213,22 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
-function (positional::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
-                                              mesh, equations, dg::DGSEM, cache;
-                                              kwargs...)
-    x = cache.elements.node_coordinates
-    @unpack alpha = positional.cache
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
     resize!(alpha, nelements(dg, cache))
-    # Extract function to local variable to avoid capturing `positional` in the threaded loop
-    indicator_function = positional.indicator_function
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
 
-    @threaded for element in Trixi.eachelement(dg, cache)
-        estimate = -Inf * one(real(dg))
+    @threaded for element in eachelement(dg, cache)
+        estimate = typemin(eltype(alpha))
         for j in eachnode(dg), i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, j, element)
-            x_y_nodal = @view x[:, i, j, element]
-            estimate = max(estimate, indicator_function(u_local, x_y_nodal, kwargs[:t]))
+            u_nodal = get_node_vars(u, equations, dg, i, j, element)
+            x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, element)
+            estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
         end
         alpha[element] = estimate
     end
