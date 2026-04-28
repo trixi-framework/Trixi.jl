@@ -44,12 +44,12 @@ end
 
 """
 	SemidiscretizationHyperbolicSplit(mesh, equations::Tuple, 
-                                  initial_condition,
-                                  solver_stiff, solver_nonstiff;
-                                  source_terms=(nothing, nothing),
-                                  boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
-                                  RealT=real(solver), uEltype=RealT,
-                                  initial_caches=(NamedTuple(), NamedTuple()))
+                                      initial_condition,
+                                      solver_stiff, solver_nonstiff;
+                                      source_terms=(nothing, nothing),
+                                      boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
+                                      RealT=real(solver), uEltype=RealT,
+                                      initial_caches=(NamedTuple(), NamedTuple()))
 
 Construct a semidiscretization of a hyperbolic-split PDE.
 
