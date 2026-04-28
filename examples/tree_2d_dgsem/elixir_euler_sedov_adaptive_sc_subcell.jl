@@ -49,7 +49,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                                                        min)],
                                 positivity_variables_nonlinear = [pressure],
                                 # Default parameters are not sufficient to fulfill bounds properly.
-                                max_iterations_newton = 60,
+                                max_iterations_newton = 70,
                                 newton_tolerances = (1.0e-13, 1.0e-15))
 volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
                                                            volume_flux_dg = volume_flux,
@@ -57,7 +57,7 @@ volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
 
 indicator = IndicatorHennemannGassner(equations, basis,
                                       alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
-                                      alpha_min = 0.001, # governs when subcell limiting is considered
+                                      alpha_min = 0.0, # governs when subcell limiting is considered
                                       alpha_smooth = true,
                                       variable = density_pressure)
 
