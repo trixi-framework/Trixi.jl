@@ -5,24 +5,68 @@
 @muladd begin
 #! format: noindent
 
-function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
+function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations, dg::DG)
+    @unpack interfaces_u = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        # Negative side (direction 1, left/negative x face)
+        for v in eachvariable(equations)
+            interfaces_u[v, 1, element] = u[v, 1, element]
+        end
+        # Positive side (direction 2, right/positive x face)
+        for v in eachvariable(equations)
+            interfaces_u[v, 2, element] = u[v, nnodes(dg), element]
+        end
+    end
+
+    return nothing
+end
+
+function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations,
+                             dg::DGSEM{<:GaussLegendreBasis})
+    @unpack interfaces_u = cache.elements
+    @unpack boundary_interpolation = dg.basis
+
+    @threaded for element in eachelement(dg, cache)
+        for v in eachvariable(equations)
+            interface_u_1 = zero(eltype(interfaces_u))
+            interface_u_2 = zero(eltype(interfaces_u))
+            for i in eachnode(dg)
+                # Left/negative x face
+                interface_u_1 = interface_u_1 +
+                                u[v, i, element] * boundary_interpolation[i, 1]
+
+                # Right/positive x face
+                interface_u_2 = interface_u_2 +
+                                u[v, i, element] * boundary_interpolation[i, 2]
+            end
+            interfaces_u[v, 1, element] = interface_u_1
+            interfaces_u[v, 2, element] = interface_u_2
+        end
+    end
+
+    return nothing
+end
+
+function calc_interface_flux!(surface_flux_values, mesh::StructuredMesh{1},
                               nonconservative_terms, # can be True/False
-                              equations, surface_integral, dg::DG)
+                              equations, surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
+    @unpack interfaces_u = cache.elements
 
     @threaded for element in eachelement(dg, cache)
         left_element = cache.elements.left_neighbors[1, element]
         # => `element` is the right element of the interface
 
         if left_element > 0 # left_element = 0 at boundaries
-            u_ll = get_node_vars(u, equations, dg, nnodes(dg), left_element)
-            u_rr = get_node_vars(u, equations, dg, 1, element)
+            u_ll = get_node_vars(interfaces_u, equations, dg, 2, left_element)
+            u_rr = get_node_vars(interfaces_u, equations, dg, 1, element)
 
             f1 = surface_flux(u_ll, u_rr, 1, equations)
 
             for v in eachvariable(equations)
-                cache.elements.surface_flux_values[v, 2, left_element] = f1[v]
-                cache.elements.surface_flux_values[v, 1, element] = f1[v]
+                surface_flux_values[v, 2, left_element] = f1[v]
+                surface_flux_values[v, 1, element] = f1[v]
             end
         end
     end
@@ -30,23 +74,26 @@ function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
     return nothing
 end
 
-function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{1}, equations, surface_integral,
                              dg::DG)
     @unpack surface_flux = surface_integral
-    @unpack surface_flux_values, node_coordinates = cache.elements
+    @unpack surface_flux_values, boundary_node_coordinates, interfaces_u = cache.elements
+    # Boundary values are for `StructuredMesh` stored in the interface datastructure
+    boundaries_u = interfaces_u
 
     orientation = 1
 
     # Negative x-direction
     direction = 1
 
-    u_rr = get_node_vars(u, equations, dg, 1, 1)
-    x = get_node_coords(node_coordinates, equations, dg, 1, 1)
+    u_rr = get_node_vars(boundaries_u, equations, dg, direction, 1)
+    x = get_node_coords(boundary_node_coordinates, equations, dg, direction)
 
     flux = boundary_conditions[direction](u_rr, orientation, direction, x, t,
                                           surface_flux, equations)
 
+    # Only flux contribution for left element, left face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, direction, 1] = flux[v]
     end
@@ -54,14 +101,13 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     # Positive x-direction
     direction = 2
 
-    u_rr = get_node_vars(u, equations, dg, nnodes(dg), nelements(dg, cache))
-    x = get_node_coords(node_coordinates, equations, dg, nnodes(dg),
-                        nelements(dg, cache))
+    u_rr = get_node_vars(boundaries_u, equations, dg, direction, nelements(dg, cache))
+    x = get_node_coords(boundary_node_coordinates, equations, dg, direction)
 
     flux = boundary_conditions[direction](u_rr, orientation, direction, x, t,
                                           surface_flux, equations)
 
-    # Copy flux to left and right element storage
+    # Only flux contribution for right element, right face is the boundary flux
     for v in eachvariable(equations)
         surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
     end
@@ -69,12 +115,15 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
     return nothing
 end
 
-function apply_jacobian!(du, mesh::StructuredMesh{1},
+function apply_jacobian!(backend::Nothing, du, mesh::StructuredMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
+            # Negative sign included to account for the negated surface and volume terms,
+            # see e.g. the computation of `derivative_hat` in the basis setup and 
+            # the comment in `calc_surface_integral!`.
             factor = -inverse_jacobian[i, element]
 
             for v in eachvariable(equations)

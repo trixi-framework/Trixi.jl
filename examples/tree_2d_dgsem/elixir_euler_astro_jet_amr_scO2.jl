@@ -31,7 +31,7 @@ function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_astro_jet
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        x_pos = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -61,7 +61,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 8,
                 periodicity = (false, true),
                 n_cells_max = 100_000)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

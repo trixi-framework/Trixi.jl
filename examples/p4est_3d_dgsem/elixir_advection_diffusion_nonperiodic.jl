@@ -53,12 +53,12 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = boundary_condition_default(mesh,
-                                                 BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions))
 
@@ -76,7 +76,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl = 1.6,
-                                     cfl_diffusive = 0.25)
+                                     cfl_parabolic = 0.25)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)

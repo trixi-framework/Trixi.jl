@@ -38,7 +38,22 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 
     return nothing
 end
-# Version for parabolic-extended equations
+
+# Version for purely parabolic equations (adds cache_parabolic).
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache, cache_parabolic)
+        end
+    end
+
+    return nothing
+end
+
+# Version for hyperbolic-parabolic equations (adds equations_parabolic and cache_parabolic).
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -135,10 +150,40 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
     end
 end
 
+create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = NamedTuple()
+
 # Abstract supertype for DG subcell-based volume integrals with
 # finite volume schemes on the subcells.
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
+
+function create_cache_subcell_limiting(mesh, equations,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       dg, cache_containers, uEltype)
+    return NamedTuple()
+end
+
+struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
+                                          VolumeIntegralBlendHighOrder,
+                                          VolumeIntegralBlendLowOrder} <:
+       AbstractVolumeIntegralShockCapturing
+    # A-priori indicator to determine the amount of blending (if any)
+    # between the high-order and low-order volume integrals.
+    indicator::Indicator
+
+    # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
+    # This implementation is a generalization, which allows also usage of e.g. 
+    # the (potentially) cheaper weak form volume integral.
+    volume_integral_default::VolumeIntegralDefault
+
+    # The volume integral used for the DG portion in the convex blending.
+    # Usually symmetric, e.g. split-form with entropy-conserative flux.
+    volume_integral_blend_high_order::VolumeIntegralBlendHighOrder
+
+    # Typically a first- or second-order finite volume method on the DG subcells.
+    # Non-symmetric, e.g. entropy-dissipative, to achieve shock-capturing behaviour.
+    volume_integral_blend_low_order::VolumeIntegralBlendLowOrder
+end
 
 """
     VolumeIntegralShockCapturingHG(indicator;
@@ -157,35 +202,160 @@ The amount of blending is determined by the `indicator`, e.g.,
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <:
-       AbstractVolumeIntegralShockCapturing
-    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
-    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
-    indicator::Indicator
-end
-
 function VolumeIntegralShockCapturingHG(indicator;
                                         volume_flux_dg = flux_central,
                                         volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralShockCapturingHG{typeof(volume_flux_dg),
-                                          typeof(volume_flux_fv),
-                                          typeof(indicator)}(volume_flux_dg,
-                                                             volume_flux_fv,
-                                                             indicator)
+    volume_integral_fd = VolumeIntegralFluxDifferencing(volume_flux_dg)
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+
+    return VolumeIntegralShockCapturingHGType{typeof(indicator),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fv)}(indicator,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fv)
+end
+
+"""
+    VolumeIntegralShockCapturingRRG(basis, indicator;
+                                    volume_flux_dg=flux_central,
+                                    volume_flux_fv=flux_lax_friedrichs,
+                                    slope_limiter=minmod,
+                                    cons2recon=cons2prim,
+                                    recon2cons=prim2cons)
+
+Shock-capturing volume integral type for DG methods using a convex blending of
+a **second-order** finite volume method with numerical flux `volume_flux_fv` and
+slope limiter `slope_limiter` and the
+[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
+The amount of blending is determined by the `indicator`, e.g.,
+[`IndicatorHennemannGassner`](@ref).
+
+**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+    1) [`minmod`](@ref)
+    2) [`monotonized_central`](@ref)
+    3) [`superbee`](@ref)
+    4) [`vanleer`](@ref)
+    5) [`koren_symmetric`](@ref)
+**Asymmetric** TVD limiters are also available, e.g.,
+    1) [`koren`](@ref) for positive (right-going) velocities
+    2) [`koren_flipped`](@ref) for negative (left-going) velocities
+
+The reconstruction is performed in reconstruction variables, which default to the primitive variables.
+Other choices are possible, e.g., thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref)
+for [`NonIdealCompressibleEulerEquations1D`](@ref) and [`NonIdealCompressibleEulerEquations2D`](@ref).
+
+!!! note "Conservative Systems only"
+    Currently only implemented for systems in conservative form, i.e.,
+    `have_nonconservative_terms(equations) = False()`
+
+## References
+
+See especially Section 3.2, Section 4, and Appendix D of the paper
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+function VolumeIntegralShockCapturingRRG(basis, indicator;
+                                         volume_flux_dg = flux_central,
+                                         volume_flux_fv = flux_lax_friedrichs,
+                                         slope_limiter = minmod,
+                                         cons2recon = cons2prim,
+                                         recon2cons = prim2cons)
+    volume_integral_fd = VolumeIntegralFluxDifferencing(volume_flux_dg)
+
+    # `reconstruction_mode` is hard-coded to `reconstruction_O2_inner` to
+    # achieve shock-capturing behaviour. See the paper mentioned above for details.
+    volume_integral_fv = VolumeIntegralPureLGLFiniteVolumeO2(basis;
+                                                             volume_flux_fv = volume_flux_fv,
+                                                             reconstruction_mode = reconstruction_O2_inner,
+                                                             slope_limiter = slope_limiter,
+                                                             cons2recon = cons2recon,
+                                                             recon2cons = recon2cons)
+    return VolumeIntegralShockCapturingHGType{typeof(indicator),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fd),
+                                              typeof(volume_integral_fv)}(indicator,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fd,
+                                                                          volume_integral_fv)
+end
+
+"""
+    VolumeIntegralShockCapturingHGType(indicator;
+                                       volume_integral_default,
+                                       volume_integral_blend_high_order,
+                                       volume_integral_blend_low_order)
+
+Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
+Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
+
+In the non-stabilized region, `volume_integral_default` is used, 
+which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
+or [`VolumeIntegralFluxDifferencing`](@ref).
+
+The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
+but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
+
+Finally, the `volume_integral_blend_low_order` should be entropy-dissipative, for instance
+[`VolumeIntegralPureLGLFiniteVolume`](@ref) or [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
+
+## References
+
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
+"""
+function VolumeIntegralShockCapturingHGType(indicator;
+                                            volume_integral_default,
+                                            volume_integral_blend_high_order,
+                                            volume_integral_blend_low_order)
+    return VolumeIntegralShockCapturingHGType{typeof(indicator),
+                                              typeof(volume_integral_default),
+                                              typeof(volume_integral_blend_high_order),
+                                              typeof(volume_integral_blend_low_order)}(indicator,
+                                                                                       volume_integral_default,
+                                                                                       volume_integral_blend_high_order,
+                                                                                       volume_integral_blend_low_order)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
-                   integral::VolumeIntegralShockCapturingHG)
+                   integral::VolumeIntegralShockCapturingHGType)
     @nospecialize integral # reduce precompilation time
+    @unpack volume_integral_default, volume_integral_blend_high_order, volume_integral_blend_low_order, indicator = integral
 
     if get(io, :compact, false)
         show(io, integral)
     else
-        summary_header(io, "VolumeIntegralShockCapturingHG")
-        summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
+        summary_header(io, "VolumeIntegralShockCapturingHGType")
+
+        summary_line(io, "volume integral DG default",
+                     volume_integral_default |> typeof |> nameof)
+        if !(volume_integral_default isa VolumeIntegralWeakForm)
+            show(increment_indent(io), mime, volume_integral_default)
+        end
+
+        summary_line(io, "volume integral DG blend",
+                     volume_integral_blend_high_order |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_blend_high_order)
+
+        summary_line(io, "volume integral FV",
+                     volume_integral_blend_low_order |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_blend_low_order)
+
+        summary_line(io, "indicator", indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, indicator)
+
         summary_footer(io)
     end
 end
@@ -199,75 +369,182 @@ function get_element_variables!(element_variables, u, mesh, equations,
                                   volume_integral)
 end
 
-"""
-    VolumeIntegralShockCapturingRRG(basis, indicator;
-                                    volume_flux_dg=flux_central,
-                                    volume_flux_fv=flux_lax_friedrichs,
-                                    slope_limiter=minmod)
+# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+# Default `nothing` required for dispatch
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require resizing of the subcell normal vectors for
+# non-Cartesian meshes
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       new_size)
+    resize_normal_vectors!(cache, mesh, new_size)
 
-Shock-capturing volume integral type for DG methods using a convex blending of
-a **second-order** finite volume method with numerical flux `volume_flux_fv` and
-slope limiter `slope_limiter` and the
-[`VolumeIntegralFluxDifferencing`](@ref) with volume flux `volume_flux_dg`.
-The amount of blending is determined by the `indicator`, e.g.,
-[`IndicatorHennemannGassner`](@ref).
+    return nothing
+end
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralShockCapturingHGType,
+                                       new_size)
+    @unpack (volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+    resize_volume_integral_cache!(cache, mesh, volume_integral_default,
+                                  new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_blend_high_order,
+                                  new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_blend_low_order,
+                                  new_size)
 
-!!! note "Conservative Systems only"
-    Currently only implemented for systems in conservative form, i.e.,
-    `have_nonconservative_terms(equations) = False()`
-
-## References
-
-See especially Sections 3.2, Section 4, and Appendix D of the paper
-
-- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
-  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
-   Part II: Subcell finite volume shock capturing"
-  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
-"""
-struct VolumeIntegralShockCapturingRRG{VolumeFluxDG, VolumeFluxFV, Indicator,
-                                       SubCellInterfaceCoordinates, Limiter} <:
-       AbstractVolumeIntegralShockCapturing
-    volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
-    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
-    indicator::Indicator
-    sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
-    slope_limiter::Limiter # slope limiter used for the inner subcell reconstructions
+    return nothing
 end
 
-function VolumeIntegralShockCapturingRRG(basis, indicator;
-                                         volume_flux_dg = flux_central,
-                                         volume_flux_fv = flux_lax_friedrichs,
-                                         slope_limiter = minmod)
-    polydeg = nnodes(basis) - 1
-    # Suffices to store only the intermediate boundaries of the sub-cell elements
-    sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
-    return VolumeIntegralShockCapturingRRG{typeof(volume_flux_dg),
-                                           typeof(volume_flux_fv),
-                                           typeof(indicator),
-                                           typeof(sc_interface_coords),
-                                           typeof(slope_limiter)}(volume_flux_dg,
-                                                                  volume_flux_fv,
-                                                                  indicator,
-                                                                  sc_interface_coords,
-                                                                  slope_limiter)
+# `reinit_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegral,
+                                       new_size)
+    return nothing
+end
+# `AbstractVolumeIntegralSubcell` require reinitializing of the subcell normal vectors for
+# non-Cartesian meshes
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       new_size)
+    reinit_normal_vectors!(cache, mesh, dg)
+
+    return nothing
+end
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::VolumeIntegralShockCapturingHGType,
+                                       new_size)
+    @unpack (volume_integral_default,
+    volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_default,
+                                  new_size)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_blend_high_order,
+                                  new_size)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_blend_low_order,
+                                  new_size)
+
+    return nothing
+end
+
+@doc raw"""
+    VolumeIntegralAdaptive(;
+                           indicator = IndicatorEntropyChange(),
+                           volume_integral_default,
+                           volume_integral_stabilized)
+
+This volume integral allows for a-priori and a-posteriori style adaptation of the volume integral/term computation.
+
+Choosing `indicator` as [`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
+At every Runge-Kutta stage and for every element, the volume update is computed using
+`volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
+If the `indicator` deems the default volume integral unstable, the default update is discarded
+and the `volume_integral_stabilized` is computed and used instead for the update.
+
+The motivation for this volume integral are simulations, which require in some cells usage of e.g.
+an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`](@ref) with an appropriate flux)
+for stability, but not everywhere in the domain.
+In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
+
+For reference, see 
+- Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
+  Volume Term Adaptivity for Discontinuous Galerkin Schemes
+  [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
+
+especially Sections 3 and 3.1 for a detailed description of the method.
+
+In turn, choosing `indicator` as [`IndicatorHennemannGassner`](@ref) corresponds to the a-priori implementation.
+Similar to [`VolumeIntegralShockCapturingHGType`](@ref), the indicator is evaluated before any volume update is performed.
+If the indicator value ``\alpha`` is zero (i.e., below ``\alpha_\text{min}``) the `volume_integral_default` is used.
+Otherwise, the `volume_integral_stabilized` is used.
+This kind strategy was for certain choices of the default and stabilized volume integrals already presented as the "ES-DG" scheme in
+- Bilocq, Borbouse, Levaux, Terrapon, Hillewaert (2025)
+  Comparison of stabilization strategies applied to scale-resolved simulations using the discontinuous Galerkin method
+  [DOI: 10.1016/j.jcp.2025.114238](https://doi.org/10.1016/j.jcp.2025.114238)
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
+"""
+struct VolumeIntegralAdaptive{Indicator,
+                              VolumeIntegralDefault, VolumeIntegralStabilized} <:
+       AbstractVolumeIntegral
+    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
+    volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
+end
+
+function VolumeIntegralAdaptive(;
+                                indicator = IndicatorEntropyChange(),
+                                volume_integral_default,
+                                volume_integral_stabilized)
+    return VolumeIntegralAdaptive{typeof(indicator),
+                                  typeof(volume_integral_default),
+                                  typeof(volume_integral_stabilized)}(indicator,
+                                                                      volume_integral_default,
+                                                                      volume_integral_stabilized)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain",
-                   integral::VolumeIntegralShockCapturingRRG)
+                   integral::VolumeIntegralAdaptive)
     @nospecialize integral # reduce precompilation time
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = integral
 
     if get(io, :compact, false)
         show(io, integral)
     else
-        summary_header(io, "VolumeIntegralShockCapturingRRG")
-        summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
-        summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
-        show(increment_indent(io), mime, integral.indicator)
-        summary_line(io, "slope limiter", integral.slope_limiter)
+        summary_header(io, "VolumeIntegralAdaptive")
+
+        summary_line(io, "volume integral default",
+                     volume_integral_default |> typeof |> nameof)
+        if !(volume_integral_default isa VolumeIntegralWeakForm)
+            show(increment_indent(io), mime, volume_integral_default)
+        end
+
+        summary_line(io, "volume integral stabilized",
+                     volume_integral_stabilized |> typeof |> nameof)
+        show(increment_indent(io), mime, volume_integral_stabilized)
+
+        summary_line(io, "indicator", indicator |> typeof |> nameof)
+        show(increment_indent(io), mime, indicator)
+
         summary_footer(io)
     end
+end
+
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralAdaptive,
+                      dg, cache_containers, uEltype)
+    cache_default = create_cache(mesh, equations,
+                                 volume_integral.volume_integral_default,
+                                 dg, cache_containers, uEltype)
+    cache_stabilized = create_cache(mesh, equations,
+                                    volume_integral.volume_integral_stabilized,
+                                    dg, cache_containers, uEltype)
+
+    return (; cache_default..., cache_stabilized...)
+end
+
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralAdaptive,
+                                       new_size)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
+
+    return nothing
+end
+
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::VolumeIntegralAdaptive,
+                                       new_size)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_default, new_size)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral_stabilized, new_size)
+
+    return nothing
 end
 
 # Abstract supertype for first-order `VolumeIntegralPureLGLFiniteVolume` and
@@ -319,7 +596,9 @@ end
     VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                         volume_flux_fv = flux_lax_friedrichs,
                                         reconstruction_mode = reconstruction_O2_full,
-                                        slope_limiter = minmod)
+                                        slope_limiter = minmod,
+                                        cons2recon = cons2prim,
+                                        recon2cons = prim2cons)
 
 This gives an up to  second order accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
@@ -338,13 +617,27 @@ For the DG-subcells at the boundaries, two options are available:
    The `reconstruction_mode` corresponding to this is `reconstruction_O2_inner`.
    In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
-!!! note "Conservative Systems only"
+**Symmetric** total-Variation-Diminishing (TVD) choices for the `slope_limiter` are
+    1) [`minmod`](@ref)
+    2) [`monotonized_central`](@ref)
+    3) [`superbee`](@ref)
+    4) [`vanleer`](@ref)
+    5) [`koren_symmetric`](@ref)
+**Asymmetric** TVD limiters are also available, e.g.,
+    1) [`koren`](@ref) for positive (right-going) velocities
+    2) [`koren_flipped`](@ref) for negative (left-going) velocities
+
+The reconstruction is performed in reconstruction variables, which default to the primitive variables.
+Other choices are possible, e.g., thermodynamic variables, see [`cons2thermo`](@ref) and [`thermo2cons`](@ref)
+for [`NonIdealCompressibleEulerEquations1D`](@ref) and [`NonIdealCompressibleEulerEquations2D`](@ref).
+
+!!! note "Conservative systems only"
     Currently only implemented for systems in conservative form, i.e.,
     `have_nonconservative_terms(equations) = False()`
 
 ## References
 
-See especially Sections 3.2, Section 4, and Appendix D of the paper
+See especially Section 3.2, Section 4, and Appendix D of the paper
 
 - Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
   "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
@@ -352,28 +645,37 @@ See especially Sections 3.2, Section 4, and Appendix D of the paper
   [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 struct VolumeIntegralPureLGLFiniteVolumeO2{SubCellInterfaceCoordinates, VolumeFluxFV,
-                                           Reconstruction, Limiter} <:
+                                           Reconstruction, Limiter,
+                                           Cons2Recon, Recon2Cons} <:
        AbstractVolumeIntegralPureLGLFiniteVolume
     sc_interface_coords::SubCellInterfaceCoordinates # (x-)coordinates of the sub-cell element interfaces
     volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
     reconstruction_mode::Reconstruction # which type of FV reconstruction to use
     slope_limiter::Limiter # which type of slope limiter function
+    cons2recon::Cons2Recon # function to convert from conservative variables to the variables used for reconstruction
+    recon2cons::Recon2Cons # function to convert from the variables used for reconstruction back to conservative variables
 end
 
 function VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                              volume_flux_fv = flux_lax_friedrichs,
                                              reconstruction_mode = reconstruction_O2_full,
-                                             slope_limiter = minmod)
+                                             slope_limiter = minmod,
+                                             cons2recon = cons2prim,
+                                             recon2cons = prim2cons)
     polydeg = nnodes(basis) - 1
     # Suffices to store only the intermediate boundaries of the sub-cell elements
     sc_interface_coords = SVector{polydeg}(cumsum(basis.weights)[1:polydeg] .- 1)
     return VolumeIntegralPureLGLFiniteVolumeO2{typeof(sc_interface_coords),
                                                typeof(volume_flux_fv),
                                                typeof(reconstruction_mode),
-                                               typeof(slope_limiter)}(sc_interface_coords,
-                                                                      volume_flux_fv,
-                                                                      reconstruction_mode,
-                                                                      slope_limiter)
+                                               typeof(slope_limiter),
+                                               typeof(cons2recon),
+                                               typeof(recon2cons)}(sc_interface_coords,
+                                                                   volume_flux_fv,
+                                                                   reconstruction_mode,
+                                                                   slope_limiter,
+                                                                   cons2recon,
+                                                                   recon2cons)
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -387,7 +689,9 @@ function Base.show(io::IO, ::MIME"text/plain",
             "FV flux" => integral.volume_flux_fv,
             "Reconstruction" => integral.reconstruction_mode,
             "Slope limiter" => integral.slope_limiter,
-            "Subcell boundaries" => vcat([-1.0], integral.sc_interface_coords, [1.0])
+            "Subcell boundaries" => vcat([-1.0], integral.sc_interface_coords, [1.0]),
+            "cons2recon" => integral.cons2recon,
+            "recon2cons" => integral.recon2cons
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
     end
@@ -408,7 +712,7 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     with a high-order mortar is not invariant domain preserving.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
-       AbstractVolumeIntegral
+       AbstractVolumeIntegralSubcell
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
     limiter::Limiter
@@ -437,18 +741,6 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
     end
-end
-
-# Required to be able to run `SimpleSSPRK33` without `VolumeIntegralSubcellLimiting`
-Base.resize!(semi, volume_integral::AbstractVolumeIntegral, new_size) = nothing
-
-function Base.resize!(semi, volume_integral::VolumeIntegralSubcellLimiting, new_size)
-    # Resize container antidiffusive_fluxes
-    resize!(semi.cache.antidiffusive_fluxes, new_size)
-
-    # Resize container subcell_limiter_coefficients
-    @unpack limiter = volume_integral
-    return resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 end
 
 # TODO: FD. Should this definition live in a different file because it is
@@ -785,6 +1077,13 @@ end
     return u_ll, u_rr
 end
 
+# As above but dispatches on an type argument
+@inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
+    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    return u_ll, u_rr
+end
+
 @inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
@@ -866,9 +1165,7 @@ end
         #     In fact, everything can be fast and fine for many cases but some parts
         #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
         #     Hence, this version should only be used when `@threaded` is based on
-        #     `@batch` from Polyester.jl or something similar. Using Polyester.jl
-        #     is probably the best option since everything will be handed over to
-        #     Chris Elrod, one of the best performance software engineers for Julia.
+        #     `@batch` from Polyester.jl or something similar.
         PtrArray(pointer(u_ode),
                  (StaticInt(nvariables(equations)),
                   ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
@@ -949,55 +1246,48 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
     return nothing
 end
 
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Nothing, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     @unpack node_coordinates = cache.elements
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
     @threaded for element in eachelement(dg, cache)
-        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                      element)
+        compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
+                                          element, node_indices)
     end
 
     return nothing
 end
 
-function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Backend, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+
     @unpack node_coordinates = cache.elements
-    kernel! = compute_coefficients_kernel!(backend)
-    kernel!(u, func, t, equations, dg, node_coordinates,
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
+
+    kernel! = compute_coefficients_KAkernel!(backend)
+    kernel!(u, func, t, equations, dg, node_coordinates, node_indices,
             ndrange = nelements(dg, cache))
     return nothing
 end
 
-@kernel function compute_coefficients_kernel!(u, func, t, equations,
-                                              dg::DG, node_coordinates)
+@kernel function compute_coefficients_KAkernel!(u, func, t, equations,
+                                                dg::DG, node_coordinates, node_indices)
     element = @index(Global)
-    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                  element)
+    compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
+                                      element,
+                                      node_indices)
 end
 
-function compute_coefficients_element!(u, func, t, equations, dg::DG,
-                                       node_coordinates, element)
-    for j in eachnode(dg), i in eachnode(dg)
-        x_node = get_node_coords(node_coordinates, equations, dg, i,
-                                 j, element)
+@inline function compute_coefficients_per_element!(u, func, t, equations, dg::DG,
+                                                   node_coordinates, element,
+                                                   node_indices)
+    for indices in node_indices
+        x_node = get_node_coords(node_coordinates, equations, dg, indices, element)
         u_node = func(x_node, t, equations)
-        set_node_vars!(u, u_node, equations, dg, i, j, element)
-    end
-
-    return nothing
-end
-
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
-                               equations, dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, k, element)
-            u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
-        end
+        set_node_vars!(u, u_node, equations, dg, indices, element)
     end
 
     return nothing

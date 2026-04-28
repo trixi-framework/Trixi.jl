@@ -21,16 +21,19 @@ trees_per_dimension = (8, 8)
 # Create P4estMesh with 8 x 8 trees and 16 x 16 elements
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 1)
+                 initial_refinement_level = 1,
+                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
+# Change `storage_type` to, e.g., `CuArray` to actually run on GPU
 ode = semidiscretize(semi, (0.0, 1.0); real_type = nothing, storage_type = nothing)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -48,9 +51,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, stepsize_callback)
-# TODO: GPU. The `analysis_callback` needs to be updated for GPU support
-# analysis_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback,
+                        save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation

@@ -1,7 +1,8 @@
 using Trixi
+using OrdinaryDiffEqBDF
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqBDF, ADTypes
+using ADTypes # To access the types choosing how to evaluate Jacobian-vector products
 
 ###############################################################################
 # semidiscretization of the linear advection-diffusion equation
@@ -18,7 +19,7 @@ coordinates_max = 1.0
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
 function initial_condition_diffusive_convergence_test(x, t,
                                                       equation::LinearScalarAdvectionEquation1D)
@@ -48,7 +49,9 @@ jac_eltype = jacobian_eltype(real(solver), jac_detector)
 semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
                                                       (equations_hyperbolic,
                                                        equations_parabolic),
-                                                      initial_condition, solver,
+                                                      initial_condition, solver;
+                                                      boundary_conditions = (boundary_condition_periodic,
+                                                                             boundary_condition_periodic),
                                                       uEltype = jac_eltype)
 
 tspan = (0.0, 1.5) # Re-used for wrapping `rhs_parabolic!` below
@@ -92,7 +95,9 @@ coloring_vec_parabolic = column_colors(coloring_result)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations_hyperbolic,
                                               equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 # Supply Jacobian prototype and coloring vector to the semidiscretization
 ode = semidiscretize(semi, tspan,
@@ -122,5 +127,4 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 sol = solve(ode, SBDF2(; autodiff = AutoFiniteDiff());
             ode_default_options()...,
             dt = 0.01,
-            abstol = 1e-9, reltol = 1e-9,
             callback = callbacks)

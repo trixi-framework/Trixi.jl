@@ -25,7 +25,7 @@ end
 """
     StructuredMesh(cells_per_dimension, mapping;
                    RealT = Float64,
-                   periodicity = true,
+                   periodicity = false,
                    unsaved_changes = true,
                    mapping_as_string = mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
 
@@ -49,7 +49,7 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 """
 function StructuredMesh(cells_per_dimension, mapping;
                         RealT = Float64,
-                        periodicity = true,
+                        periodicity = false,
                         unsaved_changes = true,
                         mapping_as_string = mapping2string(mapping,
                                                            length(cells_per_dimension),
@@ -75,7 +75,7 @@ end
 """
     StructuredMesh(cells_per_dimension, faces;
                    RealT = Float64,
-                   periodicity = true)
+                   periodicity = false)
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -95,7 +95,7 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 """
 function StructuredMesh(cells_per_dimension, faces::Tuple;
                         RealT = Float64,
-                        periodicity = true)
+                        periodicity = false)
     NDIMS = length(cells_per_dimension)
 
     validate_faces(faces)
@@ -120,7 +120,7 @@ end
 
 """
     StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
-                   periodicity = true)
+                   periodicity = false)
 
 Create a StructuredMesh that represents a uncurved structured mesh with a rectangular domain.
 
@@ -132,7 +132,7 @@ Create a StructuredMesh that represents a uncurved structured mesh with a rectan
                  each dimension if the boundaries in this dimension are periodic.
 """
 function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
-                        periodicity = true)
+                        periodicity = false)
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
     coordinates_min_max_check(coordinates_min, coordinates_max)

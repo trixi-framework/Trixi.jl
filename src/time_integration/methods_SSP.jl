@@ -132,10 +132,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                                                 kwargs...),
                                      false, true, false)
 
-    # resize container
-    resize!(integrator.p, integrator.p.solver.volume_integral,
-            nelements(integrator.p.solver, integrator.p.cache))
-
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
 
@@ -257,11 +253,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
-
-    # Resize container
-    # new_size = n_variables * n_nodes^n_dims * n_elements
-    n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 
     return nothing
 end

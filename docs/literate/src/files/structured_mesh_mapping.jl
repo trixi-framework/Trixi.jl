@@ -151,9 +151,10 @@ end
 
 # Instead of a tuple of boundary functions, the `mesh` now has the mapping as its parameter.
 cells_per_dimension = (16, 16)
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
@@ -186,13 +187,13 @@ plot!(getmesh(pd))
 # Moreover, the plot shows the mesh structure resulting from our transformation mapping.
 
 # Of course, you can also use other mappings as for instance shifts by $(x, y)$
-# ```julia
+# ````julia
 # mapping(xi, eta) = SVector(xi + x, eta + y)
-# ```
+# ````
 # or rotations with a rotation matrix $T$
-# ```julia
+# ````julia
 # mapping(xi, eta) = T * SVector(xi, eta).
-# ```
+# ````
 
 # For more curved mesh mappings, please have a look at some
 # [elixirs for `StructuredMesh`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples).

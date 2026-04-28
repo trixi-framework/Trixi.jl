@@ -89,11 +89,13 @@ function global_plotting_triangulation_triplot(xyz_plot, u_plot, t)
     return vec.(xyz_plot)..., zp, tp
 end
 
-function get_face_node_indices(r, s, dg::DGSEM, tol = 100 * eps())
-    face_1 = findall(@. abs(s + 1) < tol)
-    face_2 = findall(@. abs(r - 1) < tol)
-    face_3 = findall(@. abs(s - 1) < tol)
-    face_4 = findall(@. abs(r + 1) < tol)
+function get_face_node_indices(r, s, dg::Union{<:DGSEM, <:FDSBP}, tol = 100 * eps())
+    r_max, r_min = extrema(r)
+    s_max, s_min = extrema(s)
+    face_1 = findall(@. abs(s - s_min) < tol)
+    face_2 = findall(@. abs(r - r_max) < tol)
+    face_3 = findall(@. abs(s - s_max) < tol)
+    face_4 = findall(@. abs(r - r_min) < tol)
     Fmask = hcat(face_1, face_2, face_3, face_4)
     return Fmask
 end
@@ -180,7 +182,8 @@ function mesh_plotting_wireframe(u::StructArray, mesh, equations, dg::DGSEM, cac
     return xfp, yfp, ufp
 end
 
-function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cache;
+function mesh_plotting_wireframe(u::ScalarData, mesh, equations,
+                                 dg::Union{<:DGSEM, <:FDSBP}, cache;
                                  nvisnodes = 2 * nnodes(dg))
 
     # build nodes on reference element (seems to be the right ordering)
@@ -216,18 +219,42 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGSEM, cach
     return xfp, yfp, ufp
 end
 
+function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Tri})
+    # this assumes that the nodes of the first face on the reference element correspond to a face where
+    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis. 
+    @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
+    return reshape(basis.r[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
+end
+
+function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Quad})
+    # this assumes that the nodes of the first face on the reference element correspond to a face where
+    # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis. 
+    # For quadrilateral elements, this is true since the faces are ordered r = ±1, s = ±1.
+    @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
+    return reshape(basis.s[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
+end
+
 function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, cache;
                                  nvisnodes = 2 * nnodes(dg))
     @unpack md = mesh
     rd = dg.basis
-
-    # Construct 1D plotting interpolation matrix `Vp1D` for a single face
     @unpack N, Fmask = rd
-    vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, StartUpDG.nodes(Line(), N))
+
+    # number of points on a single face, assuming all faces have the same number of points
+    # note that since `ScalarPlotData2D` is restricted to Tri and Quad types, this should always be true.
+    num_face_points = size(Fmask, 1) ÷ num_faces(rd.element_type)
+
+    # extract a set of interpolation nodes for the face nodes. For Polynomial approximations, 
+    # these are usually just (N+1) Gauss-Lobatto nodes. For SBP approximation types, these can 
+    # be more general, with length(face_nodes_1D) ≥ N+1 for certain configurations. 
+    face_nodes_1D = extract_face_nodes_1D(dg.basis)
+
+    # Construct 1D plotting interpolation matrix `Vp1D` for a single face. 
+    # Since num_face_points may be larger than N+1, this is doing a least squares projection
+    vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, face_nodes_1D)
     rplot = LinRange(-1, 1, nvisnodes)
     Vp1D = StartUpDG.vandermonde(Line(), N, rplot) / vandermonde_matrix_1D
 
-    num_face_points = N + 1
     num_faces_total = num_faces(rd.element_type) * md.num_elements
     xf, yf, uf = map(x -> reshape(view(x, Fmask, :), num_face_points, num_faces_total),
                      (md.xyz..., u.data))
@@ -1667,11 +1694,23 @@ function plotting_interpolation_matrix(dg::DGSEM;
     return kron(Vp1D, Vp1D)
 end
 
-function reference_node_coordinates_2d(dg::DGSEM)
-    @unpack nodes = dg.basis
+function reference_node_coordinates_2d(dg::Union{DGSEM, FDSBP})
+    nodes = get_nodes(dg.basis)
     r = vec([nodes[i] for i in eachnode(dg), j in eachnode(dg)])
     s = vec([nodes[j] for i in eachnode(dg), j in eachnode(dg)])
     return r, s
+end
+
+function plotting_interpolation_matrix(dg::FDSBP; kwargs...)
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
+    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    return I
+end
+
+function face_plotting_interpolation_matrix(dg::FDSBP; kwargs...)
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
+    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    return I
 end
 
 # Find element and triangle ids containing coordinates given as a matrix [ndims, npoints]
