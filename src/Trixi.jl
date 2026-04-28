@@ -41,7 +41,7 @@ using Reexport: @reexport
 using MPI: MPI
 
 @reexport using SciMLBase: CallbackSet
-using SciMLBase: DiscreteCallback,
+using SciMLBase: SciMLBase, DiscreteCallback,
                  ODEProblem, ODESolution,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache,
