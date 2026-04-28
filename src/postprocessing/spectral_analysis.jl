@@ -12,10 +12,12 @@ Compute the energy spectrum from the final state of an ODE solution returned by
 `solve`. Keyword arguments are forwarded to the semidiscretization-specific method.
 Dispatch then selects the 2D or 3D implementation based on the mesh/solver types
 
-For density-weighted kinetic energy spectra in compressible turbulence, see Winters AR,
-Moura RC, Mengaldo G, Gassner GJ, Walch S, Peiro J, et al. A comparative study on
-polynomial dealiasing and split form discontinuous Galerkin schemes for under-resolved
-turbulence computations. Journal of Computational Physics 372 (2018), 1-21.
+## References
+
+- Winters, Moura, Mengaldo, Gassner, Walch, Peiro, et al. (2018)
+  A comparative study on polynomial dealiasing and split form discontinuous Galerkin
+  schemes for under-resolved turbulence computations
+  [DOI: 10.1016/j.jcp.2018.05.049](https://doi.org/10.1016/j.jcp.2018.06.016)
 """
 function compute_energy_spectrum(sol; kwargs...)
     return compute_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
