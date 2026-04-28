@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Internal Cartesian grid FFT kernel that computes the energy spectrum
-function _compute_energy_spectrum(velocity_cartesian...;
+function compute_energy_spectrum(velocity_cartesian...;
                                   normalize = true)
 
     # Handles the case where the user passes a tuple of velocity components
