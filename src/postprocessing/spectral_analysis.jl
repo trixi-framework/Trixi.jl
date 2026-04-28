@@ -76,7 +76,7 @@ function radial_energy_spectrum(energy_modes)
 
         # Radially bin modes by nearest integer shell index
         effective_wavenumber = sqrt(effective_wavenumber_squared)
-        shell = floor(Int, effective_wavenumber + 0.5)
+        shell = round(Int, effective_wavenumber)
         if shell <= maximum_wavenumber
             energy_spectrum[shell + 1] += energy_modes[index]
         end
