@@ -51,7 +51,7 @@ import SciMLBase: get_du, get_tmp_cache,
 # To keep backwards compatibility with SciMLBase v2, see
 # https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
 @static if isdefined(SciMLBase, :derivative_discontinuity!)
-    using SciMLBase: derivative_discontinuity!
+    import SciMLBase: derivative_discontinuity!
 else
     const derivative_discontinuity! = SciMLBase.u_modified!
 end
