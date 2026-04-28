@@ -96,8 +96,7 @@ function (restart_callback::SaveRestartCallback)(integrator)
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
-            save_adaptive_time_integrator(integrator, integrator.opts.controller,
-                                          restart_callback)
+            save_adaptive_time_integrator(integrator, restart_callback)
         end
     end
 
@@ -170,25 +169,39 @@ Load the context information for time integrators with error-based step size con
 saved in a `restart_file`.
 """
 function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
-    controller = integrator.opts.controller
+    # OrdinaryDiffEq v7+: controller state lives in integrator.controller_cache
+    # OrdinaryDiffEq pre-v7: controller lives in integrator.opts.controller,
+    #                         scalar qold lives in integrator.qold
+    controller = hasproperty(integrator, :controller_cache) ?
+                 integrator.controller_cache :
+                 integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
         # Ensure that the necessary information was saved
-        if !("time_integrator_qold" in keys(attributes(file))) ||
-           !("time_integrator_dtpropose" in keys(attributes(file))) ||
+        needs_qold = hasproperty(integrator, :qold) ||  # pre-v7
+                     hasproperty(controller, :errold) || # v7+ PIControllerCache
+                     hasproperty(controller, :qold)      # v7+ PredictiveControllerCache
+        if !("time_integrator_dtpropose" in keys(attributes(file))) ||
+           (needs_qold && !("time_integrator_qold" in keys(attributes(file)))) ||
            (hasproperty(controller, :err) &&
             !("time_integrator_controller_err" in keys(attributes(file))))
             error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
         end
-        # Load data that is required both for PIController and PIDController
-        integrator.qold = read(attributes(file)["time_integrator_qold"])
         integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
         # Accept step to use dtpropose already in the first step
         integrator.accept_step = true
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
-        # Load additional parameters for PIDController
-        if hasproperty(controller, :err) # Distinguish PIDController from PIController
+        # Load scalar step-size factor (location differs between OrdinaryDiffEq versions)
+        if hasproperty(integrator, :qold) # pre-v7: field on integrator
+            integrator.qold = read(attributes(file)["time_integrator_qold"])
+        elseif hasproperty(controller, :errold) # v7+ PIControllerCache
+            controller.errold = read(attributes(file)["time_integrator_qold"])
+        elseif hasproperty(controller, :qold) # v7+ PredictiveControllerCache
+            controller.qold = read(attributes(file)["time_integrator_qold"])
+        end
+        # Load error history for PIDController / PIDControllerCache (both versions)
+        if hasproperty(controller, :err)
             controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
         end
     end

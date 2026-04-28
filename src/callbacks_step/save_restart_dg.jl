@@ -336,8 +336,7 @@ function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParall
 end
 
 # Store controller values for an adaptive time stepping scheme
-function save_adaptive_time_integrator(integrator,
-                                       controller, restart_callback)
+function save_adaptive_time_integrator(integrator, restart_callback)
     # Save only on root
     if mpi_isroot()
         @unpack output_directory = restart_callback
@@ -346,13 +345,24 @@ function save_adaptive_time_integrator(integrator,
         # Filename based on current time step
         filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
+        # OrdinaryDiffEq v7+: controller state lives in integrator.controller_cache
+        # OrdinaryDiffEq pre-v7: controller lives in integrator.opts.controller,
+        #                         scalar qold lives in integrator.qold
+        controller = hasproperty(integrator, :controller_cache) ?
+                     integrator.controller_cache :
+                     integrator.opts.controller
+
         # Open file (preserve existing content)
         h5open(filename, "r+") do file
-            # Add context information as attributes both for PIController and PIDController
-            attributes(file)["time_integrator_qold"] = integrator.qold
             attributes(file)["time_integrator_dtpropose"] = integrator.dtpropose
-            # For PIDController is necessary to save additional parameters
-            if hasproperty(controller, :err) # Distinguish PIDController from PIController
+            if hasproperty(integrator, :qold)
+                attributes(file)["time_integrator_qold"] = integrator.qold
+            elseif hasproperty(controller, :errold)
+                attributes(file)["time_integrator_qold"] = controller.errold
+            elseif hasproperty(controller, :qold)
+                attributes(file)["time_integrator_qold"] = controller.qold
+            end
+            if hasproperty(controller, :err)
                 attributes(file)["time_integrator_controller_err"] = controller.err
             end
         end

@@ -208,7 +208,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "abstol" => integrator.opts.abstol,
               "reltol" => integrator.opts.reltol,
-              "controller" => integrator.opts.controller)
+              "controller" => (hasproperty(integrator, :controller_cache) ?
+                               integrator.controller_cache :
+                               integrator.opts.controller))
     end
     summary_box(io, "Time integration", setup)
     println()
