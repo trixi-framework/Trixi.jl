@@ -29,7 +29,6 @@ end
 Compute the energy spectrum from an ODE state vector `u_ode` and a Trixi
 semidiscretization `semi`. The state is converted to the solver-native array
 layout before dispatching to the mesh/solver-specific method.
-The concrete method is dispatched to 2D or 3D based on the resulting argument types
 """
 function compute_energy_spectrum(u_ode, semi::AbstractSemidiscretization; kwargs...)
     return compute_energy_spectrum(wrap_array_native(u_ode, semi),
