@@ -150,11 +150,11 @@ end
 @inline nmodes(N, ::Quad) = (N + 1)^2
 @inline nmodes(N, ::Hex) = (N + 1)^3
 
-@inline function num_modes(N, ::Tri)
+@inline function nmodes(N, ::Tri)
     return (N + 1) * (N + 2) ÷ 2
 end
 
-@inline function num_modes(N, ::Tet)
+@inline function nmodes(N, ::Tet)
     return (N + 1) * (N + 2) * (N + 3) ÷ 6
 end
 
