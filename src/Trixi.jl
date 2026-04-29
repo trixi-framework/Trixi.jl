@@ -61,7 +61,7 @@ using Downloads: Downloads
 using Adapt: Adapt, adapt
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
-using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array, Threaded
+using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
@@ -87,6 +87,8 @@ using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
 using Static: Static, One, True, False
+# OrdinaryDiffEq v7+ uses FastBroadcast.Threaded() for the thread argument; older versions use Static.True()
+const Threaded = isdefined(DiffEqBase, :Threaded) ? DiffEqBase.Threaded : True
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
