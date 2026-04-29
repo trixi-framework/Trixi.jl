@@ -18,15 +18,15 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
 
 @testset "MPI" begin
     # TreeMesh tests
-    #include("test_mpi_tree.jl")
+    include("test_mpi_tree.jl")
 
     # P4estMesh and T8codeMesh tests
-    #include("test_mpi_p4est_2d.jl")
-    #include("test_mpi_t8code_2d.jl")
+    include("test_mpi_p4est_2d.jl")
+    include("test_mpi_t8code_2d.jl")
     if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` above
-        #include("test_mpi_p4est_3d.jl")
-        #include("test_mpi_t8code_3d.jl")
-        #include("test_mpi_p4est_parabolic_2d.jl")
+        include("test_mpi_p4est_3d.jl")
+        include("test_mpi_t8code_3d.jl")
+        include("test_mpi_p4est_parabolic_2d.jl")
         include("test_mpi_p4est_parabolic_3d.jl")
     end
 end # MPI
