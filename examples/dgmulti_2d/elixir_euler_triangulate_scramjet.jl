@@ -54,13 +54,14 @@ analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
-stepsize_callback = StepsizeCallback(cfl = 0.7)
+cfl = 0.7
+stepsize_callback = StepsizeCallback(cfl = cfl)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
 
 ###############################################################################
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 0.7 * estimate_dt(mesh, dg),
+            dt = cfl * estimate_dt(mesh, dg),
             ode_default_options()...,
             callback = callbacks);

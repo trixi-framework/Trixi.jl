@@ -82,13 +82,13 @@ end
 # matrix is first projects from solution values at SBP nodes to degree N polynomials, 
 # and then returns the modal coefficients of that projected polynomial.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
-    (; N, element_type, r, s) = basis
+    (; N, element_type, r, s, VDM, wq) = basis
 
     interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
-                                   basis.VDM
+                                   VDM
 
     # note that this mass matrix is not necessarily diagonal                                    
-    mass_matrix = interp_matrix_to_quad_points' * Diagonal(basis.wq) *
+    mass_matrix = interp_matrix_to_quad_points' * Diagonal(wq) *
                   interp_matrix_to_quad_points
 
     # construct quadrature-based L2 projection matrix                  
@@ -97,7 +97,7 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
 
     # invert Vandermonde matrix to recover modal coefficients from the 
     # quadrature-based L2 projection matrix.
-    return basis.VDM \ projection_matrix
+    return VDM \ projection_matrix
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
@@ -108,7 +108,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
                                                    kwargs...) where {NDIMS}
     (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
     (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde) = indicator_hg.cache
-    (; N) = dg.basis # polynomial degree
+    (; N, element_type) = dg.basis # polynomial degree and element type
 
     resize!(alpha, nelements(mesh, dg))
     if alpha_smooth
@@ -117,7 +117,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
 
     # reuses the quad/hex "magic parameters". 
     # TODO: optimize, as these are likely not optimal for triangular/tetrahedral elements.
-    threshold = 0.5f0 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
+    threshold = 0.5f0 * 10^(-1.8 * (N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
     @threaded for element in eachelement(mesh, dg)
@@ -147,8 +147,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         #
         # The modal coefficients corresponding to degree 2 are coefficients are then (1:6),
         # while the modal coefficients for degree 1 are (1:3).
-        clip_1_range = 1:nmodes(N - 1, dg.basis.element_type)
-        clip_2_range = 1:nmodes(N - 2, dg.basis.element_type)
+        clip_1_range = 1:nmodes(N - 1, element_type)
+        clip_2_range = 1:nmodes(N - 2, element_type)
         total_energy_clip1 = sum(abs2, view(modal, clip_1_range))
         total_energy_clip2 = sum(abs2, view(modal, clip_2_range))
 
