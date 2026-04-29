@@ -162,7 +162,6 @@ function extract_boundaries(mesh::P4estMeshView{2},
                   parent_cell_id_to_view(neighbor_id, mesh))
             # Update the boundary names to reflect where the neighboring cell is
             # relative to this one, i.e. left, right, up, down.
-            # In 3d one would need to add the third dimension.
             if (interfaces_parent.node_indices[view_idx, interface] ==
                 (:end, :i_forward))
                 push!(boundaries.name, :x_pos)
@@ -453,8 +452,7 @@ function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent,
     return coupled_mortars
 end
 
-# Translate the interface indices into boundary names.
-# This works only in 2d currently.
+# Translate the interface indices into boundary names (2D only).
 function node_indices_to_name(node_index)
     if node_index == (:end, :i_forward)
         return :x_pos
