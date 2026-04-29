@@ -42,7 +42,6 @@ end
 
 Compute the energy spectrum for a non-AMR `TreeMesh`/`DGSEM` solution by first
 interpolating the solution from LGL nodes to a uniform Cartesian grid.
-Specialized implementations are provided in the 2D and 3D dispatch files
 """
 function radial_energy_spectrum(energy_modes)
     # Convert the multi-dimensional Fourier energy into the
