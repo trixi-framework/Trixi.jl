@@ -11,6 +11,14 @@
 Compute the energy spectrum from the final state of an ODE solution returned by
 `solve`. Keyword arguments are forwarded to the semidiscretization-specific method.
 
+## Returns
+- `energy_spectrum`: 1D vector holding the isotropic kinetic energy spectrum `E(k)` binned by integer wavenumber shell
+- `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
+
+## Constructs internally
+- For DGSEM TreeMesh data, it interpolates from LGL nodes to a uniform Cartesian grid before applying FFTs
+- It forms density weighted velocity fields `sqrt(rho) * v_i`, computes Fourier-space kinetic energy from the FFT results, and radially bins wrapped FFT modes to form the final 1D isotropic spectrum `E(k)`
+
 ## References
 
 - Winters, Moura, Mengaldo, Gassner, Walch, Peiro, et al. (2018)
