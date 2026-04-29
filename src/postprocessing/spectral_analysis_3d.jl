@@ -145,7 +145,6 @@ end
 
 Compute the energy spectrum for a 3D `DGMulti` finite-difference SBP solution whose
 nodes already form a uniform Cartesian grid.
-This method is selected by dispatch for 3D DGMulti inputs
 """
 function compute_energy_spectrum(u, mesh::DGMultiMesh{3},
                                  equations::AbstractCompressibleEulerEquations,
