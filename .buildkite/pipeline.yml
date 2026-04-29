@@ -33,6 +33,7 @@ steps:
     agents:
       queue: "juliagpu"
       rocm: "*"
+      rocmgpu: "gfx1100" # see https://github.com/trixi-framework/Trixi.jl/pull/2939
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:

@@ -1,3 +1,9 @@
+# Since `@muladd` can fuse multiply-add operations and thus improve performance in
+# the flux differencing loops, we opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 # by default, return an empty tuple for volume integral caches
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
                       volume_integral::VolumeIntegralShockCapturingHGType,
@@ -12,40 +18,70 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
     # create sparse hybridized operators for low order scheme
     Qrst, E = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
     Brst = map(n -> Diagonal(n .* dg.basis.wf), dg.basis.nrstJ)
-    sparse_hybridized_SBP_operators = map((Q, B) -> 0.5 * [Q-Q' E'*B; -B*E zeros(size(B))],
-                                          Qrst, Brst)
+    sparse_SBP_operators = map((Q, B) -> 0.5f0 * [Q-Q' E'*B; -B*E zeros(size(B))],
+                               Qrst, Brst)
 
     # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
     # an adjoint for faster iteration through the rows.
-    sparsity_pattern = sum(map(A -> abs.(A)', sparse_hybridized_SBP_operators)) .>
+    sparsity_pattern = sum(map(A -> abs.(A)', sparse_SBP_operators)) .>
                        100 * eps()
 
-    return (; sparse_hybridized_SBP_operators, sparsity_pattern,
+    return (; sparse_SBP_operators, sparsity_pattern,
+            element_to_element_connectivity)
+end
+
+function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
+                      volume_integral::Union{VolumeIntegralShockCapturingHGType,
+                                             VolumeIntegralPureLGLFiniteVolume},
+                      dg::DGMultiFluxDiffSBP, RealT, uEltype) where {NDIMS}
+    element_to_element_connectivity = build_element_to_element_connectivity(mesh, dg)
+
+    # create skew-symmetric parts of sparse hybridized operators for low order scheme.
+    sparse_SBP_operators, _ = StartUpDG.sparse_low_order_SBP_operators(dg.basis)
+    sparse_SBP_operators = map(A -> 0.5f0 * (A - A'), sparse_SBP_operators)
+
+    # Find the joint sparsity pattern of the entire matrix. We store the sparsity pattern as
+    # an adjoint for faster iteration through the rows.
+    sparsity_pattern = sum(map(A -> abs.(A)', sparse_SBP_operators)) .> 100 * eps()
+
+    return (; sparse_SBP_operators, sparsity_pattern,
             element_to_element_connectivity)
 end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations,
-                      basis::RefElemData{NDIMS}) where {NDIMS}
+                      basis::DGMultiBasis{NDIMS}) where {NDIMS}
     uEltype = real(basis)
     alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    MVec = MVector{nnodes(basis), uEltype}
-    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
-    modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+    MVec_nodes = MVector{nnodes(basis), uEltype}
+    indicator_threaded = MVec_nodes[MVec_nodes(undef) for _ in 1:Threads.maxthreadid()]
+    MVec_modes = MVector{nmodes(basis.N, basis.element_type), uEltype}
+    modal_threaded = MVec_modes[MVec_modes(undef) for _ in 1:Threads.maxthreadid()]
 
+    inverse_vandermonde = calc_inverse_vandermonde(basis)
+
+    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
+end
+
+# calculates the inverse of the Vandermonde matrix for shock capturing purposes.
+# This version is for tensor product elements (Line, Quad, Hex)
+function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad, Hex}}) where {NDIMS}
     # initialize inverse Vandermonde matrices at Gauss-Legendre nodes
     (; N) = basis
     lobatto_node_coordinates_1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, N)
     VDM_1D = StartUpDG.vandermonde(Line(), N, lobatto_node_coordinates_1D)
     inverse_vandermonde = SimpleKronecker(NDIMS, inv(VDM_1D))
 
-    return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde)
+    return inverse_vandermonde
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
-                                                   equations, dg::DGMulti{NDIMS}, cache;
+                                                   equations,
+                                                   dg::DGMulti{NDIMS,
+                                                               <:Union{Line, Quad, Hex}},
+                                                   cache;
                                                    kwargs...) where {NDIMS}
     (; alpha_max, alpha_min, alpha_smooth, variable) = indicator_hg
     (; alpha, alpha_tmp, indicator_threaded, modal_threaded, inverse_vandermonde) = indicator_hg.cache
@@ -56,7 +92,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
     end
 
     # magic parameters
-    threshold = 0.5 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
+    threshold = 0.5f0 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
     @threaded for element in eachelement(mesh, dg)
@@ -101,7 +137,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
             energy_frac_1 = zero(total_energy)
         end
         if !(iszero(total_energy_clip1))
-            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) / total_energy_clip1
+            energy_frac_2 = (total_energy_clip1 - total_energy_clip2) /
+                            total_energy_clip1
         else
             energy_frac_2 = zero(total_energy_clip1)
         end
@@ -134,15 +171,15 @@ end
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
 function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cache)
 
-    # Copy alpha values such that smoothing is indpedenent of the element access order
+    # Copy alpha values such that smoothing is independent of the element access order
     alpha_tmp .= alpha
 
     # smooth alpha with its neighboring value
-    for element in eachelement(mesh, dg)
+    @threaded for element in eachelement(mesh, dg)
         for face in Base.OneTo(StartUpDG.num_faces(dg.basis.element_type))
             neighboring_element = cache.element_to_element_connectivity[face, element]
             alpha_neighbor = alpha_tmp[neighboring_element]
-            alpha[element] = max(alpha[element], 0.5 * alpha_neighbor)
+            alpha[element] = max(alpha[element], 0.5f0 * alpha_neighbor)
         end
     end
 
@@ -194,16 +231,16 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{1}, cache)
-    return SVector(cache.sparse_hybridized_SBP_operators[1][i, j])
+    return SVector(cache.sparse_SBP_operators[1][i, j])
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{2}, cache)
-    Qr, Qs = cache.sparse_hybridized_SBP_operators
+    Qr, Qs = cache.sparse_SBP_operators
     return SVector(Qr[i, j], Qs[i, j])
 end
 
 function get_sparse_operator_entries(i, j, mesh::DGMultiMesh{3}, cache)
-    Qr, Qs, Qt = cache.sparse_hybridized_SBP_operators
+    Qr, Qs, Qt = cache.sparse_SBP_operators
     return SVector(Qr[i, j], Qs[i, j], Qt[i, j])
 end
 
@@ -244,7 +281,7 @@ function get_contravariant_matrix(i, element, mesh::DGMultiMesh{3}, cache)
 end
 
 function get_avg_contravariant_matrix(i, j, element, mesh::DGMultiMesh, cache)
-    return 0.5 * (get_contravariant_matrix(i, element, mesh, cache) +
+    return 0.5f0 * (get_contravariant_matrix(i, element, mesh, cache) +
             get_contravariant_matrix(j, element, mesh, cache))
 end
 
@@ -286,17 +323,30 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         u_i = u_local[i]
         du_i = zero(u_i)
         for id in nzrange(A_base, i)
+            # nonzero column indices for row i of the sparse operator. 
+            # note that because Julia uses SparseMatrixCSC, rows[id] 
+            # are efficient to access. We assume here that `sparsity_pattern`
+            # is symmetric (which is true since A_base is skew-symmetric), 
+            # so nonzero row indices are the same as nonzero column indices.
             j = rows[id]
             u_j = u_local[j]
 
             # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
-            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh, cache)
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element,
+                                                              mesh, cache)
             reference_operator_entries = get_sparse_operator_entries(i, j, mesh, cache)
             normal_direction_ij = geometric_matrix * reference_operator_entries
 
             # note that we do not need to normalize `normal_direction_ij` since
             # it is typically normalized within the flux computation.
             f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+
+            # the factor of 2 is for consistency; for example, if f_ij is the central 
+            # flux, flux differencing with a differentiation matrix should recover the 
+            # flux derivative via
+            #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
+            #                          = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
+            #                          = 0 (since \sum_j D_ij = 0) + (D * f(u))_i
             du_i = du_i + 2 * f_ij
         end
         rhs_local[i] = du_i
@@ -305,3 +355,54 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
     # TODO: factor this out to avoid calling it twice during calc_volume_integral!
     return project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
 end
+
+# Calculates the volume integral corresponding to an algebraic low order method for
+# DGMultiFluxDiffSBP (traditional SBP operators with LGL-type nodes).
+# Unlike GaussSBP, the solution lives at nodes that include the face nodes (at positions
+# `rd.Fmask`), so no entropy projection is needed. We build the extended [interior; face]
+# vector in-kernel and project back by scattering face contributions to Fmask positions.
+function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
+                                 have_nonconservative_terms::False, equations,
+                                 volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                                 dg::DGMultiFluxDiffSBP, cache, alpha = true)
+    (; volume_flux_fv) = volume_integral
+
+    (; inv_wq, sparsity_pattern) = cache
+    A_base, row_ids, rows, _ = sparse_operator_data(sparsity_pattern)
+    for i in row_ids
+        u_i = u[i, element]
+        du_i = zero(u_i)
+        for id in nzrange(A_base, i)
+            # nonzero column indices for row i of the sparse operator. 
+            # note that because Julia uses SparseMatrixCSC, rows[id] 
+            # are efficient to access. We assume here that `sparsity_pattern`
+            # is symmetric (which is true since A_base is skew-symmetric), 
+            # so nonzero row indices are the same as nonzero column indices.
+            j = rows[id]
+            u_j = u[j, element]
+
+            # compute (Q_1[i,j], Q_2[i,j], ...) where Q_i = ∑_j dxidxhatj * Q̂_j
+            geometric_matrix = get_low_order_geometric_matrix(i, j, element, mesh,
+                                                              cache)
+            reference_operator_entries = get_sparse_operator_entries(i, j, mesh,
+                                                                     cache)
+            normal_direction_ij = geometric_matrix * reference_operator_entries
+
+            # note that we do not need to normalize `normal_direction_ij` since
+            # it is typically normalized within the flux computation.
+            f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
+
+            # the factor of 2 is for consistency; for example, if f_ij is the central 
+            # flux, flux differencing with a differentiation matrix should recover the 
+            # flux derivative via
+            #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
+            #                          = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
+            #                          = 0 (since \sum_j D_ij = 0) + (D * f(u))_i
+            du_i = du_i + 2 * f_ij
+        end
+        du[i, element] = du[i, element] + alpha * du_i * inv_wq[i]
+    end
+
+    return nothing
+end
+end # @muladd

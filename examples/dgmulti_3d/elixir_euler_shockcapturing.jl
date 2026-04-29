@@ -4,54 +4,14 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
-# A continuous version of the blast wave initial condition to avoid floating point 
-# issues when evaluating polar coordinates or evaluating at the discontinuity
-function initial_condition_weak_C0_blast_wave(x, t,
-                                              equations::CompressibleEulerEquations2D)
-    RealT = eltype(x)
-    inicenter = SVector(0, 0)
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-
-    rho_outer = one(RealT)
-    v1_outer = zero(RealT)
-    v2_outer = zero(RealT)
-    p_outer = one(RealT)
-    rho_inner = 1.1691
-    v1_inner = 0.1882
-    v2_inner = 0.1882
-    p_inner = 1.245
-
-    # Calculate primitive variables
-    if r > 0.5f0
-        rho = rho_outer
-        v1 = v1_outer
-        v2 = v2_outer
-        p = p_outer
-    elseif isapprox(r, 0.5f0)
-        rho = 0.5f0 * (rho_outer + rho_inner)
-        v1 = 0.5f0 * (v1_outer + v1_inner)
-        v2 = 0.5f0 * (v2_outer + v2_inner)
-        p = 0.5f0 * (p_outer + p_inner)
-    else
-        rho = rho_inner
-        v1 = v1_inner
-        v2 = v2_inner
-        p = p_inner
-    end
-
-    return prim2cons(SVector(rho, v1, v2, p), equations)
-end
-initial_condition = initial_condition_weak_C0_blast_wave
-
-surface_flux = FluxLaxFriedrichs()
+initial_condition = initial_condition_weak_blast_wave
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 
 polydeg = 3
-basis = DGMultiBasis(Quad(), polydeg, approximation_type = GaussSBP())
+basis = DGMultiBasis(Hex(), polydeg, approximation_type = GaussSBP())
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
@@ -65,13 +25,16 @@ dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
 
-cells_per_dimension = (8, 8)
-mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = true)
+cells_per_dimension = (4, 4, 4)
+mesh = DGMultiMesh(dg, cells_per_dimension;
+                   coordinates_min = (-2.0, -2.0, -2.0),
+                   coordinates_max = (2.0, 2.0, 2.0),
+                   periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = boundary_condition_periodic)
 
-tspan = (0.0, 0.15)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
