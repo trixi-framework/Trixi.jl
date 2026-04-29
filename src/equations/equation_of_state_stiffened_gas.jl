@@ -29,10 +29,10 @@ All expressions used here are taken from the following references:
 
 """
 struct StiffenedGas{RealT <: Real} <: AbstractEquationOfState
-    pInf::RealT 
+    pInf::RealT
     q::RealT # is the reference specific internal energy
     R::RealT #(takes in J/kg-K), so need to adjust for given specie
-    gamma::RealT 
+    gamma::RealT
     cv0::RealT
 end
 """
@@ -52,11 +52,11 @@ Section 6 of the following reference:
 """
 function StiffenedGas(; RealT = Float64)
     pInf = 1e9
-    q = -1167*1e3
+    q = -1167 * 1e3
     R = 0.08314 / 0.01802
-    gamma = 2.35 
+    gamma = 2.35
     cv0 = 1816.0
-    return StiffenedGas(pInf, q, R, gamma, cv0);
+    return StiffenedGas(pInf, q, R, gamma, cv0)
 end
 """
     pressure(V, T, eos::StiffenedGas)
@@ -66,8 +66,8 @@ see also [`NonIdealCompressibleEulerEquations1D`](@ref).
 """
 
 function pressure(V, T, eos::StiffenedGas)
-     (; pInf, gamma, cv0) = eos
-    return T * (gamma - 1) * cv0 / V - pInf;
+    (; pInf, gamma, cv0) = eos
+    return T * (gamma - 1) * cv0 / V - pInf
 end
 
 @doc raw"""
@@ -76,7 +76,7 @@ end
 Compute specific internal energy for Stiffened Gas eos
 """
 function energy_internal_specific(V, T, eos::StiffenedGas)
-    (; q, cv0, pInf) = eos;
+    (; q, cv0, pInf) = eos
     return cv0 * T + pInf * V + q
 end
 
@@ -87,20 +87,20 @@ end
 
 function entropy_specific(V, T, eos::StiffenedGas)
     (; cv0, gamma) = eos
-    return cv0*log((gamma - 1) * cv0 * T * V^(gamma - 1))
+    return cv0 * log((gamma - 1) * cv0 * T * V^(gamma - 1))
 end
 
 function speed_of_sound(V, T, eos::StiffenedGas)
-    (; gamma, cv0) = eos 
-    return sqrt((gamma - 1)* gamma * cv0 * T)
+    (; gamma, cv0) = eos
+    return sqrt((gamma - 1) * gamma * cv0 * T)
 end
 
 # This is not a required interface function, but 
 # temperature of a StiffenedGas can be computed analytically.
 function temperature(V, e_internal, eos::StiffenedGas)
-     (; q, pInf, gamma, cv0) = eos
-    p = (e_internal - q) * (gamma - 1)/V - gamma * pInf
-    return  V* (p + pInf)/((gamma - 1) * cv0)
+    (; q, pInf, gamma, cv0) = eos
+    p = (e_internal - q) * (gamma - 1) / V - gamma * pInf
+    return V * (p + pInf) / ((gamma - 1) * cv0)
 end
 
 @doc raw"""
@@ -110,9 +110,8 @@ Compute partial derivative of pressure respect to specific volume, temperature
 """
 function calc_pressure_derivatives(V, T, eos::StiffenedGas)
     (; cv0, gamma) = eos
-    dpdT_V = (gamma - 1) * cv0 * T/V
-    dpdV_T = -(gamma - 1) * cv0 * T /V^2
+    dpdT_V = (gamma - 1) * cv0 * T / V
+    dpdV_T = -(gamma - 1) * cv0 * T / V^2
     return dpdT_V, dpdV_T
 end
 end # @muladd
-

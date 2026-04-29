@@ -91,7 +91,7 @@ function temperature(V, e_internal, eos::AbstractEquationOfState;
     end
     if iter == maxiter
         @warn "Solver in `temperature(V, e_internal, eos)` did not converge within $maxiter iterations. " *
-            "Final states: iter = $iter, V, e_internal = $V, $(e_internal) with de = $de"
+              "Final states: iter = $iter, V, e_internal = $V, $(e_internal) with de = $de"
     end
     return T
 end

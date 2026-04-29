@@ -11,29 +11,30 @@ equations = NonIdealCompressibleEulerEquations1D(eos)
 
 # A basic density wave with initial condition scaled to match physical units of liquid water
 function initial_condition_density_wave(x, t,
-                                                equations::NonIdealCompressibleEulerEquations1D)
+                                        equations::NonIdealCompressibleEulerEquations1D)
     RealT = eltype(x)
     eos = equations.equation_of_state
     (; pInf, cv0, gamma) = eos
-    v1 = 100.0; # m/s
-    rho = 1000 * (1 + 0.5 * sin(2*pi*(x[1] - v1 * t))); # kg/m^3
+    v1 = 100.0 # m/s
+    rho = 1000 * (1 + 0.5 * sin(2 * pi * (x[1] - v1 * t))) # kg/m^3
     p = 1e6 # Pa
-    T = (p + pInf) * inv(rho) /(cv0 * (gamma - 1))
+    T = (p + pInf) * inv(rho) / (cv0 * (gamma - 1))
     return thermo2cons(SVector(inv(rho), v1, T), equations)
 end
 
 initial_condition = initial_condition_density_wave
 
-surface_flux = FluxPlusDissipation(volume_flux, DissipationLocalLaxFriedrichs(max_abs_speed))
+surface_flux = FluxPlusDissipation(volume_flux,
+                                   DissipationLocalLaxFriedrichs(max_abs_speed))
 
 basis = LobattoLegendreBasis(3)
 volume_integral = VolumeIntegralWeakForm()
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-cells_per_dimension = (100, );
-coordinates_min = (-1.0, );
-coordinates_max = (1.0, );
+cells_per_dimension = (100,);
+coordinates_min = (-1.0,);
+coordinates_max = (1.0,);
 mesh = StructuredMesh(cells_per_dimension,
                       coordinates_min, coordinates_max,
                       periodicity = true)
@@ -68,5 +69,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 solver = CarpenterKennedy2N54(williamson_condition = false)
 sol = solve(ode, solver;
-            dt = stepsize_callback(ode), saveat=LinRange(tspan..., 100),# solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = stepsize_callback(ode), saveat = LinRange(tspan..., 100),# solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
