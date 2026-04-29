@@ -361,6 +361,8 @@ function save_adaptive_time_integrator(integrator, restart_callback)
                 attributes(file)["time_integrator_qold"] = controller.errold
             elseif hasproperty(controller, :qold)
                 attributes(file)["time_integrator_qold"] = controller.qold
+            elseif hasproperty(controller, :dt_factor)
+                attributes(file)["time_integrator_qold"] = controller.dt_factor
             end
             if hasproperty(controller, :err)
                 attributes(file)["time_integrator_controller_err"] = controller.err
