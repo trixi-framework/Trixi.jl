@@ -60,6 +60,7 @@ Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
+OrdinaryDiffEqCore = "bbf590c4-e513-4bbe-9b18-05decba2e5d8"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 
@@ -70,6 +71,7 @@ TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 TrixiPlotsExt = "Plots"
+TrixiOrdinaryDiffEqCore = "OrdinaryDiffEqCore"
 TrixiSparseConnectivityTracerExt = "SparseConnectivityTracer"
 
 [compat]
