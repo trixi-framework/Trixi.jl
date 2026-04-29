@@ -10,7 +10,6 @@
 
 Compute the energy spectrum from the final state of an ODE solution returned by
 `solve`. Keyword arguments are forwarded to the semidiscretization-specific method.
-Dispatch then selects the 2D or 3D implementation based on the mesh/solver types
 
 ## References
 
