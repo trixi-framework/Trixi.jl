@@ -169,7 +169,8 @@ Load the context information for time integrators with error-based step size con
 saved in a `restart_file`.
 """
 function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
-    controller = integrator.opts.controller
+    controller = hasproperty(integrator, :controller_cache) ?
+                 integrator.controller_cache : integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
         # Ensure that the necessary information was saved
