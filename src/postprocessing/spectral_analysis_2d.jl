@@ -10,7 +10,6 @@
 
 Compute an isotropic 1D kinetic energy spectrum from two 2D Cartesian velocity
 components `v1`and `v2`.
-This is the 2D dispatched implementation selected by `compute_energy_spectrum`
 """
 function compute_energy_spectrum(v1::AbstractArray{<:Any, 2},
                                  v2::AbstractArray{<:Any, 2};
