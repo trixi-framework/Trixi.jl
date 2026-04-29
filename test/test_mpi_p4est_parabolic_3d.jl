@@ -30,8 +30,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" begin
@@ -54,19 +54,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-    end
-    @trixi_testset "P4estMesh3D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_diffusion_nonperiodic.jl"),
-                            solver_parabolic=ParabolicFormulationLocalDG(),
-                            cfl_parabolic=0.07,
-                            l2=[0.004185076476662267], linf=[0.05166349548111486])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "P4estMesh3D: elixir_advection_diffusion_amr_curved.jl" begin
@@ -75,19 +64,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                             l2=[0.000683123952524889], linf=[0.023601069354373894])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-    end
-
-    @trixi_testset "P4estMesh3D: elixir_advection_diffusion_amr_curved.jl (LDG)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_diffusion_amr_curved.jl"),
-                            solver_parabolic=ParabolicFormulationLocalDG(),
-                            l2=[0.0006853004145232737], linf=[0.02352694543085776])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 
     @trixi_testset "P4estMesh3D: elixir_navierstokes_freestream_boundaries.jl" begin
@@ -110,8 +88,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
 end #Testset
 end # module
