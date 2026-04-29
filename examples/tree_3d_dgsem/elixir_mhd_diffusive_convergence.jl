@@ -30,6 +30,7 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 # Create a uniformly refined mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
+                periodicity = true,
                 n_cells_max = 150_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven_3d(x, t, equations)
@@ -90,6 +91,8 @@ source_terms = source_terms_mhd_convergence_test_3d
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic),
                                              source_terms = source_terms)
 
 ###############################################################################

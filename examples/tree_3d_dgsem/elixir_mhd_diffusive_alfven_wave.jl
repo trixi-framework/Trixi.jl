@@ -25,6 +25,7 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 # Create a uniformly refined mesh
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
+                periodicity = true,
                 n_cells_max = 200_000) # set maximum capacity of tree data structure
 
 function initial_condition_constant_alfven(x, t, equations)
@@ -58,7 +59,9 @@ end
 initial_condition = initial_condition_constant_alfven
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
