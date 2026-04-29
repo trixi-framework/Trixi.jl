@@ -636,8 +636,7 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     # We do not apply `enstrophy` directly here because we might later have different `quantity`s
     # that we wish to integrate, which can share this routine.
     return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
-                   cache,
-                   cache_parabolic)
+                   cache, cache_parabolic)
 end
 function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
                  cache, cache_parabolic)
@@ -702,15 +701,14 @@ end
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to
-# have `VariableViscous` available.
+# have `VariableParabolic` available.
 function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {Variable <:
-                                                                     VariableViscous}
+                                                                     VariableParabolic}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
     return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
-                   semi,
-                   cache_parabolic)
+                   semi, cache_parabolic)
 end

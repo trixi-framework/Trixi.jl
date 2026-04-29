@@ -230,7 +230,7 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later while initializing the time integration method in `methods_SSP.jl`.
+    # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
@@ -247,6 +247,12 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
 
     return (; subcell_limiter_coefficients, idp_bounds_delta_local,
             idp_bounds_delta_global)
+end
+
+function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    return nothing
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is

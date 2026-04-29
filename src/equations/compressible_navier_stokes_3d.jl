@@ -57,7 +57,7 @@ where ``\underline{I}`` is the ``3\times 3`` identity matrix and the heat flux i
 ```math
 \mathbf{q} = -\kappa\nabla\left(T\right),\quad T = \frac{p}{R\rho}
 ```
-where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
+where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fourier's law.
 Under the assumption that the gas has a constant Prandtl number,
 the thermal conductivity is
 ```math
@@ -88,15 +88,12 @@ struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, Mu,
                                            E <: AbstractCompressibleEulerEquations{3}} <:
        AbstractCompressibleNavierStokesDiffusion{3, 5, GradientVariables}
     # TODO: parabolic
-    # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
-    # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
-    gamma::RealT               # ratio of specific heats
-    inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+    # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
-    kappa::RealT               # thermal diffusivity for Fick's law
-    max_4over3_kappa::RealT    # max(4/3, kappa) used for diffusive CFL => `max_diffusivity`
+    kappa::RealT               # thermal diffusivity for Fourier's law
+    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic cfl => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations3D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -106,21 +103,18 @@ end
 function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquations3D;
                                              mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
-    gamma = equations.gamma
-    inv_gamma_minus_one = equations.inv_gamma_minus_one
+    @unpack gamma, inv_gamma_minus_one = equations
 
+    Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Prandtl
+    kappa = gamma * inv_gamma_minus_one / Pr
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
-                                               typeof(gamma),
-                                               typeof(mu),
-                                               typeof(equations)}(gamma,
-                                                                  inv_gamma_minus_one,
-                                                                  mu, Prandtl, kappa,
+                                               typeof(Pr), typeof(mu),
+                                               typeof(equations)}(mu, Pr, kappa,
                                                                   max(4 / 3, kappa),
                                                                   equations,
                                                                   gradient_variables)
@@ -182,7 +176,7 @@ function flux(u, gradients, orientation::Integer,
     # ((v2)_z + (v3)_y)
     tau_23 = dv2dz + dv3dy # = tau_32
 
-    # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
+    # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
     # Note, the gas constant cancels under this formulation, so it is not present
     # in the implementation
@@ -198,7 +192,7 @@ function flux(u, gradients, orientation::Integer,
     mu = dynamic_viscosity(u, equations)
 
     if orientation == 1
-        # viscous flux components in the x-direction
+        # parabolic flux components in the x-direction
         f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
@@ -207,7 +201,7 @@ function flux(u, gradients, orientation::Integer,
 
         return SVector(f1, f2, f3, f4, f5)
     elseif orientation == 2
-        # viscous flux components in the y-direction
+        # parabolic flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
         g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
@@ -217,7 +211,7 @@ function flux(u, gradients, orientation::Integer,
 
         return SVector(g1, g2, g3, g4, g5)
     else # if orientation == 3
-        # viscous flux components in the z-direction
+        # parabolic flux components in the z-direction
         # Note, symmetry is exploited for tau_13 = tau_31, tau_23 = tau_32
         h1 = 0
         h2 = tau_13 * mu # tau_31 * mu
@@ -289,7 +283,7 @@ function entropy2cons(w, equations::CompressibleNavierStokesDiffusion3D)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
-# For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
+# For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
@@ -307,7 +301,7 @@ end
 # reverse engineers the gradients to be terms of the primitive variables (v1, v2, v3, T).
 # Helpful because then the diffusive fluxes have the same form as on paper.
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
-# TODO: parabolic; entropy stable viscous terms
+# TODO: parabolic; entropy stable parabolic terms
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
     return gradient
@@ -353,8 +347,9 @@ T = \\frac{p}{\\rho}
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
+    @unpack gamma = equations
 
-    p = (equations.gamma - 1) *
+    p = (gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
     T = p / rho # Corresponds to a specific gas constant R = 1
     return T
@@ -403,6 +398,19 @@ Computes the (node-wise) vorticity, defined in 3D as
     _, _, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
     _, dv1dy, _, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
     _, dv1dz, dv2dz, _, _ = convert_derivative_to_primitive(u, gradients[3], equations)
+
+    return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
+end
+
+@inline function vorticity(u, gradients,
+                           equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
+    # Need to convert to entropy variables first for `convert_derivative_to_primitive` to work correctly.
+    w = cons2entropy(u, equations)
+
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, _, dv2dx, dv3dx, _ = convert_derivative_to_primitive(w, gradients[1], equations)
+    _, dv1dy, _, dv3dy, _ = convert_derivative_to_primitive(w, gradients[2], equations)
+    _, dv1dz, dv2dz, _, _ = convert_derivative_to_primitive(w, gradients[3], equations)
 
     return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
 end
@@ -619,7 +627,7 @@ end
                                                                   x, t,
                                                                   operator_type::Divergence,
                                                                   equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
+    # for Dirichlet boundary conditions, we do not impose any conditions on the parabolic fluxes
     return flux_inner
 end
 end # @muladd

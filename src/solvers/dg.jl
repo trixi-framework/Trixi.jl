@@ -38,7 +38,22 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 
     return nothing
 end
-# Version for parabolic-extended equations
+
+# Version for purely parabolic equations (adds cache_parabolic).
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache, cache_parabolic)
+        end
+    end
+
+    return nothing
+end
+
+# Version for hyperbolic-parabolic equations (adds equations_parabolic and cache_parabolic).
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -141,6 +156,12 @@ create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = N
 # finite volume schemes on the subcells.
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
+
+function create_cache_subcell_limiting(mesh, equations,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       dg, cache_containers, uEltype)
+    return NamedTuple()
+end
 
 struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
                                           VolumeIntegralBlendHighOrder,
@@ -409,13 +430,15 @@ function reinit_volume_integral_cache!(cache, mesh, dg,
     return nothing
 end
 
-"""
+@doc raw"""
     VolumeIntegralAdaptive(;
                            indicator = IndicatorEntropyChange(),
                            volume_integral_default,
                            volume_integral_stabilized)
 
-This volume integral allows for a-posteriori style adaptation of the volume integral/term computation.
+This volume integral allows for a-priori and a-posteriori style adaptation of the volume integral/term computation.
+
+Choosing `indicator` as [`IndicatorEntropyChange`](@ref) corresponds to the a-posteriori implementation.
 At every Runge-Kutta stage and for every element, the volume update is computed using
 `volume_integral_default` and the element-wise `indicator` is then evaluated based on this update.
 If the `indicator` deems the default volume integral unstable, the default update is discarded
@@ -426,7 +449,21 @@ an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`
 for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
-The `indicator` is currently limited to [`IndicatorEntropyChange`](@ref).
+For reference, see 
+- Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
+  Volume Term Adaptivity for Discontinuous Galerkin Schemes
+  [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
+
+especially Sections 3 and 3.1 for a detailed description of the method.
+
+In turn, choosing `indicator` as [`IndicatorHennemannGassner`](@ref) corresponds to the a-priori implementation.
+Similar to [`VolumeIntegralShockCapturingHGType`](@ref), the indicator is evaluated before any volume update is performed.
+If the indicator value ``\alpha`` is zero (i.e., below ``\alpha_\text{min}``) the `volume_integral_default` is used.
+Otherwise, the `volume_integral_stabilized` is used.
+This kind strategy was for certain choices of the default and stabilized volume integrals already presented as the "ES-DG" scheme in
+- Bilocq, Borbouse, Levaux, Terrapon, Hillewaert (2025)
+  Comparison of stabilization strategies applied to scale-resolved simulations using the discontinuous Galerkin method
+  [DOI: 10.1016/j.jcp.2025.114238](https://doi.org/10.1016/j.jcp.2025.114238)
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -443,10 +480,6 @@ function VolumeIntegralAdaptive(;
                                 indicator = IndicatorEntropyChange(),
                                 volume_integral_default,
                                 volume_integral_stabilized)
-    if !(indicator isa IndicatorEntropyChange)
-        throw(ArgumentError("`indicator` must be of type `IndicatorEntropyChange`."))
-    end
-
     return VolumeIntegralAdaptive{typeof(indicator),
                                   typeof(volume_integral_default),
                                   typeof(volume_integral_stabilized)}(indicator,
@@ -679,7 +712,7 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     with a high-order mortar is not invariant domain preserving.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
-       AbstractVolumeIntegral
+       AbstractVolumeIntegralSubcell
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
     limiter::Limiter
@@ -1044,6 +1077,13 @@ end
     return u_ll, u_rr
 end
 
+# As above but dispatches on an type argument
+@inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
+    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    return u_ll, u_rr
+end
+
 @inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
@@ -1206,55 +1246,48 @@ function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{
     return nothing
 end
 
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Nothing, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     @unpack node_coordinates = cache.elements
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
     @threaded for element in eachelement(dg, cache)
-        compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                      element)
+        compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
+                                          element, node_indices)
     end
 
     return nothing
 end
 
-function compute_coefficients!(backend::Backend, u, func, t, mesh::AbstractMesh{2},
+function compute_coefficients!(backend::Backend, u, func, t,
+                               mesh::Union{AbstractMesh{2}, AbstractMesh{3}},
                                equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
+
     @unpack node_coordinates = cache.elements
-    kernel! = compute_coefficients_kernel!(backend)
-    kernel!(u, func, t, equations, dg, node_coordinates,
+    node_indices = CartesianIndices(ntuple(_ -> nnodes(dg), ndims(mesh)))
+
+    kernel! = compute_coefficients_KAkernel!(backend)
+    kernel!(u, func, t, equations, dg, node_coordinates, node_indices,
             ndrange = nelements(dg, cache))
     return nothing
 end
 
-@kernel function compute_coefficients_kernel!(u, func, t, equations,
-                                              dg::DG, node_coordinates)
+@kernel function compute_coefficients_KAkernel!(u, func, t, equations,
+                                                dg::DG, node_coordinates, node_indices)
     element = @index(Global)
-    compute_coefficients_element!(u, func, t, equations, dg, node_coordinates,
-                                  element)
+    compute_coefficients_per_element!(u, func, t, equations, dg, node_coordinates,
+                                      element,
+                                      node_indices)
 end
 
-function compute_coefficients_element!(u, func, t, equations, dg::DG,
-                                       node_coordinates, element)
-    for j in eachnode(dg), i in eachnode(dg)
-        x_node = get_node_coords(node_coordinates, equations, dg, i,
-                                 j, element)
+@inline function compute_coefficients_per_element!(u, func, t, equations, dg::DG,
+                                                   node_coordinates, element,
+                                                   node_indices)
+    for indices in node_indices
+        x_node = get_node_coords(node_coordinates, equations, dg, indices, element)
         u_node = func(x_node, t, equations)
-        set_node_vars!(u, u_node, equations, dg, i, j, element)
-    end
-
-    return nothing
-end
-
-function compute_coefficients!(backend::Nothing, u, func, t, mesh::AbstractMesh{3},
-                               equations, dg::DG, cache)
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, k, element)
-            u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
-        end
+        set_node_vars!(u, u_node, equations, dg, indices, element)
     end
 
     return nothing
