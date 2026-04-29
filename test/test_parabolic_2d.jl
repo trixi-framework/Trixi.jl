@@ -92,17 +92,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    # TODO: We would like to call
-    # @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-    # However, we currently observe allocations that shall we
-    # investigate and fix in a future PR.
-    let
-        t = sol.t[end]
-        u_ode = copy(sol.u[end])
-        du_ode = similar(u_ode)
-        Trixi.rhs_parabolic!(du_ode, u_ode, semi, t)
-        @test_broken (@allocated Trixi.rhs_parabolic!(du_ode, u_ode, semi, t) < 1000)
-    end
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
