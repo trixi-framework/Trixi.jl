@@ -138,8 +138,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         #
         # The modal coefficients corresponding to degree 2 are coefficients are then (1:6),
         # while the modal coefficients for degree 1 are (1:3).
-        clip_1_range = 1:num_modes(N - 1, dg.basis.element_type)
-        clip_2_range = 1:num_modes(N - 2, dg.basis.element_type)
+        clip_1_range = 1:nmodes(N - 1, dg.basis.element_type)
+        clip_2_range = 1:nmodes(N - 2, dg.basis.element_type)
         total_energy_clip1 = sum(abs2, view(modal, clip_1_range))
         total_energy_clip2 = sum(abs2, view(modal, clip_2_range))
 
