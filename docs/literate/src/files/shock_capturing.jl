@@ -363,7 +363,7 @@ callbacks = CallbackSet(summary_callback,
 stage_limiter! = EntropyBoundedLimiter()
 
 # We run the simulation with the SSPRK33 method and the entropy bounded limiter:
-sol = solve(ode, SSPRK33(stage_limiter!);
+sol = solve(ode, SSPRK33(; stage_limiter!);
             dt = 1.0,
             callback = callbacks);
 
