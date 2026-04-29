@@ -25,7 +25,7 @@ the same time, the latter takes precedence.
 If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
-`thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)
+`thread = Trixi.Threaded()`
 of the algorithms, as described in the
 [section on time integration methods](@ref time-integration).
 

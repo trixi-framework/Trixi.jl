@@ -61,7 +61,7 @@ using Downloads: Downloads
 using Adapt: Adapt, adapt
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
-using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
+using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array, Threaded
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
