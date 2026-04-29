@@ -211,10 +211,10 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
               # OrdinaryDiffEq v7+ wraps the controller in controller_cache.controller;
               # older versions store it directly in controller_cache or opts.controller.
               "controller" => let cc = hasproperty(integrator, :controller_cache) ?
-                                                 integrator.controller_cache :
-                                                 integrator.opts.controller
-                               hasproperty(cc, :controller) ? cc.controller : cc
-                               end)
+                                       integrator.controller_cache :
+                                       integrator.opts.controller
+                  hasproperty(cc, :controller) ? cc.controller : cc
+              end)
     end
     summary_box(io, "Time integration", setup)
     println()
