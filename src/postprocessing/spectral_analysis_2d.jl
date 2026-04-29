@@ -37,7 +37,6 @@ end
 
 Compute the energy spectrum for a non-AMR 2D `TreeMesh`/`DGSEM` solution by first
 interpolating from LGL nodes to a uniform Cartesian grid.
-This method is selected by dispatch for 2D mesh/solver inputs
 """
 function compute_energy_spectrum(u, mesh::TreeMesh{2},
                                  equations::AbstractCompressibleEulerEquations,
