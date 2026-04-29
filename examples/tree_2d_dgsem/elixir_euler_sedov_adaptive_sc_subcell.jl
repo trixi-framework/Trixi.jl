@@ -57,7 +57,7 @@ volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
 
 indicator = IndicatorHennemannGassner(equations, basis,
                                       alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
-                                      alpha_min = 0.0, # governs when subcell limiting is considered
+                                      alpha_min = 0.001, # governs when subcell limiting is considered
                                       alpha_smooth = true,
                                       variable = density_pressure)
 
