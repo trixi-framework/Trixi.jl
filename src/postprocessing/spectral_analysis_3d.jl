@@ -65,7 +65,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
     leaf_cell_ids = leaf_cells(mesh.tree)
     levels = mesh.tree.levels[leaf_cell_ids]
     if !all(==(first(levels)), levels)
-        throw(ArgumentError("AMR meshes are not supported yet"))
+        throw(ArgumentError("Non-uniform meshes are not supported yet"))
     end
 
     level = first(levels)
