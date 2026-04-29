@@ -23,9 +23,10 @@ const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxTyp
                                                       <:SurfaceIntegralWeakForm,
                                                       <:Union{VolumeIntegralFluxDifferencing,
                                                               VolumeIntegralShockCapturingHGType,
-                                                              VolumeIntegralAdaptiveEC_WF_DG}} where {
-                                                                                                      NDIMS
-                                                                                                      }
+                                                              VolumeIntegralAdaptiveEC_WF_DG,
+                                                              VolumeIntegralPureLGLFiniteVolume}} where {
+                                                                                                         NDIMS
+                                                                                                         }
 
 const rdSBP = RefElemData{NDIMS, ElemType, ApproxType} where {
                                                               NDIMS,
@@ -41,13 +42,14 @@ const TensorProductWedgeSBP{tri, line} = TensorProductWedge{tri, line} where {tr
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
                                                          <:Union{VolumeIntegralFluxDifferencing,
-                                                                 VolumeIntegralShockCapturingHGType}} where {
-                                                                                                         NDIMS,
-                                                                                                         ApproxType <:
-                                                                                                         Union{SBP,
-                                                                                                               TensorProductWedgeSBP,
-                                                                                                               AbstractDerivativeOperator}
-                                                                                                         }
+                                                                 VolumeIntegralShockCapturingHGType,
+                                                                 VolumeIntegralPureLGLFiniteVolume}} where {
+                                                                                                            NDIMS,
+                                                                                                            ApproxType <:
+                                                                                                            Union{SBP,
+                                                                                                                  TensorProductWedgeSBP,
+                                                                                                                  AbstractDerivativeOperator}
+                                                                                                            }
 
 const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                  SurfaceIntegral,
@@ -182,6 +184,10 @@ Constructs a basis for DGMulti solvers. Returns a "StartUpDG.RefElemData" object
   For more info, see the [StartUpDG.jl docs](https://jlchan.github.io/StartUpDG.jl/dev/).
 
 """
+const DGMultiBasis{NDIMS, element_type, approximation_type} = StartUpDG.RefElemData{NDIMS,
+                                                                                    element_type,
+                                                                                    approximation_type}
+
 function DGMultiBasis(element_type, polydeg; approximation_type = Polynomial(),
                       kwargs...)
     return RefElemData(element_type, approximation_type, polydeg; kwargs...)
