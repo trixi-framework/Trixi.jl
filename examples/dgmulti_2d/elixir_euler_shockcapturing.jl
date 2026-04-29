@@ -6,7 +6,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# a version of the blast wave initial condition to avoid floating point 
+# A continuous version of the blast wave initial condition to avoid floating point 
 # issues when evaluating polar coordinates or evaluating at the discontinuity
 function initial_condition_weak_C0_blast_wave(x, t,
                                               equations::CompressibleEulerEquations2D)
