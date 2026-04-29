@@ -32,15 +32,19 @@ mesh1 = P4estMeshView(parent_mesh, cell_ids1)
 cell_ids2 = vcat((19:22), (27:30), (35:38), (43:46))
 mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 
-# Define a trivial coupling function.
-coupling_function = (x, u, equations_other, equations_own) -> u
+# Define trivial coupling functions (identity, same equation on both sides).
+coupling_functions = Array{Function}(undef, 2, 2)
+coupling_functions[1, 1] = (x, u, equations_other, equations_own) -> u
+coupling_functions[1, 2] = (x, u, equations_other, equations_own) -> u
+coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> u
+coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
 # The mesh is coupled across the physical boundaries, which makes this setup
 # effectively double periodic.
-boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_function),
-                       y_neg = BoundaryConditionCoupledP4est(coupling_function),
-                       y_pos = BoundaryConditionCoupledP4est(coupling_function),
-                       x_pos = BoundaryConditionCoupledP4est(coupling_function))
+boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                       y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                       y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                       x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
                                      solver,
@@ -50,7 +54,7 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
                                      boundary_conditions = boundary_conditions)
 
 # Create a semidiscretization that bundles semi1 and semi2
-semi = SemidiscretizationCoupledP4est(semi1, semi2)
+semi = SemidiscretizationCoupledP4est(semi1, semi2; coupling_functions = coupling_functions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
