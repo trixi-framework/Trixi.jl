@@ -1,8 +1,16 @@
-function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM, cache)
+function reinitialize_containers!(mesh::T8codeMeshParallel, equations, dg::DGSEM, cache)
     @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars,
     mpi_cache = cache
-    resize!(elements, ncells(mesh))
+
+    n_cells = ncells(mesh)
+
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
 
     count_required_surfaces!(mesh)
     required = count_required_surfaces(mesh)
@@ -48,19 +56,19 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
-function init_mpi_interfaces!(interfaces, mesh::ParallelT8codeMesh)
+function init_mpi_interfaces!(interfaces, mesh::T8codeMeshParallel)
     # Do nothing.
     return nothing
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
-function init_mpi_mortars!(mortars, mesh::ParallelT8codeMesh)
+function init_mpi_mortars!(mortars, mesh::T8codeMeshParallel)
     # Do nothing.
     return nothing
 end
 
 # Compatibility to `dgsem_p4est/containers_parallel.jl`.
-function init_mpi_mortars!(mpi_mortars, mesh::ParallelT8codeMesh, basis, elements)
+function init_mpi_mortars!(mpi_mortars, mesh::T8codeMeshParallel, basis, elements)
     # Do nothing.
     return nothing
 end

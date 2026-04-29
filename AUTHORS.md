@@ -16,7 +16,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 * [Jesse Chan](https://jlchan.github.io),
-  Rice University, US
+  UT Austin, US
 * [Andrés Rueda-Ramírez](https://andres.rueda-ramirez.com),
   Polytechnic University of Madrid (UPM), Spain
 
@@ -24,6 +24,7 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi.jl and
 are listed in alphabetical order:
 
+* Marco Artiano 
 * Maximilian D. Bertrand
 * Benjamin Bolm
 * Simon Candelaresi
@@ -37,6 +38,7 @@ are listed in alphabetical order:
 * Lucas Gemein
 * Sven Goldberg
 * Joshua Lampert
+* Tristan Montoya
 * Julia Odenthal
 * Sigrun Ortleb
 * Hendrik Ranocha

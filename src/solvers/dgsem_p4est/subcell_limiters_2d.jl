@@ -8,7 +8,6 @@
 function calc_bounds_twosided_interface!(var_min, var_max, variable,
                                          u, t, semi, mesh::P4estMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
@@ -67,11 +66,6 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
             j_secondary += j_secondary_step
         end
     end
-
-    # Calc bounds at physical boundaries
-    calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
-                                   boundary_conditions,
-                                   mesh, equations, dg, cache)
 
     return nothing
 end
@@ -136,11 +130,9 @@ end
 function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
                                          mesh::P4estMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
 
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
-    index_end = last(index_range)
 
     # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
@@ -192,6 +184,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
     end
 
     # Calc bounds at physical boundaries
+    (; boundary_conditions) = semi
     calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
                                    boundary_conditions,
                                    mesh, equations, dg, cache)

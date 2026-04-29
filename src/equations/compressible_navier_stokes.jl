@@ -1,4 +1,31 @@
-# TODO: can we generalize this to MHD?
+
+# Compressible Navier-Stokes equations
+abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVariables} <:
+              AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
+
+# This enables "forwarded" accesses to e.g.`equations_parabolic.gamma` of the "underlying" `equations_hyperbolic`
+# while keeping direct access to parabolic-specific fields like `mu` or `kappa`.
+@inline function Base.getproperty(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
+                                  field::Symbol)
+    if field === :gamma || field === :inv_gamma_minus_one
+        return getproperty(getfield(equations_parabolic, :equations_hyperbolic), field)
+    else
+        return getfield(equations_parabolic, field)
+    end
+end
+
+# Provide property names for e.g. tab-completion by combining
+# the names from the underlying hyperbolic equations with the fields of this parabolic part.
+@inline function Base.propertynames(equations_parabolic::AbstractCompressibleNavierStokesDiffusion,
+                                    private::Bool = false)
+    names_hyp = (:gamma, :inv_gamma_minus_one)
+    names_para = fieldnames(typeof(equations_parabolic))
+    names_hyp_para = (names_hyp..., names_para...)
+
+    return names_hyp_para
+end
+
+# TODO: can we generalize this to V(R)-MHD?
 """
     struct BoundaryConditionNavierStokesWall
 
@@ -17,9 +44,9 @@ end
 """
     struct NoSlip
 
-Use to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref). 
-The field `boundary_value_function` should be a function with signature 
-`boundary_value_function(x, t, equations)` and return a `SVector{NDIMS}` 
+Use to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
+The field `boundary_value_function` should be a function with signature
+`boundary_value_function(x, t, equations)` and return a `SVector{NDIMS}`
 whose entries are the velocity vector at a point `x` and time `t`.
 """
 struct NoSlip{F}
@@ -29,13 +56,13 @@ end
 """
     struct Slip
 
-Creates a symmetric velocity boundary condition which eliminates any normal velocity gradients across the boundary, i.e., 
+Creates a symmetric velocity boundary condition which eliminates any normal velocity gradients across the boundary, i.e.,
 allows only the tangential velocity gradients to be non-zero.
 When combined with the heat boundary condition [`Adiabatic`](@ref), this creates a truly symmetric boundary condition.
 Any boundary on which this combined boundary condition is applied thus acts as a symmetry plane for the flow.
 In contrast to the [`NoSlip`](@ref) boundary condition, `Slip` does not require a function to be supplied.
 
-The (purely) hyperbolic equivalent boundary condition is [`boundary_condition_slip_wall`](@ref) which 
+The (purely) hyperbolic equivalent boundary condition is [`boundary_condition_slip_wall`](@ref) which
 permits only tangential velocities.
 
 This boundary condition can also be employed as a reflective wall.
@@ -43,7 +70,7 @@ This boundary condition can also be employed as a reflective wall.
 Note that in 1D this degenerates to the [`NoSlip`](@ref) boundary condition which must be used instead.
 
 !!! note
-    Currently this (velocity) boundary condition is only implemented for 
+    Currently this (velocity) boundary condition is only implemented for
     [`P4estMesh`](@ref) and [`GradientVariablesPrimitive`](@ref).
 """
 struct Slip end
@@ -73,7 +100,7 @@ struct Adiabatic{F}
 end
 
 """
-`GradientVariablesPrimitive` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+`GradientVariablesPrimitive` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref),
 [`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
 The other available gradient variable type parameter is [`GradientVariablesEntropy`](@ref).
 By default, the gradient variables are set to be `GradientVariablesPrimitive`.
@@ -81,7 +108,7 @@ By default, the gradient variables are set to be `GradientVariablesPrimitive`.
 struct GradientVariablesPrimitive end
 
 """
-`GradientVariablesEntropy` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+`GradientVariablesEntropy` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref),
 [`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
 The other available gradient variable type parameter is [`GradientVariablesPrimitive`](@ref).
 
@@ -99,8 +126,8 @@ struct GradientVariablesEntropy end
     dynamic_viscosity(u, equations)
 
 Wrapper for the dynamic viscosity that calls
-`dynamic_viscosity(u, equations.mu, equations)`, which dispatches on the type of 
-`equations.mu`. 
+`dynamic_viscosity(u, equations.mu, equations)`, which dispatches on the type of
+`equations.mu`.
 For constant `equations.mu`, i.e., `equations.mu` is of `Real`-type it is returned directly.
 In all other cases, `equations.mu` is assumed to be a function with arguments
 `u` and `equations` and is called with these arguments.
@@ -109,5 +136,21 @@ dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
 dynamic_viscosity(u, mu::Real, equations) = mu
 dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)
 
-# Used in (diffusive) CFL condition computation
+"""
+    have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion)
+
+# Returns
+- `False()`
+
+Used in parabolic CFL condition computation (see [`StepsizeCallback`](@ref)) to indicate that the
+diffusivity is not constant in space and that [`max_diffusivity`](@ref) needs to be computed
+at every node in every element.
+
+Also employed in [`linear_structure`](@ref) and [`linear_structure_parabolic`](@ref) to check
+if the diffusion term is linear in the variables/constant.
+"""
 @inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()
+
+include("compressible_navier_stokes_1d.jl")
+include("compressible_navier_stokes_2d.jl")
+include("compressible_navier_stokes_3d.jl")

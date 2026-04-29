@@ -14,12 +14,12 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                      ArrayuEltypeNDIMSP2 <:
                                      DenseArray{uEltype, NDIMSP2},
                                      VectoruEltype <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractElementContainer
     # Physical coordinates at each node
     node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::ArrayRealTNDIMSP3
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
@@ -40,7 +40,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
 end
 
 @inline function nelements(elements::P4estElementContainer)
-    size(elements.node_coordinates, ndims(elements) + 2)
+    return size(elements.node_coordinates, ndims(elements) + 2)
 end
 @inline Base.ndims(::P4estElementContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estElementContainer{NDIMS, RealT, uEltype}) where {
@@ -161,7 +161,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estElementContainer{<:Any, <:Any, <:Any, <:Any,
                                                           <:Any, <:Any, ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -190,11 +190,8 @@ function Adapt.adapt_structure(to,
                                                size(elements.surface_flux_values))
 
     new_type_params = (NDIMS,
-                       RealT,
-                       uEltype,
-                       NDIMS + 1,
-                       NDIMS + 2,
-                       NDIMS + 3,
+                       RealT, uEltype,
+                       NDIMS + 1, NDIMS + 2, NDIMS + 3,
                        typeof(inverse_jacobian),     # ArrayRealTNDIMSP1
                        typeof(node_coordinates),     # ArrayRealTNDIMSP2
                        typeof(jacobian_matrix),      # ArrayRealTNDIMSP3
@@ -213,38 +210,48 @@ function Adapt.adapt_structure(to,
                                                      _surface_flux_values)
 end
 
-mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
+mutable struct P4estInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                       NDIMSP1, NDIMSP2,
                                        uArray <: DenseArray{uEltype, NDIMSP2},
+                                       NormalArray <:
+                                       Union{DenseArray{RealT, NDIMSP1}, Nothing},
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
                                        DenseMatrix{NTuple{NDIMS, Symbol}},
                                        uVector <: DenseVector{uEltype},
+                                       NormalVector <:
+                                       Union{DenseVector{RealT}, Nothing},
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
-    u::uArray                   # [primary/secondary, variable, i, j, interface]
-    neighbor_ids::IdsMatrix     # [primary/secondary, interface]
-    node_indices::IndicesMatrix # [primary/secondary, interface]
+               AbstractInterfaceContainer
+    u::uArray                      # [primary/secondary, variable, i, j, interface]
+    normal_directions::NormalArray # [dimension, i, j, interface]
+    neighbor_ids::IdsMatrix        # [primary/secondary, interface]
+    node_indices::IndicesMatrix    # [primary/secondary, interface]
 
     # internal `resize!`able storage
     _u::uVector
+    _normal_directions::NormalVector
     _neighbor_ids::IdsVector
     _node_indices::IndicesVector
 end
 
+# `trivial` means that the interface normals can be taken from
+# the outer/surface element nodes
+@inline trivial_interface_normals(::LobattoLegendreBasis) = true
+# For Gauss-Legendre basis, the interface normals need to be interpolated,
+# analogous to the surface values.
+@inline trivial_interface_normals(::GaussLegendreBasis) = false
+
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
-    size(interfaces.neighbor_ids, 2)
+    return size(interfaces.neighbor_ids, 2)
 end
 @inline Base.ndims(::P4estInterfaceContainer{NDIMS}) where {NDIMS} = NDIMS
-@inline function Base.eltype(::P4estInterfaceContainer{NDIMS, uEltype}) where {NDIMS,
-                                                                               uEltype}
-    return uEltype
-end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
-    @unpack _u, _neighbor_ids, _node_indices = interfaces
+    @unpack _u, _normal_directions, _neighbor_ids, _node_indices = interfaces
 
     n_dims = ndims(interfaces)
     n_nodes = size(interfaces.u, 3)
@@ -255,6 +262,18 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
     interfaces.u = unsafe_wrap(ArrayType, pointer(_u),
                                (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                 capacity))
+
+    if _normal_directions === nothing # trivial interface normals, e.g. for Lobatto-Legendre basis
+        interfaces.normal_directions = nothing
+    else # non-trivial interface normals, e.g. for Gauss-Legendre basis
+        resize!(_normal_directions, n_dims * n_nodes^(n_dims - 1) * capacity)
+        interfaces.normal_directions = unsafe_wrap(ArrayType,
+                                                   pointer(_normal_directions),
+                                                   (n_dims,
+                                                    ntuple(_ -> n_nodes,
+                                                           n_dims - 1)...,
+                                                    capacity))
+    end
 
     resize!(_neighbor_ids, 2 * capacity)
     interfaces.neighbor_ids = unsafe_wrap(ArrayType, pointer(_neighbor_ids),
@@ -271,6 +290,7 @@ end
 function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                          basis, elements)
     NDIMS = ndims(elements)
+    RealT = real(mesh)
     uEltype = eltype(elements)
 
     # Initialize container
@@ -283,59 +303,94 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_interfaces))
 
+    if !trivial_interface_normals(basis)
+        _normal_directions = Vector{RealT}(undef,
+                                           NDIMS * nnodes(basis)^(NDIMS - 1) *
+                                           n_interfaces)
+        normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
+                                        (NDIMS,
+                                         ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                         n_interfaces))
+    else
+        _normal_directions = nothing
+        normal_directions = nothing
+    end
+
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
-    interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
-                                         typeof(u), typeof(neighbor_ids),
-                                         typeof(node_indices), typeof(_u),
+    interfaces = P4estInterfaceContainer{NDIMS, RealT, uEltype,
+                                         NDIMS + 1, NDIMS + 2,
+                                         typeof(u), typeof(normal_directions),
+                                         typeof(neighbor_ids), typeof(node_indices),
+                                         typeof(_u), typeof(_normal_directions),
                                          typeof(_neighbor_ids), typeof(_node_indices)}(u,
+                                                                                       normal_directions,
                                                                                        neighbor_ids,
                                                                                        node_indices,
                                                                                        _u,
+                                                                                       _normal_directions,
                                                                                        _neighbor_ids,
                                                                                        _node_indices)
 
-    init_interfaces!(interfaces, mesh)
+    init_interfaces!(interfaces, elements, mesh, basis)
 
     return interfaces
 end
 
-function init_interfaces!(interfaces, mesh::Union{P4estMesh, P4estMeshView})
+function init_interfaces!(interfaces, elements,
+                          mesh::Union{P4estMesh, P4estMeshView}, basis)
     init_surfaces!(interfaces, nothing, nothing, mesh)
+    init_normal_directions!(interfaces, basis, elements)
 
     return interfaces
 end
 
 function Adapt.parent_type(::Type{<:P4estInterfaceContainer{<:Any, <:Any, <:Any,
+                                                            <:Any, <:Any,
                                                             ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
-function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
+function Adapt.adapt_structure(to,
+                               interfaces::P4estInterfaceContainer{NDIMS,
+                                                                   RealT,
+                                                                   uEltype}) where {
+                                                                                    NDIMS,
+                                                                                    uEltype,
+                                                                                    RealT
+                                                                                    }
     # Adapt underlying storage
     _u = adapt(to, interfaces._u)
+    _normal_directions = interfaces._normal_directions === nothing ? nothing :
+                         adapt(to, interfaces._normal_directions)
     _neighbor_ids = adapt(to, interfaces._neighbor_ids)
     _node_indices = adapt(to, interfaces._node_indices)
     # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(interfaces.u))
+    normal_directions = _normal_directions === nothing ? nothing : # Check if interface normals are trivial
+                        unsafe_wrap_or_alloc(to, _normal_directions,
+                                             size(interfaces.normal_directions))
     neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids,
                                         size(interfaces.neighbor_ids))
     node_indices = unsafe_wrap_or_alloc(to, _node_indices,
                                         size(interfaces.node_indices))
 
-    NDIMS = ndims(interfaces)
     new_type_params = (NDIMS,
-                       eltype(_u),
-                       NDIMS + 2,
-                       typeof(u), typeof(neighbor_ids), typeof(node_indices),
-                       typeof(_u), typeof(_neighbor_ids), typeof(_node_indices))
-    return P4estInterfaceContainer{new_type_params...}(u, neighbor_ids, node_indices,
-                                                       _u, _neighbor_ids, _node_indices)
+                       RealT, eltype(_u),
+                       NDIMS + 1, NDIMS + 2,
+                       typeof(u), typeof(normal_directions),
+                       typeof(neighbor_ids), typeof(node_indices),
+                       typeof(_u), typeof(_normal_directions),
+                       typeof(_neighbor_ids), typeof(_node_indices))
+    return P4estInterfaceContainer{new_type_params...}(u, normal_directions,
+                                                       neighbor_ids, node_indices,
+                                                       _u, _normal_directions,
+                                                       _neighbor_ids, _node_indices)
 end
 
 mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
@@ -344,7 +399,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       IndicesVector <:
                                       DenseVector{NTuple{NDIMS, Symbol}},
                                       uVector <: DenseVector{uEltype}} <:
-               AbstractContainer
+               AbstractBoundaryContainer
     u::uArray                   # [variables, i, j, boundary]
     neighbor_ids::IdsVector     # [boundary]
     node_indices::IndicesVector # [boundary]
@@ -355,12 +410,12 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
 end
 
 @inline function nboundaries(boundaries::P4estBoundaryContainer)
-    length(boundaries.neighbor_ids)
+    return length(boundaries.neighbor_ids)
 end
 @inline Base.ndims(::P4estBoundaryContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estBoundaryContainer{NDIMS, uEltype}) where {NDIMS,
                                                                               uEltype}
-    uEltype
+    return uEltype
 end
 
 # See explanation of Base.resize! for the element container
@@ -458,7 +513,7 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
 end
 
 function Adapt.parent_type(::Type{<:P4estBoundaryContainer{<:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -510,7 +565,7 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     IdsVector <: DenseVector{Int},
                                     IndicesVector <:
                                     DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
+               AbstractMortarContainer
     u::uArray # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::IdsMatrix # [position, mortar]
     node_indices::IndicesMatrix # [small/large, mortar]
@@ -525,7 +580,7 @@ end
 @inline Base.ndims(::P4estMortarContainer{NDIMS}) where {NDIMS} = NDIMS
 @inline function Base.eltype(::P4estMortarContainer{NDIMS, uEltype}) where {NDIMS,
                                                                             uEltype}
-    uEltype
+    return uEltype
 end
 
 # See explanation of Base.resize! for the element container
@@ -600,7 +655,7 @@ end
 
 function Adapt.parent_type(::Type{<:P4estMortarContainer{<:Any, <:Any, <:Any, <:Any,
                                                          ArrayT}}) where {ArrayT}
-    ArrayT
+    return ArrayT
 end
 
 # Manual adapt_structure since we have aliasing memory
@@ -618,8 +673,7 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     NDIMS = ndims(mortars)
     new_type_params = (NDIMS,
                        eltype(_u),
-                       NDIMS + 1,
-                       NDIMS + 3,
+                       NDIMS + 1, NDIMS + 3,
                        typeof(u), typeof(neighbor_ids), typeof(node_indices),
                        typeof(_u), typeof(_neighbor_ids), typeof(_node_indices))
     return P4estMortarContainer{new_type_params...}(u, neighbor_ids, node_indices,
@@ -627,10 +681,17 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
 end
 
 function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
+    n_cells = ncells(mesh)
+
     # Re-initialize elements container
     @unpack elements = cache
-    resize!(elements, ncells(mesh))
+    resize!(elements, n_cells)
     init_elements!(elements, mesh, dg.basis)
+
+    # Resize volume integral and related datastructures
+    @unpack volume_integral = dg
+    resize_volume_integral_cache!(cache, mesh, volume_integral, n_cells)
+    reinit_volume_integral_cache!(cache, mesh, dg, volume_integral, n_cells)
 
     required = count_required_surfaces(mesh)
 
@@ -643,16 +704,17 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     resize!(boundaries, required.boundaries)
 
     # re-initialize mortars container
-    if hasproperty(cache, :mortars) # cache_parabolic does not carry mortars
-        @unpack mortars = cache
-        resize!(mortars, required.mortars)
+    @unpack mortars = cache
+    resize!(mortars, required.mortars)
 
-        # re-initialize containers together to reduce
-        # the number of iterations over the mesh in `p4est`
-        init_surfaces!(interfaces, mortars, boundaries, mesh)
-    else
-        init_surfaces!(interfaces, nothing, boundaries, mesh)
-    end
+    # re-initialize containers together to reduce
+    # the number of iterations over the mesh in `p4est`
+    init_surfaces!(interfaces, mortars, boundaries, mesh)
+
+    # init_normal_directions! requires that `node_indices` have been initialized
+    init_normal_directions!(interfaces, dg.basis, elements)
+
+    return nothing
 end
 
 # A helper struct used in initialization methods below
@@ -679,7 +741,7 @@ function init_surfaces_iter_face(info, user_data)
     data = unsafe_pointer_to_objref(Ptr{InitSurfacesIterFaceUserData}(user_data))
 
     # Function barrier because the unpacked user_data above is type-unstable
-    init_surfaces_iter_face_inner(info, data)
+    return init_surfaces_iter_face_inner(info, data)
 end
 
 # 2D
@@ -917,7 +979,7 @@ function count_required_surfaces(mesh::P4estMesh)
 end
 
 # Return direction of the face, which is indexed by node_indices
-@inline function indices2direction(indices)
+@inline function indices2direction(indices::NTuple{3, Symbol})
     if indices[1] === :begin
         return 1
     elseif indices[1] === :end
@@ -931,6 +993,24 @@ end
     else # if indices[3] === :end
         return 6
     end
+end
+
+@inline function indices2direction(indices::NTuple{2, Symbol})
+    if indices[1] === :begin
+        return 1
+    elseif indices[1] === :end
+        return 2
+    elseif indices[2] === :begin
+        return 3
+    else # if indices[2] === :end
+        return 4
+    end
+end
+
+# Build a reduced cache which can be passed to GPU kernels
+@inline function kernel_filter_cache(cache)
+    return (;
+            elements = (; contravariant_vectors = cache.elements.contravariant_vectors))
 end
 
 include("containers_2d.jl")

@@ -7,30 +7,14 @@ gradient_variable_transformation(::AbstractEquationsParabolic) = cons2cons
 # type `AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative}`.
 struct GradientVariablesConservative end
 
-# Linear scalar diffusion for use in linear scalar advection-diffusion problems
-abstract type AbstractLaplaceDiffusion{NDIMS, NVARS} <:
-              AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
-
-# Used in (diffusive) CFL condition computation
-@inline have_constant_diffusivity(::AbstractLaplaceDiffusion) = True()
-
-@inline function max_diffusivity(equations_parabolic::AbstractLaplaceDiffusion)
-    return equations_parabolic.diffusivity
-end
-
-include("laplace_diffusion_1d.jl")
-include("laplace_diffusion_2d.jl")
-include("laplace_diffusion_3d.jl")
+include("laplace_diffusion.jl")
 
 include("laplace_diffusion_entropy_variables.jl")
-include("laplace_diffusion_entropy_variables_1d.jl")
-include("laplace_diffusion_entropy_variables_2d.jl")
-include("laplace_diffusion_entropy_variables_3d.jl")
 
-# Compressible Navier-Stokes equations
-abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVariables} <:
-              AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
+include("linear_diffusion_equation.jl")
+
 include("compressible_navier_stokes.jl")
+
 include("compressible_navier_stokes_1d.jl")
 include("compressible_navier_stokes_2d.jl")
 include("compressible_navier_stokes_3d.jl")
@@ -39,3 +23,4 @@ include("compressible_navier_stokes_3d.jl")
 abstract type AbstractViscoResistiveMhd{NDIMS, NVARS} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariablesConservative} end
 include("visco_resistive_mhd_3d.jl")
+

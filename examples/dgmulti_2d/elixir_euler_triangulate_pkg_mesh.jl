@@ -17,8 +17,8 @@ meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole())
 mesh = DGMultiMesh(dg, meshIO, Dict(:outer_boundary => 1, :inner_boundary => 2))
 
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :outer_boundary => boundary_condition_convergence_test,
-                       :inner_boundary => boundary_condition_convergence_test)
+boundary_conditions = (; outer_boundary = boundary_condition_convergence_test,
+                       inner_boundary = boundary_condition_convergence_test)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms,

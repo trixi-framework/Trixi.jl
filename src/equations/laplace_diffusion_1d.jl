@@ -3,6 +3,9 @@
 
 `LaplaceDiffusion1D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
+This is intended for use as the parabolic part of a hyperbolic-parabolic system, where the 
+hyperbolic part is defined by `equations`. For a purely parabolic diffusion equation 
+without any hyperbolic part, see [`LinearDiffusionEquation1D`](@ref).
 """
 struct LaplaceDiffusion1D{E, N, T} <: AbstractLaplaceDiffusion{1, N}
     diffusivity::T
@@ -10,12 +13,13 @@ struct LaplaceDiffusion1D{E, N, T} <: AbstractLaplaceDiffusion{1, N}
 end
 
 function LaplaceDiffusion1D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusion1D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
-                       typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+    return LaplaceDiffusion1D{typeof(equations_hyperbolic),
+                              nvariables(equations_hyperbolic),
+                              typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion1D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 function flux(u, gradients, orientation::Integer,

@@ -35,7 +35,7 @@ end
 
 @inline function Base.put!(counter::PerformanceCounter, runtime::Real)
     counter.ncalls_since_readout += 1
-    counter.runtime += runtime
+    return counter.runtime += runtime
 end
 
 @inline ncalls(counter::PerformanceCounter) = counter.ncalls_since_readout
@@ -83,6 +83,26 @@ end
 end
 
 """
+    @trixi_timeit_ext backend timer() "some label" expression
+
+This macro is an extension of [`@trixi_timeit`](@ref) that also synchronizes the given `backend` after executing the given `expression`.
+This is useful to get accurate timing measurements for GPU backends, where the execution of kernels is asynchronous.
+The synchronization ensures that all GPU operations are completed before the timer is stopped.
+
+See also [`@trixi_timeit`](@ref).
+"""
+macro trixi_timeit_ext(backend, timer_output, label, expr)
+    expr = quote
+        local val = $(esc(expr))
+        if $(esc(backend)) !== nothing && $(TrixiBase).timeit_debug_enabled()
+            $(KernelAbstractions.synchronize)($(esc(backend)))
+        end
+        val
+    end
+    return :(@trixi_timeit($(esc(timer_output)), $(esc(label)), $(expr)))
+end
+
+"""
     examples_dir()
 
 Return the directory where the example files provided with Trixi.jl are located. If Trixi.jl is
@@ -122,7 +142,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 [`TreeMesh`](@ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 function default_example()
-    joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
+    return joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
 end
 
 """
@@ -133,7 +153,7 @@ Return the path to an example elixir that can be used to quickly see Trixi.jl in
 given in the Trixi.jl documentation regarding unstructured meshes.
 """
 function default_example_unstructured()
-    joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
+    return joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_basic.jl")
 end
 
 """
@@ -165,6 +185,7 @@ function print_startup_message()
          ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
       """
     mpi_println(s)
+    return nothing
 end
 
 """

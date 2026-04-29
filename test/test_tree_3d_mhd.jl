@@ -221,6 +221,35 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_mhd_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_convergence.jl"),
+                        l2=[
+                            0.009193403522877426,
+                            0.013723993903671483,
+                            0.013723993903671291,
+                            0.00748865999127907,
+                            0.02205355095416697,
+                            0.009989774083000539,
+                            0.009989774083000584,
+                            0.004353727273126007,
+                            0.0013769046942994955
+                        ],
+                        linf=[
+                            0.027349064091453767,
+                            0.04489621477501449,
+                            0.04489621477501515,
+                            0.02699974461840463,
+                            0.15656498361977533,
+                            0.028682970290997645,
+                            0.028682970290998533,
+                            0.0124215159258882,
+                            0.007286608218242374
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
                         l2=[

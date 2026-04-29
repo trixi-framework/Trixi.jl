@@ -5,15 +5,19 @@
 @muladd begin
 #! format: noindent
 
-struct ElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
-                        NDIMSP1, NDIMSP2, NDIMSP3}
+struct StructuredElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
+                                  NDIMSP1, NDIMSP2, NDIMSP3} <: AbstractElementContainer
     # Physical coordinates at each node
     node_coordinates::Array{RealT, NDIMSP2} # [orientation, node_i, node_j, node_k, element]
+
+    # Physical coordinates at boundary nodes
+    boundary_node_coordinates::Array{RealT, NDIMSP1} # [orientation, node_i, node_j, direction/face]
+
     # ID of neighbor element in negative direction in orientation
     left_neighbors::Array{Int, 2} # [orientation, elements]
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
+    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::Array{RealT, NDIMSP3}
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
@@ -21,6 +25,9 @@ struct ElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
 
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
     inverse_jacobian::Array{RealT, NDIMSP1} # [node_i, node_j, node_k, element]
+
+    # Buffer for solution values at interfaces (filled by `prolong2interfaces!`)
+    interfaces_u::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
 
     # Buffer for calculated surface flux
     surface_flux_values::Array{uEltype, NDIMSP2} # [variable, i, j, direction, element]
@@ -36,6 +43,10 @@ function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
     node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                ntuple(_ -> nnodes(basis), NDIMS)...,
                                                nelements)
+    boundary_node_coordinates = Array{RealT, NDIMS + 1}(undef, NDIMS,
+                                                        ntuple(_ -> nnodes(basis),
+                                                               NDIMS - 1)...,
+                                                        NDIMS * 2)
     left_neighbors = Array{Int, 2}(undef, NDIMS, nelements)
     jacobian_matrix = Array{RealT, NDIMS + 3}(undef, NDIMS, NDIMS,
                                               ntuple(_ -> nnodes(basis), NDIMS)...,
@@ -44,29 +55,50 @@ function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
     inverse_jacobian = Array{RealT, NDIMS + 1}(undef,
                                                ntuple(_ -> nnodes(basis), NDIMS)...,
                                                nelements)
+    interfaces_u = Array{uEltype, NDIMS + 2}(undef, nvariables(equations),
+                                             ntuple(_ -> nnodes(basis),
+                                                    NDIMS - 1)..., NDIMS * 2,
+                                             nelements)
     surface_flux_values = Array{uEltype, NDIMS + 2}(undef, nvariables(equations),
                                                     ntuple(_ -> nnodes(basis),
                                                            NDIMS - 1)..., NDIMS * 2,
                                                     nelements)
 
-    elements = ElementContainer{NDIMS, RealT, uEltype, NDIMS + 1, NDIMS + 2, NDIMS + 3}(node_coordinates,
-                                                                                        left_neighbors,
-                                                                                        jacobian_matrix,
-                                                                                        contravariant_vectors,
-                                                                                        inverse_jacobian,
-                                                                                        surface_flux_values)
+    elements = StructuredElementContainer{NDIMS, RealT, uEltype,
+                                          NDIMS + 1, NDIMS + 2, NDIMS + 3}(node_coordinates,
+                                                                           boundary_node_coordinates,
+                                                                           left_neighbors,
+                                                                           jacobian_matrix,
+                                                                           contravariant_vectors,
+                                                                           inverse_jacobian,
+                                                                           interfaces_u,
+                                                                           surface_flux_values)
 
     init_elements!(elements, mesh, basis)
     return elements
 end
 
-@inline nelements(elements::ElementContainer) = size(elements.left_neighbors, 2)
-@inline Base.ndims(::ElementContainer{NDIMS}) where {NDIMS} = NDIMS
+@inline nelements(elements::StructuredElementContainer) = size(elements.left_neighbors,
+                                                               2)
 
-function Base.eltype(::ElementContainer{NDIMS, RealT, uEltype}) where {NDIMS, RealT,
-                                                                       uEltype}
+function Base.eltype(::StructuredElementContainer{NDIMS, RealT, uEltype}) where {NDIMS,
+                                                                                 RealT,
+                                                                                 uEltype
+                                                                                 }
     return uEltype
 end
+
+# Essentially equivalent to `get_contravariant_vector` and `get_node_coords`
+@inline function get_normal_vector(normal_vectors, indices...)
+    # Returns SVector{NDIMS} where NDIMS is 2 or 3.
+    # Can be deduced at compile time from (number of dims - 2) from `normal_vectors` since
+    # for 2d we have 4 dims (2 two dims for nodes) - 2 => 2
+    # and for 3d we have 5 dims (3 three dims for nodes) - 2 = > 3
+    return SVector(ntuple(@inline(dim->normal_vectors[dim, indices...]),
+                          Val(ndims(normal_vectors) - 2)))
+end
+
+@inline storage_type(::AbstractNormalVectorContainer) = Array
 
 include("containers_1d.jl")
 include("containers_2d.jl")

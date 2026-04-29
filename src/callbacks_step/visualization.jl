@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-mutable struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
-                                     PlotCreator}
+struct VisualizationCallback{PlotDataCreator, SolutionVariables, VariableNames,
+                             PlotCreator}
     plot_data_creator::PlotDataCreator
     interval::Int
     solution_variables::SolutionVariables
@@ -31,6 +31,7 @@ function Base.show(io::IO,
           "show_mesh=", show_mesh, ", ",
           "plot_creator=", plot_creator, ", ",
           "plot_arguments=", plot_arguments, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -57,7 +58,7 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
-    VisualizationCallback(semi, plot_data_creator = nothing; 
+    VisualizationCallback(semi, plot_data_creator = nothing;
                           interval=0,
                           solution_variables=cons2prim,
                           variable_names=[],
@@ -109,22 +110,9 @@ function VisualizationCallback(semi, plot_data_creator = nothing;
                                                    plot_creator,
                                                    Dict{Symbol, Any}(plot_arguments))
 
-    # Warn users if they create a visualization callback without having loaded the Plots package
-    #
-    # Note: This warning is added for convenience, as Plots is the only "officially" supported
-    #       visualization package right now. However, in general nothing prevents anyone from using
-    #       other packages such as Makie, Gadfly etc., given that appropriate `plot_creator`s are
-    #       passed. This is also the reason why the visualization callback is not included via
-    #       Requires.jl only when Plots is present.
-    #       In the future, we should update/remove this warning if other plotting packages are
-    #       starting to be used.
-    if !(:Plots in names(@__MODULE__, all = true))
-        @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
-    end
-
-    DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -185,42 +173,12 @@ variables in `variable_names` and, optionally, the mesh (if `show_mesh` is `true
 This function is the default `plot_creator` argument for the [`VisualizationCallback`](@ref).
 `time` and `timestep` are currently unused by this function.
 
+!!! note
+    This requires loading [Plots.jl](https://github.com/JuliaPlots/Plots.jl), e.g., via `using Plots`.
+
 See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
-function show_plot(plot_data, variable_names;
-                   show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                   time = nothing, timestep = nothing)
-    # Gather subplots
-    plots = []
-    for v in variable_names
-        push!(plots, Plots.plot(plot_data[v]; plot_arguments...))
-    end
-    if show_mesh
-        push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
-    end
-
-    # Note, for the visualization callback to work for general equation systems
-    # this layout construction would need to use the if-logic below.
-    # Currently, there is no use case for this so it is left here as a note.
-    #
-    # Determine layout
-    # if length(plots) <= 3
-    #   cols = length(plots)
-    #   rows = 1
-    # else
-    #   cols = ceil(Int, sqrt(length(plots)))
-    #   rows = div(length(plots), cols, RoundUp)
-    # end
-    # layout = (rows, cols)
-
-    # Determine layout
-    cols = ceil(Int, sqrt(length(plots)))
-    rows = div(length(plots), cols, RoundUp)
-    layout = (rows, cols)
-
-    # Show plot
-    display(Plots.plot(plots..., layout = layout))
-end
+function show_plot end
 
 """
     save_plot(plot_data, variable_names;
@@ -234,30 +192,10 @@ is `true`).  Additionally, `plot_arguments` will be unpacked and passed as keywo
 
 The `timestep` is used in the filename. `time` is currently unused by this function.
 
+!!! note
+    This requires loading [Plots.jl](https://github.com/JuliaPlots/Plots.jl), e.g., via `using Plots`.
+
 See also: [`VisualizationCallback`](@ref), [`show_plot`](@ref)
 """
-function save_plot(plot_data, variable_names;
-                   show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                   time = nothing, timestep = nothing)
-    # Gather subplots
-    plots = []
-    for v in variable_names
-        push!(plots, Plots.plot(plot_data[v]; plot_arguments...))
-    end
-    if show_mesh
-        push!(plots, Plots.plot(getmesh(plot_data); plot_arguments...))
-    end
-
-    # Determine layout
-    cols = ceil(Int, sqrt(length(plots)))
-    rows = div(length(plots), cols, RoundUp)
-    layout = (rows, cols)
-
-    # Create plot
-    Plots.plot(plots..., layout = layout)
-
-    # Determine filename and save plot
-    filename = joinpath("out", @sprintf("solution_%09d.png", timestep))
-    Plots.savefig(filename)
-end
+function save_plot end
 end # @muladd

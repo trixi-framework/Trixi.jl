@@ -56,19 +56,19 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
 end
 
 ### Hyperbolic boundary conditions ###
-bs_hyperbolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), # Weakly enforced inflow BC
-                     :x_pos => boundary_condition_outflow, # Free outflow/extended domain
-                     # Top/Bottom of channel: Walls
-                     :y_neg => boundary_condition_slip_wall,
-                     :y_pos => boundary_condition_slip_wall)
+bs_hyperbolic = (; x_neg = BoundaryConditionDirichlet(initial_condition), # Weakly enforced inflow BC
+                 x_pos = boundary_condition_outflow, # Free outflow/extended domain
+                 # Top/Bottom of channel: Walls
+                 y_neg = boundary_condition_slip_wall,
+                 y_pos = boundary_condition_slip_wall)
 
 ### Parabolic boundary conditions ###
 
 velocity_bc_top_left = NoSlip((x, t, equations) -> SVector(x[2] / height() * v_top(), 0))
 # Use isothermal for inflow - adiabatic should also work
 heat_bc_top_left = Isothermal() do x, t, equations_parabolic
-    temperature(initial_condition(x, t, equations_parabolic),
-                equations_parabolic)
+    return temperature(initial_condition(x, t, equations_parabolic),
+                       equations_parabolic)
 end
 bc_parabolic_top_left = BoundaryConditionNavierStokesWall(velocity_bc_top_left,
                                                           heat_bc_top_left)
@@ -96,15 +96,15 @@ end
     return flux_inner
 end
 
-bcs_parabolic = Dict(:x_neg => bc_parabolic_top_left,
-                     :x_pos => boundary_condition_copy,
-                     :y_neg => boundary_condition_bottom,
-                     :y_pos => bc_parabolic_top_left)
+bcs_parabolic = (; x_neg = bc_parabolic_top_left,
+                 x_pos = boundary_condition_copy,
+                 y_neg = boundary_condition_bottom,
+                 y_pos = bc_parabolic_top_left)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
+                                             initial_condition, solver;
                                              boundary_conditions = (bs_hyperbolic,
                                                                     bcs_parabolic))
 

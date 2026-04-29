@@ -20,7 +20,7 @@ struct ExampleStageCallback
     # some required stuff. You can also create outer constructors (not demonstrated
     # here) for further customization options.
     function ExampleStageCallback()
-        new(Float64[], Float64[], Float64[])
+        return new(Float64[], Float64[], Float64[])
     end
 end
 
@@ -50,7 +50,7 @@ struct ExampleStepCallback
     # some required stuff. You can also create outer constructors (not demonstrated
     # here) for further customization options.
     function ExampleStepCallback(message::String)
-        new(message, Float64[], Float64[], Float64[])
+        return new(message, Float64[], Float64[], Float64[])
     end
 end
 
@@ -84,9 +84,9 @@ function ExampleStepCallback(; message::String)
 
     example_callback = ExampleStepCallback(message)
 
-    DiscreteCallback(condition, example_callback,
-                     save_positions = (false, false),
-                     initialize = initialize)
+    return DiscreteCallback(condition, example_callback,
+                            save_positions = (false, false),
+                            initialize = initialize)
 end
 
 end # module TrixiExtensionExample
@@ -106,9 +106,10 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                n_cells_max = 30_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

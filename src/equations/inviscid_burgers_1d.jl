@@ -52,6 +52,14 @@ end
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
+
+References for the method of manufactured solutions (MMS):
+- Kambiz Salari and Patrick Knupp (2000)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.2172/759450](https://doi.org/10.2172/759450)
+- Patrick J. Roache (2002)
+  Code Verification by the Method of Manufactured Solutions
+  [DOI: 10.1115/1.1436090](https://doi.org/10.1115/1.1436090)
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::InviscidBurgersEquation1D)
@@ -66,9 +74,6 @@ Source terms used for convergence tests in combination with
 
     return SVector(du)
 end
-
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::InviscidBurgersEquation1D)
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
@@ -185,13 +190,20 @@ end
 @inline cons2entropy(u, equation::InviscidBurgersEquation1D) = u
 @inline entropy2cons(u, equation::InviscidBurgersEquation1D) = u
 
-# Calculate entropy for a conservative state `cons`
+@doc raw"""
+    entropy(u, equations::InviscidBurgersEquation1D)
+
+Calculate entropy for a conservative state `u` as
+```math
+S(u) = \frac{1}{2} u^2
+```
+"""
 @inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::InviscidBurgersEquation1D) = entropy(u[1], equation)
 
-# Calculate total energy for a conservative state `cons`
+# Calculate total energy for a conservative state `u`
 @inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::InviscidBurgersEquation1D)
-    energy_total(u[1], equation)
+    return energy_total(u[1], equation)
 end
 end # @muladd

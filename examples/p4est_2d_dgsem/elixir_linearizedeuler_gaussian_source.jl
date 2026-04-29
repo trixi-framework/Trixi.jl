@@ -21,7 +21,7 @@ function source_terms_gauss(u, x, t, equations::LinearizedEulerEquations2D)
 end
 
 function initial_condition_zero(x, t, equations::LinearizedEulerEquations2D)
-    SVector(0.0, 0.0, 0.0, 0.0)
+    return SVector(0.0, 0.0, 0.0, 0.0)
 end
 
 ###############################################################################
@@ -50,8 +50,9 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  periodicity = true, initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_gauss)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms_gauss,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

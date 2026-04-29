@@ -23,7 +23,7 @@ end
 function InitialConditionConvergenceTestRotated(alpha)
     sin_alpha, cos_alpha = sincos(alpha)
 
-    InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
+    return InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
 end
 
 function (initial_condition::InitialConditionConvergenceTestRotated)(x, t,
@@ -77,10 +77,11 @@ mapping(xi, eta) = T * SVector(xi, eta)
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

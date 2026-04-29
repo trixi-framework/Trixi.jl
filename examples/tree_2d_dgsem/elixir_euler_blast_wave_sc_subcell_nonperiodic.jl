@@ -48,7 +48,7 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_math,
+                                local_onesided_variables_nonlinear = [(entropy_math,
                                                                        max)],
                                 # Default parameters are not sufficient to fulfill bounds properly.
                                 max_iterations_newton = 70,
@@ -65,7 +65,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 10_000,
                 periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition)
 
 ###############################################################################

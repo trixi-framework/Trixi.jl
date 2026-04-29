@@ -11,7 +11,7 @@
 Update the divergence cleaning wave speed `c_h` according to the time step
 computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations, the multi-component
 GLM-MHD equations, and the multi-ion GLM-MHD equations.
-The `cfl` number should be set to the same value as for the time step size calculation. 
+The `cfl` number should be set to the same value as for the time step size calculation.
 As for standard [`StepsizeCallback`](@ref) `cfl` can be either set to a `Real` number or
 a function of time `t` returning a `Real` number.
 
@@ -38,6 +38,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
     print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, "semi_indices=",
           semi_indices, ")")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -66,14 +67,14 @@ function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
                                                                                    cfl_function,
                                                                                    semi_indices)
 
-    DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                      integrator) where {Condition, Affect! <: GlmSpeedCallback}
-    cb.affect!(integrator)
+    return cb.affect!(integrator)
 end
 
 # this method is called to determine whether the callback should be activated
