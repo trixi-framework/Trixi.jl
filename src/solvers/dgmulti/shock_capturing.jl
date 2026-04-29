@@ -77,18 +77,26 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
     return inverse_vandermonde
 end
 
-# calculates the inverse of the vandermonde matrix for shock capturing purposes.
-# This version is for nodal simplicial SBP elements
+# calculates the inverse of the Vandermonde matrix for shock capturing purposes.
+# This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde 
+# matrix is first projects from solution values at SBP nodes to degree N polynomials, 
+# and then returns the modal coefficients of that projected polynomial.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
-
-    # the inverse vandermonde matrix here should first project from SBP nodes to degree N polynomials
     (; N, element_type, r, s) = basis
+
     interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
                                    basis.VDM
-    M = interp_matrix_to_quad_points' * Diagonal(basis.wq) *
-        interp_matrix_to_quad_points
-    Pq = M \ (interp_matrix_to_quad_points' * Diagonal(basis.wq))
-    return basis.VDM \ Pq
+
+    # note that this mass matrix is not necessarily diagonal                                    
+    mass_matrix = interp_matrix_to_quad_points' * Diagonal(basis.wq) *
+                  interp_matrix_to_quad_points
+
+    # construct quadrature-based L2 projection matrix                  
+    projection_matrix = mass_matrix \ interp_matrix_to_quad_points'
+
+    # invert Vandermonde matrix to recover modal coefficients from the 
+    # quadrature-based L2 projection matrix.
+    return basis.VDM \ projection_matrix
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
@@ -106,7 +114,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         resize!(alpha_tmp, nelements(mesh, dg))
     end
 
-    # magic parameters; reuses the quad/hex parameters
+    # reuses the quad/hex "magic parameters". 
+    # TODO: optimize, as these are likely not optimal for triangular/tetrahedral elements.
     threshold = 0.5f0 * 10^(-1.8 * (dg.basis.N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
 
@@ -114,8 +123,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         indicator = indicator_threaded[Threads.threadid()]
         modal = modal_threaded[Threads.threadid()]
 
-        # Calculate indicator variable at interpolation (Lobatto) nodes.
-        # TODO: calculate indicator variables at Gauss nodes or using `cache.entropy_projected_u_values`
+        # Calculate indicator variable at SBPnodes.
         for i in eachnode(dg)
             indicator[i] = variable(u[i, element], equations)
         end
