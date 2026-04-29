@@ -71,7 +71,7 @@ TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 TrixiPlotsExt = "Plots"
-TrixiOrdinaryDiffEqCore = "OrdinaryDiffEqCore"
+TrixiOrdinaryDiffEqCoreExt = "OrdinaryDiffEqCore"
 TrixiSparseConnectivityTracerExt = "SparseConnectivityTracer"
 
 [compat]

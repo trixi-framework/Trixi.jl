@@ -1,4 +1,4 @@
-module TrixiOrdinaryDiffEqCore
+module TrixiOrdinaryDiffEqCoreExt
 
 import Trixi: load_controller!
 import OrdinaryDiffEqCore: OrdinaryDiffEqCore, PIController, PIDController
