@@ -680,7 +680,7 @@ end
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
     (; positivity_variables_cons, positivity_variables_nonlinear) = solver.mortar
     (; limiting_factor) = cache.mortars
-    @trixi_timeit timer() "reset alpha" limiting_factor.=zeros(eltype(limiting_factor))
+    @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
 
     @trixi_timeit timer() "conservative variables" for var_index in positivity_variables_cons
         limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
@@ -695,7 +695,7 @@ end
         (; output_directory) = solver.mortar
         open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
             print(f, t, ", ")
-            print(f, minimum(limiting_factor), ", ", maximum(limiting_factor),
+            print(f, maximum(limiting_factor),
                   ", ", sum(limiting_factor) / length(limiting_factor))
             println(f)
         end

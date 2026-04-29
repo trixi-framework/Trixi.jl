@@ -165,7 +165,7 @@ basis = LobattoLegendreBasis(polydeg)
 # shock capturing necessary for this tough example
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 # local_twosided_variables_cons = ["rho"],
-                                # local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
+                                # local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                 #                                        min)],
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
@@ -185,7 +185,7 @@ coordinates_max = (0.5, 0.5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 8,
                 periodicity = (false, true),
-                n_cells_max = 100_000)
+                n_cells_max = 500_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
