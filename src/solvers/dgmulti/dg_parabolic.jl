@@ -236,26 +236,17 @@ function calc_boundary_flux!(flux, u, t, operator_type, ::BoundaryConditionPerio
     return nothing
 end
 
-# "lispy tuple programming" instead of for loop for type stability
+# Match hyperbolic DGMulti `calc_boundary_flux!` in dg.jl: iterate with `zip(keys, values)`
+# instead of `first`/`Base.tail` recursion (avoids allocations on the recursive path).
 function calc_boundary_flux!(flux, u, t, operator_type, boundary_conditions,
                              mesh, equations, dg::DGMulti, cache, cache_parabolic)
+    for (boundary_key, boundary_condition) in zip(keys(boundary_conditions),
+                                                  boundary_conditions)
+        calc_single_boundary_flux!(flux, u, t, operator_type, boundary_condition,
+                                   boundary_key,
+                                   mesh, equations, dg, cache, cache_parabolic)
+    end
 
-    # peel off first boundary condition
-    calc_single_boundary_flux!(flux, u, t, operator_type, first(boundary_conditions),
-                               first(keys(boundary_conditions)),
-                               mesh, equations, dg, cache, cache_parabolic)
-
-    # recurse on the remainder of the boundary conditions
-    calc_boundary_flux!(flux, u, t, operator_type, Base.tail(boundary_conditions),
-                        mesh, equations, dg, cache, cache_parabolic)
-
-    return nothing
-end
-
-# terminate recursion
-function calc_boundary_flux!(flux, u, t, operator_type,
-                             boundary_conditions::NamedTuple{(), Tuple{}},
-                             mesh, equations, dg::DGMulti, cache, cache_parabolic)
     return nothing
 end
 

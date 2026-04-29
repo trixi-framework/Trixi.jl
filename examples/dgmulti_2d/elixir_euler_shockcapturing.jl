@@ -6,16 +6,48 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_weak_blast_wave
+# A continuous version of the blast wave initial condition to avoid floating point 
+# issues when evaluating polar coordinates or evaluating at the discontinuity
+function initial_condition_weak_C0_blast_wave(x, t,
+                                              equations::CompressibleEulerEquations2D)
+    RealT = eltype(x)
+    inicenter = SVector(0, 0)
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+    rho_outer = one(RealT)
+    v1_outer = zero(RealT)
+    v2_outer = zero(RealT)
+    p_outer = one(RealT)
+    rho_inner = 1.1691
+    v1_inner = 0.1882
+    v2_inner = 0.1882
+    p_inner = 1.245
+
+    # Calculate primitive variables
+    if r > 0.5f0
+        rho = rho_outer
+        v1 = v1_outer
+        v2 = v2_outer
+        p = p_outer
+    elseif isapprox(r, 0.5f0)
+        rho = 0.5f0 * (rho_outer + rho_inner)
+        v1 = 0.5f0 * (v1_outer + v1_inner)
+        v2 = 0.5f0 * (v2_outer + v2_inner)
+        p = 0.5f0 * (p_outer + p_inner)
+    else
+        rho = rho_inner
+        v1 = v1_inner
+        v2 = v2_inner
+        p = p_inner
+    end
+
+    return prim2cons(SVector(rho, v1, v2, p), equations)
+end
+initial_condition = initial_condition_weak_C0_blast_wave
+
+surface_flux = FluxLaxFriedrichs()
 volume_flux = flux_ranocha
 
 polydeg = 3
