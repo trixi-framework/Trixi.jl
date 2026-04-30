@@ -19,6 +19,9 @@
 
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         # Calculate bounds at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k, element]
@@ -81,6 +84,14 @@ end
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
 
+        if perform_subcell_limiting(dg.volume_integral, left_element) ||
+           perform_subcell_limiting(dg.volume_integral, right_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
+
         orientation = cache.interfaces.orientations[interface]
 
         for j in eachnode(dg), i in eachnode(dg)
@@ -124,6 +135,9 @@ end
                                                 dg, cache)
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
@@ -180,6 +194,9 @@ end
 
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         # Reset bounds
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             if min_or_max === max
@@ -243,6 +260,14 @@ end
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
 
+        if perform_subcell_limiting(dg.volume_integral, left_element) ||
+           perform_subcell_limiting(dg.volume_integral, right_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
+
         orientation = cache.interfaces.orientations[interface]
 
         for j in eachnode(dg), i in eachnode(dg)
@@ -260,19 +285,21 @@ end
                 index_left = (i, j, nnodes(dg))
                 index_right = (i, j, 1)
             end
-            var_left = variable(get_node_vars(u, equations, dg, index_left...,
-                                              left_element),
-                                equations)
-            var_right = variable(get_node_vars(u, equations, dg, index_right...,
-                                               right_element),
-                                 equations)
 
-            var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
-                                                                              right_element],
-                                                                   var_left)
-            var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
-                                                                            left_element],
-                                                                 var_right)
+            if perform_subcell_limiting(dg.volume_integral, right_element)
+                u_left = get_node_vars(u, equations, dg, index_left..., left_element)
+                var_left = variable(u_left, equations)
+                var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
+                                                                                  right_element],
+                                                                       var_left)
+            end
+            if perform_subcell_limiting(dg.volume_integral, left_element)
+                u_right = get_node_vars(u, equations, dg, index_right..., right_element)
+                var_right = variable(u_right, equations)
+                var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
+                                                                                left_element],
+                                                                     var_right)
+            end
         end
     end
 
@@ -285,6 +312,9 @@ end
                                                 dg, cache)
     for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
@@ -346,6 +376,9 @@ end
     calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
 
     @threaded for element in eachelement(dg, semi.cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
@@ -412,6 +445,9 @@ end
 
     # Perform Newton's bisection method to find new alpha
     @threaded for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
@@ -443,6 +479,9 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
@@ -513,6 +552,9 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     @threaded for element in eachelement(dg, semi.cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
