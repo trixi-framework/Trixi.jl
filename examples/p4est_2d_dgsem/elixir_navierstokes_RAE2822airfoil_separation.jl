@@ -134,5 +134,5 @@ time_int_tol = 1e-4
 sol = solve(ode, ode_algorithm;
             abstol = time_int_tol, reltol = time_int_tol, dt = 1e-6,
             maxiters = Inf, # long simulation
-            controller = PIDController(0.55, -0.27, 0.05), # optimized for SSPRK43
+            controller = PIDController(0.55, -0.27, 0.05, qsteady_max = 1.0), # optimized for SSPRK43
             ode_default_options()..., callback = callbacks)

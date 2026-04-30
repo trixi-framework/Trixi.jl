@@ -107,5 +107,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 
 # use adaptive time stepping based on error estimates
 sol = solve(ode, SSPRK43(; stage_limiter! = stage_limiter!, thread = Trixi.Threaded());
-            controller = PIDController(0.55, -0.27, 0.05),
+            controller = PIDController(0.55, -0.27, 0.05, qsteady_max = 1.0),
             ode_default_options()..., callback = callbacks);
