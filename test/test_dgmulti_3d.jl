@@ -344,6 +344,18 @@ end
                                          n_cells_max = 0,
                                          RealT = Float64)
 end
+
+@trixi_testset "elixir_euler_shockcapturing.jl (Hex, GaussSBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
+                        l2=[1.33894396e-02, 7.62751979e-03, 7.62751979e-03,
+                            7.62751979e-03, 4.93582917e-02],
+                        linf=[2.18776976e-01, 1.04524872e-01, 1.04524872e-01,
+                            1.04524872e-01, 8.01212059e-01])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
