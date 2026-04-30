@@ -115,8 +115,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
             element = element_ids_dgfv[idx_element]
             volume_integral_kernel!(du, u, element, typeof(mesh),
                                     have_nonconservative_terms, equations,
-                                    volume_integral, limiter,
-                                    dg, cache)
+                                    volume_integral, dg, cache)
         end
     else # limiter.smoothness_indicator == false
         # Loop over all elements
@@ -124,8 +123,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                                                                                 cache)
             volume_integral_kernel!(du, u, element, typeof(mesh),
                                     have_nonconservative_terms, equations,
-                                    volume_integral, limiter,
-                                    dg, cache)
+                                    volume_integral, dg, cache)
         end
     end
 

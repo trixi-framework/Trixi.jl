@@ -24,8 +24,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_correction_factor = 0.1,
                                 max_iterations_newton = 10,
                                 newton_tolerances = (1.0e-12, 1.0e-14),
-                                bar_states = true,
-                                smoothness_indicator = false)
+                                bar_states = true)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,

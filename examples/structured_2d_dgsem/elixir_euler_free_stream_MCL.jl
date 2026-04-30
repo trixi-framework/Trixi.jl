@@ -27,7 +27,6 @@ limiter_mcl = SubcellLimiterMCL(equations, basis;
                                 positivity_limiter_pressure_exact = true,
                                 positivity_limiter_density = true,
                                 entropy_limiter_semidiscrete = false,
-                                smoothness_indicator = false,
                                 Plotting = true)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
