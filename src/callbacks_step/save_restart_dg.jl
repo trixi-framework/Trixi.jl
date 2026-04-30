@@ -351,9 +351,20 @@ function save_adaptive_time_integrator(integrator,
             # Add context information as attributes both for PIController and PIDController
             attributes(file)["time_integrator_qold"] = integrator.qold
             attributes(file)["time_integrator_dtpropose"] = integrator.dtpropose
-            # For PIDController is necessary to save additional parameters
-            if hasproperty(controller, :err) # Distinguish PIDController from PIController
+            # For `PIDController`s, we also save the history from the last few steps since
+            # they are used to predict the next time step sizes. OrdinaryDiffEqCore.jl
+            # refactored some internal code: in earlier versions (up to version 3.31), they
+            # used an array `err` to store the error history. Aftwerwards, they switched to
+            # three scalar values `err1, err2, err3` to store the error history.
+            # We need to check for both cases to ensure that we can handle restart files
+            # with different versions of the OrdinaryDiffEq.jl ecosystem.
+            if hasproperty(controller, :err)
                 attributes(file)["time_integrator_controller_err"] = controller.err
+            elseif hasproperty(controller, :err1) && hasproperty(controller, :err2) &&
+                   hasproperty(controller, :err3)
+                attributes(file)["time_integrator_controller_err"] = [controller.err1,
+                    controller.err2,
+                    controller.err3]
             end
         end
     end
