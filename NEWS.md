@@ -248,7 +248,7 @@ This enables in particular adaptive mesh refinement for that solver-mesh combina
 
 #### Changed
 
-- The numerical solution is wrapped in a `VectorOfArrays` from
+- The numerical solution is wrapped in a `VectorOfArray` from
   [RecursiveArrayTools.jl](https://github.com/SciML/RecursiveArrayTools.jl)
   for `DGMulti` solvers ([#2150]). You can use `Base.parent` to unwrap
   the original data.
