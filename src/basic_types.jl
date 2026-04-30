@@ -41,6 +41,10 @@ abstract type AbstractMortarL2{RealT <: Real} <: AbstractMortar{RealT} end
 # numerical solutions, e.g. the calculation of errors
 abstract type SolutionAnalyzer{RealT <: Real} end
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
+abstract type AbstractIndicator end
+
 # abstract supertype of grid-transfer methods used for AMR,
 # e.g. refinement and coarsening based on L² projections
 abstract type AdaptorAMR{RealT <: Real} end

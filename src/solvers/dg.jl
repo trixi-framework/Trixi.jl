@@ -471,7 +471,7 @@ This kind strategy was for certain choices of the default and stabilized volume 
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
        AbstractVolumeIntegral
-    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    indicator::Indicator # A-priori or A-posteriori indicator to determine whether the default or stabilized volume integral should be used for a given element
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
 end
@@ -742,6 +742,11 @@ function Base.show(io::IO, mime::MIME"text/plain",
         summary_footer(io)
     end
 end
+
+# Check if subcell limiting should be performed for a given element.
+# Always true for pure `VolumeIntegralSubcellLimiting`,
+# but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
+@inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
