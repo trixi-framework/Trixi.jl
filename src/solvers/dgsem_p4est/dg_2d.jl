@@ -329,18 +329,18 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
 end
 
 @kernel function calc_interface_flux_KAkernel!(surface_flux_values,
-                                               mt::Type{<:Union{P4estMesh{2},
-                                                                P4estMeshView{2},
-                                                                T8codeMesh{2}}},
+                                               MeshT::Type{<:Union{P4estMesh{2},
+                                                                   P4estMeshView{2},
+                                                                   T8codeMesh{2}}},
                                                have_nonconservative_terms,
                                                equations, surface_integral,
-                                               st::Type{<:DG}, u_interface,
+                                               SolverT::Type{<:DG}, u_interface,
                                                neighbor_ids, node_indices,
                                                contravariant_vectors, index_range)
     interface = @index(Global)
-    calc_interface_flux_per_interface!(surface_flux_values, mt,
+    calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                        have_nonconservative_terms, equations,
-                                       surface_integral, st, u_interface,
+                                       surface_integral, SolverT, u_interface,
                                        interface, neighbor_ids, node_indices,
                                        contravariant_vectors, index_range)
 end
