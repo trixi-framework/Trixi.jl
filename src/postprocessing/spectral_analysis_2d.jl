@@ -140,8 +140,7 @@ nodes already form a uniform Cartesian grid.
 """
 function compute_energy_spectrum(u, mesh::DGMultiMesh{2},
                                  equations::AbstractCompressibleEulerEquations,
-                                 dg::DGMultiSBP,
-                                 cache;
+                                 dg::DGMultiSBP, cache;
                                  normalize = true)
     primitive_variables = dgmulti_primitive_variables(u, equations, dg, Val(2))
     rho = primitive_variables[1]
