@@ -172,7 +172,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     indicator::Indicator
 
     # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
-    # This implementation is a generalization, which allows also usage of e.g. 
+    # This implementation is a generalization, which allows also usage of e.g.
     # the (potentially) cheaper weak form volume integral.
     volume_integral_default::VolumeIntegralDefault
 
@@ -293,12 +293,12 @@ end
 Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
-In the non-stabilized region, `volume_integral_default` is used, 
+In the non-stabilized region, `volume_integral_default` is used,
 which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
 or [`VolumeIntegralFluxDifferencing`](@ref).
 
 The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
-the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour.
 This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
 but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
 
@@ -743,6 +743,26 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       new_size)
+    resize!(cache.antidiffusive_fluxes, new_size)
+    resize!(volume_integral.limiter.cache.subcell_limiter_coefficients, new_size)
+
+    resize_normal_vectors!(cache, mesh, new_size)
+
+    return nothing
+end
+
+function reinit_volume_integral_cache!(cache, mesh, dg,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       new_size)
+    reset_antidiffusive_fluxes!(cache.antidiffusive_fluxes)
+    reinit_normal_vectors!(cache, mesh, dg)
+
+    return nothing
+end
+  
 # Check if subcell limiting should be performed for a given element.
 # Always true for pure `VolumeIntegralSubcellLimiting`,
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
