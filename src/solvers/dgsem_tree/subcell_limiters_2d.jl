@@ -880,7 +880,7 @@ end
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.volume_integral
-    (; positivity_correction_factor) = limiter
+    (; positivity_correction_factor, gamma_constant_newton) = limiter
 
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -950,6 +950,7 @@ end
                 error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
 
+            # Compute minimal bound
             var_min_lower = positivity_correction_factor * var_lower
             var_min_upper = positivity_correction_factor * var_upper
             var_min_large = positivity_correction_factor * var_large
@@ -970,9 +971,15 @@ end
                                                   i, direction_small, lower_element)
             flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, direction_small, lower_element)
-            flux_difference_lower = factor_small *
-                                    (flux_lower_high_order .- flux_lower_low_order)
-            antidiffusive_flux_lower = inverse_jacobian_lower * flux_difference_lower
+            # If high-order fluxes are non-finite, disable mortar correction.
+            # This mirrors the conservative mortar limiter behavior.
+            if !all(isfinite, flux_lower_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_lower = gamma_constant_newton * factor_small *
+                                       inverse_jacobian_lower *
+                                       (flux_lower_high_order .- flux_lower_low_order)
 
             newton_loop!(limiting_factor, var_min_lower, u_lower, (mortar,), variable,
                          min, initial_check_nonnegative_newton_idp,
@@ -985,9 +992,13 @@ end
                                                   i, direction_small, upper_element)
             flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, direction_small, upper_element)
-            flux_difference_upper = factor_small *
-                                    (flux_upper_high_order .- flux_upper_low_order)
-            antidiffusive_flux_upper = inverse_jacobian_upper * flux_difference_upper
+            if !all(isfinite, flux_upper_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_upper = gamma_constant_newton * factor_small *
+                                       inverse_jacobian_upper *
+                                       (flux_upper_high_order .- flux_upper_low_order)
 
             newton_loop!(limiting_factor, var_min_upper, u_upper, (mortar,), variable,
                          min, initial_check_nonnegative_newton_idp,
@@ -1000,9 +1011,13 @@ end
                                                   i, direction_large, large_element)
             flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
                                                  i, direction_large, large_element)
-            flux_difference_large = factor_large *
-                                    (flux_large_high_order .- flux_large_low_order)
-            antidiffusive_flux_large = inverse_jacobian_large * flux_difference_large
+            if !all(isfinite, flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_large = gamma_constant_newton * factor_large *
+                                       inverse_jacobian_large *
+                                       (flux_large_high_order .- flux_large_low_order)
 
             newton_loop!(limiting_factor, var_min_large, u_large, (mortar,), variable,
                          min, initial_check_nonnegative_newton_idp,
