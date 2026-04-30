@@ -157,6 +157,12 @@ create_cache(mesh, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype) = N
 abstract type AbstractVolumeIntegralSubcell <: AbstractVolumeIntegral end
 abstract type AbstractVolumeIntegralShockCapturing <: AbstractVolumeIntegralSubcell end
 
+function create_cache_subcell_limiting(mesh, equations,
+                                       volume_integral::AbstractVolumeIntegralSubcell,
+                                       dg, cache_containers, uEltype)
+    return NamedTuple()
+end
+
 struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
                                           VolumeIntegralBlendHighOrder,
                                           VolumeIntegralBlendLowOrder} <:
@@ -465,7 +471,7 @@ This kind strategy was for certain choices of the default and stabilized volume 
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
        AbstractVolumeIntegral
-    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    indicator::Indicator # A-priori or A-posteriori indicator to determine whether the default or stabilized volume integral should be used for a given element
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
 end
@@ -706,7 +712,7 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     with a high-order mortar is not invariant domain preserving.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
-       AbstractVolumeIntegral
+       AbstractVolumeIntegralSubcell
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
     limiter::Limiter
@@ -756,6 +762,11 @@ function reinit_volume_integral_cache!(cache, mesh, dg,
 
     return nothing
 end
+  
+# Check if subcell limiting should be performed for a given element.
+# Always true for pure `VolumeIntegralSubcellLimiting`,
+# but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
+@inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?

@@ -230,7 +230,7 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later while initializing the time integration method in `methods_SSP.jl`.
+    # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
@@ -261,8 +261,18 @@ end
 # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
 # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
 # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralAdaptive)
+    return get_node_variable(Val(:limiting_coefficient),
+                             volume_integral.volume_integral_stabilized)
+end
+
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
-    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+    return get_node_variable(Val(:limiting_coefficient), dg.volume_integral)
 end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
