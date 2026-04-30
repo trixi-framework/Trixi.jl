@@ -22,6 +22,7 @@
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         # Calculate bounds at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k, element]
@@ -138,6 +139,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
@@ -197,6 +199,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         # Reset bounds
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             if min_or_max === max
@@ -315,6 +318,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
@@ -379,6 +383,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
@@ -448,6 +453,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
@@ -482,6 +488,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
@@ -555,6 +562,7 @@ end
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
