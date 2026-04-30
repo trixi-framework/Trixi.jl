@@ -328,19 +328,21 @@ end
 end
 
 @trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    # Note: these test values were generated using Julia v1.10.11~x64. Running this on v1.12 
+    # using an M-series MacBook Pro resulted in test values with an O(1e-7) difference. 
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
                         h=0.1, tspan=(0.0, 0.1),
                         l2=[
-                            0.14885556661320176,
-                            0.2644917535403877,
-                            0.17695468500087722,
-                            0.6616841782760599
+                            0.14885535871013134,
+                            0.2644911888198318,
+                            0.17695450167569188,
+                            0.6616829855205953
                         ],
                         linf=[
-                            0.9552906049227556,
-                            1.3131254178491245,
-                            1.104963060639221,
-                            3.6468143028334676
+                            0.9552906049227992,
+                            1.313125417849597,
+                            1.1049630606394683,
+                            3.6468143028339775
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
