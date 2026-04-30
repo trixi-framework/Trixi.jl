@@ -565,6 +565,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_adaptive_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
                         l2=[
@@ -580,7 +581,12 @@ end
                             6.455103686573007
                         ],
                         tspan=(0.0, 1.0),
-                        initial_refinement_level=4)
+                        initial_refinement_level=4,
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
+    @test startswith(lines[end], "140")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
