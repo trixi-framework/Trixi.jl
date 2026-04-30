@@ -110,20 +110,26 @@ end
                 index_left = (i, j, nnodes(dg))
                 index_right = (i, j, 1)
             end
-            var_left = u[variable, index_left..., left_element]
-            var_right = u[variable, index_right..., right_element]
 
-            var_min[index_right..., right_element] = min(var_min[index_right...,
-                                                                 right_element],
-                                                         var_left)
-            var_max[index_right..., right_element] = max(var_max[index_right...,
-                                                                 right_element],
-                                                         var_left)
+            if perform_subcell_limiting(dg.volume_integral, right_element)
+                var_left = u[variable, index_left..., left_element]
+                var_min[index_right..., right_element] = min(var_min[index_right...,
+                                                                     right_element],
+                                                             var_left)
+                var_max[index_right..., right_element] = max(var_max[index_right...,
+                                                                     right_element],
+                                                             var_left)
+            end
 
-            var_min[index_left..., left_element] = min(var_min[index_left...,
-                                                               left_element], var_right)
-            var_max[index_left..., left_element] = max(var_max[index_left...,
-                                                               left_element], var_right)
+            if perform_subcell_limiting(dg.volume_integral, left_element)
+                var_right = u[variable, index_right..., right_element]
+                var_min[index_left..., left_element] = min(var_min[index_left...,
+                                                                   left_element],
+                                                           var_right)
+                var_max[index_left..., left_element] = max(var_max[index_left...,
+                                                                   left_element],
+                                                           var_right)
+            end
         end
     end
 
