@@ -58,11 +58,22 @@ end
                               volume_integral::VolumeIntegralSubcellLimiting)
     return check_bounds(u, equations, solver, cache, volume_integral.limiter)
 end
+@inline function check_bounds(u, equations, solver, cache,
+                              volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return check_bounds(u, equations, solver, cache, volume_integral_stabilized)
+end
 
 @inline function save_bounds_check_errors(output_directory, t, iter, equations,
                                           volume_integral::VolumeIntegralSubcellLimiting)
     return save_bounds_check_errors(output_directory, t, iter, equations,
                                     volume_integral.limiter)
+end
+@inline function save_bounds_check_errors(output_directory, t, iter, equations,
+                                          volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return save_bounds_check_errors(output_directory, t, iter, equations,
+                                    volume_integral_stabilized)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi)
@@ -72,6 +83,11 @@ end
 function init_callback(callback::BoundsCheckCallback, semi,
                        volume_integral::VolumeIntegralSubcellLimiting)
     return init_callback(callback, semi, volume_integral.limiter)
+end
+function init_callback(callback::BoundsCheckCallback, semi,
+                       volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return init_callback(callback, semi, volume_integral_stabilized)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimiterIDP)
@@ -122,6 +138,11 @@ end
 function finalize_callback(callback::BoundsCheckCallback, semi,
                            volume_integral::VolumeIntegralSubcellLimiting)
     return finalize_callback(callback, semi, volume_integral.limiter)
+end
+function finalize_callback(callback::BoundsCheckCallback, semi,
+                           volume_integral::VolumeIntegralAdaptive)
+    @unpack volume_integral_stabilized = volume_integral
+    return finalize_callback(callback, semi, volume_integral_stabilized)
 end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
