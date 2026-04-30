@@ -724,43 +724,6 @@ end
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
 
-        # Compute minimal bound
-        var_min_upper = typemax(eltype(surface_flux_values))
-        var_min_lower = typemax(eltype(surface_flux_values))
-        var_min_large = typemax(eltype(surface_flux_values))
-        for i in eachnode(dg)
-            if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-                if orientations[mortar] == 1
-                    # L2 mortars in x-direction
-                    indices_small = (1, i)
-                    indices_large = (nnodes(dg), i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, 1)
-                    indices_large = (i, nnodes(dg))
-                end
-            else # large_sides[mortar] == 2 -> small elements on left side
-                if orientations[mortar] == 1
-                    # L2 mortars in x-direction
-                    indices_small = (nnodes(dg), i)
-                    indices_large = (1, i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, nnodes(dg))
-                    indices_large = (i, 1)
-                end
-            end
-            var_upper = u[var_index, indices_small..., upper_element]
-            var_lower = u[var_index, indices_small..., lower_element]
-            var_large = u[var_index, indices_large..., large_element]
-            var_min_upper = min(var_min_upper, var_upper)
-            var_min_lower = min(var_min_lower, var_lower)
-            var_min_large = min(var_min_large, var_large)
-        end
-        var_min_upper = positivity_correction_factor * var_min_upper
-        var_min_lower = positivity_correction_factor * var_min_lower
-        var_min_large = positivity_correction_factor * var_min_large
-
         # Set up correct direction and factors
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
@@ -818,6 +781,11 @@ end
             var_upper = u[var_index, indices_small..., upper_element]
             var_lower = u[var_index, indices_small..., lower_element]
             var_large = u[var_index, indices_large..., large_element]
+
+            # Compute minimal bound
+            var_min_upper = positivity_correction_factor * var_upper
+            var_min_lower = positivity_correction_factor * var_lower
+            var_min_large = positivity_correction_factor * var_large
 
             if min(var_upper, var_lower, var_large) < 0
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")

@@ -489,32 +489,6 @@ end
         j_small = j_small_start
         i_large = i_large_start
         j_large = j_large_start
-
-        # Calc minimal low-order solution
-        var_min_upper = typemax(eltype(surface_flux_values))
-        var_min_lower = typemax(eltype(surface_flux_values))
-        var_min_large = typemax(eltype(surface_flux_values))
-        for i in eachnode(dg)
-            var_upper = u[var_index, i_small, j_small, upper_element]
-            var_lower = u[var_index, i_small, j_small, lower_element]
-            var_large = u[var_index, i_large, j_large, large_element]
-            var_min_upper = min(var_min_upper, var_upper)
-            var_min_lower = min(var_min_lower, var_lower)
-            var_min_large = min(var_min_large, var_large)
-
-            i_small += i_small_step
-            j_small += j_small_step
-            i_large += i_large_step
-            j_large += j_large_step
-        end
-        var_min_upper = positivity_correction_factor * var_min_upper
-        var_min_lower = positivity_correction_factor * var_min_lower
-        var_min_large = positivity_correction_factor * var_min_large
-
-        i_small = i_small_start
-        j_small = j_small_start
-        i_large = i_large_start
-        j_large = j_large_start
         for i in eachnode(dg)
             var_upper = u[var_index, i_small, j_small, upper_element]
             var_lower = u[var_index, i_small, j_small, lower_element]
@@ -566,6 +540,11 @@ end
                 limiting_factor[mortar] = 1
                 continue
             end
+
+            # Compute minimal bound
+            var_min_upper = positivity_correction_factor * var_upper
+            var_min_lower = positivity_correction_factor * var_lower
+            var_min_large = positivity_correction_factor * var_large
 
             Qm_upper = min(0, var_min_upper - var_upper)
             Qm_lower = min(0, var_min_lower - var_lower)
