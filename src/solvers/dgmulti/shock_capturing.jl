@@ -93,7 +93,7 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
 
     # construct quadrature-based L2 projection matrix                  
     projection_matrix = mass_matrix \
-                        (interp_matrix_to_quad_points' * Diagonal(basis.wq))
+                        (interp_matrix_to_quad_points' * Diagonal(wq))
 
     # invert Vandermonde matrix to recover modal coefficients from the 
     # quadrature-based L2 projection matrix.
