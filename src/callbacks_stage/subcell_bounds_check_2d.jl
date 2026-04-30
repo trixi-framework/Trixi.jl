@@ -28,6 +28,9 @@
             deviation_max = idp_bounds_delta_local[key_max]
             @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
                                                                                                      cache)
+
+                # detect if subcell limiting is necessary
+                perform_subcell_limiting(solver.volume_integral, element) || continue
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
                     # Note: We always save the absolute deviations >= 0 and therefore use the
@@ -50,6 +53,9 @@
             deviation = idp_bounds_delta_local[key]
             sign_ = min_or_max(1.0, -1.0)
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+
+                # detect if subcell limiting is necessary
+                perform_subcell_limiting(solver.volume_integral, element) || continue
                 for j in eachnode(solver), i in eachnode(solver)
                     v = variable(get_node_vars(u, equations, solver, i, j, element),
                                  equations)
@@ -73,6 +79,9 @@
             key = Symbol(string(v), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+
+                # detect if subcell limiting is necessary
+                perform_subcell_limiting(solver.volume_integral, element) || continue
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
                     deviation = max(deviation,
@@ -85,6 +94,9 @@
             key = Symbol(string(variable), "_min")
             deviation = idp_bounds_delta_local[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+
+                # detect if subcell limiting is necessary
+                perform_subcell_limiting(solver.volume_integral, element) || continue
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)

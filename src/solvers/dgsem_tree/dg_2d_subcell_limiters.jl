@@ -57,7 +57,7 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{2}, StructuredMesh{2
     end
 
     # The limiter cache was created with 0 elements
-    resize_subcell_limiter_cache!(dg.volume_integral.limiter, n_elements)
+    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
 
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
@@ -130,6 +130,19 @@ function calc_volume_integral!(backend::Nothing, du, u,
     end
 
     return nothing
+end
+
+function volume_integral_kernel!(du, u, element,
+                                 MeshT,
+                                 nonconservative_terms, equations,
+                                 volume_integral::VolumeIntegralSubcellLimiting,
+                                 dg::DGSEM, cache)
+    return volume_integral_kernel!(du, u, element,
+                                   MeshT,
+                                   nonconservative_terms, equations,
+                                   volume_integral,
+                                   volume_integral.limiter,
+                                   dg, cache)
 end
 
 @inline function volume_integral_kernel!(du, u, element,

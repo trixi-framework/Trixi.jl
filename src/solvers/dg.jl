@@ -172,7 +172,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     indicator::Indicator
 
     # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
-    # This implementation is a generalization, which allows also usage of e.g. 
+    # This implementation is a generalization, which allows also usage of e.g.
     # the (potentially) cheaper weak form volume integral.
     volume_integral_default::VolumeIntegralDefault
 
@@ -293,12 +293,12 @@ end
 Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
-In the non-stabilized region, `volume_integral_default` is used, 
+In the non-stabilized region, `volume_integral_default` is used,
 which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
 or [`VolumeIntegralFluxDifferencing`](@ref).
 
 The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
-the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour.
 This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
 but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
 
@@ -449,7 +449,7 @@ an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`
 for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
-For reference, see 
+For reference, see
 - Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
   Volume Term Adaptivity for Discontinuous Galerkin Schemes
   [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
@@ -471,7 +471,7 @@ This kind strategy was for certain choices of the default and stabilized volume 
 struct VolumeIntegralAdaptive{Indicator,
                               VolumeIntegralDefault, VolumeIntegralStabilized} <:
        AbstractVolumeIntegral
-    indicator::Indicator # A-posteriori indicator called after computation of `volume_integral_default`
+    indicator::Indicator # A-priori or A-posteriori indicator to determine whether the default or stabilized volume integral should be used for a given element
     volume_integral_default::VolumeIntegralDefault # Cheap(er) default volume integral to be used in non-critical regions
     volume_integral_stabilized::VolumeIntegralStabilized # More expensive volume integral with stabilizing effect
 end
@@ -756,6 +756,11 @@ function get_element_variables!(element_variables, u, mesh, equations,
 
     return nothing
 end
+
+# Check if subcell limiting should be performed for a given element.
+# Always true for pure `VolumeIntegralSubcellLimiting`,
+# but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.
+@inline perform_subcell_limiting(volume_integral::VolumeIntegralSubcellLimiting, element) = true
 
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
