@@ -65,8 +65,9 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
     level = first(levels)
     cells_per_dimension = 2^level
 
-    # Picks the number of nodes in each dimension as the polynomial order plus 1,
-    # since this is a minimum fidelity that interpolates the TreeMesh LGL nodes as a Cartesian grid
+    # Uses one uniform interpolation node per DGSEM solution node in each coordinate
+    # direction. A degree p element has p + 1 LGL nodes per direction, so this
+    # is the minimum Cartesian sampling matching the element-wise geometry
     n_uniform_nodes = polydeg(solver) + 1
     grid_points_per_dimension = n_uniform_nodes * cells_per_dimension
 
