@@ -12,7 +12,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "P4estMesh2D" begin
-    # ! format: noindent
+#! format: noindent
 
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -122,6 +122,28 @@ isdir(outdir) && rm(outdir, recursive = true)
         loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5");
                                              n_cells_max = 0,
                                              RealT = typeof(parent_mesh).parameters[3])
+    end
+
+    @trixi_testset "elixir_advection_coupled_with_amr_mortars.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_coupled_with_amr_mortars.jl"),
+                            tspan=(0.0, 1.0),
+                            l2=[0.0007319835742861697, 0.001985235435356559],
+                            linf=[0.008310493861112489, 0.009003928823673624])
+    end
+
+    @trixi_testset "elixir_advection_coupled_checkerboard_views.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_coupled_checkerboard_views.jl"),
+                            tspan=(0.0, 1.0),
+                            l2=[0.0015361594792012185, 0.001455051112944291],
+                            linf=[0.00900392882367318, 0.008196871838623832])
+    end
+
+    @trixi_testset "elixir_advection_restart_amr.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
+                            l2=[2.869137983727866e-6],
+                            linf=[3.8353423270964804e-5])
     end
 
     @trixi_testset "elixir_advection_basic.jl" begin
@@ -793,18 +815,19 @@ isdir(outdir) && rm(outdir, recursive = true)
     @trixi_testset "elixir_euler_mhd_coupled.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
                             l2=[
-                                0.0009298429085292762, 0.001493667091551915,
-                                1.3880200513838985e-7, 0.0, 0.002324586945682294,
-                                0.0, 0.0, 0.0, 0.0, 0.000930224035177847,
-                                0.0014944958076029463, 1.8536128566663707e-7,
-                                0.0023266433566251038
+                                0.0009209778282789782, 0.0014756088960704886,
+                                2.6739154420876842e-5, 0.0, 0.002302285074638671,
+                                0.0, 0.0, 0.0, 0.0,
+                                0.00092795792971463, 0.001486604885621148,
+                                1.94903864271771e-7, 0.0023209501264139848
                             ],
                             linf=[
-                                0.0015949952992960759, 0.0026047400211187777,
-                                2.1137352797650287e-6, 0.0, 0.003994377993553844,
-                                0.0, 0.0, 0.0, 0.0, 0.0015998321088653844,
-                                0.00260875068917614, 2.1084038302110918e-6,
-                                0.004011403632471433],
+                                0.0016212187495835417, 0.0026481875873929084,
+                                0.00028267046396916696, 0.0, 0.004053956838104833,
+                                0.0, 0.0, 0.0, 0.0,
+                                0.0016010194777924536, 0.0026102809747779302,
+                                2.539799766164192e-6, 0.004014367354669757
+                            ],
                             tspan=(0.0, 0.02))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

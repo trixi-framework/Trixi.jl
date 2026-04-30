@@ -5,6 +5,12 @@
 @muladd begin
 #! format: noindent
 
+# Abstract supertype for coupled P4est boundary conditions.
+# Defined here (in the meshes module, included before solvers) so that solver
+# code in dg_2d.jl can dispatch on it before BoundaryConditionCoupledP4est
+# itself is defined in the semidiscretization module.
+abstract type AbstractCoupledP4estBC end
+
 """
     P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
 
@@ -72,12 +78,14 @@ function extract_p4est_mesh_view(elements_parent,
     boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent,
                                     interfaces)
 
+    # Extract mortars that are entirely within this mesh view.
+    mortars = extract_mortars(mesh, mortars_parent)
+
     # Get the parent element ids of the neighbors.
-    neighbor_ids_parent = extract_neighbor_ids_parent(mesh, boundaries_parent,
-                                                      interfaces_parent,
+    neighbor_ids_parent = extract_neighbor_ids_parent(mesh, interfaces_parent,
                                                       boundaries)
 
-    return elements, interfaces, boundaries, mortars_parent, neighbor_ids_parent
+    return elements, interfaces, boundaries, mortars, neighbor_ids_parent
 end
 
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
@@ -154,7 +162,6 @@ function extract_boundaries(mesh::P4estMeshView{2},
                   parent_cell_id_to_view(neighbor_id, mesh))
             # Update the boundary names to reflect where the neighboring cell is
             # relative to this one, i.e. left, right, up, down.
-            # In 3d one would need to add the third dimension.
             if (interfaces_parent.node_indices[view_idx, interface] ==
                 (:end, :i_forward))
                 push!(boundaries.name, :x_pos)
@@ -188,20 +195,75 @@ function extract_boundaries(mesh::P4estMeshView{2},
     return boundaries
 end
 
+# Extract mortars that are entirely within the mesh view (all neighbor elements in view).
+# Mortars that cross the view boundary are handled separately as "coupled mortars".
+function extract_mortars(mesh::P4estMeshView, mortars_parent)
+    # In 2D: mortars have 3 neighbors [small_1, small_2, large]
+    # In 3D: mortars have 5 neighbors [small_1, small_2, small_3, small_4, large]
+    n_neighbors = size(mortars_parent.neighbor_ids, 1)
+
+    # Identify mortars where ALL neighbors are in this mesh view
+    mask = BitArray(undef, nmortars(mortars_parent))
+    for mortar in 1:nmortars(mortars_parent)
+        all_in_view = true
+        for pos in 1:n_neighbors
+            if !(mortars_parent.neighbor_ids[pos, mortar] in mesh.cell_ids)
+                all_in_view = false
+                break
+            end
+        end
+        mask[mortar] = all_in_view
+    end
+
+    n_mortars_view = sum(mask)
+
+    # Create deepcopy and resize
+    mortars = deepcopy(mortars_parent)
+    resize!(mortars, n_mortars_view)
+
+    if n_mortars_view == 0
+        return mortars
+    end
+
+    # Copy relevant entries and convert to local indices
+    mortar_indices = findall(mask)
+    for (new_idx, old_idx) in enumerate(mortar_indices)
+        for pos in 1:n_neighbors
+            global_id = mortars_parent.neighbor_ids[pos, old_idx]
+            mortars.neighbor_ids[pos, new_idx] = parent_cell_id_to_view(global_id, mesh)
+        end
+        # node_indices has shape (2, n_mortars): row 1 = small face, row 2 = large face.
+        # Use column indexing to copy both entries correctly.
+        mortars.node_indices[:, new_idx] = mortars_parent.node_indices[:, old_idx]
+    end
+
+    # Note: mortars.u arrays are already resized by resize!(mortars, n_mortars_view)
+    # and will be filled with correct values during prolong2mortars!
+
+    return mortars
+end
+
 # Extract the ids of the neighboring elements using the parent mesh indexing.
 # For every boundary of the mesh view find the neighboring cell id in global (parent) indexing.
-# Such neighboring cells are either inside the domain and have an interface
-# in the parent mesh, or they are physical boundaries for which we then
-# construct a periodic coupling by assigning as neighbor id the cell id
-# on the other end of the domain.
+# A non-zero entry means the boundary lies at a view interface: the neighbor is the cell
+# on the other side of the interface in the parent mesh (found via interfaces_parent).
+# A zero entry means the boundary is a physical domain boundary with no coupling neighbor;
+# callers use the zero to trigger a Dirichlet fallback.
+#
+# Note: for periodic p4est meshes the periodic face connections appear as entries in
+# interfaces_parent (not boundaries_parent), so the interfaces_parent search below
+# handles them correctly without any special periodic-pairing logic.
 function extract_neighbor_ids_parent(mesh::P4estMeshView,
-                                     boundaries_parent, interfaces_parent,
+                                     interfaces_parent,
                                      boundaries)
-    # Determine the parent indices of the neighboring elements.
-    neighbor_ids_parent = similar(boundaries.neighbor_ids)
+    # Initialize to zero; physical-domain boundaries that have no coupling neighbor
+    # remain 0 and trigger the Dirichlet fallback in _boundary_condition_coupled.
+    neighbor_ids_parent = zeros(Int, length(boundaries.neighbor_ids))
+
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         parent_id = mesh.cell_ids[id]
-        # Find this id in the parent's interfaces.
+        # Search interfaces_parent for a conforming interface that has parent_id on
+        # one side and whose face direction matches the boundary name.
         for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
             if (parent_id == interfaces_parent.neighbor_ids[1, interface] ||
                 parent_id == interfaces_parent.neighbor_ids[2, interface])
@@ -224,42 +286,173 @@ function extract_neighbor_ids_parent(mesh::P4estMeshView,
                 end
             end
         end
-
-        # Find this id in the parent's boundaries.
-        parent_xneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
-        parent_xpos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
-        parent_yneg_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
-        parent_ypos_cell_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
-        for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
-            if parent_id == boundary
-                # Check if boundaries with this id have the right name/node_indices.
-                if boundaries.name[idx] == boundaries_parent.name[parent_idx]
-                    # Make the coupling periodic.
-                    if boundaries_parent.name[parent_idx] == :x_neg
-                        neighbor_ids_parent[idx] = parent_xpos_cell_ids[findfirst(parent_xneg_cell_ids .==
-                                                                                  boundary)]
-                    elseif boundaries_parent.name[parent_idx] == :x_pos
-                        neighbor_ids_parent[idx] = parent_xneg_cell_ids[findfirst(parent_xpos_cell_ids .==
-                                                                                  boundary)]
-                    elseif boundaries_parent.name[parent_idx] == :y_neg
-                        neighbor_ids_parent[idx] = parent_ypos_cell_ids[findfirst(parent_yneg_cell_ids .==
-                                                                                  boundary)]
-                    elseif boundaries_parent.name[parent_idx] == :y_pos
-                        neighbor_ids_parent[idx] = parent_yneg_cell_ids[findfirst(parent_ypos_cell_ids .==
-                                                                                  boundary)]
-                    else
-                        error("Unknown boundary name: $(boundaries_parent.name[parent_idx])")
-                    end
-                end
-            end
-        end
     end
 
     return neighbor_ids_parent
 end
 
-# Translate the interface indices into boundary names.
-# This works only in 2d currently.
+"""
+    extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
+
+Extract mortars from parent mesh that lie on the boundary of this mesh view.
+A mortar is at the view boundary if its large element and small elements
+are split across the view boundary.
+
+Returns indices of mortars that cross the view boundary and information about
+which elements are local vs. remote.
+"""
+function extract_coupled_mortars(mesh::P4estMeshView, mortars_parent)
+    # Find mortars where elements are split across the view boundary.
+    coupled_mortar_indices = Int[]
+    local_neighbor_ids_list = Vector{Int}[]
+    local_neighbor_positions_list = Vector{Int}[]
+    global_neighbor_ids_list = Vector{Int}[]
+
+    # In 2D: mortars have 3 neighbors [small_1, small_2, large]
+    n_small = 2^(ndims(mesh) - 1)  # 2 in 2D, 4 in 3D
+
+    for mortar_id in 1:nmortars(mortars_parent)
+        # Get neighbor IDs from parent mortar
+        neighbor_ids = mortars_parent.neighbor_ids[:, mortar_id]
+
+        large_id = neighbor_ids[end]
+        small_ids = neighbor_ids[1:n_small]
+
+        # Check if mortar crosses view boundary
+        large_in_view = large_id in mesh.cell_ids
+        small_in_view = [id in mesh.cell_ids for id in small_ids]
+
+        # Mortar is "coupled" if some but not all elements are in this view.
+        # This covers all cross-boundary cases:
+        #   - Large in view, no small in view
+        #   - Large not in view, some/all small in view
+        #   - Large in view, some but not all small in view
+        some_in_view = large_in_view || any(small_in_view)
+        all_in_view = large_in_view && all(small_in_view)
+        if some_in_view && !all_in_view
+            push!(coupled_mortar_indices, mortar_id)
+
+            # Collect locally available elements
+            local_neighbor_ids = Int[]
+            local_neighbor_positions = Int[]
+
+            # Add small elements that are in this view
+            for (pos, (small_id, in_view)) in enumerate(zip(small_ids, small_in_view))
+                if in_view
+                    push!(local_neighbor_ids, parent_cell_id_to_view(small_id, mesh))
+                    push!(local_neighbor_positions, pos)
+                end
+            end
+
+            # Add large element if in this view
+            if large_in_view
+                push!(local_neighbor_ids, parent_cell_id_to_view(large_id, mesh))
+                push!(local_neighbor_positions, n_small + 1)  # 3 in 2D, 5 in 3D
+            end
+
+            # Store ALL global neighbor IDs for this mortar (needed for cross-view data exchange)
+            # Order: [small_1, small_2, large] in 2D
+            global_neighbor_ids = vcat(collect(small_ids), [large_id])
+
+            push!(local_neighbor_ids_list, local_neighbor_ids)
+            push!(local_neighbor_positions_list, local_neighbor_positions)
+            push!(global_neighbor_ids_list, global_neighbor_ids)
+        end
+    end
+
+    return coupled_mortar_indices, local_neighbor_ids_list,
+           local_neighbor_positions_list, global_neighbor_ids_list
+end
+
+"""
+    populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent, elements_parent,
+                             coupled_mortar_indices, local_neighbor_ids_list,
+                             local_neighbor_positions_list, global_neighbor_ids_list,
+                             dg)
+
+Populate the coupled mortar container with data from parent mortars.
+This includes computing normal directions from the parent elements' contravariant vectors.
+"""
+function populate_coupled_mortars!(coupled_mortars, mesh, mortars_parent,
+                                   elements_parent,
+                                   coupled_mortar_indices,
+                                   local_neighbor_ids_list,
+                                   local_neighbor_positions_list,
+                                   global_neighbor_ids_list,
+                                   dg)
+    n_coupled = length(coupled_mortar_indices)
+
+    if n_coupled == 0
+        return coupled_mortars
+    end
+
+    # Resize container
+    resize!(coupled_mortars, n_coupled)
+
+    n_nodes = nnodes(dg)
+    index_range = eachnode(dg)
+
+    # Fill container with data
+    for (idx, mortar_id) in enumerate(coupled_mortar_indices)
+        coupled_mortars.local_neighbor_ids[idx] = local_neighbor_ids_list[idx]
+        coupled_mortars.local_neighbor_positions[idx] = local_neighbor_positions_list[idx]
+        coupled_mortars.global_neighbor_ids[idx] = global_neighbor_ids_list[idx]
+
+        # Copy node indices from parent mortar
+        small_indices = mortars_parent.node_indices[1, mortar_id]
+        large_indices = mortars_parent.node_indices[2, mortar_id]
+        coupled_mortars.node_indices[1, idx] = small_indices
+        coupled_mortars.node_indices[2, idx] = large_indices
+
+        # Compute normal directions from the contravariant vectors
+        # These are needed for the flux computation
+        small_direction = indices2direction(small_indices)
+        large_direction = indices2direction(large_indices)
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        # Get element IDs from parent mortar
+        small_element_ids = mortars_parent.neighbor_ids[1:2, mortar_id]
+        large_element_id = mortars_parent.neighbor_ids[3, mortar_id]
+
+        # Compute normals for small elements (positions 1 and 2)
+        for position in 1:2
+            element = small_element_ids[position]
+            i_small = i_small_start
+            j_small = j_small_start
+
+            for node in 1:n_nodes
+                # Compute normal direction using parent element's contravariant vectors
+                normal = get_normal_direction(small_direction,
+                                              elements_parent.contravariant_vectors,
+                                              i_small, j_small, element)
+
+                # Store in coupled mortar container
+                for dim in 1:ndims(mesh)
+                    coupled_mortars.normal_directions[dim, node, position, idx] = normal[dim]
+                end
+
+                i_small += i_small_step
+                j_small += j_small_step
+            end
+        end
+
+        # Note: Position 3 (large element) normals are not computed here
+        # The mortar flux is computed from the small elements' perspective only
+    end
+
+    return coupled_mortars
+end
+
+# Translate the interface indices into boundary names (2D only).
 function node_indices_to_name(node_index)
     if node_index == (:end, :i_forward)
         return :x_pos
@@ -302,11 +495,16 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-    # Determine file name based on existence of meaningful time step
-    filename = joinpath(output_directory,
-                        @sprintf("mesh_%s_%09d.h5", system, timestep))
-    p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
-
+    # Include system tag in the filename so that multiple views in a coupled
+    # setup each get their own mesh file rather than overwriting each other.
+    system_str = string(system)
+    if isempty(system_str)
+        filename = joinpath(output_directory, "mesh.h5")
+        p4est_filename = "p4est_data"
+    else
+        filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system_str))
+        p4est_filename = @sprintf("p4est_data_%s", system_str)
+    end
     p4est_file = joinpath(output_directory, p4est_filename)
 
     # Save the complete connectivity and `p4est` data to disk.
@@ -354,18 +552,23 @@ function calc_node_coordinates!(node_coordinates,
 
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)
 
-    mesh_view_cell_id = 0
+    # Build a lookup from global parent cell ID → local view cell ID.
+    # This respects the ordering of mesh.cell_ids (which may not be sorted),
+    # ensuring consistency with extract_p4est_mesh_view which copies data in
+    # mesh.cell_ids order.
+    cell_id_to_local = Dict(id => k for (k, id) in enumerate(mesh.cell_ids))
+
     for tree_id in eachindex(trees)
         tree_offset = trees[tree_id].quadrants_offset
         quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree_id].quadrants)
 
         for i in eachindex(quadrants)
             parent_mesh_cell_id = tree_offset + i
-            if !(parent_mesh_cell_id in mesh.cell_ids)
+            local_id = get(cell_id_to_local, parent_mesh_cell_id, 0)
+            if local_id == 0
                 # This cell is not part of the mesh view, thus skip it
                 continue
             end
-            mesh_view_cell_id += 1
 
             quad = quadrants[i]
 
@@ -380,7 +583,7 @@ function calc_node_coordinates!(node_coordinates,
             polynomial_interpolation_matrix!(matrix2, mesh.parent.nodes, nodes_out_y,
                                              baryweights_in)
 
-            multiply_dimensionwise!(view(node_coordinates, :, :, :, mesh_view_cell_id),
+            multiply_dimensionwise!(view(node_coordinates, :, :, :, local_id),
                                     matrix1, matrix2,
                                     view(mesh.parent.tree_node_coordinates, :, :, :,
                                          tree_id),
