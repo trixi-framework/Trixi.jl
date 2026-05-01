@@ -16,7 +16,7 @@ function compute_energy_spectrum(v1::AbstractArray{<:Any, 2},
                                  normalize = true)
 
     # Compute the energy modes using FFTW
-    energy_modes = 0.5 .* (abs2.(fft(v1)) .+ abs2.(fft(v2)))
+    energy_modes = 0.5f0 .* (abs2.(fft(v1)) .+ abs2.(fft(v2)))
     if normalize
         energy_modes ./= length(energy_modes)^2
     end
