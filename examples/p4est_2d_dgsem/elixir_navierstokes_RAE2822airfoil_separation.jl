@@ -1,5 +1,5 @@
 using OrdinaryDiffEqSSPRK
-using OrdinaryDiffEqCore: OrdinaryDiffEqCore, PIDController
+using OrdinaryDiffEqCore: PIDController
 using Trixi
 
 ###############################################################################
@@ -130,10 +130,9 @@ callbacks = CallbackSet(summary_callback,
 
 ode_algorithm = SSPRK43(thread = Trixi.Threaded())
 
-qsteady_max = OrdinaryDiffEqCore.qsteady_max_default(ode_algorithm)
 time_int_tol = 1e-4
 sol = solve(ode, ode_algorithm;
             abstol = time_int_tol, reltol = time_int_tol, dt = 1e-6,
             maxiters = Inf, # long simulation
-            controller = PIDController(0.55, -0.27, 0.05, qsteady_max = qsteady_max), # optimized for SSPRK43
+            controller = PIDController(ode_algorithm, beta = (0.55, -0.27, 0.05)), # optimized for SSPRK43
             ode_default_options()..., callback = callbacks)

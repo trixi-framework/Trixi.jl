@@ -1,5 +1,5 @@
 using OrdinaryDiffEqSSPRK
-using OrdinaryDiffEqCore: OrdinaryDiffEqCore, PIDController
+using OrdinaryDiffEqCore: PIDController
 using Trixi
 
 ###############################################################################
@@ -106,8 +106,7 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # run the simulation
 
 ode_algorithm = SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.Threaded())
-qsteady_max = OrdinaryDiffEqCore.qsteady_max_default(ode_algorithm)
 # use adaptive time stepping based on error estimates
 sol = solve(ode, ode_algorithm;
-            controller = PIDController(0.55, -0.27, 0.05, qsteady_max = qsteady_max),
+            controller = PIDController(ode_algorithm, beta = (0.55, -0.27, 0.05)),
             ode_default_options()..., callback = callbacks);
