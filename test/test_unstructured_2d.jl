@@ -155,6 +155,16 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    @testset "Nodal API" begin
+        coords = Trixi.get_coordinates(sol)
+        @test size(coords) == size(semi.cache.elements.node_coordinates)
+        @test coords == semi.cache.elements.node_coordinates
+
+        u_nodal = Trixi.get_u(sol)
+        @test size(u_nodal) == size(Trixi.wrap_array(sol.u[end], semi))
+        @test u_nodal == Trixi.wrap_array(sol.u[end], semi)
+    end
 end
 
 @trixi_testset "elixir_euler_sedov.jl" begin
