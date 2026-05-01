@@ -1,0 +1,130 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs)
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details
+@muladd begin
+#! format: noindent
+
+"""
+    compute_kinetic_energy_spectrum(sol; kwargs...)
+
+Compute the isotropic kinetic energy spectrum from the final state of an ODE
+solution returned by `solve`.
+"""
+function compute_kinetic_energy_spectrum(sol; kwargs...)
+    return compute_kinetic_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
+end
+
+"""
+    compute_kinetic_energy_spectrum(u_ode, semi; kwargs...)
+
+Compute the isotropic kinetic energy spectrum from an ODE state vector `u_ode`
+and a Trixi
+semidiscretization `semi`. The state is converted to the solver-native array
+layout before dispatching to the mesh/solver-specific method.
+
+Currently, implemented methods are restricted to
+`AbstractCompressibleEulerEquations` for
+- `TreeMesh` + `DGSEM` data (via interpolation from LGL nodes to a uniform
+  Cartesian grid), and
+- `DGMultiMesh` + `DGMultiSBP` data (already sampled on a Cartesian grid)
+
+## Returns
+- `energy_spectrum`: 1D vector holding the isotropic kinetic energy spectrum
+  `E(k)` binned by integer wavenumber shell
+- `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
+
+## Constructs internally
+- For DGSEM `TreeMesh` data, it interpolates from LGL nodes to a uniform
+  Cartesian grid before applying FFTs
+- It forms density-weighted velocity fields `sqrt(rho) * v_i`, computes
+  Fourier-space kinetic energy from the FFT results, and radially bins wrapped
+  FFT modes to form the final 1D isotropic spectrum `E(k)`
+
+## References
+
+- Winters, Moura, Mengaldo, Gassner, Walch, Peiro, et al. (2018)
+  A comparative study on polynomial dealiasing and split form discontinuous
+  Galerkin schemes for under-resolved turbulence computations
+  [DOI: 10.1016/j.jcp.2018.05.049](https://doi.org/10.1016/j.jcp.2018.06.016)
+"""
+function compute_kinetic_energy_spectrum(u_ode,
+                                         semi::AbstractSemidiscretization;
+                                         kwargs...)
+    return compute_kinetic_energy_spectrum(wrap_array_native(u_ode, semi),
+                                           mesh_equations_solver_cache(semi)...;
+                                           kwargs...)
+end
+
+function radial_energy_spectrum(energy_modes)
+    # Convert the multi-dimensional Fourier energy into the
+    # 1D isotropic spectrum E by summing all modes whose
+    # wavenumber rounds to the same integer shell, accounting for the FFT convention
+    ndims_energy_modes = ndims(energy_modes)
+    maximum_wavenumber_squared = 0
+    for dim in 1:ndims_energy_modes
+        maximum_wavenumber_squared += (size(energy_modes, dim) ÷ 2)^2
+    end
+    maximum_wavenumber = round(Int, sqrt(maximum_wavenumber_squared))
+    energy_spectrum = zeros(eltype(energy_modes), maximum_wavenumber + 1)
+    wavenumbers = collect(0:maximum_wavenumber)
+
+    # Iterate over all Fourier coefficients and bin each mode by isotropic shell
+    for index in CartesianIndices(energy_modes)
+        effective_wavenumber_squared = 0
+        for dim in 1:ndims_energy_modes
+            # Julia arrays are 1-based, while FFT mode numbers are centered around zero so subtract 1
+            wavenumber = index[dim] - 1
+
+            # Convert wrapped FFT ordering to signed integer wavenumbers
+            # For an axis of length N, FFT bins correspond to
+            # 0, 1, ..., floor(N/2), -floor((N-1)/2), ..., -1
+            # so wraps around to handle this convention
+            if wavenumber > size(energy_modes, dim) ÷ 2
+                wavenumber -= size(energy_modes, dim)
+            end
+
+            # Accumulate ||k||^2 = kx^2 + ky^2 (+ kz^2 in 3D)
+            effective_wavenumber_squared += wavenumber^2
+        end
+
+        # Radially bin modes by nearest integer shell index
+        effective_wavenumber = sqrt(effective_wavenumber_squared)
+        shell = round(Int, effective_wavenumber)
+        if shell <= maximum_wavenumber
+            energy_spectrum[shell + 1] += energy_modes[index]
+        end
+    end
+
+    return energy_spectrum, wavenumbers
+end
+
+function dgmulti_primitive_variables(u, equations, dg::DGMultiSBP,
+                                     ::Val{NDIMS}) where {NDIMS}
+    # Uses primitive variables from the solution vector
+    u_values = StructArray(u)
+    n_points = length(u_values)
+    n_points_per_dimension = round(Int, n_points^(1 / NDIMS))
+    if n_points_per_dimension^NDIMS != n_points
+        throw(ArgumentError("DGMulti data does not form a uniform Cartesian grid"))
+    end
+
+    # Repack solution components into Cartesian arrays for the FFT kernel
+    primitive_grid_size = ntuple(_ -> n_points_per_dimension, Val(NDIMS))
+    primitive_variables = Vector{Array{real(dg), NDIMS}}(undef, NDIMS + 1)
+    for variable in eachindex(primitive_variables)
+        primitive_variables[variable] = Array{real(dg)}(undef, primitive_grid_size)
+    end
+    for index in eachindex(u_values)
+        u_node = cons2prim(u_values[index], equations)
+        for variable in eachindex(primitive_variables)
+            primitive_variables[variable][index] = u_node[variable]
+        end
+    end
+
+    return primitive_variables
+end
+
+include("spectral_analysis_2d.jl")
+include("spectral_analysis_3d.jl")
+end # @muladd

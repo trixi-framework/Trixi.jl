@@ -1163,6 +1163,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 100)
+
+    # Test Spectral Analysis Post Processing
+    energy_spectrum, wavenumbers = compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        151.35861767838597,
+        7.114099114846343,
+        1.775784102831901,
+        0.7908299061239447,
+        0.44703605619909004,
+        0.2886969558334658
+    ] rtol=1.0e-12
 end
 
 # Coverage test for all initial conditions

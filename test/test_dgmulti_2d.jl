@@ -553,6 +553,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test Spectral Analysis Post Processing
+    energy_spectrum, wavenumbers = compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        1.9993746355056,
+        0.0006253399291566656,
+        2.6902140946235064e-32,
+        2.4561773100445993e-8,
+        3.952257929835444e-12,
+        9.766774928701462e-32
+    ] rtol=1.0e-12
 end
 
 @trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
