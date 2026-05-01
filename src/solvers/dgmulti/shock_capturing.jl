@@ -79,7 +79,7 @@ end
 
 # calculates the inverse of the Vandermonde matrix for shock capturing purposes.
 # This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde 
-# matrix is first projects from solution values at SBP nodes to degree N polynomials, 
+# matrix first projects from solution values at SBP nodes to degree N polynomials, 
 # and then returns the modal coefficients of that projected polynomial.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
     (; N, element_type, r, s, VDM, wq) = basis
