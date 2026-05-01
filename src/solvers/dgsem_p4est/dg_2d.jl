@@ -291,7 +291,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               equations, surface_integral,
                               dg::DGSEM{<:LobattoLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
-    # Take for Gauss-Lobatto-Legendre (GLL) the interface normals from the outer volume nodes, i.e.,
+    # Take for Lobatto-Gauss-Legendre (LGL) the interface normals from the outer volume nodes, i.e.,
     # element data.
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
@@ -638,6 +638,66 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries!(cache, u,
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             equations, dg::DGSEM{<:GaussLegendreBasis})
+    @unpack boundaries = cache
+    @unpack boundary_interpolation = dg.basis
+    index_range = eachnode(dg)
+
+    @threaded for boundary in eachboundary(dg, cache)
+        # Interpolate solution data from the element to the boundary.
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+        # The index direction is identified based on `{i,j}_node_step`.
+        # For step = 0, the direction identified by this index is normal to the face.
+        # For step != 0 (1 or -1), the direction identified by this index is tangential to the face.
+
+        i_node = i_node_start
+        j_node = j_node_start
+        if i_node_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[1])
+            for i in index_range
+                for v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for ii in index_range
+                        boundary_u = (boundary_u +
+                                      u[v, ii, j_node, element] *
+                                      boundary_interpolation[ii, side])
+                    end
+                    boundaries.u[v, i, boundary] = boundary_u
+                end
+                j_node += j_node_step # incrementing j_node suffices
+            end
+        else # j_node_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[2])
+            for i in index_range
+                for v in eachvariable(equations)
+                    boundary_u = zero(eltype(boundaries.u))
+                    for jj in index_range
+                        boundary_u = (boundary_u +
+                                      u[v, i_node, jj, element] *
+                                      boundary_interpolation[jj, side])
+                    end
+                    boundaries.u[v, i, boundary] = boundary_u
+                end
+                i_node += i_node_step # incrementing i_node suffices
+            end
+        end
+    end
+
+    return nothing
+end
+
 # We require this function definition, as the function calls for the
 # coupled simulations pass the u_parent variable
 # Note: Since the implementation is identical, we forward to the original function
@@ -688,12 +748,13 @@ end
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                      have_nonconservative_terms::False, equations,
-                                     surface_integral, dg::DG, cache,
+                                     surface_integral,
+                                     dg::DGSEM{<:LobattoLegendreBasis}, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates, contravariant_vectors = elements
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
@@ -719,14 +780,50 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     have_nonconservative_terms::False, equations,
+                                     surface_integral, dg::DGSEM{<:GaussLegendreBasis},
+                                     cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates = boundaries
+    @unpack contravariant_vectors = elements
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations, dg,
+                        node_index, boundary_index)
+
+    flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+
+    return nothing
+end
+
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::P4estMeshView{2},
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index, u_parent)
-    @unpack boundaries = cache
-    @unpack contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates = boundaries
+    @unpack contravariant_vectors = elements
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
@@ -771,12 +868,13 @@ end
                                      have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::False,
                                      equations,
-                                     surface_integral, dg::DG, cache,
+                                     surface_integral,
+                                     dg::DGSEM{<:LobattoLegendreBasis}, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates, contravariant_vectors = elements
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
@@ -812,12 +910,13 @@ end
                                      have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::True,
                                      equations,
-                                     surface_integral, dg::DG, cache,
+                                     surface_integral,
+                                     dg::DGSEM{<:LobattoLegendreBasis}, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
-    @unpack boundaries = cache
-    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack elements, boundaries = cache
+    @unpack node_coordinates, contravariant_vectors = elements
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)

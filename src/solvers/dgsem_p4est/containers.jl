@@ -237,13 +237,6 @@ mutable struct P4estInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
     _node_indices::IndicesVector
 end
 
-# `trivial` means that the interface normals can be taken from
-# the outer/surface element nodes
-@inline trivial_interface_normals(::LobattoLegendreBasis) = true
-# For Gauss-Legendre basis, the interface normals need to be interpolated,
-# analogous to the surface values.
-@inline trivial_interface_normals(::GaussLegendreBasis) = false
-
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
     return size(interfaces.neighbor_ids, 2)
 end
@@ -303,7 +296,7 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                     (2, nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_interfaces))
 
-    if !trivial_interface_normals(basis)
+    if surface_interpolation_needed(basis)
         _normal_directions = Vector{RealT}(undef,
                                            NDIMS * nnodes(basis)^(NDIMS - 1) *
                                            n_interfaces)
@@ -339,6 +332,13 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     init_interfaces!(interfaces, elements, mesh, basis)
 
     return interfaces
+end
+
+# For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrieved from
+# the element container and are thus not doubled in the interface container.
+function init_normal_directions!(interfaces::P4estInterfaceContainer,
+                                 basis::LobattoLegendreBasis, elements)
+    return nothing
 end
 
 function init_interfaces!(interfaces, elements,
@@ -395,18 +395,24 @@ end
 
 mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       uArray <: DenseArray{uEltype, NDIMSP1},
+                                      CoordinateArray <:
+                                      Union{DenseArray{<:Real, NDIMSP1}, Nothing},
                                       IdsVector <: DenseVector{Int},
                                       IndicesVector <:
                                       DenseVector{NTuple{NDIMS, Symbol}},
-                                      uVector <: DenseVector{uEltype}} <:
+                                      uVector <: DenseVector{uEltype},
+                                      CoordVector <:
+                                      Union{DenseVector{<:Real}, Nothing}} <:
                AbstractBoundaryContainer
-    u::uArray                   # [variables, i, j, boundary]
-    neighbor_ids::IdsVector     # [boundary]
-    node_indices::IndicesVector # [boundary]
-    name::Vector{Symbol}        # [boundary]
+    u::uArray                         # [variables, i, j, boundary]
+    node_coordinates::CoordinateArray # [orientation, i, j, boundary]
+    neighbor_ids::IdsVector           # [boundary]
+    node_indices::IndicesVector       # [boundary]
+    name::Vector{Symbol}              # [boundary]
 
     # internal `resize!`able storage
     _u::uVector
+    _node_coordinates::CoordVector
 end
 
 @inline function nboundaries(boundaries::P4estBoundaryContainer)
@@ -420,7 +426,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
-    @unpack _u, neighbor_ids, node_indices, name = boundaries
+    @unpack _u, _node_coordinates, neighbor_ids, node_indices, name = boundaries
 
     n_dims = ndims(boundaries)
     n_nodes = size(boundaries.u, 2)
@@ -432,6 +438,17 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
                                (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                 capacity))
 
+    if _node_coordinates === nothing
+        boundaries.node_coordinates = nothing
+    else
+        resize!(_node_coordinates, n_dims * n_nodes^(n_dims - 1) * capacity)
+        boundaries.node_coordinates = unsafe_wrap(ArrayType, pointer(_node_coordinates),
+                                                  (n_dims,
+                                                   ntuple(_ -> n_nodes,
+                                                          n_dims - 1)...,
+                                                   capacity))
+    end
+
     resize!(neighbor_ids, capacity)
 
     resize!(node_indices, capacity)
@@ -441,10 +458,18 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
     return nothing
 end
 
+# For Lobatto-Gauss-Legendre (LGL) nodes, interface normals are retrieved from
+# the element container and are thus not doubled in the interface container.
+function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer,
+                                         basis::LobattoLegendreBasis, elements)
+    return nothing
+end
+
 # Create interface container and initialize interface data in `elements`.
 function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                          basis, elements)
     NDIMS = ndims(elements)
+    RealT = real(mesh)
     uEltype = eltype(elements)
 
     # Initialize container
@@ -457,18 +482,37 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
                     (nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS - 1)...,
                      n_boundaries))
 
+    if surface_interpolation_needed(basis)
+        _node_coordinates = Vector{RealT}(undef,
+                                          NDIMS * nnodes(basis)^(NDIMS - 1) *
+                                          n_boundaries)
+        node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+                                       (NDIMS,
+                                        ntuple(_ -> nnodes(basis), NDIMS - 1)...,
+                                        n_boundaries))
+    else
+        _node_coordinates = nothing
+        node_coordinates = nothing
+    end
+
     neighbor_ids = Vector{Int}(undef, n_boundaries)
     node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
     names = Vector{Symbol}(undef, n_boundaries)
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1, typeof(u),
+                                        typeof(node_coordinates),
                                         typeof(neighbor_ids), typeof(node_indices),
-                                        typeof(_u)}(u, neighbor_ids,
-                                                    node_indices, names,
-                                                    _u)
+                                        typeof(_u), typeof(_node_coordinates)}(u,
+                                                                               node_coordinates,
+                                                                               neighbor_ids,
+                                                                               node_indices,
+                                                                               names,
+                                                                               _u,
+                                                                               _node_coordinates)
 
     if n_boundaries > 0
         init_boundaries!(boundaries, mesh)
+        init_boundary_node_coordinates!(boundaries, basis, elements)
     end
 
     return boundaries
@@ -519,16 +563,27 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     _u = adapt(to, boundaries._u)
+    _node_coordinates = boundaries._node_coordinates === nothing ? nothing :
+                        adapt(to, boundaries._node_coordinates)
     u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))
+    node_coordinates = _node_coordinates === nothing ? nothing :
+                       unsafe_wrap_or_alloc(to, _node_coordinates,
+                                            size(boundaries.node_coordinates))
     neighbor_ids = adapt(to, boundaries.neighbor_ids)
     node_indices = adapt(to, boundaries.node_indices)
     name = boundaries.name
 
     NDIMS = ndims(boundaries)
     return P4estBoundaryContainer{NDIMS, eltype(_u), NDIMS + 1, typeof(u),
+                                  typeof(node_coordinates),
                                   typeof(neighbor_ids), typeof(node_indices),
-                                  typeof(_u)}(u, neighbor_ids, node_indices,
-                                              name, _u)
+                                  typeof(_u), typeof(_node_coordinates)}(u,
+                                                                         node_coordinates,
+                                                                         neighbor_ids,
+                                                                         node_indices,
+                                                                         name,
+                                                                         _u,
+                                                                         _node_coordinates)
 end
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
@@ -713,6 +768,7 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
+    init_boundary_node_coordinates!(boundaries, dg.basis, elements)
 
     return nothing
 end
