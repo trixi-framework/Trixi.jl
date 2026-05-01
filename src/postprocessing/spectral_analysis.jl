@@ -16,7 +16,7 @@ Compute the energy spectrum from the final state of an ODE solution returned by
 - `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
 
 ## Constructs internally
-- For DGSEM TreeMesh data, it interpolates from LGL nodes to a uniform Cartesian grid before applying FFTs
+- For DGSEM `TreeMesh` data, it interpolates from LGL nodes to a uniform Cartesian grid before applying FFTs
 - It forms density weighted velocity fields `sqrt(rho) * v_i`, computes Fourier-space kinetic energy from the FFT results, and radially bins wrapped FFT modes to form the final 1D isotropic spectrum `E(k)`
 
 ## References
