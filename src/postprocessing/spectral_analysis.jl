@@ -6,49 +6,56 @@
 #! format: noindent
 
 """
-    compute_energy_spectrum(sol; kwargs...)
+    compute_kinetic_energy_spectrum(sol; kwargs...)
 
-Compute the energy spectrum from the final state of an ODE solution returned by
-`solve`. Keyword arguments are forwarded to the semidiscretization-specific method.
+Compute the isotropic kinetic energy spectrum from the final state of an ODE
+solution returned by `solve`.
+"""
+function compute_kinetic_energy_spectrum(sol; kwargs...)
+    return compute_kinetic_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
+end
+
+"""
+    compute_kinetic_energy_spectrum(u_ode, semi; kwargs...)
+
+Compute the isotropic kinetic energy spectrum from an ODE state vector `u_ode`
+and a Trixi
+semidiscretization `semi`. The state is converted to the solver-native array
+layout before dispatching to the mesh/solver-specific method.
+
+Currently, implemented methods are restricted to
+`AbstractCompressibleEulerEquations` for
+- `TreeMesh` + `DGSEM` data (via interpolation from LGL nodes to a uniform
+  Cartesian grid), and
+- `DGMultiMesh` + `DGMultiSBP` data (already sampled on a Cartesian grid)
 
 ## Returns
-- `energy_spectrum`: 1D vector holding the isotropic kinetic energy spectrum `E(k)` binned by integer wavenumber shell
+- `energy_spectrum`: 1D vector holding the isotropic kinetic energy spectrum
+  `E(k)` binned by integer wavenumber shell
 - `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
 
 ## Constructs internally
-- For DGSEM TreeMesh data, it interpolates from LGL nodes to a uniform Cartesian grid before applying FFTs
-- It forms density weighted velocity fields `sqrt(rho) * v_i`, computes Fourier-space kinetic energy from the FFT results, and radially bins wrapped FFT modes to form the final 1D isotropic spectrum `E(k)`
+- For DGSEM `TreeMesh` data, it interpolates from LGL nodes to a uniform
+  Cartesian grid before applying FFTs
+- It forms density-weighted velocity fields `sqrt(rho) * v_i`, computes
+  Fourier-space kinetic energy from the FFT results, and radially bins wrapped
+  FFT modes to form the final 1D isotropic spectrum `E(k)`
 
 ## References
 
 - Winters, Moura, Mengaldo, Gassner, Walch, Peiro, et al. (2018)
-  A comparative study on polynomial dealiasing and split form discontinuous Galerkin
-  schemes for under-resolved turbulence computations
+  A comparative study on polynomial dealiasing and split form discontinuous
+  Galerkin schemes for under-resolved turbulence computations
   [DOI: 10.1016/j.jcp.2018.05.049](https://doi.org/10.1016/j.jcp.2018.06.016)
 """
-function compute_energy_spectrum(sol; kwargs...)
-    return compute_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
+function compute_kinetic_energy_spectrum(u_ode,
+                                         semi::AbstractSemidiscretization;
+                                         kwargs...)
+    return compute_kinetic_energy_spectrum(wrap_array_native(u_ode, semi),
+                                           mesh_equations_solver_cache(semi)...;
+                                           kwargs...)
 end
 
-"""
-    compute_energy_spectrum(u_ode, semi; kwargs...)
-
-Compute the energy spectrum from an ODE state vector `u_ode` and a Trixi
-semidiscretization `semi`. The state is converted to the solver-native array
-layout before dispatching to the mesh/solver-specific method.
-"""
-function compute_energy_spectrum(u_ode, semi::AbstractSemidiscretization; kwargs...)
-    return compute_energy_spectrum(wrap_array_native(u_ode, semi),
-                                   mesh_equations_solver_cache(semi)...; kwargs...)
-end
-
-"""
-    compute_energy_spectrum(u, mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
-                            solver::DGSEM, cache; normalize = true)
-
-Compute the energy spectrum for a non-AMR `TreeMesh`/`DGSEM` solution by first
-interpolating the solution from LGL nodes to a uniform Cartesian grid.
-"""
 function radial_energy_spectrum(energy_modes)
     # Convert the multi-dimensional Fourier energy into the
     # 1D isotropic spectrum E by summing all modes whose
@@ -92,7 +99,8 @@ function radial_energy_spectrum(energy_modes)
     return energy_spectrum, wavenumbers
 end
 
-function dgmulti_primitive_variables(u, equations, dg, ::Val{NDIMS}) where {NDIMS}
+function dgmulti_primitive_variables(u, equations, dg::DGMultiSBP,
+                                     ::Val{NDIMS}) where {NDIMS}
     # Uses primitive variables from the solution vector
     u_values = StructArray(u)
     n_points = length(u_values)

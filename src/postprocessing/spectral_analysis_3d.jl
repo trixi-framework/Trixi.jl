@@ -6,18 +6,19 @@
 #! format: noindent
 
 """
-    compute_energy_spectrum(v1, v2, v3; normalize = true)
+    compute_kinetic_energy_spectrum(v1, v2, v3; normalize = true)
 
 Compute an isotropic 1D kinetic energy spectrum from three 3D Cartesian velocity
-components `v1`, `v2`, `v3`.
+components `v1`, `v2`, `v3`. For compressible Euler kinetic energy spectra, 
+pass density-weighted components `sqrt(rho) * v1`, `sqrt(rho) * v2`, and `sqrt(rho) * v3`.
 """
-function compute_energy_spectrum(v1::AbstractArray{<:Any, 3},
-                                 v2::AbstractArray{<:Any, 3},
-                                 v3::AbstractArray{<:Any, 3};
-                                 normalize = true)
+function compute_kinetic_energy_spectrum(v1::AbstractArray{<:Any, 3},
+                                         v2::AbstractArray{<:Any, 3},
+                                         v3::AbstractArray{<:Any, 3};
+                                         normalize = true)
 
     # Compute the energy modes using FFTW
-    energy_modes = 0.5 .* (abs2.(fft(v1)) .+ abs2.(fft(v2)) .+ abs2.(fft(v3)))
+    energy_modes = 0.5f0 .* (abs2.(fft(v1)) .+ abs2.(fft(v2)) .+ abs2.(fft(v3)))
     if normalize
         energy_modes ./= length(energy_modes)^2
     end
@@ -26,34 +27,35 @@ function compute_energy_spectrum(v1::AbstractArray{<:Any, 3},
 end
 
 # Multiple dispatch for handling tuples of velocity components
-function compute_energy_spectrum(velocity_cartesian::NTuple{3, AbstractArray};
-                                 normalize = true)
-    compute_energy_spectrum(velocity_cartesian...;
-                            normalize = normalize)
+function compute_kinetic_energy_spectrum(velocity_cartesian::NTuple{3, AbstractArray};
+                                         normalize = true)
+    compute_kinetic_energy_spectrum(velocity_cartesian...;
+                                    normalize = normalize)
 end
 
 """
-    compute_energy_spectrum(u, mesh::TreeMesh{3}, equations, solver::DGSEM, cache;
-                            normalize = true)
+    compute_kinetic_energy_spectrum(u, mesh::TreeMesh{3}, equations, solver::DGSEM,
+                                    cache; normalize = true)
 
 Compute the energy spectrum for a non-AMR 3D `TreeMesh`/`DGSEM` solution by first
 interpolating from LGL nodes to a uniform Cartesian grid.
 """
-function compute_energy_spectrum(u, mesh::TreeMesh{3},
-                                 equations::AbstractCompressibleEulerEquations,
-                                 solver::DGSEM, cache;
-                                 normalize = true)
+function compute_kinetic_energy_spectrum(u, mesh::TreeMesh{3},
+                                         equations::AbstractCompressibleEulerEquations,
+                                         solver::DGSEM, cache;
+                                         normalize = true)
     primitive_variables = interpolate_lgl_to_uniform_cartesian(u, mesh, equations,
                                                                solver,
                                                                cache)
     rho = primitive_variables[1]
+    # Convert primitive velocity components to density-weighted form before FFT
     density_weighted_velocity_1 = sqrt.(rho) .* primitive_variables[2]
     density_weighted_velocity_2 = sqrt.(rho) .* primitive_variables[3]
     density_weighted_velocity_3 = sqrt.(rho) .* primitive_variables[4]
 
-    return compute_energy_spectrum(density_weighted_velocity_1,
-                                   density_weighted_velocity_2,
-                                   density_weighted_velocity_3; normalize)
+    return compute_kinetic_energy_spectrum(density_weighted_velocity_1,
+                                           density_weighted_velocity_2,
+                                           density_weighted_velocity_3; normalize)
 end
 
 function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
@@ -143,24 +145,25 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
 end
 
 """
-    compute_energy_spectrum(u, mesh::DGMultiMesh{3}, equations, dg::DGMultiSBP, cache;
-                            normalize = true)
+    compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{3}, equations,
+                                    dg::DGMultiSBP, cache; normalize = true)
 
 Compute the energy spectrum for a 3D `DGMulti` finite-difference SBP solution whose
 nodes already form a uniform Cartesian grid.
 """
-function compute_energy_spectrum(u, mesh::DGMultiMesh{3},
-                                 equations::AbstractCompressibleEulerEquations,
-                                 dg::DGMultiSBP, cache;
-                                 normalize = true)
+function compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{3},
+                                         equations::AbstractCompressibleEulerEquations,
+                                         dg::DGMultiSBP, cache;
+                                         normalize = true)
     primitive_variables = dgmulti_primitive_variables(u, equations, dg, Val(3))
     rho = primitive_variables[1]
+    # Convert primitive velocity components to density-weighted form before FFT
     density_weighted_velocity_1 = sqrt.(rho) .* primitive_variables[2]
     density_weighted_velocity_2 = sqrt.(rho) .* primitive_variables[3]
     density_weighted_velocity_3 = sqrt.(rho) .* primitive_variables[4]
 
-    return compute_energy_spectrum(density_weighted_velocity_1,
-                                   density_weighted_velocity_2,
-                                   density_weighted_velocity_3; normalize)
+    return compute_kinetic_energy_spectrum(density_weighted_velocity_1,
+                                           density_weighted_velocity_2,
+                                           density_weighted_velocity_3; normalize)
 end
 end # @muladd

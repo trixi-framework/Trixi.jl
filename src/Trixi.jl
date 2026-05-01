@@ -342,7 +342,7 @@ export trixi_include, examples_dir, get_examples, default_example,
 export ode_norm, ode_unstable_check
 
 export convergence_test,
-       compute_energy_spectrum,
+       compute_kinetic_energy_spectrum,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
        linear_structure, linear_structure_parabolic
 

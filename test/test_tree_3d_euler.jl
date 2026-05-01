@@ -187,7 +187,7 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
-    energy_spectrum, wavenumbers = compute_energy_spectrum(sol)
+    energy_spectrum, wavenumbers = compute_kinetic_energy_spectrum(sol)
     @test energy_spectrum[1:6]≈[
         1.386908480876281e-34,
         1.723663105028009e-32,

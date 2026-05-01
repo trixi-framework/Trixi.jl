@@ -34,13 +34,13 @@ isdir(outdir) && rm(outdir, recursive = true)
 #! format: noindent
 
 @timed_testset "Spectral analysis" begin
-    @testset "compute_energy_spectrum" begin
+    @testset "compute_kinetic_energy_spectrum" begin
         rho_2d = ones(4, 4)
         velocity_1_2d = ones(4, 4)
         velocity_2_2d = zeros(4, 4)
 
-        energy_spectrum_2d, wavenumbers_2d = Trixi._compute_energy_spectrum(velocity_1_2d,
-                                                                            velocity_2_2d)
+        energy_spectrum_2d, wavenumbers_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
+                                                                                   velocity_2_2d)
         @test wavenumbers_2d == 0:3
         @test energy_spectrum_2d[1] ≈ 0.5
         @test all(isapprox.(energy_spectrum_2d[2:end], 0, atol = 100 * eps()))
@@ -49,10 +49,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                           for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
         velocity_2_2d .= [cos(2 * pi * (j - 1) / size(rho_2d, 2))
                           for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
-        energy_spectrum_2d, _ = Trixi._compute_energy_spectrum(sqrt.(rho_2d) .*
-                                                               velocity_1_2d,
-                                                               sqrt.(rho_2d) .*
-                                                               velocity_2_2d)
+        energy_spectrum_2d, _ = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_2d) .*
+                                                                      velocity_1_2d,
+                                                                      sqrt.(rho_2d) .*
+                                                                      velocity_2_2d)
         mean_kinetic_energy_2d = sum(@. 0.5 * rho_2d *
                                         (velocity_1_2d^2 + velocity_2_2d^2)) /
                                  length(rho_2d)
@@ -63,9 +63,9 @@ isdir(outdir) && rm(outdir, recursive = true)
         velocity_2_3d = zeros(4, 4, 4)
         velocity_3_3d = zeros(4, 4, 4)
 
-        energy_spectrum_3d, wavenumbers_3d = Trixi._compute_energy_spectrum(velocity_1_3d,
-                                                                            velocity_2_3d,
-                                                                            velocity_3_3d)
+        energy_spectrum_3d, wavenumbers_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
+                                                                                   velocity_2_3d,
+                                                                                   velocity_3_3d)
         @test wavenumbers_3d == 0:3
         @test energy_spectrum_3d[1] ≈ 0.5
         @test all(isapprox.(energy_spectrum_3d[2:end], 0, atol = 100 * eps()))
@@ -79,12 +79,12 @@ isdir(outdir) && rm(outdir, recursive = true)
         velocity_3_3d .= [sin(2 * pi * (k - 1) / size(rho_3d, 3))
                           for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
                               k in axes(rho_3d, 3)]
-        energy_spectrum_3d, _ = Trixi._compute_energy_spectrum(sqrt.(rho_3d) .*
-                                                               velocity_1_3d,
-                                                               sqrt.(rho_3d) .*
-                                                               velocity_2_3d,
-                                                               sqrt.(rho_3d) .*
-                                                               velocity_3_3d)
+        energy_spectrum_3d, _ = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_3d) .*
+                                                                      velocity_1_3d,
+                                                                      sqrt.(rho_3d) .*
+                                                                      velocity_2_3d,
+                                                                      sqrt.(rho_3d) .*
+                                                                      velocity_3_3d)
         mean_kinetic_energy_3d = sum(@. 0.5 * rho_3d *
                                         (velocity_1_3d^2 + velocity_2_3d^2 +
                                          velocity_3_3d^2)) /

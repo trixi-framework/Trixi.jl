@@ -555,7 +555,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
     # Test Spectral Analysis Post Processing
-    energy_spectrum, wavenumbers = compute_energy_spectrum(sol)
+    energy_spectrum, wavenumbers = compute_kinetic_energy_spectrum(sol)
     @test energy_spectrum[1:6]≈[
         1.9993746355056,
         0.0006253399291566656,
