@@ -149,8 +149,8 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_hyperbolic(t) * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
-                  solver, cache)
+                  have_constant_speed(equations), semi, equations, solver, cache,
+                  solver.volume_integral)
 end
 
 # Case for a purely parabolic semidiscretization
@@ -171,8 +171,25 @@ function calculate_dt(u_ode, t, cfl_hyperbolic::Real, cfl_parabolic::Real,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_hyperbolic * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
-                  solver, cache)
+                  have_constant_speed(equations), semi, equations, solver, cache,
+                  solver.volume_integral)
+end
+
+function max_dt(u, t, mesh, constant_speed, semi, equations, solver, cache,
+                volume_integral::AbstractVolumeIntegral)
+    max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+end
+
+@inline function max_dt(u, t, mesh,
+                        constant_speed, semi, equations, solver, cache,
+                        volume_integral::VolumeIntegralSubcellLimiting)
+    @unpack limiter = volume_integral
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+    else
+        return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                      limiter)
+    end
 end
 
 # Case for a hyperbolic-parabolic semidiscretization

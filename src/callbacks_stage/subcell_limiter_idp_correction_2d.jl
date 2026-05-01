@@ -29,7 +29,14 @@ function perform_idp_correction!(u, dt,
     # To avoid adding zeros and speed up the simulation, we directly loop over the subcell
     # interfaces.
 
-    @threaded for element in eachelement(dg, cache)
+    if dg.volume_integral isa VolumeIntegralSubcellLimiting &&
+       dg.volume_integral.limiter.smoothness_indicator
+        elements = cache.element_ids_dgfv
+    else
+        elements = eachelement(dg, cache)
+    end
+
+    @threaded for element in elements
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue

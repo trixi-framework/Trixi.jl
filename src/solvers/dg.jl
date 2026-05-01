@@ -172,7 +172,7 @@ struct VolumeIntegralShockCapturingHGType{Indicator, VolumeIntegralDefault,
     indicator::Indicator
 
     # In classic HG shock capturing this is also `VolumeIntegralBlendHighOrder`.
-    # This implementation is a generalization, which allows also usage of e.g. 
+    # This implementation is a generalization, which allows also usage of e.g.
     # the (potentially) cheaper weak form volume integral.
     volume_integral_default::VolumeIntegralDefault
 
@@ -293,12 +293,12 @@ end
 Generalized Henneman-Gassner a-priori shock-capturing volume integral for DG methods.
 Works naturally with the a-priori [`IndicatorHennemannGassner`](@ref) `indicator`.
 
-In the non-stabilized region, `volume_integral_default` is used, 
+In the non-stabilized region, `volume_integral_default` is used,
 which is typically a high-order accurate volume integral such as [`VolumeIntegralWeakForm`](@ref)
 or [`VolumeIntegralFluxDifferencing`](@ref).
 
 The volume integral used for the DG portion in the convex blending `volume_integral_blend_high_order` is blended with
-the `volume_integral_blend_low_order` to achieve shock-capturing behaviour. 
+the `volume_integral_blend_low_order` to achieve shock-capturing behaviour.
 This is typically a symmetric, entropy-conservative volume integral such as [`VolumeIntegralFluxDifferencing`](@ref),
 but [`VolumeIntegralWeakForm`](@ref) can be used (in principle) as well.
 
@@ -449,7 +449,7 @@ an entropy-conservative volume integral (i.e., [`VolumeIntegralFluxDifferencing`
 for stability, but not everywhere in the domain.
 In such cases, the `volume_integral_default` can be a cheaper volume integral such as [`VolumeIntegralWeakForm`](@ref).
 
-For reference, see 
+For reference, see
 - Doehring, Chan, Ranocha, Schlottke-Lakemper, Torrilhon, Gassner (2026)
   Volume Term Adaptivity for Discontinuous Galerkin Schemes
   [DOI: 10.48550/arXiv.2603.24189](https://doi.org/10.48550/arXiv.2603.24189)
@@ -703,7 +703,8 @@ end
                                   volume_flux_fv = flux_lax_friedrichs)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. Used with the limiters [`SubcellLimiterIDP`](@ref) and
+[`SubcellLimiterMCL`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
@@ -741,6 +742,19 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
     end
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralSubcellLimiting, dg,
+                                cache)
+    if volume_integral.limiter.smoothness_indicator
+        # call the element-wise limiter to get up-to-date values for IO
+        volume_integral.limiter.IndicatorHG(u, mesh, equations, dg, cache)
+        return get_element_variables!(element_variables, volume_integral.limiter,
+                                      volume_integral)
+    end
+
+    return nothing
 end
 
 # Check if subcell limiting should be performed for a given element.

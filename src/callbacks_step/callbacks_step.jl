@@ -61,6 +61,7 @@ include("averaging.jl")
 
 include("amr.jl")
 include("stepsize.jl")
+include("limiting_analysis.jl")
 include("glm_speed.jl")
 include("lbm_collision.jl")
 include("euler_acoustics_coupling.jl")
