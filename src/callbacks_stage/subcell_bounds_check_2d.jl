@@ -31,6 +31,7 @@
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
+
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
                     # Note: We always save the absolute deviations >= 0 and therefore use the
@@ -56,6 +57,7 @@
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
+
                 for j in eachnode(solver), i in eachnode(solver)
                     v = variable(get_node_vars(u, equations, solver, i, j, element),
                                  equations)
@@ -82,6 +84,7 @@
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
+
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
                     deviation = max(deviation,
@@ -97,6 +100,7 @@
 
                 # detect if subcell limiting is necessary
                 perform_subcell_limiting(solver.volume_integral, element) || continue
+
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)

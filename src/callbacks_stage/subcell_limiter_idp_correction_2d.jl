@@ -33,6 +33,7 @@ function perform_idp_correction!(u, dt,
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
+
         # Perform correction in 1st/x-direction
         for j in eachnode(dg), i in 2:nnodes(dg)
             # Subcell interface between nodes (i - 1, j) and (i, j)
