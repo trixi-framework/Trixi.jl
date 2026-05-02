@@ -15,6 +15,7 @@ The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2
 - A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 - Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
+- Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
 
 ## Changes when updating to v0.16 from v0.15.x
 
