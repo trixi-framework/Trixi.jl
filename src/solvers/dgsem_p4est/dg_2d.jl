@@ -609,17 +609,45 @@ end
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+
+function prolong2boundaries!(backend::Backend, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, dg::DG)
     @unpack boundaries = cache
+		@unpack neighbor_ids, node_indices = boundaries
     index_range = eachnode(dg)
+    nboundaries = length(eachboundary(dg, cache))  
+	kernel_cache = kernel_filter_cache(cache)
+		kernel! = prolong2boundaries_kernel!(backend)
+		kernel!(index_range, boundaries.u, neighbor_ids, node_indices, kernel_cache, u, typeof(mesh), equations, dg, ndrange = nboundaries)
+    return nothing
+end
 
+@kernel function prolong2boundaries_kernel!(index_range, u_boundaries, neighbor_ids, node_indicies, cache, u, mesh, equations, dg)
+
+boundary = @index(Global)
+prolong2boundaries_per_boundary!(boundary, index_range, u_boundaries, neighbor_ids, node_indices, cache, u, mesh, equations, dg)
+
+end
+
+function prolong2boundaries!(backend::Nothing, cache, u,
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                             equations, dg::DG)
+    @unpack boundaries = cache
+		@unpack neighbor_ids, node_indices = boundaries
+    index_range = eachnode(dg)
     @threaded for boundary in eachboundary(dg, cache)
+			prolong2boundaries_per_boundary!(boundary, index_range, boundaries.u, neighbor_ids, node_indices, cache, u, typeof(mesh), equations, dg)
+    end
+
+    return nothing
+end
+
+function prolong2boundaries_per_boundary!(boundary, index_range, u_boundaries, neighbor_ids, node_indices, cache, u, mesh,equations, dg)
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
+        element = neighbor_ids[boundary]
+        node_indices = node_indices[boundary]
 
         i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
         j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
@@ -628,14 +656,11 @@ function prolong2boundaries!(cache, u,
         j_node = j_node_start
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
+         u_boundaries[v, i, boundary] = u[v, i_node, j_node, element]
             end
             i_node += i_node_step
             j_node += j_node_step
         end
-    end
-
-    return nothing
 end
 
 # We require this function definition, as the function calls for the
