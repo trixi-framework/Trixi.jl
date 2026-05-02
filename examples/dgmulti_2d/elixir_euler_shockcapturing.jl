@@ -6,7 +6,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-# A continuous version of the blast wave initial condition to avoid floating point 
+# A continuous version of the blast wave initial condition to avoid floating point
 # issues when evaluating polar coordinates or evaluating at the discontinuity
 function initial_condition_weak_C0_blast_wave(x, t,
                                               equations::CompressibleEulerEquations2D)
@@ -47,7 +47,7 @@ function initial_condition_weak_C0_blast_wave(x, t,
 end
 initial_condition = initial_condition_weak_C0_blast_wave
 
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 
 polydeg = 3
