@@ -211,8 +211,8 @@ function (euler_acoustics_coupling::EulerAcousticsCouplingCallback)(integrator_a
     end
 
     # avoid re-evaluation possible FSAL stages
-    u_modified!(integrator_acoustics, false)
-    u_modified!(integrator_euler, false)
+    derivative_discontinuity!(integrator_acoustics, false)
+    derivative_discontinuity!(integrator_euler, false)
 
     return nothing
 end

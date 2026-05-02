@@ -134,7 +134,7 @@
 # ````
 # Then, the limiter is added to the time integration method in the `solve` function. For instance, like
 # ````julia
-# CarpenterKennedy2N54(stage_limiter!, williamson_condition=false)
+# CarpenterKennedy2N54(; stage_limiter!, williamson_condition=false)
 # ````
 # or
 # ````julia
@@ -229,7 +229,7 @@ callbacks = CallbackSet(analysis_callback, stepsize_callback);
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                      variables = (Trixi.density, pressure))
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false);
+sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
@@ -363,7 +363,7 @@ callbacks = CallbackSet(summary_callback,
 stage_limiter! = EntropyBoundedLimiter()
 
 # We run the simulation with the SSPRK33 method and the entropy bounded limiter:
-sol = solve(ode, SSPRK33(stage_limiter!);
+sol = solve(ode, SSPRK33(; stage_limiter!);
             dt = 1.0,
             callback = callbacks);
 

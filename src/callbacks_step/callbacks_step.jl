@@ -30,6 +30,15 @@ end
            integrator.iter == integrator.opts.maxiters
 end
 
+# OrdinaryDiffEq v7+ wraps the controller in controller_cache.controller;
+# older versions store it directly in controller_cache or opts.controller.
+function get_controller(integrator)
+    cc = hasproperty(integrator, :controller_cache) ?
+         integrator.controller_cache : integrator.opts.controller
+    controller = hasproperty(cc, :controller) ? cc.controller : cc
+    return controller
+end
+
 # `include` callback definitions in the order that we currently prefer
 # when combining them into a `CallbackSet` which is called *after* a complete step
 # The motivation is as follows: The first callbacks belong to the current time step iteration:

@@ -105,7 +105,8 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # run the simulation
 
+ode_algorithm = SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.Threaded())
 # use adaptive time stepping based on error estimates
-sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
-            controller = PIDController(0.55, -0.27, 0.05),
+sol = solve(ode, ode_algorithm;
+            controller = PIDController(ode_algorithm, beta = (0.55, -0.27, 0.05)),
             ode_default_options()..., callback = callbacks);

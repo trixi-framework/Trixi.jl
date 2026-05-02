@@ -110,6 +110,6 @@ stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1.3e-4)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(; stage_limiter!);
             dt = 1e-2, ode_default_options()..., adaptive = true,
             callback = callbacks);
