@@ -125,13 +125,13 @@ function rhs_parabolic!(du, u, t,
 
     # Local, i.e., non-MPI interface/boundary/mortar fluxes
     calc_interfaces_local!(cache, flux_parabolic, mesh, equations_parabolic,
-                             dg, parabolic_scheme)
+                           dg, parabolic_scheme)
 
     calc_boundaries_local!(cache, flux_parabolic, t, mesh, equations_parabolic,
-                             boundary_conditions_parabolic, dg)
+                           boundary_conditions_parabolic, dg)
 
     calc_mortars_local!(cache, flux_parabolic, mesh, equations_parabolic,
-                          dg, parabolic_scheme)
+                        dg, parabolic_scheme)
 
     # Finish divergence MPI receive
     @trixi_timeit timer() "finish MPI receive divergence" begin
@@ -176,8 +176,8 @@ function rhs_parabolic!(du, u, t,
 end
 
 function calc_interfaces_local!(cache, flux_parabolic,
-                                  mesh::P4estMeshParallel, equations_parabolic,
-                                  dg::DG, parabolic_scheme)
+                                mesh::P4estMeshParallel, equations_parabolic,
+                                dg::DG, parabolic_scheme)
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
     end
@@ -191,8 +191,8 @@ function calc_interfaces_local!(cache, flux_parabolic,
 end
 
 function calc_boundaries_local!(cache, flux_parabolic, t,
-                                  mesh::P4estMeshParallel, equations_parabolic,
-                                  boundary_conditions_parabolic, dg::DG)
+                                mesh::P4estMeshParallel, equations_parabolic,
+                                boundary_conditions_parabolic, dg::DG)
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
     end
@@ -208,8 +208,8 @@ function calc_boundaries_local!(cache, flux_parabolic, t,
 end
 
 function calc_mortars_local!(cache, flux_parabolic,
-                               mesh::P4estMeshParallel, equations_parabolic,
-                               dg::DG, parabolic_scheme)
+                             mesh::P4estMeshParallel, equations_parabolic,
+                             dg::DG, parabolic_scheme)
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars_divergence!(cache, flux_parabolic, mesh, equations_parabolic,
                                     dg.mortar, dg)
