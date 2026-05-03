@@ -325,6 +325,9 @@ end
                             0.3386662161532019
                         ])
     # No `@test_allocations`: HG shock capturing on this Gmsh mesh allocates in `rhs!`.
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
