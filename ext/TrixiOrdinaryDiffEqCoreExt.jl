@@ -89,8 +89,8 @@ function store_controller!(file, controller::PIDController, integrator)
     else
         # OrdinaryDiffEqCore v3.32–v3.33
         attributes(file)["time_integrator_controller_err"] = [controller.err1,
-                                                              controller.err2,
-                                                              controller.err3]
+            controller.err2,
+            controller.err3]
     end
 end
 

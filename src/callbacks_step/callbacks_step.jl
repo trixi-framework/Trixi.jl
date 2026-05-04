@@ -34,7 +34,8 @@ end
 # doubles as its own cache (setup_controller_cache returns the controller itself).
 # OrdinaryDiffEqCore >= v4: controller cache lives in integrator.controller_cache.
 get_controller_cache(integrator) = hasproperty(integrator, :controller_cache) ?
-                                   integrator.controller_cache : integrator.opts.controller
+                                   integrator.controller_cache :
+                                   integrator.opts.controller
 
 # OrdinaryDiffEq v7+ wraps the pure controller (parameters only) in controller_cache.controller;
 # older versions store it directly in controller_cache or opts.controller.
