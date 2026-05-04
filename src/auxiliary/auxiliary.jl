@@ -360,7 +360,7 @@ function download(src_url, file_path)
             catch
                 # Otherwise the other processes will wait indefinitely at the barrier below.
                 if mpi_isparallel()
-                    MPI.Barrier(mpi_comm())
+                    MPI.Abort(mpi_comm(), 1)
                 end
                 rethrow()
             end
