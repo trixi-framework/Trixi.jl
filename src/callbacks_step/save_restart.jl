@@ -169,8 +169,6 @@ Load the context information for time integrators with error-based step size con
 saved in a `restart_file`.
 """
 function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
-    controller = hasproperty(integrator, :controller_cache) ?
-                 integrator.controller_cache : integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
         # Ensure that the necessary information was saved
@@ -183,12 +181,24 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
 
-        load_controller!(integrator, controller, file)
+        load_controller!(integrator, file)
     end
+end
+
+function load_controller!(integrator, file)
+    return load_controller!(integrator, get_controller_cache(integrator), file)
 end
 
 function load_controller!(integrator, controller, file)
     return error("Loading of controller $(typeof(controller)) not implemented.")
+end
+
+function store_controller!(file, integrator)
+    return store_controller!(file, get_controller_cache(integrator), integrator)
+end
+
+function store_controller!(file, controller, integrator)
+    return error("Storing of controller $(typeof(controller)) not implemented.")
 end
 
 include("save_restart_dg.jl")

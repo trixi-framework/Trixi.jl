@@ -30,13 +30,17 @@ end
            integrator.iter == integrator.opts.maxiters
 end
 
-# OrdinaryDiffEq v7+ wraps the controller in controller_cache.controller;
+# OrdinaryDiffEqCore < v4: legacy controller lives in integrator.opts.controller and
+# doubles as its own cache (setup_controller_cache returns the controller itself).
+# OrdinaryDiffEqCore >= v4: controller cache lives in integrator.controller_cache.
+get_controller_cache(integrator) = hasproperty(integrator, :controller_cache) ?
+                                   integrator.controller_cache : integrator.opts.controller
+
+# OrdinaryDiffEq v7+ wraps the pure controller (parameters only) in controller_cache.controller;
 # older versions store it directly in controller_cache or opts.controller.
 function get_controller(integrator)
-    cc = hasproperty(integrator, :controller_cache) ?
-         integrator.controller_cache : integrator.opts.controller
-    controller = hasproperty(cc, :controller) ? cc.controller : cc
-    return controller
+    cc = get_controller_cache(integrator)
+    return hasproperty(cc, :controller) ? cc.controller : cc
 end
 
 # `include` callback definitions in the order that we currently prefer
