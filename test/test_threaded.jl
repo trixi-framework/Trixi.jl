@@ -47,7 +47,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         using OrdinaryDiffEqSSPRK: SSPRK43
         println("═"^100)
         base_elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                          "elixir_advection_timeintegration_adaptive.jl")
+                               "elixir_advection_timeintegration_adaptive.jl")
         println(base_elixir)
         trixi_include(@__MODULE__,
                       base_elixir, alg = SSPRK43(), tspan = (0.0, 10.0))
