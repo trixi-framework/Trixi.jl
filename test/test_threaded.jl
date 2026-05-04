@@ -46,24 +46,25 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         # Perform a standard simulation
         using OrdinaryDiffEqSSPRK: SSPRK43
         println("═"^100)
-        println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
+        base_elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                          "elixir_advection_timeintegration_adaptive.jl")
+        println(base_elixir)
         trixi_include(@__MODULE__,
-                      joinpath(EXAMPLES_DIR,
-                               "elixir_advection_timeintegration_adaptive.jl"),
-                      alg = SSPRK43(), tspan = (0.0, 10.0))
+                      base_elixir, alg = SSPRK43(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
         # Perform a simulation restarting from an intermediate state
         println("═"^100)
-        println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+        elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                          "elixir_advection_restart.jl")
+        println(elixir)
         trixi_include(@__MODULE__,
-                      joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                      alg = SSPRK43(),
-                      base_elixir = "elixir_advection_timeintegration_adaptive.jl")
+                      elixir, alg = SSPRK43(),
+                      base_elixir = base_elixir)
         l2_actual, linf_actual = analysis_callback(sol)
 
         # Check whether the errors are exactly the same as in the uninterrupted run
-        # using the default low-storage RK method with a StepsizeCallback.
+        # using the default SSPRK method with error-based step size control.
         @test l2_actual == l2_expected
         @test linf_actual == linf_expected
     end
