@@ -357,12 +357,9 @@ function download(src_url, file_path)
             end
             try
                 Downloads.download(src_url, file_path; headers)
-            catch
-                # Otherwise the other processes will wait indefinitely at the barrier below.
-                if mpi_isparallel()
-                    MPI.Abort(mpi_comm(), 1)
-                end
-                rethrow()
+            catch exc
+                # Turn exception into something a warning, otherwise the other ranks will wait indefinitely at the barrier below.
+                @error "Failed to download $src_url to $file_path" exception = exc
             end
         end
     end
