@@ -236,6 +236,7 @@ end
         end
 
         orientation = cache.interfaces.orientations[interface]
+
         for i in eachnode(dg)
             # Define node indices for left and right element based on the interface orientation
             if orientation == 1
@@ -311,7 +312,7 @@ end
 # Local minimum and maximum limiting of conservative variables
 
 @inline function idp_local_twosided!(alpha, limiter, u::AbstractArray{<:Any, 4},
-                                     t, dt, semi, elements, variable)
+                                     t, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
@@ -324,7 +325,7 @@ end
         calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
     end
 
-    @threaded for element in elements
+    @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
@@ -379,7 +380,7 @@ end
 # Local minimum or maximum limiting of nonlinear variables
 
 @inline function idp_local_onesided!(alpha, limiter, u::AbstractArray{<:Real, 4},
-                                     t, dt, semi, elements, variable, min_or_max)
+                                     t, dt, semi, variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
@@ -388,7 +389,7 @@ end
     end
 
     # Perform Newton's bisection method to find new alpha
-    @threaded for element in elements
+    @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
@@ -412,7 +413,7 @@ end
 
 @inline function idp_positivity_conservative!(alpha, limiter,
                                               u::AbstractArray{<:Real, 4},
-                                              dt, semi, elements, variable)
+                                              dt, semi, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -421,7 +422,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in elements
+    @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
@@ -482,14 +483,15 @@ end
 
 @inline function idp_positivity_nonlinear!(alpha, limiter,
                                            u::AbstractArray{<:Real, 4},
-                                           dt, semi, elements, variable)
+                                           dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in elements
+    # TODO
+    @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue

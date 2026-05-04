@@ -500,11 +500,11 @@ end
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
                                     true, [(entropy_guermond_etal, min)], true,
-                                    "cache", 1, (1.0, 1.0), 1.0, true, 1.0, nothing)
+                                    "cache", 1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     limiter_mcl = SubcellLimiterMCL("cache", true, true, true, true, true, true, true,
-                                    1.0, true, true, 1.0, nothing, true)
+                                    1.0, true, true)
     @test_nowarn show(stdout, limiter_mcl)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))

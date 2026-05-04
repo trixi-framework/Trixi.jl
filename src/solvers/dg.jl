@@ -744,19 +744,6 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_element_variables!(element_variables, u, mesh, equations,
-                                volume_integral::VolumeIntegralSubcellLimiting, dg,
-                                cache)
-    if volume_integral.limiter.smoothness_indicator
-        # call the element-wise limiter to get up-to-date values for IO
-        volume_integral.limiter.IndicatorHG(u, mesh, equations, dg, cache)
-        return get_element_variables!(element_variables, volume_integral.limiter,
-                                      volume_integral)
-    end
-
-    return nothing
-end
-
 # Check if subcell limiting should be performed for a given element.
 # Always true for pure `VolumeIntegralSubcellLimiting`,
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.

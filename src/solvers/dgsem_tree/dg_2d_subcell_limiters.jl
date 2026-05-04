@@ -11,11 +11,6 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{2}, StructuredMesh{2
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        dg::DG, cache_containers, uEltype)
     cache = NamedTuple()
-    if volume_integral.limiter.smoothness_indicator
-        element_ids_dg = Int[]
-        element_ids_dgfv = Int[]
-        cache = (; cache..., element_ids_dg, element_ids_dgfv)
-    end
 
     fhat1_L_threaded, fhat1_R_threaded,
     fhat2_L_threaded, fhat2_R_threaded = create_f_threaded(mesh, equations, dg,
@@ -89,42 +84,10 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                                                         limiter, dg,
                                                                         cache)
 
-    if limiter.smoothness_indicator
-        (; element_ids_dg, element_ids_dgfv) = cache
-        # Calculate element-wise blending factors α
-        alpha_element = @trixi_timeit timer() "element-wise blending factors" limiter.IndicatorHG(u,
-                                                                                                  mesh,
-                                                                                                  equations,
-                                                                                                  dg,
-                                                                                                  cache)
-
-        # Determine element ids for DG-only and subcell-wise blended DG-FV volume integral
-        pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha_element,
-                                      dg, cache)
-
-        # Loop over pure DG elements
-        @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
-            element = element_ids_dg[idx_element]
-            flux_differencing_kernel!(du, u, element, typeof(mesh),
-                                      have_nonconservative_terms, equations,
-                                      volume_integral.volume_flux_dg, dg, cache)
-        end
-
-        # Loop over blended DG-FV elements
-        @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
-            element = element_ids_dgfv[idx_element]
-            volume_integral_kernel!(du, u, element, typeof(mesh),
-                                    have_nonconservative_terms, equations,
-                                    volume_integral, dg, cache)
-        end
-    else # limiter.smoothness_indicator == false
-        # Loop over all elements
-        @trixi_timeit timer() "subcell-wise blended DG-FV" @threaded for element in eachelement(dg,
-                                                                                                cache)
-            volume_integral_kernel!(du, u, element, typeof(mesh),
-                                    have_nonconservative_terms, equations,
-                                    volume_integral, dg, cache)
-        end
+    @threaded for element in eachelement(dg, cache)
+        volume_integral_kernel!(du, u, element, typeof(mesh),
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
 
     return nothing

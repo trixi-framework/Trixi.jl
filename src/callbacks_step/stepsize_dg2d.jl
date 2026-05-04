@@ -85,91 +85,81 @@ end
     @unpack lambda1, lambda2 = limiter.cache.container_bar_states
 
     maxdt = typemax(eltype(u))
-    if limiter.smoothness_indicator
-        @unpack element_ids_dg, element_ids_dgfv = cache
-        alpha_element = @trixi_timeit timer() "element-wise blending factors" limiter.IndicatorHG(u,
-                                                                                                  mesh,
-                                                                                                  equations,
-                                                                                                  dg,
-                                                                                                  cache)
-        pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha_element,
-                                      dg, cache)
-    else
-        element_ids_dgfv = eachelement(dg, cache)
+    if dg.volume_integral isa VolumeIntegralAdaptive
+        dg.volume_integral.indicator(u, mesh, equations, dg, cache)
     end
 
-    for idx_element in eachindex(element_ids_dgfv)
-        element = element_ids_dgfv[idx_element]
+    for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+
         if mesh isa TreeMesh
-            J = 1 / cache.elements.inverse_jacobian[element]
+            jacobian = 1 / cache.elements.inverse_jacobian[element]
         end
         for j in eachnode(dg), i in eachnode(dg)
             if (mesh isa StructuredMesh{2}) || (mesh isa P4estMesh{2})
-                J = 1 / cache.elements.inverse_jacobian[i, j, element]
+                jacobian = 1 / cache.elements.inverse_jacobian[i, j, element]
             end
             denom = inverse_weights[i] *
                     (lambda1[i, j, element] + lambda1[i + 1, j, element]) +
                     inverse_weights[j] *
                     (lambda2[i, j, element] + lambda2[i, j + 1, element])
-            maxdt = min(maxdt, J / denom)
+            maxdt = min(maxdt, jacobian / denom)
         end
     end
 
-    if limiter.smoothness_indicator && !isempty(element_ids_dg)
+    if dg.volume_integral isa VolumeIntegralAdaptive
         maxdt = min(maxdt,
                     max_dt_RK(u, t, mesh, constant_speed, equations, dg, cache,
-                              limiter, element_ids_dg))
+                              limiter))
     end
 
     return maxdt
 end
 
-@inline function max_dt_RK(u, t, mesh::TreeMesh2D, constant_speed, equations, dg::DG,
-                           cache, limiter, element_ids_dg)
+@inline function max_dt_RK(u, t, mesh::TreeMesh{2}, constant_speed, equations, dg::DG,
+                           cache, limiter)
     max_scaled_speed = nextfloat(zero(t))
-    for idx_element in eachindex(element_ids_dg)
-        element = element_ids_dg[idx_element]
-        max_λ1 = max_λ2 = zero(max_scaled_speed)
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary. Only compute compute for no subcell limiting
+        !perform_subcell_limiting(dg.volume_integral, element) || continue
+
+        max_lambda1 = max_lambda2 = zero(max_scaled_speed)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            λ1, λ2 = max_abs_speeds(u_node, equations)
-            max_λ1 = max(max_λ1, λ1)
-            max_λ2 = max(max_λ2, λ2)
+            lambda1, lambda2 = max_abs_speeds(u_node, equations)
+            max_lambda1 = Base.max(max_lambda1, lambda1)
+            max_lambda2 = Base.max(max_lambda2, lambda2)
         end
         inv_jacobian = cache.elements.inverse_jacobian[element]
-        max_scaled_speed = max(max_scaled_speed, inv_jacobian * (max_λ1 + max_λ2))
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * (max_lambda1 + max_lambda2))
     end
 
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
 @inline function max_dt_RK(u, t, mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                           constant_speed, equations, dg::DG, cache, limiter,
-                           element_ids_dg)
+                           constant_speed, equations, dg::DG, cache, limiter)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
-    max_scaled_speed = nextfloat(zero(t))
-    for element in element_ids_dg
-        max_λ1 = max_λ2 = zero(max_scaled_speed)
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
-            λ1, λ2 = max_abs_speeds(u_node, equations)
+    max_scaled_speed = zero(eltype(u))
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
 
-            # Local speeds transformed to the reference element
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
+        # detect if subcell limiting is necessary. Only compute compute for no subcell limiting
+        !perform_subcell_limiting(dg.volume_integral, element) || continue
+
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
+                                                  equations, dg,
+                                                  contravariant_vectors,
+                                                  inverse_jacobian,
                                                   element)
-            λ1_transformed = abs(Ja11 * λ1 + Ja12 * λ2)
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                  element)
-            λ2_transformed = abs(Ja21 * λ1 + Ja22 * λ2)
-
-            inv_jacobian = abs(inverse_jacobian[i, j, element])
-
-            max_λ1 = max(max_λ1, λ1_transformed * inv_jacobian)
-            max_λ2 = max(max_λ2, λ2_transformed * inv_jacobian)
-        end
-        max_scaled_speed = max(max_scaled_speed, max_λ1 + max_λ2)
+        max_scaled_speed = Base.max(max_scaled_speed, max_lambda)
     end
+
+    max_scaled_speed = Base.max(nextfloat(zero(t)), max_scaled_speed)
 
     return 2 / (nnodes(dg) * max_scaled_speed)
 end

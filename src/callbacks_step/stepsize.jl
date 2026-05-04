@@ -192,6 +192,13 @@ end
     end
 end
 
+@inline function max_dt(u, t, mesh,
+                        constant_speed, semi, equations, solver, cache,
+                        volume_integral::VolumeIntegralAdaptive)
+    return max_dt(u, t, mesh, constant_speed, semi, equations, solver, cache,
+                  volume_integral.volume_integral_stabilized)
+end
+
 # Case for a hyperbolic-parabolic semidiscretization
 function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
                       semi::SemidiscretizationHyperbolicParabolic)

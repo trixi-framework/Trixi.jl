@@ -44,6 +44,10 @@ initial_condition = initial_condition_blast_wave
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
+
+# Use flux-differencing form as default volume integral
+volume_integral_default = VolumeIntegralFluxDifferencing(volume_flux)
+
 limiter_mcl = SubcellLimiterMCL(equations, basis;
                                 density_limiter = true,
                                 density_coefficient_for_all = true,
@@ -53,11 +57,23 @@ limiter_mcl = SubcellLimiterMCL(equations, basis;
                                 positivity_limiter_pressure = true,
                                 positivity_limiter_pressure_exact = false,
                                 entropy_limiter_semidiscrete = true,
-                                smoothness_indicator = true,
                                 Plotting = true)
-volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
-                                                volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_mcl;
+                                                           volume_flux_dg = volume_flux,
+                                                           volume_flux_fv = surface_flux)
+
+indicator = IndicatorHennemannGassner(equations, basis,
+                                      alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
+                                      alpha_min = 0.1, # governs when subcell limiting is considered
+                                      alpha_smooth = false,
+                                      variable = density_pressure)
+
+# Adaptive volume integral selects based on the heuristic (!) a priori `indicator`
+# if the stabilized volume integral should be employed or if the default one is deemed sufficient.
+volume_integral = VolumeIntegralAdaptive(indicator = indicator,
+                                         volume_integral_default = volume_integral_default,
+                                         volume_integral_stabilized = volume_integral_stabilized)
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)

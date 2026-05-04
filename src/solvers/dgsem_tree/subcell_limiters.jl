@@ -12,12 +12,6 @@ function create_cache(typ::Type{LimiterType},
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
-function get_element_variables!(element_variables, limiter::AbstractSubcellLimiter,
-                                ::VolumeIntegralSubcellLimiting)
-    element_variables[:smooth_indicator_elementwise] = limiter.IndicatorHG.cache.alpha
-    return nothing
-end
-
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
                       local_twosided_variables_cons = String[],
@@ -28,10 +22,7 @@ end
                       bar_states = true,
                       max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
-                      gamma_constant_newton = 2 * ndims(equations),
-                      smoothness_indicator = false,
-                      threshold_smoothness_indicator = 0.1,
-                      variable_smoothness_indicator = density_pressure)
+                      gamma_constant_newton = 2 * ndims(equations))
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -58,10 +49,6 @@ Local and global limiting of nonlinear variables uses a Newton-bisection method 
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
 where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
 
-A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_indicator`) with
-`variable_smoothness_indicator`, which disables subcell blending for element-wise
-indicator values <= `threshold_smoothness_indicator`.
-
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
@@ -82,8 +69,8 @@ More features will follow soon.
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
-                         LimitingOnesidedVariablesNonlinear, Cache,
-                         Indicator} <: AbstractSubcellLimiter
+                         LimitingOnesidedVariablesNonlinear, Cache} <:
+       AbstractSubcellLimiter
     local_twosided::Bool
     local_twosided_variables_cons::Vector{Int}                 # Local two-sided limiting for conservative variables
     positivity::Bool
@@ -97,9 +84,6 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
     gamma_constant_newton::RealT            # Constant for the subcell limiting of convex (nonlinear) constraints
-    smoothness_indicator::Bool
-    threshold_smoothness_indicator::RealT
-    IndicatorHG::Indicator
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
@@ -112,10 +96,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            bar_states = true,
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14),
-                           gamma_constant_newton = 2 * ndims(equations),
-                           smoothness_indicator = false,
-                           threshold_smoothness_indicator = 0.1,
-                           variable_smoothness_indicator = density_pressure)
+                           gamma_constant_newton = 2 * ndims(equations))
     local_twosided = (length(local_twosided_variables_cons) > 0)
     local_onesided = (length(local_onesided_variables_nonlinear) > 0)
     positivity = (length(positivity_variables_cons) +
@@ -168,32 +149,21 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
 
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
 
-    if smoothness_indicator
-        IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_max = 1.0,
-                                                alpha_smooth = false,
-                                                variable = variable_smoothness_indicator)
-    else
-        IndicatorHG = nothing
-    end
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
                              typeof(local_onesided_variables_nonlinear_),
-                             typeof(cache),
-                             typeof(IndicatorHG)}(local_twosided,
-                                                  local_twosided_variables_cons_,
-                                                  positivity,
-                                                  positivity_variables_cons_,
-                                                  positivity_variables_nonlinear,
-                                                  positivity_correction_factor,
-                                                  local_onesided,
-                                                  local_onesided_variables_nonlinear_,
-                                                  bar_states, cache,
-                                                  max_iterations_newton,
-                                                  newton_tolerances,
-                                                  gamma_constant_newton,
-                                                  smoothness_indicator,
-                                                  threshold_smoothness_indicator,
-                                                  IndicatorHG)
+                             typeof(cache)}(local_twosided,
+                                            local_twosided_variables_cons_,
+                                            positivity,
+                                            positivity_variables_cons_,
+                                            positivity_variables_nonlinear,
+                                            positivity_correction_factor,
+                                            local_onesided,
+                                            local_onesided_variables_nonlinear_,
+                                            bar_states, cache,
+                                            max_iterations_newton,
+                                            newton_tolerances,
+                                            gamma_constant_newton)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
@@ -217,9 +187,6 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
         join(io, features, ", ")
         print(io, "Limiter=($features), ")
     end
-    limiter.smoothness_indicator &&
-        print(io, ", Smoothness indicator: ", limiter.IndicatorHG,
-              " with threshold ", limiter.threshold_smoothness_indicator, "), ")
     print(io,
           "Local bounds with $(limiter.bar_states ? "Bar States" : "FV solution")")
     print(io, ")")
@@ -261,10 +228,6 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
             push!(setup,
                   "Local bounds with" => (limiter.bar_states ? "Bar States" :
                                           "FV solution"))
-            if limiter.smoothness_indicator
-                push!(setup,
-                      "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)")
-            end
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
@@ -325,18 +288,20 @@ function get_node_variable(::Val{:limiting_coefficient},
                            volume_integral::VolumeIntegralSubcellLimiting)
     return volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
 end
-function get_node_variable(::Val{:limiting_coefficient},
-                           volume_integral::VolumeIntegralAdaptive)
-    return get_node_variable(Val(:limiting_coefficient),
+function get_node_variable(variable::Val{var},
+                           volume_integral::VolumeIntegralAdaptive) where {var}
+    return get_node_variable(variable,
                              volume_integral.volume_integral_stabilized)
 end
 
-function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
-    return get_node_variable(Val(:limiting_coefficient), dg.volume_integral)
+function get_node_variable(variable::Val{var}, u,
+                           mesh, equations, dg, cache) where {var}
+    return get_node_variable(variable, dg.volume_integral)
 end
-function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
-                           equations_parabolic, cache_parabolic)
-    return get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+function get_node_variable(variable::Val{var}, u,
+                           mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic) where {var}
+    return get_node_variable(variable, u, mesh, equations, dg, cache)
 end
 
 function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
@@ -345,25 +310,16 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
     @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
 
-    if limiter.smoothness_indicator
-        elements = semi.cache.element_ids_dgfv
-    else
-        elements = eachelement(dg, semi.cache)
-    end
-
     if limiter.local_twosided
         @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
-                                                                   u, t, dt, semi,
-                                                                   elements)
+                                                                   u, t, dt, semi)
     end
     if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi,
-                                                           elements)
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
     end
     if limiter.local_onesided
         @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
-                                                                   u, t, dt, semi,
-                                                                   elements)
+                                                                   u, t, dt, semi)
     end
 
     return nothing
@@ -372,9 +328,9 @@ end
 ###############################################################################
 # Local minimum and maximum limiting (conservative variables)
 
-@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, elements)
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi)
     for variable in limiter.local_twosided_variables_cons
-        idp_local_twosided!(alpha, limiter, u, t, dt, semi, elements, variable)
+        idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
     end
 
     return nothing
@@ -383,10 +339,9 @@ end
 ##############################################################################
 # Local minimum or maximum limiting (nonlinear variables)
 
-@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi, elements)
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi)
     for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
-        idp_local_onesided!(alpha, limiter, u, t, dt, semi, elements,
-                            variable, min_or_max)
+        idp_local_onesided!(alpha, limiter, u, t, dt, semi, variable, min_or_max)
     end
 
     return nothing
@@ -395,15 +350,15 @@ end
 ###############################################################################
 # Global positivity limiting (conservative and nonlinear variables)
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi)
     # Conservative variables
     @trixi_timeit timer() "conservative variables" for variable in limiter.positivity_variables_cons
-        idp_positivity_conservative!(alpha, limiter, u, dt, semi, elements, variable)
+        idp_positivity_conservative!(alpha, limiter, u, dt, semi, variable)
     end
 
     # Nonlinear variables
     @trixi_timeit timer() "nonlinear variables" for variable in limiter.positivity_variables_nonlinear
-        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, elements, variable)
+        idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
     end
 
     return nothing
@@ -545,9 +500,6 @@ end
                       positivity_limiter_density = false,
                       positivity_limiter_correction_factor = 0.0,
                       entropy_limiter_semidiscrete = false,
-                      smoothness_indicator = false,
-                      threshold_smoothness_indicator = 0.1,
-                      variable_smoothness_indicator = density_pressure,
                       Plotting = true)
 
 Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralSubcellLimiting`](@ref) including:
@@ -564,10 +516,6 @@ and a more cautious one. The density positivity limiter uses a `positivity_limit
 such that `u^new >= positivity_limiter_correction_factor * u^FV`. All additional analyses for plotting
 routines can be disabled via `Plotting=false` (see `save_alpha` and `update_alpha_max_avg!`).
 
-A hard-switch [`IndicatorHennemannGassner`](@ref) can be activated (`smoothness_indicator`) with
-`variable_smoothness_indicator`, which disables subcell blending for element-wise
-indicator values <= `threshold_smoothness_indicator`.
-
 ## References
 
 - Rueda-Ramírez, Bolm, Kuzmin, Gassner (2023)
@@ -580,7 +528,7 @@ indicator values <= `threshold_smoothness_indicator`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct SubcellLimiterMCL{RealT <: Real, Cache, Indicator} <: AbstractSubcellLimiter
+struct SubcellLimiterMCL{RealT <: Real, Cache} <: AbstractSubcellLimiter
     cache::Cache
     density_limiter::Bool               # Impose local maximum/minimum for cons(1) based on bar states
     density_coefficient_for_all::Bool   # Use the cons(1) blending coefficient for all quantities
@@ -591,9 +539,6 @@ struct SubcellLimiterMCL{RealT <: Real, Cache, Indicator} <: AbstractSubcellLimi
     positivity_limiter_density::Bool        # Impose positivity for cons(1)
     positivity_limiter_correction_factor::RealT  # Correction Factor for positivity_limiter_density in [0,1)
     entropy_limiter_semidiscrete::Bool      # synchronized semidiscrete entropy fix
-    smoothness_indicator::Bool              # activates smoothness indicator: IndicatorHennemannGassner
-    threshold_smoothness_indicator::RealT   # threshold for smoothness indicator
-    IndicatorHG::Indicator
     Plotting::Bool
 end
 
@@ -608,33 +553,23 @@ function SubcellLimiterMCL(equations::AbstractEquations, basis;
                            positivity_limiter_density = false,
                            positivity_limiter_correction_factor = 0.0,
                            entropy_limiter_semidiscrete = false,
-                           smoothness_indicator = false,
-                           threshold_smoothness_indicator = 0.1,
-                           variable_smoothness_indicator = density_pressure,
                            Plotting = true)
     if sequential_limiter && conservative_limiter
         error("Only one of the two can be selected: sequential_limiter/conservative_limiter")
     end
     cache = create_cache(SubcellLimiterMCL, equations, basis,
                          positivity_limiter_pressure)
-    if smoothness_indicator
-        IndicatorHG = IndicatorHennemannGassner(equations, basis, alpha_smooth = false,
-                                                variable = variable_smoothness_indicator)
-    else
-        IndicatorHG = nothing
-    end
-    SubcellLimiterMCL{typeof(threshold_smoothness_indicator), typeof(cache),
-                      typeof(IndicatorHG)}(cache,
-                                           density_limiter, density_coefficient_for_all,
-                                           sequential_limiter, conservative_limiter,
-                                           positivity_limiter_pressure,
-                                           positivity_limiter_pressure_exact,
-                                           positivity_limiter_density,
-                                           positivity_limiter_correction_factor,
-                                           entropy_limiter_semidiscrete,
-                                           smoothness_indicator,
-                                           threshold_smoothness_indicator, IndicatorHG,
-                                           Plotting)
+
+    SubcellLimiterMCL{typeof(positivity_limiter_correction_factor),
+                      typeof(cache)}(cache,
+                                     density_limiter, density_coefficient_for_all,
+                                     sequential_limiter, conservative_limiter,
+                                     positivity_limiter_pressure,
+                                     positivity_limiter_pressure_exact,
+                                     positivity_limiter_density,
+                                     positivity_limiter_correction_factor,
+                                     entropy_limiter_semidiscrete,
+                                     Plotting)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterMCL)
@@ -655,9 +590,6 @@ function Base.show(io::IO, limiter::SubcellLimiterMCL)
               " with correction factor $(limiter.positivity_limiter_correction_factor)")
     end
     limiter.entropy_limiter_semidiscrete && print(io, "; semid. entropy")
-    limiter.smoothness_indicator &&
-        print(io, "; Smoothness indicator: ", limiter.IndicatorHG,
-              " with threshold ", limiter.threshold_smoothness_indicator)
     print(io, ")")
 end
 
@@ -693,12 +625,6 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
         end
         entropy_limiter_semidiscrete &&
             (setup = [setup..., "" => "Semidiscrete Entropy Limiter"])
-        if limiter.smoothness_indicator
-            setup = [
-                setup...,
-                "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)"
-            ]
-        end
         summary_box(io, "SubcellLimiterMCL", setup)
     end
 end
@@ -710,9 +636,9 @@ function resize_subcell_limiter_cache!(limiter::SubcellLimiterMCL, new_size)
     return nothing
 end
 
-function get_node_variable(::Val{:limiting_coefficient_rho}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_rho},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -720,9 +646,9 @@ function get_node_variable(::Val{:limiting_coefficient_rho}, u,
     return alpha[1, ntuple(_ -> :, size(alpha, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_rho_v1}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_rho_v1},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -730,9 +656,9 @@ function get_node_variable(::Val{:limiting_coefficient_rho_v1}, u,
     return alpha[2, ntuple(_ -> :, size(alpha, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_rho_v2}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_rho_v2},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -740,9 +666,9 @@ function get_node_variable(::Val{:limiting_coefficient_rho_v2}, u,
     return alpha[3, ntuple(_ -> :, size(alpha, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_rho_e}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_rho_e},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -750,9 +676,9 @@ function get_node_variable(::Val{:limiting_coefficient_rho_e}, u,
     return alpha[4, ntuple(_ -> :, size(alpha, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_pressure}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_pressure},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -760,9 +686,9 @@ function get_node_variable(::Val{:limiting_coefficient_pressure}, u,
     return alpha_pressure
 end
 
-function get_node_variable(::Val{:limiting_coefficient_entropy}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_entropy},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -770,9 +696,9 @@ function get_node_variable(::Val{:limiting_coefficient_entropy}, u,
     return alpha_entropy
 end
 
-function get_node_variable(::Val{:limiting_coefficient_mean_rho}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_mean_rho},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -780,9 +706,9 @@ function get_node_variable(::Val{:limiting_coefficient_mean_rho}, u,
     return alpha_mean[1, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_mean_rho_v1}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_v1},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -790,9 +716,9 @@ function get_node_variable(::Val{:limiting_coefficient_mean_rho_v1}, u,
     return alpha_mean[2, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_mean_rho_v2}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_v2},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -800,9 +726,9 @@ function get_node_variable(::Val{:limiting_coefficient_mean_rho_v2}, u,
     return alpha_mean[3, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_mean_rho_e}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_e},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -810,9 +736,9 @@ function get_node_variable(::Val{:limiting_coefficient_mean_rho_e}, u,
     return alpha_mean[4, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
 end
 
-function get_node_variable(::Val{:limiting_coefficient_mean_pressure}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_mean_pressure},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
@@ -820,9 +746,9 @@ function get_node_variable(::Val{:limiting_coefficient_mean_pressure}, u,
     return alpha_mean_pressure
 end
 
-function get_node_variable(::Val{:limiting_coefficient_mean_entropy}, u,
-                           mesh, equations, dg, cache)
-    (; limiter) = dg.volume_integral
+function get_node_variable(::Val{:limiting_coefficient_mean_entropy},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
     if !limiter.Plotting
         error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
