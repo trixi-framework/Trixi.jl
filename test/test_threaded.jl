@@ -53,7 +53,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
                       alg = SSPRK43(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
-         # Perform a simulation restarting from an intermediate state
+        # Perform a simulation restarting from an intermediate state
         println("═"^100)
         println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
         trixi_include(@__MODULE__,
