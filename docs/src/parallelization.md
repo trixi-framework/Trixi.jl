@@ -143,9 +143,7 @@ To start Trixi.jl in parallel with MPI, there are three options:
    ```julia
    julia> using MPI
 
-   julia> mpiexec() do cmd
-            run(`$cmd -n 3 $(Base.julia_cmd()) --threads=1 --project=@. -e 'using Trixi; trixi_include(default_example())'`)
-          end
+   julia> run(`$(mpiexec()) -n 3 $(Base.julia_cmd()) --threads=1 --project=@. -e 'using Trixi; trixi_include(default_example())'`)
    ```
    The parameter `-n 3` specifies that Trixi.jl should run with three processes (or
    *ranks* in MPI parlance) and should be adapted to your available
