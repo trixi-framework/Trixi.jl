@@ -345,9 +345,12 @@ function save_adaptive_time_integrator(integrator, restart_callback)
         # Filename based on current time step
         filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
-        # OrdinaryDiffEq v7+: controller state lives in integrator.controller_cache
-        # OrdinaryDiffEq pre-v7: controller lives in integrator.opts.controller,
-        #                         scalar qold lives in integrator.qold
+        # OrdinaryDiffEqCore < v4: legacy controllers (PIController, PIDController) store
+        #   all mutable state directly on the integrator (integrator.qold) and the
+        #   controller object is in integrator.opts.controller. integrator.controller_cache
+        #   exists but equals the controller for legacy types.
+        # OrdinaryDiffEqCore >= v4: controller state lives in integrator.controller_cache
+        #   (PIControllerCache, PIDControllerCache, …) and integrator.qold was removed.
         controller = hasproperty(integrator, :controller_cache) ?
                      integrator.controller_cache :
                      integrator.opts.controller
@@ -355,6 +358,13 @@ function save_adaptive_time_integrator(integrator, restart_callback)
         # Open file (preserve existing content)
         h5open(filename, "r+") do file
             attributes(file)["time_integrator_dtpropose"] = integrator.dtpropose
+
+            # Save the primary scalar that seeds the next step-size prediction.
+            # Its location changed across OrdinaryDiffEqCore versions:
+            #   < v4 (all legacy controllers): integrator.qold mirrors cache state
+            #   >= v4, PIControllerCache:       controller.errold (previous EEst)
+            #   >= v4, PredictiveControllerCache: controller.qold
+            #   >= v4, PIDControllerCache:      controller.dt_factor (accumulated factor)
             if hasproperty(integrator, :qold)
                 attributes(file)["time_integrator_qold"] = integrator.qold
             elseif hasproperty(controller, :errold)
@@ -364,8 +374,19 @@ function save_adaptive_time_integrator(integrator, restart_callback)
             elseif hasproperty(controller, :dt_factor)
                 attributes(file)["time_integrator_qold"] = controller.dt_factor
             end
+
+            # Save the PID error history (three previous inverse error estimates).
+            # The field layout changed across OrdinaryDiffEqCore versions:
+            #   <= v3.31 (PIDController / PIDControllerCache): err::MVector{3}
+            #   v3.32–v3.33 (PIDController / PIDControllerCache): err1, err2, err3 (scalars)
+            #   >= v4 (PIDControllerCache only):                err::Vector{3}
             if hasproperty(controller, :err)
                 attributes(file)["time_integrator_controller_err"] = controller.err
+            elseif hasproperty(controller, :err1) && hasproperty(controller, :err2) &&
+                   hasproperty(controller, :err3)
+                attributes(file)["time_integrator_controller_err"] = [controller.err1,
+                    controller.err2,
+                    controller.err3]
             end
         end
     end
