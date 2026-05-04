@@ -21,6 +21,10 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
         @test true
 
+        # Trixi automatically initializes MPI, this causes issues if precompilation occurs under MPI.
+        # The below MPI test uses different compilation flags and thus we want to ensure that precompilation is done with the same flags.
+        run(`$(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G -e "using Trixi, OrdinaryDiffEqCore"`)
+
         # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
         run(`$(mpiexec()) -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(joinpath(@__DIR__, "test_mpi.jl"))`)
     end
