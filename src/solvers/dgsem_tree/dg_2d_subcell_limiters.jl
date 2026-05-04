@@ -130,11 +130,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
     return nothing
 end
 
-function volume_integral_kernel!(du, u, element,
-                                 MeshT,
-                                 nonconservative_terms, equations,
-                                 volume_integral::VolumeIntegralSubcellLimiting,
-                                 dg::DGSEM, cache)
+@inline function volume_integral_kernel!(du, u, element,
+                                         MeshT,
+                                         nonconservative_terms, equations,
+                                         volume_integral::VolumeIntegralSubcellLimiting,
+                                         dg::DGSEM, cache)
     return volume_integral_kernel!(du, u, element,
                                    MeshT,
                                    nonconservative_terms, equations,
