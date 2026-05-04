@@ -21,6 +21,10 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
         @test true
 
+        # Ensure that the test all run without MPI first, to catch any issues that may arise without MPI first.
+        # This is a bit heavy-handed, but it is important that we ensure all packages are precompiled already.
+        run(`$(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(joinpath(@__DIR__, "test_mpi.jl"))`)
+
         # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
         mpiexec() do cmd
             run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(joinpath(@__DIR__, "test_mpi.jl"))`)
