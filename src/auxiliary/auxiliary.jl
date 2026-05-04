@@ -355,7 +355,15 @@ function download(src_url, file_path)
             if token !== nothing
                 push!(headers, "authorization" => "Bearer $token")
             end
-            Downloads.download(src_url, file_path; headers)
+            try
+                Downloads.download(src_url, file_path; headers)
+            catch
+                # Otherwise the other processes will wait indefinitely at the barrier below.
+                if mpi_isparallel()
+                    MPI.Barrier(mpi_comm())
+                end
+                rethrow()
+            end
         end
     end
 
