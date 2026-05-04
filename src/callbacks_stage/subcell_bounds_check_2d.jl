@@ -128,6 +128,8 @@ end
 
     if limiter.density_limiter
         for element in eachelement(solver, cache)
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(solver.volume_integral, element) || continue
             for j in eachnode(solver), i in eachnode(solver)
                 # New solution u^{n+1}
                 mcl_bounds_delta_local[1, 1] = max(mcl_bounds_delta_local[1, 1],
@@ -188,6 +190,8 @@ end
 
     if limiter.sequential_limiter
         for element in eachelement(solver, cache)
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(solver.volume_integral, element) || continue
             for j in eachnode(solver), i in eachnode(solver)
                 # New solution u^{n+1}
                 for v in 2:n_vars
@@ -320,6 +324,8 @@ end
         end
     elseif limiter.conservative_limiter
         for element in eachelement(solver, cache)
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(solver.volume_integral, element) || continue
             for j in eachnode(solver), i in eachnode(solver)
                 # New solution u^{n+1}
                 for v in 2:n_vars
@@ -451,6 +457,8 @@ end
         end
     elseif limiter.positivity_limiter_pressure
         for element in eachelement(solver, cache)
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(solver.volume_integral, element) || continue
             for j in eachnode(solver), i in eachnode(solver)
                 # New solution u^{n+1}
                 error_pressure = 0.5 * (u[2, i, j, element]^2 + u[3, i, j, element]^2) -
@@ -543,6 +551,8 @@ end
     if limiter.positivity_limiter_density
         beta = limiter.positivity_limiter_correction_factor
         for element in eachelement(solver, cache)
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(solver.volume_integral, element) || continue
             for j in eachnode(solver), i in eachnode(solver)
                 # New solution u^{n+1}
                 mcl_bounds_delta_local[1, 1] = max(mcl_bounds_delta_local[1, 1],

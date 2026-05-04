@@ -1064,6 +1064,8 @@ end
             var_min = variable_bounds[Symbol(v_string, "_min")]
             var_max = variable_bounds[Symbol(v_string, "_max")]
             @threaded for element in eachelement(dg, cache)
+                # detect if subcell limiting is necessary
+                perform_subcell_limiting(dg.volume_integral, element) || continue
                 for j in eachnode(dg), i in eachnode(dg)
                     var_min[i, j, element] = typemax(eltype(var_min))
                     var_max[i, j, element] = typemin(eltype(var_max))
@@ -1104,6 +1106,8 @@ end
             var_minmax = variable_bounds[Symbol(string(variable), "_",
                                                 string(min_or_max))]
             @threaded for element in eachelement(dg, cache)
+                # detect if subcell limiting is necessary
+                perform_subcell_limiting(dg.volume_integral, element) || continue
                 for j in eachnode(dg), i in eachnode(dg)
                     if min_or_max === max
                         var_minmax[i, j, element] = typemin(eltype(var_minmax))
@@ -1160,6 +1164,8 @@ end
     (; bar_states1, bar_states2) = limiter.cache.container_bar_states
 
     @threaded for element in eachelement(dg, cache)
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
         for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
             var_min[v, i, j, element] = typemax(eltype(var_min))
             var_max[v, i, j, element] = typemin(eltype(var_max))

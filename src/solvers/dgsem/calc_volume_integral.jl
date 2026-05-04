@@ -215,6 +215,10 @@ end
                                        dg::DGSEM, cache, t, boundary_conditions)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
 
+    # Calculate a-priori stabilization indicator
+    alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
+                                                        dg, cache)
+
     if volume_integral_stabilized isa VolumeIntegralSubcellLimiting
         limiter = volume_integral_stabilized.limiter
         # Calculate lambdas and bar states
@@ -233,10 +237,6 @@ end
                                                                             limiter, dg,
                                                                             cache)
     end
-
-    # Calculate a-priori stabilization indicator
-    alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
-                                                        dg, cache)
 
     # For `Float64`, this gives 1.8189894035458565e-12
     # For `Float32`, this gives 1.1920929f-5
