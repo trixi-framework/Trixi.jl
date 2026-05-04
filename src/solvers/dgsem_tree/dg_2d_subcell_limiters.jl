@@ -791,8 +791,9 @@ end
 end
 
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
-                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
+                                         ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                        P4estMesh{2}}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterMCL, dg, element, cache)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
@@ -828,8 +829,9 @@ end
 end
 
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
-                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
+                                         ::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                        P4estMesh{2}}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterMCL, dg, element, cache)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
@@ -1310,7 +1312,7 @@ end
     return nothing
 end
 
-@inline function calcflux_antidiffusive_limited!(u, mesh, nonconservative_terms::False,
+@inline function calcflux_antidiffusive_limited!(u, MeshT, nonconservative_terms::False,
                                                  equations, limiter, dg, element,
                                                  cache,
                                                  fstar1, fstar2)
