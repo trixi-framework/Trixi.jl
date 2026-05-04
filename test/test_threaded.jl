@@ -40,6 +40,31 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
+    # This test covers some of the code paths for the old controller interface in OrdinaryDiffEqCore < v4,
+    # which is still supported for backward compatibility.
+    @trixi_testset "elixir_advection_restart.jl with adaptive time integration" begin
+        using OrdinaryDiffEqSSPRK: SSPRK43
+        println("═"^100)
+        println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR,
+                               "elixir_advection_timeintegration_adaptive.jl"),
+                      alg = SSPRK43(), tspan = (0.0, 10.0))
+        l2_expected, linf_expected = analysis_callback(sol)
+
+        println("═"^100)
+        println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
+        # Errors are exactly the same as in the elixir_advection_extended.jl
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                      alg = SSPRK43(),
+                      base_elixir = "elixir_advection_timeintegration_adaptive.jl")
+        l2_actual, linf_actual = analysis_callback(sol)
+
+        @test l2_actual == l2_expected
+        @test linf_actual == linf_expected
+    end
+
     @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_restart.jl"),
