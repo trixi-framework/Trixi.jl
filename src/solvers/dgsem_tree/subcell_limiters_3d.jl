@@ -539,8 +539,7 @@ end
 end
 
 ###############################################################################
-# Newton-bisection method
-###############################################################################
+# Auxiliary functions for Newton-bisection method
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, k, element,
                                      variable, min_or_max,
