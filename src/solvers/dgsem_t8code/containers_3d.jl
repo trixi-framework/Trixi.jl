@@ -89,7 +89,8 @@ function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
 
     # If both or none are right-handed when looked at from the outside, they will have different
     # orientations when looked at from the same side of the interface.
-    flipped = my_right_handed == other_right_handed
+    # TODO: with t8code v4 it is apparently not necessary swap mortar inidices in this case
+    flipped = false # my_right_handed == other_right_handed
 
     # In the following illustrations, the face corner numbering of `p4est` is shown.
     # ξ and η are the local coordinates of the respective face.
