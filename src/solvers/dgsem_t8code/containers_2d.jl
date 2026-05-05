@@ -65,6 +65,10 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
+# This function simplified a lot with t8code v4 and is nowadays trivial. However, it relies
+# on the ordering given by t8code's space filling curve, and could become a point of
+# failure.
+# xref: https://github.com/DLR-AMR/t8code/issues/2190
 function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
                                    other_face, orientation, neighbor_ielements,
                                    mortar_id)

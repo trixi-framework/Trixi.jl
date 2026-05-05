@@ -73,6 +73,9 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 # This routine was copied and adapted from `src/dgsem_p4est/containers_3d.jl`: `orientation_to_indices_p4est`.
+# It simplified a lot with t8code v4. However, it relies on the ordering given by t8code's space filling curve, and could
+# become a point of failure.
+# xref: https://github.com/DLR-AMR/t8code/issues/2190
 function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
                                    other_face, orientation, neighbor_ielements,
                                    mortar_id)
@@ -89,8 +92,9 @@ function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
 
     # If both or none are right-handed when looked at from the outside, they will have different
     # orientations when looked at from the same side of the interface.
-    # TODO: with t8code v4 it is apparently not necessary swap mortar inidices in this case
+    # TODO: with t8code v4 it is apparently not necessary swap mortar indices in this case
     flipped = false # my_right_handed == other_right_handed
+    orientation = 0
 
     # In the following illustrations, the face corner numbering of `p4est` is shown.
     # ξ and η are the local coordinates of the respective face.
