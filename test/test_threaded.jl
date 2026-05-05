@@ -65,7 +65,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
             trixi_include(mod,
                           elixir, alg = alg,
                           base_elixir = base_elixir)
-            l2_actual, linf_actual = @invokelatest mod.analysis_callback(sol)
+            l2_actual, linf_actual = @invokelatest mod.analysis_callback(@invokelatest mod.sol)
 
             # Check whether the errors are exactly the same as in the uninterrupted run
             # using the default SSPRK or low-storage RK method with error-based step size control.
