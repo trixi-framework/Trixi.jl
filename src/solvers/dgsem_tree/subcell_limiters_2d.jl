@@ -851,14 +851,14 @@ end
             var_lower = u[var_index, indices_small..., lower_element]
             var_large = u[var_index, indices_large..., large_element]
 
+            if min(var_upper, var_lower, var_large) < 0
+                error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
+            end
+
             # Compute minimal bound
             var_min_upper = positivity_correction_factor * var_upper
             var_min_lower = positivity_correction_factor * var_lower
             var_min_large = positivity_correction_factor * var_large
-
-            if min(var_upper, var_lower, var_large) < 0
-                error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
-            end
 
             # Compute flux differences
             flux_lower_high_order = surface_flux_values_high_order[var_index, i,
