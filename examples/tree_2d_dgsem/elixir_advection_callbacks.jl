@@ -5,7 +5,14 @@ using Trixi
 module TrixiExtensionExample
 
 using Trixi
-using OrdinaryDiffEqSSPRK: DiscreteCallback, derivative_discontinuity!
+using OrdinaryDiffEqSSPRK: OrdinaryDiffEqSSPRK, DiscreteCallback
+# To keep backwards compatibility with SciMLBase v2, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
+@static if isdefined(OrdinaryDiffEqSSPRK, :derivative_discontinuity!)
+    import OrdinaryDiffEqSSPRK: derivative_discontinuity!
+else
+    const derivative_discontinuity! = OrdinaryDiffEqSSPRK.u_modified!
+end
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
