@@ -100,5 +100,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK54(thread = Trixi.True()); dt = 1.0,
+sol = solve(ode, SSPRK54(thread = Trixi.Threaded()); dt = 1.0,
             ode_default_options()..., callback = callbacks);

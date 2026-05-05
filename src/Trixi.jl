@@ -87,6 +87,8 @@ using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
 using Static: Static, One, True, False
+# OrdinaryDiffEq v7+ uses FastBroadcast.Threaded() for the thread argument; older versions use Static.True()
+const Threaded = isdefined(DiffEqBase, :Threaded) ? DiffEqBase.Threaded : True
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
