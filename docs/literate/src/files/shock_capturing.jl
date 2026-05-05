@@ -138,7 +138,7 @@
 # ````
 # or
 # ````julia
-# SSPRK43(stage_limiter!).
+# SSPRK43(; stage_limiter!).
 # ````
 
 # # Simulation with shock capturing and positivity preserving
