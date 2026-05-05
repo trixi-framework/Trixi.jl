@@ -5,7 +5,7 @@ using Trixi: StartUpDG
 polydeg = 3
 basis = DGMultiBasis(Tri(), polydeg, approximation_type = SBP())
 
-mesh_file = Trixi.download("https://raw.githubusercontent.com/jlchan/StartUpDG.jl/041d270ac97f8a650fb3e7a32b35cc9314e0777f/test/testset_Gmsh_meshes/squareCylinder2D.msh",
+mesh_file = Trixi.download("https://gist.githubusercontent.com/jlchan/d070400ccd69f3d2ee50b1d7ed65ded1/raw/c906ff1a0cd5593977614245e16144972a577f0b/squareCylinder2D.msh",
                            joinpath(@__DIR__, "squareCylinder2D.msh"))
 VXY, EToV = StartUpDG.read_Gmsh_2D(mesh_file)
 
