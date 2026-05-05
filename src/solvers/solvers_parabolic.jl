@@ -171,7 +171,7 @@ function flux_parabolic(u_ll, u_rr, normal_direction,
     return 0.5f0 * (u_ll + u_rr - ldg_switch * (u_rr - u_ll))
 end
 
-default_parabolic_solver() = ViscousFormulationBassiRebay1()
+default_parabolic_solver() = ParabolicFormulationBassiRebay1()
 
 function default_artificial_viscosity(equations)
 
