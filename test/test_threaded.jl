@@ -46,25 +46,26 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         # Perform a standard simulation
         using OrdinaryDiffEqSSPRK: SSPRK43
         using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
+        mod = @__MODULE__
         # SSPRK43 uses PIController, RDPK3SpFSAL49 uses PIDController
         for alg in (SSPRK43(), RDPK3SpFSAL49())
             println("═"^100)
             base_elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                    "elixir_advection_timeintegration_adaptive.jl")
             println(base_elixir)
-            trixi_include(@__MODULE__,
+            trixi_include(mod,
                           base_elixir, alg = alg, tspan = (0.0, 10.0))
-            l2_expected, linf_expected = analysis_callback(sol)
+            l2_expected, linf_expected = @invokelatest mod.analysis_callback(@invokelatest mod.sol)
 
             # Perform a simulation restarting from an intermediate state
             println("═"^100)
             elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                               "elixir_advection_restart.jl")
             println(elixir)
-            trixi_include(@__MODULE__,
+            trixi_include(mod,
                           elixir, alg = alg,
                           base_elixir = base_elixir)
-            l2_actual, linf_actual = analysis_callback(sol)
+            l2_actual, linf_actual = @invokelatest mod.analysis_callback(sol)
 
             # Check whether the errors are exactly the same as in the uninterrupted run
             # using the default SSPRK or low-storage RK method with error-based step size control.
