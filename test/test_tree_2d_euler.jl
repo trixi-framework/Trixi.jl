@@ -564,6 +564,38 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
+@trixi_testset "elixir_euler_sedov_adaptive_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_adaptive_sc_subcell.jl"),
+                        l2=[
+                            0.4456769501001288,
+                            0.15182934074195198,
+                            0.15182934074202267,
+                            0.6163380678495841
+                        ],
+                        linf=[
+                            1.6991300568875336,
+                            0.9017734777842971,
+                            0.9017734776841926,
+                            6.455103686573007
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=4,
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
+    @test startswith(lines[end], "140")
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
@@ -583,6 +615,25 @@ end
                                               analysis_callback, alive_callback,
                                               stepsize_callback),
                         surface_flux=flux_hlle),
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_medium_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_medium_blast_wave_amr.jl"),
+                        l2=[
+                            0.07516809124651969,
+                            0.06704693534133646,
+                            0.06704688657885655,
+                            0.7141874829243302
+                        ],
+                        linf=[
+                            0.26235706632716616,
+                            0.4461055713613948,
+                            0.44610560001534244,
+                            3.098711401193811
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

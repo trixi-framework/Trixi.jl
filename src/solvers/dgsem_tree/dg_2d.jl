@@ -76,8 +76,13 @@ function create_cache(mesh::TreeMesh{2}, equations,
     fstar2_L_threaded, fstar2_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
+    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
+                                                           volume_integral, dg,
+                                                           cache_containers, uEltype)
+
     return (; fstar1_L_threaded, fstar1_R_threaded,
-            fstar2_L_threaded, fstar2_R_threaded)
+            fstar2_L_threaded, fstar2_R_threaded,
+            cache_subcell_limiting...)
 end
 
 # The methods below are specialized on the mortar type
@@ -1278,8 +1283,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
 end
 
 function calc_surface_integral!(backend::Nothing, du, u,
-                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                            StructuredMeshView{2}},
+                                mesh::Union{TreeMesh{2},
+                                            StructuredMesh{2}, StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis

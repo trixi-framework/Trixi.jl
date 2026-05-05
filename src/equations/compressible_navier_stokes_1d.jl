@@ -57,7 +57,7 @@ where the heat flux is
 ```math
 q = -\kappa \frac{\partial}{\partial x} \left(T\right),\quad T = \frac{p}{R\rho}
 ```
-where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fick's law.
+where ``T`` is the temperature and ``\kappa`` is the thermal conductivity for Fourier's law.
 Under the assumption that the gas has a constant Prandtl number,
 the thermal conductivity is
 ```math
@@ -88,15 +88,12 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
                                            E <: AbstractCompressibleEulerEquations{1}} <:
        AbstractCompressibleNavierStokesDiffusion{1, 3, GradientVariables}
     # TODO: parabolic
-    # 1) For now save gamma and inv(gamma-1) again, but could potentially reuse them from the Euler equations
-    # 2) Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
-    gamma::RealT               # ratio of specific heats
-    inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+    # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
-    kappa::RealT               # thermal diffusivity for Fick's law
-    max_1_kappa::RealT         # max(1, kappa) used for parabolic CFL => `max_diffusivity`
+    kappa::RealT               # thermal diffusivity for Fourier's law
+    max_1_kappa::RealT         # max(1, kappa) used for parabolic cfl => `max_diffusivity`
 
     equations_hyperbolic::E    # CompressibleEulerEquations1D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
@@ -106,21 +103,18 @@ end
 function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquations1D;
                                              mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
-    gamma = equations.gamma
-    inv_gamma_minus_one = equations.inv_gamma_minus_one
+    @unpack gamma, inv_gamma_minus_one = equations
 
+    Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Prandtl
+    kappa = gamma * inv_gamma_minus_one / Pr
 
     return CompressibleNavierStokesDiffusion1D{typeof(gradient_variables),
-                                               typeof(gamma),
-                                               typeof(mu),
-                                               typeof(equations)}(gamma,
-                                                                  inv_gamma_minus_one,
-                                                                  mu, Prandtl, kappa,
+                                               typeof(Pr), typeof(mu),
+                                               typeof(equations)}(mu, Pr, kappa,
                                                                   max(one(kappa),
                                                                       kappa),
                                                                   equations,
@@ -163,7 +157,7 @@ function flux(u, gradients, orientation::Integer,
     # Viscous stress (tensor)
     tau_11 = dv1dx
 
-    # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
+    # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
     # Note, the gas constant cancels under this formulation, so it is not present
     # in the implementation
@@ -302,8 +296,9 @@ T = \\frac{p}{\\rho}
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion1D)
     rho, rho_v1, rho_e_total = u
+    @unpack gamma = equations
 
-    p = (equations.gamma - 1) * (rho_e_total - 0.5f0 * rho_v1^2 / rho)
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * rho_v1^2 / rho)
     T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end

@@ -636,8 +636,7 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     # We do not apply `enstrophy` directly here because we might later have different `quantity`s
     # that we wish to integrate, which can share this routine.
     return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
-                   cache,
-                   cache_parabolic)
+                   cache, cache_parabolic)
 end
 function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
                  cache, cache_parabolic)
@@ -711,6 +710,5 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
     return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
-                   semi,
-                   cache_parabolic)
+                   semi, cache_parabolic)
 end

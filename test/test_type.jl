@@ -220,8 +220,9 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                        b,
                                                                                        gamma,
                                                                                        R))
-
-            for equations in (equations_ideal_gas, equations_vdw)
+            equations_helmholtz_ideal_gas = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzIdealGas(RealT(2)))
+            for equations in (equations_ideal_gas, equations_vdw,
+                              equations_helmholtz_ideal_gas)
                 x = SVector(zero(RealT))
                 t = zero(RealT)
                 u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
@@ -1860,6 +1861,20 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               x, t,
                                                               operator_divergence,
                                                               equations_parabolic)) == RealT
+        end
+    end
+
+    @timed_testset "Linear Diffusion Equation" begin
+        for RealT in (Float32, Float64)
+            u = SVector(one(RealT))
+
+            equations_1d = LinearDiffusionEquation1D(RealT(0.1))
+            @test eltype(@inferred cons2prim(u, equations_1d)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations_1d)) == RealT
+
+            equations_2d = LinearDiffusionEquation2D(RealT(0.1))
+            @test eltype(@inferred cons2prim(u, equations_2d)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations_2d)) == RealT
         end
     end
 
