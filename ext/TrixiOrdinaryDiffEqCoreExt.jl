@@ -20,7 +20,6 @@ function load_controller!(integrator, ::PIController, file)
     if !("time_integrator_qold" in keys(attributes(file)))
         error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
     end
-    @info "Load PIController <v4"
     integrator.qold = read(attributes(file)["time_integrator_qold"])
 end
 
@@ -34,7 +33,6 @@ function load_controller!(integrator, controller::PIDController, file)
          !("time_integrator_controller_err" in keys(attributes(file))))
         error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
     end
-    @info "Load PIDController <v4"
     integrator.qold = read(attributes(file)["time_integrator_qold"])
     if hasproperty(controller, :err)
         # OrdinaryDiffEqCore <= v3.31
@@ -75,7 +73,6 @@ end
 # OrdinaryDiffEqCore < v4, PI controller:
 # Previous error estimate stored as integrator.qold.
 function store_controller!(file, ::PIController, integrator)
-    @info "Store PIController <v4"
     attributes(file)["time_integrator_qold"] = integrator.qold
 end
 
@@ -85,7 +82,6 @@ end
 #   <= v3.31: err::MVector{3} (single array field)
 #   v3.32–v3.33: err1, err2, err3 (individual scalar fields)
 function store_controller!(file, controller::PIDController, integrator)
-    @info "Store PIDController <v4"
     attributes(file)["time_integrator_qold"] = integrator.qold
     if hasproperty(controller, :err)
         # OrdinaryDiffEqCore <= v3.31
