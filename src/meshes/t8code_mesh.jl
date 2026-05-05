@@ -1159,9 +1159,7 @@ function count_interfaces(forest, ndims)
                                                                                         neighbor_ielements[1])]
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
-                                                 t8_element_get_linear_id(neighbor_eclass,
-                                                                          neighbor_leaves[1],
-                                                                          max_level)
+                                                 t8_element_get_linear_id(scheme,neighbor_eclass, neighbor_leaves[1],max_level)
                             global_mortar_id = 2 * ndims * neighbor_linear_id +
                                                dual_faces[1]
 
@@ -1407,9 +1405,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
-                                                 t8_element_get_linear_id(neighbor_eclass,
-                                                                          neighbor_leaves[1],
-                                                                          max_level)
+                                                 t8_element_get_linear_id(scheme, neighbor_eclass, neighbor_leaves[1], max_level)
 
                             if current_linear_id < neighbor_linear_id
                                 local_side = 1
@@ -1481,9 +1477,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                                                         neighbor_ielements[1])]
                             neighbor_linear_id = neighbor_global_ghost_itree *
                                                  max_tree_num_elements +
-                                                 t8_element_get_linear_id(neighbor_eclass,
-                                                                          neighbor_leaves[1],
-                                                                          max_level)
+                                                 t8_element_get_linear_id(scheme, neighbor_eclass, neighbor_leaves[1], max_level)
                             global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
                                                dual_faces[1]
 
