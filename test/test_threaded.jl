@@ -45,7 +45,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
     @trixi_testset "elixir_advection_restart.jl with adaptive time integration" begin
         # Perform a standard simulation
         using OrdinaryDiffEqSSPRK: SSPRK43
-        using OrdinaryDiffEqLowStorage: RDPK3SpFSAL49
+        using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
         # SSPRK43 uses PIController, RDPK3SpFSAL49 uses PIDController
         for alg in (SSPRK43(), RDPK3SpFSAL49())
             println("═"^100)
