@@ -14,7 +14,6 @@
     (; neighbor_ids, node_indices) = cache.interfaces
     index_range = eachnode(dg)
 
-    # Calc lambdas and bar states at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
@@ -25,6 +24,14 @@
         secondary_element = neighbor_ids[2, interface]
         secondary_indices = node_indices[2, interface]
         secondary_direction = indices2direction(secondary_indices)
+
+        if perform_subcell_limiting(dg.volume_integral, primary_element) ||
+           perform_subcell_limiting(dg.volume_integral, secondary_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
 
         # Create the local i,j indexing
         i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
@@ -117,10 +124,6 @@
         end
     end
 
-    calc_lambdas_bar_states_boundary!(u, t, limiter, boundary_conditions,
-                                      mesh, equations, dg, cache;
-                                      calc_bar_states = calc_bar_states)
-
     return nothing
 end
 
@@ -131,7 +134,6 @@ end
     return nothing
 end
 
-# Calc lambdas and bar states at physical boundaries
 @inline function calc_lambdas_bar_states_boundary!(u, t, limiter, boundary_conditions,
                                                    mesh::P4estMesh{2}, equations, dg,
                                                    cache; calc_bar_states = true)
@@ -147,6 +149,10 @@ end
     foreach_enumerate(boundary_condition_types) do (i, boundary_condition)
         for boundary in boundary_indices[i]
             element = boundaries.neighbor_ids[boundary]
+
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(dg.volume_integral, element) || continue
+
             node_indices = boundaries.node_indices[boundary]
             direction = indices2direction(node_indices)
 

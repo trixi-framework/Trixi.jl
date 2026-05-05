@@ -857,6 +857,10 @@ end
 
     # Calc lambdas and bar states inside elements
     @threaded for element in eachelement(dg, cache)
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+
         for j in eachnode(dg), i in 2:nnodes(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             u_node_im1 = get_node_vars(u, equations, dg, i - 1, j, element)
@@ -892,22 +896,47 @@ end
         end
     end
 
-    # Calc lambdas and bar states at interfaces and periodic boundaries
+    # Calc lambdas and bar states at element interfaces and periodic boundaries
+    calc_lambdas_bar_states_interface!(u, t, limiter, boundary_conditions, mesh,
+                                       equations,
+                                       dg, cache; calc_bar_states = calc_bar_states)
+
+    # Calc lambdas and bar states at physical boundaries
+    calc_lambdas_bar_states_boundary!(u, t, limiter, boundary_conditions,
+                                      mesh, equations, dg, cache;
+                                      calc_bar_states = calc_bar_states)
+
+    return nothing
+end
+
+@inline function calc_lambdas_bar_states_interface!(u, t, limiter, boundary_conditions,
+                                                    mesh::TreeMesh{2}, equations,
+                                                    dg, cache; calc_bar_states = true)
+    (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
+
     @threaded for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left_id = cache.interfaces.neighbor_ids[1, interface]
-        right_id = cache.interfaces.neighbor_ids[2, interface]
+        left_element = cache.interfaces.neighbor_ids[1, interface]
+        right_element = cache.interfaces.neighbor_ids[2, interface]
+
+        if perform_subcell_limiting(dg.volume_integral, left_element) ||
+           perform_subcell_limiting(dg.volume_integral, right_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
 
         orientation = cache.interfaces.orientations[interface]
 
         if orientation == 1
             for j in eachnode(dg)
-                u_left = get_node_vars(u, equations, dg, nnodes(dg), j, left_id)
-                u_right = get_node_vars(u, equations, dg, 1, j, right_id)
+                u_left = get_node_vars(u, equations, dg, nnodes(dg), j, left_element)
+                u_right = get_node_vars(u, equations, dg, 1, j, right_element)
                 lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
 
-                lambda1[nnodes(dg) + 1, j, left_id] = lambda
-                lambda1[1, j, right_id] = lambda
+                lambda1[nnodes(dg) + 1, j, left_element] = lambda
+                lambda1[1, j, right_element] = lambda
 
                 !calc_bar_states && continue
 
@@ -916,18 +945,18 @@ end
                 bar_state = 0.5 * (u_left + u_right) -
                             0.5 * (flux_right - flux_left) / lambda
                 for v in eachvariable(equations)
-                    bar_states1[v, nnodes(dg) + 1, j, left_id] = bar_state[v]
-                    bar_states1[v, 1, j, right_id] = bar_state[v]
+                    bar_states1[v, nnodes(dg) + 1, j, left_element] = bar_state[v]
+                    bar_states1[v, 1, j, right_element] = bar_state[v]
                 end
             end
         else # orientation == 2
             for i in eachnode(dg)
-                u_left = get_node_vars(u, equations, dg, i, nnodes(dg), left_id)
-                u_right = get_node_vars(u, equations, dg, i, 1, right_id)
+                u_left = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
+                u_right = get_node_vars(u, equations, dg, i, 1, right_element)
                 lambda = max_abs_speed_naive(u_left, u_right, orientation, equations)
 
-                lambda2[i, nnodes(dg) + 1, left_id] = lambda
-                lambda2[i, 1, right_id] = lambda
+                lambda2[i, nnodes(dg) + 1, left_element] = lambda
+                lambda2[i, 1, right_element] = lambda
 
                 !calc_bar_states && continue
 
@@ -936,16 +965,27 @@ end
                 bar_state = 0.5 * (u_left + u_right) -
                             0.5 * (flux_right - flux_left) / lambda
                 for v in eachvariable(equations)
-                    bar_states2[v, i, nnodes(dg) + 1, left_id] = bar_state[v]
-                    bar_states2[v, i, 1, right_id] = bar_state[v]
+                    bar_states2[v, i, nnodes(dg) + 1, left_element] = bar_state[v]
+                    bar_states2[v, i, 1, right_element] = bar_state[v]
                 end
             end
         end
     end
 
-    # Calc lambdas and bar states at physical boundaries
+    return nothing
+end
+
+@inline function calc_lambdas_bar_states_boundary!(u, t, limiter, boundary_conditions,
+                                                   mesh::TreeMesh{2}, equations, dg,
+                                                   cache; calc_bar_states = true)
+    (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
+
     @threaded for boundary in eachboundary(dg, cache)
         element = cache.boundaries.neighbor_ids[boundary]
+
+        # detect if subcell limiting is necessary
+        perform_subcell_limiting(dg.volume_integral, element) || continue
+
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
