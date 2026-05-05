@@ -340,6 +340,38 @@ end
 end
 
 ###############################################################################
+# IDP mortar limiting
+###############################################################################
+
+@inline function calc_mortar_limiting_factor!(u, semi, t, dt)
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    (; positivity_variables_cons, positivity_variables_nonlinear) = solver.mortar
+    (; limiting_factor) = cache.mortars
+    @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
+
+    @trixi_timeit timer() "conservative variables" for var_index in positivity_variables_cons
+        limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
+    end
+
+    @trixi_timeit timer() "nonlinear variables" for variable in positivity_variables_nonlinear
+        limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
+    end
+
+    # Provisional analysis of limiting factor (TODO)
+    if nmortars(cache.mortars) > 0
+        (; output_directory) = solver.mortar
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
+            print(f, t, ", ")
+            print(f, maximum(limiting_factor),
+                  ", ", sum(limiting_factor) / length(limiting_factor))
+            println(f)
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
 # Newton-bisection method
 
 @inline function newton_loop!(alpha, bound, u, indices, variable, min_or_max,
