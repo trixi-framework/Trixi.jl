@@ -45,28 +45,32 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
     @trixi_testset "elixir_advection_restart.jl with adaptive time integration" begin
         # Perform a standard simulation
         using OrdinaryDiffEqSSPRK: SSPRK43
-        println("═"^100)
-        base_elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                               "elixir_advection_timeintegration_adaptive.jl")
-        println(base_elixir)
-        trixi_include(@__MODULE__,
-                      base_elixir, alg = SSPRK43(), tspan = (0.0, 10.0))
-        l2_expected, linf_expected = analysis_callback(sol)
+        using OrdinaryDiffEqLowStorage: RDPK3SpFSAL49
+        # SSPRK43 uses PIController, RDPK3SpFSAL49 uses PIDController
+        for alg in (SSPRK43(), RDPK3SpFSAL49())
+            println("═"^100)
+            base_elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                   "elixir_advection_timeintegration_adaptive.jl")
+            println(base_elixir)
+            trixi_include(@__MODULE__,
+                          base_elixir, alg = alg, tspan = (0.0, 10.0))
+            l2_expected, linf_expected = analysis_callback(sol)
 
-        # Perform a simulation restarting from an intermediate state
-        println("═"^100)
-        elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                          "elixir_advection_restart.jl")
-        println(elixir)
-        trixi_include(@__MODULE__,
-                      elixir, alg = SSPRK43(),
-                      base_elixir = base_elixir)
-        l2_actual, linf_actual = analysis_callback(sol)
+            # Perform a simulation restarting from an intermediate state
+            println("═"^100)
+            elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                              "elixir_advection_restart.jl")
+            println(elixir)
+            trixi_include(@__MODULE__,
+                          elixir, alg = alg,
+                          base_elixir = base_elixir)
+            l2_actual, linf_actual = analysis_callback(sol)
 
-        # Check whether the errors are exactly the same as in the uninterrupted run
-        # using the default SSPRK method with error-based step size control.
-        @test l2_actual == l2_expected
-        @test linf_actual == linf_expected
+            # Check whether the errors are exactly the same as in the uninterrupted run
+            # using the default SSPRK or low-storage RK method with error-based step size control.
+            @test l2_actual == l2_expected
+            @test linf_actual == linf_expected
+        end
     end
 
     @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
