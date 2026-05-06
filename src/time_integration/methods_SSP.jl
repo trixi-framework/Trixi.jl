@@ -213,7 +213,7 @@ end
 get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
