@@ -135,7 +135,9 @@ end
 # This is required for drag and lift coefficients based on shear stress,
 # as well as for the non-integrated quantities such as
 # skin friction coefficient (to be added).
-function viscous_stress_tensor(u, normal_direction, equations_parabolic,
+# NOTE: This function is only valid for the compressible Navier-Stokes diffusion operator with
+# `gradient_variables = GradientVariablesPrimitive()`.
+function viscous_stress_tensor(u, equations_parabolic,
                                gradients_1, gradients_2)
     _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients_1,
                                                          equations_parabolic)
@@ -163,8 +165,7 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
     #  Normalize normal direction, should point *into* the fluid => *(-1)
     n_normal = -normal_direction / norm(normal_direction)
 
-    tau_11, tau_12, tau_22 = viscous_stress_tensor(u, normal_direction,
-                                                   equations_parabolic,
+    tau_11, tau_12, tau_22 = viscous_stress_tensor(u, equations_parabolic,
                                                    gradients_1, gradients_2)
 
     # Viscous stress vector: Stress tensor * normal vector
