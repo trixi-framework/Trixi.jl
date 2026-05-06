@@ -79,7 +79,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                                                         mesh, equations, solver, cache)
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 
@@ -111,7 +111,7 @@ function (averaging_callback::AveragingCallback)(integrator)
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
 
     return nothing
 end
