@@ -3558,6 +3558,15 @@ end
     mesh_mapping_pos = StructuredMesh((4, 4), mapping_2d)
     mesh_mapping_kw = StructuredMesh((4, 4); mapping = mapping_2d)
     @test mesh_mapping_pos.cells_per_dimension == mesh_mapping_kw.cells_per_dimension
+
+    # keyword-based constructor with faces (rectangle)
+    f1(s) = SVector(-1.0, s)
+    f2(s) = SVector(1.0, s)
+    f3(s) = SVector(s, -1.0)
+    f4(s) = SVector(s, 1.0)
+    mesh_faces_pos = StructuredMesh((4, 4), (f1, f2, f3, f4))
+    mesh_faces_kw = StructuredMesh((4, 4); faces = (f1, f2, f3, f4))
+    @test mesh_faces_pos.cells_per_dimension == mesh_faces_kw.cells_per_dimension
 end
 
 @testset "Unified mesh constructor signatures (DGMultiMesh)" begin
@@ -3584,6 +3593,11 @@ end
     # 2D: cells_per_dimension as Keyword
     mesh_2d_kw = DGMultiMesh(dg_2d; cells_per_dimension = (4, 4))
     @test mesh_2d_kw.md.num_elements == mesh_2d_old.md.num_elements
+
+    # 2D: mapping
+    mapping_2d = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0))
+    mesh_2d_map = DGMultiMesh(dg_2d; cells_per_dimension = (4, 4), mapping = mapping_2d)
+    @test mesh_2d_map.md.num_elements == mesh_2d_old.md.num_elements
 
     # error case: cells_per_dimension and initial_refinement_level simultaneously
     @test_throws AssertionError DGMultiMesh(dg_2d;
