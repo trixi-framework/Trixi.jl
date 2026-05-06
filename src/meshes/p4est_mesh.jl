@@ -245,6 +245,123 @@ function P4estMesh(trees_per_dimension; polydeg,
                             p4est_partition_allow_for_coarsening)
 end
 
+# Convenience constructors matching the positional interface of StructuredMesh
+
+"""
+    P4estMesh(cells_per_dimension, coordinates_min, coordinates_max; polydeg, kwargs...)
+
+Convenience constructor for a rectangular `P4estMesh`. Matches the positional interface of
+`StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)` for easy mesh-type swapping.
+"""
+function P4estMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                   polydeg,
+                   RealT = Float64,
+                   initial_refinement_level = 0,
+                   periodicity = false,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true)
+    return P4estMesh(cells_per_dimension;
+                     polydeg = polydeg,
+                     coordinates_min = coordinates_min,
+                     coordinates_max = coordinates_max,
+                     RealT = RealT,
+                     initial_refinement_level = initial_refinement_level,
+                     periodicity = periodicity,
+                     unsaved_changes = unsaved_changes,
+                     p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening)
+end
+
+"""
+    P4estMesh(cells_per_dimension, mapping::Function; polydeg, kwargs...)
+
+Convenience constructor for a curved `P4estMesh`. Matches the positional interface of
+`StructuredMesh(cells_per_dimension, mapping)` for easy mesh-type swapping.
+"""
+function P4estMesh(cells_per_dimension, mapping::Function;
+                   polydeg,
+                   RealT = Float64,
+                   initial_refinement_level = 0,
+                   periodicity = false,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true)
+    return P4estMesh(cells_per_dimension;
+                     polydeg = polydeg,
+                     mapping = mapping,
+                     RealT = RealT,
+                     initial_refinement_level = initial_refinement_level,
+                     periodicity = periodicity,
+                     unsaved_changes = unsaved_changes,
+                     p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening)
+end
+
+"""
+    P4estMesh(cells_per_dimension, faces::Tuple; polydeg, kwargs...)
+
+Convenience constructor for a face-parametrized `P4estMesh`. Matches the positional interface of
+`StructuredMesh(cells_per_dimension, faces)` for easy mesh-type swapping.
+"""
+function P4estMesh(cells_per_dimension, faces::Tuple;
+                   polydeg,
+                   RealT = Float64,
+                   initial_refinement_level = 0,
+                   periodicity = false,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true)
+    return P4estMesh(cells_per_dimension;
+                     polydeg = polydeg,
+                     faces = faces,
+                     RealT = RealT,
+                     initial_refinement_level = initial_refinement_level,
+                     periodicity = periodicity,
+                     unsaved_changes = unsaved_changes,
+                     p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening)
+end
+
+# TreeMesh-compatible constructors: accept (coordinates_min, coordinates_max; initial_refinement_level)
+
+"""
+    P4estMesh(coordinates_min, coordinates_max; initial_refinement_level, polydeg, kwargs...)
+
+Create a rectangular `P4estMesh` from `coordinates_min`/`coordinates_max` and
+`initial_refinement_level`, using the same interface as `TreeMesh` for easy mesh-type swapping.
+Creates a single tree per dimension that is uniformly refined `initial_refinement_level` times,
+yielding `2^initial_refinement_level` cells per dimension.
+"""
+function P4estMesh(coordinates_min::NTuple{NDIMS}, coordinates_max::NTuple{NDIMS};
+                   initial_refinement_level,
+                   polydeg,
+                   RealT = Float64,
+                   periodicity = false,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true) where {NDIMS}
+    return P4estMesh(ntuple(_ -> 1, NDIMS);
+                     polydeg = polydeg,
+                     coordinates_min = coordinates_min,
+                     coordinates_max = coordinates_max,
+                     RealT = RealT,
+                     initial_refinement_level = initial_refinement_level,
+                     periodicity = periodicity,
+                     unsaved_changes = unsaved_changes,
+                     p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening)
+end
+
+# 1D convenience
+function P4estMesh(coordinates_min::Real, coordinates_max::Real;
+                   initial_refinement_level,
+                   polydeg,
+                   RealT = Float64,
+                   periodicity = false,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true)
+    return P4estMesh((coordinates_min,), (coordinates_max,);
+                     initial_refinement_level = initial_refinement_level,
+                     polydeg = polydeg,
+                     RealT = RealT,
+                     periodicity = periodicity,
+                     unsaved_changes = unsaved_changes,
+                     p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening)
+end
+
 # 2D version
 function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{2},
                                     periodicity)

@@ -3526,4 +3526,69 @@ end
 end
 end
 
+@testset "Unified mesh constructor signatures (StructuredMesh)" begin
+    # 1D: initial_refinement_level matches explicit cells_per_dimension (2^2 = 4)
+    mesh_1d_old = StructuredMesh((4,), (-1.0,), (1.0,))
+    mesh_1d_new = StructuredMesh((-1.0,), (1.0,); initial_refinement_level = 2)
+    @test mesh_1d_old.cells_per_dimension == mesh_1d_new.cells_per_dimension
+
+    # 1D: matches tuple form (like TreeMesh)
+    mesh_1d_scalar = StructuredMesh(-1.0, 1.0; initial_refinement_level = 2)
+    @test mesh_1d_scalar.cells_per_dimension == (4,)
+
+    # 2D: initial_refinement_level
+    mesh_2d_old = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
+    mesh_2d_new = StructuredMesh((-1.0, -1.0), (1.0, 1.0); initial_refinement_level = 2)
+    @test mesh_2d_old.cells_per_dimension == mesh_2d_new.cells_per_dimension
+
+    # 2D: keyword-based 
+    mesh_2d_kw = StructuredMesh((4, 4);
+                                coordinates_min = (-1.0, -1.0),
+                                coordinates_max = (1.0, 1.0))
+    @test mesh_2d_kw.cells_per_dimension == mesh_2d_old.cells_per_dimension
+
+    # 3D: initial_refinement_level
+    mesh_3d_old = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
+    mesh_3d_new = StructuredMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0);
+                                 initial_refinement_level = 2)
+    @test mesh_3d_old.cells_per_dimension == mesh_3d_new.cells_per_dimension
+
+    # keyword-based constructor with mapping
+    mapping_2d = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0))
+    mesh_mapping_pos = StructuredMesh((4, 4), mapping_2d)
+    mesh_mapping_kw = StructuredMesh((4, 4); mapping = mapping_2d)
+    @test mesh_mapping_pos.cells_per_dimension == mesh_mapping_kw.cells_per_dimension
+end
+
+@testset "Unified mesh constructor signatures (DGMultiMesh)" begin
+    dg_1d = DGMulti(polydeg = 2, element_type = Line(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 1D: initial_refinement_level (2^2 = 4 elements) matches positional cells_per_dimension
+    mesh_1d_old = DGMultiMesh(dg_1d, (4,))
+    mesh_1d_new = DGMultiMesh(dg_1d; initial_refinement_level = 2)
+    @test mesh_1d_old.md.num_elements == mesh_1d_new.md.num_elements
+
+    dg_2d = DGMulti(polydeg = 2, element_type = Quad(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 2D: initial_refinement_level
+    mesh_2d_old = DGMultiMesh(dg_2d, (4, 4))
+    mesh_2d_new = DGMultiMesh(dg_2d; initial_refinement_level = 2)
+    @test mesh_2d_old.md.num_elements == mesh_2d_new.md.num_elements
+
+    # 2D: cells_per_dimension as Keyword
+    mesh_2d_kw = DGMultiMesh(dg_2d; cells_per_dimension = (4, 4))
+    @test mesh_2d_kw.md.num_elements == mesh_2d_old.md.num_elements
+
+    # error case: cells_per_dimension and initial_refinement_level simultaneously
+    @test_throws AssertionError DGMultiMesh(dg_2d;
+                                            cells_per_dimension = (4, 4),
+                                            initial_refinement_level = 2)
+end
+
 end #module

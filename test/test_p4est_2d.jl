@@ -1022,6 +1022,25 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@testset "Unified mesh constructor signatures (P4estMesh)" begin
+    # 2D: keyword style (reference) — 4x4 trees
+    mesh_kw = P4estMesh((4, 4); polydeg = 1,
+                        coordinates_min = (-1.0, -1.0),
+                        coordinates_max = (1.0, 1.0))
+
+    # 2D: positional style 
+    mesh_pos = P4estMesh((4, 4), (-1.0, -1.0), (1.0, 1.0); polydeg = 1)
+    @test size(mesh_kw.tree_node_coordinates) == size(mesh_pos.tree_node_coordinates)
+    @test mesh_kw.tree_node_coordinates ≈ mesh_pos.tree_node_coordinates
+
+    # 2D: initial_refinement_level style — 1 tree refined 2 times = 4 cells per dimention.
+    # Internal layout differs (1 tree vs 16 trees), so only type and dimension are checked.
+    mesh_irl = P4estMesh((-1.0, -1.0), (1.0, 1.0); initial_refinement_level = 2,
+                         polydeg = 1)
+    @test mesh_irl isa P4estMesh{2}
+    @test size(mesh_irl.tree_node_coordinates, ndims(mesh_irl) + 2) == 1  # 1 macro-tree
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

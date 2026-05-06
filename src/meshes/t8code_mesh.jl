@@ -505,6 +505,103 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                                     mapping = mapping_)
 end
 
+# Convenience constructors matching the positional interface of StructuredMesh
+
+"""
+    T8codeMesh(cells_per_dimension, coordinates_min, coordinates_max; polydeg=1, kwargs...)
+
+Convenience constructor for a rectangular `T8codeMesh`. Matches the positional interface of
+`StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)` for easy mesh-type swapping.
+"""
+function T8codeMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                    polydeg = 1,
+                    RealT = Float64,
+                    initial_refinement_level = 0,
+                    periodicity = false)
+    return T8codeMesh(cells_per_dimension;
+                      polydeg = polydeg,
+                      coordinates_min = coordinates_min,
+                      coordinates_max = coordinates_max,
+                      RealT = RealT,
+                      initial_refinement_level = initial_refinement_level,
+                      periodicity = periodicity)
+end
+
+"""
+    T8codeMesh(cells_per_dimension, mapping::Function; polydeg=1, kwargs...)
+
+Convenience constructor for a curved `T8codeMesh`. Matches the positional interface of
+`StructuredMesh(cells_per_dimension, mapping)` for easy mesh-type swapping.
+"""
+function T8codeMesh(cells_per_dimension, mapping::Function;
+                    polydeg = 1,
+                    RealT = Float64,
+                    initial_refinement_level = 0,
+                    periodicity = false)
+    return T8codeMesh(cells_per_dimension;
+                      polydeg = polydeg,
+                      mapping = mapping,
+                      RealT = RealT,
+                      initial_refinement_level = initial_refinement_level,
+                      periodicity = periodicity)
+end
+
+"""
+    T8codeMesh(cells_per_dimension, faces::Tuple; polydeg=1, kwargs...)
+
+Convenience constructor for a face-parametrized `T8codeMesh`. Matches the positional interface of
+`StructuredMesh(cells_per_dimension, faces)` for easy mesh-type swapping.
+"""
+function T8codeMesh(cells_per_dimension, faces::Tuple;
+                    polydeg = 1,
+                    RealT = Float64,
+                    initial_refinement_level = 0,
+                    periodicity = false)
+    return T8codeMesh(cells_per_dimension;
+                      polydeg = polydeg,
+                      faces = faces,
+                      RealT = RealT,
+                      initial_refinement_level = initial_refinement_level,
+                      periodicity = periodicity)
+end
+
+# TreeMesh-compatible constructors: accept (coordinates_min, coordinates_max; initial_refinement_level)
+
+"""
+    T8codeMesh(coordinates_min, coordinates_max; initial_refinement_level, polydeg=1, kwargs...)
+
+Create a rectangular `T8codeMesh` from `coordinates_min`/`coordinates_max` and
+`initial_refinement_level`, using the same interface as `TreeMesh` for easy mesh-type swapping.
+Creates a single tree per dimension that is uniformly refined `initial_refinement_level` times,
+yielding `2^initial_refinement_level` cells per dimension.
+"""
+function T8codeMesh(coordinates_min::NTuple{NDIMS}, coordinates_max::NTuple{NDIMS};
+                    initial_refinement_level,
+                    polydeg = 1,
+                    RealT = Float64,
+                    periodicity = false) where {NDIMS}
+    return T8codeMesh(ntuple(_ -> 1, NDIMS);
+                      polydeg = polydeg,
+                      coordinates_min = coordinates_min,
+                      coordinates_max = coordinates_max,
+                      RealT = RealT,
+                      initial_refinement_level = initial_refinement_level,
+                      periodicity = periodicity)
+end
+
+# 1D convenience
+function T8codeMesh(coordinates_min::Real, coordinates_max::Real;
+                    initial_refinement_level,
+                    polydeg = 1,
+                    RealT = Float64,
+                    periodicity = false)
+    return T8codeMesh((coordinates_min,), (coordinates_max,);
+                      initial_refinement_level = initial_refinement_level,
+                      polydeg = polydeg,
+                      RealT = RealT,
+                      periodicity = periodicity)
+end
+
 """
     T8codeMesh(cmesh::Ptr{t8_cmesh},
                mapping=nothing, polydeg=1, RealT=Float64,

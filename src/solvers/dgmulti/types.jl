@@ -299,6 +299,45 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension;
 end
 
 """
+    DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension=nothing,
+                initial_refinement_level=nothing,
+                mapping=nothing,
+                coordinates_min=ntuple(_->-one(real(dg)), NDIMS),
+                coordinates_max=ntuple(_->one(real(dg)), NDIMS),
+                is_on_boundary=nothing,
+                periodicity=ntuple(_->false, NDIMS))
+
+Keyword-based convenience constructor for `DGMultiMesh`. Matches the style of
+`P4estMesh(cells_per_dimension; coordinates_min=..., coordinates_max=...)` for easy mesh-type swapping.
+
+Either `cells_per_dimension` or `initial_refinement_level` must be provided. When
+`initial_refinement_level` is given, `cells_per_dimension` is set to `2^initial_refinement_level`
+in each dimension, matching the `TreeMesh` convention.
+"""
+function DGMultiMesh(dg::DGMulti{NDIMS};
+                     cells_per_dimension = nothing,
+                     initial_refinement_level = nothing,
+                     mapping = nothing,
+                     coordinates_min = ntuple(_ -> -one(real(dg)), NDIMS),
+                     coordinates_max = ntuple(_ -> one(real(dg)), NDIMS),
+                     is_on_boundary = nothing,
+                     periodicity = ntuple(_ -> false, NDIMS)) where {NDIMS}
+    @assert (cells_per_dimension !== nothing)!=(initial_refinement_level !== nothing) "Exactly one of cells_per_dimension or initial_refinement_level must be specified"
+    if initial_refinement_level !== nothing
+        cells_per_dimension = ntuple(_ -> 2^initial_refinement_level, NDIMS)
+    end
+    if mapping !== nothing
+        return DGMultiMesh(dg, cells_per_dimension, mapping;
+                           is_on_boundary = is_on_boundary, periodicity = periodicity)
+    else
+        return DGMultiMesh(dg, cells_per_dimension;
+                           coordinates_min = coordinates_min,
+                           coordinates_max = coordinates_max,
+                           is_on_boundary = is_on_boundary, periodicity = periodicity)
+    end
+end
+
+"""
     DGMultiMesh(dg::DGMulti{NDIMS}, cells_per_dimension, mapping;
                 is_on_boundary=nothing,
                 periodicity=ntuple(_ -> false, NDIMS), kwargs...) where {NDIMS}
