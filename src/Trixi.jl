@@ -87,8 +87,23 @@ using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
 using Static: Static, One, True, False
-# OrdinaryDiffEq v7+ uses FastBroadcast.Threaded() for the thread argument; older versions use Static.True()
-const Threaded = isdefined(DiffEqBase, :Threaded) ? DiffEqBase.Threaded : True
+# Provide a Trixi-owned threading argument for OrdinaryDiffEq.jl algorithms that reads
+# Trixi's threading backend preference, so disabling Polyester via set_threading_backend!
+# consistently disables threading in ODE solvers as well.
+# OrdinaryDiffEq v7+ uses FastBroadcast.Threaded()/Serial(); older versions use Static.True()/False().
+@static if _PREFERENCE_THREADING === :serial
+    @static if isdefined(DiffEqBase, :Threaded)
+        Threaded() = DiffEqBase.Serial()
+    else
+        Threaded() = False()
+    end
+else
+    @static if isdefined(DiffEqBase, :Threaded)
+        Threaded() = DiffEqBase.Threaded()
+    else
+        Threaded() = True()
+    end
+end
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -346,6 +361,8 @@ export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
+
+export Threaded
 
 export ode_norm, ode_unstable_check
 
