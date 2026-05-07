@@ -1109,19 +1109,16 @@ function count_interfaces(forest, ndims)
 
             for iface in 0:(num_faces - 1)
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element_t}}}()
                 pneigh_eclass_ref = Ref{t8_eclass_t}()
 
                 dual_faces_ref = Ref{Ptr{Cint}}()
                 num_neighbors_ref = Ref{Cint}()
 
-                forest_is_balanced = Cint(1)
-
                 t8_forest_leaf_face_neighbors(forest, itree, element,
                                               pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
-                                              pelement_indices_ref, pneigh_eclass_ref,
-                                              forest_is_balanced)
+                                              pelement_indices_ref, pneigh_eclass_ref)
 
                 num_neighbors = num_neighbors_ref[]
                 dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
@@ -1173,8 +1170,6 @@ function count_interfaces(forest, ndims)
                         end
                     end
 
-                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors,
-                                       neighbor_leaves)
                     t8_free(dual_faces_ref[])
                     t8_free(pneighbor_leaves_ref[])
                     t8_free(pelement_indices_ref[])
@@ -1282,20 +1277,17 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
             # Loop over all faces of the current local element.
             for iface in 0:(num_faces - 1)
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element_t}}}()
                 pneigh_eclass_ref = Ref{t8_eclass_t}()
 
                 dual_faces_ref = Ref{Ptr{Cint}}()
                 num_neighbors_ref = Ref{Cint}()
 
-                forest_is_balanced = Cint(1)
-
                 # Query neighbor information from t8code.
                 t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
                                               pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
-                                              pelement_indices_ref, pneigh_eclass_ref,
-                                              forest_is_balanced)
+                                              pelement_indices_ref, pneigh_eclass_ref)
 
                 num_neighbors = num_neighbors_ref[]
                 dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
@@ -1524,8 +1516,6 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                         end
                     end
 
-                    t8_element_destroy(scheme, neighbor_eclass, num_neighbors,
-                                       neighbor_leaves)
                     t8_free(dual_faces_ref[])
                     t8_free(pneighbor_leaves_ref[])
                     t8_free(pelement_indices_ref[])
