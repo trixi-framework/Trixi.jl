@@ -141,7 +141,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
         iterations = 1
         while has_changed
             compute_coefficients!(integrator.u, t, semi)
-            u_modified!(integrator, true)
+            derivative_discontinuity!(integrator, true)
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
             iterations = iterations + 1
@@ -195,7 +195,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
                                    integrator.t, integrator.iter; kwargs...)
         if has_changed
             resize!(integrator, length(u_ode))
-            u_modified!(integrator, true)
+            derivative_discontinuity!(integrator, true)
         end
     end
 
@@ -634,6 +634,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                 partition!(mesh)
                 rebalance_solver!(u_ode, mesh, equations, dg, cache,
                                   old_global_first_quadrant)
+                @unpack parabolic_container = cache_parabolic
+                resize!(parabolic_container, equations, dg, cache)
             end
         end
 

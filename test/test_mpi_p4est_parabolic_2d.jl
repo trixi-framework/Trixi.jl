@@ -122,5 +122,19 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1500)
         @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
     end
+
+    @trixi_testset "P4estMesh2D: elixir_advection_diffusion_amr_inverted_index.jl" begin
+        #Test that the mpi parabolic solver works for inverted node indexing from external mesh files.
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_diffusion_amr_inverted_index.jl"),
+                            tspan=(0.0, 0.5),
+                            l2=[0.1717677505262361],
+                            linf=[1.9925134228101835],
+                            atol=1e-8,
+                            rtol=1e-8)
+        # Ensure that we do not have excessive memory allocations
+        @test_allocations(Trixi.rhs!, semi, sol, 1500)
+        @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
+    end
 end
 end # module
