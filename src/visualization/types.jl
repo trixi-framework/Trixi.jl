@@ -313,7 +313,7 @@ function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
 end
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
-function PlotData2D(u::Array{<:SVector, 2}, mesh, equations, dg::DGMulti, cache;
+function PlotData2D(u::Array{<:SVector}, mesh, equations, dg::DGMulti, cache;
                     solution_variables = nothing, nvisnodes = 2 * nnodes(dg))
     nvars = length(first(u))
     u_structarray = StructArray{eltype(u)}(ntuple(_ -> zeros(eltype(first(u)), size(u)),

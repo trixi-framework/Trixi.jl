@@ -15,9 +15,13 @@ function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
 
     normal_vectors = NormalVectorContainer2D(mesh, dg, cache_containers)
 
+    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
+                                                           volume_integral, dg,
+                                                           cache_containers, uEltype)
+
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            normal_vectors)
+            normal_vectors, cache_subcell_limiting...)
 end
 
 #=

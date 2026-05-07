@@ -5,12 +5,11 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                      equations, volume_integral::VolumeIntegralSubcellLimiting,
-                      dg::DG, cache_containers, uEltype)
-    cache = create_cache(mesh, equations,
-                         VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
-                         dg, cache_containers, uEltype)
+function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                       equations,
+                                       volume_integral::VolumeIntegralSubcellLimiting,
+                                       dg::DG, cache_containers, uEltype)
+    cache = NamedTuple()
 
     fhat1_L_threaded, fhat1_R_threaded,
     fhat2_L_threaded, fhat2_R_threaded,
@@ -53,7 +52,7 @@ function create_cache(mesh::Union{TreeMesh{3}, P4estMesh{3}},
     end
 
     # The limiter cache was created with 0 elements
-    resize_subcell_limiter_cache!(dg.volume_integral.limiter, n_elements)
+    resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
 
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,

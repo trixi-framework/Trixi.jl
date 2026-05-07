@@ -6,7 +6,7 @@
 #! format: noindent
 
 summary_callback(u, t, integrator) = false # when used as condition; never call the summary callback during the simulation
-summary_callback(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
+summary_callback(integrator) = derivative_discontinuity!(integrator, false) # the summary callback does nothing when called accidentally
 
 """
     SummaryCallback()
