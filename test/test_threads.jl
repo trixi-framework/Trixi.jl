@@ -26,7 +26,8 @@ end
                         linf=[0.007831753383083506])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    # Threads.@threads :static has more overhead than Polyester's @batch
+    @test_allocations(Trixi.rhs!, semi, sol, 30_000)
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
@@ -47,7 +48,8 @@ end
                         rtol=0.001)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    # Threads.@threads :static has more overhead than Polyester's @batch
+    @test_allocations(Trixi.rhs!, semi, sol, 50_000)
 end
 
 end # testset
