@@ -358,7 +358,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
 
     # Reset performance measurements
     analysis_callback.start_time_last_analysis = time_ns()
