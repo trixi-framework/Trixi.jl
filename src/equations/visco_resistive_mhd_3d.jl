@@ -54,7 +54,7 @@ For more details see e.g. arXiv:2012.12040.
 """
 struct ViscoResistiveMhd3D{GradientVariables, RealT <: Real,
                            E <: AbstractIdealGlmMhdEquations{3}} <:
-       AbstractViscoResistiveMhd{3, 9}
+       AbstractViscoResistiveMhd{3, 9, GradientVariables}
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
     mu::RealT                  # viscosity
