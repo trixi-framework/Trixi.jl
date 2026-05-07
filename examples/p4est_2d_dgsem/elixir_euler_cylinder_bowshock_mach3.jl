@@ -181,10 +181,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # Run the simulation
 
-<<<<<<< threaded
-sol = solve(ode, SSPRK33(stage_limiter! = stage_limiter!, thread = Trixi.Threaded());
-=======
-sol = solve(ode, SSPRK33(; stage_limiter! = stage_limiter!, thread = Trixi.True());
->>>>>>> main
+sol = solve(ode, SSPRK33(; stage_limiter! = stage_limiter!, thread = Trixi.Threaded());
             dt = 1.6e-5, # Fixed timestep works decent here
             ode_default_options()..., callback = callbacks);
