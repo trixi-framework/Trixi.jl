@@ -359,6 +359,13 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        iplot, iplot!
 
 function __init__()
+    # Skip MPI/library initialization during precompilation of subsequent packages.
+    # The specific case we are guarding against is recompilation when running under MPI,
+    # then the MPI launcher will error if more processes than asked for are launched. 
+    if ccall(:jl_generating_output, Cint, ()) == 1
+        return nothing
+    end
+
     init_mpi()
 
     init_p4est()
