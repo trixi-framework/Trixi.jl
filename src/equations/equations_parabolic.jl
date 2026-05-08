@@ -16,4 +16,3 @@ include("linear_diffusion_equation.jl")
 include("compressible_navier_stokes.jl")
 
 include("visco_resistive_mhd_3d.jl")
-
