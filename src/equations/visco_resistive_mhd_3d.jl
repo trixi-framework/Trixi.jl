@@ -203,9 +203,7 @@ end
 # Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
 # TODO: parabolic; entropy stable viscous terms
 @inline function convert_derivative_to_primitive(u, gradient,
-                                                 ::ViscoResistiveMhd3D{
-                                                                       GradientVariablesPrimitive
-                                                                       })
+                                                 ::ViscoResistiveMhd3D{GradientVariablesPrimitive})
     return gradient
 end
 
