@@ -1019,7 +1019,9 @@ function partition_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    let set_from = forest, do_ghost = 1, allow_for_coarsening = 1
+    # TODO: set allow_for_coarsening = 1 once
+    #       https://github.com/DLR-AMR/t8code/pull/2280 has been fixed
+    let set_from = forest, do_ghost = 1, allow_for_coarsening = 0
         t8_forest_set_partition(new_forest, set_from, allow_for_coarsening)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)
