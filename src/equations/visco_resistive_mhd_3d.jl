@@ -78,10 +78,14 @@ function ViscoResistiveMhd3D(equations::IdealGlmMhdEquations3D;
     # Important note! Factor of μ is accounted for later in `flux`.
     kappa = gamma * inv_gamma_minus_one / Pr
 
-    ViscoResistiveMhd3D{typeof(gradient_variables), typeof(gamma), typeof(equations)
-                        }(gamma, inv_gamma_minus_one,
-                          μ, Pr, eta, kappa,
-                          equations, gradient_variables)
+    ViscoResistiveMhd3D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma,
+                                                                                      inv_gamma_minus_one,
+                                                                                      μ,
+                                                                                      Pr,
+                                                                                      eta,
+                                                                                      kappa,
+                                                                                      equations,
+                                                                                      gradient_variables)
 end
 
 # Explicit formulas for the diffusive MHD fluxes are available, e.g., in Section 2
