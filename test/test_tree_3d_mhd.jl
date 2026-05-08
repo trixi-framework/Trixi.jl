@@ -312,7 +312,7 @@ end
 end
 
 @trixi_testset "TreeMesh3D: elixir_mhd_diffusive_convergence.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_mhd_diffusive_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[
