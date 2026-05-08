@@ -13,9 +13,9 @@ dispatchable type. This is intended to store geometric data and connectivities f
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
 mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
-    md::MeshDataT
+    const md::MeshDataT
 
-    boundary_faces::BoundaryFaceT
+    const boundary_faces::BoundaryFaceT
 
     current_filename :: String
     unsaved_changes  :: Bool
@@ -66,12 +66,13 @@ function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) whe
                                                                                     T3,
                                                                                     T4
                                                                                     }
-    DGMultiMesh{T1, T2, T3, T4}
+    return DGMultiMesh{T1, T2, T3, T4}
 end
 
 function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
     @nospecialize mesh # reduce precompilation time
     print(io, "$MeshType DGMultiMesh with NDIMS = $NDIMS.")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -91,7 +92,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-# This constructor is called by load_mesh_serial. Note that constructing the mesh this way 
+# This constructor is called by load_mesh_serial. Note that constructing the mesh this way
 # doesn't specify whether the mesh is affine. We assume the more general case (non-affine).
 function DGMultiMesh(md::MeshData{NDIMS}, boundary_names = []) where {NDIMS}
     return DGMultiMesh{NDIMS, NonAffine, typeof(md), typeof(boundary_names)}(md,

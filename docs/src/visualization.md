@@ -386,7 +386,7 @@ purposes. An example for how to create a `VisualizationCallback` can be found in
 
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval=20; clims=(0,1))
+visualization = VisualizationCallback(semi; interval = 20, clims = (0, 1))
 
 [...]
 ```

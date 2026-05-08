@@ -53,16 +53,25 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
+    # There is an issue with the LoopVectorization.jl ecosystem for this setup
+    # (not caused by MPI), see
+    # https://github.com/JuliaSIMD/LoopVectorization.jl/issues/543
+    # Thus, we do not run this test on macOS with ARM processors.
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[1.6163120948209677e-5],
-                            linf=[0.0010572201890564834],
-                            tspan=(0.0, 1.0),)
+        if Sys.isapple() && (Sys.ARCH === :aarch64)
+            # Show a hint in the test summary that there is a broken test
+            @test_skip false
+        else
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                         "elixir_advection_amr_unstructured_curved.jl"),
+                                l2=[1.6163120948209677e-5],
+                                linf=[0.0010572201890564834],
+                                tspan=(0.0, 1.0))
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            @test_allocations(Trixi.rhs!, semi, sol, 1000)
+        end
     end
 
     @trixi_testset "elixir_advection_restart.jl" begin
@@ -150,7 +159,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),)
+                            tspan=(0.0, 0.2))
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -205,7 +214,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                                 0.005104176909383168,
                                 9.738081186490818e-6
                             ],
-                            tspan=(0.0, 0.25),)
+                            tspan=(0.0, 0.25))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -237,7 +246,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
                             0.05701669133068068,
                             0.00024182906501186622
                         ],
-                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1),)
+                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

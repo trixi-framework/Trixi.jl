@@ -8,7 +8,7 @@ equations = HyperbolicDiffusionEquations2D()
 
 initial_condition = initial_condition_poisson_nonperiodic
 # 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
-boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
+boundary_conditions = (; x_neg = boundary_condition_poisson_nonperiodic,
                        x_pos = boundary_condition_poisson_nonperiodic,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -22,7 +22,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = (false, true))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions,
                                     source_terms = source_terms_poisson_nonperiodic)
 

@@ -19,7 +19,8 @@
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           MeshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3}}},
                                            have_nonconservative_terms::False,
                                            have_aux_node_vars::False,
                                            equations::CompressibleEulerEquations3D,
@@ -32,13 +33,13 @@
     # indices `[i, j, k, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -46,13 +47,13 @@
         rho_v1 = u_cons[2, i, j, k, element]
         rho_v2 = u_cons[3, i, j, k, element]
         rho_v3 = u_cons[4, i, j, k, element]
-        rho_e = u_cons[5, i, j, k, element]
+        rho_e_total = u_cons[5, i, j, k, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         p = (equations.gamma - 1) *
-            (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+            (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
 
         u_prim[i, j, k, 1] = rho
         u_prim[i, j, k, 2] = v1
@@ -89,7 +90,7 @@
     contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(undef,
                                                                          (StaticInt(nnodes(dg)^2),
                                                                           StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+                                                                          StaticInt(ndims(MeshT))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         jk = j + nnodes(dg) * (k - 1)
@@ -177,7 +178,7 @@
                                                                          (StaticInt(nnodes(dg)),
                                                                           StaticInt(nnodes(dg)),
                                                                           StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+                                                                          StaticInt(ndims(MeshT))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_y[i, j, k, 1] = contravariant_vectors[1, 2, i, j, k, element]
@@ -265,7 +266,7 @@
         contravariant_vectors_z = StrideArray{eltype(contravariant_vectors)}(undef,
                                                                              (StaticInt(nnodes(dg)^2),
                                                                               StaticInt(nnodes(dg)),
-                                                                              StaticInt(ndims(mesh))))
+                                                                              StaticInt(ndims(MeshT))))
 
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             ij = i + nnodes(dg) * (j - 1)
@@ -352,7 +353,8 @@ end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
                                            element,
-                                           mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                                           MeshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3}}},
                                            have_nonconservative_terms::False,
                                            have_aux_node_vars::False,
                                            equations::CompressibleEulerEquations3D,
@@ -365,7 +367,7 @@ end
     # indices `[i, j, k, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`. In addition
@@ -374,7 +376,7 @@ end
     # values.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -382,13 +384,13 @@ end
         rho_v1 = u_cons[2, i, j, k, element]
         rho_v2 = u_cons[3, i, j, k, element]
         rho_v3 = u_cons[4, i, j, k, element]
-        rho_e = u_cons[5, i, j, k, element]
+        rho_e_total = u_cons[5, i, j, k, element]
 
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
         p = (equations.gamma - 1) *
-            (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+            (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
 
         u_prim[i, j, k, 1] = rho
         u_prim[i, j, k, 2] = v1
@@ -427,7 +429,7 @@ end
     contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(undef,
                                                                          (StaticInt(nnodes(dg)^2),
                                                                           StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+                                                                          StaticInt(ndims(MeshT))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         jk = j + nnodes(dg) * (k - 1)
@@ -548,7 +550,7 @@ end
                                                                          (StaticInt(nnodes(dg)),
                                                                           StaticInt(nnodes(dg)),
                                                                           StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+                                                                          StaticInt(ndims(MeshT))))
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_y[i, j, k, 1] = contravariant_vectors[1, 2, i, j, k, element]
@@ -669,7 +671,7 @@ end
         contravariant_vectors_z = StrideArray{eltype(contravariant_vectors)}(undef,
                                                                              (StaticInt(nnodes(dg)^2),
                                                                               StaticInt(nnodes(dg)),
-                                                                              StaticInt(ndims(mesh))))
+                                                                              StaticInt(ndims(MeshT))))
 
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             ij = i + nnodes(dg) * (j - 1)

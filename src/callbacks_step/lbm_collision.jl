@@ -12,9 +12,9 @@ Apply the Lattice-Boltzmann method (LBM) collision operator before each time ste
 See [`LatticeBoltzmannEquations2D`](@ref) for further details.
 """
 function LBMCollisionCallback()
-    DiscreteCallback(lbm_collision_callback, lbm_collision_callback,
-                     save_positions = (false, false),
-                     initialize = initialize!)
+    return DiscreteCallback(lbm_collision_callback, lbm_collision_callback,
+                            save_positions = (false, false),
+                            initialize = initialize!)
 end
 
 # Always execute collision step after a time step, but not after the last step
@@ -25,6 +25,7 @@ function Base.show(io::IO,
     @nospecialize cb # reduce precompilation time
 
     print(io, "LBMCollisionCallback()")
+    return nothing
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -42,7 +43,7 @@ end
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                      integrator) where {Condition,
                                         Affect! <: typeof(lbm_collision_callback)}
-    cb.affect!(integrator)
+    return cb.affect!(integrator)
 end
 
 # This method is called as callback after the StepsizeCallback during the time integration.

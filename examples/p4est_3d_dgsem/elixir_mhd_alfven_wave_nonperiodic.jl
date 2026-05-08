@@ -9,12 +9,12 @@ equations = IdealGlmMhdEquations3D(5 / 3)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(:x_neg => boundary_condition,
-                           :x_pos => boundary_condition,
-                           :y_neg => boundary_condition,
-                           :y_pos => boundary_condition,
-                           :z_neg => boundary_condition,
-                           :z_pos => boundary_condition)
+boundary_conditions = (; x_neg = boundary_condition,
+                       x_pos = boundary_condition,
+                       y_neg = boundary_condition,
+                       y_pos = boundary_condition,
+                       z_neg = boundary_condition,
+                       z_pos = boundary_condition)
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,
@@ -32,7 +32,7 @@ mesh = P4estMesh(trees_per_dimension,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

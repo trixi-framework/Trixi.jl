@@ -75,10 +75,10 @@ function LinearizedEulerEquations3D(; v_mean_global::NTuple{3, <:Real},
 end
 
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations3D)
-    ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
 end
 function varnames(::typeof(cons2prim), ::LinearizedEulerEquations3D)
-    ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
+    return ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
 end
 
 """
@@ -180,6 +180,15 @@ end
     return SVector(f1, f2, f3, f4, f5)
 end
 
+"""
+    have_constant_speed(::LinearizedEulerEquations3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LinearizedEulerEquations3D) = True()
 
 @inline function max_abs_speeds(equations::LinearizedEulerEquations3D)
@@ -212,12 +221,12 @@ end
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::LinearizedEulerEquations3D)
-    min_max_speed_davis(u_ll, u_rr, orientation, equations)
+    return min_max_speed_davis(u_ll, u_rr, orientation, equations)
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::LinearizedEulerEquations3D)
-    min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
+    return min_max_speed_davis(u_ll, u_rr, normal_direction, equations)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes

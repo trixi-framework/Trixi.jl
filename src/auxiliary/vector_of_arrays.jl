@@ -23,9 +23,9 @@ function Adapt.parent_type(::Type{<:VecOfArrays{T}}) where {T}
     return T
 end
 function Adapt.unwrap_type(A::Type{<:VecOfArrays})
-    Adapt.unwrap_type(Adapt.parent_type(A))
+    return Adapt.unwrap_type(Adapt.parent_type(A))
 end
 function Base.convert(::Type{<:VecOfArrays}, v::Vector{<:AbstractArray})
-    VecOfArrays(v)
+    return VecOfArrays(v)
 end
 end # @muladd

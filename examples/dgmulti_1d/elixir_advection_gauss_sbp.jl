@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 ###############################################################################
 #  setup the GSBP DG discretization that uses the Gauss operators from Chan et al.
 
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 dg = DGMulti(polydeg = 3,
              element_type = Line(),
              approximation_type = GaussSBP(),
@@ -35,8 +35,8 @@ initial_condition = initial_condition_convergence_test
 
 semi = SemidiscretizationHyperbolic(mesh,
                                     equations,
-                                    initial_condition,
-                                    dg)
+                                    initial_condition, dg;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan)

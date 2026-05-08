@@ -57,17 +57,8 @@ end
 @trixi_testset "elixir_euler_shu_osher_gauss_shock_capturing.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
-                        cells_per_dimension=(64,), tspan=(0.0, 1.0),
-                        l2=[
-                            1.6967151731067875,
-                            6.018445633981826,
-                            21.77425594743242
-                        ],
-                        linf=[
-                            3.2229876650556477,
-                            10.702690533393842,
-                            38.37424900889908
-                        ])
+                        l2=[1.6967163299095107, 6.018450129099115, 21.774272062049693],
+                        linf=[3.2229821729393437, 10.702811890261692, 38.37413018581744])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -75,9 +66,10 @@ end
 
 @trixi_testset "elixir_euler_flux_diff.jl (convergence)" begin
     using Trixi: convergence_test
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_flux_diff.jl"), 3)
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR,
+                                        "elixir_euler_flux_diff.jl"), 3)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [4.1558759698638434, 3.977911306037128, 4.041421206468769],
                    rtol = 0.05)
@@ -160,6 +152,19 @@ end
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cgsbp_periodic.jl"),
+                        l2=[
+                            5.843760898223001e-5, 6.147562272684972e-5,
+                            2.47193762401697e-5
+                        ],
+                        linf=[
+                            1.3094042977845888e-4, 1.2807952438143033e-4,
+                            6.1275164883412e-5
+                        ])
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 

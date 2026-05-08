@@ -5,23 +5,20 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
     alpha_tmp = similar(alpha)
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-    modal_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    MVec = MVector{nnodes(basis), uEltype}
+
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
+    modal_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, alpha_tmp, indicator_threaded, modal_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
-                      equations::AbstractEquations, dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
@@ -49,19 +46,13 @@ end
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
                                    indicator)
 
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for i in 1:nnodes(dg)
-        total_energy += modal[i]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for i in 1:(nnodes(dg) - 1)
-        total_energy_clip1 += modal[i]^2
-    end
+    # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     for i in 1:(nnodes(dg) - 2)
         total_energy_clip2 += modal[i]^2
     end
+    total_energy_clip1 = total_energy_clip2 + modal[nnodes(dg) - 1]^2
+    total_energy = total_energy_clip1 + modal[nnodes(dg)]^2
 
     # Calculate energy in higher modes
     if !(iszero(total_energy))
@@ -90,6 +81,7 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+    return nothing
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
@@ -111,21 +103,18 @@ function apply_smoothing!(mesh::TreeMesh{1}, alpha, alpha_tmp, dg, cache)
     return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
+function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
+                      equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+    uEltype = real(basis)
+    alpha = Vector{uEltype}()
 
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
+    MVec = MVector{nnodes(basis), uEltype}
+
+    indicator_threaded = MVec[MVec(undef) for _ in 1:Threads.maxthreadid()]
 
     return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations,
-                      dg::DGSEM, cache)
-    create_cache(typ, equations, dg.basis)
 end
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
@@ -161,23 +150,6 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 3},
     return alpha
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{1},
-                      basis::LobattoLegendreBasis)
-    alpha = Vector{real(basis)}()
-
-    A = Array{real(basis), ndims(equations)}
-    indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-    return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations,
-                      dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
-end
-
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
@@ -195,6 +167,29 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
         end
 
         alpha[element] = maximum(indicator)
+    end
+
+    return alpha
+end
+
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 3},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
+
+    @threaded for element in eachelement(dg, cache)
+        estimate = typemin(eltype(alpha))
+        for i in eachnode(dg)
+            u_nodal = get_node_vars(u, equations, dg, i, element)
+            x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                      i, element)
+            estimate = max(estimate, indicator_function(u_nodal, x_nodal, t))
+        end
+        alpha[element] = estimate
     end
 
     return alpha

@@ -182,16 +182,16 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op = collision_bgk,
                                   -c, c, -c, 0, 0, -c, c, -c, c,
                                   c, -c, -c, c, c, -c, c, -c, 0)
 
-    LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
-                                weights, v_alpha1, v_alpha2, v_alpha3,
-                                collision_op)
+    return LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
+                                       weights, v_alpha1, v_alpha2, v_alpha3,
+                                       collision_op)
 end
 
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D)
-    ntuple(v -> "pdf" * string(v), Val(nvariables(equations)))
+    return ntuple(v -> "pdf" * string(v), Val(nvariables(equations)))
 end
 function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D)
-    varnames(cons2cons, equations)
+    return varnames(cons2cons, equations)
 end
 
 """
@@ -207,7 +207,7 @@ to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, press
     return SVector(rho, v1, v2, v3, p)
 end
 function varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D)
-    ("rho", "v1", "v2", "v3", "p")
+    return ("rho", "v1", "v2", "v3", "p")
 end
 
 # Set initial conditions at physical location `x` for time `t`
@@ -300,18 +300,21 @@ Calculate the macroscopic velocity vector from the particle distribution functio
                    dot(v_alpha3, u) / rho)
 end
 
-"""
+@doc raw"""
     pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
     pressure(u, equations::LatticeBoltzmannEquations3D)
 
 Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
-`u`.
+`u` as
+```math
+p = \rho c_s^2
+```
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
     return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations3D)
-    pressure(density(u, equations), equations)
+    return pressure(density(u, equations), equations)
 end
 
 """
@@ -384,6 +387,15 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
     return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
+"""
+    have_constant_speed(::LatticeBoltzmannEquations3D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::LatticeBoltzmannEquations3D) = True()
 
 @inline function max_abs_speeds(equations::LatticeBoltzmannEquations3D)

@@ -52,9 +52,10 @@ coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
 mesh = P4estMesh((1, 1), polydeg = Trixi.polydeg(solver),
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 4)
+                 initial_refinement_level = 4, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -11,9 +11,9 @@ initial_condition = initial_condition_weak_blast_wave
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = flux_ranocha
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux = flux_ranocha)
 solver = DGSEM(polydeg = 4, surface_flux = flux_ranocha,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+               volume_integral = volume_integral)
 
 ###############################################################################
 # Get the curved quad mesh from a mapping function
@@ -36,12 +36,13 @@ end
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = true)
 
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

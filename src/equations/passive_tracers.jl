@@ -139,7 +139,12 @@ end
     return SVector(cons_flow..., cons_tracer...)
 end
 
-# Entropy for tracers is the L2 norm of the tracers
+"""
+    entropy(cons, tracer_equations::PassiveTracerEquations)
+
+Calculate entropy for a conservative state `cons` as the sum of the [`entropy`](@ref)
+for the flow equations and the L2 norm of the tracers scaled by the density.
+"""
 @inline function entropy(cons, tracer_equations::PassiveTracerEquations)
     flow_entropy = entropy(flow_variables(cons, tracer_equations),
                            tracer_equations.flow_equations)

@@ -42,11 +42,13 @@ initial_condition_sine(x, t, equation::CubicEquation) = SVector(sinpi(x[1]))
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level = 4,
-                n_cells_max = 10^4)
+                n_cells_max = 10^4,
+                periodicity = true)
 
 solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 # We wrap the return value of the `initial_condition_sine` inside an `SVector` since that's the approach
 # used in Trixi.jl also for systems of equations. We need to index the spatial coordinate `x[1]`,
@@ -103,7 +105,8 @@ plot!(sol)
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi,
-              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
+              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5,
+                              periodicity = true))
 ode = semidiscretize(semi, (0.0, 0.5)) # set tspan to (0.0, 0.5)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
@@ -179,16 +182,18 @@ using Plots
 equation = CubicConservationLaw.CubicEquation()
 
 function initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation)
-    SVector(sinpi(x[1]))
+    return SVector(sinpi(x[1]))
 end
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level = 4,
-                n_cells_max = 10^4)
+                n_cells_max = 10^4,
+                periodicity = true)
 
 solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
-semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ## Create ODE problem with given time span
 tspan = (0.0, 0.1)
@@ -206,7 +211,8 @@ plot!(sol)
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi,
-              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
+              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5,
+                              periodicity = true))
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)

@@ -6,8 +6,8 @@
 #! format: noindent
 
 function prolong2mpiinterfaces!(cache, u,
-                                mesh::Union{ParallelP4estMesh{2},
-                                            ParallelT8codeMesh{2}},
+                                mesh::Union{P4estMeshParallel{2},
+                                            T8codeMeshParallel{2}},
                                 equations, surface_integral, dg::DG)
     @unpack mpi_interfaces = cache
     index_range = eachnode(dg)
@@ -44,8 +44,8 @@ function prolong2mpiinterfaces!(cache, u,
 end
 
 function calc_mpi_interface_flux!(surface_flux_values,
-                                  mesh::Union{ParallelP4estMesh{2},
-                                              ParallelT8codeMesh{2}},
+                                  mesh::Union{P4estMeshParallel{2},
+                                              T8codeMeshParallel{2}},
                                   have_nonconservative_terms, have_aux_node_vars,
                                   equations, surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
@@ -109,8 +109,8 @@ end
 
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_mpi_interface_flux!(surface_flux_values,
-                                          mesh::Union{ParallelP4estMesh{2},
-                                                      ParallelT8codeMesh{2}},
+                                          mesh::Union{P4estMeshParallel{2},
+                                                      T8codeMeshParallel{2}},
                                           have_nonconservative_terms::False,
                                           have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
@@ -139,8 +139,8 @@ end
 
 # Inlined version of the interface flux computation for non-conservative equations
 @inline function calc_mpi_interface_flux!(surface_flux_values,
-                                          mesh::Union{ParallelP4estMesh{2},
-                                                      ParallelT8codeMesh{2}},
+                                          mesh::Union{P4estMeshParallel{2},
+                                                      T8codeMeshParallel{2}},
                                           have_nonconservative_terms::True,
                                           have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
@@ -174,7 +174,7 @@ end
 end
 
 function prolong2mpimortars!(cache, u,
-                             mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
+                             mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
                              dg::DGSEM)
@@ -241,9 +241,8 @@ function prolong2mpimortars!(cache, u,
 end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
-                               mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
-                               have_nonconservative_terms, have_aux_node_vars,
-                               equations,
+                               mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                               have_nonconservative_terms, have_aux_node_vars, equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
@@ -299,8 +298,8 @@ end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
 @inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
-                                       mesh::Union{ParallelP4estMesh{2},
-                                                   ParallelT8codeMesh{2}},
+                                       mesh::Union{P4estMeshParallel{2},
+                                                   T8codeMeshParallel{2}},
                                        have_nonconservative_terms::False, equations,
                                        surface_integral, dg::DG, cache,
                                        mortar_index, position_index, normal_direction,
@@ -322,8 +321,8 @@ end
 
 # Inlined version of the mortar flux computation on small elements for non-conservative equations
 @inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
-                                       mesh::Union{ParallelP4estMesh{2},
-                                                   ParallelT8codeMesh{2}},
+                                       mesh::Union{P4estMeshParallel{2},
+                                                   T8codeMeshParallel{2}},
                                        have_nonconservative_terms::True, equations,
                                        surface_integral, dg::DG, cache,
                                        mortar_index, position_index, normal_direction,
@@ -351,8 +350,8 @@ end
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
-                                                mesh::Union{ParallelP4estMesh{2},
-                                                            ParallelT8codeMesh{2}},
+                                                mesh::Union{P4estMeshParallel{2},
+                                                            T8codeMeshParallel{2}},
                                                 equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache, mortar, fstar_primary,

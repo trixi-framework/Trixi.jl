@@ -12,7 +12,8 @@ initial_condition = initial_condition_convergence_test
 polydeg = 3 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
 surface_flux = flux_hllc
-volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, surface_flux,
+volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
+                                                      volume_flux_fv = surface_flux,
                                                       reconstruction_mode = reconstruction_O2_full,
                                                       slope_limiter = monotonized_central)
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
@@ -22,10 +23,11 @@ coordinates_min = 0.0
 coordinates_max = 2.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms_convergence_test,
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -20,12 +20,12 @@ trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                        "elixir_euler_NACA6412airfoil_mach2.jl"), tspan = (0.0, 0.5))
 
 # Conveniently, we use the Plots package to have a first look at the results:
-# ```julia
+# ````julia
 # using Plots
 # pd = PlotData2D(sol)
 # plot(pd["rho"])
 # plot!(getmesh(pd))
-# ```
+# ````
 
 # ## Creating a mesh using `gmsh`
 
@@ -403,14 +403,14 @@ trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
 # This is followed by the nodesets encoded via `*NSET` which are used to assign boundary conditions in Trixi.jl.
 # Trixi.jl parses the `.inp` file and assigns the edges (in 2D, surfaces in 3D) of elements to the corresponding boundary condition based on
 # the supplied `boundary_symbols` that have to be supplied to the `P4estMesh` constructor:
-# ```julia
+# ````julia
 # # boundary symbols
 # boundary_symbols = [:PhysicalLine1, :PhysicalLine2, :PhysicalLine3, :PhysicalLine4]
 # mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
-# ```
+# ````
 # The same boundary symbols have then also be supplied to the semidiscretization alongside the
 # corresponding physical boundary conditions:
-# ```julia
+# ````julia
 # # Supersonic inflow boundary condition.
 # # Calculate the boundary flux entirely from the external solution state, i.e., set
 # # external solution state values for everything entering the domain.
@@ -434,14 +434,14 @@ trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
 #                                                        equations::CompressibleEulerEquations2D)
 # flux = Trixi.flux(u_inner, normal_direction, equations)
 #
-# boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
-#                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-#                            :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary
-#                            :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
+# boundary_conditions = (; PhysicalLine1 = boundary_condition_supersonic_inflow, # Left boundary
+#                          PhysicalLine2 = boundary_condition_supersonic_outflow, # Right boundary
+#                          PhysicalLine3 = boundary_condition_supersonic_outflow, # Top and bottom boundary
+#                          PhysicalLine4 = boundary_condition_slip_wall) # Airfoil
 #
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 #                                     boundary_conditions = boundary_conditions)
-# ```
+# ````
 # Note that you **have to** supply the `boundary_symbols` keyword to the `P4estMesh` constructor
 # to select the boundaries from the available nodesets in the `.inp` file.
 # If the `boundary_symbols` keyword is not supplied, all boundaries will be assigned to the default set `:all`.

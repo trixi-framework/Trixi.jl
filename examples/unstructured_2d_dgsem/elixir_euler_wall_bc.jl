@@ -25,11 +25,11 @@ end
 initial_condition = uniform_flow_state
 
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
-boundary_conditions = Dict(:Bottom => boundary_condition_uniform_flow,
-                           :Top => boundary_condition_uniform_flow,
-                           :Right => boundary_condition_uniform_flow,
-                           :Left => boundary_condition_uniform_flow,
-                           :Circle => boundary_condition_slip_wall)
+boundary_conditions = (; Bottom = boundary_condition_uniform_flow,
+                       Top = boundary_condition_uniform_flow,
+                       Right = boundary_condition_uniform_flow,
+                       Left = boundary_condition_uniform_flow,
+                       Circle = boundary_condition_slip_wall)
 
 ###############################################################################
 # Get the DG approximation space
@@ -46,7 +46,7 @@ mesh = UnstructuredMesh2D(mesh_file)
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

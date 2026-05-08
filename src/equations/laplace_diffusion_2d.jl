@@ -3,6 +3,9 @@
 
 `LaplaceDiffusion2D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
+This is intended for use as the parabolic part of a hyperbolic-parabolic system, where the 
+hyperbolic part is defined by `equations`. For a purely parabolic diffusion equation 
+without any hyperbolic part, see [`LinearDiffusionEquation2D`](@ref).
 """
 struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusion{2, N}
     diffusivity::T
@@ -10,12 +13,13 @@ struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusion{2, N}
 end
 
 function LaplaceDiffusion2D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusion2D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
-                       typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+    return LaplaceDiffusion2D{typeof(equations_hyperbolic),
+                              nvariables(equations_hyperbolic),
+                              typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)
-    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
 function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDiffusion2D)
@@ -31,7 +35,7 @@ end
 # The penalization depends on the solver, but also depends explicitly on physical parameters,
 # and would probably need to be specialized for every different equation.
 function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion2D,
-                 dg::ViscousFormulationLocalDG)
+                 dg::ParabolicFormulationLocalDG)
     return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity
 end
 

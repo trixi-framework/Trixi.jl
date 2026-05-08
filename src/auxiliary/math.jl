@@ -434,8 +434,8 @@ Given ε = 1.0e-4, we use the following algorithm.
             yg = y^(gamma - 1)
             xg = x^(gamma - 1)
         else
-            yg = exp((gamma - 1) * log(y)) # equivalent to y^gamma but faster for non-integers
-            xg = exp((gamma - 1) * log(x)) # equivalent to x^gamma but faster for non-integers
+            yg = exp((gamma - 1) * log(y)) # equivalent to y^(gamma - 1) but faster for non-integers
+            xg = exp((gamma - 1) * log(x)) # equivalent to x^(gamma - 1) but faster for non-integers
         end
         return (gamma - 1) * (yg * y - xg * x) / (gamma * (yg - xg))
     end
@@ -445,4 +445,8 @@ end
 @inline function maxmod(sl, sr)
     return 0.5f0 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
 end
+
+# Regularized approximation to the ratio a / b, which is numerically stable 
+# for b close to zero and approaches zero as b -> 0.
+@inline regularized_ratio(a, b) = a * b / (eps(typeof(b)) + b^2)
 end # @muladd

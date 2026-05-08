@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+@inline Base.ndims(::Type{<:AbstractMesh{NDIMS}}) where {NDIMS} = NDIMS
+
 include("tree_mesh.jl")
 include("structured_mesh.jl")
 include("structured_mesh_view.jl")

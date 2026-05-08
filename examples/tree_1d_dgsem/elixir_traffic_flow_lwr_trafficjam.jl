@@ -41,12 +41,12 @@ function boundary_condition_inflow(u_inner, orientation, direction, x, t,
     return flux(u_inner, orientation, equations)
 end
 
-boundary_conditions = (x_neg = boundary_condition_outflow,
+boundary_conditions = (; x_neg = boundary_condition_outflow,
                        x_pos = boundary_condition_inflow)
 
 initial_condition = initial_condition_traffic_jam
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################

@@ -28,17 +28,17 @@ end
 
 function HyperbolicDiffusionEquations1D(; nu = 1.0, Lr = inv(2pi))
     Tr = Lr^2 / nu
-    HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
+    return HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
 end
 
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 function default_analysis_errors(::HyperbolicDiffusionEquations1D)
-    (:l2_error, :linf_error, :residual)
+    return (:l2_error, :linf_error, :residual)
 end
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations1D)
-    abs(du[1])
+    return abs(du[1])
 end
 
 """
@@ -172,6 +172,15 @@ end
     return sqrt(equations.nu * equations.inv_Tr)
 end
 
+"""
+    have_constant_speed(::HyperbolicDiffusionEquations1D)
+
+Indicates whether the characteristic speeds are constant, i.e., independent of the solution.
+Queried in the timestep computation [`StepsizeCallback`](@ref) and [`linear_structure`](@ref).
+
+# Returns
+- `True()`
+"""
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)
@@ -191,12 +200,23 @@ end
     return SVector(w1, w2)
 end
 
-# Calculate entropy for a conservative state `u` (here: same as total energy)
+"""
+    entropy(u, equations::AbstractHyperbolicDiffusionEquations)
+
+Calculate entropy for a conservative state `u`,
+here same as [`energy_total(u, equations::AbstractHyperbolicDiffusionEquations)`](@ref).
+"""
 @inline function entropy(u, equations::HyperbolicDiffusionEquations1D)
-    energy_total(u, equations)
+    return energy_total(u, equations)
 end
 
-# Calculate total energy for a conservative state `u`
+@doc raw"""
+    energy_total(u, equations::AbstractHyperbolicDiffusionEquations)
+
+Calculate total energy for a conservative state `u` as
+```math
+E = \frac{1}{2} \left( \phi^2 + L_r^2 \Vert \boldsymbol q \Vert_2^2 \right)
+"""
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations1D)
     # energy function as found in equations (2.5.12) in the book "I Do Like CFD, Vol. 1"
     phi, q1 = u

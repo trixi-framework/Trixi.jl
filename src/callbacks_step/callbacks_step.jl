@@ -18,8 +18,8 @@ end
                                         kwargs...)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                           cb.affect!; kwargs...)
+    return get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                  cb.affect!; kwargs...)
 end
 
 @inline function isfinished(integrator)

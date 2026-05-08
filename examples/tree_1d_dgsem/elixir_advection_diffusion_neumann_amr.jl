@@ -26,7 +26,7 @@ boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations_para
 boundary_conditions = (; x_neg = boundary_condition_left,
                        x_pos = boundary_condition_do_nothing)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
                                  x_pos = boundary_condition_neumann_zero)
 

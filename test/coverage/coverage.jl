@@ -33,4 +33,5 @@ cd(joinpath(@__DIR__, "..", "..")) do
 
     # Clean up .cov files
     clean_folder("src")
+    return nothing
 end

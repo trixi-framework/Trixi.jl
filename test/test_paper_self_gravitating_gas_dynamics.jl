@@ -257,7 +257,7 @@ end
                             4.07876384374792,
                             16.23914384809855
                         ],
-                        tspan=(0.0, 0.05),)
+                        tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

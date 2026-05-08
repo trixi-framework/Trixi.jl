@@ -33,7 +33,7 @@ function calc_node_coordinates!(node_coordinates,
     # than the polydeg of the solver.
     @assert length(basis.nodes)>=length(mesh.nodes) "The solver can't have a lower polydeg than the mesh"
 
-    calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
+    return calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
@@ -74,6 +74,12 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
+end
+
+# Not yet implemented and needed for 3D
+function init_normal_directions!(interfaces::P4estInterfaceContainer{3},
+                                 basis::LobattoLegendreBasis, elements)
+    return nothing
 end
 
 # Initialize node_indices of interface container

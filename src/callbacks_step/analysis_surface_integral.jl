@@ -54,7 +54,7 @@ end
 
 # Abstract base type used for dispatch of `analyze` for quantities
 # requiring gradients of the velocity field.
-abstract type VariableViscous end
+abstract type VariableParabolic end
 
 struct LiftCoefficientPressure{RealT <: Real, NDIMS}
     force_state::ForceState{RealT, NDIMS}
@@ -64,11 +64,11 @@ struct DragCoefficientPressure{RealT <: Real, NDIMS}
     force_state::ForceState{RealT, NDIMS}
 end
 
-struct LiftCoefficientShearStress{RealT <: Real, NDIMS} <: VariableViscous
+struct LiftCoefficientShearStress{RealT <: Real, NDIMS} <: VariableParabolic
     force_state::ForceState{RealT, NDIMS}
 end
 
-struct DragCoefficientShearStress{RealT <: Real, NDIMS} <: VariableViscous
+struct DragCoefficientShearStress{RealT <: Real, NDIMS} <: VariableParabolic
     force_state::ForceState{RealT, NDIMS}
 end
 
@@ -92,38 +92,38 @@ end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
                                                                                <:Any}})
-    "CL_p"
+    return "CL_p"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
                                                                              <:Any}})
-    "CL_p"
+    return "CL_p"
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any,
                                                                                <:Any}})
-    "CD_p"
+    return "CD_p"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any,
                                                                              <:Any}})
-    "CD_p"
+    return "CD_p"
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any,
                                                                                   <:Any}})
-    "CL_f"
+    return "CL_f"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any,
                                                                                 <:Any}})
-    "CL_f"
+    return "CL_f"
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any,
                                                                                   <:Any}})
-    "CD_f"
+    return "CD_f"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any,
                                                                                 <:Any}})
-    "CD_f"
+    return "CD_f"
 end
 
 include("analysis_surface_integral_2d.jl")

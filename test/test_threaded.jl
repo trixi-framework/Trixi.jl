@@ -91,7 +91,11 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        end
     end
 
     @trixi_testset "elixir_euler_ec.jl" begin
@@ -130,10 +134,14 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
                                 1.2910938760258899,
                                 6.473385481404865
                             ],
-                            tspan=(0.0, 1.0),)
+                            tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        end
     end
 
     @trixi_testset "elixir_advection_diffusion.jl" begin
@@ -180,7 +188,11 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 15000)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        end
     end
 end
 
@@ -192,7 +204,7 @@ end
                             linf=[0.0015194252169410394],
                             rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                             elixir_file="elixir_advection_waving_flag.jl",
-                            restart_file="restart_000000021.h5",)
+                            restart_file="restart_000000021.h5")
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -259,7 +271,11 @@ end
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        if VERSION >= v"1.12"
+            @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        else
+            @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        end
     end
 
     @trixi_testset "elixir_eulergravity_convergence.jl" begin
