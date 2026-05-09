@@ -101,7 +101,7 @@ volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                                                       reconstruction_mode = reconstruction_O2_inner,
                                                                       slope_limiter = minmod)
 
-# This volume integral applies blended DG-FV shock capturing on the elements based on the shock indicator 
+# This volume integral applies blended DG-FV shock capturing on the elements based on the shock indicator
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 0.5, alpha_min = 5e-2,
                                             alpha_smooth = true,
@@ -167,6 +167,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
+sol = solve(ode, SSPRK43(; stage_limiter! = stage_limiter!, thread = Trixi.True());
             dt = 5e-7, # Reducing initial timestep allows AMR interval of 2 instead of 1
             adaptive = true, ode_default_options()..., callback = callbacks);
