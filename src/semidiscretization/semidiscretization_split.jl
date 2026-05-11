@@ -169,8 +169,8 @@ The stiff hyperbolic right-hand side is the first function of the split ODE prob
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 """
-function Trixi.semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
-                              reset_threads = true)
+function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
+                        reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
