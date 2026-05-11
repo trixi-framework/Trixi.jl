@@ -1040,7 +1040,8 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_stiff!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_nonstiff!, semi, sol, 1000)
 end
 end
 
