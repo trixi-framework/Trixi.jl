@@ -10,7 +10,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 ###############################################################################
 #  setup the GSBP DG discretization that uses the Gauss operators from Chan et al.
 
-surface_flux = FluxLaxFriedrichs()
+surface_flux = flux_lax_friedrichs
 dg = DGMulti(polydeg = 3,
              element_type = Line(),
              approximation_type = GaussSBP(),
