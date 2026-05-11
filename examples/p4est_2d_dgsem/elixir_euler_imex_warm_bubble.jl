@@ -47,7 +47,7 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
-# The standard Trixi implementation of the slip wall boundary condition is not directly 
+# The standard Trixi.jl implementation of the slip wall boundary condition is not directly 
 # compatible with this general splitting approach, since it is based on Toro's Riemann solver 
 # which always returns boundary condition values for the entire right-hand side. 
 # This function computes the boundary condition based on the surface flux function of the 
@@ -82,7 +82,8 @@ end
 # - Slow (explicit/non-stiff) part: Contains convective terms (advection).
 @inline function flux_lmars_fast(u_ll, u_rr, normal_direction::AbstractVector,
                                  equations::CompressibleEulerEquations2D)
-    a = 340.0
+    # Reference speed of sound
+    a = 340
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
@@ -111,7 +112,8 @@ end
 
 @inline function flux_lmars_slow(u_ll, u_rr, normal_direction::AbstractVector,
                                  equations::CompressibleEulerEquations2D)
-    a = 340.0
+    # Reference speed of sound
+    a = 340
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
