@@ -41,13 +41,20 @@ using Reexport: @reexport
 using MPI: MPI
 
 @reexport using SciMLBase: CallbackSet
-using SciMLBase: DiscreteCallback,
+using SciMLBase: SciMLBase, DiscreteCallback,
                  ODEProblem, ODESolution,
                  SplitODEProblem
-import SciMLBase: get_du, get_tmp_cache, u_modified!,
+import SciMLBase: get_du, get_tmp_cache,
                   init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake, add_tstop!, has_tstop, first_tstop
+# To keep backwards compatibility with SciMLBase v2, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
+@static if isdefined(SciMLBase, :derivative_discontinuity!)
+    import SciMLBase: derivative_discontinuity!
+else
+    const derivative_discontinuity! = SciMLBase.u_modified!
+end
 
 using DelimitedFiles: readdlm
 using Downloads: Downloads
@@ -351,6 +358,13 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        iplot, iplot!
 
 function __init__()
+    # Skip MPI/library initialization during precompilation of subsequent packages.
+    # The specific case we are guarding against is recompilation when running under MPI,
+    # then the MPI launcher will error if more processes than asked for are launched. 
+    if ccall(:jl_generating_output, Cint, ()) == 1
+        return nothing
+    end
+
     init_mpi()
 
     init_p4est()

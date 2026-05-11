@@ -17,7 +17,7 @@ function TrivialCallback()
 end
 
 trivial_callback(u, t, integrator) = false
-trivial_callback(integrator) = u_modified!(integrator, false)
+trivial_callback(integrator) = derivative_discontinuity!(integrator, false)
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(trivial_callback)})
     @nospecialize cb # reduce precompilation time
