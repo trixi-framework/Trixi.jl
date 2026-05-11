@@ -623,7 +623,7 @@ function prolong2boundaries!(backend::Backend, cache, u,
     return nothing
 end
 
-@kernel function prolong2boundaries_kernel!(index_range, u_boundaries, neighbor_ids, node_indicies, cache, u, mesh, equations, dg)
+@kernel function prolong2boundaries_kernel!(index_range, u_boundaries, neighbor_ids, node_indices, cache, u, mesh, equations, dg)
 
 boundary = @index(Global)
 prolong2boundaries_per_boundary!(boundary, index_range, u_boundaries, neighbor_ids, node_indices, cache, u, mesh, equations, dg)
@@ -647,10 +647,10 @@ function prolong2boundaries_per_boundary!(boundary, index_range, u_boundaries, n
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
         element = neighbor_ids[boundary]
-        node_indices = node_indices[boundary]
+        node_idx = node_indices[boundary]
 
-        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
-        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+        i_node_start, i_node_step = index_to_start_step_2d(node_idx[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_idx[2], index_range)
 
         i_node = i_node_start
         j_node = j_node_start
