@@ -762,7 +762,7 @@ function reinit_volume_integral_cache!(cache, mesh, dg,
 
     return nothing
 end
-  
+
 # Check if subcell limiting should be performed for a given element.
 # Always true for pure `VolumeIntegralSubcellLimiting`,
 # but not necessarily for `VolumeIntegralAdaptive` with an a-priori indicator.

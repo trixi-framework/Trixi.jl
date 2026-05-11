@@ -794,7 +794,13 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; positivity_correction_factor) = dg.volume_integral.limiter
+    (; limiter) = dg.volume_integral
+    if !(var_index in limiter.local_twosided_variables_cons ||
+         var_index in limiter.positivity_variables_cons)
+        error("Conservative variable $var_index is not included to the limiting in the volume integral. So, the bounds are not computed before.")
+    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -863,10 +869,10 @@ end
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
             end
 
-            # Compute minimal bound
-            var_min_upper = positivity_correction_factor * var_upper
-            var_min_lower = positivity_correction_factor * var_lower
-            var_min_large = positivity_correction_factor * var_large
+            # Minimum bound
+            var_min_lower = var_min[indices_small..., lower_element]
+            var_min_upper = var_min[indices_small..., upper_element]
+            var_min_large = var_min[indices_large..., large_element]
 
             # Compute flux differences
             flux_lower_high_order = surface_flux_values_high_order[var_index, i,
@@ -957,7 +963,14 @@ end
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.volume_integral
-    (; positivity_correction_factor, gamma_constant_newton) = limiter
+    if !(variable in limiter.local_onesided_variables_nonlinear ||
+         variable in limiter.positivity_variables_nonlinear)
+        error("Variable $variable is not included to the limiting in the volume integral. So, the bounds are not computed before.")
+    end
+    (; variable_bounds) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+
+    (; gamma_constant_newton) = limiter
 
     for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -1027,10 +1040,10 @@ end
                 error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
 
-            # Compute minimal bound
-            var_min_lower = positivity_correction_factor * var_lower
-            var_min_upper = positivity_correction_factor * var_upper
-            var_min_large = positivity_correction_factor * var_large
+            # Minimum bound
+            var_min_lower = var_min[indices_small..., lower_element]
+            var_min_upper = var_min[indices_small..., upper_element]
+            var_min_large = var_min[indices_large..., large_element]
 
             inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                           mesh, indices_small...,

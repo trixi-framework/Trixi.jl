@@ -89,8 +89,8 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{2},
         end
     end
     # thread_sum_total = sum(theta_sum)
-    # mkpath("out")
-    # open("out/shifting_alphas_refined_elements.txt", "a") do f
+    # (; output_directory) = dg.mortar
+    # open(joinpath(output_directory, "shifting_alphas_refined_elements.txt"), "a") do f
     #     println(f,
     #             "variable: $variable, n_refined elements: $(length(element_ids_new) * 4), avg: $(thread_sum_total / length(element_ids_new)), ")
     # end
@@ -135,7 +135,8 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         end
     end
     # thread_sum_total = sum(theta_sum)
-    # open("out/shifting_alphas_coarsened_elements.txt", "a") do f
+    # (; output_directory) = dg.mortar
+    # open(joinpath(output_directory, "shifting_alphas_coarsened_elements.txt"), "a") do f
     #     println(f,
     #             "variable: $variable, n_coarsened elements: $(length(element_ids_new)), avg: $(thread_sum_total / length(element_ids_new)), ")
     # end

@@ -460,7 +460,14 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; positivity_correction_factor) = dg.volume_integral.limiter
+    (; limiter) = dg.volume_integral
+    if !(var_index in limiter.local_twosided_variables_cons ||
+         var_index in limiter.positivity_variables_cons)
+        error("Conservative variable $var_index is not included to the limiting in the volume integral. So, the bounds are not computed before.")
+    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(var_index), "_min")]
+
     index_range = eachnode(dg)
 
     for mortar in eachmortar(dg, cache)
@@ -541,10 +548,10 @@ end
                 continue
             end
 
-            # Compute minimal bound
-            var_min_upper = positivity_correction_factor * var_upper
-            var_min_lower = positivity_correction_factor * var_lower
-            var_min_large = positivity_correction_factor * var_large
+            # Minimum bound
+            var_min_upper = var_min[i_small, j_small, upper_element]
+            var_min_lower = var_min[i_small, j_small, lower_element]
+            var_min_large = var_min[i_large, j_large, large_element]
 
             Qm_upper = min(0, var_min_upper - var_upper)
             Qm_lower = min(0, var_min_lower - var_lower)
@@ -593,7 +600,14 @@ end
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.volume_integral
-    (; positivity_correction_factor, gamma_constant_newton) = limiter
+    if !(variable in limiter.local_onesided_variables_nonlinear ||
+         variable in limiter.positivity_variables_nonlinear)
+        error("Variable $variable is not included to the limiting in the volume integral. So, the bounds are not computed before.")
+    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+
+    (; gamma_constant_newton) = limiter
 
     index_range = eachnode(dg)
 
@@ -644,10 +658,10 @@ end
                 error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
 
-            # Compute minimal bound
-            var_min_lower = positivity_correction_factor * var_lower
-            var_min_upper = positivity_correction_factor * var_upper
-            var_min_large = positivity_correction_factor * var_large
+            # Minimum bound
+            var_min_lower = var_min[i_small, j_small, lower_element]
+            var_min_upper = var_min[i_small, j_small, upper_element]
+            var_min_large = var_min[i_large, j_large, large_element]
 
             # lower element
             flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
