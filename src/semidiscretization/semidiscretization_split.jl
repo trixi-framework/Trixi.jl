@@ -53,7 +53,7 @@ end
 
 Construct a semidiscretization of a hyperbolic-split PDE.
 
-For the tuples `equations, source_terms, boundary_conditions, initial_caches` the first argument is discretized with `solver_stiff` and the second argument with `solver_nonstiff`.
+For the tuples `equations, source_terms, boundary_conditions, initial_caches` the first argument is discretized with stiff solver `solvers[1]` and the second argument with non-stiff solver `solvers[2]`.
 """
 function SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                            initial_condition, solvers::Tuple;
