@@ -9,7 +9,7 @@
     compute_kinetic_energy_spectrum(v1, v2; normalize = true)
 
 Compute an isotropic 1D kinetic energy spectrum from two 2D Cartesian velocity
-components `v1`and `v2`. For compressible Euler kinetic energy spectra, 
+components `v1` and `v2`. For compressible Euler kinetic energy spectra, 
 pass density-weighted components `sqrt(rho) * v1` and `sqrt(rho) * v2`.
 """
 function compute_kinetic_energy_spectrum(v1::AbstractArray{<:Any, 2},
