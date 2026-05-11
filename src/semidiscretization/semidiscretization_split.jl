@@ -45,7 +45,7 @@ end
 """
 	SemidiscretizationHyperbolicSplit(mesh, equations::Tuple, 
                                       initial_condition,
-                                      solver_stiff, solver_nonstiff;
+                                      solvers::Tuple;
                                       source_terms=(nothing, nothing),
                                       boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
                                       RealT=real(solver), uEltype=RealT,
@@ -181,11 +181,11 @@ function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_stiff!, rhs_nonstiff!
     # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
     # first function implicitly and the second one explicitly. Thus, we pass the
     # stiffer function first.
-    return SplitODEProblem{iip}(rhs_stiff!, rhs!, u0_ode, tspan, semi)
+    return SplitODEProblem{iip}(rhs_stiff!, rhs_nonstiff!, u0_ode, tspan, semi)
 end
 
 function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
@@ -208,7 +208,7 @@ function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
 end
 
 # nonstiff `rhs!`
-function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
+function rhs_nonstiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     @unpack mesh, equations_nonstiff, initial_condition, boundary_conditions_nonstiff, source_terms_nonstiff, solver_nonstiff, cache_nonstiff = semi
 
     u = wrap_array(u_ode, mesh, equations_nonstiff, solver_nonstiff, cache_nonstiff)
