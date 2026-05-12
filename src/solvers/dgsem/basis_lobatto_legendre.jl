@@ -301,10 +301,12 @@ function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
 
     string = "LobattoLegendreMortarIDP("
-    if length(mortar.local_twosided_variables_cons) > 0 || length(mortar.local_onesided_variables_nonlinear) > 0
+    if length(mortar.local_twosided_variables_cons) > 0 ||
+       length(mortar.local_onesided_variables_nonlinear) > 0
         string *= ", local: $(mortar.local_twosided_variables_cons), $(mortar.local_onesided_variables_nonlinear)"
     end
-    if length(mortar.positivity_variables_cons) > 0 || length(mortar.positivity_variables_nonlinear) > 0
+    if length(mortar.positivity_variables_cons) > 0 ||
+       length(mortar.positivity_variables_nonlinear) > 0
         string *= ", positivity: $(mortar.positivity_variables_cons), $(mortar.positivity_variables_nonlinear)"
     end
     print(io, string)
@@ -314,25 +316,31 @@ function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
 
     setup = []
     if length(mortar.local_twosided_variables_cons) > 0
-        push!(setup, "" => "local two-sided limiting for conservative variables " *
-                     string(mortar.local_twosided_variables_cons))
+        push!(setup,
+              "" => "local two-sided limiting for conservative variables " *
+                    string(mortar.local_twosided_variables_cons))
     end
     if length(mortar.local_onesided_variables_nonlinear) > 0
-        push!(setup, "" => "local one-sided limiting for nonlinear variables " *
-                     string(mortar.local_onesided_variables_nonlinear))
+        push!(setup,
+              "" => "local one-sided limiting for nonlinear variables " *
+                    string(mortar.local_onesided_variables_nonlinear))
     end
     if length(mortar.positivity_variables_cons) > 0
-        push!(setup, "" => "positivity limiting for conservative variables " *
-                     string(mortar.positivity_variables_cons))
+        push!(setup,
+              "" => "positivity limiting for conservative variables " *
+                    string(mortar.positivity_variables_cons))
     end
     if length(mortar.positivity_variables_nonlinear) > 0
-        push!(setup, "" => "positivity limiting for " *
-                     string(mortar.positivity_variables_nonlinear))
+        push!(setup,
+              "" => "positivity limiting for " *
+                    string(mortar.positivity_variables_nonlinear))
     end
     if mortar.pure_low_order
         push!(setup, "" => "pure low-order mortars")
     end
-    summary_box(io, "LobattoLegendreMortarIDP{$(real(mortar)), polydeg=$(polydeg(mortar))}", setup)
+    summary_box(io,
+                "LobattoLegendreMortarIDP{$(real(mortar)), polydeg=$(polydeg(mortar))}",
+                setup)
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT

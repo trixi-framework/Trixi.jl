@@ -66,8 +66,9 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
-                                local_twosided_variables_cons = [], # ["rho"],
-                                local_onesided_variables_nonlinear = [], # [(entropy_guermond_etal, min)],
+                                # local_twosided_variables_cons = ["rho"],
+                                # local_onesided_variables_nonlinear = [(entropy_guermond_etal,
+                                #                                        min)],
                                 max_iterations_newton = 100)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -75,7 +76,9 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 mortar = MortarIDP(equations, basis;
                    positivity_variables_cons = ["rho"],
                    positivity_variables_nonlinear = [pressure],
-                   pure_low_order = false)
+                   # local_twosided_variables_cons = ["rho"],
+                   # local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)],
+                   )
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 # 1d problem in literature uses x in [-1,1]
@@ -89,7 +92,7 @@ refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
-                n_cells_max = 30_000,
+                n_cells_max = 100_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
