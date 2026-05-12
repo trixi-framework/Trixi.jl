@@ -80,7 +80,6 @@ function max_dt(u, t, mesh::TreeMesh{2},
     return 4 / (nnodes(dg) * max_scaled_speed)
 end
 
-
 function max_dt(u, t, mesh::TreeMesh{2},
                 constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
@@ -167,7 +166,8 @@ function max_dt(u, t,
                 constant_speed, have_aux_node_vars, equations, dg::DG, cache)
     backend = trixi_backend(u)
 
-    max_lambda = calc_max_scaled_speed(backend, u, mesh, constant_speed, have_aux_node_vars,
+    max_lambda = calc_max_scaled_speed(backend, u, mesh, constant_speed,
+                                       have_aux_node_vars,
                                        equations, dg, cache)
 
     # Avoid division by zero if the speed vanishes everywhere,
@@ -183,7 +183,9 @@ end
                                                              P4estMesh{2},
                                                              T8codeMesh{2},
                                                              StructuredMeshView{2}}},
-                                              constant_speed::False,have_aux_node_vars::False, equations, dg::DG,
+                                              constant_speed::False,
+                                              have_aux_node_vars::False, equations,
+                                              dg::DG,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
     max_lambda1 = max_lambda2 = zero(eltype(u))
@@ -261,7 +263,8 @@ end
                                                              T8codeMesh{2},
                                                              StructuredMeshView{2}}},
                                               constant_speed::True,
-                                              have_aux_node_vars::False, equations, dg::DG,
+                                              have_aux_node_vars::False, equations,
+                                              dg::DG,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
     max_scaled_speed = zero(eltype(u))

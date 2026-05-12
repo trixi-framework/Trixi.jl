@@ -256,7 +256,6 @@ end
     return nothing
 end
 
-
 @inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
                                            have_aux_node_vars::False, equations,

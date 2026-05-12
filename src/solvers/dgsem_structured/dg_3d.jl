@@ -382,7 +382,8 @@ end
                               fstar3_L, fstar3_R, u,
                               ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                              T8codeMesh{3}}},
-                              have_nonconservative_terms::False, have_aux_node_vars::False,
+                              have_nonconservative_terms::False,
+                              have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -443,7 +444,8 @@ end
                               fstar3_L, fstar3_R, u,
                               ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                              T8codeMesh{3}}},
-                              have_nonconservative_terms::True, have_aux_node_vars::False,
+                              have_nonconservative_terms::True,
+                              have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis

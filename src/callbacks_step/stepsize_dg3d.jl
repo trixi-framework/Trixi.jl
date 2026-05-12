@@ -83,7 +83,8 @@ function max_dt(u, t,
                 constant_speed, have_aux_node_vars::False, equations, dg::DG, cache)
     backend = trixi_backend(u)
 
-    max_lambda = calc_max_scaled_speed(backend, u, mesh, constant_speed, have_aux_node_vars,
+    max_lambda = calc_max_scaled_speed(backend, u, mesh, constant_speed,
+                                       have_aux_node_vars,
                                        equations, dg, cache)
 
     # Avoid division by zero if the speed vanishes everywhere,

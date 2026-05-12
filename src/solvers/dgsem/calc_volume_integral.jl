@@ -98,7 +98,8 @@ end
         du[.., element] .= zero(eltype(du))
 
         volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, have_aux_node_vars, equations,
+                                have_nonconservative_terms, have_aux_node_vars,
+                                equations,
                                 volume_integral_stabilized, dg, cache)
     end
 
@@ -154,7 +155,8 @@ end
 
         # Calculate entropy stable volume integral contribution
         volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, have_aux_node_vars, equations,
+                                have_nonconservative_terms, have_aux_node_vars,
+                                equations,
                                 volume_integral_stabilized, dg, cache)
 
         dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
@@ -184,11 +186,13 @@ end
 end
 
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
-                               have_nonconservative_terms, have_aux_node_vars, equations,
+                               have_nonconservative_terms, have_aux_node_vars,
+                               equations,
                                volume_integral, dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         volume_integral_kernel!(du, u, element, typeof(mesh),
-                                have_nonconservative_terms, have_aux_node_vars, equations,
+                                have_nonconservative_terms, have_aux_node_vars,
+                                equations,
                                 volume_integral, dg, cache)
     end
 
@@ -202,14 +206,16 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     nelements(dg, cache) == 0 && return nothing
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
-    kernel!(du, u, typeof(mesh), have_nonconservative_terms, have_aux_node_vars, equations,
+    kernel!(du, u, typeof(mesh), have_nonconservative_terms, have_aux_node_vars,
+            equations,
             volume_integral, dg, kernel_cache,
             ndrange = nelements(dg, cache))
     return nothing
 end
 
 @kernel function volume_integral_KAkernel!(du, u, MeshT,
-                                           have_nonconservative_terms, have_aux_node_vars,
+                                           have_nonconservative_terms,
+                                           have_aux_node_vars,
                                            equations, volume_integral, dg::DGSEM, cache)
     element = @index(Global)
     volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
@@ -253,7 +259,8 @@ end
 end
 
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
-                               have_nonconservative_terms, have_aux_node_vars, equations,
+                               have_nonconservative_terms, have_aux_node_vars,
+                               equations,
                                volume_integral::VolumeIntegralShockCapturingHGType,
                                dg::DGSEM, cache)
     @unpack (indicator, volume_integral_default,
@@ -298,7 +305,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 end
 
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
-                               have_nonconservative_terms, have_aux_node_vars, equations,
+                               have_nonconservative_terms, have_aux_node_vars,
+                               equations,
                                volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                dg::DGSEM, cache)
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
@@ -317,7 +325,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     @threaded for element in eachelement(dg, cache)
         # run default volume integral 
         volume_integral_kernel!(du, u, element, typeof(mesh),
-                                have_nonconservative_terms, have_aux_node_vars, equations,
+                                have_nonconservative_terms, have_aux_node_vars,
+                                equations,
                                 volume_integral_default, dg, cache)
 
         # Check entropy production of "high order" volume integral. 

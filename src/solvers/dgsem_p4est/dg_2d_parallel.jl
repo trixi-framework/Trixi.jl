@@ -242,7 +242,8 @@ end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
-                               have_nonconservative_terms, have_aux_node_vars, equations,
+                               have_nonconservative_terms, have_aux_node_vars,
+                               equations,
                                mortar_l2::LobattoLegendreMortarL2,
                                surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
