@@ -6,17 +6,17 @@
 #! format: noindent
 
 """
-    compute_kinetic_energy_spectrum(sol; kwargs...)
+    compute_kinetic_energy_spectrum(sol)
 
 Compute the isotropic kinetic energy spectrum from the final state of an ODE
 solution returned by `solve`.
 """
-function compute_kinetic_energy_spectrum(sol; kwargs...)
-    return compute_kinetic_energy_spectrum(sol.u[end], sol.prob.p; kwargs...)
+function compute_kinetic_energy_spectrum(sol)
+    return compute_kinetic_energy_spectrum(sol.u[end], sol.prob.p)
 end
 
 """
-    compute_kinetic_energy_spectrum(u_ode, semi; kwargs...)
+    compute_kinetic_energy_spectrum(u_ode, semi)
 
 Compute the isotropic kinetic energy spectrum from an ODE state vector `u_ode`
 and a Trixi.jl semidiscretization `semi`.
@@ -35,10 +35,13 @@ Currently, implemented methods are restricted to
 - `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
 
 ## Constructs internally
-- For DGSEM `TreeMesh` data, it interpolates from LGL nodes to a uniform
-  Cartesian grid before applying FFTs
+- For DGSEM `TreeMesh` data, it interpolates **conservative** variables from LGL nodes to a
+  uniform Cartesian grid, applies `cons2prim` at each uniform node, then applies FFTs
+- For DGMulti `DGMultiMesh` data, nodal conservative values are converted with `cons2prim`
+  on the existing Cartesian grid before FFTs
 - It forms density-weighted velocity fields `sqrt(rho) * v_i`, computes
-  Fourier-space kinetic energy from the FFT results, and radially bins wrapped
+  Fourier-space kinetic energy from the FFT results, normalizes modal energy by
+  the squared number of grid points, and radially bins wrapped
   FFT modes to form the final 1D isotropic spectrum `E(k)`
 
 ## References
@@ -49,11 +52,9 @@ Currently, implemented methods are restricted to
   [DOI: 10.1016/j.jcp.2018.05.049](https://doi.org/10.1016/j.jcp.2018.06.016)
 """
 function compute_kinetic_energy_spectrum(u_ode,
-                                         semi::AbstractSemidiscretization;
-                                         kwargs...)
+                                         semi::AbstractSemidiscretization)
     return compute_kinetic_energy_spectrum(wrap_array_native(u_ode, semi),
-                                           mesh_equations_solver_cache(semi)...;
-                                           kwargs...)
+                                           mesh_equations_solver_cache(semi)...)
 end
 
 function radial_energy_spectrum(energy_modes)
@@ -97,32 +98,6 @@ function radial_energy_spectrum(energy_modes)
     end
 
     return energy_spectrum, wavenumbers
-end
-
-function dgmulti_primitive_variables(u, equations, dg::DGMultiSBP,
-                                     ::Val{NDIMS}) where {NDIMS}
-    # Uses primitive variables from the solution vector
-    u_values = StructArray(u)
-    n_points = length(u_values)
-    n_points_per_dimension = round(Int, n_points^(1 / NDIMS))
-    if n_points_per_dimension^NDIMS != n_points
-        throw(ArgumentError("DGMulti data does not form a uniform Cartesian grid"))
-    end
-
-    # Repack solution components into Cartesian arrays for the FFT kernel
-    primitive_grid_size = ntuple(_ -> n_points_per_dimension, Val(NDIMS))
-    primitive_variables = Vector{Array{real(dg), NDIMS}}(undef, NDIMS + 1)
-    for variable in eachindex(primitive_variables)
-        primitive_variables[variable] = Array{real(dg)}(undef, primitive_grid_size)
-    end
-    for index in eachindex(u_values)
-        u_node = cons2prim(u_values[index], equations)
-        for variable in eachindex(primitive_variables)
-            primitive_variables[variable][index] = u_node[variable]
-        end
-    end
-
-    return primitive_variables
 end
 
 include("spectral_analysis_2d.jl")
