@@ -5,8 +5,8 @@ using Trixi
 # semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
-mu_const = 2e-2
-eta_const = 2e-2
+const mu_const = 2e-2
+const eta_const = 2e-2
 
 equations = IdealGlmMhdEquations3D(5 / 3)
 equations_parabolic = ViscoResistiveMhd3D(equations, mu = mu_const,
