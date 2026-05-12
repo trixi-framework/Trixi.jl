@@ -182,8 +182,19 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 coordinates_min = (-0.5, -0.5)
 coordinates_max = (0.5, 0.5)
 
+refinement_level = 7
+
+# refine the jet region in the initial mesh
+initial_refinement_level = 4
+dx = 1.0 / 2^initial_refinement_level
+if dx < 0.05
+    error("Jet width cannot by covered by two elements.")
+end
+box = (type = "box", coordinates_min = (-0.5, -dx), coordinates_max = (-0.5 + dx, dx))
+refinement_patches = ntuple(_ -> box, Val(refinement_level - initial_refinement_level))
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 8,
+                initial_refinement_level = initial_refinement_level,
+                refinement_patches = refinement_patches,
                 periodicity = (false, true),
                 n_cells_max = 500_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -197,18 +208,18 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 500
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 50,
+save_solution = SaveSolutionCallback(interval = 500,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-restart_interval = 21800
+restart_interval = 10000
 save_restart = SaveRestartCallback(interval = restart_interval,
                                    save_final_restart = true)
 
@@ -225,7 +236,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 2,
                                       med_level = 0, med_threshold = 0.0003, # med_level = current level
-                                      max_level = 8, max_threshold = 0.003)
+                                      max_level = refinement_level, max_threshold = 0.003)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
@@ -234,7 +245,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            limiter! = positivity_limiter)
 
 function cfl_amr(t)
-    if t < 4.5e-7
+    if t == 0.0
         return 0.001
     else
         return 0.5
@@ -249,7 +260,7 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback)
 
 stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = false, interval = 1))
+                   BoundsCheckCallback(save_errors = false, interval = 100))
 
 ###############################################################################
 # run the simulation
