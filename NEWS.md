@@ -8,7 +8,8 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in 
+- `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
+- A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
   ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).
 - A new semidiscretization type `SemidiscretizationParabolic` has been added to support purely parabolic equations with no hyperbolic part.
 The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality ([#2874]).
@@ -55,6 +56,7 @@ Moreover, some internal functions have been renamed accordingly, including the r
 
 #### Added
 
+- Added shock capturing support for `DGMulti` solvers with `SBP()` approximation types on triangular (`Tri`), tetrahedral (`Tet`), quadrilateral (`Quad`), and hexahedral (`Hex`) elements. `GaussSBP()` approximation types are also supported on `Quad` and `Hex` elements.
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).

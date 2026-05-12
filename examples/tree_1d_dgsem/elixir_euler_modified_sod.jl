@@ -75,7 +75,7 @@ callbacks = CallbackSet(summary_callback,
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                      variables = (Trixi.density, pressure))
 
-ode_alg = SSPRK43(stage_limiter! = stage_limiter!)
+ode_alg = SSPRK43(; stage_limiter! = stage_limiter!)
 =#
 # Flux-differencing volume integral does not require positivity preservation for this test case.
 ode_alg = SSPRK43()
