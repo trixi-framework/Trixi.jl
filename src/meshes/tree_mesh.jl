@@ -225,6 +225,24 @@ function TreeMesh(coordinates_min::Real, coordinates_max::Real;
     return TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
 end
 
+"""
+    TreeMesh(; coordinates_min, coordinates_max, initial_refinement_level, n_cells_max, kwargs...)
+
+Create a [`TreeMesh`](@ref) using keyword arguments only, for easy mesh-type swapping
+with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), [`T8codeMesh`](@ref), and
+[`DGMultiMesh`](@ref).
+"""
+function TreeMesh(; coordinates_min,
+                  coordinates_max,
+                  initial_refinement_level,
+                  n_cells_max,
+                  kwargs...)
+    return TreeMesh(coordinates_min, coordinates_max;
+                    initial_refinement_level = initial_refinement_level,
+                    n_cells_max = n_cells_max,
+                    kwargs...)
+end
+
 function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
     print(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with length ", mesh.tree.length)
     return nothing

@@ -1,6 +1,6 @@
 # Demonstrates the unified mesh constructor interface for rectangular domains.
-# The same 2D linear advection setup is run with different mesh types and
-# constructor styles using equivalent calls.
+# The same 2D linear advection setup is run with different mesh types using
+# the keyword-only constructor style with `initial_refinement_level`.
 #
 # See docs/src/meshes/mesh_constructor_comparison.md for more details
 
@@ -39,49 +39,23 @@ function run_advection(mesh)
 end
 
 ###############################################################################
-# initial_refinement_level (like TreeMesh)
+# Keyword-only interface for mesh constructors
 
-# Original TreeMesh call (for reference):
-mesh = TreeMesh(coordinates_min, coordinates_max;
+mesh = TreeMesh(coordinates_min = coordinates_min,
+                coordinates_max = coordinates_max,
                 initial_refinement_level = initial_refinement_level,
                 n_cells_max = 30_000, periodicity = true)
 sol = run_advection(mesh)
 
-# Drop-in replacements — only n_cells_max needs to be removed:
-mesh = StructuredMesh(coordinates_min, coordinates_max;
+mesh = StructuredMesh(coordinates_min = coordinates_min,
+                      coordinates_max = coordinates_max,
                       initial_refinement_level = initial_refinement_level,
                       periodicity = true)
 sol = run_advection(mesh)
 
-# polydeg here controls the geometry interpolation degree of the mesh
-mesh = P4estMesh(coordinates_min, coordinates_max;
-                 initial_refinement_level = initial_refinement_level,
-                 polydeg = 1, periodicity = true)
-sol = run_advection(mesh)
-
-###############################################################################
-# cells_per_dimension positional 
-
-cpd = ntuple(_ -> 2^initial_refinement_level, 2)  # (16, 16)
-
-mesh = StructuredMesh(cpd, coordinates_min, coordinates_max; periodicity = true)
-sol = run_advection(mesh)
-
-mesh = P4estMesh(cpd, coordinates_min, coordinates_max; polydeg = 1, periodicity = true)
-sol = run_advection(mesh)
-
-###############################################################################
-# keyword-based
-
-mesh = StructuredMesh(cpd;
-                      coordinates_min = coordinates_min,
-                      coordinates_max = coordinates_max,
-                      periodicity = true)
-sol = run_advection(mesh)
-
-mesh = P4estMesh(cpd;
-                 polydeg = 1,
-                 coordinates_min = coordinates_min,
+# polydeg = 1 at default for P4estMesh
+mesh = P4estMesh(coordinates_min = coordinates_min,
                  coordinates_max = coordinates_max,
+                 initial_refinement_level = initial_refinement_level,
                  periodicity = true)
 sol = run_advection(mesh)

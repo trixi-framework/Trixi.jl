@@ -1024,37 +1024,17 @@ end
 end
 
 @testset "Unified mesh constructor signatures (P4estMesh)" begin
-    # 2D: keyword style (reference) — 4x4 trees
-    mesh_kw = P4estMesh((4, 4); polydeg = 1,
-                        coordinates_min = (-1.0, -1.0),
-                        coordinates_max = (1.0, 1.0))
+    # 2D: reference (trees_per_dimension) positional
+    mesh_ref = P4estMesh((4, 4); polydeg = 1,
+                         coordinates_min = (-1.0, -1.0),
+                         coordinates_max = (1.0, 1.0))
 
-    # 2D: positional style 
-    mesh_pos = P4estMesh((4, 4), (-1.0, -1.0), (1.0, 1.0); polydeg = 1)
-    @test size(mesh_kw.tree_node_coordinates) == size(mesh_pos.tree_node_coordinates)
-    @test mesh_kw.tree_node_coordinates ≈ mesh_pos.tree_node_coordinates
-
-    # 2D: initial_refinement_level style — 1 tree refined 2 times = 4 cells per dimension.
-    # Internal layout differs (1 tree vs 16 trees), so only type and dimension are checked.
-    mesh_irl = P4estMesh((-1.0, -1.0), (1.0, 1.0); initial_refinement_level = 2,
-                         polydeg = 1)
-    @test mesh_irl isa P4estMesh{2}
-    @test size(mesh_irl.tree_node_coordinates, ndims(mesh_irl) + 2) == 1  # 1 macro-tree
-
-    # 2D: mapping 
-    mapping_2d = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0))
-    mesh_map = P4estMesh((4, 4), mapping_2d; polydeg = 1)
-    @test mesh_map isa P4estMesh{2}
-    @test size(mesh_map.tree_node_coordinates) == size(mesh_kw.tree_node_coordinates)
-
-    # 2D: rectangle
-    f1(s) = SVector(-1.0, s)
-    f2(s) = SVector(1.0, s)
-    f3(s) = SVector(s, -1.0)
-    f4(s) = SVector(s, 1.0)
-    mesh_faces = P4estMesh((4, 4), (f1, f2, f3, f4); polydeg = 1)
-    @test mesh_faces isa P4estMesh{2}
-    @test size(mesh_faces.tree_node_coordinates) == size(mesh_kw.tree_node_coordinates)
+    # 2D: using initial_refinement_level
+    # polydeg defaults to 1 
+    mesh_kw = P4estMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                        initial_refinement_level = 2)
+    @test mesh_kw isa P4estMesh{2}
+    @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1  # 1 macro-tree
 end
 end
 

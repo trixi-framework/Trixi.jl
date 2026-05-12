@@ -146,61 +146,21 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 end
 
 """
-    StructuredMesh(coordinates_min, coordinates_max; initial_refinement_level, periodicity=false)
+    StructuredMesh(; coordinates_min, coordinates_max, initial_refinement_level, periodicity=false)
 
-Create a rectangular `StructuredMesh` from `coordinates_min`/`coordinates_max` and
-`initial_refinement_level`, using the same interface as `TreeMesh` for easy mesh-type swapping.
+Create a rectangular `StructuredMesh` using keyword arguments only, for easy mesh-type swapping
+with [`TreeMesh`](@ref), [`P4estMesh`](@ref), [`T8codeMesh`](@ref), and [`DGMultiMesh`](@ref).
+
 The number of cells per dimension is `2^initial_refinement_level`.
 """
-function StructuredMesh(coordinates_min::NTuple{NDIMS},
-                        coordinates_max::NTuple{NDIMS};
+function StructuredMesh(; coordinates_min,
+                        coordinates_max,
                         initial_refinement_level,
-                        periodicity = false) where {NDIMS}
+                        periodicity = false)
+    NDIMS = length(coordinates_min)
     cells_per_dimension = ntuple(_ -> 2^initial_refinement_level, NDIMS)
     return StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                           periodicity = periodicity)
-end
-
-# 1D convenience
-function StructuredMesh(coordinates_min::Real, coordinates_max::Real;
-                        initial_refinement_level,
-                        periodicity = false)
-    return StructuredMesh((coordinates_min,), (coordinates_max,);
-                          initial_refinement_level = initial_refinement_level,
-                          periodicity = periodicity)
-end
-
-"""
-    StructuredMesh(cells_per_dimension; mapping=nothing, faces=nothing,
-                   coordinates_min=nothing, coordinates_max=nothing,
-                   RealT=Float64, periodicity=false)
-
-Convenience constructor for `StructuredMesh` using a keyword-based interface, matching the style
-of `P4estMesh(cells_per_dimension; ...)` for easy mesh-type swapping.
-
-Exactly one of `mapping`, `faces`, or `coordinates_min`/`coordinates_max` must be specified.
-"""
-function StructuredMesh(cells_per_dimension;
-                        mapping = nothing,
-                        faces = nothing,
-                        coordinates_min = nothing,
-                        coordinates_max = nothing,
-                        RealT = Float64,
-                        periodicity = false)
-    @assert count(i -> i !== nothing,
-                  (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
-    @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
-
-    if faces !== nothing
-        return StructuredMesh(cells_per_dimension, faces; RealT = RealT,
-                              periodicity = periodicity)
-    elseif coordinates_min !== nothing
-        return StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
-                              periodicity = periodicity)
-    else
-        return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
-                              periodicity = periodicity)
-    end
 end
 
 # Extract a string of the code that defines the mapping function

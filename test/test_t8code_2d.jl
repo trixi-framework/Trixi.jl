@@ -317,19 +317,13 @@ end
 
 @testset "Unified mesh constructor signatures (T8codeMesh)" begin
     using Trixi: T8codeMesh
-
-    # 2D: positional coordinates 
-    mesh_pos = T8codeMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
-    @test mesh_pos isa T8codeMesh{2}
-
-    # 2D: mapping
-    mapping_2d = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0))
-    mesh_map = T8codeMesh((4, 4), mapping_2d)
-    @test mesh_map isa T8codeMesh{2}
-
-    # 2D: initial_refinement_level
-    mesh_irl = T8codeMesh((-1.0, -1.0), (1.0, 1.0); initial_refinement_level = 2)
-    @test mesh_irl isa T8codeMesh{2}
+    # polydeg = 1 at default for T8codeMesh
+    mesh_ref = T8codeMesh((4, 4);
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0))
+    mesh_kw = T8codeMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                         initial_refinement_level = 2)
+    @test mesh_kw isa T8codeMesh{2}
+    @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1
 end
 end
 
