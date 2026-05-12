@@ -575,6 +575,34 @@ end
         @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
         @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     end
+
+    @trixi_testset "local limiting" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
+                            local_twosided_variables_cons=["rho"],
+                            local_onesided_variables_nonlinear=[(entropy_math,
+                                                                 max)],
+                            l2=[
+                                0.5702718382334055,
+                                0.2352582796255571,
+                                0.23560222741724157,
+                                0.7048600194975044
+                            ],
+                            linf=[
+                                2.3281774276155986,
+                                1.2158974310788648,
+                                1.2207233316656911,
+                                2.974462978677627
+                            ],
+                            tspan=(0.0, 1.0))
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    end
 end
 
 @trixi_testset "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" begin
