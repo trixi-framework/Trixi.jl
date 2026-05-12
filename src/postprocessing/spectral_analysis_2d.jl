@@ -109,7 +109,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
         end
         interpolated = multiply_dimensionwise(vandermonde, element_conservative_values)
 
-        # Gets the global indicies for the local element that is being interpolated
+        # Gets the global indices for the local element that is being interpolated
         first_index = Vector{Int}(undef, 2)
         for dim in 1:2
             lower_left = normalized_coordinates[dim, element] -

@@ -34,8 +34,7 @@ interpolating from LGL nodes to a uniform Cartesian grid.
 function compute_kinetic_energy_spectrum(u, mesh::TreeMesh{3},
                                          equations::AbstractCompressibleEulerEquations,
                                          solver::DGSEM, cache)
-    # Interpolates conservative polynomials to a uniform Cartesian grid
-    # then converts to primitives at each uniform node
+    # Interpolates conservative polynomials to a uniform Cartesian grid then converts to primitives at each uniform node
     u_uniform = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
     n_vars = nvariables(equations)
     grid_size = size(first(u_uniform))
@@ -117,7 +116,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
         end
         interpolated = multiply_dimensionwise(vandermonde, element_conservative_values)
 
-        # Gets the global indicies for the local element that is being interpolated
+        # Gets the global indices for the local element that is being interpolated
         first_index = Vector{Int}(undef, 3)
         for dim in 1:3
             lower_left = normalized_coordinates[dim, element] -
