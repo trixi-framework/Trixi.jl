@@ -163,7 +163,8 @@ volume_flux = flux_ranocha
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_twosided_variables_cons = ["rho"])
+                                local_twosided_variables_cons = ["rho"],
+                                bar_states = false)
 
 # The initialized limiter is passed to `VolumeIntegralSubcellLimiting` in addition to the volume
 # fluxes of the low-order and high-order scheme.
@@ -198,7 +199,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.3)
 

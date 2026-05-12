@@ -19,6 +19,7 @@ end
                       positivity_variables_nonlinear = [],
                       positivity_correction_factor = 0.1,
                       local_onesided_variables_nonlinear = [],
+                      bar_states = true,
                       max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
                       gamma_constant_newton = 2 * ndims(equations))
@@ -41,8 +42,8 @@ For local one-sided limiting pass the variable function combined with the reques
 (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified specific
 entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]`.
 
-The bounds are calculated using the low-order FV solution. The positivity limiter uses
-`positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
+The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
+limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
@@ -78,6 +79,7 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     positivity_correction_factor::RealT
     local_onesided::Bool
     local_onesided_variables_nonlinear::LimitingOnesidedVariablesNonlinear # Local one-sided limiting for nonlinear variables
+    bar_states::Bool
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
@@ -91,6 +93,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_variables_nonlinear = [],
                            positivity_correction_factor = 0.1,
                            local_onesided_variables_nonlinear = [],
+                           bar_states = true,
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14),
                            gamma_constant_newton = 2 * ndims(equations))
@@ -144,20 +147,22 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
                              typeof(local_onesided_variables_nonlinear_),
                              typeof(cache)}(local_twosided,
                                             local_twosided_variables_cons_,
-                                            positivity, positivity_variables_cons_,
+                                            positivity,
+                                            positivity_variables_cons_,
                                             positivity_variables_nonlinear,
                                             positivity_correction_factor,
                                             local_onesided,
                                             local_onesided_variables_nonlinear_,
-                                            cache,
-                                            max_iterations_newton, newton_tolerances,
+                                            bar_states, cache,
+                                            max_iterations_newton,
+                                            newton_tolerances,
                                             gamma_constant_newton)
 end
 
@@ -182,7 +187,8 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
         join(io, features, ", ")
         print(io, "Limiter=($features), ")
     end
-    print(io, "Local bounds with FV solution")
+    print(io,
+          "Local bounds with $(limiter.bar_states ? "Bar States" : "FV solution")")
     print(io, ")")
     return nothing
 end
@@ -219,7 +225,9 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                     push!(setup, "" => "Local $min_or_max limiting for $variable")
                 end
             end
-            push!(setup, "Local bounds" => "FV solution")
+            push!(setup,
+                  "Local bounds with" => (limiter.bar_states ? "Bar States" :
+                                          "FV solution"))
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
@@ -228,12 +236,23 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+                      basis::LobattoLegendreBasis, bound_keys, bar_states) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
+
+    cache = (;)
+    if bar_states
+        if NDIMS != 2
+            error("Bar states are only implemented for 2D problems.")
+        end
+        container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                       nvariables(equations),
+                                                                       nnodes(basis))
+        cache = (; cache..., container_bar_states)
+    end
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -245,12 +264,16 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
-    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
+    return (; cache..., subcell_limiter_coefficients, idp_bounds_delta_local,
             idp_bounds_delta_global)
 end
 
 function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    if limiter.bar_states
+        resize!(limiter.cache.container_bar_states, new_size)
+    end
 
     return nothing
 end
@@ -265,18 +288,20 @@ function get_node_variable(::Val{:limiting_coefficient},
                            volume_integral::VolumeIntegralSubcellLimiting)
     return volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
 end
-function get_node_variable(::Val{:limiting_coefficient},
-                           volume_integral::VolumeIntegralAdaptive)
-    return get_node_variable(Val(:limiting_coefficient),
+function get_node_variable(variable::Val{var},
+                           volume_integral::VolumeIntegralAdaptive) where {var}
+    return get_node_variable(variable,
                              volume_integral.volume_integral_stabilized)
 end
 
-function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
-    return get_node_variable(Val(:limiting_coefficient), dg.volume_integral)
+function get_node_variable(variable::Val{var}, u,
+                           mesh, equations, dg, cache) where {var}
+    return get_node_variable(variable, dg.volume_integral)
 end
-function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
-                           equations_parabolic, cache_parabolic)
-    return get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+function get_node_variable(variable::Val{var}, u,
+                           mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic) where {var}
+    return get_node_variable(variable, u, mesh, equations, dg, cache)
 end
 
 function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
@@ -464,6 +489,273 @@ end
     return (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
 
+"""
+    SubcellLimiterMCL(equations::AbstractEquations, basis;
+                      density_limiter = true,
+                      density_coefficient_for_all = false,
+                      sequential_limiter = true,
+                      conservative_limiter = false,
+                      positivity_limiter_pressure = false,
+                      positivity_limiter_pressure_exact = true,
+                      positivity_limiter_density = false,
+                      positivity_limiter_correction_factor = 0.0,
+                      entropy_limiter_semidiscrete = false,
+                      Plotting = true)
+
+Subcell monolithic convex limiting (MCL) used with [`VolumeIntegralSubcellLimiting`](@ref) including:
+- local two-sided limiting for `cons(1)` (`density_limiter`)
+- transfer amount of `density_limiter` to all quantities (`density_coefficient_for_all`)
+- local two-sided limiting for variables `phi:=cons(i)/cons(1)` (`sequential_limiter`)
+- local two-sided limiting for conservative variables (`conservative_limiter`)
+- positivity limiting for `cons(1)` (`positivity_limiter_density`)
+- positivity limiting pressure à la Kuzmin (`positivity_limiter_pressure`)
+- semidiscrete entropy fix (`entropy_limiter_semidiscrete`)
+
+The pressure positivity limiting preserves a sharp version (`positivity_limiter_pressure_exact`)
+and a more cautious one. The density positivity limiter uses a `positivity_limiter_correction_factor`
+such that `u^new >= positivity_limiter_correction_factor * u^FV`. All additional analyses for plotting
+routines can be disabled via `Plotting=false` (see `save_alpha` and `update_alpha_max_avg!`).
+
+## References
+
+- Rueda-Ramírez, Bolm, Kuzmin, Gassner (2023)
+  Monolithic Convex Limiting for Legendre-Gauss-Lobatto Discontinuous Galerkin Spectral Element Methods
+  [arXiv:2303.00374](https://doi.org/10.48550/arXiv.2303.00374)
+- Kuzmin (2020)
+  Monolithic convex limiting for continuous finite element discretizations of hyperbolic conservation laws
+  [DOI: 10.1016/j.cma.2019.112804](https://doi.org/10.1016/j.cma.2019.112804)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct SubcellLimiterMCL{RealT <: Real, Cache} <: AbstractSubcellLimiter
+    cache::Cache
+    density_limiter::Bool               # Impose local maximum/minimum for cons(1) based on bar states
+    density_coefficient_for_all::Bool   # Use the cons(1) blending coefficient for all quantities
+    sequential_limiter::Bool    # Impose local maximum/minimum for variables phi:=cons(i)/cons(1) i 2:nvariables based on bar states
+    conservative_limiter::Bool  # Impose local maximum/minimum for conservative variables 2:nvariables based on bar states
+    positivity_limiter_pressure::Bool       # Impose positivity for pressure  la Kuzmin
+    positivity_limiter_pressure_exact::Bool # Only for positivity_limiter_pressure=true: Use the sharp calculation of factor
+    positivity_limiter_density::Bool        # Impose positivity for cons(1)
+    positivity_limiter_correction_factor::RealT  # Correction Factor for positivity_limiter_density in [0,1)
+    entropy_limiter_semidiscrete::Bool      # synchronized semidiscrete entropy fix
+    Plotting::Bool
+end
+
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function SubcellLimiterMCL(equations::AbstractEquations, basis;
+                           density_limiter = true,
+                           density_coefficient_for_all = false,
+                           sequential_limiter = true,
+                           conservative_limiter = false,
+                           positivity_limiter_pressure = false,
+                           positivity_limiter_pressure_exact = true,
+                           positivity_limiter_density = false,
+                           positivity_limiter_correction_factor = 0.0,
+                           entropy_limiter_semidiscrete = false,
+                           Plotting = true)
+    if sequential_limiter && conservative_limiter
+        error("Only one of the two can be selected: sequential_limiter/conservative_limiter")
+    end
+    cache = create_cache(SubcellLimiterMCL, equations, basis,
+                         positivity_limiter_pressure)
+
+    SubcellLimiterMCL{typeof(positivity_limiter_correction_factor),
+                      typeof(cache)}(cache,
+                                     density_limiter, density_coefficient_for_all,
+                                     sequential_limiter, conservative_limiter,
+                                     positivity_limiter_pressure,
+                                     positivity_limiter_pressure_exact,
+                                     positivity_limiter_density,
+                                     positivity_limiter_correction_factor,
+                                     entropy_limiter_semidiscrete,
+                                     Plotting)
+end
+
+function Base.show(io::IO, limiter::SubcellLimiterMCL)
+    @nospecialize limiter # reduce precompilation time
+
+    print(io, "SubcellLimiterMCL(")
+    limiter.density_limiter && print(io, "; dens")
+    limiter.density_coefficient_for_all && print(io, "; dens alpha ∀")
+    limiter.sequential_limiter && print(io, "; seq")
+    limiter.conservative_limiter && print(io, "; cons")
+    if limiter.positivity_limiter_pressure
+        print(io,
+              "; $(limiter.positivity_limiter_pressure_exact ? "pres (sharp)" : "pres (cautious)")")
+    end
+    limiter.positivity_limiter_density && print(io, "; dens pos")
+    if limiter.positivity_limiter_correction_factor != 0
+        print(io,
+              " with correction factor $(limiter.positivity_limiter_correction_factor)")
+    end
+    limiter.entropy_limiter_semidiscrete && print(io, "; semid. entropy")
+    print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
+    @nospecialize limiter # reduce precompilation time
+    @unpack density_limiter, density_coefficient_for_all, sequential_limiter, conservative_limiter,
+    positivity_limiter_pressure_exact, positivity_limiter_density, entropy_limiter_semidiscrete = limiter
+
+    if get(io, :compact, false)
+        show(io, limiter)
+    else
+        setup = ["limiter" => ""]
+        density_limiter && (setup = [setup..., "" => "Density Limiter"])
+        density_coefficient_for_all &&
+            (setup = [setup..., "" => "Transfer density coefficient to all quantities"])
+        sequential_limiter && (setup = [setup..., "" => "Sequential Limiter"])
+        conservative_limiter && (setup = [setup..., "" => "Conservative Limiter"])
+        if limiter.positivity_limiter_pressure
+            setup = [
+                setup...,
+                "" => "$(positivity_limiter_pressure_exact ? "(Sharp)" : "(Cautious)") positivity limiter for Pressure à la Kuzmin"
+            ]
+        end
+        if positivity_limiter_density
+            if limiter.positivity_limiter_correction_factor != 0.0
+                setup = [
+                    setup...,
+                    "" => "Positivity Limiter for Density with correction factor $(limiter.positivity_limiter_correction_factor)"
+                ]
+            else
+                setup = [setup..., "" => "Positivity Limiter for Density"]
+            end
+        end
+        entropy_limiter_semidiscrete &&
+            (setup = [setup..., "" => "Semidiscrete Entropy Limiter"])
+        summary_box(io, "SubcellLimiterMCL", setup)
+    end
+end
+
+function resize_subcell_limiter_cache!(limiter::SubcellLimiterMCL, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+    resize!(limiter.cache.container_bar_states, new_size)
+
+    return nothing
+end
+
+function get_node_variable(::Val{:limiting_coefficient_rho},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[1, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_rho_v1},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[2, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_rho_v2},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[3, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_rho_e},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[4, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_pressure},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_pressure) = limiter.cache.subcell_limiter_coefficients
+    return alpha_pressure
+end
+
+function get_node_variable(::Val{:limiting_coefficient_entropy},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_entropy) = limiter.cache.subcell_limiter_coefficients
+    return alpha_entropy
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[1, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_v1},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[2, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_v2},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[3, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_e},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[4, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_pressure},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean_pressure) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean_pressure
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_entropy},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    (; limiter) = volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean_entropy
+end
+
 ###############################################################################
 # Auxiliary routine `get_boundary_outer_state` for non-periodic domains
 
@@ -491,6 +783,22 @@ Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)
     u_outer = boundary_condition.boundary_value_function(x, t, equations)
+
+    return u_outer
+end
+
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionCharacteristic,
+                                          orientation_or_normal, direction,
+                                          mesh::Union{TreeMesh, StructuredMesh},
+                                          equations,
+                                          dg, cache, indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+    u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                         u_inner, orientation_or_normal,
+                                                         direction, x, t, equations)
 
     return u_outer
 end

@@ -297,6 +297,7 @@ end
                             3.504466610437795e-5,
                             7.00893322087559e-5
                         ])
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -320,6 +321,56 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_convergence_wavingflag_IDP.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_wavingflag_IDP.jl"),
+                        l2=[
+                            0.3398358793878119,
+                            0.03398358793878129,
+                            0.06796717587756244,
+                            0.008495896984696072
+                        ],
+                        linf=[
+                            0.8360446582060936,
+                            0.08360446582060972,
+                            0.16720893164122444,
+                            0.02090111645397741
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
+@trixi_testset "elixir_euler_convergence_wavingflag_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_convergence_wavingflag_MCL.jl"),
+                        l2=[
+                            0.33983417649330827,
+                            0.033983417649330924,
+                            0.06796683529866161,
+                            0.008495854412336827
+                        ],
+                        linf=[
+                            0.8360446582068146,
+                            0.083604465820679,
+                            0.16720893164136671,
+                            0.02090111645399162
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_source_terms.jl" begin
@@ -452,6 +503,31 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_sc_subcell.jl"),
+                        l2=[
+                            0.008160128063734234,
+                            0.008658255237420639,
+                            0.009351903803559939,
+                            0.027757021838089386
+                        ],
+                        linf=[
+                            0.02722561519294109,
+                            0.04073404775390577,
+                            0.03819406513262802,
+                            0.0808065061545129
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
 @trixi_testset "elixir_euler_source_terms_waving_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_waving_flag.jl"),
@@ -492,6 +568,55 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_free_stream_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_sc_subcell.jl"),
+                        l2=[
+                            1.4663777294625118e-15,
+                            2.320054900530864e-14,
+                            3.487555722563465e-14,
+                            2.008802099296406e-14
+                        ],
+                        linf=[
+                            2.3092638912203256e-14,
+                            2.0623780461193064e-13,
+                            2.6795232699328153e-13,
+                            2.362554596402333e-13
+                        ],
+                        atol=7.0e-13)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
+@trixi_testset "elixir_euler_free_stream_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_MCL.jl"),
+                        l2=[
+                            8.457600308458635e-16,
+                            2.185478357408446e-14,
+                            3.14987670823871e-14,
+                            1.6817763381190492e-14
+                        ],
+                        linf=[
+                            2.1316282072803006e-14,
+                            2.0759782781709646e-13,
+                            2.4705237855471296e-13,
+                            2.255973186038318e-13
+                        ],
+                        atol=7.0e-13)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
@@ -518,6 +643,132 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_double_mach.jl" begin
+    rm(joinpath("out", "alphas.txt"), force = true)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach.jl"),
+                        l2=[
+                            0.87417841433288,
+                            6.669726935171785,
+                            3.4980245896465387,
+                            76.33557073534843
+                        ],
+                        linf=[
+                            11.428353671462515,
+                            142.73486852796972,
+                            38.91639544578682,
+                            1651.7541392659086
+                        ],
+                        initial_refinement_level=2,
+                        tspan=(0.0, 0.05))
+    # Test alphas.txt
+    lines = readlines(joinpath("out", "alphas.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_max, alpha_avg"
+    @test startswith(lines[end], "193, 0.05, 1.0, 0.31")
+    @test count(",", lines[end]) == 3
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
+@trixi_testset "elixir_euler_double_mach_MCL.jl" begin
+    rm(joinpath("out", "alphas_mean.txt"), force = true)
+    rm(joinpath("out", "alphas_min.txt"), force = true)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
+                        l2=[
+                            0.8887316108902574,
+                            6.644244699117507,
+                            3.449004719354504,
+                            76.27064751067829
+                        ],
+                        linf=[
+                            11.047531144845593,
+                            121.9664993888814,
+                            35.74266955717666,
+                            1370.2362649787694
+                        ],
+                        initial_refinement_level=2,
+                        tspan=(0.0, 0.05))
+    # Test alphas_mean.txt
+    lines = readlines(joinpath("out", "alphas_mean.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e_total, alpha_avg_rho_e_total"
+    @test startswith(lines[end], "191, 0.05, 3.70")
+    @test count(",", lines[end]) == 9
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
+
+    # Test alphas_min.txt
+    lines = readlines(joinpath("out", "alphas_min.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e_total, alpha_avg_rho_e_total"
+    @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
+    @test count(",", lines[end]) == 9
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
+@trixi_testset "elixir_euler_shock_upstream_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shock_upstream_sc_subcell.jl"),
+                        l2=[
+                            1.2251169601680385,
+                            1.1492245175358053,
+                            1.6159494561956207,
+                            11.595399424356522
+                        ],
+                        linf=[
+                            5.510615373248864,
+                            6.031732951057033,
+                            7.75523532462757,
+                            50.34978438323783
+                        ],
+                        cells_per_dimension=(4, 6),
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+end
+
+@trixi_testset "elixir_euler_shock_upstream_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shock_upstream_MCL.jl"),
+                        l2=[
+                            1.251060277251583,
+                            1.113113246031922,
+                            1.6514902305846646,
+                            11.691342485806103
+                        ],
+                        linf=[
+                            5.893750268397502,
+                            5.620631940554678,
+                            9.523570698421638,
+                            50.004005679063496
+                        ],
+                        cells_per_dimension=(4, 6),
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
