@@ -774,7 +774,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
 end
 
 function calc_mpi_interface_flux!(surface_flux_values,
-                                  mesh::ParallelTreeMesh{2},
+                                  mesh::TreeMeshParallel{2},
                                   have_nonconservative_terms::False,
                                   have_aux_node_vars::True, equations,
                                   surface_integral, dg::DG, cache)
@@ -859,7 +859,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 end
 
 function calc_mpi_mortar_flux!(surface_flux_values,
-                               mesh::ParallelTreeMesh{2},
+                               mesh::TreeMeshParallel{2},
                                have_nonconservative_terms::False,
                                have_aux_node_vars::True, equations,
                                mortar_l2::LobattoLegendreMortarL2,

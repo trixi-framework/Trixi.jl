@@ -149,7 +149,8 @@ end
                                            have_nonconservative_terms::True,
                                            have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
-    flux_differencing_kernel!(du, u, element, MeshT, have_nonconservative_terms,
+    flux_differencing_kernel!(du, u, element, MeshT,
+                              have_nonconservative_terms, have_aux_node_vars,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations,
@@ -165,6 +166,7 @@ end
                                                                P4estMesh{2},
                                                                T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
+                                           have_aux_node_vars::False,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)

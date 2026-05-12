@@ -1636,7 +1636,7 @@ end
 # 2D TreeMesh implementation, similar to prolong2mpiinterfaces
 # However we directly assign to both sides, assuming the aux field had no jumps. Therefore
 # we do not need any exchange.
-function init_aux_mpiinterface_node_vars!(aux_vars, mesh::ParallelTreeMesh{2},
+function init_aux_mpiinterface_node_vars!(aux_vars, mesh::TreeMeshParallel{2},
                                           equations,
                                           solver, cache)
     @unpack aux_node_vars, aux_mpiinterface_node_vars = aux_vars
@@ -1686,7 +1686,7 @@ end
 # 2D TreeMesh implementation, similar to prolong2mpimortars
 # However: - We only assign the small element values (only leftright = 1 is used)
 #          - These have to be communicated
-function init_aux_mpimortar_node_vars!(aux_vars, mesh::ParallelTreeMesh{2}, equations,
+function init_aux_mpimortar_node_vars!(aux_vars, mesh::TreeMeshParallel{2}, equations,
                                        solver, cache)
     @unpack aux_node_vars, aux_mpimortar_node_vars = aux_vars
     @unpack mpi_mortars = cache

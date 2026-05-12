@@ -272,7 +272,7 @@ end
                             MeshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
                                                 P4estMesh{3},
                                                 T8codeMesh{3}}},
-                            have_nonconservative_terms, equations,
+                            have_nonconservative_terms, have_aux_node_vars, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -286,7 +286,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                 MeshT, have_nonconservative_terms, equations,
+                 MeshT, have_nonconservative_terms, have_aux_node_vars, equations,
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
@@ -312,7 +312,7 @@ end
                               MeshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
                                                   P4estMesh{3},
                                                   T8codeMesh{3}}},
-                              have_nonconservative_terms, equations,
+                              have_nonconservative_terms, have_aux_node_vars, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
                               cons2recon, recon2cons,
@@ -331,7 +331,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                   MeshT, have_nonconservative_terms, equations,
+                   MeshT, have_nonconservative_terms, have_aux_node_vars, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)
@@ -362,7 +362,7 @@ end
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
                               ::Type{<:TreeMesh{3}}, have_nonconservative_terms::False,
-                              equations,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
@@ -394,7 +394,8 @@ end
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
                               ::Type{<:TreeMesh{3}},
-                              have_nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -459,7 +460,7 @@ end
                                 fstar3_L, fstar3_R, u,
                                 ::Type{<:TreeMesh{3}},
                                 have_nonconservative_terms::False,
-                                equations,
+                                have_aux_node_vars::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
                                 cons2recon, recon2cons)

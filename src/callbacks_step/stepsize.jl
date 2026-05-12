@@ -185,7 +185,7 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt_advective = cfl_hyperbolic(t) * max_dt(u, t, mesh,
+    dt_hyperbolic = cfl_hyperbolic(t) * max_dt(u, t, mesh,
                           have_constant_speed(equations),
                           have_aux_node_vars(equations), equations,
                           solver, cache)

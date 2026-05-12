@@ -37,11 +37,6 @@ function max_dt(u, t, mesh::TreeMesh{3},
                 equations_parabolic::AbstractEquationsParabolic,
                 dg::DG, cache)
     # Avoid division by zero if the diffusivity vanishes everywhere
-    # to avoid a division by zero if the speed vanishes everywhere,
-                constant_diffusivity::False, equations,
-                equations_parabolic::AbstractEquationsParabolic,
-                dg::DG, cache)
-    # Avoid division by zero if the diffusivity vanishes everywhere
     max_scaled_diffusivity = nextfloat(zero(t))
 
     @batch reduction=(max, max_scaled_diffusivity) for element in eachelement(dg, cache)

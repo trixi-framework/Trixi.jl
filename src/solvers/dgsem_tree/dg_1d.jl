@@ -72,7 +72,8 @@ function rhs!(du, u, t,
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+                              have_nonconservative_terms(equations),
+                              have_aux_node_vars(equations), equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -218,7 +219,7 @@ end
 
 @inline function fv_kernel!(du, u,
                             MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                            have_nonconservative_terms, equations,
+                            have_nonconservative_terms, have_aux_node_vars, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -244,7 +245,7 @@ end
 
 @inline function fvO2_kernel!(du, u,
                               MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                              nonconservative_terms, equations,
+                              nonconservative_terms, have_aux_node_vars, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
                               cons2recon, recon2cons,
@@ -278,7 +279,7 @@ end
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
                               ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
-                              have_nonconservative_terms::False,
+                              have_nonconservative_terms::False, have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     for i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
@@ -293,7 +294,7 @@ end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
                               ::Type{<:TreeMesh{1}},
-                              have_nonconservative_terms::True,
+                              have_nonconservative_terms::True, have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
     for i in 2:nnodes(dg)

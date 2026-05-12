@@ -65,7 +65,8 @@ end
                                          MeshT::Type{<:Union{TreeMesh{2},
                                                              StructuredMesh{2},
                                                              P4estMesh{2}}},
-                                         have_nonconservative_terms, equations,
+                                         have_nonconservative_terms,
+                                         have_aux_node_vars, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -90,7 +91,7 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
-                 have_nonconservative_terms, have_aux_node_vars(equations), equations,
+                 have_nonconservative_terms, have_aux_node_vars, equations,
                  volume_flux_fv, dg, element, cache)
 
     # antidiffusive flux
