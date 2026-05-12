@@ -109,7 +109,7 @@ end
     update_cleaning_speed!(semi, glm_speed_callback, dt, integrator.t)
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
 
     return nothing
 end
