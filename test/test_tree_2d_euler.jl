@@ -1099,6 +1099,30 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_astro_jet_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_sc_subcell.jl"),
+                        l2=[
+                            0.011338365293662804,
+                            10.09743543555765,
+                            0.00392429463200361,
+                            4031.7811487690506
+                        ],
+                        linf=[
+                            3.3178633141984193,
+                            2993.6445033486402,
+                            8.031723414357423,
+                            1.1918867260293828e6
+                        ],
+                        refinement_level=5)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
 @trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
                         l2=[
