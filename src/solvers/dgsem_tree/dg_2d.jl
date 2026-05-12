@@ -143,7 +143,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit_ext backend timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations, dg)
+        prolong2boundaries!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
