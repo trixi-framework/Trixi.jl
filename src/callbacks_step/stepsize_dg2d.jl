@@ -334,7 +334,8 @@ function max_dt(u, t,
 end
 
 function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_speed::False, equations, dg::DG, cache)
+                constant_speed::False, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
