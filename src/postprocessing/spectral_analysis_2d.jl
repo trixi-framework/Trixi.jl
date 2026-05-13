@@ -101,10 +101,10 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
         element_conservative_size = (n_vars, nnodes(solver), nnodes(solver))
         element_conservative_values = Array{eltype(u_sample)}(undef,
                                                               element_conservative_size)
-        for node in CartesianIndices(Base.tail(size(element_conservative_values)))
-            u_node = get_node_vars(u, equations, solver, Tuple(node)..., element)
+        for j in eachnode(solver), i in eachnode(solver)
+            u_node = get_node_vars(u, equations, solver, i, j, element)
             for variable in 1:n_vars
-                element_conservative_values[variable, Tuple(node)...] = u_node[variable]
+                element_conservative_values[variable, i, j] = u_node[variable]
             end
         end
         interpolated = multiply_dimensionwise(vandermonde, element_conservative_values)
