@@ -841,13 +841,13 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
         calc_fstar!(fstar_primary_upper, equations,
-                    surface_flux, dg, u_upper, mortar, orientation, cache)
+                    surface_flux, dg, u_upper, mortar, orientation)
         calc_fstar!(fstar_primary_lower, equations,
-                    surface_flux, dg, u_lower, mortar, orientation, cache)
+                    surface_flux, dg, u_lower, mortar, orientation)
         calc_fstar!(fstar_secondary_upper, equations,
-                    surface_flux, dg, u_upper, mortar, orientation, cache)
+                    surface_flux, dg, u_upper, mortar, orientation)
         calc_fstar!(fstar_secondary_lower, equations,
-                    surface_flux, dg, u_lower, mortar, orientation, cache)
+                    surface_flux, dg, u_lower, mortar, orientation)
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
@@ -880,13 +880,13 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
         calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper,
-                    aux_mpimortar_node_vars, 2, mortar, orientation, cache)
+                    aux_mpimortar_node_vars, 2, mortar, orientation)
         calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower,
-                    aux_mpimortar_node_vars, 1, mortar, orientation, cache)
+                    aux_mpimortar_node_vars, 1, mortar, orientation)
         calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper,
-                    aux_mpimortar_node_vars, 2, mortar, orientation, cache)
+                    aux_mpimortar_node_vars, 2, mortar, orientation)
         calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower,
-                    aux_mpimortar_node_vars, 1, mortar, orientation, cache)
+                    aux_mpimortar_node_vars, 1, mortar, orientation)
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,

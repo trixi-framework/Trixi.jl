@@ -98,7 +98,8 @@ end
                                               ::Type{<:Union{StructuredMesh{3},
                                                              P4estMesh{3},
                                                              T8codeMesh{3}}},
-                                              constant_speed::False, equations, dg,
+                                              constant_speed::False,
+                                              have_aux_node_vars::False, equations, dg,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
     max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
@@ -181,7 +182,9 @@ end
                                               ::Type{<:Union{StructuredMesh{3},
                                                              P4estMesh{3},
                                                              T8codeMesh{3}}},
-                                              constant_speed::True, equations, dg::DG,
+                                              constant_speed::True,
+                                              have_aux_node_vars::False, equations,
+                                              dg::DG,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
     max_scaled_speed = zero(eltype(u))

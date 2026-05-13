@@ -228,7 +228,7 @@ end
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, u, MeshT,
-                 have_nonconservative_terms, equations,
+                 have_nonconservative_terms, have_aux_node_vars, equations,
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution

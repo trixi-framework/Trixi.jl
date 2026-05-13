@@ -416,7 +416,7 @@ end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2}},
-                              have_nonconservative_terms,
+                              have_nonconservative_terms, have_aux_node_vars,
                               equations, surface_integral,
                               dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -1285,7 +1285,8 @@ function rhs!(du, u, t, u_parent, semis,
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+                              have_nonconservative_terms(equations),
+                              have_aux_node_vars(equations), equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -1297,7 +1298,8 @@ function rhs!(du, u, t, u_parent, semis,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
+                             have_nonconservative_terms(equations),
+                             have_aux_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 

@@ -49,7 +49,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                      typeof(have_nonconservative_terms), typeof(have_aux_node_vars),
                      typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
-               du, u, 1, semi.mesh,
+               du, u, 1, typeof(semi.mesh),
                have_nonconservative_terms, have_aux_node_vars, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
