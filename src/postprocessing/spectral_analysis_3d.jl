@@ -11,7 +11,7 @@
 Compute an isotropic 1D kinetic energy spectrum from three 3D Cartesian velocity
 components `v1`, `v2`, `v3`. For compressible Euler kinetic energy spectra, 
 pass density-weighted components `sqrt(rho) * v1`, `sqrt(rho) * v2`, and `sqrt(rho) * v3`.
-The Modal energy is normalized by `1 / N^3'.
+The Modal energy is normalized by `1 / N^3`.
 """
 function compute_kinetic_energy_spectrum(v1::AbstractArray{<:Any, 3},
                                          v2::AbstractArray{<:Any, 3},
