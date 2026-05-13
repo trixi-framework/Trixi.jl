@@ -158,6 +158,7 @@ include("semidiscretization/semidiscretization_parabolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_split.jl")
 include("semidiscretization/semidiscretization_coupled_p4est.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
@@ -311,6 +312,8 @@ export SemidiscretizationParabolic
 
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
+
+export SemidiscretizationHyperbolicSplit
 
 export SemidiscretizationEulerAcoustics
 
