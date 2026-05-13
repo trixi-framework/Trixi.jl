@@ -80,7 +80,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
     u_uniform = Vector{Array{real(solver), 2}}(undef, n_vars)
     for variable in eachindex(u_uniform)
         u_uniform[variable] = Array{real(solver)}(undef,
-                                                                uniform_grid_size)
+                                                  uniform_grid_size)
     end
 
     # Interpolate from LGL nodes to cell-centered equidistant nodes in each element
@@ -109,7 +109,8 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
         end
         interpolated = multiply_dimensionwise(vandermonde, element_conservative_values)
 
-        # Gets the global indices for the local element that is being interpolated
+        # Each element is placed on the uniform grid assuming reference directions align with
+        # physical axes (ξ→x, η→y) and nodal values use the DGSEM tensor order along (ξ, η).
         first_index = Vector{Int}(undef, 2)
         for dim in 1:2
             lower_left = normalized_coordinates[dim, element] -
@@ -123,8 +124,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
         r1 = first_index[1]:(first_index[1] + n_uniform_nodes - 1)
         r2 = first_index[2]:(first_index[2] + n_uniform_nodes - 1)
         for variable in eachindex(u_uniform)
-            u_uniform[variable][r1, r2] .= @view interpolated[variable, :,
-                                                                            :]
+            u_uniform[variable][r1, r2] .= @view interpolated[variable, :, :]
         end
     end
     return u_uniform
