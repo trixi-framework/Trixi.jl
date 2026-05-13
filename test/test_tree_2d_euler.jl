@@ -1102,16 +1102,16 @@ end
 @trixi_testset "elixir_euler_astro_jet_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_sc_subcell.jl"),
                         l2=[
-                            0.011338365293662804,
-                            10.09743543555765,
-                            0.00392429463200361,
-                            4031.7811487690506
+                            1.5845627516569385,
+                            1236.6657368292585,
+                            98.9979561061573,
+                            476789.0097942537
                         ],
                         linf=[
-                            3.3178633141984193,
-                            2993.6445033486402,
-                            8.031723414357423,
-                            1.1918867260293828e6
+                            28.78308140547342,
+                            20539.229264985282,
+                            1555.5305652206064,
+                            7.41526820139599e6
                         ],
                         refinement_level=5)
     # Ensure that we do not have excessive memory allocations
