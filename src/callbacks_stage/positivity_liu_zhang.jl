@@ -1,8 +1,6 @@
 
-struct PositivityPreservingLimiterLiuZhang{N, Thresholds <: NTuple{N, <:Real},
-                                           Variables <: NTuple{N, Any},
-                                           LocalLimiter, # PositivityPreservingLimiterZhangShu{N} or adaptive filtering
-                                           CellAverages <: AbstractVector{<:Real},
+struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
+                                           CellAverages <: AbstractVector,
                                            PinvCellVolumesVector <: AbstractVector{<:Real},
                                            RealT <: Real}
     local_limiter!::LocalLimiter
@@ -19,19 +17,22 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!, semi::AbstractSemid
                                                global_limiter_tol, max_davis_yin_iterations)
 end
 
-function PositivityPreservingLimiterLiuZhang(local_limiter!, 
-                                             mesh, equations, dg, cache;
+function PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                             mesh::AbstractMesh, equations, dg::DGSEM, cache;
                                              global_limiter_tol, max_davis_yin_iterations)
 
-    # vector of cell volumes and their pseudo-inverse     
+    # vector of cell volumes and their pseudo-inverse; these are used 
+    # within the optimization-based cell average limiter to enforce conservation.
     uEltype = real(dg)
-    cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache) for element in eachelement(dg, cache)]
+    cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache)
+                    for element in eachelement(dg, cache)]
+    @show cell_volumes
     pseudo_inverse_cell_volumes_vector = vec(pinv(cell_volumes))
 
     # resizable storage for cell averages
     cell_averages = Vector{SVector{nvariables(equations), uEltype}}(undef, nelements(dg, cache))
 
-    return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages, 
+    return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                pseudo_inverse_cell_volumes_vector,
                                                global_limiter_tol, max_davis_yin_iterations)
 end
@@ -39,7 +40,8 @@ end
 function (limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
                                                          semi::AbstractSemidiscretization,
                                                          t)
-    (; local_limiter!, cell_averages) = limiter!
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; local_limiter!, cell_averages, global_limiter_tol) = limiter!
     u = wrap_array(u_ode, semi)
 
     # calculate cell averages for each element
@@ -53,14 +55,14 @@ function (limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
     # apply global optimization-based cell averagelimiter + local limiters
     @trixi_timeit timer() "positivity-preserving limiter" begin
 
-        # apply global optimization-based cell average limiter
-        global_cell_average_limiter!(cell_averages,
-                                     mesh_equations_solver_cache(semi)...,
-                                     global_limiter_tol)
+        # # apply global optimization-based cell average limiter
+        # global_cell_average_limiter!(cell_averages,
+        #                              mesh_equations_solver_cache(semi)...,
+        #                              minimum(local_limiter!.thresholds), global_limiter_tol)
 
-        # this initial implementation recomputes the cell averages
-        local_limiter!(u, local_limiter!.thresholds, local_limiter!.variables,
-                       mesh_equations_solver_cache(semi)...)
+        # # this initial implementation recomputes the cell averages
+        # local_limiter!(u, local_limiter!.thresholds, local_limiter!.variables,
+        #                mesh_equations_solver_cache(semi)...)
     end
 
     return nothing
@@ -68,19 +70,20 @@ end
 
 # pointwise version
 function project_to_admissible_set(cell_average, lower_bound, equations::LinearScalarAdvectionEquation1D)
-    return max(lower_bound, cell_average)
+    return SVector(max(lower_bound, cell_average[1]))
 end
 
 function get_cell_volume(element, mesh::AbstractMesh{1}, equations, dg, cache)
-    return cache.elements.inverse_jacobian[element]
+    # size of reference element is 2 in the 1D case
+    return 2 / cache.elements.inverse_jacobian[element]
 end
 
-function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equations, dg, cache;
-                                      global_limiter_tol, max_davis_yin_iterations=50)
+function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equations, dg, cache,
+                                      lower_bound, global_limiter_tol, max_davis_yin_iterations=50)
     @unpack inverse_jacobian = cache.elements
 
     # calculate the global average
-    global_integral = zero(real(mesh))
+    global_integral = zero(eltype(cell_averages))
     for element in eachelement(dg, cache)   
         cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
         global_integral = global_integral + cell_averages[element] * cell_volume
@@ -88,9 +91,12 @@ function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equa
 
     num_davis_yin_iterations = 0
     residual = floatmax(real(mesh))    
+
+    # TODO: avoid allocations each time
     X = copy(cell_averages) # Davis-Yin primal variable
     Y = copy(cell_averages) # Davis-Yin dual variable
     Z = copy(cell_averages) # Davis-Yin dual variable
+    X_half = copy(cell_averages)
 
     # the Davis-Yin splitting method uses variables X, Y, Z. 
     # Z = initialized to the cell averages u_avg
@@ -101,7 +107,7 @@ function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equa
 
         # project the dual variable to the admissible set
         @threaded for element in eachelement(dg, cache)
-            X_half[element] = project_to_admissible_set(Z[element], lower_bound, upper_bound)
+            X_half[element] = project_to_admissible_set(Z[element], lower_bound, equations)
         end
 
         # update the primal variable
