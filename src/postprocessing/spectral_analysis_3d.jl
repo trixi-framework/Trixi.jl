@@ -37,13 +37,13 @@ function compute_kinetic_energy_spectrum(u, mesh::TreeMesh{3},
     # Interpolates conservative polynomials to a uniform Cartesian grid then converts to primitives at each uniform node
     u_uniform = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
     n_vars = nvariables(equations)
-    grid_size = size(first(u_uniform))
+    grid_size = size(u_uniform)[2:end]
     rho = Array{real(solver)}(undef, grid_size)
     v1 = Array{real(solver)}(undef, grid_size)
     v2 = Array{real(solver)}(undef, grid_size)
     v3 = Array{real(solver)}(undef, grid_size)
     for idx in CartesianIndices(grid_size)
-        u_node = SVector(ntuple(v -> u_uniform[v][idx], n_vars))
+        u_node = SVector(ntuple(v -> u_uniform[v, Tuple(idx)...], n_vars))
         prim = cons2prim(u_node, equations)
         rho[idx] = prim[1]
         v1[idx] = prim[2]
@@ -81,13 +81,9 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
     grid_points_per_dimension = n_uniform_nodes * cells_per_dimension
 
     n_vars = nvariables(equations)
-    uniform_grid_size = (grid_points_per_dimension, grid_points_per_dimension,
-                         grid_points_per_dimension)
-    u_uniform = Vector{Array{real(solver), 3}}(undef, n_vars)
-    for variable in eachindex(u_uniform)
-        u_uniform[variable] = Array{real(solver)}(undef,
-                                                  uniform_grid_size)
-    end
+    u_uniform = Array{real(solver)}(undef, n_vars, grid_points_per_dimension,
+                                    grid_points_per_dimension,
+                                    grid_points_per_dimension)
 
     # Interpolate from LGL nodes to cell-centered equidistant nodes in each element
     dx_reference = 2 / n_uniform_nodes
@@ -131,9 +127,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
         r1 = first_index[1]:(first_index[1] + n_uniform_nodes - 1)
         r2 = first_index[2]:(first_index[2] + n_uniform_nodes - 1)
         r3 = first_index[3]:(first_index[3] + n_uniform_nodes - 1)
-        for variable in eachindex(u_uniform)
-            u_uniform[variable][r1, r2, r3] .= @view interpolated[variable, :, :, :]
-        end
+        u_uniform[:, r1, r2, r3] .= interpolated[:, :, :, :]
     end
     return u_uniform
 end
