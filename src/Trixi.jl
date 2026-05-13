@@ -158,6 +158,7 @@ include("semidiscretization/semidiscretization_parabolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_split.jl")
 include("semidiscretization/semidiscretization_coupled_p4est.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
@@ -311,6 +312,8 @@ export SemidiscretizationParabolic
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
 
+export SemidiscretizationHyperbolicSplit
+
 export SemidiscretizationEulerAcoustics
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
@@ -358,6 +361,13 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        iplot, iplot!
 
 function __init__()
+    # Skip MPI/library initialization during precompilation of subsequent packages.
+    # The specific case we are guarding against is recompilation when running under MPI,
+    # then the MPI launcher will error if more processes than asked for are launched. 
+    if ccall(:jl_generating_output, Cint, ()) == 1
+        return nothing
+    end
+
     init_mpi()
 
     init_p4est()
