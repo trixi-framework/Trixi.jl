@@ -98,16 +98,16 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
     for element in eachelement(solver, cache)
         # Gather conservative nodal values on the reference LGL tensor grid for the element
         u_sample = get_node_vars(u, equations, solver, 1, 1, element)
-        element_conservative_size = (n_vars, nnodes(solver), nnodes(solver))
-        element_conservative_values = Array{eltype(u_sample)}(undef,
-                                                              element_conservative_size)
+        element_size = (n_vars, nnodes(solver), nnodes(solver))
+        element_values = Array{eltype(u_sample)}(undef,
+                                                 element_size)
         for j in eachnode(solver), i in eachnode(solver)
             u_node = get_node_vars(u, equations, solver, i, j, element)
             for variable in 1:n_vars
-                element_conservative_values[variable, i, j] = u_node[variable]
+                element_values[variable, i, j] = u_node[variable]
             end
         end
-        interpolated = multiply_dimensionwise(vandermonde, element_conservative_values)
+        interpolated = multiply_dimensionwise(vandermonde, element_values)
 
         # Each element is placed on the uniform grid assuming reference directions align with
         # physical axes (ξ→x, η→y) and nodal values use the DGSEM tensor order along (ξ, η).
