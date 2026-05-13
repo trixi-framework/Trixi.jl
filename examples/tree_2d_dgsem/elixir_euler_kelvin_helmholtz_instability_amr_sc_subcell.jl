@@ -38,7 +38,7 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
-                                local_twosided_variables_cons = [], # required for testing
+                                local_twosided_variables_cons = [],
                                 max_iterations_newton = 30)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -46,6 +46,7 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 mortar = MortarIDP(equations, basis;
                    positivity_variables_cons = ["rho"],
                    positivity_variables_nonlinear = [pressure],
+                   local_twosided_variables_cons = [],
                    pure_low_order = false)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
