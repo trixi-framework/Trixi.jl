@@ -514,7 +514,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
         # Sign flip for `local_side = 2` required for divergence calculation since
         # the divergence interface flux involves the normal direction.
         # `local_side=2` is thus flipped (opposite of primary side)
-        orientationFactor = local_side == 1 ? 1 : -1
+        orientation_factor = local_side == 1 ? 1 : -1
 
         i_start, i_step_i, i_step_j = index_to_start_step_3d(local_indices[1],
                                                              index_range)
@@ -542,7 +542,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                              flux_parabolic_z[v, i_elem, j_elem, k_elem,
                                                               local_element])
 
-                    cache.mpi_interfaces.u[local_side, v, i, j, interface] = orientationFactor .*
+                    cache.mpi_interfaces.u[local_side, v, i, j, interface] = orientation_factor .*
                                                                              dot(flux_parabolic,
                                                                                  normal_direction)
                 end
