@@ -241,6 +241,7 @@ end
                                                           P4estMesh{2},
                                                           T8codeMesh{2}}},
                                            have_nonconservative_terms::True,
+                                           have_aux_node_vars::False,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
