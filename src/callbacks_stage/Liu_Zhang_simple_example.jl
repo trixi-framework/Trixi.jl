@@ -1,18 +1,27 @@
 using LinearAlgebra
 
+lower_bound = 1e-6
+upper_bound = 2.0
+
 function project_to_admissible_set(Z_old, lower_bound, upper_bound)
     return @. max.(lower_bound, min.(Z_old, upper_bound))
 end
 
-N = 5
-u_avg = collect(LinRange(0.0, 2.0, N))
+N = 8
+u_avg = [1.186504953362507
+1.450165804986605
+1.4501256333661527
+1.1864079704915869
+0.8134950466374934
+0.549834195013395
+0.5498743666338478
+0.8135920295084131]
+
 u_avg[5] = -0.1 # violate positivity
 
-cell_volumes = rand(N)
+cell_volumes = ones(N)
 cell_volumes .*= 2 / sum(cell_volumes)
 
-lower_bound = 0.0
-upper_bound = 2.0
 
 # Pseudo-inverse of A ∈ R^{N×1} (stored as length-N vector of ones)
 A = cell_volumes
@@ -60,5 +69,3 @@ X = project_to_admissible_set(Z, lower_bound, upper_bound)
 @show norm((X - u_avg) .* sqrt.(cell_volumes))
 @show minimum(X)
 @show sum((X - u_avg) .* cell_volumes)
-@show X
-@show u_avg
