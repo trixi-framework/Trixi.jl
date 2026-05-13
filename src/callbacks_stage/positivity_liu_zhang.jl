@@ -26,7 +26,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     uEltype = real(dg)
     cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache)
                     for element in eachelement(dg, cache)]
-    @show cell_volumes
+
     pseudo_inverse_cell_volumes_vector = vec(pinv(cell_volumes))
 
     # resizable storage for cell averages
@@ -37,11 +37,14 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                                global_limiter_tol, max_davis_yin_iterations)
 end
 
-function (limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
+function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
                                                          semi::AbstractSemidiscretization,
                                                          t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; local_limiter!, cell_averages, global_limiter_tol) = limiter!
+    (; local_limiter!, cell_averages, 
+       pseudo_inverse_cell_volumes_vector, 
+       global_limiter_tol, max_davis_yin_iterations) = global_limiter!
+       
     u = wrap_array(u_ode, semi)
 
     # calculate cell averages for each element
@@ -55,22 +58,21 @@ function (limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
     # apply global optimization-based cell averagelimiter + local limiters
     @trixi_timeit timer() "positivity-preserving limiter" begin
 
-        # # apply global optimization-based cell average limiter
-        # global_cell_average_limiter!(cell_averages,
-        #                              mesh_equations_solver_cache(semi)...,
-        #                              minimum(local_limiter!.thresholds), global_limiter_tol)
-
-        # # this initial implementation recomputes the cell averages
-        # local_limiter!(u, local_limiter!.thresholds, local_limiter!.variables,
-        #                mesh_equations_solver_cache(semi)...)
+        # apply global optimization-based cell average limiter
+        global_cell_average_limiter!(cell_averages, local_limiter!.thresholds, pseudo_inverse_cell_volumes_vector,
+                                     global_limiter_tol, max_davis_yin_iterations, 
+                                     mesh_equations_solver_cache(semi)...)
     end
+
+    # call a local (e.g., Zhang-Shu type) limiter to enforce pointwise positivity 
+    local_limiter!(u_ode, integrator, semi, t)
 
     return nothing
 end
 
 # pointwise version
 function project_to_admissible_set(cell_average, lower_bound, equations::LinearScalarAdvectionEquation1D)
-    return SVector(max(lower_bound, cell_average[1]))
+    return SVector(max(lower_bound[1], cell_average[1]))
 end
 
 function get_cell_volume(element, mesh::AbstractMesh{1}, equations, dg, cache)
@@ -78,10 +80,10 @@ function get_cell_volume(element, mesh::AbstractMesh{1}, equations, dg, cache)
     return 2 / cache.elements.inverse_jacobian[element]
 end
 
-function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equations, dg, cache,
-                                      lower_bound, global_limiter_tol, max_davis_yin_iterations=50)
-    @unpack inverse_jacobian = cache.elements
-
+function global_cell_average_limiter!(cell_averages, lower_bound, pseudo_inverse_cell_volumes_vector,
+                                      global_limiter_tol, max_davis_yin_iterations, 
+                                      mesh, equations, dg, cache)
+    
     # calculate the global average
     global_integral = zero(eltype(cell_averages))
     for element in eachelement(dg, cache)   
@@ -89,7 +91,6 @@ function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equa
         global_integral = global_integral + cell_averages[element] * cell_volume
     end
 
-    num_davis_yin_iterations = 0
     residual = floatmax(real(mesh))    
 
     # TODO: avoid allocations each time
@@ -99,10 +100,12 @@ function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equa
     X_half = copy(cell_averages)
 
     # the Davis-Yin splitting method uses variables X, Y, Z. 
-    # Z = initialized to the cell averages u_avg
-    # Project to admissible set: X_{1/2} = proj(Z)
-    # Enforce conservation: X = Y + (global_integral - dot(cell_volumes, u_avg)) * pinv(cell_volumes) 
-    # Update dual variable: Z = Z + (X - X_{1/2})
+    # Z is initialized to the solution cell averages. The iteration is then:
+    # 1. Project to admissible set: X_{1/2} = proj(Z)
+    # 2. Enforce conservation: X = Y + (global_integral - dot(cell_volumes, u_avg)) * pinv(cell_volumes) 
+    # 3. Update dual variable: Z = Z + (X - X_{1/2})
+    # and is repeated until (X - X_{1/2}) is smaller than the tolerance or the maximum number of iterations is reached.
+    num_davis_yin_iterations = 0
     while residual > global_limiter_tol && num_davis_yin_iterations < max_davis_yin_iterations
 
         # project the dual variable to the admissible set
@@ -119,18 +122,25 @@ function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equa
         end
 
         # enforce the constraint that the sum of the cell averages is equal to the total volume
-        cell_volumes_dot_Y = zero(real(mesh))
+        cell_volumes_dot_Y = zero(first(Y))
         for element in eachelement(dg, cache)
             cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
             cell_volumes_dot_Y += cell_volume * Y[element]
         end
-        
+
         @threaded for element in eachelement(dg, cache)            
-            X[element] = Y[element] + (global_integral - cell_volumes_dot_Y) * pseudo_inverse_cell_averages[element]
+            X[element] = Y[element] +
+                         (global_integral - cell_volumes_dot_Y) *
+                         pseudo_inverse_cell_volumes_vector[element]
         end
 
-        # calculate norm(Z_new .- Z_old) 
-        residual = norm((X - X_half) .* sqrt.(cell_volumes))
+        # calculate residual = norm(Z_new .- Z_old) (same weighting as the scalar reference script)
+        residual_squared = zero(real(mesh))
+        for element in eachelement(dg, cache)
+            cell_volume = get_cell_volume(element, mesh, equations, dg, cache)            
+            residual_squared += sum(abs2, X[element] - X_half[element]) * cell_volume
+        end
+        residual = sqrt(residual_squared)
 
         # update the dual variable
         @threaded for element in eachelement(dg, cache)
@@ -138,5 +148,9 @@ function global_cell_average_limiter!(cell_averages, mesh::AbstractMesh{1}, equa
         end
 
         num_davis_yin_iterations += 1
+    end
+
+    @threaded for element in eachelement(dg, cache)
+        cell_averages[element] = project_to_admissible_set(Z[element], lower_bound, equations)
     end
 end
