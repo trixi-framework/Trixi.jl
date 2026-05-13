@@ -77,9 +77,9 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
 
     n_vars = nvariables(equations)
     uniform_grid_size = (grid_points_per_dimension, grid_points_per_dimension)
-    conservative_on_uniform = Vector{Array{real(solver), 2}}(undef, n_vars)
-    for variable in eachindex(conservative_on_uniform)
-        conservative_on_uniform[variable] = Array{real(solver)}(undef,
+    u_uniform = Vector{Array{real(solver), 2}}(undef, n_vars)
+    for variable in eachindex(u_uniform)
+        u_uniform[variable] = Array{real(solver)}(undef,
                                                                 uniform_grid_size)
     end
 
@@ -122,12 +122,12 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
         # Writes the interpolated block onto the global grid for the larger output
         r1 = first_index[1]:(first_index[1] + n_uniform_nodes - 1)
         r2 = first_index[2]:(first_index[2] + n_uniform_nodes - 1)
-        for variable in eachindex(conservative_on_uniform)
-            conservative_on_uniform[variable][r1, r2] .= @view interpolated[variable, :,
+        for variable in eachindex(u_uniform)
+            u_uniform[variable][r1, r2] .= @view interpolated[variable, :,
                                                                             :]
         end
     end
-    return conservative_on_uniform
+    return u_uniform
 end
 
 """
