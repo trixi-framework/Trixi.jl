@@ -747,7 +747,7 @@ function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralSubcellLimiting,
                                        new_size)
     resize!(cache.antidiffusive_fluxes, new_size)
-    resize!(volume_integral.limiter.cache.subcell_limiter_coefficients, new_size)
+    resize_subcell_limiter_cache!(volume_integral.limiter, new_size)
 
     resize_normal_vectors!(cache, mesh, new_size)
 
