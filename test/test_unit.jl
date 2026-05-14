@@ -39,7 +39,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         velocity_1_2d = ones(4, 4)
         velocity_2_2d = zeros(4, 4)
 
-        energy_spectrum_2d, wavenumbers_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
+        wavenumbers_2d, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
                                                                                    velocity_2_2d)
         @test wavenumbers_2d == 0:3
         @test energy_spectrum_2d[1] ≈ 0.5
@@ -49,7 +49,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                           for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
         velocity_2_2d .= [cos(2 * pi * (j - 1) / size(rho_2d, 2))
                           for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
-        energy_spectrum_2d, _ = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_2d) .*
+        _, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_2d) .*
                                                                       velocity_1_2d,
                                                                       sqrt.(rho_2d) .*
                                                                       velocity_2_2d)
@@ -63,7 +63,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         velocity_2_3d = zeros(4, 4, 4)
         velocity_3_3d = zeros(4, 4, 4)
 
-        energy_spectrum_3d, wavenumbers_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
+        wavenumbers_3d, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
                                                                                    velocity_2_3d,
                                                                                    velocity_3_3d)
         @test wavenumbers_3d == 0:3
@@ -79,7 +79,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         velocity_3_3d .= [sin(2 * pi * (k - 1) / size(rho_3d, 3))
                           for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
                               k in axes(rho_3d, 3)]
-        energy_spectrum_3d, _ = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_3d) .*
+        _, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_3d) .*
                                                                       velocity_1_3d,
                                                                       sqrt.(rho_3d) .*
                                                                       velocity_2_3d,

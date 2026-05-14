@@ -30,9 +30,9 @@ Currently, implemented methods are restricted to
 - `DGMultiMesh` + `DGMultiSBP` data (already sampled on a Cartesian grid)
 
 ## Returns
+- `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
 - `energy_spectrum`: 1D vector holding the isotropic kinetic energy spectrum
   `E(k)` binned by integer wavenumber shell
-- `wavenumbers`: vector of matching 0-based integer wavenumber shell labels
 
 ## Constructs internally
 - For DGSEM `TreeMesh` data, it interpolates **conservative** variables from LGL nodes to a
@@ -97,7 +97,7 @@ function radial_energy_spectrum(energy_modes)
         end
     end
 
-    return energy_spectrum, wavenumbers
+    return wavenumbers, energy_spectrum
 end
 
 include("spectral_analysis_2d.jl")
