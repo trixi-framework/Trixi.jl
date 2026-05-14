@@ -70,8 +70,9 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     return nothing
 end
 
-# pointwise version
-function project_to_admissible_set(cell_average, lower_bound, equations::LinearScalarAdvectionEquation1D)
+# pointwise projection to the admissible set for any scalar equation 
+function project_to_admissible_set(cell_average, lower_bound,
+                                   equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
     return SVector(max(lower_bound[1], cell_average[1]))
 end
 
