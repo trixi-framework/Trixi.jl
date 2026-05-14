@@ -69,7 +69,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
-    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_parabolic, u, mesh,
                                                              equations_parabolic,
                                                              boundary_conditions_parabolic,
                                                              dg, parabolic_scheme,

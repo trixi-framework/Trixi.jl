@@ -61,7 +61,7 @@ end
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE with artificial viscosity.
 """
-function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
+function SemidiscretizationArtificialViscosity(mesh, equations::Tuple, VDM, filter,
                                                initial_condition, solver;
                                                combine_rhs = False(),
                                                equations_artificial_viscosity = default_artificial_viscosity(equations[1]),
@@ -87,7 +87,7 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
 
-    cache = (; cache...,
+    cache = (; cache..., VDM, filter, invVDM = inv(VDM),
              artificial_viscosity =
              create_cache(mesh, artificial_viscosity, solver, cache, RealT, uEltype))
 
@@ -419,7 +419,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationArtificialViscosity{<:True}
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
-
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
     @trixi_timeit timer() "rhs!" rhs_combined!(du, u, t, mesh,

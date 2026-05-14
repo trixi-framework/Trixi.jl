@@ -61,25 +61,284 @@
         jacobian_1d = inv(cache.elements.inverse_jacobian[element])# O(h) 
         return (volume_integral_du_entropy + surface_integral_entropy_potential) *
                jacobian_1d
+        #cache.artificial_viscosity.norm_residuals[end] += res * res;
+        #return res
     end
- 
-    function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
-                                     equations, mesh::TreeMesh{3}, dg, cache)
+
+    function calc_ecav_svv_coefficients!(flux_parabolic, gradients, entropy_residual, equations,
+                                         mesh::TreeMesh{3}, dg, cache) 
+        #push!(cache.artificial_viscosity.norm_coefficients, 0.0)
+        #push!(cache.artificial_viscosity.norm_svv_coefficients, 0.0)
+        flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+        gradients_x, gradients_y, gradients_z = gradients
+
+        # prototype threaded implementation
+        filtered_gradients_x_threaded, filtered_gradients_y_threaded, 
+            filtered_gradients_z_threaded = cache.artificial_viscosity.filtered_gradients
+
+
+        filtered_gradients_x, filtered_gradients_y, 
+            filtered_gradients_z = cache.artificial_viscosity.filtered_gradients
+        filtered_flux_parabolic_x, filtered_flux_parabolic_y, 
+            filtered_flux_parabolic_z = cache.artificial_viscosity.filtered_flux_parabolic
+        (; filter, VDM, invVDM) = cache
+        deg = polydeg(dg)
         for element in eachelement(dg, cache)
             volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
             # calculate viscous dissipation (ECAV denominator)
             element_viscous_dissipation = zero(real(dg))
+            element_viscous_dissipation_svv = zero(real(dg))
+
+            filtered_gradients_x = filtered_gradients_x_threaded[Threads.threadid()]
+
+            # fil
+            fill!(filtered_gradients_x, zero(real(dg)))
+            fill!(filtered_gradients_y, zero(real(dg)))
+            fill!(filtered_gradients_z, zero(real(dg)))
+
+            fill!(filtered_flux_parabolic_x, zero(real(dg)))
+            fill!(filtered_flux_parabolic_y, zero(real(dg)))
+            fill!(filtered_flux_parabolic_z, zero(real(dg)))
+            # allocate memory to store svv viscous flux per node wise since
+            # we don't want to allocate another flux_viscous type of object.
+            # we will accumulate the svv fluxes into flux_viscous to save memory.
+
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                flux_viscous_x_node = get_node_vars(flux_parabolic[1], equations, dg, i, j, k, 
+                flux_viscous_x_node = get_node_vars(flux_parabolic_x, equations, dg, i, j, k, 
                                                     element)
-                flux_viscous_y_node = get_node_vars(flux_parabolic[2], equations, dg, i, j, k, 
+                flux_viscous_y_node = get_node_vars(flux_parabolic_y, equations, dg, i, j, k, 
                                                     element)
-                flux_viscous_z_node = get_node_vars(flux_parabolic[3], equations, dg, i, j, k, 
+                flux_viscous_z_node = get_node_vars(flux_parabolic_z, equations, dg, i, j, k, 
                                                     element)
-                gradients_x_node = get_node_vars(gradients[1], equations, dg, i, j, k, element)
-                gradients_y_node = get_node_vars(gradients[2], equations, dg, i, j, k, element)
-                gradients_z_node = get_node_vars(gradients[3], equations, dg, i, j, k, element)
+                gradients_x_node = get_node_vars(gradients_x, equations, dg, i, j, k, element)
+                gradients_y_node = get_node_vars(gradients_y, equations, dg, i, j, k, element)
+                gradients_z_node = get_node_vars(gradients_z, equations, dg, i, j, k, element)
+                
+                # svv gradients/viscous fluxes, use outer product to apply
+                # inverse vandermonde matrix to each variable
+                idx = deg * deg * k + deg * j + i
+                filter_ijk = filter[k] * filter[j] * filter[i]
+                filtered_gradients_x .= filtered_gradients_x + 
+                    filter_ijk * invVDM[idx, :] * (gradients_x_node')
+                filtered_gradients_y .= filtered_gradients_y + 
+                    filter_ijk * invVDM[idx, :] * (gradients_y_node')
+                filtered_gradients_z .= filtered_gradients_z + 
+                    filter_ijk * invVDM[idx, :] * (gradients_z_node')
+
+                filtered_flux_parabolic_x .= filtered_flux_parabolic_x + 
+                    filter_ijk * invVDM[idx, :] * (flux_viscous_x_node')
+                filtered_flux_parabolic_y .= filtered_flux_parabolic_y + 
+                    filter_ijk * invVDM[idx, :] * (flux_viscous_y_node')
+                filtered_flux_parabolic_z .= filtered_flux_parabolic_z + 
+                    filter_ijk * invVDM[idx, :] * (flux_viscous_z_node')
+
+                viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
+                viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
+                viscous_dissipation_z = dot(flux_viscous_z_node, gradients_z_node)
+
+                weight_ijk = dg.basis.weights[i] * dg.basis.weights[j] * dg.basis.weights[k]
+                element_viscous_dissipation = element_viscous_dissipation +
+                                              (viscous_dissipation_x +
+                                               viscous_dissipation_y + 
+                                                viscous_dissipation_z) * weight_ijk *
+                                              volume_jacobian_
+            end
+            filtered_gradients_x .= VDM * filtered_gradients_x
+            filtered_gradients_y .= VDM * filtered_gradients_y
+            filtered_gradients_z .= VDM * filtered_gradients_z
+            filtered_flux_parabolic_x .= VDM * filtered_flux_parabolic_x
+            filtered_flux_parabolic_y .= VDM * filtered_flux_parabolic_y
+            filtered_flux_parabolic_z .= VDM * filtered_flux_parabolic_z
+
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                idx = deg * deg * k + deg * j + i
+                weights_ijk = dg.basis.weights[i] * dg.basis.weights[j] * dg.basis.weights[k]
+                element_viscous_dissipation_svv = element_viscous_dissipation_svv
+                + (dot(filtered_gradients_x[idx, :], 
+                    filtered_flux_parabolic_x[idx, :])
+                + dot(filtered_gradients_y[idx, :], 
+                    filtered_flux_parabolic_y[idx, :])
+                + dot(filtered_gradients_y[idx, :], 
+                    filtered_flux_parabolic_y[idx, :])) * weights_ijk * volume_jacobian_
+            end
+            # Scale viscous flux by ecav coefficient.
+            # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
+            # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
+            num = min(0, entropy_residual[element])
+            denom = element_viscous_dissipation * element_viscous_dissipation + 
+                    element_viscous_dissipation_svv * element_viscous_dissipation_svv
+            ecav_coefficient = (num * element_viscous_dissipation) / (denom + 1e-12)
+            svv_coefficient = (num * element_viscous_dissipation_svv) /(denom + 1e-12)
+
+            #cache.artificial_viscosity.norm_coefficients[end] += ecav_coefficient * ecav_coefficient    
+            #cache.artificial_viscosity.norm_svv_coefficients[end] += svv_coefficient * svv_coefficient    
+            cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                idx = deg * deg * k + deg * j + i
+                multiply_to_node_vars!(flux_parabolic_x, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_to_node_vars!(flux_parabolic_y, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_to_node_vars!(flux_parabolic_z, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_add_to_node_vars!(flux_parabolic_x, svv_coefficient, filtered_flux_parabolic_x[idx, :], 
+                                        equations, dg, i, j, k, element)
+                multiply_add_to_node_vars!(flux_parabolic_y, svv_coefficient, filtered_flux_parabolic_y[idx, :], 
+                                        equations, dg, i, j, k, element)
+                multiply_add_to_node_vars!(flux_parabolic_z, svv_coefficient, filtered_flux_parabolic_z[idx, :], 
+                                        equations, dg, i, j, k, element)
+            end
+        end
+        #cache.artificial_viscosity.norm_coefficients[end] = sqrt(cache.artificial_viscosity.norm_coefficients[end])
+        #cache.artificial_viscosity.norm_svv_coefficients[end] = sqrt(cache.artificial_viscosity.norm_svv_coefficients[end])
+        return nothing
+    end
+
+    function calc_ecav_svv_coefficients2!(flux_parabolic, gradients, entropy_residual, equations,
+                                         mesh::TreeMesh{3}, dg, cache) 
+        #push!(cache.artificial_viscosity.norm_coefficients, 0.0)
+        #push!(cache.artificial_viscosity.norm_svv_coefficients, 0.0)
+        flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+        gradients_x, gradients_y, gradients_z = gradients
+
+        filtered_gradients_x, filtered_gradients_y, 
+            filtered_gradients_z = cache.artificial_viscosity.filtered_gradients
+        filtered_flux_parabolic_x, filtered_flux_parabolic_y, 
+            filtered_flux_parabolic_z = cache.artificial_viscosity.filtered_flux_parabolic
+        (; filter, VDM, invVDM) = cache
+        deg = polydeg(dg)
+        for element in eachelement(dg, cache)
+            volume_jacobian_ = volume_jacobian(element, mesh, cache)
+
+            # calculate viscous dissipation (ECAV denominator)
+            element_viscous_dissipation = zero(real(dg))
+            element_viscous_dissipation_svv = zero(real(dg))
+
+            fill!(filtered_gradients_x, zero(real(dg)))
+            fill!(filtered_gradients_y, zero(real(dg)))
+            fill!(filtered_gradients_z, zero(real(dg)))
+
+            fill!(filtered_flux_parabolic_x, zero(real(dg)))
+            fill!(filtered_flux_parabolic_y, zero(real(dg)))
+            fill!(filtered_flux_parabolic_z, zero(real(dg)))
+            # allocate memory to store svv viscous flux per node wise since
+            # we don't want to allocate another flux_viscous type of object.
+            # we will accumulate the svv fluxes into flux_viscous to save memory.
+
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                flux_viscous_x_node = get_node_vars(flux_parabolic_x, equations, dg, i, j, k, 
+                                                    element)
+                flux_viscous_y_node = get_node_vars(flux_parabolic_y, equations, dg, i, j, k, 
+                                                    element)
+                flux_viscous_z_node = get_node_vars(flux_parabolic_z, equations, dg, i, j, k, 
+                                                    element)
+                gradients_x_node = get_node_vars(gradients_x, equations, dg, i, j, k, element)
+                gradients_y_node = get_node_vars(gradients_y, equations, dg, i, j, k, element)
+                gradients_z_node = get_node_vars(gradients_z, equations, dg, i, j, k, element)
+                
+                # svv gradients/viscous fluxes, use outer product to apply
+                # inverse vandermonde matrix to each variable
+                idx = deg * deg * k + deg * j + i
+                filter_ijk = filter[k] * filter[j] * filter[i]
+                filtered_gradients_x .= filtered_gradients_x + 
+                    filter_ijk * invVDM[idx, :] * (gradients_x_node')
+                filtered_gradients_y .= filtered_gradients_y + 
+                    filter_ijk * invVDM[idx, :] * (gradients_y_node')
+                filtered_gradients_z .= filtered_gradients_z + 
+                    filter_ijk * invVDM[idx, :] * (gradients_z_node')
+
+                filtered_flux_parabolic_x .= filtered_flux_parabolic_x + 
+                    filter_ijk * invVDM[idx, :] * (flux_viscous_x_node')
+                filtered_flux_parabolic_y .= filtered_flux_parabolic_y + 
+                    filter_ijk * invVDM[idx, :] * (flux_viscous_y_node')
+                filtered_flux_parabolic_z .= filtered_flux_parabolic_z + 
+                    filter_ijk * invVDM[idx, :] * (flux_viscous_z_node')
+
+                viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
+                viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
+                viscous_dissipation_z = dot(flux_viscous_z_node, gradients_z_node)
+
+                weight_ijk = dg.basis.weights[i] * dg.basis.weights[j] * dg.basis.weights[k]
+                element_viscous_dissipation = element_viscous_dissipation +
+                                              (viscous_dissipation_x +
+                                               viscous_dissipation_y + 
+                                                viscous_dissipation_z) * weight_ijk *
+                                              volume_jacobian_
+            end
+            filtered_gradients_x .= VDM * filtered_gradients_x
+            filtered_gradients_y .= VDM * filtered_gradients_y
+            filtered_gradients_z .= VDM * filtered_gradients_z
+            filtered_flux_parabolic_x .= VDM * filtered_flux_parabolic_x
+            filtered_flux_parabolic_y .= VDM * filtered_flux_parabolic_y
+            filtered_flux_parabolic_z .= VDM * filtered_flux_parabolic_z
+
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                idx = deg * deg * k + deg * j + i
+                weights_ijk = dg.basis.weights[i] * dg.basis.weights[j] * dg.basis.weights[k]
+                element_viscous_dissipation_svv = element_viscous_dissipation_svv
+                + (dot(filtered_gradients_x[idx, :], 
+                    filtered_flux_parabolic_x[idx, :])
+                + dot(filtered_gradients_y[idx, :], 
+                    filtered_flux_parabolic_y[idx, :])
+                + dot(filtered_gradients_y[idx, :], 
+                    filtered_flux_parabolic_y[idx, :])) * weights_ijk * volume_jacobian_
+            end
+            # Scale viscous flux by ecav coefficient.
+            # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
+            # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
+            num = min(0, entropy_residual[element])
+            denom = element_viscous_dissipation * element_viscous_dissipation + 
+                    element_viscous_dissipation_svv * element_viscous_dissipation_svv
+            ecav_coefficient = (num * element_viscous_dissipation) / (denom + 1e-12)
+            svv_coefficient = (num * element_viscous_dissipation_svv) /(denom + 1e-12)
+
+            #cache.artificial_viscosity.norm_coefficients[end] += ecav_coefficient * ecav_coefficient    
+            #cache.artificial_viscosity.norm_svv_coefficients[end] += svv_coefficient * svv_coefficient    
+            cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                idx = deg * deg * k + deg * j + i
+                multiply_to_node_vars!(flux_parabolic_x, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_to_node_vars!(flux_parabolic_y, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_to_node_vars!(flux_parabolic_z, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_add_to_node_vars!(flux_parabolic_x, svv_coefficient, filtered_flux_parabolic_x[idx, :], 
+                                        equations, dg, i, j, k, element)
+                multiply_add_to_node_vars!(flux_parabolic_y, svv_coefficient, filtered_flux_parabolic_y[idx, :], 
+                                        equations, dg, i, j, k, element)
+                multiply_add_to_node_vars!(flux_parabolic_z, svv_coefficient, filtered_flux_parabolic_z[idx, :], 
+                                        equations, dg, i, j, k, element)
+            end
+        end
+        #cache.artificial_viscosity.norm_coefficients[end] = sqrt(cache.artificial_viscosity.norm_coefficients[end])
+        #cache.artificial_viscosity.norm_svv_coefficients[end] = sqrt(cache.artificial_viscosity.norm_svv_coefficients[end])
+        return nothing
+    end
+ 
+ 
+    function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
+                                     equations, mesh::TreeMesh{3}, dg, cache)
+        #push!(cache.artificial_viscosity.norm_coefficients, 0.0)
+        flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+        gradients_x, gradients_y, gradients_z = gradients
+
+        @threaded for element in eachelement(dg, cache)
+            volume_jacobian_ = volume_jacobian(element, mesh, cache)
+
+            # calculate viscous dissipation (ECAV denominator)
+            element_viscous_dissipation = zero(real(dg))
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                flux_viscous_x_node = get_node_vars(flux_parabolic_x, equations, dg, i, j, k, 
+                                                    element)
+                flux_viscous_y_node = get_node_vars(flux_parabolic_y, equations, dg, i, j, k, 
+                                                    element)
+                flux_viscous_z_node = get_node_vars(flux_parabolic_z, equations, dg, i, j, k, 
+                                                    element)
+                gradients_x_node = get_node_vars(gradients_x, equations, dg, i, j, k, element)
+                gradients_y_node = get_node_vars(gradients_y, equations, dg, i, j, k, element)
+                gradients_z_node = get_node_vars(gradients_z, equations, dg, i, j, k, element)
                 viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
                 viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
                 viscous_dissipation_z = dot(flux_viscous_z_node, gradients_z_node)
@@ -97,22 +356,31 @@
             # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
             ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
                                                  element_viscous_dissipation)
+            #ecav_coefficient = 0.0;   
+            #cache.artificial_viscosity.norm_coefficients[end] += ecav_coefficient * ecav_coefficient        
             cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                flux_viscous_x_node = get_node_vars(flux_parabolic[1], equations, dg, i, j, k, 
+                # flux_viscous_x_node = get_node_vars(flux_parabolic_x, equations, dg, i, j, k, 
+                #                                     element)
+                # flux_viscous_y_node = get_node_vars(flux_parabolic_y, equations, dg, i, j, k, 
+                #                                     element)
+                # flux_viscous_z_node = get_node_vars(flux_parabolic_z, equations, dg, i, j, k, 
+                #                                     element)
+                # set_node_vars!(flux_parabolic_x, ecav_coefficient * flux_viscous_x_node,
+                #                equations, dg, i, j, k, element)
+                # set_node_vars!(flux_parabolic_y, ecav_coefficient * flux_viscous_y_node,
+                #                equations, dg, i, j, k, element)
+                # set_node_vars!(flux_parabolic_z, ecav_coefficient * flux_viscous_z_node,
+                #                equations, dg, i, j, k, element)
+                multiply_to_node_vars!(flux_parabolic_x, ecav_coefficient, equations, dg, i, j, k, 
                                                     element)
-                flux_viscous_y_node = get_node_vars(flux_parabolic[2], equations, dg, i, j, k, 
+                multiply_to_node_vars!(flux_parabolic_y, ecav_coefficient, equations, dg, i, j, k, 
                                                     element)
-                flux_viscous_z_node = get_node_vars(flux_parabolic[3], equations, dg, i, j, k, 
+                multiply_to_node_vars!(flux_parabolic_z, ecav_coefficient, equations, dg, i, j, k, 
                                                     element)
-                set_node_vars!(flux_parabolic[1], ecav_coefficient * flux_viscous_x_node,
-                               equations, dg, i, j, k, element)
-                set_node_vars!(flux_parabolic[2], ecav_coefficient * flux_viscous_y_node,
-                               equations, dg, i, j, k, element)
-                set_node_vars!(flux_parabolic[3], ecav_coefficient * flux_viscous_z_node,
-                               equations, dg, i, j, k, element)
             end
         end
+        #cache.artificial_viscosity.norm_coefficients[end] = sqrt(cache.artificial_viscosity.norm_coefficients[end])
         return nothing
     end
 
@@ -136,10 +404,13 @@
 
         # calculate entropy residual
         entropy_residual = cache.artificial_viscosity.coefficients # reuse storage
+        push!(cache.artificial_viscosity.norm_residuals, 0.0)
+        #@show cache.artificial_viscosity.norm_residuals
         @threaded for element in eachelement(dg, cache)
             entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh,
                                                                      equations, dg, cache)
         end
+        cache.artificial_viscosity.norm_residuals[end] = sqrt(cache.artificial_viscosity.norm_residuals[end])
 
         # Prolong solution to interfaces
         @trixi_timeit timer() "prolong2interfaces" begin
@@ -220,8 +491,7 @@
                            equations, equations_parabolic, equations_artificial_viscosity,
                            boundary_conditions, boundary_conditions_parabolic,
                            source_terms::Source,
-                           dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}
-                           
+                           dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}             
         (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
         # Reset du
         @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
@@ -237,10 +507,12 @@
 
         # calculate entropy residual
         entropy_residual = cache.artificial_viscosity.coefficients # reuse storage
+        #push!(cache.artificial_viscosity.norm_residuals, 0.0)
         @threaded for element in eachelement(dg, cache)
             entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh,
                                                                      equations, dg, cache)
         end
+        #cache.artificial_viscosity.norm_residuals[end] = sqrt(cache.artificial_viscosity.norm_residuals[end])
 
         # Prolong solution to interfaces
         @trixi_timeit timer() "prolong2interfaces" begin
@@ -292,9 +564,10 @@
             calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
                                  equations_artificial_viscosity, dg, cache)
         end
-
         calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
                                 dg, cache)
+        #calc_ecav_svv_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
+        #                        dg, cache)
 
         # # TODO: accumulate into flux_viscous instead
         # # accumulate the AV term
