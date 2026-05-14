@@ -49,7 +49,7 @@ Currently, implemented methods are restricted to
 - Winters, Moura, Mengaldo, Gassner, Walch, Peiro, et al. (2018)
   A comparative study on polynomial dealiasing and split form discontinuous
   Galerkin schemes for under-resolved turbulence computations
-  [DOI: 10.1016/j.jcp.2018.05.049](https://doi.org/10.1016/j.jcp.2018.06.016)
+  [DOI: 10.1016/j.jcp.2018.06.016](https://doi.org/10.1016/j.jcp.2018.06.016)
 """
 function compute_kinetic_energy_spectrum(u_ode,
                                          semi::AbstractSemidiscretization)
