@@ -115,8 +115,9 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
                                      dx_global) + 1
         end
 
-        # Writes the interpolated block onto the global grid for the larger output
-        # 'r1' and 'r2' are the global indices for the current element that it is mapped onto
+        # with `u_uniform` as the full uniform Cartesian grid over the domain, `r1` and `r2` are the
+        # global grid indices corresponding to `u_uniform` that this specific element's interpolated block fits within
+        # Essentially, `r1` and `r2` are the positions of the current element within `u_uniform`
         r1 = first_index[1]:(first_index[1] + n_uniform_nodes - 1)
         r2 = first_index[2]:(first_index[2] + n_uniform_nodes - 1)
         u_uniform[:, r1, r2] .= interpolated[:, :, :]
