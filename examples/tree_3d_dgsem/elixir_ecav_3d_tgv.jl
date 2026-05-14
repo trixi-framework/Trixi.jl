@@ -7,13 +7,13 @@ using Trixi: StartUpDG
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 prandtl_number() = 0.72
-mu = 6.25e-4 # equivalent to Re = 1600
+mu() = 6.25e-4 # equivalent to Re = 1600
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic_limiting = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
-                                                          Prandtl = prandtl_number())
-equations_parabolic_av = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
-                                                          Prandtl = prandtl_number(),
-                                                        gradient_variables=GradientVariablesEntropy())  ;
+equations_parabolic_limiting = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
+                                                                   Prandtl = prandtl_number())
+equations_parabolic_av = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
+                                                             Prandtl = prandtl_number(),
+                                                             gradient_variables = GradientVariablesEntropy());
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations3D)
     A = 1.0 # magnitude of speed
@@ -52,7 +52,8 @@ solver = DGSEM(polydeg = degree, surface_flux = flux_lax_friedrichs,
                volume_integral = volume_integral)
 solver_parabolic = ParabolicFormulationBassiRebay1()
 #solver_parabolic = ParabolicFormulationLocalDG()
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic_limiting),
+semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                             (equations, equations_parabolic_limiting),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic))
@@ -60,7 +61,7 @@ volume_flux = flux_central
 solver = DGSEM(polydeg = degree, surface_flux = flux_lax_friedrichs,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 N = Trixi.polydeg(solver)
-filter = [((i - 1)/N)^2 for i in 1:N+1]
+filter = [((i - 1) / N)^2 for i in 1:(N + 1)]
 nodes = Trixi.get_nodes(solver.basis)
 # construct generalized vandermonde matrix (line), and use tensor product
 # to create 3D vandermonde matrix for cube style element
@@ -69,32 +70,31 @@ V = StartUpDG.NodesAndModes.vandermonde(Line(), N, nodes)
 #VDM = Matrix{Float64}(V ⊗ V ⊗ V)
 VDM = kron(V, V, V)
 semi_av = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic_av),
-                                                VDM, filter,
                                                 initial_condition, solver;
+                                                VDM = VDM, filter = filter,
                                                 combine_rhs = Trixi.True(),
                                                 solver_parabolic = solver_parabolic,
                                                 boundary_conditions = (boundary_condition_periodic,
-                                                                    boundary_condition_periodic));
+                                                                       boundary_condition_periodic));
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi_av, tspan)
 summary_callback = SummaryCallback();
-save_callback = SaveSolutionCallback(
-                         dt=0.1,
-                         save_initial_solution=true,
-                         save_final_solution=true,
-                         solution_variables=cons2prim,
-                         extra_node_variables=(:enstrophy,));
+save_callback = SaveSolutionCallback(dt = 0.1,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:enstrophy,));
 analysis_interval = 50
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
-                                    output_directory="out",
-                                    #analysis_filename="test.dat",
-                                     analysis_filename="TGV16.dat",
+                                     output_directory = "out",
+                                     #analysis_filename="test.dat",
+                                     analysis_filename = "TGV16.dat",
                                      extra_analysis_integrals = (energy_kinetic,
                                                                  energy_internal,
-                                                                enstrophy));
+                                                                 enstrophy));
 alive_callback = AliveCallback(analysis_interval = analysis_interval);
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -103,6 +103,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 # time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1e-6, reltol = 1e-4,
-            saveat=4.0, ode_default_options()..., callback = callbacks)
+            saveat = 4.0, ode_default_options()..., callback = callbacks)
 # sol = solve(ode, Tsit5(); abstol = 1e-6, reltol = 1e-4,
 #              saveat=4.0, ode_default_options()..., callback = callbacks)

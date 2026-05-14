@@ -391,13 +391,16 @@
                                        source_terms::Source,
                                        dg::DG, solver_parabolic, cache,
                                        cache_parabolic) where {Source}
+        backend = trixi_backend(u)
 
         # Reset du
-        @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+        @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+            reset_du!(du, dg, cache)
+        end
 
         # Calculate volume integral
-        @trixi_timeit timer() "volume integral" begin
-            calc_volume_integral!(du, u, mesh,
+        @trixi_timeit_ext backend timer() "volume integral" begin
+            calc_volume_integral!(backend, du, u, mesh,
                                   have_nonconservative_terms(equations), equations,
                                   dg.volume_integral, dg, cache)
         end
@@ -413,24 +416,24 @@
         cache.artificial_viscosity.norm_residuals[end] = sqrt(cache.artificial_viscosity.norm_residuals[end])
 
         # Prolong solution to interfaces
-        @trixi_timeit timer() "prolong2interfaces" begin
-            prolong2interfaces!(cache, u, mesh, equations, dg)
+        @trixi_timeit_ext backend timer() "prolong2interfaces" begin
+            prolong2interfaces!(backend, cache, u, mesh, equations, dg)
         end
 
         # Calculate interface fluxes
-        @trixi_timeit timer() "interface flux" begin
-            calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+        @trixi_timeit_ext backend timer() "interface flux" begin
+            calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                                  have_nonconservative_terms(equations), equations,
                                  dg.surface_integral, dg, cache)
         end
 
         # Prolong solution to boundaries
-        @trixi_timeit timer() "prolong2boundaries" begin
+        @trixi_timeit_ext backend timer() "prolong2boundaries" begin
             prolong2boundaries!(cache, u, mesh, equations, dg)
         end
 
         # Calculate boundary fluxes
-        @trixi_timeit timer() "boundary flux" begin
+        @trixi_timeit_ext backend timer() "boundary flux" begin
             calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                                 dg.surface_integral, dg)
         end
@@ -449,8 +452,8 @@
         # end
 
         # Calculate surface integrals
-        @trixi_timeit timer() "surface integral" begin
-            calc_surface_integral!(du, u, mesh, equations,
+        @trixi_timeit_ext backend timer() "surface integral" begin
+            calc_surface_integral!(backend, du, u, mesh, equations,
                                    dg.surface_integral, dg, cache)
         end
 
@@ -460,10 +463,10 @@
         #                          solver_parabolic, cache)
         # end
 
-        @trixi_timeit timer() "calculate viscous fluxes" begin
+        @trixi_timeit timer() "calculate parabolic fluxes" begin
             (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
-            calc_viscous_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
-                                 equations_artificial_viscosity, dg, cache)
+            calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
+                                   equations_artificial_viscosity, dg, cache)
         end
 
         calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
@@ -477,10 +480,12 @@
                                                                  cache, t)
 
         # Apply Jacobian from mapping to reference element
-        @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+        @trixi_timeit_ext backend timer() "Jacobian" begin
+            apply_jacobian!(backend, du, mesh, equations, dg, cache)
+        end
 
         # Calculate source terms
-        @trixi_timeit timer() "source terms" begin
+        @trixi_timeit_ext backend timer() "source terms" begin
             calc_sources!(du, u, t, source_terms, equations, dg, cache)
         end
 
@@ -493,14 +498,17 @@
                            source_terms::Source,
                            dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}             
         (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
+        backend = trixi_backend(u)
         # Reset du
-        @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
+        @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+            set_zero!(du, dg, cache)
+        end
 
         # ========= hyperbolic part ============
 
         # Calculate volume integral
-        @trixi_timeit timer() "volume integral" begin
-            calc_volume_integral!(nothing, du, u, mesh,
+        @trixi_timeit_ext backend timer() "volume integral" begin
+            calc_volume_integral!(backend, du, u, mesh,
                                   have_nonconservative_terms(equations), equations,
                                   dg.volume_integral, dg, cache)
         end
@@ -515,31 +523,31 @@
         #cache.artificial_viscosity.norm_residuals[end] = sqrt(cache.artificial_viscosity.norm_residuals[end])
 
         # Prolong solution to interfaces
-        @trixi_timeit timer() "prolong2interfaces" begin
-            prolong2interfaces!(nothing, cache, u, mesh, equations, dg)
+        @trixi_timeit_ext backend timer() "prolong2interfaces" begin
+            prolong2interfaces!(backend, cache, u, mesh, equations, dg)
         end
 
         # Calculate interface fluxes
-        @trixi_timeit timer() "interface flux" begin
-            calc_interface_flux!(nothing, cache.elements.surface_flux_values, mesh,
+        @trixi_timeit_ext backend timer() "interface flux" begin
+            calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                                  have_nonconservative_terms(equations), equations,
                                  dg.surface_integral, dg, cache)
         end
 
         # Prolong solution to boundaries
-        @trixi_timeit timer() "prolong2boundaries" begin
+        @trixi_timeit_ext backend timer() "prolong2boundaries" begin
             prolong2boundaries!(cache, u, mesh, equations, dg)
         end
 
         # Calculate boundary fluxes
-        @trixi_timeit timer() "boundary flux" begin
+        @trixi_timeit_ext backend timer() "boundary flux" begin
             calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                                 dg.surface_integral, dg)
         end
 
         # Calculate surface integrals
-        @trixi_timeit timer() "surface integral" begin
-            calc_surface_integral!(nothing, du, u, mesh, equations,
+        @trixi_timeit_ext backend timer() "surface integral" begin
+            calc_surface_integral!(backend, du, u, mesh, equations,
                                    dg.surface_integral, dg, cache)
         end
 
@@ -593,10 +601,12 @@
                                                                  cache, t)
 
         # Apply Jacobian from mapping to reference element
-        @trixi_timeit timer() "Jacobian" apply_jacobian!(nothing, du, mesh, equations, dg, cache)
+        @trixi_timeit_ext backend timer() "Jacobian" begin
+            apply_jacobian!(backend, du, mesh, equations, dg, cache)
+        end
 
         # Calculate source terms
-        @trixi_timeit timer() "source terms" begin
+        @trixi_timeit_ext backend timer() "source terms" begin
             calc_sources!(du, u, t, source_terms, equations, dg, cache)
         end
 

@@ -32,7 +32,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           gradient_variables = GradientVariablesEntropy())
 
 dg = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed),
-        #    volume_integral = VolumeIntegralWeakForm())
+           #    volume_integral = VolumeIntegralWeakForm())
            volume_integral = VolumeIntegralFluxDifferencing(flux_shima_etal))
 
 # surface_flux = FluxLaxFriedrichs(max_abs_speed)
@@ -49,6 +49,8 @@ dg = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed),
 # dg = DGSEM(basis, surface_flux, volume_integral)
 
 # Create a uniformly refined mesh with periodic boundaries
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
 initial_refinement_level = 5
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
@@ -71,14 +73,14 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_noslip_wall,
                                  y_neg = boundary_condition_noslip_wall,
                                  y_pos = boundary_condition_noslip_wall)
 
-# solver_parabolic = ViscousFormulationBassiRebay1()
-solver_parabolic = ViscousFormulationLocalDG()
+# solver_parabolic = ParabolicFormulationBassiRebay1()
+solver_parabolic = ParabolicFormulationLocalDG()
 
 if all(mesh.tree.periodicity .== true)
     semi = SemidiscretizationArtificialViscosity(mesh, (equations, equations_parabolic),
                                                  initial_condition, dg;
                                                  combine_rhs = Trixi.True(),
-                                                 solver_parabolic = solver_parabolic;
+                                                 solver_parabolic = solver_parabolic,
                                                  boundary_conditions = (boundary_condition_periodic,
                                                                         boundary_condition_periodic))
     # semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),

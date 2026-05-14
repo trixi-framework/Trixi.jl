@@ -69,7 +69,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
-    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_parabolic, u,
+                                                             mesh,
                                                              equations_parabolic,
                                                              boundary_conditions_parabolic,
                                                              dg, parabolic_scheme,
@@ -118,13 +119,14 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
                                    source_terms::Source,
                                    dg::DG, solver_parabolic, cache,
                                    cache_parabolic) where {Source}
+    backend = trixi_backend(u)
 
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -161,33 +163,34 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # @trixi_timeit timer() "transform variables" begin
-    #     (; u_transformed, flux_viscous, gradients) = cache_parabolic.viscous_container
+    #     (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
     #     transform_variables!(u_transformed, u, mesh, equations_artificial_viscosity, dg,
     #                          solver_parabolic, cache)
     # end
 
-    @trixi_timeit timer() "calculate viscous fluxes" begin
-        (; u_transformed, flux_viscous, gradients) = cache_parabolic.viscous_container
-        calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_artificial_viscosity, dg, cache)
+    @trixi_timeit timer() "calculate parabolic fluxes" begin
+        (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
+        calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
+                               equations_artificial_viscosity, dg, cache)
     end
 
-    # --- calculate AV denominator by dotting `flux_viscous` and `gradients`
+    # --- calculate AV denominator by dotting `flux_parabolic` and `gradients`
     @threaded for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
         # calculate volume integral
         element_viscous_dissipation = zero(real(dg))
         for i in eachnode(dg)
-            flux_viscous_node = get_node_vars(flux_viscous, equations, dg, i, element)
+            flux_parabolic_node = get_node_vars(flux_parabolic, equations, dg, i,
+                                                element)
             gradients_node = get_node_vars(gradients, equations, dg, i, element)
             element_viscous_dissipation = element_viscous_dissipation +
-                                          dot(flux_viscous_node, gradients_node) *
+                                          dot(flux_parabolic_node, gradients_node) *
                                           dg.basis.weights[i] * volume_jacobian_
         end
 
@@ -198,20 +201,23 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
                                              element_viscous_dissipation)
         cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
         for i in eachnode(dg)
-            flux_viscous_node = get_node_vars(flux_viscous, equations, dg, i, element)
-            set_node_vars!(flux_viscous, ecav_coefficient * flux_viscous_node,
+            flux_parabolic_node = get_node_vars(flux_parabolic, equations, dg, i,
+                                                element)
+            set_node_vars!(flux_parabolic, ecav_coefficient * flux_parabolic_node,
                            equations, dg, i, element)
         end
     end
 
-    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_viscous, u, mesh,
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_parabolic, u,
+                                                             mesh,
                                                              equations_artificial_viscosity,
                                                              boundary_conditions_parabolic,
                                                              dg,
                                                              solver_parabolic, cache, t)
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -221,7 +227,7 @@ function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
     return nothing
 end
 
-function calc_divergence!(du, flux_viscous, u, mesh::TreeMesh{1}, equations_parabolic,
+function calc_divergence!(du, flux_parabolic, u, mesh::TreeMesh{1}, equations_parabolic,
                           boundary_conditions_parabolic, dg, parabolic_scheme, cache, t)
     # Calculate volume integral
     # This calls the specialized version for the parabolic flux.

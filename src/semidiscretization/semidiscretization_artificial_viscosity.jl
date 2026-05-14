@@ -61,8 +61,9 @@ end
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE with artificial viscosity.
 """
-function SemidiscretizationArtificialViscosity(mesh, equations::Tuple, VDM, filter,
+function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
                                                initial_condition, solver;
+                                               VDM = I, filter = I,
                                                combine_rhs = False(),
                                                equations_artificial_viscosity = default_artificial_viscosity(equations[1]),
                                                solver_parabolic = default_parabolic_solver(),
