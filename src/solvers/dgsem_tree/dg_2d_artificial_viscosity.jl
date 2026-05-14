@@ -11,20 +11,8 @@
         ## we reuse memory
         tot_nodes = nnodes(dg)^ndims(mesh)
         nvars = nvariables(artificial_viscosity.equations_artificial_viscosity)
-        filtered_gradients_x = Array{uEltype, 2}(undef, tot_nodes, nvars)
-        filtered_gradients_y = Array{uEltype, 2}(undef, tot_nodes, nvars)
-        filtered_gradients_z = Array{uEltype, 2}(undef, tot_nodes, nvars)
-
-        filtered_flux_parabolic_x = Array{uEltype, 2}(undef, tot_nodes, nvars)
-        filtered_flux_parabolic_y = Array{uEltype, 2}(undef, tot_nodes, nvars)
-        filtered_flux_parabolic_z = Array{uEltype, 2}(undef, tot_nodes, nvars)
-        filtered_gradients = (filtered_gradients_x, 
-            filtered_gradients_y, filtered_gradients_z)
-        filtered_flux_parabolic = (filtered_flux_parabolic_x, 
-            filtered_gradients_y, filtered_gradients_z)
             
         cache = (; coefficients, 
-            filtered_flux_parabolic, filtered_gradients, 
             norm_coefficients, norm_svv_coefficients, norm_residuals)
         return cache
     end
