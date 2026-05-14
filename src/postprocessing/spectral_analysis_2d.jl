@@ -35,7 +35,7 @@ function compute_kinetic_energy_spectrum(u, mesh::TreeMesh{2},
                                          solver::DGSEM, cache)
     # Interpolates conservative polynomials to a uniform Cartesian grid then converts to primitives at each uniform node
     u_uniform = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
-    grid_size = size(u_uniform)[2:end]
+    grid_size = size(u_uniform)[2:end] # the first dimension is the equation index so it is not needed to count the spatial indicies
     rho = Array{real(solver)}(undef, grid_size)
     v1 = Array{real(solver)}(undef, grid_size)
     v2 = Array{real(solver)}(undef, grid_size)
