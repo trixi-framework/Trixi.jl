@@ -12,17 +12,17 @@ function rhs_parabolic!(du, u, t,
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
 
+    # Start gradient MPI receive
+    @trixi_timeit timer() "start MPI receive gradient" begin
+        start_mpi_receive!(cache.mpi_cache)
+    end
+
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
                              dg, cache)
     end
 
     ### Gradient computation ###
-
-    # Start gradient MPI receive
-    @trixi_timeit timer() "start MPI receive gradient" begin
-        start_mpi_receive!(cache.mpi_cache)
-    end
 
     # Prolong transformed variables to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars gradient" begin
