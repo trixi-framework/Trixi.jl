@@ -4,11 +4,11 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = 1.0
-equations = LinearScalarAdvectionEquation1D(advection_velocity)
+advection_velocity = (1.0, 0.0)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Step function initial condition which is 1 on [-0.5, 0.5] and zero elsewhere
-function initial_condition_heaviside_step(x, t, equations::LinearScalarAdvectionEquation1D)
+function initial_condition_heaviside_step(x, t, equations::LinearScalarAdvectionEquation2D)
     u = abs(x[1]) < 0.5 ? 1.0 : 0.0
     return SVector(u)
 end
@@ -17,12 +17,12 @@ initial_condition = initial_condition_heaviside_step
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = -1.0 # minimum coordinate
-coordinates_max = 1.0 # maximum coordinate
+coordinates_min = (-1.0, -1.0) # minimum coordinate
+coordinates_max = (1.0, 1.0) # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 5,
                 n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -48,7 +48,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-# We use a large CFL number here, which also causes Zhang-Shu limiting to fail. 
+# We use a large CFL number here, which causes Zhang-Shu limiting by itself to fail. 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
@@ -58,10 +58,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 ###############################################################################
 # run the simulation
 
-# setting the thresholds to eps() causes the Zhang-Shu limiter to fail. 
-# using the Liu-Zhang limiter resolves this by redistributing the cell averages 
-# to satisfy the positivity constraints.
-local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-6,),
+local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (eps(),),
                                                      variables = ((u, equations) -> u[1],))
 stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
 # stage_limiter! = local_limiter!
@@ -70,8 +67,10 @@ sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = f
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
+# stage_limiter!.cell_averages
+
 u = Trixi.wrap_array_native(sol.u[end], semi)
 @show minimum(u)
 
 using Plots
-plot(sol)            
+plot(PlotData1D(sol, slice=:x, point=(0.0, 0.0)))
