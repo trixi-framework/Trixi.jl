@@ -53,6 +53,7 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
 
     # The limiter cache was created with 0 elements
     resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
+    precompute_n_mortars_per_nodes!(volume_integral, dg, cache_containers, mesh)
 
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,

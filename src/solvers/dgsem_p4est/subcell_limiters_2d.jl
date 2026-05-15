@@ -445,6 +445,56 @@ end
 # IDP mortar limiting
 ###############################################################################
 
+@inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralSubcellLimiting,
+                                                 dg, cache,
+                                                 mesh::P4estMesh{2})
+    if !(dg.mortar isa LobattoLegendreMortarIDP)
+        return nothing
+    end
+
+    (; n_mortars_per_node) = volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; neighbor_ids, node_indices) = cache.mortars
+    index_range = eachnode(dg)
+
+    n_mortars_per_node .= zero(eltype(n_mortars_per_node))
+
+    for mortar in eachmortar(dg, cache)
+        lower_element = neighbor_ids[1, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        large_element = neighbor_ids[3, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for node in eachnode(dg)
+            n_mortars_per_node[i_small, j_small, lower_element] += 1
+            n_mortars_per_node[i_small, j_small, upper_element] += 1
+            n_mortars_per_node[i_large, j_large, large_element] += 1
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
 ###############################################################################
 # Local two-sided limiting of conservative variables
 @inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
@@ -465,7 +515,7 @@ end
          var_index in limiter.positivity_variables_cons)
         error("Conservative variable $var_index is not included to the limiting in the volume integral. So, the bounds are not computed before.")
     end
-    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     index_range = eachnode(dg)
@@ -541,11 +591,11 @@ end
                                     (flux_large_high_order - flux_large_low_order)
 
             # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
-            if !all(isfinite.(flux_lower_high_order)) ||
-               !all(isfinite(flux_upper_high_order)) ||
-               !all(isfinite.(flux_large_high_order))
+            if !isfinite(flux_lower_high_order) ||
+               !isfinite(flux_upper_high_order) ||
+               !isfinite(flux_large_high_order)
                 limiting_factor[mortar] = 1
-                continue
+                break
             end
 
             # Minimum bound
@@ -560,6 +610,15 @@ end
             Pm_upper = min(0, flux_difference_upper)
             Pm_lower = min(0, flux_difference_lower)
             Pm_large = min(0, flux_difference_large)
+
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            n_mortars_upper = n_mortars_per_node[i_small, j_small, upper_element]
+            n_mortars_lower = n_mortars_per_node[i_small, j_small, lower_element]
+            n_mortars_large = n_mortars_per_node[i_large, j_large, large_element]
+            Pm_upper *= n_mortars_upper
+            Pm_lower *= n_mortars_lower
+            Pm_large *= n_mortars_large
 
             Pm_upper = dt * inverse_jacobian_upper * Pm_upper
             Pm_lower = dt * inverse_jacobian_lower * Pm_lower

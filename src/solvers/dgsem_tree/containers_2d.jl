@@ -1592,6 +1592,8 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
     resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
     init_mortars!(mortars, elements, mesh)
 
+    precompute_n_mortars_per_nodes!(volume_integral, dg, cache, mesh)
+
     if mpi_isparallel() # currently only implemented for 2D
         # re-initialize mpi_interfaces container
         @unpack mpi_interfaces = cache

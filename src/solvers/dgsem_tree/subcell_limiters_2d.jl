@@ -781,6 +781,54 @@ end
 # IDP mortar limiting
 ###############################################################################
 
+@inline function precompute_n_mortars_per_nodes!(volume_integral::AbstractVolumeIntegral,
+                                                         dg, cache, mesh)
+    return nothing
+end
+@inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralSubcellLimiting,
+                                                         dg, cache, mesh::TreeMesh{2})
+    if !(dg.mortar isa LobattoLegendreMortarIDP)
+        return nothing
+    end
+
+    (; n_mortars_per_node) = volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+
+    n_mortars_per_node .= zero(eltype(n_mortars_per_node))
+
+    for mortar in eachmortar(dg, cache)
+        lower_element = neighbor_ids[1, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        large_element = neighbor_ids[3, mortar]
+
+        for i in eachnode(dg)
+            if large_sides[mortar] == 1 # -> small elements on right side
+                if orientations[mortar] == 1
+                    indices_small = (1, i)
+                    indices_large = (nnodes(dg), i)
+                else
+                    indices_small = (i, 1)
+                    indices_large = (i, nnodes(dg))
+                end
+            else # large_sides[mortar] == 2 -> small elements on left side
+                if orientations[mortar] == 1
+                    indices_small = (nnodes(dg), i)
+                    indices_large = (1, i)
+                else
+                    indices_small = (i, nnodes(dg))
+                    indices_large = (i, 1)
+                end
+            end
+
+            n_mortars_per_node[indices_small..., lower_element] += 1
+            n_mortars_per_node[indices_small..., upper_element] += 1
+            n_mortars_per_node[indices_large..., large_element] += 1
+        end
+    end
+
+    return nothing
+end
+
 ###############################################################################
 # Local minimum and maximum limiting of conservative variables
 
@@ -799,7 +847,7 @@ end
     if !(var_index in limiter.local_twosided_variables_cons)
         error("Conservative variable $var_index is not included in local_twosided_variables_cons in the volume integral. So, the bounds are not computed before.")
     end
-    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
     variable_string = string(var_index)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
@@ -944,6 +992,18 @@ end
             Pp_large = inverse_jacobian_large * Pp_large
             Pm_large = inverse_jacobian_large * Pm_large
 
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            n_mortars_upper = n_mortars_per_node[indices_small..., upper_element]
+            n_mortars_lower = n_mortars_per_node[indices_small..., lower_element]
+            n_mortars_large = n_mortars_per_node[indices_large..., large_element]
+            Pp_upper *= n_mortars_upper
+            Pm_upper *= n_mortars_upper
+            Pp_lower *= n_mortars_lower
+            Pm_lower *= n_mortars_lower
+            Pp_large *= n_mortars_large
+            Pm_large *= n_mortars_large
+
             Qp_upper = abs(Qp_upper) /
                        (abs(Pp_upper) +
                         eps(typeof(Qp_upper)) * 100 *
@@ -971,10 +1031,9 @@ end
                         eps(typeof(Qm_large)) * 100 *
                         abs(var_max[indices_large..., large_element]))
 
-            limiting_factor[mortar] = max(limiting_factor[mortar],
-                                          1 -
-                                          min(1, Qp_upper, Qm_upper, Qp_lower, Qm_lower,
-                                              Qp_large, Qm_large))
+            # Calculate limiting factor
+            Q = min(1, Qp_upper, Qm_upper, Qp_lower, Qm_lower, Qp_large, Qm_large)
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Q)
         end
     end
 
@@ -1161,7 +1220,7 @@ end
          var_index in limiter.positivity_variables_cons)
         error("Conservative variable $var_index is not included to the limiting in the volume integral. So, the bounds are not computed before.")
     end
-    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     for mortar in eachmortar(dg, cache)
@@ -1292,6 +1351,15 @@ end
             Pm_lower = min(0, flux_difference_lower)
             Pm_large = min(0, flux_difference_large)
 
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            n_mortars_upper = n_mortars_per_node[indices_small..., upper_element]
+            n_mortars_lower = n_mortars_per_node[indices_small..., lower_element]
+            n_mortars_large = n_mortars_per_node[indices_large..., large_element]
+            Pm_upper *= n_mortars_upper
+            Pm_lower *= n_mortars_lower
+            Pm_large *= n_mortars_large
+
             Pm_upper = dt * inverse_jacobian_upper * Pm_upper
             Pm_lower = dt * inverse_jacobian_lower * Pm_lower
             Pm_large = dt * inverse_jacobian_large * Pm_large
@@ -1303,8 +1371,8 @@ end
             Qm_large = abs(Qm_large) / (abs(Pm_large) + eps(typeof(Qm_large)) * 100)
 
             # Calculate limiting factor
-            limiting_factor[mortar] = max(limiting_factor[mortar],
-                                          1 - Qm_upper, 1 - Qm_lower, 1 - Qm_large)
+            Qm = min(1, Qm_upper, Qm_lower, Qm_large)
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Qm)
         end
     end
 
