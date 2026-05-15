@@ -1,29 +1,16 @@
 using LinearAlgebra
 
-lower_bound = 1e-6
-upper_bound = 2.0
-
-function project_to_admissible_set(Z_old, lower_bound, upper_bound)
-    return @. max.(lower_bound, min.(Z_old, upper_bound))
+function project_to_admissible_set(Z_old, lower_bound)
+    return @. max.(lower_bound, Z_old)
 end
-
-# u_avg = [1.186504953362507
-#          1.450165804986605
-#          1.4501256333661527
-#          1.1864079704915869
-#          0.8134950466374934
-#          0.549834195013395
-#          0.5498743666338478
-#          0.8135920295084131]
-
 
 N = 2^8
 u_avg = rand(N)
 u_avg[5] = -0.05 # violate positivity
 u_avg[10] = -0.01 # violate positivity
+u_avg[20] = -0.1 # violate positivity
 
-
-function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
+function apply_liu_zhang_limiter(u_avg; lower_bound = 0.0)
     N = length(u_avg)
 
     # cell_volumes = rand(N)
@@ -32,10 +19,10 @@ function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
     cell_volumes[1:end÷4] *= 0.5
     cell_volumes[1:end÷8] *= 0.5
     cell_volumes[1:end÷16] *= 0.5
-    # cell_volumes[1:end÷32] *= 0.5
-    # cell_volumes[1:end÷64] *= 0.5
-    # cell_volumes[1:end÷128] *= 0.5
-    # cell_volumes[1:end÷256] *= 0.5    
+    cell_volumes[1:end÷32] *= 0.5
+    cell_volumes[1:end÷64] *= 0.5
+    cell_volumes[1:end÷128] *= 0.5
+    cell_volumes[1:end÷256] *= 0.5    
     cell_volumes .*= 2 / sum(cell_volumes)
 
     # Pseudo-inverse of A ∈ R^{N×1} (stored as length-N vector of ones)
@@ -43,7 +30,7 @@ function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
     pseudo_invA = (1.0 / dot(A, A)) .* A
 
     # Initialization: Z^k
-    # X = copy(u_avg)
+    X = copy(u_avg)
     Y = copy(u_avg)
     Z = copy(u_avg)
 
@@ -52,20 +39,22 @@ function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
     epsilon = 1e-12
     global_integral = sum(cell_volumes .* u_avg)
     num_DY_iter = 0
-    while residual >= epsilon && num_DY_iter < 1000
+    while residual >= epsilon && num_DY_iter < 100
         # @show residual, epsilon    
 
         # project the dual variable to the admissible set
-        X_half = project_to_admissible_set(Z, lower_bound, upper_bound)
+        X_half = project_to_admissible_set(Z, lower_bound)
 
-        # update the primal variable
-        # gamma = 1.0
-        gamma = inv(maximum(cell_volumes))
-        grad_h = 2 * cell_volumes .* (X_half .- u_avg)
-        @. Y = 2 * X_half - Z - gamma * grad_h
+        # # update the primal variable
+        # gamma = inv(maximum(cell_volumes))
+        # grad_h = 2 * cell_volumes .* (X_half .- u_avg)
+        # @. Y = 2 * X_half - Z - gamma * grad_h
+        
+        @. Y = 2 * X_half - Z - (X_half - u_avg)
 
         # enforce the constraint that the sum of the cell averages is equal to the total volume
-        X .= Y .+ (global_integral - dot(A, Y)) .* pseudo_invA
+        #X .= Y .+ (global_integral - dot(A, Y)) .* pseudo_invA
+        X .= Y .+ (global_integral - dot(cell_volumes, Y)) / sum(cell_volumes)
 
         # update the dual variable
         delta_X = X .- X_half
@@ -73,14 +62,18 @@ function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
 
         # calculate norm(Z_new .- Z_old) 
         residual = norm(delta_X .* sqrt.(cell_volumes))
+        # residual = norm(delta_X)
 
-        @show residual
+        # check history
+        X = project_to_admissible_set(Z, lower_bound)
+        rel_cons_err = sum((X - u_avg) .* cell_volumes) / global_integral
+        @show abs(rel_cons_err), residual
 
         num_DY_iter += 1
     end
 
     # final projection to the admissible set returns the solution 
-    X = project_to_admissible_set(Z, lower_bound, upper_bound)
+    X = project_to_admissible_set(Z, lower_bound)
 
     # @show num_DY_iter
     # @show norm((X - u_avg) .* sqrt.(cell_volumes))
@@ -90,8 +83,7 @@ function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
     return X, cell_volumes, num_DY_iter
 end
 
-X, cell_volumes, num_DY_iter = apply_liu_zhang_limiter(u_avg, X_unweighted; lower_bound = 1e-6);
-@show num_DY_iter
+X, cell_volumes, num_DY_iter = apply_liu_zhang_limiter(u_avg; lower_bound = 1e-6);
 sum(@. cell_volumes * (X - u_avg)^2)
 
 # max_num_DY_iter = 0
