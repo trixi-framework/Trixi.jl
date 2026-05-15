@@ -113,14 +113,10 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids, 2)
-        interfaces.neighbor_ids[1, interface] = findall(id -> id ==
-                                                              neighbor_ids[1,
-                                                                           interface],
-                                                        mesh.cell_ids)[1]
-        interfaces.neighbor_ids[2, interface] = findall(id -> id ==
-                                                              neighbor_ids[2,
-                                                                           interface],
-                                                        mesh.cell_ids)[1]
+        interfaces.neighbor_ids[1, interface] = findfirst(==(neighbor_ids[1, interface]),
+                                                          mesh.cell_ids)
+        interfaces.neighbor_ids[2, interface] = findfirst(==(neighbor_ids[2, interface]),
+                                                          mesh.cell_ids)
     end
 
     return interfaces
@@ -488,8 +484,8 @@ end
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
-# these attributes for plotting purposes
-# | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
+# these attributes for plotting purposes.
+# Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
 function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
                         timestep = 0)
     # Create output directory (if it does not exist)

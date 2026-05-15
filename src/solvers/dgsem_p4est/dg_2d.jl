@@ -432,14 +432,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-# We require this function definition, as the function calls for the
-# coupled simulations pass the u_parent variable
-# Note: Since the implementation is identical, we forward to the original function
-function prolong2boundaries!(cache, u, u_parent, semis,
-                             mesh::P4estMeshView{2},
-                             equations, surface_integral, dg::DG)
-    return prolong2boundaries!(cache, u, mesh, equations, dg)
-end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
@@ -1065,77 +1057,4 @@ end
     return nothing
 end
 
-# Call this for coupled P4estMeshView simulations.
-# The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
-# the additional variable u_parent is needed, compared to non-coupled systems.
-function rhs!(du, u, t, u_parent, semis,
-              mesh::P4estMeshView{2},
-              equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = nothing
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(backend, du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, u_parent, semis, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg, u_parent)
-    end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg)
-    end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(backend, du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
-                                                     cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
 end # @muladd

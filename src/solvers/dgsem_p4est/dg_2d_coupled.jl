@@ -129,11 +129,10 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
                 i_start, i_step = index_to_start_step_2d(small_indices[1], index_range)
                 j_start, j_step = index_to_start_step_2d(small_indices[2], index_range)
 
+                u_remote = Vector{eltype(u_global)}(undef, n_vars_other)
                 i_node = i_start
                 j_node = j_start
                 for i in eachnode(dg)
-                    # Read n_vars_other values from u_global using the remote system's stride.
-                    u_remote = Vector{eltype(u_global)}(undef, n_vars_other)
                     for v in 1:n_vars_other
                         u_remote[v] = u_global[offset +
                                                (v - 1) +
