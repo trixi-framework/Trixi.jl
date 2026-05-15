@@ -1,4 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 ###############################################################################
@@ -43,31 +44,30 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
-# The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval = 100,
-                                     solution_variables = cons2prim)
-
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 # We use a large CFL number here, which causes Zhang-Shu limiting by itself to fail. 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
                     
 ###############################################################################
 # run the simulation
 
-local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (eps(),),
+local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-1,),
                                                      variables = ((u, equations) -> u[1],))
 stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
 # stage_limiter! = local_limiter!
 
-sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
+# solver = CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false)
+# # solver = CarpenterKennedy2N54(; williamson_condition = false)
+# sol = solve(ode, solver;
+#             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#             ode_default_options()..., callback = callbacks);
+
+sol = solve(ode, RDPK3SpFSAL35(stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-# stage_limiter!.cell_averages
 
 u = Trixi.wrap_array_native(sol.u[end], semi)
 @show minimum(u)

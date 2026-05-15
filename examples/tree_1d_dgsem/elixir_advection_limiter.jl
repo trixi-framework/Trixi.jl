@@ -22,7 +22,7 @@ coordinates_max = 1.0 # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 5,
                 n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -58,20 +58,17 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 ###############################################################################
 # run the simulation
 
-# setting the thresholds to eps() causes the Zhang-Shu limiter to fail. 
-# using the Liu-Zhang limiter resolves this by redistributing the cell averages 
-# to satisfy the positivity constraints.
-local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-6,),
+# the Zhang-Shu limiter does not work by itself. using the Liu-Zhang limiter 
+# resolves this by redistributing cell averages to satisfy positivity constraints.
+# Note the threshold is significantly larger than implied by the initial condition 
+# to stress-test the limiter. 
+local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
                                                      variables = ((u, equations) -> u[1],))
 stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
-# stage_limiter! = local_limiter!
 
-sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
+sol = solve(ode, RDPK3SpFSAL35(stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 u = Trixi.wrap_array_native(sol.u[end], semi)
-@show minimum(u)
-
-using Plots
-plot(sol)            
+@show minimum(getindex.(u, 1))
