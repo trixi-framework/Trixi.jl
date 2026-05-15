@@ -385,8 +385,8 @@ end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations_parabolic, boundary_conditions_parabolic,
-            source_terms_parabolic, solver, solver_parabolic, cache,
-            cache_parabolic = semi
+    source_terms_parabolic, solver, solver_parabolic, cache,
+    cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
