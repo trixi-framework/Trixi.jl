@@ -758,59 +758,6 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function calc_interface_flux!(backend::Nothing, surface_flux_values,
-                              mesh::TreeMesh{2},
-                              have_nonconservative_terms::True,
-                              have_aux_node_vars::True, equations,
-                              surface_integral, dg::DG, cache)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u, neighbor_ids, orientations = cache.interfaces
-    @unpack aux_surface_node_vars = cache.aux_vars
-
-    @threaded for interface in eachinterface(dg, cache)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
-
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        # orientation = 2: left -> 4, right -> 3
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
-
-        for i in eachnode(dg)
-            # Call pointwise Riemann solver
-            orientation = orientations[interface]
-            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-            aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
-                                                       equations, dg, i,
-                                                       interface)
-            flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
-
-            # Compute both nonconservative fluxes
-            noncons_left = nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr,
-                                                orientation, equations)
-            noncons_right = nonconservative_flux(u_rr, u_ll, aux_rr, aux_ll,
-                                                 orientation, equations)
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations)
-                # Note the factor 0.5 necessary for the nonconservative fluxes based on
-                # the interpretation of global SBP operators coupled discontinuously via
-                # central fluxes/SATs
-                surface_flux_values[v, i, left_direction, left_id] = flux[v] +
-                                                                     0.5f0 *
-                                                                     noncons_left[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v] +
-                                                                       0.5f0 *
-                                                                       noncons_right[v]
-            end
-        end
-    end
-
-    return nothing
-end
-
 function prolong2boundaries!(cache, u,
                              mesh::TreeMesh{2}, equations, dg::DG)
     @unpack boundaries = cache
@@ -1059,49 +1006,6 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
             x = get_node_coords(node_coordinates, equations, dg, i, boundary)
             flux, noncons_flux = boundary_condition(u_inner, orientations[boundary],
                                                     direction, x, t,
-                                                    surface_integral.surface_flux,
-                                                    equations)
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations)
-                surface_flux_values[v, i, direction, neighbor] = flux[v] +
-                                                                 0.5f0 * noncons_flux[v]
-            end
-        end
-    end
-
-    return nothing
-end
-
-function calc_boundary_flux_by_direction!(t, boundary_condition,
-                                          have_nonconservative_terms::True,
-                                          have_aux_node_vars::True, equations,
-                                          surface_integral, dg::DG, cache,
-                                          direction, first_boundary, last_boundary)
-    @unpack surface_flux_values = cache.elements
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
-    @unpack aux_boundary_node_vars = cache.aux_vars
-
-    @threaded for boundary in first_boundary:last_boundary
-        # Get neighboring element
-        neighbor = neighbor_ids[boundary]
-
-        for i in eachnode(dg)
-            # Get boundary flux
-            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
-            aux_ll, aux_rr = get_aux_surface_node_vars(aux_boundary_node_vars,
-                                                       equations, dg, i, boundary)
-            if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
-                u_inner = u_ll
-                aux_inner = aux_ll
-            else # Element is on the right, boundary on the left
-                u_inner = u_rr
-                aux_inner = aux_rr
-            end
-            x = get_node_coords(node_coordinates, equations, dg, i, boundary)
-            flux, noncons_flux = boundary_condition(u_inner, aux_inner,
-                                                    orientations[boundary], direction,
-                                                    x, t,
                                                     surface_integral.surface_flux,
                                                     equations)
 

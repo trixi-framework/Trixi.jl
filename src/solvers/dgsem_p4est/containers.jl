@@ -714,16 +714,6 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
 
-    # re-initialize auxiliary variables container
-    if hasproperty(cache, :aux_vars)
-        @unpack aux_vars = cache
-        resize!(aux_vars, ncells(mesh),
-                required.interfaces,
-                required.boundaries,
-                required.mortars)
-        init_aux_vars!(aux_vars, mesh, equations, dg, cache)
-    end
-
     return nothing
 end
 

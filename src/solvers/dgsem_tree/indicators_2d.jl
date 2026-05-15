@@ -110,18 +110,6 @@ end
     end
 end
 
-@inline function calc_indicator_inner!(indicator, u, element, mesh::AbstractMesh{2},
-                                       indicator_variable,
-                                       have_aux_node_vars::True, equations,
-                                       solver, cache)
-    @unpack aux_node_vars = cache.aux_vars
-    for j in eachnode(solver), i in eachnode(solver)
-        u_local = get_node_vars(u, equations, solver, i, j, element)
-        aux_local = get_aux_node_vars(aux_node_vars, equations, solver, i, j, element)
-        indicator[i, j] = indicator_variable(u_local, aux_local, equations)
-    end
-end
-
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
 function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, alpha,
                           alpha_tmp, dg,

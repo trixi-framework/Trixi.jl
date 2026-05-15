@@ -505,18 +505,6 @@ function reinitialize_containers!(mesh::TreeMesh{1}, equations, dg::DGSEM, cache
     resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
     init_boundaries!(boundaries, elements, mesh, dg.basis)
 
-    # re-initialize auxiliary variables container
-    if hasproperty(cache, :aux_vars)
-        @unpack aux_vars = cache
-        resize!(aux_vars, length(leaf_cell_ids),
-                count_required_interfaces(mesh, leaf_cell_ids),
-                count_required_boundaries(mesh, leaf_cell_ids),
-                count_required_mortars(mesh, leaf_cell_ids),
-                count_required_mpi_interfaces(mesh, leaf_cell_ids),
-                count_required_mpi_mortars(mesh, leaf_cell_ids))
-        init_aux_vars!(aux_vars, mesh, equations, dg, cache)
-    end
-
     return nothing
 end
 end # @muladd

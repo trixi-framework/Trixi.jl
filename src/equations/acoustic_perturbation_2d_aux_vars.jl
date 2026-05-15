@@ -18,13 +18,6 @@ struct AcousticPerturbationEquations2DAuxVars{RealT <: Real} <:
     rho_mean_global::RealT
 end
 
-function AcousticPerturbationEquations2DAuxVars(v_mean_global::NTuple{2, <:Real},
-                                                c_mean_global::Real,
-                                                rho_mean_global::Real)
-    return AcousticPerturbationEquations2DAuxVars(SVector(v_mean_global), c_mean_global,
-                                                  rho_mean_global)
-end
-
 function AcousticPerturbationEquations2DAuxVars(; v_mean_global::NTuple{2, <:Real},
                                                 c_mean_global::Real,
                                                 rho_mean_global::Real)
@@ -45,21 +38,6 @@ function global_mean_vars(equations::AcousticPerturbationEquations2DAuxVars)
     return equations.v_mean_global[1], equations.v_mean_global[2],
            equations.c_mean_global,
            equations.rho_mean_global
-end
-
-"""
-    initial_condition_constant(x, t, equations::AcousticPerturbationEquations2DAuxVars)
-
-A constant initial condition where the state variables are zero and the mean flow is constant.
-Uses the global mean values from `equations`.
-"""
-function initial_condition_constant(x, t,
-                                    equations::AcousticPerturbationEquations2DAuxVars)
-    v1_prime = 0
-    v2_prime = 0
-    p_prime_scaled = 0
-
-    return SVector(v1_prime, v2_prime, p_prime_scaled)
 end
 
 """
@@ -116,21 +94,6 @@ function source_terms_convergence_test(u, aux, x, t,
 end
 
 """
-    initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2DAuxVars)
-
-A Gaussian pulse in a constant mean flow. Uses the global mean values from `equations`.
-"""
-function initial_condition_gauss(x, t,
-                                 equations::AcousticPerturbationEquations2DAuxVars)
-    v1_prime = 0
-    v2_prime = 0
-    p_prime = exp(-4 * (x[1]^2 + x[2]^2))
-    p_prime_scaled = p_prime / equations.c_mean_global^2
-
-    return SVector(v1_prime, v2_prime, p_prime_scaled)
-end
-
-"""
     boundary_condition_wall(u_inner, aux_inner, orientation, direction, x, t,
                             surface_flux_function,
                             equations::AcousticPerturbationEquations2DAuxVars)
@@ -162,38 +125,6 @@ function boundary_condition_wall(u_inner, aux_inner, orientation, direction, x, 
     return flux
 end
 
-"""
-    boundary_condition_slip_wall(u_inner, aux_inner, normal_direction, x, t,
-                                 surface_flux_function,
-                                 equations::AcousticPerturbationEquations2DAuxVars)
-
-Use an orthogonal projection of the perturbed velocities to zero out the normal velocity
-while retaining the possibility of a tangential velocity in the boundary state.
-Further details are available in the paper:
-- Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
-  Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
-  [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
-"""
-function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
-                                      surface_flux_function,
-                                      equations::AcousticPerturbationEquations2DAuxVars)
-    # normalize the outward pointing direction
-    normal = normal_direction / norm(normal_direction)
-
-    # compute the normal perturbed velocity
-    u_normal = normal[1] * u_inner[1] + normal[2] * u_inner[2]
-
-    # create the "external" boundary solution state
-    u_boundary = SVector(u_inner[1] - 2 * u_normal * normal[1],
-                         u_inner[2] - 2 * u_normal * normal[2],
-                         u_inner[3])
-
-    # calculate the boundary flux
-    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-
-    return flux
-end
-
 # Calculate 1D flux for a single point
 @inline function flux(u, aux, orientation::Integer,
                       equations::AcousticPerturbationEquations2DAuxVars)
@@ -217,24 +148,6 @@ end
     return SVector(f1, f2, f3)
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                                     equations::AcousticPerturbationEquations2DAuxVars)
-    # Calculate v = v_prime + v_mean
-    v_prime_ll = u_ll[orientation]
-    v_prime_rr = u_rr[orientation]
-    v_mean_ll = aux_ll[orientation]
-    v_mean_rr = aux_rr[orientation]
-
-    v_ll = v_prime_ll + v_mean_ll
-    v_rr = v_prime_rr + v_mean_rr
-
-    c_mean_ll = aux_ll[3]
-    c_mean_rr = aux_rr[3]
-
-    return max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
-end
-
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
                                equations::AcousticPerturbationEquations2DAuxVars)
@@ -251,66 +164,6 @@ end
     c_mean_rr = aux_rr[3]
 
     return max(abs(v_ll) + c_mean_ll, abs(v_rr) + c_mean_rr)
-end
-
-# Calculate 1D flux for a single point in the normal direction
-# Note, this directional vector is not normalized
-@inline function flux(u, aux, normal_direction::AbstractVector,
-                      equations::AcousticPerturbationEquations2DAuxVars)
-    v1_prime, v2_prime, p_prime_scaled = u
-    v1_mean, v2_mean, c_mean, rho_mean = aux
-
-    f1 = normal_direction[1] * (v1_mean * v1_prime + v2_mean * v2_prime +
-          c_mean^2 * p_prime_scaled / rho_mean)
-    f2 = normal_direction[2] * (v1_mean * v1_prime + v2_mean * v2_prime +
-          c_mean^2 * p_prime_scaled / rho_mean)
-    f3 = (normal_direction[1] * (rho_mean * v1_prime + v1_mean * p_prime_scaled)
-          +
-          normal_direction[2] * (rho_mean * v2_prime + v2_mean * p_prime_scaled))
-
-    return SVector(f1, f2, f3)
-end
-
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr,
-                                     normal_direction::AbstractVector,
-                                     equations::AcousticPerturbationEquations2DAuxVars)
-    # Calculate v = v_prime + v_mean
-    v_prime_ll = normal_direction[1] * u_ll[1] + normal_direction[2] * u_ll[2]
-    v_prime_rr = normal_direction[1] * u_rr[1] + normal_direction[2] * u_rr[2]
-    v_mean_ll = normal_direction[1] * aux_ll[1] + normal_direction[2] * aux_ll[2]
-    v_mean_rr = normal_direction[1] * aux_rr[1] + normal_direction[2] * aux_rr[2]
-
-    v_ll = v_prime_ll + v_mean_ll
-    v_rr = v_prime_rr + v_mean_rr
-
-    c_mean_ll = aux_ll[3]
-    c_mean_rr = aux_rr[3]
-
-    # The v_normals are already scaled by the norm
-    return (max(abs(v_ll), abs(v_rr)) +
-            max(c_mean_ll, c_mean_rr) * norm(normal_direction))
-end
-
-# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
-@inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
-                               normal_direction::AbstractVector,
-                               equations::AcousticPerturbationEquations2DAuxVars)
-    # Calculate v = v_prime + v_mean
-    v_prime_ll = normal_direction[1] * u_ll[1] + normal_direction[2] * u_ll[2]
-    v_prime_rr = normal_direction[1] * u_rr[1] + normal_direction[2] * u_rr[2]
-    v_mean_ll = normal_direction[1] * aux_ll[1] + normal_direction[2] * aux_ll[2]
-    v_mean_rr = normal_direction[1] * aux_rr[1] + normal_direction[2] * aux_rr[2]
-
-    v_ll = v_prime_ll + v_mean_ll
-    v_rr = v_prime_rr + v_mean_rr
-
-    c_mean_ll = aux_ll[3]
-    c_mean_rr = aux_rr[3]
-
-    norm_ = norm(normal_direction)
-    # The v_normals are already scaled by the norm
-    return max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
 end
 
 @inline have_constant_speed(::AcousticPerturbationEquations2DAuxVars) = False()
@@ -355,15 +208,6 @@ end
 function varnames(::typeof(cons2prim), ::AbstractAcousticPerturbationEquations{2})
     ("v1_prime", "v2_prime", "p_prime",
      "v1_mean", "v2_mean", "c_mean", "rho_mean")
-end
-
-# Convert primitive variables to conservative
-@inline function prim2cons(u, aux, equations::AcousticPerturbationEquations2DAuxVars)
-    p_prime = u[3]
-    c_mean = aux[3]
-    p_prime_scaled = p_prime / c_mean^2
-
-    return SVector(u[1], u[2], p_prime_scaled)
 end
 
 # Convert conservative variables to entropy variables
