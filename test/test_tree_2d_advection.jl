@@ -20,6 +20,16 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_limiter.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_limiter.jl"),
+                        l2=[0.525677600293019],
+                        linf=[0.8908069099995184])
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-1,) in elixir_advection_limiter.jl
+    @test minimum(u) > 1e-1
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_extended.jl with polydeg=1" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[0.02134571266411136],

@@ -5,12 +5,12 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = (1.0, 0.0)
+advection_velocity = (1.0, 0.5)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Step function initial condition which is 1 on [-0.5, 0.5] and zero elsewhere
 function initial_condition_heaviside_step(x, t, equations::LinearScalarAdvectionEquation2D)
-    u = abs(x[1]) < 0.5 ? 1.0 : 0.0
+    u = abs(x[1]) < 0.5 && abs(x[2]) < 0.5 ? 1.0 : 0.0
     return SVector(u)
 end
 initial_condition = initial_condition_heaviside_step
@@ -50,27 +50,14 @@ stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
-                    
+
 ###############################################################################
 # run the simulation
 
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-1,),
                                                      variables = ((u, equations) -> u[1],))
 stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
-# stage_limiter! = local_limiter!
-
-# solver = CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false)
-# # solver = CarpenterKennedy2N54(; williamson_condition = false)
-# sol = solve(ode, solver;
-#             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-#             ode_default_options()..., callback = callbacks);
 
 sol = solve(ode, RDPK3SpFSAL35(stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-u = Trixi.wrap_array_native(sol.u[end], semi)
-@show minimum(u)
-
-using Plots
-plot(PlotData1D(sol, slice=:x, point=(0.0, 0.0)))

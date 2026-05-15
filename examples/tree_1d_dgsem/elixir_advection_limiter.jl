@@ -54,7 +54,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.6)
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
                         stepsize_callback)
-                    
+
 ###############################################################################
 # run the simulation
 
@@ -69,6 +69,3 @@ stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
 sol = solve(ode, RDPK3SpFSAL35(stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-u = Trixi.wrap_array_native(sol.u[end], semi)
-@show minimum(getindex.(u, 1))
