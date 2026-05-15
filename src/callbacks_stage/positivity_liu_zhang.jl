@@ -3,7 +3,8 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
                                                    DavisYinZ <: AbstractVector,
                                                    ProjectedCellAverages <: AbstractVector,
-                                                   SqrtCellVolumes <: AbstractVector{<:Real},
+                                                   SqrtCellVolumes <:
+                                                   AbstractVector{<:Real},
                                                    RealT <: Real}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
@@ -18,7 +19,7 @@ end
 # TODO: choose parameter values more rigorously
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
-                                             global_limiter_tol = 1e3 * eps(real(semi)), 
+                                             global_limiter_tol = 1e3 * eps(real(semi)),
                                              max_davis_yin_iterations = 500)
     return PositivityPreservingLimiterLiuZhang(local_limiter!,
                                                mesh_equations_solver_cache(semi)...;
@@ -26,14 +27,14 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
-                                             mesh::AbstractMesh, equations, dg::DGSEM, cache;
+                                             mesh::AbstractMesh, equations, dg::DGSEM,
+                                             cache;
                                              global_limiter_tol, max_davis_yin_iterations)
-
     uEltype = real(dg)
     n_elements = nelements(dg, cache)
     T = SVector{nvariables(equations), uEltype}
 
-    cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache) 
+    cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache)
                     for element in eachelement(dg, cache)]
     sqrt_cell_volumes = sqrt.(cell_volumes)
     total_volume = sum(cell_volumes)
@@ -52,8 +53,8 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 semi::AbstractSemidiscretization,
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages, sqrt_cell_volumes, 
-       total_volume, global_limiter_tol, max_davis_yin_iterations) = global_limiter!
+    (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages, sqrt_cell_volumes,
+    total_volume, global_limiter_tol, max_davis_yin_iterations) = global_limiter!
 
     u = wrap_array(u_ode, semi)
 
@@ -84,13 +85,14 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     cell_average_bounds_violated = false
     for element in eachelement(dg, cache)
         for (index, variable) in enumerate(local_limiter!.variables)
-            if variable(cell_averages[element], equations) < local_limiter!.thresholds[index]
+            if variable(cell_averages[element], equations) <
+               local_limiter!.thresholds[index]
                 cell_average_bounds_violated = true
                 break
             end
         end
     end
-    
+
     # if any cell average violates a positivity bound, apply the global limiter
     if cell_average_bounds_violated == true
         @trixi_timeit timer() "positivity-preserving limiter" begin
@@ -112,21 +114,21 @@ end
 
 # for any scalar equation, projection to the admissible set is simply a clipping operation
 @inline function project_to_admissible_set(cell_average, lower_bound,
-                                   equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
+                                           equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
     return SVector(max(lower_bound[1], cell_average[1]))
 end
 
-@inline function get_cell_volume(element, mesh::TreeMesh{NDIMS}, equations, dg, cache) where {NDIMS}
+@inline function get_cell_volume(element, mesh::TreeMesh{NDIMS}, equations, dg,
+                                 cache) where {NDIMS}
     return 2^NDIMS / (cache.elements.inverse_jacobian[element])
 end
 
-function global_cell_average_limiter!(u, cell_averages, 
+function global_cell_average_limiter!(u, cell_averages,
                                       davis_yin_Z, projected_cell_averages,
                                       sqrt_cell_volumes, total_volume,
-                                      lower_bound, 
+                                      lower_bound,
                                       global_limiter_tol, max_davis_yin_iterations,
                                       mesh, equations, dg, cache)
-
     global_integral = zero(eltype(cell_averages))
     for element in eachelement(dg, cache)
         cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
@@ -154,12 +156,13 @@ function global_cell_average_limiter!(u, cell_averages,
     num_davis_yin_iterations = 0
     while residual > global_limiter_tol &&
         num_davis_yin_iterations < max_davis_yin_iterations
-
         @threaded for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
-            projected_cell_averages[element] = project_to_admissible_set(davis_yin_Z[element] / sqrt_cell_volume,
+            projected_cell_averages[element] = project_to_admissible_set(davis_yin_Z[element] /
+                                                                         sqrt_cell_volume,
                                                                          lower_bound,
-                                                                         equations) * sqrt_cell_volume
+                                                                         equations) *
+                                               sqrt_cell_volume
         end
 
         sqrt_weighted_sum_Y = zero(first(davis_yin_Z))
@@ -188,22 +191,24 @@ function global_cell_average_limiter!(u, cell_averages,
         residual = sqrt(residual_squared)
 
         num_davis_yin_iterations += 1
-    end    
+    end
 
     # replace solution cell averages with the new cell averages
     @threaded for element in eachelement(dg, cache)
         old_cell_average = cell_averages[element]
         sqrt_cell_volume = sqrt_cell_volumes[element]
-        new_cell_average = project_to_admissible_set(davis_yin_Z[element] / sqrt_cell_volume,
+        new_cell_average = project_to_admissible_set(davis_yin_Z[element] /
+                                                     sqrt_cell_volume,
                                                      lower_bound, equations)
-        set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg, cache)
+        set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
+                    cache)
         cell_averages[element] = new_cell_average
     end
 
     return nothing
 end
 
-function set_u_mean!(u, new_cell_average, old_cell_average, element, 
+function set_u_mean!(u, new_cell_average, old_cell_average, element,
                      mesh::AbstractMesh{1}, equations, dg, cache)
     for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
@@ -212,7 +217,7 @@ function set_u_mean!(u, new_cell_average, old_cell_average, element,
     end
 end
 
-function set_u_mean!(u, new_cell_average, old_cell_average, element, 
+function set_u_mean!(u, new_cell_average, old_cell_average, element,
                      mesh::AbstractMesh{2}, equations, dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -221,7 +226,7 @@ function set_u_mean!(u, new_cell_average, old_cell_average, element,
     end
 end
 
-function set_u_mean!(u, new_cell_average, old_cell_average, element, 
+function set_u_mean!(u, new_cell_average, old_cell_average, element,
                      mesh::AbstractMesh{3}, equations, dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
