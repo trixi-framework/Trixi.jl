@@ -458,7 +458,7 @@
         end
 
         # @trixi_timeit timer() "transform variables" begin
-        #     (; u_transformed, flux_viscous, gradients) = cache_parabolic.viscous_container
+        #     (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
         #     transform_variables!(u_transformed, u, mesh, equations_artificial_viscosity, dg,
         #                          solver_parabolic, cache)
         # end
