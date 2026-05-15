@@ -575,82 +575,77 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               have_nonconservative_terms::False,
                               have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
-    @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
+        orientation = orientations[interface]
 
         # Determine interface direction with respect to elements:
         # orientation = 1: left -> 2, right -> 1
         # orientation = 2: left -> 4, right -> 3
         # orientation = 3: left -> 6, right -> 5
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
+        left_direction = 2 * orientation
+        right_direction = 2 * orientation - 1
 
         for j in eachnode(dg), i in eachnode(dg)
-            # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
-            flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations)
-                surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
-                surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
-            end
+            calc_interface_flux_inner!(surface_flux_values, u,
+                                       have_nonconservative_terms(equations),
+                                       have_aux_node_vars(equations), equations,
+                                       surface_integral, dg, orientation, interface,
+                                       left_id, right_id, left_direction,
+                                       right_direction, i, j)
         end
     end
 
     return nothing
 end
 
-function calc_interface_flux!(backend::Nothing, surface_flux_values,
-                              mesh::TreeMesh{3},
-                              have_nonconservative_terms::True,
-                              have_aux_node_vars::False, equations,
-                              surface_integral, dg::DG, cache)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u, neighbor_ids, orientations = cache.interfaces
+function calc_interface_flux_inner!(surface_flux_values, u,
+                                    have_nonconservative_terms::False,
+                                    have_aux_node_vars, equations, surface_integral, dg,
+                                    orientation, interface, left_id, right_id,
+                                    left_direction, right_direction, i, j)
+    @unpack surface_flux = surface_integral
+    # Call pointwise Riemann solver
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
+    flux = surface_flux(u_ll, u_rr, orientation, equations)
 
-    @threaded for interface in eachinterface(dg, cache)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
-
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        # orientation = 2: left -> 4, right -> 3
-        # orientation = 3: left -> 6, right -> 5
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
-
-        for j in eachnode(dg), i in eachnode(dg)
-            # Call pointwise Riemann solver
-            orientation = orientations[interface]
-            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
-            flux = surface_flux(u_ll, u_rr, orientation, equations)
-
-            # Compute both nonconservative fluxes
-            noncons_left = nonconservative_flux(u_ll, u_rr, orientation, equations)
-            noncons_right = nonconservative_flux(u_rr, u_ll, orientation, equations)
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations)
-                # Note the factor 0.5 necessary for the nonconservative fluxes based on
-                # the interpretation of global SBP operators coupled discontinuously via
-                # central fluxes/SATs
-                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] +
-                                                                        0.5f0 *
-                                                                        noncons_left[v]
-                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] +
-                                                                          0.5f0 *
-                                                                          noncons_right[v]
-            end
-        end
+    # Copy flux to left and right element storage
+    for v in eachvariable(equations)
+        surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
+        surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
     end
+    return nothing
+end
 
+function calc_interface_flux_inner!(surface_flux_values, u,
+                                    have_nonconservative_terms::True,
+                                    have_aux_node_vars, equations, surface_integral, dg,
+                                    orientation, interface, left_id, right_id,
+                                    left_direction, right_direction, i, j)
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
+    flux = surface_flux(u_ll, u_rr, orientation, equations)
+
+    # Compute both nonconservative fluxes
+    noncons_left = nonconservative_flux(u_ll, u_rr, orientation, equations)
+    noncons_right = nonconservative_flux(u_rr, u_ll, orientation, equations)
+
+    # Copy flux to left and right element storage
+    for v in eachvariable(equations)
+        # Note the factor 0.5 necessary for the nonconservative fluxes based on
+        # the interpretation of global SBP operators coupled discontinuously via
+        # central fluxes/SATs
+        surface_flux_values[v, i, j, left_direction, left_id] = flux[v] +
+                                                                0.5f0 *
+                                                                noncons_left[v]
+        surface_flux_values[v, i, j, right_direction, right_id] = flux[v] +
+                                                                  0.5f0 *
+                                                                  noncons_right[v]
+    end
     return nothing
 end
 
@@ -1430,7 +1425,13 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
 end
 
 # Need dimension specific version to avoid error at dispatching
+# TODO: Taal dimension agnostic
 function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::False,
+                       equations::AbstractEquations{3}, dg::DG, cache)
+    return nothing
+end
+
+function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::True,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
@@ -1445,6 +1446,25 @@ function calc_sources!(du, u, t, source_terms, have_aux_node_vars::False,
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, k, element)
             du_local = source_terms(u_local, x_local, t, equations)
+            add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+        end
+    end
+
+    return nothing
+end
+
+function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
+                       equations::AbstractEquations{3}, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
+    @unpack aux_node_vars = cache.aux_vars
+
+    @threaded for element in eachelement(dg, cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, k, element)
+            aux_local = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, k, element)
+            du_local = source_terms(u_local, aux_local, x_local, t, equations)
             add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
         end
     end

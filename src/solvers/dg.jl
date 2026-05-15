@@ -1128,6 +1128,22 @@ end
     return nothing
 end
 
+@inline function get_aux_node_vars_vector(have_aux_node_vars::False, cache)
+    return nothing
+end
+
+@inline function get_aux_node_vars_vector(have_aux_node_vars::True, cache)
+    return cache.aux_vars.aux_node_vars
+end
+
+@inline function get_aux_surface_node_vars_vector(have_aux_node_vars::False, cache)
+    return nothing
+end
+
+@inline function get_aux_surface_node_vars_vector(have_aux_node_vars::True, cache)
+    return cache.aux_vars.aux_surface_node_vars
+end
+
 # Use this function instead of `add_to_node_vars` to speed up
 # multiply-and-add-to-node-vars operations
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
