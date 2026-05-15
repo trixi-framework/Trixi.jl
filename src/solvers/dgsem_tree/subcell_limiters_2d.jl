@@ -782,11 +782,11 @@ end
 ###############################################################################
 
 @inline function precompute_n_mortars_per_nodes!(volume_integral::AbstractVolumeIntegral,
-                                                         dg, cache, mesh)
+                                                 dg, cache, mesh)
     return nothing
 end
 @inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralSubcellLimiting,
-                                                         dg, cache, mesh::TreeMesh{2})
+                                                 dg, cache, mesh::TreeMesh{2})
     if !(dg.mortar isa LobattoLegendreMortarIDP)
         return nothing
     end
