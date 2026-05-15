@@ -22,21 +22,23 @@ u_avg = rand(N)
 u_avg[5] = -0.05 # violate positivity
 u_avg[10] = -0.01 # violate positivity
 
+# cell_volumes = rand(N)
+cell_volumes = ones(N)
+cell_volumes[1:end÷2] *= 0.5
+cell_volumes[1:end÷4] *= 0.5
+cell_volumes[1:end÷8] *= 0.5
+cell_volumes[1:end÷16] *= 0.5
+# cell_volumes[1:end÷32] *= 0.5
+# cell_volumes[1:end÷64] *= 0.5
+# cell_volumes[1:end÷128] *= 0.5
+# cell_volumes[1:end÷256] *= 0.5    
+cell_volumes .*= 2 / sum(cell_volumes)
 
-function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
+(u_avg, cell_volumes, global_limiter_tol) = (SVector{1, Float64}[[1.0e-6], [1.0e-6], [1.0e-6], [1.0e-6], [1.0e-6], [1.0e-6], [1.0e-6], [1.0e-6], [0.10249825368945617], [0.3772481870923525], [0.9437444416895546], [0.983778083768607], [1.0064871610902426], [0.9921223885864064], [1.0088317789057237], [0.994897976015139], [0.998688260243438], [0.9989206000897481], [0.9989212057460333], [0.9989212057460333], [0.9989212057460333], [0.9989212057460333], [0.9989212057460329], [0.9989212057460332], [1.027846798067034], [0.49208207774205853], [0.04907185881687067], [0.02915063925229819], [-0.0010234385173525677], [0.0021254451399576367], [-5.993238128652211e-6], [2.470966712772406e-7]], [0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625], 2.220446049250313e-13)
+u_avg = getindex.(u_avg, 1)
+
+function apply_liu_zhang_limiter(u_avg, cell_volumes, X=copy(u_avg); lower_bound = 0.0)
     N = length(u_avg)
-
-    # cell_volumes = rand(N)
-    cell_volumes = ones(N)
-    cell_volumes[1:end÷2] *= 0.5
-    cell_volumes[1:end÷4] *= 0.5
-    cell_volumes[1:end÷8] *= 0.5
-    cell_volumes[1:end÷16] *= 0.5
-    # cell_volumes[1:end÷32] *= 0.5
-    # cell_volumes[1:end÷64] *= 0.5
-    # cell_volumes[1:end÷128] *= 0.5
-    # cell_volumes[1:end÷256] *= 0.5    
-    cell_volumes .*= 2 / sum(cell_volumes)
 
     # Pseudo-inverse of A ∈ R^{N×1} (stored as length-N vector of ones)
     A = cell_volumes
@@ -90,7 +92,7 @@ function apply_liu_zhang_limiter(u_avg, X=copy(u_avg); lower_bound = 0.0)
     return X, cell_volumes, num_DY_iter
 end
 
-X, cell_volumes, num_DY_iter = apply_liu_zhang_limiter(u_avg, X_unweighted; lower_bound = 1e-6);
+X, cell_volumes, num_DY_iter = apply_liu_zhang_limiter(u_avg, cell_volumes; lower_bound = 1e-6);
 @show num_DY_iter
 sum(@. cell_volumes * (X - u_avg)^2)
 
