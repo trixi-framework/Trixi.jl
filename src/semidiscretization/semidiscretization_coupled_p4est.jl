@@ -19,7 +19,7 @@ See also: [`SemidiscretizationCoupled`](@ref)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{Semis, Indices, CF} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices, CF, RealT} <:
                AbstractSemidiscretization
     semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
@@ -31,6 +31,7 @@ mutable struct SemidiscretizationCoupledP4est{Semis, Indices, CF} <:
     # Precomputed lookup: boundary_parent_lookup[i][boundary_index] → parent cell ID
     # for each semidiscretization i. Avoids per-node linear scans at runtime.
     boundary_parent_lookup::Vector{Vector{Int}}
+    u_global::Vector{RealT} # preallocated buffer for the global solution across all views
 end
 
 """
@@ -87,14 +88,21 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
         boundary_parent_lookup[i] = semis[i].cache.neighbor_ids_parent
     end
 
+    # Preallocate the global solution buffer used in rhs! for coupled mortar flux computation.
+    RealT = promote_type(real.(semis)...)
+    ndofs_nvars_global = sum(nvariables(s.equations) * length(s.mesh.cell_ids)
+                             for s in semis)
+    u_global = Vector{RealT}(undef, n_nodes^2 * ndofs_nvars_global)
+
     SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
-                                   typeof(coupling_functions)}(semis, u_indices,
-                                                               performance_counter,
-                                                               view_cell_ids,
-                                                               mesh_ids,
-                                                               coupling_functions,
-                                                               element_offset,
-                                                               boundary_parent_lookup)
+                                   typeof(coupling_functions), RealT}(semis, u_indices,
+                                                                      performance_counter,
+                                                                      view_cell_ids,
+                                                                      mesh_ids,
+                                                                      coupling_functions,
+                                                                      element_offset,
+                                                                      boundary_parent_lookup,
+                                                                      u_global)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
@@ -205,10 +213,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                                  length(semi.semis[i - 1].mesh.cell_ids)
     end
 
-    # Build the global solution vector for coupled mortar flux computation.
+    # Resize the global solution buffer if AMR changed element counts, then fill it.
     ndofs_nvars_global = sum(nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
                              for semi_ in semi.semis)
-    u_global = Vector{real(semi)}(undef, n_nodes^2 * ndofs_nvars_global)
+    n_global = n_nodes^2 * ndofs_nvars_global
+    if length(semi.u_global) != n_global
+        resize!(semi.u_global, n_global)
+    end
+    u_global = semi.u_global
 
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
