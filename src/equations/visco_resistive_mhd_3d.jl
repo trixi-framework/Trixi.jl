@@ -91,20 +91,9 @@ end
 function gradient_variable_transformation(::ViscoResistiveMhd3D{GradientVariablesPrimitive})
     return cons2prim
 end
-function gradient_variable_transformation(::ViscoResistiveMhd3D{GradientVariablesEntropy})
-    return cons2entropy
-end
 
 @inline function cons2prim(u, equations::ViscoResistiveMhd3D)
     return cons2prim(u, equations.equations_hyperbolic)
-end
-
-function cons2entropy(u, equations::ViscoResistiveMhd3D)
-    return cons2entropy(u, equations.equations_hyperbolic)
-end
-
-function entropy2cons(w, equations::ViscoResistiveMhd3D)
-    return entropy2cons(w, equations.equations_hyperbolic)
 end
 
 # Explicit formulas for the diffusive MHD fluxes are available, e.g., in Section 2
