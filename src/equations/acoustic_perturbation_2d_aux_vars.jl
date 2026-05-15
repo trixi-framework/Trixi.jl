@@ -335,7 +335,7 @@ function varnames(::typeof(cons2state), ::AcousticPerturbationEquations2DAuxVars
     ("v1_prime", "v2_prime", "p_prime_scaled")
 end
 
-function cons2aux(u, aux, equations::AcousticPerturbationEquations2D)
+function cons2aux(u, aux, ::AcousticPerturbationEquations2DAuxVars)
     return SVector(aux[1], aux[2], aux[3], aux[4])
 end
 
