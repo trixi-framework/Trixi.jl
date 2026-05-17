@@ -36,9 +36,9 @@ function compute_kinetic_energy_spectrum(u, mesh::TreeMesh{2},
     # Interpolates conservative polynomials to a uniform Cartesian grid then converts to primitives at each uniform node
     u_uniform = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
     grid_size = size(u_uniform)[2:end] # the first dimension is the equation index so it is not needed to count the spatial indices
-    rho = Array{real(solver)}(undef, grid_size)
-    v1 = Array{real(solver)}(undef, grid_size)
-    v2 = Array{real(solver)}(undef, grid_size)
+    rho = Array{eltype(u)}(undef, grid_size)
+    v1 = Array{eltype(u)}(undef, grid_size)
+    v2 = Array{eltype(u)}(undef, grid_size)
     for idx in CartesianIndices(grid_size)
         u_node = get_node_vars(u_uniform, equations, solver, Tuple(idx)...)
         prim = cons2prim(u_node, equations)
