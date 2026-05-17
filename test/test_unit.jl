@@ -104,9 +104,9 @@ end
             coords_min = coordinates_min[1:ndims]
             coords_max = coordinates_max[1:ndims]
             for ref_level in 0:2
-                mesh = @inferred TreeMesh(coords_min, coords_max,
-                                          initial_refinement_level = ref_level,
-                                          n_cells_max = 10_000, periodicity = true)
+                mesh = TreeMesh(coords_min, coords_max,
+                                initial_refinement_level = ref_level,
+                                n_cells_max = 10_000, periodicity = true)
 
                 @test @inferred(Trixi.ndims(mesh)) == ndims
                 @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
@@ -3568,7 +3568,7 @@ end
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
-        mesh = @inferred TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
         @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
         @test mesh.tree.capacity >= mesh.tree.length
     end
@@ -3580,13 +3580,13 @@ end
         coords_max = ntuple(_ -> 1.0, NDIMS)
 
         # Reference: large capacity, no growth needed
-        mesh_ref = @inferred TreeMesh(coords_min, coords_max;
-                                      n_cells_max = 10_000,
-                                      initial_refinement_level = 3)
+        mesh_ref = TreeMesh(coords_min, coords_max;
+                            n_cells_max = 10_000,
+                            initial_refinement_level = 3)
         # Test: starts tiny, must grow during construction and again during AMR
-        mesh_small = @inferred TreeMesh(coords_min, coords_max;
-                                        n_cells_max = 2,
-                                        initial_refinement_level = 3)
+        mesh_small = TreeMesh(coords_min, coords_max;
+                              n_cells_max = 2,
+                              initial_refinement_level = 3)
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
