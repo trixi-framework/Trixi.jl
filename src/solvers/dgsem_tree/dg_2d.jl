@@ -1403,4 +1403,9 @@ function calc_sources!(backend::Backend, du, u, t, source_terms,
 
     return nothing
 end
+
+function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
+                       equations::AbstractEquations{2}, dg::DG, cache)
+    return nothing
+end
 end # @muladd
