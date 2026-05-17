@@ -11,7 +11,7 @@
 Compute an isotropic 1D kinetic energy spectrum from three 3D Cartesian velocity
 components `v1`, `v2`, `v3`. For compressible Euler kinetic energy spectra, 
 pass density-weighted components `sqrt(rho) * v1`, `sqrt(rho) * v2`, and `sqrt(rho) * v3`.
-The Modal energy is normalized by `1 / N^3`.
+The modal energy is normalized by `1 / N^3`.
 """
 function compute_kinetic_energy_spectrum(v1::AbstractArray{<:Any, 3},
                                          v2::AbstractArray{<:Any, 3},
@@ -37,10 +37,10 @@ function compute_kinetic_energy_spectrum(u, mesh::TreeMesh{3},
     # Interpolates conservative polynomials to a uniform Cartesian grid then converts to primitives at each uniform node
     u_uniform = interpolate_lgl_to_uniform_cartesian(u, mesh, equations, solver, cache)
     grid_size = size(u_uniform)[2:end] # the first dimension is the equation index so it is not needed to count the spatial indices
-    rho = Array{real(solver)}(undef, grid_size)
-    v1 = Array{real(solver)}(undef, grid_size)
-    v2 = Array{real(solver)}(undef, grid_size)
-    v3 = Array{real(solver)}(undef, grid_size)
+    rho = Array{eltype(u)}(undef, grid_size)
+    v1 = Array{eltype(u)}(undef, grid_size)
+    v2 = Array{eltype(u)}(undef, grid_size)
+    v3 = Array{eltype(u)}(undef, grid_size)
     for idx in CartesianIndices(grid_size)
         u_node = get_node_vars(u_uniform, equations, solver, Tuple(idx)...)
         prim = cons2prim(u_node, equations)
@@ -80,7 +80,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
     grid_points_per_dimension = n_uniform_nodes * cells_per_dimension
 
     n_vars = nvariables(equations)
-    u_uniform = Array{real(solver)}(undef, n_vars, grid_points_per_dimension,
+    u_uniform = Array{eltype(u)}(undef, n_vars, grid_points_per_dimension,
                                     grid_points_per_dimension,
                                     grid_points_per_dimension)
 
