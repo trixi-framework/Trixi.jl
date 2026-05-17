@@ -75,8 +75,8 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
     grid_points_per_dimension = n_uniform_nodes * cells_per_dimension
 
     n_vars = nvariables(equations)
-    u_uniform = Array{real(solver)}(undef, n_vars, grid_points_per_dimension,
-                                    grid_points_per_dimension)
+    u_uniform = Array{eltype(u)}(undef, n_vars, grid_points_per_dimension,
+                                 grid_points_per_dimension)
 
     # Interpolate from LGL nodes to cell-centered equidistant nodes in each element
     dx_reference = 2 / n_uniform_nodes
