@@ -20,8 +20,6 @@ end
 
 Compute the isotropic kinetic energy spectrum from an ODE state vector `u_ode`
 and a Trixi.jl semidiscretization `semi`.
-The state is converted to the solver-native array
-layout before dispatching to the mesh/solver-specific method.
 
 Currently, implemented methods are restricted to
 `AbstractCompressibleEulerEquations` for
