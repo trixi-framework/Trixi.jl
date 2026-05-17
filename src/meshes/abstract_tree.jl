@@ -699,7 +699,7 @@ function delete_connectivity!(t::AbstractTree, first::Int, last::Int)
         # Delete connectivity from child cells
         for child in 1:n_children_per_cell(t)
             if has_child(t, cell_id, child)
-                t.parent_ids[t._child_ids[child, cell_id]] = 0
+                t.parent_ids[t.child_ids[child, cell_id]] = 0
             end
         end
 
