@@ -459,6 +459,42 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 
+@trixi_testset "elixir_euler_sedov_sc_subcell.jl (Adaptive)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
+                        volume_integral=VolumeIntegralAdaptive(indicator = IndicatorHennemannGassner(equations,
+                                                                                                     basis,
+                                                                                                     alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
+                                                                                                     alpha_min = 0.001, # governs when subcell limiting is considered
+                                                                                                     alpha_smooth = true,
+                                                                                                     variable = density_pressure),
+                                                               volume_integral_default = VolumeIntegralWeakForm(),
+                                                               volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                                                                                          volume_flux_dg = volume_flux,
+                                                                                                                          volume_flux_fv = surface_flux)),
+                        l2=[
+                            0.19427117014566908,
+                            0.07557679851688888,
+                            0.07557679851688898,
+                            0.07557679851688917,
+                            0.3713893373335463
+                        ],
+                        linf=[
+                            2.754292081408984,
+                            1.8886277093203214,
+                            1.8886277093203223,
+                            1.8886277093203223,
+                            4.971280431903264
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
 @trixi_testset "elixir_euler_sedov.jl (HLLE)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
