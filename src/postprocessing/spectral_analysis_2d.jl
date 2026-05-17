@@ -90,6 +90,27 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
                              (mesh.tree.length_level_0 / 2)
     dx_global = 2 / (n_uniform_nodes * cells_per_dimension)
 
+    # Layout on a reference element:
+    #
+    #        *-----*-----*
+    #        |           |
+    #        |           |
+    #        |           |
+    #  j (η) |           |
+    #  ↑     |           |
+    #  |     *-----*-----*
+    #  |----> i (ξ)
+    #
+    #  For the assembly into the global FFT grid, for a local element E, the columns are r1 and the rows are r2.
+    #  Each element fills an n by n block, where n is the number of uniform nodes per direction
+    #        
+    #        +---+---+---+---+---+
+    #     ↑  |   | * | * | * |   |
+    #  r2 |  |   | * | * | * |   |   * = all nodes written for element E, where E is the center block
+    #     ↓  |   | * | * | * |   |   example when E is centered:  r1 = 2:4 ,  r2 = 2:4 when n = 3
+    #        +---+---+---+---+---+   so the global columns [2:4] and rows [2:4] are added to from this element
+    #            |<---r1---->|     
+
     for element in eachelement(solver, cache)
         # Gather conservative nodal values on the reference LGL tensor grid for the element
         u_sample = get_node_vars(u, equations, solver, 1, 1, element)
