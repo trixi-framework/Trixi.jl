@@ -79,7 +79,8 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        mesh = @inferred TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true)
+        mesh = @inferred TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0,
+                                                                            true)
         @test mesh isa TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
