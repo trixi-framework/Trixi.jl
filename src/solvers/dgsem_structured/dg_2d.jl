@@ -754,8 +754,11 @@ function apply_jacobian!(backend::Nothing, du,
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
     @threaded for element in eachelement(dg, cache)
-        apply_jacobian_per_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
-                                    element)
+        for j in eachnode(dg), i in eachnode(dg)
+            apply_jacobian_per_quadrature_node!(du, typeof(mesh), equations, dg,
+                                                inverse_jacobian, i, j,
+                                                element)
+        end
     end
 end
 
@@ -768,7 +771,7 @@ function apply_jacobian!(backend::Backend, du,
     @unpack inverse_jacobian = cache.elements
     kernel! = apply_jacobian_KAkernel!(backend)
     kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
-            ndrange = nelements(dg, cache))
+            ndrange = (nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 
 @kernel function apply_jacobian_KAkernel!(du,
@@ -779,28 +782,28 @@ end
                                                               P4estMeshView{2},
                                                               T8codeMesh{2}}},
                                           equations, dg::DG, inverse_jacobian)
-    element = @index(Global)
-    apply_jacobian_per_element!(du, MeshT, equations, dg, inverse_jacobian, element)
+    i, j, element = @index(Global, NTuple)
+    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian, i,
+                                        j, element)
 end
 
-@inline function apply_jacobian_per_element!(du,
-                                             ::Type{<:Union{StructuredMesh{2},
-                                                            StructuredMeshView{2},
-                                                            UnstructuredMesh2D,
-                                                            P4estMesh{2},
-                                                            P4estMeshView{2},
-                                                            T8codeMesh{2}}},
-                                             equations, dg::DG, inverse_jacobian,
-                                             element)
-    for j in eachnode(dg), i in eachnode(dg)
-        # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
-        # the comment in `calc_surface_integral!`.
-        factor = -inverse_jacobian[i, j, element]
+@inline function apply_jacobian_per_quadrature_node!(du,
+                                                     ::Type{<:Union{StructuredMesh{2},
+                                                                    StructuredMeshView{2},
+                                                                    UnstructuredMesh2D,
+                                                                    P4estMesh{2},
+                                                                    P4estMeshView{2},
+                                                                    T8codeMesh{2}}},
+                                                     equations, dg::DG,
+                                                     inverse_jacobian, i, j,
+                                                     element)
+    # Negative sign included to account for the negated surface and volume terms,
+    # see e.g. the computation of `derivative_hat` in the basis setup and 
+    # the comment in `calc_surface_integral!`.
+    factor = -inverse_jacobian[i, j, element]
 
-        for v in eachvariable(equations)
-            du[v, i, j, element] *= factor
-        end
+    for v in eachvariable(equations)
+        du[v, i, j, element] *= factor
     end
     return nothing
 end
