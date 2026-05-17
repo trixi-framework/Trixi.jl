@@ -704,8 +704,8 @@ end
 
 # Override AbstractContainer.insert! to auto-grow storage before the capacity assertion.
 function insert!(t::AbstractTree, position::Int, count::Int)
-    @assert 1 <= position <= length(t) + 1 "Insert position out of range"
-    @assert count >= 0 "Count must be non-negative"
+    @assert 1<=position<=length(t)+1 "Insert position out of range"
+    @assert count>=0 "Count must be non-negative"
 
     if count + length(t) > capacity(t)
         grow_capacity!(t, count + length(t))

@@ -393,9 +393,13 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
 end
 
 """
-    load_mesh(restart_file::AbstractString; n_cells_max)
+    load_mesh(restart_file::AbstractString;
+              n_cells_max = 0, RealT = Float64)
 
 Load the mesh from the `restart_file`.
+`n_cells_max` sets the initial capacity of the `TreeMesh`;
+if `0` (default), the saved capacity is used.
+`RealT` sets the floating-point type of the mesh coordinates.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max = 0, RealT = Float64)
     if mpi_isparallel()
