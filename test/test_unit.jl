@@ -79,8 +79,8 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true) isa
-              TreeMesh
+        mesh = @inferred TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true)
+        @test mesh isa TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
@@ -103,12 +103,12 @@ end
             coords_min = coordinates_min[1:ndims]
             coords_max = coordinates_max[1:ndims]
             for ref_level in 0:2
-                mesh = TreeMesh(coords_min, coords_max,
-                                initial_refinement_level = ref_level,
-                                n_cells_max = 10_000, periodicity = true)
+                mesh = @inferred TreeMesh(coords_min, coords_max,
+                                          initial_refinement_level = ref_level,
+                                          n_cells_max = 10_000, periodicity = true)
 
-                @test Trixi.ndims(mesh) == ndims
-                @test Trixi.ncells(mesh) == (2^ndims)^ref_level
+                @test @inferred(Trixi.ndims(mesh)) == ndims
+                @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
             end
         end
     end
@@ -119,7 +119,7 @@ end
         @testset "mpi_nranks() = 2" begin
             Trixi.mpi_nranks() = 2
             let
-                @test Trixi.mpi_nranks() == 2
+                @test @inferred(Trixi.mpi_nranks()) == 2
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
@@ -3567,8 +3567,8 @@ end
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
-        mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
-        @test Trixi.ncells(mesh) == 2^(NDIMS * 2)
+        mesh = @inferred TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
         @test mesh.tree.capacity >= mesh.tree.length
     end
 end
@@ -3579,13 +3579,13 @@ end
         coords_max = ntuple(_ -> 1.0, NDIMS)
 
         # Reference: large capacity, no growth needed
-        mesh_ref = TreeMesh(coords_min, coords_max;
-                            n_cells_max = 10_000,
-                            initial_refinement_level = 3)
+        mesh_ref = @inferred TreeMesh(coords_min, coords_max;
+                                      n_cells_max = 10_000,
+                                      initial_refinement_level = 3)
         # Test: starts tiny, must grow during construction and again during AMR
-        mesh_small = TreeMesh(coords_min, coords_max;
-                              n_cells_max = 2,
-                              initial_refinement_level = 3)
+        mesh_small = @inferred TreeMesh(coords_min, coords_max;
+                                        n_cells_max = 2,
+                                        initial_refinement_level = 3)
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
