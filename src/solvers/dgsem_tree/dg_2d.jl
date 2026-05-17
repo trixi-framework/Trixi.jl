@@ -1382,7 +1382,8 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
 end
 
 @kernel function calc_sources_KAkernel!(du, u, t, source_terms,
-                                        node_coordinates, equations, dg, cache)
+                                        node_coordinates,
+                                        equations::AbstractEquations{2}, dg, cache)
     i, j, element = @index(Global, NTuple)
     u_local = get_node_vars(u, equations, dg, i, j, element)
     x_local = get_node_coords(node_coordinates, equations, dg, i, j, element)
