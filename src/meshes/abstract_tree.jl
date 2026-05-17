@@ -687,7 +687,7 @@ function grow_capacity!(t::AbstractTree, min_capacity)
     return nothing
 end
 
-# Override AbstractContainer.resize! to auto-grow storage when new_length > capacity.
+# Override resize! to auto-grow storage when new_length > capacity.
 function Base.resize!(t::AbstractTree, new_length)
     if new_length > capacity(t)
         grow_capacity!(t, new_length)
@@ -702,7 +702,7 @@ function Base.resize!(t::AbstractTree, new_length)
     return t
 end
 
-# Override AbstractContainer.insert! to auto-grow storage before the capacity assertion.
+# Override insert! to auto-grow storage before the capacity assertion.
 function insert!(t::AbstractTree, position::Int, count::Int)
     @assert 1<=position<=length(t)+1 "Insert position out of range"
     @assert count>=0 "Count must be non-negative"
