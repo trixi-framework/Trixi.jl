@@ -148,7 +148,7 @@ function rhs!(du, u, t,
 
     # Calculate boundary fluxes
     @trixi_timeit_ext backend timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+        calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
@@ -178,7 +178,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit_ext backend timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
@@ -791,7 +791,7 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_conditions::NamedTuple,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
@@ -1359,16 +1359,55 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{2},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources!(du, u, t, source_terms::Nothing,
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms,
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
                        equations::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)
+            calc_sources_per_element!(du, u, t,source_terms, node_coordinates, equations, dg, cache, element)
+    end
+
+    return nothing
+end
+
+@kernel function calc_sources_kernel!(du, u, t, source_terms, node_coordinates, equations, dg, cache)
+
+element = @index(Global)
+calc_sources_per_element!(du, u, t, source_terms, node_coordinates, equations, dg, cache, element)
+
+end
+
+@kernel function calc_sources_kernel_opt!(du, u, t, source_terms,
+                                       node_coordinates, equations, dg, cache)
+  i, j, element = @index(Global, NTuple)
+  u_local  = get_node_vars(u, equations, dg, i, j, element)
+  x_local  = get_node_coords(node_coordinates, equations, dg, i, j, element)
+
+  du_local = source_terms(u_local, x_local, t, equations)
+
+  add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+end
+
+function calc_sources!(backend::Backend, du, u, t, source_terms,
+                       equations::AbstractEquations{2}, dg::DG, cache)
+    nelements(dg, cache) == 0 && return nothing
+    @unpack node_coordinates = cache.elements
+	kernel_cache = kernel_filter_cache(cache)
+	#kernel! = calc_sources_kernel!(backend)
+    #kernel!(du, u, t, source_terms, node_coordinates, equations, dg, kernel_cache, ndrange = nelements(dg, cache))
+    kernel! = calc_sources_kernel_opt!(backend)
+        kernel!(du, u, t, source_terms, node_coordinates, equations, dg, kernel_cache, ndrange = (nnodes(dg), nnodes(dg), nelements(dg, cache)))
+
+    return nothing
+end
+
+function calc_sources_per_element!(du, u, t, source_terms, node_coordinates, equations::AbstractEquations{2}, dg, cache, element)
+
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
@@ -1376,8 +1415,6 @@ function calc_sources!(du, u, t, source_terms,
             du_local = source_terms(u_local, x_local, t, equations)
             add_to_node_vars!(du, du_local, equations, dg, i, j, element)
         end
-    end
-
-    return nothing
 end
+
 end # @muladd

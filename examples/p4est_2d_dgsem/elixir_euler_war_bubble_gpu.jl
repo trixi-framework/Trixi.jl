@@ -104,8 +104,7 @@ coordinates_max = (20_000.0, 15_000.0)
 trees_per_dimension = (32, 16)
 mesh = P4estMesh(trees_per_dimension, polydeg = polydeg,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 0,
-		 periodicity = (true, false))
+                 initial_refinement_level = 0, periodicity = (true, false))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
                                     source_terms = warm_bubble_setup,
@@ -116,7 +115,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
 
 tspan = (0.0, 1000.0)  # 1000 seconds final time
 
-ode = semidiscretize(semi, tspan; storage_type = nothing)
+ode = semidiscretize(semi, tspan; storage_type = storage_type)
 
 summary_callback = SummaryCallback()
 
