@@ -68,7 +68,7 @@ function radial_energy_spectrum(energy_modes)
     end
     maximum_wavenumber = round(Int, sqrt(maximum_wavenumber_squared))
     energy_spectrum = zeros(eltype(energy_modes), maximum_wavenumber + 1)
-    wavenumbers = collect(0:maximum_wavenumber)
+    wavenumbers = collect(0:maximum_wavenumber) # Add zero wave number
 
     # Iterate over all Fourier coefficients and bin each mode by isotropic shell
     for index in CartesianIndices(energy_modes)
