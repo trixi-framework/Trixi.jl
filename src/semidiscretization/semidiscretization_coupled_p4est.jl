@@ -199,11 +199,34 @@ end
     return @view u_ode[semi.u_indices[index]]
 end
 
+# Rebuild mesh_ids and view_cell_ids from the current state of each view's cell_ids.
+# Called from rhs! whenever the parent mesh cell count changes (e.g. after AMR).
+function update_mesh_lookup!(semi::SemidiscretizationCoupledP4est)
+    n_parent_cells = ncells(semi.semis[1].mesh.parent)
+    if length(semi.mesh_ids) != n_parent_cells
+        resize!(semi.mesh_ids, n_parent_cells)
+        resize!(semi.view_cell_ids, n_parent_cells)
+    end
+    fill!(semi.mesh_ids, 0)
+    fill!(semi.view_cell_ids, 0)
+    for i in eachindex(semi.semis)
+        cell_ids = semi.semis[i].mesh.cell_ids
+        semi.view_cell_ids[cell_ids] = parent_cell_id_to_view(cell_ids, semi.semis[i].mesh)
+        semi.mesh_ids[cell_ids] .= i
+    end
+    return nothing
+end
+
 # RHS call for the coupled system.
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
+
+    # Update all AMR-dependent lookup tables when the parent cell count has changed.
+    if ncells(semi.semis[1].mesh.parent) != length(semi.mesh_ids)
+        update_mesh_lookup!(semi)
+    end
 
     # Update element_offset for the current AMR state (cell counts may have changed).
     semi.element_offset[1] = 1
