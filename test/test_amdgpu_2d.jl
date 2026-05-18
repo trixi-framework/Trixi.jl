@@ -110,8 +110,9 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=Float32[2.4917018095933837e-6, 2.7148269885239423e-6,
                                    2.695290306860358e-6, 6.243861976167833e-6],
-                        linf=Float32[1.6489475493930428e-5, 1.7499923706143505e-5, 1.893043518075288e-5, 6.214141845717336e-5],
-                        RealT_for_test_tolerances = Float32,
+                        linf=Float32[1.6489475493930428e-5, 1.7499923706143505e-5,
+                                     1.893043518075288e-5, 6.214141845717336e-5],
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray, gamma=Float32(1.4))
     # Ensure that we do not have excessive memory allocations
