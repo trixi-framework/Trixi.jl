@@ -756,8 +756,8 @@ function apply_jacobian!(backend::Nothing, du,
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             apply_jacobian_per_quadrature_node!(du, typeof(mesh), equations, dg,
-                                                inverse_jacobian, i, j,
-                                                element)
+                                                inverse_jacobian,
+                                                i, j, element)
         end
     end
 end
@@ -783,8 +783,8 @@ end
                                                               T8codeMesh{2}}},
                                           equations, dg::DG, inverse_jacobian)
     i, j, element = @index(Global, NTuple)
-    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian, i,
-                                        j, element)
+    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian,
+                                        i, j, element)
 end
 
 @inline function apply_jacobian_per_quadrature_node!(du,
@@ -795,8 +795,8 @@ end
                                                                     P4estMeshView{2},
                                                                     T8codeMesh{2}}},
                                                      equations, dg::DG,
-                                                     inverse_jacobian, i, j,
-                                                     element)
+                                                     inverse_jacobian,
+                                                     i, j, element)
     # Negative sign included to account for the negated surface and volume terms,
     # see e.g. the computation of `derivative_hat` in the basis setup and 
     # the comment in `calc_surface_integral!`.
