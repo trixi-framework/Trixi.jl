@@ -124,6 +124,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{3},
         # Writes the interpolated block onto the global grid for the larger output
         # `r1`, `r2`, and `r3` are the global indices corresponding to `u_uniform` that this specific element's interpolated block fits within
         # Essentially, `r1`, `r2`, and `r3` are the positions of the current element within `u_uniform`
+        # first_index[dim] refers to the first index of the nodes of this element within the array of global tensor nodes
         # See the sketch in `spectral_analysis_2d.jl` for a sketch in 2d of how the local to global assembly works
         r1 = first_index[1]:(first_index[1] + n_uniform_nodes - 1)
         r2 = first_index[2]:(first_index[2] + n_uniform_nodes - 1)
@@ -143,11 +144,11 @@ nodes already form a uniform Cartesian grid.
 function compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{3},
                                          equations::AbstractCompressibleEulerEquations,
                                          dg::DGMultiSBP, cache)
-    # Unpacks the primiate variables from the conservative state for FDSBP DGMulti solutions
+    # Unpacks the primitive variables from the conservative state for FDSBP DGMulti solutions
     u_values = StructArray(u)
     n_points = length(u_values)
     n = round(Int, n_points^(1 / 3))
-    q = cons2prim.(u_values, Ref(equations)) #q is the vector that contains the primiate variables for density and velocity converted from the conservative variables
+    q = cons2prim.(u_values, Ref(equations)) # q is the vector that contains the primitive variables for density and velocity converted from the conservative variables
     rho = reshape(getindex.(q, 1), n, n, n)
     density_weighted_velocity_1 = sqrt.(rho) .* reshape(getindex.(q, 2), n, n, n)
     density_weighted_velocity_2 = sqrt.(rho) .* reshape(getindex.(q, 3), n, n, n)

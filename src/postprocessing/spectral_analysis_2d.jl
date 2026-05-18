@@ -90,26 +90,36 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
                              (mesh.tree.length_level_0 / 2)
     dx_global = 2 / (n_uniform_nodes * cells_per_dimension)
 
-    # Layout on a reference element:
+    # Example for 1st order (2 nodes per direction per element) for a 2x2 tree of cells which produces a 4x4 global FFT grid.
     #
-    #        *-----*-----*
-    #        |           |
-    #        |           |
-    #        |           |
-    #  j (η) |           |
-    #  ↑     |           |
-    #  |     *-----*-----*
-    #  |----> i (ξ)
+    # Reference element — local indices (i along ξ, j along η):
     #
-    #  For the assembly into the global FFT grid, for a local element E, the columns are r1 and the rows are r2.
-    #  Each element fills an n by n block, where n is the number of uniform nodes per direction
-    #        
-    #        +---+---+---+---+---+
-    #     ↑  |   | * | * | * |   |
-    #  r2 |  |   | * | * | * |   |   * = all nodes written for element E, where E is the center block
-    #     ↓  |   | * | * | * |   |   example when E is centered:  r1 = 2:4 ,  r2 = 2:4 when n = 3
-    #        +---+---+---+---+---+   so the global columns [2:4] and rows [2:4] are added to from this element
-    #            |<---r1---->|     
+    #      j=2  (1,2)--------(2,2)
+    #      ↑     |             |
+    #      |     |             |
+    #      |     |             |
+    #      |     |             |   
+    #      j    (1,1)--------(2,1)
+    #             ---------> i (ξ)
+    #
+    #   Each of the 4 tree cells pastes a 2×2 block into the 4×4 array global grid, 'u_uniform'.
+    #   Labels (column, row) are indices into that array: column ↔ x, row ↔ y on the domain.
+    #   The assignment `u_uniform[:, r1, r2] .= interpolated` fills one such rectangle.
+    #   The bottom-right element of the original 2×2 block is labeled as 'E' in the diagram below and fills 
+    #   rows 3 to 4 and columns 3 to 4 of the global grid.
+    #
+    #         column  1         2         3         4
+    #                 +---------+---------+---------+---------+
+    #         row 1   | (1,1)   | (2,1)   | (3,1)   | (4,1)   |  
+    #                 +---------+---------+---------+---------+   
+    #         row 2   | (1,2)   | (2,2)   | (3,2)   | (4,2)   |   
+    #                 +---------+---------+---------+---------+   ↑
+    #         row 3   | (1,3)   | (2,3)   | (3,3) E | (4,3) E |   |  
+    #                 +---------+---------+---------+---------+   |  r2 = 3:4
+    #         row 4   | (1,4)   | (2,4)   | (3,4) E | (4,4) E |   |
+    #                 +---------+---------+---------+---------+   ↓
+    #                                     |<-----r1 = 3:4---->|
+    #                 
 
     for element in eachelement(solver, cache)
         # Gather conservative nodal values on the reference LGL tensor grid for the element
@@ -127,6 +137,7 @@ function interpolate_lgl_to_uniform_cartesian(u, mesh::TreeMesh{2},
 
         # Each element is placed on the uniform grid assuming reference directions align with
         # physical axes (ξ→x, η→y) and nodal values use the DGSEM tensor order along (ξ, η).
+        # first_index[dim] refers to the first index of the nodes of this element within the array of global tensor nodes
         first_index = Vector{Int}(undef, 2)
         for dim in 1:2
             lower_left = normalized_coordinates[dim, element] -
@@ -160,7 +171,7 @@ function compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{2},
     u_values = StructArray(u)
     n_points = length(u_values)
     n = round(Int, sqrt(n_points))
-    q = cons2prim.(u_values, Ref(equations)) #q is the vector that contains the primiate variables for density and velocity converted from the conservative variables
+    q = cons2prim.(u_values, Ref(equations)) # q is the vector that contains the primitive variables for density and velocity converted from the conservative variables
     rho = reshape(getindex.(q, 1), n, n)
     density_weighted_velocity_1 = sqrt.(rho) .* reshape(getindex.(q, 2), n, n)
     density_weighted_velocity_2 = sqrt.(rho) .* reshape(getindex.(q, 3), n, n)
