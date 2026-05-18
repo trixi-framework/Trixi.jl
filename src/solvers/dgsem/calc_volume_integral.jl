@@ -201,6 +201,237 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     return nothing
 end
 
+# Returns u[:, indices...] as an SVector. size(u, 1) should thus be
+# known at compile time in the caller and passed via Val()
+@inline function get_svector(u, ::Val{N}, indices...) where {N}
+    # There is a cut-off at `n == 10` inside of the method
+    # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+    # in Julia `v1.5`, leading to type instabilities if
+    # more than ten variables are used. That's why we use
+    # `Val(...)` below.
+    # We use `@inline` to make sure that the `getindex` calls are
+    # really inlined, which might be the default choice of the Julia
+    # compiler for standard `Array`s but not necessarily for more
+    # advanced array types such as `PtrArray`s, cf.
+    # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
+    SVector(ntuple(@inline(v->u[v, indices...]), N))
+end
+
+# Returns u[1, :, indices] and u[2, :, indices] as SVectors. size(u, 2)
+# should thus be known at compile time in the caller and passed via Val()
+@inline function get_svectors(u, ::Val{N}, indices...) where {N}
+    # There is a cut-off at `n == 10` inside of the method
+    # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+    # in Julia `v1.5`, leading to type instabilities if
+    # more than ten variables are used. That's why we use
+    # `Val(...)` below.
+    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), N))
+    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), N))
+    return u_ll, u_rr
+end
+
+@inline function add_to_first_axis!(u, u_node::SVector{N}, indices...) where {N}
+    for v in Base.OneTo(N)
+        u[v, indices...] += u_node[v]
+    end
+    return nothing
+end
+
+# Use this function instead of `add_to_first_axis!` to speed up
+# multiply-and-add-to-node-vars operations
+# See https://github.com/trixi-framework/Trixi.jl/pull/643
+@inline function multiply_add_to_first_axis!(u, factor, u_node::SVector{N},
+                                             indices...) where {N}
+    for v in Base.OneTo(N)
+        u[v, indices...] = u[v, indices...] + factor * u_node[v]
+    end
+    return nothing
+end
+
+# Use this function instead of `add_to_first_axis!` to speed up
+# multiply-and-add-to-node-vars operations
+# See https://github.com/trixi-framework/Trixi.jl/pull/643
+@inline function multiply_add_to_first_axis_atomic!(u, factor, u_node::SVector{N},
+                                             indices...) where {N}
+    for v in Base.OneTo(N)
+        Atomix.@atomic u[v, indices...] += factor * u_node[v]
+    end
+    return nothing
+end
+
+@inline function _calc_volume_integral!(backend::Backend, du, u,
+                                                mesh::P4estMesh{3},
+                                                have_nonconservative_terms::False, equations,
+                                                volume_integral::VolumeIntegralFluxDifferencing,
+                                                          dg::DGSEM, cache) 
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    nodes = eachnode(dg)
+    kernel! = _exp_ijk_fusedloop_flux_differencing_kernel!(backend)
+    _nnodes = nnodes(dg)
+    kernel!(du, u, equations, dg, volume_integral.volume_flux, _nnodes, derivative_split,
+            contravariant_vectors,
+            ndrange = (nelements(dg, cache), _nnodes * _nnodes *_nnodes))
+    return nothing
+end
+
+@kernel function _exp_ijk_fusedloop_flux_differencing_kernel!(du, u, equations, dg,
+                                                volume_flux,num_nodes, derivative_split,
+                                                contravariant_vectors, alpha = true)
+    # true * [some floating point value] == [exactly the same floating point value]
+    # This can (hopefully) be optimized away due to constant propagation.
+    element     = @index(Global, NTuple)[1]
+    linear_grid = @index(Global, NTuple)[2] - 1
+    i = floor(Int, linear_grid / num_nodes^2) + 1
+    j = floor(Int, (linear_grid % num_nodes^2) / num_nodes) + 1
+    k = (linear_grid % num_nodes) + 1
+
+    # Calculate volume integral in one element
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+
+    # pull the contravariant vectors in each coordinate direction
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-point flux
+    # computations.
+
+    KernelAbstractions.Extras.@unroll for other in min(i, j, k):num_nodes
+        if other > i
+            #u_node_ii = get_svector(u, NVARS, other, j, k, element)
+            u_node_ii = get_node_vars(u, equations, dg, other, j, k, element)
+            # pull the contravariant vectors and compute the average
+            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                                    other, j, k, element)
+            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            # compute the contravariant sharp flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[i, other], fluxtilde1,
+                                        i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, i], fluxtilde1,
+                                        other, j, k, element)
+        end
+        if other > j
+            #u_node_jj = get_svector(u, NVARS, i, other, k, element)
+            u_node_jj = get_node_vars(u, equations, dg, i, other, k, element)
+            # pull the contravariant vectors and compute the average
+            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, other, k, element)
+            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            # compute the contravariant sharp flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[j, other], fluxtilde2,
+                                        i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, j], fluxtilde2,
+                                        i, other, k, element)
+        end
+        if other > k
+            #u_node_kk = get_svector(u, NVARS, i, j, other, element)
+            u_node_kk = get_node_vars(u, equations, dg, i, j, other, element)
+            # pull the contravariant vectors and compute the average
+            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, other, element)
+            Ja3_avg = 0.5 * (Ja3_node + Ja3_node_kk)
+            # compute the contravariant sharp flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[k, other], fluxtilde3,
+                                        i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, k], fluxtilde3,
+                                        i, j, other, element)
+        end
+    end
+end
+
+@inline function calc_volume_integral!(backend::Backend, du, u,
+                                                mesh::P4estMesh{3},
+                                                have_nonconservative_terms::False, equations,
+                                                volume_integral::VolumeIntegralFluxDifferencing,
+                                                          dg::DGSEM, cache) 
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    nodes = eachnode(dg)
+    kernel! = _exp_ijk_div_fusedloop_flux_differencing_kernel!(backend)
+    _nnodes = nnodes(dg)
+    kernel!(du, u, equations, dg, volume_integral.volume_flux, _nnodes, derivative_split,
+            contravariant_vectors,
+            ndrange = (_nnodes, _nnodes, _nnodes, nelements(dg, cache)))
+    return nothing
+end
+
+@kernel function _exp_ijk_div_fusedloop_flux_differencing_kernel!(du, u, equations, dg,
+                                                volume_flux, num_nodes, derivative_split,
+                                                contravariant_vectors, alpha = true)
+    # true * [some floating point value] == [exactly the same floating point value]
+    # This can (hopefully) be optimized away due to constant propagation.
+    i, j, k, element = @index(Global, NTuple)
+
+    # Calculate volume integral in one element
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+
+    # pull the contravariant vectors in each coordinate direction
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
+    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
+    # the computation of the diagonal terms. In addition, we use the symmetry
+    # of the `volume_flux` to save half of the possible two-point flux
+    # computations.
+
+    KernelAbstractions.Extras.@unroll for other in min(i, j, k):num_nodes
+        if other > i
+            u_node_ii = get_node_vars(u, equations, dg, other, j, k, element)
+            # pull the contravariant vectors and compute the average
+            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                                    other, j, k, element)
+            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            # compute the contravariant sharp flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[i, other], fluxtilde1,
+                                        i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, i], fluxtilde1,
+                                        other, j, k, element)
+        end
+        if other > j
+            #u_node_jj = get_svector(u, NVARS, i, other, k, element)
+            u_node_jj = get_node_vars(u, equations, dg, i, other, k, element)
+            # pull the contravariant vectors and compute the average
+            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, other, k, element)
+            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            # compute the contravariant sharp flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[j, other], fluxtilde2,
+                                        i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, j], fluxtilde2,
+                                        i, other, k, element)
+        end
+        if other > k
+            #u_node_kk = get_svector(u, NVARS, i, j, other, element)
+            u_node_kk = get_node_vars(u, equations, dg, i, j, other, element)
+            # pull the contravariant vectors and compute the average
+            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, other, element)
+            Ja3_avg = 0.5 * (Ja3_node + Ja3_node_kk)
+            # compute the contravariant sharp flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[k, other], fluxtilde3,
+                                        i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, k], fluxtilde3,
+                                        i, j, other, element)
+        end
+    end
+end
+
 @kernel function volume_integral_KAkernel!(du, u, MeshT,
                                            have_nonconservative_terms, equations,
                                            volume_integral, dg::DGSEM, cache)
