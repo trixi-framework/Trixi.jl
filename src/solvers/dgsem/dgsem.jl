@@ -82,6 +82,5 @@ include("containers.jl")
 
 include("indicators.jl")
 include("special_volume_integrals.jl")
-using Atomix
 include("calc_volume_integral.jl")
 end # @muladd
