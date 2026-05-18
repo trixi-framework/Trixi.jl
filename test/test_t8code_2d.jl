@@ -321,7 +321,7 @@ end
     mesh_ref = T8codeMesh((4, 4);
                           coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0))
     mesh_kw = T8codeMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
-                         initial_refinement_level = 2)
+                         refinement_level = 2)
     @test mesh_kw isa T8codeMesh{2}
     @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1
 end
