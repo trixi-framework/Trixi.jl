@@ -300,7 +300,7 @@ end
 
 """
     DGMultiMesh(dg::DGMulti{NDIMS}; coordinates_min, coordinates_max,
-                initial_refinement_level,
+                refinement_level,
                 is_on_boundary=nothing,
                 periodicity=ntuple(_->false, NDIMS))
 
@@ -308,15 +308,18 @@ Create a rectangular `DGMultiMesh` using keyword arguments only, for easy mesh-t
 with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and
 [`T8codeMesh`](@ref).
 
-The number of cells per dimension is `2^initial_refinement_level`.
+The number of cells per dimension is `2^refinement_level`.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS};
                      coordinates_min,
                      coordinates_max,
-                     initial_refinement_level,
+                     refinement_level,
                      is_on_boundary = nothing,
                      periodicity = ntuple(_ -> false, NDIMS)) where {NDIMS}
-    cells_per_dimension = ntuple(_ -> 2^initial_refinement_level, NDIMS)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    cells_per_dimension = ntuple(_ -> 2^refinement_level, NDIMS)
     return DGMultiMesh(dg, cells_per_dimension;
                        coordinates_min = coordinates_min,
                        coordinates_max = coordinates_max,

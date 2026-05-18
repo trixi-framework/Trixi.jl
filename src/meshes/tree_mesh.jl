@@ -226,19 +226,21 @@ function TreeMesh(coordinates_min::Real, coordinates_max::Real;
 end
 
 """
-    TreeMesh(; coordinates_min, coordinates_max, initial_refinement_level, n_cells_max, kwargs...)
+    TreeMesh(; coordinates_min, coordinates_max, refinement_level, n_cells_max, kwargs...)
 
 Create a [`TreeMesh`](@ref) using keyword arguments only, for easy mesh-type swapping
-with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), [`T8codeMesh`](@ref), and
-[`DGMultiMesh`](@ref).
+with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
 """
 function TreeMesh(; coordinates_min,
                   coordinates_max,
-                  initial_refinement_level,
+                  refinement_level,
                   n_cells_max,
                   kwargs...)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
     return TreeMesh(coordinates_min, coordinates_max;
-                    initial_refinement_level = initial_refinement_level,
+                    initial_refinement_level = refinement_level,
                     n_cells_max = n_cells_max,
                     kwargs...)
 end

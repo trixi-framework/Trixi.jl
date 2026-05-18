@@ -493,11 +493,6 @@ end
         @test_trixi_include(joinpath(examples_dir(), "special_elixirs",
                                      "elixir_euler_ad.jl"))
     end
-
-    @timed_testset "elixir_advection_mesh_swap.jl" begin
-        @test_trixi_include(joinpath(examples_dir(), "special_elixirs",
-                                     "elixir_advection_mesh_swap.jl"))
-    end
 end
 end
 

@@ -99,7 +99,7 @@ end
                             initial_refinement_level = 2, n_cells_max = 10_000)
         mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
                            coordinates_max = (1.0, 1.0),
-                           initial_refinement_level = 2, n_cells_max = 10_000)
+                           refinement_level = 2, n_cells_max = 10_000)
         @test Trixi.ncells(mesh_kw) == Trixi.ncells(mesh_ref)
     end
 
@@ -3575,21 +3575,21 @@ end
     # 1D: keyword interface (2^2 = 4 cells per dimension)
     mesh_1d_ref = StructuredMesh((4,), (-1.0,), (1.0,))
     mesh_1d_kw = StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),
-                                initial_refinement_level = 2)
+                                refinement_level = 2)
     @test mesh_1d_ref.cells_per_dimension == mesh_1d_kw.cells_per_dimension
 
     # 2D: keyword interface
     mesh_2d_ref = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
     mesh_2d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0),
                                 coordinates_max = (1.0, 1.0),
-                                initial_refinement_level = 2)
+                                refinement_level = 2)
     @test mesh_2d_ref.cells_per_dimension == mesh_2d_kw.cells_per_dimension
 
     # 3D: keyword interface
     mesh_3d_ref = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
     mesh_3d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0, -1.0),
                                 coordinates_max = (1.0, 1.0, 1.0),
-                                initial_refinement_level = 2)
+                                refinement_level = 2)
     @test mesh_3d_ref.cells_per_dimension == mesh_3d_kw.cells_per_dimension
 end
 
@@ -3602,7 +3602,7 @@ end
     # 1D: keyword interface (2^2 = 4 elements)
     mesh_1d_ref = DGMultiMesh(dg_1d, (4,))
     mesh_1d_kw = DGMultiMesh(dg_1d; coordinates_min = (-1.0,), coordinates_max = (1.0,),
-                             initial_refinement_level = 2)
+                             refinement_level = 2)
     @test mesh_1d_ref.md.num_elements == mesh_1d_kw.md.num_elements
 
     dg_2d = DGMulti(polydeg = 2, element_type = Quad(),
@@ -3613,7 +3613,7 @@ end
     # 2D: keyword interface
     mesh_2d_ref = DGMultiMesh(dg_2d, (4, 4))
     mesh_2d_kw = DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
-                             coordinates_max = (1.0, 1.0), initial_refinement_level = 2)
+                             coordinates_max = (1.0, 1.0), refinement_level = 2)
     @test mesh_2d_ref.md.num_elements == mesh_2d_kw.md.num_elements
 end
 

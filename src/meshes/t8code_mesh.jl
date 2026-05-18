@@ -506,28 +506,30 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 end
 
 """
-    T8codeMesh(; coordinates_min, coordinates_max, initial_refinement_level, polydeg=1, kwargs...)
+    T8codeMesh(; coordinates_min, coordinates_max, refinement_level, polydeg=1, kwargs...)
 
 Create a rectangular `T8codeMesh` using keyword arguments only, for easy mesh-type swapping
-with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and
-[`DGMultiMesh`](@ref).
+with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), and [`P4estMesh`](@ref).
 
-A single tree per dimension is created and uniformly refined `initial_refinement_level` times,
-yielding `2^initial_refinement_level` cells per dimension.
+A single tree per dimension is created and uniformly refined `refinement_level` times,
+yielding `2^refinement_level` cells per dimension.
 """
 function T8codeMesh(; coordinates_min,
                     coordinates_max,
-                    initial_refinement_level,
+                    refinement_level,
                     polydeg = 1,
                     RealT = Float64,
                     periodicity = false)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
     NDIMS = length(coordinates_min)
     return T8codeMesh(ntuple(_ -> 1, NDIMS);
                       polydeg = polydeg,
                       coordinates_min = coordinates_min,
                       coordinates_max = coordinates_max,
                       RealT = RealT,
-                      initial_refinement_level = initial_refinement_level,
+                      initial_refinement_level = refinement_level,
                       periodicity = periodicity)
 end
 
