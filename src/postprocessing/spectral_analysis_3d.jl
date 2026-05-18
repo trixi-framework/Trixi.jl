@@ -143,7 +143,7 @@ nodes already form a uniform Cartesian grid.
 function compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{3},
                                          equations::AbstractCompressibleEulerEquations,
                                          dg::DGMultiSBP, cache)
-    # Unpacks the primiate variables from the conservative state for FDSBP DGMulti solutions
+    # Unpacks the primitive variables from the conservative state for FDSBP DGMulti solutions
     u_values = StructArray(u)
     n_points = length(u_values)
     n = round(Int, n_points^(1 / 3))
