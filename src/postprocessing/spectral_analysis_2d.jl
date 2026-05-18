@@ -160,7 +160,7 @@ function compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{2},
     u_values = StructArray(u)
     n_points = length(u_values)
     n = round(Int, sqrt(n_points))
-    q = cons2prim.(u_values, Ref(equations)) #q is the vector that contains the primiate variables for density and velocity converted from the conservative variables
+    q = cons2prim.(u_values, Ref(equations)) # q is the vector that contains the primitive variables for density and velocity converted from the conservative variables
     rho = reshape(getindex.(q, 1), n, n)
     density_weighted_velocity_1 = sqrt.(rho) .* reshape(getindex.(q, 2), n, n)
     density_weighted_velocity_2 = sqrt.(rho) .* reshape(getindex.(q, 3), n, n)
