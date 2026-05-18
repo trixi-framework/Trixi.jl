@@ -99,8 +99,7 @@ end
 end
 
 function apply_jacobian!(backend::Backend, du,
-                         mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                     UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                         mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                      T8codeMesh{2}},
                          equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
@@ -111,10 +110,7 @@ function apply_jacobian!(backend::Backend, du,
 end
 
 @kernel function apply_jacobian_KAkernel!(du,
-                                          MeshT::Type{<:Union{StructuredMesh{2},
-                                                              StructuredMeshView{2},
-                                                              UnstructuredMesh2D,
-                                                              P4estMesh{2},
+                                          MeshT::Type{<:Union{P4estMesh{2},
                                                               P4estMeshView{2},
                                                               T8codeMesh{2}}},
                                           equations, dg::DG, inverse_jacobian)
