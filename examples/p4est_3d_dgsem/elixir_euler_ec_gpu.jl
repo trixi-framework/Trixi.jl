@@ -3,8 +3,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-RealT = Float32
-equations = CompressibleEulerEquations3D(RealT(1.4))
+gamma = 1.4
+equations = CompressibleEulerEquations3D(gamma)
 
 initial_condition = initial_condition_weak_blast_wave
 
@@ -40,7 +40,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 12.5)
-ode = semidiscretize(semi, tspan; real_type = RealT, storage_type = storage_type)
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 

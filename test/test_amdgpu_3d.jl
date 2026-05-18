@@ -67,6 +67,73 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
 end
 
+@trixi_testset "elixir_euler_ec_gpu.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec_gpu.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[
+                            0.009647868651291091,
+                            0.007978674508802396,
+                            0.00797867450880072,
+                            0.007976597637033813,
+                            0.03556057111478888
+                        ],
+                        linf=[
+                            0.1625000382895001,
+                            0.25517655710855724,
+                            0.2551765571054442,
+                            0.25524348794239127,
+                            0.6101205076948872
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test real(ode.p.solver) == Float64
+    @test real(ode.p.solver.basis) == Float64
+    @test real(ode.p.solver.mortar) == Float64
+    # TODO: remake ignores the mesh itself as well
+    @test real(ode.p.mesh) == Float64
+
+    @test ode.u0 isa Array
+    @test ode.p.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(ode.p.cache.elements) === Array
+    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
+    @test Trixi.storage_type(ode.p.cache.boundaries) === Array
+    @test Trixi.storage_type(ode.p.cache.mortars) === Array
+end
+
+@trixi_testset "elixir_euler_ec_gpu.jl Float32 / AMDGPU" begin
+    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec_gpu.jl"),
+                        # Expected errors similar to reference on CPU
+                        l2=Float32[0.00964786826846187, 0.007978673391598896,
+                                   0.007978671585236624, 0.00797659803740122,
+                                   0.03556057386981876],
+                        linf=Float32[0.16250224476537722, 0.2551759210157371, 0.2551765327109026, 0.2552436445149415, 0.6101215262212101]
+                        RealT_for_test_tolerances = Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray, gamma=Float32(1.4))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test real(ode.p.solver) == Float32
+    @test real(ode.p.solver.basis) == Float32
+    @test real(ode.p.solver.mortar) == Float32
+    # TODO: remake ignores the mesh itself as well
+    @test real(ode.p.mesh) == Float64
+
+    @test ode.u0 isa ROCArray
+    @test ode.p.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
+    @test Trixi.storage_type(ode.p.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(ode.p.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
+end
+
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
 end
