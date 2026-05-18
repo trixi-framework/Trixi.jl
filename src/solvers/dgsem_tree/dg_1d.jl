@@ -787,32 +787,4 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     return nothing
 end
 
-@kernel function calc_sources_KAkernel!(du, u, t, source_terms,
-                                        node_coordinates,
-                                        equations::AbstractEquations{1}, dg, cache)
-    i, element = @index(Global, NTuple)
-    u_local = get_node_vars(u, equations, dg, i, element)
-    x_local = get_node_coords(node_coordinates, equations, dg, i, element)
-
-    du_local = source_terms(u_local, x_local, t, equations)
-
-    add_to_node_vars!(du, du_local, equations, dg, i, element)
-end
-
-function calc_sources!(backend::Backend, du, u, t, source_terms,
-                       equations::AbstractEquations{1}, dg::DG, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack node_coordinates = cache.elements
-    kernel_cache = kernel_filter_cache(cache)
-    kernel! = calc_sources_KAkernel!(backend)
-    kernel!(du, u, t, source_terms, node_coordinates, equations, dg, kernel_cache,
-            ndrange = (nnodes(dg), nelements(dg, cache)))
-
-    return nothing
-end
-
-function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{1}, dg::DG, cache)
-    return nothing
-end
 end # @muladd
