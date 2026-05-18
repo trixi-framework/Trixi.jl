@@ -786,5 +786,4 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
 
     return nothing
 end
-
 end # @muladd
