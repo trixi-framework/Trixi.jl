@@ -20,6 +20,7 @@ mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <:
                AbstractMesh{NDIMS}
     const parent::Parent
     const cell_ids::Vector{Int}
+    const cell_id_to_local::Dict{Int, Int} # parent cell ID → index in cell_ids
     unsaved_changes::Bool
     current_filename::String
 end
@@ -35,7 +36,9 @@ Create a `P4estMeshView` on a [`P4estMesh`](@ref) parent.
 """
 function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
                        cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
+    cell_id_to_local = Dict(id => k for (k, id) in enumerate(cell_ids))
     return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids,
+                                                                      cell_id_to_local,
                                                                       parent.unsaved_changes,
                                                                       parent.current_filename)
 end
@@ -113,10 +116,10 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Transform the parent indices into view indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids, 2)
-        interfaces.neighbor_ids[1, interface] = findfirst(==(neighbor_ids[1, interface]),
-                                                          mesh.cell_ids)
-        interfaces.neighbor_ids[2, interface] = findfirst(==(neighbor_ids[2, interface]),
-                                                          mesh.cell_ids)
+        interfaces.neighbor_ids[1, interface] = mesh.cell_id_to_local[neighbor_ids[1,
+                                                                                   interface]]
+        interfaces.neighbor_ids[2, interface] = mesh.cell_id_to_local[neighbor_ids[2,
+                                                                                   interface]]
     end
 
     return interfaces
@@ -465,20 +468,12 @@ end
 
 # Convert a parent cell id to a view cell id in the mesh view.
 function parent_cell_id_to_view(id::Integer, mesh::P4estMeshView)
-    # Find the index of the cell id in the mesh view
-    view_id = searchsortedfirst(mesh.cell_ids, id)
-
-    return view_id
+    return mesh.cell_id_to_local[id]
 end
 
 # Convert an array of parent cell ids to view cell ids in the mesh view.
 function parent_cell_id_to_view(ids::AbstractArray, mesh::P4estMeshView)
-    # Find the index of the cell id in the mesh view
-    view_id = zeros(Int, length(ids))
-    for i in eachindex(ids)
-        view_id[i] = parent_cell_id_to_view(ids[i], mesh)
-    end
-    return view_id
+    return [mesh.cell_id_to_local[id] for id in ids]
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
@@ -549,19 +544,13 @@ function calc_node_coordinates!(node_coordinates,
 
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)
 
-    # Build a lookup from global parent cell ID → local view cell ID.
-    # This respects the ordering of mesh.cell_ids (which may not be sorted),
-    # ensuring consistency with extract_p4est_mesh_view which copies data in
-    # mesh.cell_ids order.
-    cell_id_to_local = Dict(id => k for (k, id) in enumerate(mesh.cell_ids))
-
     for tree_id in eachindex(trees)
         tree_offset = trees[tree_id].quadrants_offset
         quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree_id].quadrants)
 
         for i in eachindex(quadrants)
             parent_mesh_cell_id = tree_offset + i
-            local_id = get(cell_id_to_local, parent_mesh_cell_id, 0)
+            local_id = get(mesh.cell_id_to_local, parent_mesh_cell_id, 0)
             if local_id == 0
                 # This cell is not part of the mesh view, thus skip it
                 continue
