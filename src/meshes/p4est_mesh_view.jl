@@ -255,36 +255,25 @@ end
 function extract_neighbor_ids_parent(mesh::P4estMeshView,
                                      interfaces_parent,
                                      boundaries)
-    # Initialize to zero; physical-domain boundaries that have no coupling neighbor
-    # remain 0 and trigger the Dirichlet fallback in _boundary_condition_coupled.
-    neighbor_ids_parent = zeros(Int, length(boundaries.neighbor_ids))
+    # Build a lookup (element_id, face_name) → neighbor_id in one pass over all interfaces.
+    # Each interface contributes two entries: one for each side.
+    interface_lookup = Dict{Tuple{Int, Symbol}, Int}()
+    for interface in axes(interfaces_parent.neighbor_ids, 2)
+        id1 = interfaces_parent.neighbor_ids[1, interface]
+        id2 = interfaces_parent.neighbor_ids[2, interface]
+        name1 = node_indices_to_name(interfaces_parent.node_indices[1, interface])
+        name2 = node_indices_to_name(interfaces_parent.node_indices[2, interface])
+        interface_lookup[(id1, name1)] = id2
+        interface_lookup[(id2, name2)] = id1
+    end
 
+    # For each boundary, look up its coupling neighbor in O(1).
+    # Physical-domain boundaries with no coupling neighbor remain 0.
+    neighbor_ids_parent = zeros(Int, length(boundaries.neighbor_ids))
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         parent_id = mesh.cell_ids[id]
-        # Search interfaces_parent for a conforming interface that has parent_id on
-        # one side and whose face direction matches the boundary name.
-        for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
-            if (parent_id == interfaces_parent.neighbor_ids[1, interface] ||
-                parent_id == interfaces_parent.neighbor_ids[2, interface])
-                if parent_id == interfaces_parent.neighbor_ids[1, interface]
-                    matching_boundary = 1
-                else
-                    matching_boundary = 2
-                end
-                # Check if interfaces with this id have the right name/node_indices.
-                if (boundaries.name[idx] ==
-                    node_indices_to_name(interfaces_parent.node_indices[matching_boundary,
-                                                                        interface]))
-                    if parent_id == interfaces_parent.neighbor_ids[1, interface]
-                        neighbor_ids_parent[idx] = interfaces_parent.neighbor_ids[2,
-                                                                                  interface]
-                    else
-                        neighbor_ids_parent[idx] = interfaces_parent.neighbor_ids[1,
-                                                                                  interface]
-                    end
-                end
-            end
-        end
+        neighbor_ids_parent[idx] = get(interface_lookup, (parent_id, boundaries.name[idx]),
+                                       0)
     end
 
     return neighbor_ids_parent
