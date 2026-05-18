@@ -325,8 +325,8 @@ end
     @test mesh_kw isa T8codeMesh{2}
     @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1
     @test_throws ArgumentError T8codeMesh(; coordinates_min = (-1.0, -1.0),
-                                           coordinates_max = (1.0, 1.0, 1.0),
-                                           refinement_level = 2)
+                                          coordinates_max = (1.0, 1.0, 1.0),
+                                          refinement_level = 2)
 end
 end
 
