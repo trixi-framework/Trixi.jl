@@ -108,11 +108,17 @@ end
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_source_terms_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
-                        l2=Float32[4.912578089985958e-5, 5.3683407014580115e-5,
-                                   5.368099834769191e-5, 5.371664525206341e-5,
+                        l2=Float32[4.912578089985958e-5,
+                                   5.3683407014580115e-5,
+                                   5.368099834769191e-5,
+                                   5.371664525206341e-5,
                                    0.00015186256300882088],
-                        linf=Float32[0.00032772542853032327, 0.00035144807715092874, 0.0003549051465479014, 0.00035573961157475686, 0.0013591384887696734]
-                        RealT_for_test_tolerances = Float32,
+                        linf=Float32[0.00032772542853032327,
+                                     0.00035144807715092874,
+                                     0.0003549051465479014,
+                                     0.00035573961157475686,
+                                     0.0013591384887696734],
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray, gamma=Float32(1.4))
     # Ensure that we do not have excessive memory allocations
