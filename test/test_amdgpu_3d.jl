@@ -108,11 +108,17 @@ end
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec_gpu.jl"),
                         # Expected errors similar to reference on CPU
-                        l2=Float32[0.00964786826846187, 0.007978673391598896,
-                                   0.007978671585236624, 0.00797659803740122,
+                        l2=Float32[0.00964786826846187,
+                                   0.007978673391598896,
+                                   0.007978671585236624,
+                                   0.00797659803740122,
                                    0.03556057386981876],
-                        linf=Float32[0.16250224476537722, 0.2551759210157371, 0.2551765327109026, 0.2552436445149415, 0.6101215262212101]
-                        RealT_for_test_tolerances = Float32,
+                        linf=Float32[0.16250224476537722,
+                                     0.2551759210157371,
+                                     0.2551765327109026,
+                                     0.2552436445149415,
+                                     0.6101215262212101],
+                        RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray, gamma=Float32(1.4))
     # Ensure that we do not have excessive memory allocations
