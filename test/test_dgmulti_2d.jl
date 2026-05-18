@@ -604,7 +604,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
     # Test Spectral Analysis Post Processing
-    _, energy_spectrum = compute_kinetic_energy_spectrum(sol)
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
     @test energy_spectrum[1:6]≈[
         1.9993746355056,
         0.0006253399291566656,
