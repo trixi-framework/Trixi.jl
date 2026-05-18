@@ -38,6 +38,22 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test point_data ≈ ref_data
 end
 
+@trixi_testset "elixir_euler_source_terms_tuple.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_tuple.jl"),
+                        l2=[
+                            2.2527950196212703e-8,
+                            1.8187357193835156e-8,
+                            7.705669939973104e-8],
+                        linf=[
+                            1.6205433861493646e-7,
+                            1.465427772462391e-7,
+                            5.372255111879554e-7
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
                         l2=[

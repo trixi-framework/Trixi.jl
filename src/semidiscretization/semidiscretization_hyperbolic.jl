@@ -480,7 +480,14 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         print_boundary_conditions(io, semi)
 
-        summary_line(io, "source terms", semi.source_terms)
+        if semi.source_terms isa Tuple
+            summary_line(io, "#source_terms", length(semi.source_terms))
+            for (i, source_term) in enumerate(semi.source_terms)
+                summary_line(increment_indent(io), "source_term $i", source_term)
+            end
+        else
+            summary_line(io, "source terms", semi.source_terms)
+        end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)

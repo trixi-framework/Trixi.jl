@@ -786,4 +786,21 @@ function calc_sources!(du, u, t, source_terms,
 
     return nothing
 end
+
+# Iterate over a tuple with multiple source terms in a type-stable way using "lispy tuple programming",
+# similar to https://stackoverflow.com/a/55849398
+function calc_sources!(du, u, t, source_terms::NTuple{N, Any},
+                       equations::AbstractEquations{1}, dg::DG, cache) where {N}
+    source_term = first(source_terms)
+    remaining_source_terms = Base.tail(source_terms)
+
+    calc_sources!(du, u, t, source_term, equations, dg, cache)
+    calc_sources!(du, u, t, remaining_source_terms, equations, dg, cache)
+end
+
+# Terminate the type-stable iteration over tuples
+function calc_sources!(du, u, t, source_terms::Tuple{},
+                       equations::AbstractEquations{1}, dg::DG, cache)
+    return nothing
+end
 end # @muladd

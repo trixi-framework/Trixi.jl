@@ -785,6 +785,24 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
+# Iterate over a tuple with multiple source terms in a type-stable way using "lispy tuple programming",
+# similar to https://stackoverflow.com/a/55849398
+function calc_sources!(du, u, t, source_terms::NTuple{N, Any},
+                       mesh, equations, dg::Union{DGMulti, DGMultiFluxDiffSBP},
+                       cache) where {N}
+    source_term = first(source_terms)
+    remaining_source_terms = Base.tail(source_terms)
+
+    calc_sources!(du, u, t, source_term, mesh, equations, dg, cache)
+    calc_sources!(du, u, t, remaining_source_terms, mesh, equations, dg, cache)
+end
+
+# Terminate the type-stable iteration over tuples
+function calc_sources!(du, u, t, source_terms::Tuple{},
+                       mesh, equations, dg::Union{DGMulti, DGMultiFluxDiffSBP}, cache)
+    return nothing
+end
+
 function rhs!(du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
