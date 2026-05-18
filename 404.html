@@ -7,11 +7,24 @@
 
     <script>
         window.onload = function () {
-            const destination = window.location.href;
             if (window.location.href.includes("trixi-framework.github.io/Trixi.jl")) {
                 const redirectLocation = window.location.href.replace(
                     "trixi-framework.github.io/Trixi.jl",
-                    "trixi-framework.github.io/TrixiDocumentation"
+                    "trixi-framework.org/TrixiDocumentation"
+                );
+                document.getElementById("body").innerHTML = "Trixi.jl documentation has moved!<br/><br/>Redirecting to " + redirectLocation + " ...";
+                window.location.href = redirectLocation;
+            } else if (window.location.href.includes("trixi-framework.github.io/TrixiDocumentation")) {
+                const redirectLocation = window.location.href.replace(
+                    "trixi-framework.github.io/TrixiDocumentation",
+                    "trixi-framework.org/TrixiDocumentation"
+                );
+                document.getElementById("body").innerHTML = "Trixi.jl documentation has moved!<br/><br/>Redirecting to " + redirectLocation + " ...";
+                window.location.href = redirectLocation;
+            } else if (window.location.href.includes("trixi-framework.org/Trixi.jl")) {
+                const redirectLocation = window.location.href.replace(
+                    "trixi-framework.org/Trixi.jl",
+                    "trixi-framework.org/TrixiDocumentation"
                 );
                 document.getElementById("body").innerHTML = "Trixi.jl documentation has moved!<br/><br/>Redirecting to " + redirectLocation + " ...";
                 window.location.href = redirectLocation;
