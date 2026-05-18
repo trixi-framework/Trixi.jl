@@ -101,6 +101,9 @@ end
                            coordinates_max = (1.0, 1.0),
                            refinement_level = 2, n_cells_max = 10_000)
         @test Trixi.ncells(mesh_kw) == Trixi.ncells(mesh_ref)
+        @test_throws ArgumentError TreeMesh(; coordinates_min = (-1.0, -1.0),
+                                            coordinates_max = (1.0, 1.0, 1.0),
+                                            refinement_level = 2, n_cells_max = 10_000)
     end
 
     @testset "helper functions" begin
@@ -3591,6 +3594,9 @@ end
                                 coordinates_max = (1.0, 1.0, 1.0),
                                 refinement_level = 2)
     @test mesh_3d_ref.cells_per_dimension == mesh_3d_kw.cells_per_dimension
+    @test_throws ArgumentError StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                              coordinates_max = (1.0, 1.0, 1.0),
+                                              refinement_level = 2)
 end
 
 @testset "Unified mesh constructor signatures (DGMultiMesh)" begin
@@ -3615,6 +3621,9 @@ end
     mesh_2d_kw = DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
                              coordinates_max = (1.0, 1.0), refinement_level = 2)
     @test mesh_2d_ref.md.num_elements == mesh_2d_kw.md.num_elements
+    @test_throws ArgumentError DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                                           coordinates_max = (1.0, 1.0, 1.0),
+                                           refinement_level = 2)
 end
 
 end #module

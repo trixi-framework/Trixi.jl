@@ -1034,6 +1034,9 @@ end
                         refinement_level = 2)
     @test mesh_kw isa P4estMesh{2}
     @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1  # 1 macro-tree
+    @test_throws ArgumentError P4estMesh(; coordinates_min = (-1.0, -1.0),
+                                         coordinates_max = (1.0, 1.0, 1.0),
+                                         refinement_level = 2)
 end
 
 @trixi_testset "elixir_euler_imex_warm_bubble.jl" begin
