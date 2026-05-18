@@ -8,7 +8,6 @@ equations = CompressibleEulerEquations3D(RealT(1.4))
 
 initial_condition = initial_condition_weak_blast_wave
 
-
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.

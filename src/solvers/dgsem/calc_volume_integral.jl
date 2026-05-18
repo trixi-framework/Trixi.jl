@@ -252,7 +252,7 @@ end
 # multiply-and-add-to-node-vars operations
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
 @inline function multiply_add_to_first_axis_atomic!(u, factor, u_node::SVector{N},
-                                             indices...) where {N}
+                                                    indices...) where {N}
     for v in Base.OneTo(N)
         Atomix.@atomic u[v, indices...] += factor * u_node[v]
     end
@@ -260,27 +260,30 @@ end
 end
 
 @inline function _calc_volume_integral!(backend::Backend, du, u,
-                                                mesh::P4estMesh{3},
-                                                have_nonconservative_terms::False, equations,
-                                                volume_integral::VolumeIntegralFluxDifferencing,
-                                                          dg::DGSEM, cache) 
+                                        mesh::P4estMesh{3},
+                                        have_nonconservative_terms::False, equations,
+                                        volume_integral::VolumeIntegralFluxDifferencing,
+                                        dg::DGSEM, cache)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     nodes = eachnode(dg)
     kernel! = _exp_ijk_fusedloop_flux_differencing_kernel!(backend)
     _nnodes = nnodes(dg)
-    kernel!(du, u, equations, dg, volume_integral.volume_flux, _nnodes, derivative_split,
+    kernel!(du, u, equations, dg, volume_integral.volume_flux, _nnodes,
+            derivative_split,
             contravariant_vectors,
-            ndrange = (nelements(dg, cache), _nnodes * _nnodes *_nnodes))
+            ndrange = (nelements(dg, cache), _nnodes * _nnodes * _nnodes))
     return nothing
 end
 
 @kernel function _exp_ijk_fusedloop_flux_differencing_kernel!(du, u, equations, dg,
-                                                volume_flux,num_nodes, derivative_split,
-                                                contravariant_vectors, alpha = true)
+                                                              volume_flux, num_nodes,
+                                                              derivative_split,
+                                                              contravariant_vectors,
+                                                              alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
-    element     = @index(Global, NTuple)[1]
+    element = @index(Global, NTuple)[1]
     linear_grid = @index(Global, NTuple)[2] - 1
     i = floor(Int, linear_grid / num_nodes^2) + 1
     j = floor(Int, (linear_grid % num_nodes^2) / num_nodes) + 1
@@ -305,68 +308,78 @@ end
             u_node_ii = get_node_vars(u, equations, dg, other, j, k, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
-                                                    other, j, k, element)
+                                                   other, j, k, element)
             Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[i, other], fluxtilde1,
-                                        i, j, k, element)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, i], fluxtilde1,
-                                        other, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[i, other],
+                                               fluxtilde1,
+                                               i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, i],
+                                               fluxtilde1,
+                                               other, j, k, element)
         end
         if other > j
             #u_node_jj = get_svector(u, NVARS, i, other, k, element)
             u_node_jj = get_node_vars(u, equations, dg, i, other, k, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, other, k, element)
+                                                   i, other, k, element)
             Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[j, other], fluxtilde2,
-                                        i, j, k, element)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, j], fluxtilde2,
-                                        i, other, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[j, other],
+                                               fluxtilde2,
+                                               i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, j],
+                                               fluxtilde2,
+                                               i, other, k, element)
         end
         if other > k
             #u_node_kk = get_svector(u, NVARS, i, j, other, element)
             u_node_kk = get_node_vars(u, equations, dg, i, j, other, element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, other, element)
+                                                   i, j, other, element)
             Ja3_avg = 0.5 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[k, other], fluxtilde3,
-                                        i, j, k, element)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, k], fluxtilde3,
-                                        i, j, other, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[k, other],
+                                               fluxtilde3,
+                                               i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, k],
+                                               fluxtilde3,
+                                               i, j, other, element)
         end
     end
 end
 
 @inline function calc_volume_integral!(backend::Backend, du, u,
-                                                mesh::P4estMesh{3},
-                                                have_nonconservative_terms::False, equations,
-                                                volume_integral::VolumeIntegralFluxDifferencing,
-                                                          dg::DGSEM, cache) 
+                                       mesh::P4estMesh{3},
+                                       have_nonconservative_terms::False, equations,
+                                       volume_integral::VolumeIntegralFluxDifferencing,
+                                       dg::DGSEM, cache)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     nodes = eachnode(dg)
     kernel! = _exp_ijk_div_fusedloop_flux_differencing_kernel!(backend)
     _nnodes = nnodes(dg)
-    kernel!(du, u, equations, dg, volume_integral.volume_flux, _nnodes, derivative_split,
+    kernel!(du, u, equations, dg, volume_integral.volume_flux, _nnodes,
+            derivative_split,
             contravariant_vectors,
             ndrange = (_nnodes, _nnodes, _nnodes, nelements(dg, cache)))
     return nothing
 end
 
 @kernel function _exp_ijk_div_fusedloop_flux_differencing_kernel!(du, u, equations, dg,
-                                                volume_flux, num_nodes, derivative_split,
-                                                contravariant_vectors, alpha = true)
+                                                                  volume_flux,
+                                                                  num_nodes,
+                                                                  derivative_split,
+                                                                  contravariant_vectors,
+                                                                  alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -389,45 +402,51 @@ end
             u_node_ii = get_node_vars(u, equations, dg, other, j, k, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
-                                                    other, j, k, element)
+                                                   other, j, k, element)
             Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[i, other], fluxtilde1,
-                                        i, j, k, element)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, i], fluxtilde1,
-                                        other, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[i, other],
+                                               fluxtilde1,
+                                               i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, i],
+                                               fluxtilde1,
+                                               other, j, k, element)
         end
         if other > j
             #u_node_jj = get_svector(u, NVARS, i, other, k, element)
             u_node_jj = get_node_vars(u, equations, dg, i, other, k, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
-                                                    i, other, k, element)
+                                                   i, other, k, element)
             Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[j, other], fluxtilde2,
-                                        i, j, k, element)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, j], fluxtilde2,
-                                        i, other, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[j, other],
+                                               fluxtilde2,
+                                               i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, j],
+                                               fluxtilde2,
+                                               i, other, k, element)
         end
         if other > k
             #u_node_kk = get_svector(u, NVARS, i, j, other, element)
             u_node_kk = get_node_vars(u, equations, dg, i, j, other, element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
-                                                    i, j, other, element)
+                                                   i, j, other, element)
             Ja3_avg = 0.5 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[k, other], fluxtilde3,
-                                        i, j, k, element)
-            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, k], fluxtilde3,
-                                        i, j, other, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[k, other],
+                                               fluxtilde3,
+                                               i, j, k, element)
+            multiply_add_to_first_axis_atomic!(du, alpha * derivative_split[other, k],
+                                               fluxtilde3,
+                                               i, j, other, element)
         end
     end
 end
