@@ -44,7 +44,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_restart.jl"),
                             alg=CarpenterKennedy2N54(williamson_condition = false,
-                                                     thread = Trixi.True()),
+                                                     thread = Trixi.Threaded()),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[8.005068880114254e-6],
                             linf=[6.39093577996519e-5])
@@ -148,7 +148,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_diffusion.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
-                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.Threaded()),
                             l2=[4.0915532997994255e-6],
                             linf=[2.3040850347877395e-5])
 
@@ -363,7 +363,7 @@ end
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                      "elixir_euler_curved.jl"),
-                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.Threaded()),
                             l2=[
                                 1.720916434676505e-5,
                                 1.5928649356300228e-5,

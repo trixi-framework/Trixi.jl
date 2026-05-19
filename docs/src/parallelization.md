@@ -25,7 +25,7 @@ the same time, the latter takes precedence.
 If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
-`thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)
+`thread = Trixi.Threaded()`
 of the algorithms, as described in the
 [section on time integration methods](@ref time-integration).
 
@@ -127,11 +127,11 @@ julia> HDF5.API.set_libraries!("/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.s
 ```
 After the preferences are set, restart the Julia REPL again.
 
-!!! note 
-    If multiple MPI installations are present on a system (as is typically the case on a cluster), calling 
-    `MPIPreferences.use_system_binary()` may lead to an undesired selection of the MPI implementation - 
-    make sure to check the `LocalPreferences.toml` in any case. 
-    You can also check at runtime of your Julia session the MPI configuration with 
+!!! note
+    If multiple MPI installations are present on a system (as is typically the case on a cluster), calling
+    `MPIPreferences.use_system_binary()` may lead to an undesired selection of the MPI implementation -
+    make sure to check the `LocalPreferences.toml` in any case.
+    You can also check at runtime of your Julia session the MPI configuration with
     `using MPI; MPI.versioninfo()`.
 
 ### [Usage](@id parallel_usage)
@@ -251,14 +251,14 @@ julia> using HDF5
 julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf5_hl.so")
 ```
 For more information see also the
-[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). 
+[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/).
 
-To install the MPI-enabled `HDF5` library, i.e., the `libhdf5.so` and `libhdf5_hl.so` files, 
+To install the MPI-enabled `HDF5` library, i.e., the `libhdf5.so` and `libhdf5_hl.so` files,
 there are two options.
-First, there might be a package available from the package manager, e.g., `libhdf5-openmpi-dev` for 
-`OpenMPI` or `libhdf5-mpich-dev` for `MPICH`. 
+First, there might be a package available from the package manager, e.g., `libhdf5-openmpi-dev` for
+`OpenMPI` or `libhdf5-mpich-dev` for `MPICH`.
 On `Ubuntu`, you find a list of available `libhdf5-` packages [here](https://packages.ubuntu.com/search?keywords=libhdf5-&searchon=names&suite=all&section=all).
-For other Linux distributions you can consult the package manager of your distribution or the third-party webpage https://pkgs.org/. 
+For other Linux distributions you can consult the package manager of your distribution or the third-party webpage https://pkgs.org/.
 
 The second option is to manually build the library on your system.
 To do so, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
