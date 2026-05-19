@@ -91,7 +91,7 @@ using Static: Static, One, True, False
 @doc """
     Trixi.Threaded()
 
-Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi's threading backend preference.
+Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
 [`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference.
 """ Threaded
 
@@ -366,8 +366,6 @@ export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
-
-export Threaded
 
 export ode_norm, ode_unstable_check
 
