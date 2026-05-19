@@ -5,6 +5,19 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.17 from v0.16.x
+
+#### Changed
+
+- The keyword argument `n_cells_max` has been removed from the `TreeMesh`
+  constructor and from `load_mesh`. Previously it set the initial capacity of
+  the internal tree data structure; since `TreeMesh` now auto-resizes as needed,
+  the argument is no longer necessary. To migrate, simply remove any
+  `n_cells_max = ...` argument from existing code. TreeMesh mesh files no longer
+  store the internal `capacity` HDF5 attribute; new versions derive storage from
+  `n_cells` when loading, while older files that still contain `capacity` remain
+  readable ([#3021]).
+
 ## Changes in the v0.16 lifecycle
 
 #### Added
@@ -17,19 +30,6 @@ The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 - Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
 - Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
-
-## Changes when updating to v0.17 from v0.16.x
-
-#### Changed
-
-- The keyword argument `n_cells_max` has been removed from the `TreeMesh`
-  constructor and from `load_mesh`. Previously it set the initial capacity of
-  the internal tree data structure; since `TreeMesh` now auto-resizes as needed,
-  the argument is no longer necessary. To migrate, simply remove any
-  `n_cells_max = ...` argument from existing code. TreeMesh mesh files no longer
-  store the internal `capacity` HDF5 attribute; new versions derive storage from
-  `n_cells` when loading, while older files that still contain `capacity` remain
-  readable. ([#XXXX])
 
 ## Changes when updating to v0.16 from v0.15.x
 
