@@ -26,7 +26,7 @@ volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 # `volume_integral_stabilized` is used instead of the `volume_integral_default`.
 indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
 
-# Adaptive volume integral using the entropy production comparison indicator to perform the 
+# Adaptive volume integral using the entropy production comparison indicator to perform the
 # stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
 volume_integral = VolumeIntegralAdaptive(volume_integral_default = volume_integral_weakform,
                                          volume_integral_stabilized = volume_integral_fluxdiff,
