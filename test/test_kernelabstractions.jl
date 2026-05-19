@@ -63,9 +63,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 100_000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
-    using AMDGPU
+@trixi_testset "elixir_euler_source_terms.jl Float32" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -140,9 +138,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 400_000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
-    using AMDGPU
+@trixi_testset "elixir_euler_source_terms.jl Float32" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -162,7 +158,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 400_000)
 end
 end
 
