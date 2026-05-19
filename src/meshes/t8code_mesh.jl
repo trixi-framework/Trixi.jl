@@ -1492,7 +1492,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                                                num_local_elements)
                             local_neighbor_ids = [neighbor_ids[i]
                                                   for i in local_neighbor_positions]
-                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_child_id(neighbor_eclass, neighbor_leaves[i]) + 1]
+                            local_neighbor_positions = [map_iface_to_ichild_to_position[dual_faces[1] + 1][t8_element_get_child_id(scheme, neighbor_eclass, neighbor_leaves[i]) + 1]
                                                         for i in local_neighbor_positions]
 
                             # Last entry is the large element.
