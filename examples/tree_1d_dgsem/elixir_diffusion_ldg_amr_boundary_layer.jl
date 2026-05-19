@@ -16,8 +16,7 @@ solver_parabolic = ParabolicFormulationLocalDG()
 
 mesh = TreeMesh((0.0,), (1.0,),
                 initial_refinement_level = 0,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 function initial_condition_boundary_layer(x, t, equations)
     return SVector(amplitude() * (1 - exp(-x[1] / boundary_layer_thickness())) /

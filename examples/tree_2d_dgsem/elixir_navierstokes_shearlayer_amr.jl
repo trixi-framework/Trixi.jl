@@ -46,7 +46,7 @@ coordinates_max = (1.0, 1.0)
 # This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;

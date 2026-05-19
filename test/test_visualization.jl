@@ -324,7 +324,6 @@ end
         initial_refinement_level = 3
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
-                             n_cells_max = 10^5,
                              initial_refinement_level,
                              periodicity = true)
         trees_per_dimension = (1, 1)
@@ -471,7 +470,6 @@ end
 
     # Manually initialize meshes
     mesh_tree = TreeMesh(coordinates_min, coordinates_max;
-                         n_cells_max = 10^5,
                          initial_refinement_level,
                          periodicity = true)
 
@@ -803,7 +801,6 @@ end
         initial_refinement_level = 3
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
-                             n_cells_max = 10^6,
                              initial_refinement_level,
                              periodicity = true)
         trees_per_dimension = (1, 1, 1)

@@ -16,7 +16,6 @@ coordinates_max = convert(Float64, pi) # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 # Define initial condition if it is not defined already.

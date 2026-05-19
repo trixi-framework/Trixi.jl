@@ -30,8 +30,7 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = (true, false),
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                periodicity = (true, false))
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion2D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion2D`)

@@ -25,7 +25,7 @@ using Trixi, LinearAlgebra, Plots
 equations = CompressibleEulerEquations2D(1.4)
 
 solver = DGSEM(3, flux_central)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
@@ -75,7 +75,7 @@ condition_number = cond(V)
 equations = CompressibleEulerEquations1D(1.4)
 
 solver = DGSEM(3, flux_central)
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
@@ -178,7 +178,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
@@ -229,7 +229,7 @@ using Trixi, OrdinaryDiffEqLowOrderRK, ForwardDiff, Plots
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                    n_cells_max = 10^4, periodicity = true)
+                    periodicity = true)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
         x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
@@ -280,7 +280,7 @@ second_derivative = round(ForwardDiff.derivative(k -> Trixi.ForwardDiff.derivati
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
     mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
-                    n_cells_max = 10^4, periodicity = true)
+                    periodicity = true)
     solver = DGSEM(3, flux_lax_friedrichs)
     initial_condition = (x, t, equation) -> begin
         x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
@@ -310,7 +310,7 @@ round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits = 2)
 
 # The first step in this example creates some basic ingredients of our simulation.
 equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
                 periodicity = true)
 solver = DGSEM(3, flux_lax_friedrichs);
 
@@ -365,7 +365,7 @@ using Trixi, OrdinaryDiffEqLowOrderRK, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
-mesh = TreeMesh((-1.0,), (1.0,), n_cells_max = 10^5, initial_refinement_level = 5,
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 5,
                 periodicity = true)
 
 solver = DGSEM(3)
@@ -402,7 +402,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 solver = DGSEM(3, flux_central)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver;
@@ -439,7 +439,7 @@ using Trixi
 advection_velocity = 1.0
 equation = LinearScalarAdvectionEquation1D(advection_velocity)
 
-mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4, n_cells_max = 10^4,
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 4,
                 periodicity = true)
 
 # We define the basic floating point type used for the actual simulation
@@ -530,7 +530,7 @@ equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
 
 solver = DGSEM(3, flux_lax_friedrichs)
 
-mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5,
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,

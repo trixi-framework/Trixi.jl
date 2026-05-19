@@ -16,7 +16,6 @@ coordinates_max = 0.75
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 # This initial condition is a simplification/analogy to the
