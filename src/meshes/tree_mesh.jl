@@ -118,8 +118,7 @@ Create a `TreeMesh` in `NDIMS` dimensions with real type `RealT` covering the do
 `coordinates_min` and `coordinates_max`. The mesh is initialized with a uniform
 refinement to the specified `initial_refinement_level`. Further refinement and
 coarsening patches can be specified using `refinement_patches` and
-`coarsening_patches`, respectively. The initial capacity is derived from
-`initial_refinement_level`, and the mesh grows automatically when AMR requires more cells.
+`coarsening_patches`, respectively.
 The periodicity in each dimension can be specified using the
 `periodicity` argument (default: non-periodic in all dimensions). If it is a single
 `Bool`, the same periodicity is applied in all dimensions; otherwise, a tuple of
