@@ -34,10 +34,10 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
     function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer) where {NDIMS,
-                                                                       TreeType <:
-                                                                       AbstractTree{NDIMS},
-                                                                       RealT <:
-                                                                       Real}
+                                                                        TreeType <:
+                                                                        AbstractTree{NDIMS},
+                                                                        RealT <:
+                                                                        Real}
         tree = TreeType(capacity)
         current_filename = ""
         unsaved_changes = true

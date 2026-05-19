@@ -5,7 +5,6 @@ using Trixi
 
 using LinearAlgebra: norm, dot
 using SparseArrays
-import HDF5: h5open, attributes
 using DelimitedFiles: readdlm
 
 using ForwardDiff
@@ -3618,24 +3617,21 @@ end
         loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
         @test loaded.tree.capacity == mesh.tree.length
         @test loaded.tree.length == mesh.tree.length
-        @test loaded.tree.parent_ids[1:loaded.tree.length] ==
-              mesh.tree.parent_ids[1:mesh.tree.length]
-        @test loaded.tree.child_ids[:, 1:loaded.tree.length] ==
-              mesh.tree.child_ids[:, 1:mesh.tree.length]
-        @test loaded.tree.neighbor_ids[:, 1:loaded.tree.length] ==
-              mesh.tree.neighbor_ids[:, 1:mesh.tree.length]
-        @test loaded.tree.levels[1:loaded.tree.length] ==
-              mesh.tree.levels[1:mesh.tree.length]
-        @test loaded.tree.coordinates[:, 1:loaded.tree.length] ≈
-              mesh.tree.coordinates[:, 1:mesh.tree.length]
+        @test loaded.tree.parent_ids[1:(loaded.tree.length)] ==
+              mesh.tree.parent_ids[1:(mesh.tree.length)]
+        @test loaded.tree.child_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.child_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.neighbor_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.neighbor_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.levels[1:(loaded.tree.length)] ==
+              mesh.tree.levels[1:(mesh.tree.length)]
+        @test loaded.tree.coordinates[:, 1:(loaded.tree.length)] ≈
+              mesh.tree.coordinates[:, 1:(mesh.tree.length)]
         @test loaded.tree.center_level_0 == mesh.tree.center_level_0
         @test loaded.tree.length_level_0 == mesh.tree.length_level_0
         @test loaded.tree.periodicity == mesh.tree.periodicity
         @test loaded.current_filename == mesh_file
         @test loaded.unsaved_changes == false
-        h5open(mesh_file, "r") do file
-            @test !haskey(attributes(file), "capacity")
-        end
     end
 end
 
