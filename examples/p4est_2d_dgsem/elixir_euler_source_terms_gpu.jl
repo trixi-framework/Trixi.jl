@@ -1,5 +1,5 @@
 # The same setup as tree_2d_dgsem/elixir_euler_source_terms.jl
-# to verify the StructuredMesh implementation against TreeMesh
+# to verify the P4estMesh implementation against TreeMesh
 
 using OrdinaryDiffEqLowStorageRK
 using Trixi
