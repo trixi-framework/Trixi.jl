@@ -92,7 +92,7 @@ using Static: Static, One, True, False
     Trixi.Threaded()
 
 Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi's threading backend preference.
-[Trixi.set_threading_backend!](@ref) can be used to change the threading backend preference.
+[`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference.
 """ Threaded
 
 @static if _PREFERENCE_THREADING === "polyester"
