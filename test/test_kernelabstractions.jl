@@ -46,7 +46,8 @@ end
 end
 
 @trixi_testset "elixir_euler_source_terms.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[9.321181254378498e-7,
                             1.418121074369651e-6,
@@ -65,7 +66,8 @@ end
 @trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=Float32[2.4917018095933837e-6,
                                    2.7148269885239423e-6,
@@ -115,7 +117,8 @@ end
 end
 
 @trixi_testset "elixir_euler_source_terms.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[
                             4.893619139889976e-5,
@@ -140,7 +143,8 @@ end
 @trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=Float32[4.912578089985958e-5,
                                    5.3683407014580115e-5,
