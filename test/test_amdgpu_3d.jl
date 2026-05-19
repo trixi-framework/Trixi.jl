@@ -67,8 +67,8 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
 end
 
-@trixi_testset "elixir_euler_source_terms_gpu.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_gpu.jl"),
+@trixi_testset "elixir_euler_source_terms.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[
                             4.893619139889976e-5,
@@ -103,10 +103,10 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms_gpu.jl Float32 / AMDGPU" begin
+@trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_gpu.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=Float32[4.912578089985958e-5,
                                    5.3683407014580115e-5,

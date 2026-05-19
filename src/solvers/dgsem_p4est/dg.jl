@@ -85,7 +85,6 @@ end
 end
 
 include("containers.jl")
-include("dg_1d_gpu.jl")
 
 include("dg_2d.jl")
 include("dg_2d_parabolic.jl")
