@@ -29,9 +29,14 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
     unsaved_changes::Bool
 
+    # When partitioning the mesh, do not split families of same-level siblings,
+    # thus allowing to coarsen again.
+    const partition_allow_for_coarsening::Bool
+
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
                                current_filename,
+                               partition_allow_for_coarsening,
                                RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
         mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
@@ -45,7 +50,8 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                                                                 -1, # nboundaries
                                                                                 -1, # nmpiinterfaces
                                                                                 -1, # nmpimortars
-                                                                                true)
+                                                                                true,
+                                                                                partition_allow_for_coarsening)
 
         finalizer(mesh) do mesh
             # In serial mode we can finalize the forest right away. In parallel
@@ -103,7 +109,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
         setup = [
             "#trees" => ntrees(mesh),
             "current #cells" => ncellsglobal(mesh),
-            "polydeg" => length(mesh.nodes) - 1
+            "polydeg" => length(mesh.nodes) - 1,
+            "partition for coarsening" => mesh.partition_allow_for_coarsening ? "yes" : "no"
         ]
         summary_box(io,
                     "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}",
@@ -137,7 +144,8 @@ Returns a `T8codeMesh` object with a forest reconstructed by the input arguments
 """
 function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
                     boundary_names, treeIDs, neighIDs, faces, duals,
-                    orientations, levels, num_elements_per_tree)
+                    orientations, levels, num_elements_per_tree,
+                    partition_allow_for_coarsening)
     # Allocate new cmesh object.
     cmesh = t8_cmesh_new()
 
@@ -254,19 +262,23 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     # For each tree the callback recursively increases the refinement level
     # till it matches with the associated section in `levels.
     forest = adapt_forest(forest, adapt_callback; recursive = true, balance = false,
-                          partition = false, ghost = false, user_data = C_NULL)
+                          partition = false, ghost = false,
+                          partition_allow_for_coarsening = partition_allow_for_coarsening,
+                          user_data = C_NULL)
 
     @assert t8_forest_get_global_num_leaf_elements(forest) == nelements
 
     if mpi_isparallel()
-        forest = partition_forest(forest)
+        forest = partition_forest(forest, partition_allow_for_coarsening)
     end
 
-    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
+    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "",
+                             partition_allow_for_coarsening)
 end
 
 """
-    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping = nothing)
+    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping = nothing,
+                             partition_allow_for_coarsening = true)
 
 Main mesh constructor for the `T8codeMesh` wrapping around a given t8code
 `forest` object. This constructor is typically called by other `T8codeMesh`
@@ -280,9 +292,13 @@ constructors.
                       of the specified degree for each tree.
 - `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polydeg = 1,
-                                  mapping = nothing) where {NDIMS, RealT}
+                                  mapping = nothing,
+                                  partition_allow_for_coarsening = true) where {NDIMS, RealT
+                                                                                }
     # In t8code reference space is [0,1].
     basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = 0.5f0 .* (basis.nodes .+ 1)
@@ -385,12 +401,13 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
     map_node_coordinates!(tree_node_coordinates, mapping)
 
     return T8codeMesh{NDIMS}(forest, tree_node_coordinates, basis.nodes,
-                             boundary_names, "")
+                             boundary_names, "", partition_allow_for_coarsening)
 end
 
 """
     T8codeMesh(trees_per_dimension; polydeg, mapping=identity,
-               RealT=Float64, initial_refinement_level=0, periodicity=false)
+               RealT=Float64, initial_refinement_level=0, periodicity=false,
+               partition_allow_for_coarsening=true)
 
 Create a structured potentially curved 'T8codeMesh' of the specified size.
 
@@ -423,12 +440,15 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
 - 'initial_refinement_level::Integer': refine the mesh uniformly to this level before the simulation starts.
 - 'periodicity': either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(trees_per_dimension; polydeg = 1,
                     mapping = nothing, faces = nothing, coordinates_min = nothing,
                     coordinates_max = nothing,
                     RealT = Float64, initial_refinement_level = 0,
-                    periodicity = false)
+                    periodicity = false,
+                    partition_allow_for_coarsening = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
     coordinates_min_max_check(coordinates_min, coordinates_max)
@@ -507,7 +527,7 @@ end
 """
     T8codeMesh(cmesh::Ptr{t8_cmesh},
                mapping=nothing, polydeg=1, RealT=Float64,
-               initial_refinement_level=0)
+               initial_refinement_level=0, partition_allow_for_coarsening=true)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured,
 conforming mesh from a `t8_cmesh` data structure.
@@ -523,10 +543,12 @@ conforming mesh from a `t8_cmesh` data structure.
                       will curve the imported uncurved mesh.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(cmesh::Ptr{t8_cmesh};
                     mapping = nothing, polydeg = 1, RealT = Float64,
-                    initial_refinement_level = 0)
+                    initial_refinement_level = 0, partition_allow_for_coarsening = true)
     @assert (t8_cmesh_get_num_trees(cmesh)>0) "Given `cmesh` does not contain any trees."
 
     # Infer NDIMS from the geometry of the first tree.
@@ -543,7 +565,8 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     boundary_names = fill(:all, 2 * NDIMS, t8_cmesh_get_num_trees(cmesh))
 
     return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
-                                    mapping = mapping)
+                                    mapping = mapping,
+                                    partition_allow_for_coarsening = partition_allow_for_coarsening)
 end
 
 """
@@ -563,6 +586,8 @@ conforming mesh from a `p4est_connectivity` data structure.
                       will curve the imported uncurved mesh.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
@@ -587,6 +612,8 @@ conforming mesh from a `p4est_connectivity` data structure.
                       will curve the imported uncurved mesh.
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), 0)
@@ -624,6 +651,8 @@ by the file extension.
                       will curve the imported uncurved mesh.
 - `RealT::Type`: The type that should be used for coordinates.
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(filepath::String, ndims; kwargs...)
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
@@ -663,6 +692,8 @@ mesh from a Gmsh mesh file (`.msh`).
                       will curve the imported uncurved mesh.
 - `RealT::Type`: The type that should be used for coordinates.
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
@@ -679,7 +710,7 @@ end
     T8codeMesh(meshfile::AbaqusFile{NDIMS};
                mapping=nothing, polydeg=1, RealT=Float64,
                initial_refinement_level=0, unsaved_changes=true,
-               boundary_symbols = nothing)
+               boundary_symbols = nothing, partition_allow_for_coarsening=true)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`).
@@ -735,11 +766,14 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 - `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
                                       If `nothing` is passed then all boundaries are named `:all`.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                     mapping = nothing, polydeg = 1, RealT = Float64,
                     initial_refinement_level = 0,
-                    boundary_symbols = nothing) where {NDIMS}
+                    boundary_symbols = nothing,
+                    partition_allow_for_coarsening = true) where {NDIMS}
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(meshfile.path)
 
@@ -776,7 +810,7 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                                    mpi_comm())
 
     return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
-                             boundary_names, "")
+                             boundary_names, "", partition_allow_for_coarsening)
 end
 
 function t8_cmesh_new_from_connectivity(connectivity::Ptr{p4est_connectivity}, comm)
@@ -789,7 +823,8 @@ end
 
 """
 T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
-                      polydeg, RealT=Float64, initial_refinement_level=0)
+                      polydeg, RealT=Float64, initial_refinement_level=0,
+                      partition_allow_for_coarsening=true)
 
 Construct a cubed spherical shell of given inner radius and thickness as `T8codeMesh` with
 `6 * trees_per_face_dimension^2 * layers` trees. The mesh will have two boundaries,
@@ -809,10 +844,13 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
 - `RealT::Type`: the type that should be used for coordinates.
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the
                                        simulation starts.
+- `partition_allow_for_coarsening`: When partitioning the mesh, do not split families of
+                                    same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                thickness;
-                               polydeg, RealT = Float64, initial_refinement_level = 0)
+                               polydeg, RealT = Float64, initial_refinement_level = 0,
+                               partition_allow_for_coarsening = true)
     NDIMS = 3
     cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
                                                trees_per_face_dimension,
@@ -829,7 +867,8 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
         boundary_names[6, itree] = :outside
     end
 
-    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg)
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
+                                    partition_allow_for_coarsening = partition_allow_for_coarsening)
 end
 
 struct adapt_callback_passthrough
@@ -896,9 +935,9 @@ Note that the old forest usually gets deallocated within t8code. Call
 Returns a `Ptr{t8_forest}` to a new forest.
 """
 function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt_callback;
-                      recursive = true,
-                      balance = true,
-                      partition = true, ghost = true, user_data = C_NULL)
+                      recursive = false, balance = true, partition = true, ghost = true,
+                      partition_allow_for_coarsening = true, user_data = C_NULL)
+
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
@@ -981,7 +1020,10 @@ Returns `nothing`.
 """
 function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
     # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
-    update_forest!(mesh, adapt_forest(mesh.forest, adapt_callback; kwargs...))
+    update_forest!(mesh,
+                   adapt_forest(mesh.forest, adapt_callback;
+                                partition_allow_for_coarsening = mesh.partition_allow_for_coarsening,
+                                kwargs...))
     return nothing
 end
 
@@ -1041,7 +1083,7 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 Returns `nothing`.
 """
 function partition!(mesh::T8codeMesh)
-    update_forest!(mesh, partition_forest(mesh.forest))
+    update_forest!(mesh, partition_forest(mesh.forest, mesh.partition_allow_for_coarsening))
     return nothing
 end
 
