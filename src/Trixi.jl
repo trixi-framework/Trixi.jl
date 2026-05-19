@@ -92,7 +92,10 @@ using Static: Static, One, True, False
     Trixi.Threaded()
 
 Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
-[`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference.
+[`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference. Both OrdinaryDiffEq.jl and
+Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend, 
+(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms, 
+since we have observed negative interactions between Polyester.jl and the Julia native shared memory parallelism.
 """ Threaded
 
 @static if _PREFERENCE_THREADING === "polyester"
