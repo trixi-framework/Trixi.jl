@@ -917,14 +917,14 @@ function adapt_callback_wrapper(forest,
 end
 
 """
-    Trixi.adapt_forest(forest::Ptr{t8_forest}, adapt_callback; kwargs...)
+    Trixi.adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt_callback; kwargs...)
 
 Adapt a `T8codeMesh` according to a user-defined `adapt_callback`. This
 function is primarily for internal use. See `Trixi.adapt!(mesh::T8codeMesh,
 adapt_callback; kwargs...)` for a more detailed documentation.
 
 # Arguments
-- `forest::Ptr{t8_forest}`: New forest.
+- `forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}`: New forest.
 - `adapt_callback`: A user-defined callback which tells the adaption routines
                     if an element should be refined, coarsened or stay unchanged.
 - `kwargs`: Refer to `Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)`.
@@ -948,11 +948,11 @@ function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt
 
     # Check out `examples/t8_step4_partition_balance_ghost.jl` in
     # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
-    let set_from = C_NULL, set_for_coarsening = 0, no_repartition = !partition
+    let set_from = forest, no_repartition = !partition
         t8_forest_set_user_data(new_forest,
                                 pointer_from_objref(Ref(adapt_callback_passthrough(adapt_callback,
                                                                                    user_data))))
-        t8_forest_set_adapt(new_forest, forest,
+        t8_forest_set_adapt(new_forest, set_from,
                             @t8_adapt_callback(adapt_callback_wrapper),
                             recursive)
         if balance
@@ -960,7 +960,7 @@ function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt
         end
 
         if partition
-            t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+            t8_forest_set_partition(new_forest, set_from, partition_allow_for_coarsening)
         end
 
         if ghost
@@ -1056,14 +1056,13 @@ function balance!(mesh::T8codeMesh)
     return nothing
 end
 
-function partition_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
+function partition_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}},
+                          partition_allow_for_coarsening)
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    # TODO: set allow_for_coarsening = 1 once
-    #       https://github.com/DLR-AMR/t8code/pull/2280 has been fixed
-    let set_from = forest, do_ghost = 1, allow_for_coarsening = 0
+    let set_from = forest, do_ghost = 1, allow_for_coarsening = partition_allow_for_coarsening
         t8_forest_set_partition(new_forest, set_from, allow_for_coarsening)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)
