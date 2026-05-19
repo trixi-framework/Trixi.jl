@@ -33,12 +33,12 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     first_cell_by_rank::OffsetVector{Int, Vector{Int}}
     n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
-    function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer) where {NDIMS,
-                                                                           TreeType <:
-                                                                           AbstractTree{NDIMS},
-                                                                           RealT <:
-                                                                           Real}
-        tree = TreeType(n_cells_max)
+    function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer) where {NDIMS,
+                                                                        TreeType <:
+                                                                        AbstractTree{NDIMS},
+                                                                        RealT <:
+                                                                        Real}
+        tree = TreeType(capacity)
         current_filename = ""
         unsaved_changes = true
         first_cell_by_rank = OffsetVector(Int[], 0)
@@ -48,15 +48,14 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
                    first_cell_by_rank, n_cells_by_rank)
     end
 
-    # TODO: Taal refactor, order of important arguments, use of n_cells_max?
-    function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
+    function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer,
                                               domain_center::AbstractArray{RealT},
                                               domain_length::RealT,
                                               periodicity = false) where {NDIMS,
                                                                           TreeType <:
                                                                           AbstractTree{NDIMS},
                                                                           RealT <: Real}
-        tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
+        tree = TreeType(capacity, domain_center, domain_length, periodicity)
         current_filename = ""
         unsaved_changes = true
         first_cell_by_rank = OffsetVector(Int[], 0)
@@ -94,14 +93,14 @@ function TreeMesh{1, TreeType, RealT}(n::Int, center::RealT, len::RealT,
     return TreeMesh{1, TreeType, RealT}(n, SVector{1, RealT}(center), len, periodicity)
 end
 
-function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
+function TreeMesh{NDIMS, TreeType, RealT}(capacity::Integer,
                                           domain_center::NTuple{NDIMS, RealT},
                                           domain_length::RealT,
                                           periodicity = false) where {NDIMS,
                                                                       TreeType <:
                                                                       AbstractTree{NDIMS},
                                                                       RealT <: Real}
-    return TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
+    return TreeMesh{NDIMS, TreeType, RealT}(capacity,
                                             SVector{NDIMS, RealT}(domain_center),
                                             domain_length, periodicity)
 end
@@ -109,7 +108,6 @@ end
 """
     TreeMesh(coordinates_min::NTuple{NDIMS, Real},
              coordinates_max::NTuple{NDIMS, Real};
-             n_cells_max = nothing,
              periodicity = false,
              initial_refinement_level,
              refinement_patches = (),
@@ -120,10 +118,8 @@ Create a `TreeMesh` in `NDIMS` dimensions with real type `RealT` covering the do
 `coordinates_min` and `coordinates_max`. The mesh is initialized with a uniform
 refinement to the specified `initial_refinement_level`. Further refinement and
 coarsening patches can be specified using `refinement_patches` and
-`coarsening_patches`, respectively. `n_cells_max` sets the initial capacity of the mesh
-data structures. If omitted (default), the capacity is derived from
-`initial_refinement_level`. The mesh grows automatically beyond the initial capacity
-when AMR requires more cells. The periodicity in each dimension can be specified using the
+`coarsening_patches`, respectively.
+The periodicity in each dimension can be specified using the
 `periodicity` argument (default: non-periodic in all dimensions). If it is a single
 `Bool`, the same periodicity is applied in all dimensions; otherwise, a tuple of
 `Bool`s of length `NDIMS` must be provided. Note that the domain must be a hypercube, i.e.,
@@ -131,16 +127,12 @@ all dimensions must have the same length.
 """
 function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   coordinates_max::NTuple{NDIMS, Real};
-                  n_cells_max = nothing,
                   periodicity = false,
                   initial_refinement_level,
                   refinement_patches = (),
                   coarsening_patches = (),
                   RealT = Float64) where {NDIMS}
     # check arguments
-    if !(n_cells_max === nothing || (n_cells_max isa Integer && n_cells_max > 0))
-        throw(ArgumentError("`n_cells_max` must be a positive integer or `nothing` (provided `n_cells_max = $n_cells_max`)"))
-    end
     if !(initial_refinement_level isa Integer && initial_refinement_level >= 0)
         throw(ArgumentError("`initial_refinement_level` must be a non-negative integer (provided `initial_refinement_level = $initial_refinement_level`)"))
     end
@@ -176,14 +168,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         TreeType = SerialTree{NDIMS, RealT}
     end
 
-    # Resolve initial capacity: use provided value or derive from refinement level
-    if n_cells_max === nothing
-        # Compute initial tree capacity for uniform refinement to the given
-        # `initial_refinement_level`.
-        capacity = sum((2^NDIMS)^l for l in 0:initial_refinement_level)
-    else
-        capacity = n_cells_max
-    end
+    capacity = sum((2^NDIMS)^l for l in 0:initial_refinement_level)
 
     # Create mesh
     mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType, RealT}(capacity,

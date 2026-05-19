@@ -87,12 +87,10 @@ end
         # 2D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
         # 3D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
     end
 
@@ -106,7 +104,7 @@ end
             for ref_level in 0:2
                 mesh = TreeMesh(coords_min, coords_max,
                                 initial_refinement_level = ref_level,
-                                n_cells_max = 10_000, periodicity = true)
+                                periodicity = true)
 
                 @test @inferred(Trixi.ndims(mesh)) == ndims
                 @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
@@ -1003,7 +1001,6 @@ end
     solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
-                    n_cells_max = 30_000,
                     periodicity = true)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
@@ -3023,7 +3020,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
@@ -3124,7 +3120,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
 
     ###############################################################################
@@ -3200,7 +3195,7 @@ end
     # 1D
     eq1d = LinearScalarAdvectionEquation1D(1.0)
     tree_mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh1d_periodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                 periodicity = true)
     for mesh1d_periodic in (tree_mesh1d_periodic,
@@ -3236,7 +3231,7 @@ end
     end
     # non-periodic mesh
     tree_mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh1d_nonperiodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                    periodicity = false)
     for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
@@ -3265,7 +3260,7 @@ end
     eq2d = LinearScalarAdvectionEquation2D((1.0, -1.0))
     tree_mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh2d_periodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                 periodicity = true)
     for mesh2d_periodic in (tree_mesh2d_periodic,
@@ -3311,7 +3306,7 @@ end
     # non-periodic mesh
     tree_mesh2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh2d_nonperiodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                    periodicity = false)
     for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
@@ -3345,7 +3340,6 @@ end
     # partially periodic
     tree_mesh2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (true, false))
     structured_mesh2d_partial_periodic = StructuredMesh((4, 4), (-1.0, -1.0),
                                                         (1.0, 1.0),
@@ -3386,7 +3380,7 @@ end
     eq3d = LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
     tree_mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh3d_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                 (1.0, 1.0, 1.0),
                                                 periodicity = true)
@@ -3440,7 +3434,7 @@ end
     # non-periodic mesh
     tree_mesh3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh3d_nonperiodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                    (1.0, 1.0, 1.0),
                                                    periodicity = false)
@@ -3482,7 +3476,6 @@ end
     # partially periodic
     tree_mesh3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (false, true, true))
     structured_mesh3d_partial_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                         (1.0, 1.0, 1.0),
@@ -3564,29 +3557,34 @@ end
 end
 end
 
-@testset "TreeMesh without n_cells_max" begin
+@testset "TreeMesh default initial capacity" begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
         mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        expected_capacity = sum((2^NDIMS)^l for l in 0:2)
         @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
+        @test mesh.tree.capacity == expected_capacity
         @test mesh.tree.capacity >= mesh.tree.length
     end
 end
 
 @testset "TreeMesh auto-growth matches large-capacity tree" begin
     for NDIMS in 1:2
-        coords_min = ntuple(_ -> -1.0, NDIMS)
-        coords_max = ntuple(_ -> 1.0, NDIMS)
+        RealT = Float64
+        TreeType = Trixi.SerialTree{NDIMS, RealT}
+        domain_center = SVector{NDIMS, RealT}(ntuple(_ -> 0.0, NDIMS))
+        domain_length = convert(RealT, 2.0)
 
         # Reference: large capacity, no growth needed
-        mesh_ref = TreeMesh(coords_min, coords_max;
-                            n_cells_max = 10_000,
-                            initial_refinement_level = 3)
-        # Test: starts tiny, must grow during construction and again during AMR
-        mesh_small = TreeMesh(coords_min, coords_max;
-                              n_cells_max = 2,
-                              initial_refinement_level = 3)
+        mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
+                                                    domain_length)
+        Trixi.initialize!(mesh_ref, 3, (), ())
+
+        # Small: deliberately tiny initial capacity, must grow
+        mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
+                                                      domain_length)
+        Trixi.initialize!(mesh_small, 3, (), ())
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
@@ -3610,34 +3608,37 @@ end
     end
 end
 
-@testset "load_mesh n_cells_max compatibility" begin
+@testset "load_mesh_serial restores tree data" begin
     mktempdir() do dir
         mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
-                        initial_refinement_level = 2, n_cells_max = 1000)
+                        initial_refinement_level = 2)
         mesh_file = Trixi.save_mesh_file(mesh, dir)
-        saved_cap = mesh.tree.capacity
 
-        # n_cells_max = nothing: use saved capacity
-        m1 = Trixi.load_mesh_serial(mesh_file; n_cells_max = nothing, RealT = Float64)
-        @test m1.tree.capacity == saved_cap
-
-        # n_cells_max = 0: legacy alias, use saved capacity
-        m2 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 0, RealT = Float64)
-        @test m2.tree.capacity == saved_cap
-
-        # n_cells_max smaller than saved: still use saved capacity
-        m3 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 1, RealT = Float64)
-        @test m3.tree.capacity == saved_cap
-
-        # n_cells_max larger than saved: use provided value
-        m4 = Trixi.load_mesh_serial(mesh_file; n_cells_max = saved_cap + 500,
-                                    RealT = Float64)
-        @test m4.tree.capacity == saved_cap + 500
-
-        # negative value: rejected
-        @test_throws ArgumentError Trixi.load_mesh_serial(mesh_file; n_cells_max = -1,
-                                                          RealT = Float64)
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test loaded.tree.capacity == mesh.tree.length
+        @test loaded.tree.length == mesh.tree.length
+        @test loaded.tree.parent_ids[1:(loaded.tree.length)] ==
+              mesh.tree.parent_ids[1:(mesh.tree.length)]
+        @test loaded.tree.child_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.child_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.neighbor_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.neighbor_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.levels[1:(loaded.tree.length)] ==
+              mesh.tree.levels[1:(mesh.tree.length)]
+        @test loaded.tree.coordinates[:, 1:(loaded.tree.length)] ≈
+              mesh.tree.coordinates[:, 1:(mesh.tree.length)]
+        @test loaded.tree.center_level_0 == mesh.tree.center_level_0
+        @test loaded.tree.length_level_0 == mesh.tree.length_level_0
+        @test loaded.tree.periodicity == mesh.tree.periodicity
+        @test loaded.current_filename == mesh_file
+        @test loaded.unsaved_changes == false
     end
+end
+
+@testset "removed TreeMesh capacity keyword is rejected" begin
+    removed_kw = Symbol("n_cells", "_max")
+    kwargs = (; initial_refinement_level = 1, removed_kw => 10)
+    @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
 end #module

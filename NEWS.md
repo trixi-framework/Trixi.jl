@@ -5,6 +5,19 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.17 from v0.16.x
+
+#### Changed
+
+- The keyword argument `n_cells_max` has been removed from the `TreeMesh`
+  constructor and from `load_mesh`. Previously it set the initial capacity of
+  the internal tree data structure; since `TreeMesh` now auto-resizes as needed,
+  the argument is no longer necessary. To migrate, simply remove any
+  `n_cells_max = ...` argument from existing code. TreeMesh mesh files no longer
+  store the internal `capacity` HDF5 attribute; new versions derive storage from
+  `n_cells` when loading, while older files that still contain `capacity` remain
+  readable ([#3021]).
+
 ## Changes in the v0.16 lifecycle
 
 #### Added

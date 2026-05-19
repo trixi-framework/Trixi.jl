@@ -15,8 +15,7 @@ coordinates_min = (-1.0,)
 coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 # BC types
 boundary_condition_left = BoundaryConditionDirichlet((x, t, equations_parabolic) -> 1.0)

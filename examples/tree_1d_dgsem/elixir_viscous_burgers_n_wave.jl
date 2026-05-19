@@ -16,7 +16,6 @@ coordinates_max = 0.2
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 # This solution comprises a compression wave followed by a rarefaction wave

@@ -102,7 +102,6 @@ coordinates_max = (20_000.0, 15_000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = (true, false))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,

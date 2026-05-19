@@ -21,7 +21,6 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 # you can either use a single function to impose the BCs weakly in all

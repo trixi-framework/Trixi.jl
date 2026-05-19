@@ -18,7 +18,6 @@ coordinates_max = (Float64(pi), Float64(pi))
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation2D)

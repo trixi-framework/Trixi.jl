@@ -279,7 +279,7 @@ end
 
     # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
     mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                    initial_refinement_level = 4, n_cells_max = 10^4,
+                    initial_refinement_level = 4,
                     periodicity = true)
 
     # Create a DGSEM solver with polynomials of degree `polydeg`
