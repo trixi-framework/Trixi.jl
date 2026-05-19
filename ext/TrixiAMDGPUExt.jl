@@ -49,7 +49,8 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
             str = AMDGPU.HIP.name(dev)
             arch = dev.gcn_arch
             mem = AMDGPU.device!(dev) do
-                AMDGPU.info()
+                free, total = AMDGPU.info()
+                (free = free, total = total)
             end
 
             return (; str, arch, mem)
