@@ -237,23 +237,47 @@ function TreeMesh(coordinates_min::Real, coordinates_max::Real;
 end
 
 """
-    TreeMesh(; coordinates_min, coordinates_max, refinement_level, n_cells_max, kwargs...)
+    TreeMesh(; coordinates_min, coordinates_max, refinement_level,
+               n_cells_max = nothing, periodicity = false,
+               refinement_patches = (), coarsening_patches = (), RealT = Float64)
 
 Create a [`TreeMesh`](@ref) using keyword arguments only, for easy mesh-type swapping
 with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
+
+# Arguments
+- `coordinates_min`: coordinates of the low corner of the domain as a tuple,
+  e.g. `(-1.0, -1.0)` for 2D.
+- `coordinates_max`: coordinates of the high corner of the domain as a tuple.
+  Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: number of uniform refinements;
+  yields `2^refinement_level` cells per dimension.
+- `n_cells_max`: initial capacity of the mesh data structures. If `nothing`
+  (default), the capacity is derived from `refinement_level`. The mesh grows
+  automatically beyond the initial capacity when AMR requires more cells.
+- `periodicity`: either a `Bool` applied to all dimensions or an `NTuple{NDIMS, Bool}`
+  specifying periodicity per dimension. Default: `false`.
+- `refinement_patches`: regions to additionally refine. Default: `()`.
+- `coarsening_patches`: regions to coarsen. Default: `()`.
+- `RealT`: floating-point type for coordinates. Default: `Float64`.
 """
 function TreeMesh(; coordinates_min,
                   coordinates_max,
                   refinement_level,
-                  n_cells_max,
-                  kwargs...)
+                  n_cells_max = nothing,
+                  periodicity = false,
+                  refinement_patches = (),
+                  coarsening_patches = (),
+                  RealT = Float64)
     if length(coordinates_min) != length(coordinates_max)
         throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
     end
     return TreeMesh(coordinates_min, coordinates_max;
                     initial_refinement_level = refinement_level,
                     n_cells_max = n_cells_max,
-                    kwargs...)
+                    periodicity = periodicity,
+                    refinement_patches = refinement_patches,
+                    coarsening_patches = coarsening_patches,
+                    RealT = RealT)
 end
 
 function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}

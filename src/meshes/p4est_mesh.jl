@@ -246,7 +246,10 @@ function P4estMesh(trees_per_dimension; polydeg,
 end
 
 """
-    P4estMesh(; coordinates_min, coordinates_max, refinement_level, polydeg=1, kwargs...)
+    P4estMesh(; coordinates_min, coordinates_max, refinement_level,
+                polydeg = 1, RealT = Float64, periodicity = false,
+                unsaved_changes = true,
+                p4est_partition_allow_for_coarsening = true)
 
 Create a rectangular `P4estMesh` using keyword arguments only, for easy mesh-type swapping
 with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), and [`T8codeMesh`](@ref).

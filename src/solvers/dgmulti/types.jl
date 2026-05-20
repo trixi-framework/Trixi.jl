@@ -309,6 +309,17 @@ with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and
 [`T8codeMesh`](@ref).
 
 The number of cells per dimension is `2^refinement_level`.
+
+- `dg::DGMulti` contains information associated with the reference element (e.g., quadrature,
+  basis evaluation, differentiation, etc).
+- `coordinates_min` is a vector or tuple of the coordinates of the corner in the negative direction of each dimension.
+  Must have the same length as `coordinates_max`.
+- `coordinates_max` is a vector or tuple of the coordinates of the corner in the positive direction of each dimension.
+  Must have the same length as `coordinates_min`.
+- `refinement_level` sets the number of cells per dimension to `2^refinement_level`.
+- `is_on_boundary` specifies boundary using a `NamedTuple`. Default: `nothing`.
+- `periodicity` is a tuple of booleans specifying if the domain is periodic `true`/`false` in the
+  (x,y,z) direction. Default: non-periodic in all dimensions.
 """
 function DGMultiMesh(dg::DGMulti{NDIMS};
                      coordinates_min,
