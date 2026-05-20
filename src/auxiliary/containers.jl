@@ -302,7 +302,7 @@ end
     trixi_backend_info!(setup, backend)
 
 Add information about the computational backend to `setup`, which is a vector of key-value pairs.
-Used by Trixi's summary callback to print information about the simulation setup.
+Used by Trixi.jl's summary callback to print information about the simulation setup.
 """
 function trixi_backend_info!(_, ::Nothing)
     return nothing
