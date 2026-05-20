@@ -82,6 +82,35 @@ end
     return ncalls_first
 end
 
+# TODO: move to KernelAbstractions
+"""
+    profiling_range_active(backend)
+
+Returns `true` if the given `backend` supports range annotations and a profiler is active, `false` otherwise.
+"""
+function profiling_range_active(backend::Any)
+    return false
+end
+
+"""
+    profiling_range_start(backend, label)
+
+Starts a range annotation for the given `backend` with the specified `label`.
+Returns a handle to the started range, which should be passed to `profiling_range_end` to end the range annotation.
+"""
+function profiling_range_start(backend::Any, label)
+    return nothing
+end
+
+"""
+    profiling_range_end(backend, id)
+
+Ends a range annotation for the given `backend` with the specified `id`.
+"""
+function profiling_range_end(backend::Any, id)
+    return nothing
+end
+
 """
     @trixi_timeit_ext backend timer() "some label" expression
 
@@ -93,9 +122,16 @@ See also [`@trixi_timeit`](@ref).
 """
 macro trixi_timeit_ext(backend, timer_output, label, expr)
     expr = quote
+        local active = $profiling_range_active($(esc(backend)))
+        if active
+            id = $profiling_range_start($(esc(backend)), $(esc(label)))
+        end
         local val = $(esc(expr))
         if $(esc(backend)) !== nothing && $(TrixiBase).timeit_debug_enabled()
             $(KernelAbstractions.synchronize)($(esc(backend)))
+        end
+        if active
+            $profiling_range_end($(esc(backend)), id)
         end
         val
     end
