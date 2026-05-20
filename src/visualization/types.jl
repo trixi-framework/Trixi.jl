@@ -274,8 +274,45 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
     levels = mesh.tree.levels[leaf_cell_ids]
 
+
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
+
+    #neue Idee
+
+if nnodes(solver) == 1 && ndims(mesh) == 2
+        # Bestimme das maximale Level und die Auflösung als Integer
+        max_level = maximum(levels)
+        true_resolution = Int(2^max_level) # Unbedingt als Int!
+        
+        # Deine Argumente laut Stacktrace:
+        # 1. unstructured_data
+        # 2. normalized_coordinates (entspricht coordinates in PlotData2DCartesian)
+        # 3. levels
+        # 4. resolution (erwartet vermutlich ein SVector oder Tupel/Wert für die Auflösung)
+        # 5. nvisnodes_per_level (da nvisnodes=0/nothing ist, übergeben wir 1 oder 1.0 als Int)
+        resolution_param = [true_resolution, true_resolution] 
+        nvis_param = 1
+        
+        structured_matrix = unstructured2structured(unstructured_data, coordinates, levels, resolution_param, nvis_param)
+        
+        if structured_matrix isa Vector
+            data = structured_matrix
+        else
+            data = [structured_matrix]
+        end
+        
+        # Erstelle die Achsen-Mittelpunkte für Plots.jl
+        x = collect(range(-1.0 + 1.0/true_resolution, 1.0 - 1.0/true_resolution, length=true_resolution))
+        y = copy(x)
+        
+        mesh_vertices_x = Float64[]
+        mesh_vertices_y = Float64[]
+    else
+
+    #ende neue Idee
+
+
     x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
                                                                length_level_0,
                                                                leaf_cell_ids,
@@ -287,6 +324,9 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                                                max_supported_level,
                                                                nvisnodes,
                                                                slice, point)
+    #neu
+    end
+    #ende neu
     variable_names = SVector(varnames(solution_variables_, equations))
 
     orientation_x, orientation_y = _get_orientations(mesh, slice)

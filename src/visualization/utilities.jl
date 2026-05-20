@@ -1402,6 +1402,39 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
+    println("DEBUG: n_nodes_in ist aktuell: ", n_nodes_in, " | Shape: ", size(unstructured_data))
+
+    #Idee für FV, neu
+
+    if n_nodes_in == 1
+        max_level = maximum(levels)
+        true_resolution = 2^max_level
+        
+        # 1. Datenmatrix in der perfekten, unaufgeblähten Größe (z.B. 4x4) erstellen
+        structured = [Matrix{Float64}(undef, true_resolution, true_resolution) for _ in 1:n_variables]
+        
+        # 2. Die Elemente basierend auf ihren normierten Koordinaten einsortieren
+        for element_id in 1:n_elements
+            cx, cy = normalized_coordinates[:, element_id]
+            
+            # Mappe von [-1, 1] auf die diskreten Indizes [1, true_resolution]
+            ix = round(Int, (cx + 1) / 2 * true_resolution + 0.5)
+            iy = round(Int, (cy + 1) / 2 * true_resolution + 0.5)
+            
+            ix = clamp(ix, 1, true_resolution)
+            iy = clamp(iy, 1, true_resolution)
+            
+            for v in 1:n_variables
+                structured[v][ix, iy] = unstructured_data[1, 1, element_id, v]
+            end
+        end
+        
+        # Wir geben die saubere Matrix zurück. Die Achsen-Korrektur passiert im Plot-Rezept!
+        return structured
+    end
+    
+    # #ab hier wieder wie vorher
+
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
 
