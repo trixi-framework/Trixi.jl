@@ -79,8 +79,9 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true) isa
-              TreeMesh
+        mesh = @inferred TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0,
+                                                                            true)
+        @test mesh isa TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
@@ -118,8 +119,8 @@ end
                                 initial_refinement_level = ref_level,
                                 n_cells_max = 10_000, periodicity = true)
 
-                @test Trixi.ndims(mesh) == ndims
-                @test Trixi.ncells(mesh) == (2^ndims)^ref_level
+                @test @inferred(Trixi.ndims(mesh)) == ndims
+                @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
             end
         end
     end
@@ -130,7 +131,7 @@ end
         @testset "mpi_nranks() = 2" begin
             Trixi.mpi_nranks() = 2
             let
-                @test Trixi.mpi_nranks() == 2
+                @test @inferred(Trixi.mpi_nranks()) == 2
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
@@ -3624,6 +3625,82 @@ end
     @test_throws ArgumentError DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
                                            coordinates_max = (1.0, 1.0, 1.0),
                                            refinement_level = 2)
+end
+
+@testset "TreeMesh without n_cells_max" begin
+    for NDIMS in 1:3
+        coords_min = ntuple(_ -> -1.0, NDIMS)
+        coords_max = ntuple(_ -> 1.0, NDIMS)
+        mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
+        @test mesh.tree.capacity >= mesh.tree.length
+    end
+end
+
+@testset "TreeMesh auto-growth matches large-capacity tree" begin
+    for NDIMS in 1:2
+        coords_min = ntuple(_ -> -1.0, NDIMS)
+        coords_max = ntuple(_ -> 1.0, NDIMS)
+
+        # Reference: large capacity, no growth needed
+        mesh_ref = TreeMesh(coords_min, coords_max;
+                            n_cells_max = 10_000,
+                            initial_refinement_level = 3)
+        # Test: starts tiny, must grow during construction and again during AMR
+        mesh_small = TreeMesh(coords_min, coords_max;
+                              n_cells_max = 2,
+                              initial_refinement_level = 3)
+
+        # Post-construction AMR: refine all leaf cells once on both trees
+        Trixi.refine!(mesh_ref.tree)
+        Trixi.refine!(mesh_small.tree)
+
+        tr = mesh_ref.tree
+        ts = mesh_small.tree
+
+        @test ts.length == tr.length
+        @test ts.capacity >= ts.length
+        @test ts.parent_ids[1:(ts.length)] == tr.parent_ids[1:(tr.length)]
+        @test ts.child_ids[:, 1:(ts.length)] == tr.child_ids[:, 1:(tr.length)]
+        @test ts.neighbor_ids[:, 1:(ts.length)] == tr.neighbor_ids[:, 1:(tr.length)]
+        @test ts.levels[1:(ts.length)] == tr.levels[1:(tr.length)]
+        @test ts.coordinates[:, 1:(ts.length)] ≈ tr.coordinates[:, 1:(tr.length)]
+        @test ts.original_cell_ids[1:(ts.length)] == tr.original_cell_ids[1:(tr.length)]
+        # Wrapped matrix sizes must match current capacity
+        @test size(ts.child_ids) == (2^NDIMS, ts.capacity + 1)
+        @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
+        @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
+    end
+end
+
+@testset "load_mesh n_cells_max compatibility" begin
+    mktempdir() do dir
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                        initial_refinement_level = 2, n_cells_max = 1000)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+        saved_cap = mesh.tree.capacity
+
+        # n_cells_max = nothing: use saved capacity
+        m1 = Trixi.load_mesh_serial(mesh_file; n_cells_max = nothing, RealT = Float64)
+        @test m1.tree.capacity == saved_cap
+
+        # n_cells_max = 0: legacy alias, use saved capacity
+        m2 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 0, RealT = Float64)
+        @test m2.tree.capacity == saved_cap
+
+        # n_cells_max smaller than saved: still use saved capacity
+        m3 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 1, RealT = Float64)
+        @test m3.tree.capacity == saved_cap
+
+        # n_cells_max larger than saved: use provided value
+        m4 = Trixi.load_mesh_serial(mesh_file; n_cells_max = saved_cap + 500,
+                                    RealT = Float64)
+        @test m4.tree.capacity == saved_cap + 500
+
+        # negative value: rejected
+        @test_throws ArgumentError Trixi.load_mesh_serial(mesh_file; n_cells_max = -1,
+                                                          RealT = Float64)
+    end
 end
 
 end #module
