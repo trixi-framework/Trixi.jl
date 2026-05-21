@@ -69,7 +69,6 @@ end
 
 @trixi_testset "elixir_euler_source_terms.jl native" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-                        # Expected errors are exactly the same as with TreeMesh!
                         l2=[
                             4.893619139889976e-5,
                             5.3526950567182756e-5,
