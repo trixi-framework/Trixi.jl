@@ -172,6 +172,7 @@ function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
                                                size(mesh.md.x), dg))
 end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
+wrap_array_native(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::DGMultiMesh, dg::DGMulti,
