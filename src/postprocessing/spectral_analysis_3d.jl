@@ -9,7 +9,7 @@
     compute_kinetic_energy_spectrum(v1, v2, v3)
 
 Compute an isotropic 1D kinetic energy spectrum from three 3D Cartesian velocity
-components `v1`, `v2`, `v3`. For compressible Euler kinetic energy spectra, 
+components `v1`, `v2`, `v3`. For compressible Euler kinetic energy spectra,
 pass density-weighted components `sqrt(rho) * v1`, `sqrt(rho) * v2`, and `sqrt(rho) * v3`.
 The modal energy is normalized by `1 / N^3`.
 """
@@ -145,7 +145,7 @@ function compute_kinetic_energy_spectrum(u, mesh::DGMultiMesh{3},
                                          equations::AbstractCompressibleEulerEquations,
                                          dg::DGMultiSBP, cache)
     # Unpacks the primitive variables from the conservative state for FDSBP DGMulti solutions
-    u_values = StructArray(u)
+    u_values = parent(u)
     n_points = length(u_values)
     n = round(Int, n_points^(1 / 3))
     q = cons2prim.(u_values, Ref(equations)) # q is the vector that contains the primitive variables for density and velocity converted from the conservative variables
