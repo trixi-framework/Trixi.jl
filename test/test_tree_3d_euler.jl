@@ -186,6 +186,16 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        7.770967315541477e-35,
+        8.808347042794627e-33,
+        0.12307995980341144,
+        0.001913513967052981,
+        1.424996168880913e-5,
+        3.8935136212048387e-7
+    ] rtol=1.0e-12
 end
 
 @trixi_testset "elixir_euler_shockcapturing.jl" begin
