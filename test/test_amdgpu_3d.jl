@@ -14,8 +14,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "AMDGPU 3D" begin
 #! format: noindent
 
-@trixi_testset "elixir_advection_basic_gpu.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+@trixi_testset "elixir_advection_basic.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
@@ -38,10 +38,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_advection_basic_gpu.jl Float32 / AMDGPU" begin
+@trixi_testset "elixir_advection_basic.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
                         l2=[Float32(0.00016263963870641478)],
                         linf=[Float32(0.0014537194925779984)],
@@ -67,9 +67,8 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
 end
 
-@trixi_testset "elixir_euler_source_terms_gpu.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_gpu.jl"),
-                        # Expected errors are exactly the same as with TreeMesh!
+@trixi_testset "elixir_euler_source_terms.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         l2=[
                             4.893619139889976e-5,
                             5.3526950567182756e-5,
@@ -93,6 +92,7 @@ end
     @test real(ode.p.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
+    @test typeof(equations.gamma) == Float64
 
     @test ode.u0 isa Array
     @test ode.p.solver.basis.derivative_matrix isa Array
@@ -103,11 +103,10 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_source_terms_gpu.jl Float32 / AMDGPU" begin
+@trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_gpu.jl"),
-                        # Expected errors are exactly the same as with TreeMesh!
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         l2=Float32[4.912578089985958e-5,
                                    5.3683407014580115e-5,
                                    5.368099834769191e-5,
@@ -120,7 +119,8 @@ end
                                      0.0013591384887696734],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
-                        storage_type=ROCArray, gamma=Float32(1.4))
+                        storage_type=ROCArray,
+                        gamma=Float32(1.4)) # TODO: This should not be required
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
@@ -130,6 +130,7 @@ end
     @test real(ode.p.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
+    @test typeof(equations.gamma) == Float32
 
     @test ode.u0 isa ROCArray
     @test ode.p.solver.basis.derivative_matrix isa ROCArray
