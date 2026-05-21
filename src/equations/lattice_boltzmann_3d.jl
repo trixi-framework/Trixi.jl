@@ -201,14 +201,16 @@ function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
     v_alpha1 = SVector{27, NewRealT}(equations.v_alpha1)
     v_alpha2 = SVector{27, NewRealT}(equations.v_alpha2)
     v_alpha3 = SVector{27, NewRealT}(equations.v_alpha3)
-    return LatticeBoltzmannEquations3D{NewRealT, typeof(equations.collision_op)}(c, c_s, rho0,
-                                                                                  Ma, u0, Re,
-                                                                                  L, nu,
-                                                                                  weights,
-                                                                                  v_alpha1,
-                                                                                  v_alpha2,
-                                                                                  v_alpha3,
-                                                                                  equations.collision_op)
+    return LatticeBoltzmannEquations3D{NewRealT, typeof(equations.collision_op)}(c, c_s,
+                                                                                 rho0,
+                                                                                 Ma, u0,
+                                                                                 Re,
+                                                                                 L, nu,
+                                                                                 weights,
+                                                                                 v_alpha1,
+                                                                                 v_alpha2,
+                                                                                 v_alpha3,
+                                                                                 equations.collision_op)
 end
 
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D)

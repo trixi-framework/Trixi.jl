@@ -90,19 +90,19 @@ end
 
 function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
                                eqs::IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT,
-                                                                    EP}) where {
-                                                                                NVARS,
-                                                                                NCOMP,
-                                                                                RealT,
-                                                                                EP,
-                                                                                NewRealT}
+                                                                   EP}) where {
+                                                                               NVARS,
+                                                                               NCOMP,
+                                                                               RealT,
+                                                                               EP,
+                                                                               NewRealT}
     gammas = SVector{NCOMP, NewRealT}(eqs.gammas)
     charge_to_mass = SVector{NCOMP, NewRealT}(eqs.charge_to_mass)
     c_h = NewRealT(eqs.c_h)
     return IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, NewRealT, EP}(gammas,
-                                                                       charge_to_mass,
-                                                                       eqs.electron_pressure,
-                                                                       c_h)
+                                                                      charge_to_mass,
+                                                                      eqs.electron_pressure,
+                                                                      c_h)
 end
 
 @inline function Base.real(::IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT}) where {

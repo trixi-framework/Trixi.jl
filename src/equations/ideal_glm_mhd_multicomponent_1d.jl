@@ -109,11 +109,12 @@ function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
                                                                                         NVARS,
                                                                                         NCOMP,
                                                                                         RealT,
-                                                                                        NewRealT}
+                                                                                        NewRealT
+                                                                                        }
     gammas = SVector{NCOMP, NewRealT}(eqs.gammas)
     gas_constants = SVector{NCOMP, NewRealT}(eqs.gas_constants)
     return IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, NewRealT}(gammas,
-                                                                         gas_constants)
+                                                                        gas_constants)
 end
 
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations1D) = False()

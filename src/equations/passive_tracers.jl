@@ -30,12 +30,13 @@ end
 
 function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
                                equations::PassiveTracerEquations{NDIMS, NVARS, NTracers,
-                                                                  FlowEquations}) where {
-                                                                                         NDIMS,
-                                                                                         NVARS,
-                                                                                         NTracers,
-                                                                                         FlowEquations,
-                                                                                         NewRealT}
+                                                                 FlowEquations}) where {
+                                                                                        NDIMS,
+                                                                                        NVARS,
+                                                                                        NTracers,
+                                                                                        FlowEquations,
+                                                                                        NewRealT
+                                                                                        }
     flow_equations = Adapt.adapt(to, equations.flow_equations)
     NewFlowEquations = typeof(flow_equations)
     return PassiveTracerEquations{NDIMS, NVARS, NTracers, NewFlowEquations}(flow_equations)

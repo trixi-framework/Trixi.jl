@@ -34,8 +34,9 @@ end
 
 function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
                                equations::LaplaceDiffusionEntropyVariables{NDIMS}) where {
-                                                                                           NDIMS,
-                                                                                           NewRealT}
+                                                                                          NDIMS,
+                                                                                          NewRealT
+                                                                                          }
     diffusivity = equations.diffusivity isa AbstractFloat ?
                   NewRealT(equations.diffusivity) : equations.diffusivity
     equations_hyperbolic = Adapt.adapt(to, equations.equations_hyperbolic)

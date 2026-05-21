@@ -196,13 +196,14 @@ end
 
 function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
                                eqs::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
-                                                                    EP, ET}) where {
-                                                                                    NVARS,
-                                                                                    NCOMP,
-                                                                                    RealT,
-                                                                                    EP,
-                                                                                    ET,
-                                                                                    NewRealT}
+                                                                   EP, ET}) where {
+                                                                                   NVARS,
+                                                                                   NCOMP,
+                                                                                   RealT,
+                                                                                   EP,
+                                                                                   ET,
+                                                                                   NewRealT
+                                                                                   }
     gammas = SVector{NCOMP, NewRealT}(eqs.gammas)
     charge_to_mass = SVector{NCOMP, NewRealT}(eqs.charge_to_mass)
     gas_constants = SVector{NCOMP, NewRealT}(eqs.gas_constants)

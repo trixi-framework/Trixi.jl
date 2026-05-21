@@ -73,7 +73,8 @@ function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
     v_mean_global = SVector{2, NewRealT}(equations.v_mean_global)
     c_mean_global = NewRealT(equations.c_mean_global)
     rho_mean_global = NewRealT(equations.rho_mean_global)
-    return AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+    return AcousticPerturbationEquations2D(v_mean_global, c_mean_global,
+                                           rho_mean_global)
 end
 
 function varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D)

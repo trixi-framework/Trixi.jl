@@ -146,13 +146,15 @@ function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
     weights = SVector{9, NewRealT}(equations.weights)
     v_alpha1 = SVector{9, NewRealT}(equations.v_alpha1)
     v_alpha2 = SVector{9, NewRealT}(equations.v_alpha2)
-    return LatticeBoltzmannEquations2D{NewRealT, typeof(equations.collision_op)}(c, c_s, rho0,
-                                                                                  Ma, u0, Re,
-                                                                                  L, nu,
-                                                                                  weights,
-                                                                                  v_alpha1,
-                                                                                  v_alpha2,
-                                                                                  equations.collision_op)
+    return LatticeBoltzmannEquations2D{NewRealT, typeof(equations.collision_op)}(c, c_s,
+                                                                                 rho0,
+                                                                                 Ma, u0,
+                                                                                 Re,
+                                                                                 L, nu,
+                                                                                 weights,
+                                                                                 v_alpha1,
+                                                                                 v_alpha2,
+                                                                                 equations.collision_op)
 end
 
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D)
