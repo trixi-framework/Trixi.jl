@@ -88,7 +88,8 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
 
-    cache = (; cache..., VDM, filter, invVDM = inv(VDM),
+    F1D = VDM * Diagonal(filter) * inv(VDM);
+    cache = (; cache..., F1D, filter, 
              artificial_viscosity =
              create_cache(mesh, artificial_viscosity, solver, cache, RealT, uEltype))
 

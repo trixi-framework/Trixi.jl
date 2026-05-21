@@ -1115,8 +1115,16 @@ end
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
 @inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG,
                                             indices...)
-    @simd for v in eachvariable(equations)
+    for v in eachvariable(equations)
         u[v, indices...] = u[v, indices...] + factor * u_node[v]
+    end
+    return nothing
+end
+
+@inline function multiply_multiply_add_to_node_vars!(u, factor1, factor2, u_node, equations, solver::DG,
+                                            indices...)
+    for v in eachvariable(equations)
+        u[v, indices...] = factor1 * u[v, indices...] + factor2 * u_node[v]
     end
     return nothing
 end

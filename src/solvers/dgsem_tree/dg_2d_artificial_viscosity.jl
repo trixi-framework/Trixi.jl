@@ -2,9 +2,10 @@
     function create_cache(mesh, artificial_viscosity::EntropyCorrectionArtificialViscosity,
                           dg::DG, cache, RealT, uEltype)
         coefficients = zeros(real(dg), nelements(dg, cache))
-        norm_coefficients = Float64[]
-        norm_svv_coefficients = Float64[]
-        norm_residuals = Float64[]
+        svv_coefficients = zeros(real(dg), nelements(dg, cache))
+        norm_coefficients = zero(real(dg))
+        norm_svv_coefficients = zero(real(dg))
+        norm_residuals = zero(real(dg))
 
         ## create element filtered flux and transform gradients
         ## this does not create the whole mesh variables to save memory

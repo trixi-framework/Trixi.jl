@@ -87,25 +87,47 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
     mkpath(output_directory)
     path = joinpath(output_directory, filename)
     open(path, "w") do io
+<<<<<<< HEAD
         println(io, "#naccept time dt ecav_coeff_max")
+=======
+        println(io, "#naccept time dt ecav_coeff_max svv_coeff_max norm_ecav norm_svv")
+>>>>>>> 3c7f618fe (add svv impl)
     end
     return nothing
 end
 
 function (ecc::ECAVCoefficientCallback)(integrator)
     semi = integrator.p
+<<<<<<< HEAD
     coeffs = semi.cache.artificial_viscosity.coefficients
     ecav_coeff_max = if isempty(coeffs)
         float(eltype(coeffs))(NaN)
     else
         maximum(coeffs)
+=======
+    ecav_coeffs = semi.cache.artificial_viscosity.coefficients
+    svv_coeffs = semi.cache.artificial_viscosity.svv_coefficients
+    ecav_coeff_max, norm_ecav = if isempty(ecav_coeffs)
+        (float(eltype(coeffs))(NaN), float(eltype(coeffs))(NaN))
+    else
+        (maximum(ecav_coeffs), norm(ecav_coeffs))
+    end
+    svv_coeff_max, norm_svv = if isempty(svv_coeffs)
+        (float(eltype(svv_coeffs))(NaN), float(eltype(svv_coeffs))(NaN))
+    else
+        (maximum(svv_coeffs), norm(svv_coeffs))
+>>>>>>> 3c7f618fe (add svv impl)
     end
 
     @unpack output_directory, filename = ecc
     path = joinpath(output_directory, filename)
     open(path, "a") do io
         println(io, integrator.stats.naccept, " ", integrator.t, " ", integrator.dt, " ",
+<<<<<<< HEAD
                 ecav_coeff_max)
+=======
+                ecav_coeff_max, " ", svv_coeff_max, " ", norm_ecav, " ", norm_svv)
+>>>>>>> 3c7f618fe (add svv impl)
     end
     return nothing
 end
