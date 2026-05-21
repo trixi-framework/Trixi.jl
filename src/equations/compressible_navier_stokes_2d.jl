@@ -256,6 +256,26 @@ function entropy2cons(w, equations::CompressibleNavierStokesDiffusion2D)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
+"""
+    entropy2prim(w, equations::AbstractCompressibleNavierStokesDiffusion{2, 4})
+
+Directly convert entropy variables `w` to primitive variables.
+Velocities and temperature are computed directly from the entropy variables following
+(Hughes, Franca, Mallet 1986) via
+``T = -1/w_4``, ``v_1 = -w_2/w_4``, and ``v_2 = -w_3/w_4``, where ``w_4 = -\\rho/p``.
+
+Note that the first primitive variable is set to `w[1]` instead of `rho`; this
+first variable is unused in Navier-Stokes calculations.
+"""
+@inline function entropy2prim(w, ::AbstractCompressibleNavierStokesDiffusion{2, 4})
+    inv_w4 = inv(w[4])
+    T = -inv_w4
+    v1 = -w[2] * inv_w4
+    v2 = -w[3] * inv_w4
+    # First component is unused on the entropy-gradient path; store w[1] for layout compatibility.
+    return SVector(w[1], v1, v2, T)
+end
+
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
 # For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
@@ -264,11 +284,9 @@ end
     return u_transformed
 end
 
-# TODO: parabolic. Make this more efficient!
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-    # note: this uses CompressibleNavierStokesDiffusion2D versions of cons2prim and entropy2cons
-    return cons2prim(entropy2cons(u_transformed, equations), equations)
+    return entropy2prim(u_transformed, equations)
 end
 
 # Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4) and
@@ -284,15 +302,7 @@ end
 # the first argument is always the "transformed" variables.
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
                                                  equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-
-    # TODO: parabolic. This is inefficient to pass in transformed variables but then transform them back.
-    # We can fix this if we directly compute v1, v2, T from the entropy variables
-    u = entropy2cons(w, equations) # calls a "modified" entropy2cons defined for CompressibleNavierStokesDiffusion2D
-    rho, rho_v1, rho_v2, _ = u
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    T = temperature(u, equations)
+    _, v1, v2, T = entropy2prim(w, equations)
 
     return SVector(gradient_entropy_vars[1],
                    T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = T*(grad(w_2)+v1*grad(w_4))
