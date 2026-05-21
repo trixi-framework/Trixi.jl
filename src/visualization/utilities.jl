@@ -1404,20 +1404,20 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
     println("DEBUG: n_nodes_in ist aktuell: ", n_nodes_in, " | Shape: ", size(unstructured_data))
 
-    #Idee für FV, neu
-
+    #Idea for FV: "Improve plotting for 2D/3D simulations with polydeg = 0 on the TreeMesh (finite volume case) #2998" 
     if n_nodes_in == 1
         max_level = maximum(levels)
         true_resolution = 2^max_level
         
-        # 1. Datenmatrix in der perfekten, unaufgeblähten Größe (z.B. 4x4) erstellen
+        # Each matrix is perfectly sized to the uniform maximum resolution without overhead.structured = [Matrix{Float64}(undef, true_resolution, true_resolution) for _ in 1:n_variables]
         structured = [Matrix{Float64}(undef, true_resolution, true_resolution) for _ in 1:n_variables]
-        
-        # 2. Die Elemente basierend auf ihren normierten Koordinaten einsortieren
+
+        # Iterate through all unstructured elements to map them into the structured matrix
         for element_id in 1:n_elements
             cx, cy = normalized_coordinates[:, element_id]
             
-            # Mappe von [-1, 1] auf die diskreten Indizes [1, true_resolution]
+            # Map the continuous spatial coordinates from [-1, 1] to discrete matrix indices [1, true_resolution].
+            # The +0.5 shift combined with round() acts as a floor-like cell assignment.
             ix = round(Int, (cx + 1) / 2 * true_resolution + 0.5)
             iy = round(Int, (cy + 1) / 2 * true_resolution + 0.5)
             
@@ -1429,11 +1429,9 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
             end
         end
         
-        # Wir geben die saubere Matrix zurück. Die Achsen-Korrektur passiert im Plot-Rezept!
         return structured
     end
     
-    # #ab hier wieder wie vorher
 
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)

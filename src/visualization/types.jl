@@ -278,39 +278,31 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
 
-    #neue Idee
+    #Idea for FV: "Improve plotting for 2D/3D simulations with polydeg = 0 on the TreeMesh (finite volume case) #2998" 
 
-if nnodes(solver) == 1 && ndims(mesh) == 2
-        # Bestimme das maximale Level und die Auflösung als Integer
-        max_level = maximum(levels)
-        true_resolution = Int(2^max_level) # Unbedingt als Int!
-        
-        # Deine Argumente laut Stacktrace:
-        # 1. unstructured_data
-        # 2. normalized_coordinates (entspricht coordinates in PlotData2DCartesian)
-        # 3. levels
-        # 4. resolution (erwartet vermutlich ein SVector oder Tupel/Wert für die Auflösung)
-        # 5. nvisnodes_per_level (da nvisnodes=0/nothing ist, übergeben wir 1 oder 1.0 als Int)
-        resolution_param = [true_resolution, true_resolution] 
-        nvis_param = 1
-        
-        structured_matrix = unstructured2structured(unstructured_data, coordinates, levels, resolution_param, nvis_param)
-        
-        if structured_matrix isa Vector
-            data = structured_matrix
-        else
-            data = [structured_matrix]
-        end
-        
-        # Erstelle die Achsen-Mittelpunkte für Plots.jl
-        x = collect(range(-1.0 + 1.0/true_resolution, 1.0 - 1.0/true_resolution, length=true_resolution))
-        y = copy(x)
-        
-        mesh_vertices_x = Float64[]
-        mesh_vertices_y = Float64[]
+    if nnodes(solver) == 1 && ndims(mesh) == 2
+            max_level = maximum(levels)
+            true_resolution = Int(2^max_level)
+            
+            resolution_param = [true_resolution, true_resolution] 
+            nvis_param = 1
+
+            structured_matrix = unstructured2structured(unstructured_data, coordinates, levels, resolution_param, nvis_param)
+
+            if structured_matrix isa Vector
+                data = structured_matrix
+            else
+                data = [structured_matrix]
+            end
+            
+            x = collect(range(-1.0 + 1.0/true_resolution, 1.0 - 1.0/true_resolution, length=true_resolution))
+            y = copy(x)
+            
+            mesh_vertices_x = Float64[]
+            mesh_vertices_y = Float64[]
     else
 
-    #ende neue Idee
+
 
 
     x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,

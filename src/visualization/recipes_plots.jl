@@ -10,31 +10,21 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
-    #neue Idee für FV 
-    #verschiebt die Koordinaten von den Zentren zu den Zellgrenzen
-    # Extract the 2D grid data for the specific variable (e.g., pressure, temperature)
+    #Idea for FV: "Improve plotting for 2D/3D simulations with polydeg = 0 on the TreeMesh (finite volume case) #2998" 
+
     z_data = data[variable_id]
 
-    # Check if the lengths of coordinate vectors x and y match the dimensions of the data matrix.
-    # size(..., 1) is the number of rows, size(..., 2) is the number of columns.
     if length(x) == size(data[variable_id], 1) && length(y) == size(data[variable_id], 2)
         
-        # Calculate the grid spacing (cell width dx and cell height dy) 
-        # assuming a uniform rectilinear grid.dx = (x[end] - x[begin]) / (length(x) - 1)
         dy = (y[end] - y[begin]) / (length(y) - 1)
         
-        # Create new coordinate vectors for the cell edges. 
-        # Since x and y represent cell centers, the outer edges extend 
-        # half a cell size (dx/2, dy/2) beyond the first and last center points.
-        # The number of edges is always length(centers) + 1.        x_edges = collect(range(x[begin] - dx/2, x[end] + dx/2, length=length(x) + 1))
         y_edges = collect(range(y[begin] - dy/2, y[end] + dy/2, length=length(y) + 1))
-        
-        # Set the plot limits to exactly match the newly calculated outer limits of the grid
+        x_edges = collect(range(x[begin] - dx/2, x[end] + dx/2, length=length(x) + 1))
+
         xlims --> (x_edges[begin], x_edges[end])
         ylims --> (y_edges[begin], y_edges[end])
         aspect_ratio --> :equal
         
-        # Restliche Einstellungen bleiben gleich
         legend --> :none
         title --> variable_names[variable_id]
         colorbar --> :true
@@ -45,7 +35,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
         return x_edges, y_edges, z_data #data[variable_id]
     end
 
-    #wieder wie vorher
+
     # Set geometric properties
     xlims --> (x[begin], x[end])
     ylims --> (y[begin], y[end])
