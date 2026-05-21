@@ -14,8 +14,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "CUDA 2D" begin
 #! format: noindent
 
-@trixi_testset "elixir_advection_basic_gpu.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+@trixi_testset "elixir_advection_basic.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5)
@@ -38,10 +38,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_advection_basic_gpu.jl Float32 / CUDA" begin
+@trixi_testset "elixir_advection_basic.jl Float32 / CUDA" begin
     # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using CUDA
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
