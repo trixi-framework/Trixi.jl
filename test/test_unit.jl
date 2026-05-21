@@ -94,6 +94,17 @@ end
                                             initial_refinement_level = 2,
                                             n_cells_max = 10_000,
                                             periodicity = true)
+
+        # Keyword-only constructor
+        mesh_ref = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                            initial_refinement_level = 2, n_cells_max = 10_000)
+        mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0),
+                           refinement_level = 2)
+        @test Trixi.ncells(mesh_kw) == Trixi.ncells(mesh_ref)
+        @test_throws ArgumentError TreeMesh(; coordinates_min = (-1.0, -1.0),
+                                            coordinates_max = (1.0, 1.0, 1.0),
+                                            refinement_level = 2)
     end
 
     @testset "helper functions" begin
@@ -3562,6 +3573,58 @@ end
 
     @test Trixi.ndims(semi) == 2
 end
+end
+
+@testset "Unified mesh constructor signatures (StructuredMesh)" begin
+    # 1D: keyword interface (2^2 = 4 cells per dimension)
+    mesh_1d_ref = StructuredMesh((4,), (-1.0,), (1.0,))
+    mesh_1d_kw = StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                                refinement_level = 2)
+    @test mesh_1d_ref.cells_per_dimension == mesh_1d_kw.cells_per_dimension
+
+    # 2D: keyword interface
+    mesh_2d_ref = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
+    mesh_2d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                coordinates_max = (1.0, 1.0),
+                                refinement_level = 2)
+    @test mesh_2d_ref.cells_per_dimension == mesh_2d_kw.cells_per_dimension
+
+    # 3D: keyword interface
+    mesh_3d_ref = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
+    mesh_3d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0, -1.0),
+                                coordinates_max = (1.0, 1.0, 1.0),
+                                refinement_level = 2)
+    @test mesh_3d_ref.cells_per_dimension == mesh_3d_kw.cells_per_dimension
+    @test_throws ArgumentError StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                              coordinates_max = (1.0, 1.0, 1.0),
+                                              refinement_level = 2)
+end
+
+@testset "Unified mesh constructor signatures (DGMultiMesh)" begin
+    dg_1d = DGMulti(polydeg = 2, element_type = Line(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 1D: keyword interface (2^2 = 4 elements)
+    mesh_1d_ref = DGMultiMesh(dg_1d, (4,))
+    mesh_1d_kw = DGMultiMesh(dg_1d; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                             refinement_level = 2)
+    @test mesh_1d_ref.md.num_elements == mesh_1d_kw.md.num_elements
+
+    dg_2d = DGMulti(polydeg = 2, element_type = Quad(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 2D: keyword interface
+    mesh_2d_ref = DGMultiMesh(dg_2d, (4, 4))
+    mesh_2d_kw = DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                             coordinates_max = (1.0, 1.0), refinement_level = 2)
+    @test mesh_2d_ref.md.num_elements == mesh_2d_kw.md.num_elements
+    @test_throws ArgumentError DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                                           coordinates_max = (1.0, 1.0, 1.0),
+                                           refinement_level = 2)
 end
 
 @testset "TreeMesh without n_cells_max" begin
