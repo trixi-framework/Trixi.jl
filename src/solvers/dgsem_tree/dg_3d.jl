@@ -62,9 +62,14 @@ function create_cache(mesh::TreeMesh{3},
     fstar3_L_threaded, fstar3_R_threaded = create_f_threaded(mesh, equations, dg,
                                                              uEltype)
 
+    cache_subcell_limiting = create_cache_subcell_limiting(mesh, equations,
+                                                           volume_integral, dg,
+                                                           cache_containers, uEltype)
+
     return (; fstar1_L_threaded, fstar1_R_threaded,
             fstar2_L_threaded, fstar2_R_threaded,
-            fstar3_L_threaded, fstar3_R_threaded)
+            fstar3_L_threaded, fstar3_R_threaded,
+            cache_subcell_limiting...)
 end
 
 # The methods below are specialized on the mortar type

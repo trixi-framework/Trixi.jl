@@ -37,6 +37,7 @@ are listed in alphabetical order:
 * Gregor Gassner
 * Lucas Gemein
 * Sven Goldberg
+* T. Jeremy P. Karpowski
 * Joshua Lampert
 * Tristan Montoya
 * Julia Odenthal

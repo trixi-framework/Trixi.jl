@@ -6,7 +6,7 @@
 #! format: noindent
 
 summary_callback(u, t, integrator) = false # when used as condition; never call the summary callback during the simulation
-summary_callback(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
+summary_callback(integrator) = derivative_discontinuity!(integrator, false) # the summary callback does nothing when called accidentally
 
 """
     SummaryCallback()
@@ -208,7 +208,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "abstol" => integrator.opts.abstol,
               "reltol" => integrator.opts.reltol,
-              "controller" => integrator.opts.controller)
+              "controller" => get_controller(integrator))
     end
     summary_box(io, "Time integration", setup)
     println()
