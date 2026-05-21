@@ -5,7 +5,14 @@ using Trixi
 module TrixiExtensionExample
 
 using Trixi
-using OrdinaryDiffEqSSPRK: DiscreteCallback, u_modified!
+using OrdinaryDiffEqSSPRK: OrdinaryDiffEqSSPRK, DiscreteCallback
+# To keep backwards compatibility with SciMLBase v2, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
+@static if isdefined(OrdinaryDiffEqSSPRK, :derivative_discontinuity!)
+    import OrdinaryDiffEqSSPRK: derivative_discontinuity!
+else
+    const derivative_discontinuity! = OrdinaryDiffEqSSPRK.u_modified!
+end
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
@@ -67,7 +74,7 @@ function (example_callback::ExampleStepCallback)(integrator)
     push!(example_callback.max_values, max_val)
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 
@@ -154,7 +161,8 @@ example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
 # run the simulation
 
 sol = solve(ode,
-            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false);
+            CarpenterKennedy2N54(; stage_limiter! = example_stage_callback!,
+                                 williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 

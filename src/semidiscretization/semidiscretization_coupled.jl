@@ -357,11 +357,12 @@ end
 ### StepsizeCallback
 ################################################################################
 # In case of coupled system, use minimum timestep over all systems
-function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        return calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
+        return calculate_dt(u_ode_slice, t, cfl_hyperbolic, cfl_parabolic,
+                            semi.semis[i])
     end
 
     return dt

@@ -51,7 +51,7 @@ boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity
 boundary_conditions = (; top = boundary_condition_slip_wall,
                        rest_of_boundary = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; top = boundary_condition_lid,
                                  rest_of_boundary = boundary_condition_cavity)
 

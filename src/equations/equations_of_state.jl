@@ -28,6 +28,9 @@ include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_vdw.jl")
 include("equation_of_state_peng_robinson.jl")
 
+include("equations_of_state_helmholtz.jl")
+include("equation_of_state_helmholtz_ideal_gas.jl")
+
 #######################################################
 #
 # Some general fallback routines are provided below
@@ -86,7 +89,7 @@ function temperature(V, e_internal, eos::AbstractEquationOfState;
         iter += 1
     end
     if iter == maxiter
-        @warn "Solver in `temperature(V, T, eos)` did not converge within $maxiter iterations. " *
+        @warn "Solver in `temperature(V, e_internal, eos)` did not converge within $maxiter iterations. " *
               "Final states: iter = $iter, V, e_internal = $V, $(e_internal) with de = $de"
     end
     return T

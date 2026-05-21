@@ -58,10 +58,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
-cfl_advective = 0.5   # Not restrictive for this example
-cfl_diffusive = 0.025 # Restricts the timestep
-stepsize_callback = StepsizeCallback(cfl = cfl_advective,
-                                     cfl_diffusive = cfl_diffusive)
+cfl_hyperbolic = 0.5   # Not restrictive for this example
+cfl_parabolic = 0.025 # Restricts the timestep
+stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
+                                     cfl_parabolic = cfl_parabolic)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)

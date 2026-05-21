@@ -174,10 +174,10 @@ alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-# For this setup, both advective and diffusive time step restrictions are relevant, i.e.,
+# For this setup, both hyperbolic and parabolic timestep restrictions are relevant, i.e.,
 # may not be increased beyond the given values.
 stepsize_callback = StepsizeCallback(cfl = 0.4,
-                                     cfl_diffusive = 0.2)
+                                     cfl_parabolic = 0.2)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)

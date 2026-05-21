@@ -19,7 +19,7 @@ initial_condition = initial_condition_const
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs,
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
-solver_parabolic = ViscousFormulationLocalDG()
+solver_parabolic = ParabolicFormulationLocalDG()
 
 mu() = 0.5
 prandtl_number() = 0.72

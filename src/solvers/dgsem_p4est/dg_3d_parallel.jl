@@ -9,6 +9,8 @@ function rhs!(du, u, t,
               mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    backend = trixi_backend(u)
+
     # Start to receive MPI data
     @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 
@@ -33,19 +35,19 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations, dg)
+        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
     end
@@ -95,11 +97,13 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations, dg.surface_integral, dg, cache)
+        calc_surface_integral!(backend, du, u, mesh, equations, dg.surface_integral, dg,
+                               cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin

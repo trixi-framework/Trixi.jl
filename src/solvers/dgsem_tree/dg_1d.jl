@@ -64,12 +64,14 @@ function rhs!(du, u, t,
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    backend = trixi_backend(u)
+
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
+        calc_volume_integral!(backend, du, u, mesh,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
@@ -99,12 +101,13 @@ function rhs!(du, u, t,
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
+        calc_surface_integral!(backend, du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
+                                                     cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
@@ -122,7 +125,8 @@ This treatment is required to achieve, e.g., entropy-stability or well-balancedn
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
 @inline function weak_form_kernel!(du, u,
-                                   element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                   element,
+                                   ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                                    have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -143,7 +147,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           ::Type{<:Union{TreeMesh{1},
+                                                          StructuredMesh{1}}},
                                            have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -172,7 +177,8 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element,
-                                           mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                           MeshT::Type{<:Union{TreeMesh{1},
+                                                               StructuredMesh{1}}},
                                            have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -181,7 +187,7 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -207,7 +213,7 @@ end
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                            MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
@@ -216,7 +222,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, u, mesh,
+    calcflux_fv!(fstar1_L, fstar1_R, u, MeshT,
                  have_nonconservative_terms, equations,
                  volume_flux_fv, dg, element, cache)
 
@@ -233,7 +239,7 @@ end
 end
 
 @inline function fvO2_kernel!(du, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              MeshT::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               nonconservative_terms, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -245,7 +251,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fvO2!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
+    calcflux_fvO2!(fstar1_L, fstar1_R, u, MeshT, nonconservative_terms, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)
@@ -267,7 +273,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     for i in 2:nnodes(dg)
@@ -282,7 +288,7 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u,
-                              mesh::TreeMesh{1},
+                              ::Type{<:TreeMesh{1}},
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
@@ -313,7 +319,7 @@ end
 # "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. Part II: Subcell finite volume shock capturing"
 # [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 @inline function calcflux_fvO2!(fstar1_L, fstar1_R, u,
-                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                                ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                                 nonconservative_terms::False,
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
@@ -379,8 +385,8 @@ end
 end
 
 # Used for both the purely hyperbolic conserved variables `u`
-# and the viscous flux in x-direction in the 1D parabolic case.
-function prolong2interfaces!(cache, u_or_flux_viscous,
+# and the parabolic flux in x-direction in the 1D parabolic case.
+function prolong2interfaces!(cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
@@ -392,16 +398,16 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
 
         # interface in x-direction
         for v in eachvariable(equations)
-            interfaces_u[1, v, interface] = u_or_flux_viscous[v, nnodes(dg),
-                                                              left_element]
-            interfaces_u[2, v, interface] = u_or_flux_viscous[v, 1, right_element]
+            interfaces_u[1, v, interface] = u_or_flux_parabolic[v, nnodes(dg),
+                                                                left_element]
+            interfaces_u[2, v, interface] = u_or_flux_parabolic[v, 1, right_element]
         end
     end
 
     return nothing
 end
 
-function prolong2interfaces!(cache, u_or_flux_viscous,
+function prolong2interfaces!(cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack interfaces = cache
@@ -424,11 +430,11 @@ function prolong2interfaces!(cache, u_or_flux_viscous,
                 # (see comment at the top of the file)
                 # Need `boundary_interpolation` at right (+1) node for left element
                 interface_u_1 = (interface_u_1 +
-                                 u_or_flux_viscous[v, ii, left_element] *
+                                 u_or_flux_parabolic[v, ii, left_element] *
                                  boundary_interpolation[ii, 2])
                 # Need `boundary_interpolation` at left (-1) node for right element
                 interface_u_2 = (interface_u_2 +
-                                 u_or_flux_viscous[v, ii, right_element] *
+                                 u_or_flux_parabolic[v, ii, right_element] *
                                  boundary_interpolation[ii, 1])
             end
             interfaces_u[1, v, interface] = interface_u_1
@@ -513,8 +519,8 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # Used for both the purely hyperbolic conserved variables `u`
-# and the viscous flux in x-direction in the 1D parabolic case.
-function prolong2boundaries!(cache, u_or_flux_viscous,
+# and the parabolic flux in x-direction in the 1D parabolic case.
+function prolong2boundaries!(cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
@@ -526,11 +532,12 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[1, v, boundary] = u_or_flux_viscous[v, nnodes(dg), element]
+                boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
+                                                                   element]
             end
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[2, v, boundary] = u_or_flux_viscous[v, 1, element]
+                boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
             end
         end
     end
@@ -538,7 +545,7 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
     return nothing
 end
 
-function prolong2boundaries!(cache, u_or_flux_viscous,
+function prolong2boundaries!(cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
@@ -559,7 +566,7 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
                     # Not += to allow `@muladd` to turn these into FMAs
                     # (see comment at the top of the file)
                     boundary_u_1 = (boundary_u_1 +
-                                    u_or_flux_viscous[v, ii, element] *
+                                    u_or_flux_parabolic[v, ii, element] *
                                     boundary_interpolation[ii, 2])
                 end
                 boundaries.u[1, v, boundary] = boundary_u_1
@@ -569,7 +576,7 @@ function prolong2boundaries!(cache, u_or_flux_viscous,
                 boundary_u_2 = zero(eltype(boundaries.u))
                 for ii in eachnode(dg)
                     boundary_u_2 = (boundary_u_2 +
-                                    u_or_flux_viscous[v, ii, element] *
+                                    u_or_flux_parabolic[v, ii, element] *
                                     boundary_interpolation[ii, 1])
                 end
                 boundaries.u[2, v, boundary] = boundary_u_2
@@ -671,7 +678,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
@@ -701,7 +709,8 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
@@ -735,7 +744,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     return nothing
 end
 
-function apply_jacobian!(du, mesh::TreeMesh{1},
+function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 

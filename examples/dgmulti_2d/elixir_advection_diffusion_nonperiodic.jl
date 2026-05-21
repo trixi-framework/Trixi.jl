@@ -53,7 +53,7 @@ boundary_conditions = (; left = boundary_condition,
                        bottom = boundary_condition,
                        right = boundary_condition_do_nothing)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; entire_boundary = boundary_condition)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),

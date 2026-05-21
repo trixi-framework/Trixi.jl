@@ -35,14 +35,14 @@ function varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiff
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
 
-# Next, we define the viscous flux function. We assume that the mixed hyperbolic-parabolic system
+# Next, we define the parabolic flux function. We assume that the mixed hyperbolic-parabolic system
 # is of the form
 # ```math
 # \partial_t u(t,x) + \partial_x (f_1(u) - g_1(u, \nabla u))
 #                   + \partial_y (f_2(u) - g_2(u, \nabla u)) = 0
 # ```
 # where ``f_1(u)``, ``f_2(u)`` are the hyperbolic fluxes and ``g_1(u, \nabla u)``, ``g_2(u, \nabla u)`` denote
-# the viscous fluxes. For anisotropic diffusion, the viscous fluxes are the first and second components
+# the parabolic fluxes. For anisotropic diffusion, the parabolic fluxes are the first and second components
 # of the matrix-vector product involving `diffusivity` and the gradient vector.
 #
 # Here, we specialize the flux to our new parabolic equation type `ConstantAnisotropicDiffusion2D`.
@@ -66,12 +66,12 @@ end
 # \begin{aligned}
 # \bm{q} &= \nabla u \\
 # \bm{\sigma} &= \begin{pmatrix} g_1(u, \bm{q}) \\ g_2(u, \bm{q}) \end{pmatrix} \\
-# \text{viscous contribution } &= \nabla \cdot \bm{\sigma}
+# \text{parabolic contribution} &= \nabla \cdot \bm{\sigma}
 # \end{aligned}
 # ```
 #
 # Boundary data must be specified for all spatial derivatives, e.g., for both the gradient
-# equation ``\bm{q} = \nabla u`` and the divergence of the viscous flux
+# equation ``\bm{q} = \nabla u`` and the divergence of the parabolic flux
 # ``\nabla \cdot \bm{\sigma}``. We account for this by introducing internal `Gradient`
 # and `Divergence` types which are used to dispatch on each type of boundary condition.
 #
@@ -98,7 +98,7 @@ end
     return boundary_condition.boundary_value
 end
 
-# While the gradient acts on the solution `u`, the divergence acts on the viscous flux ``\bm{\sigma}``.
+# While the gradient acts on the solution `u`, the divergence acts on the parabolic flux ``\bm{\sigma}``.
 # Thus, we have to supply boundary data for the `Divergence` operator that corresponds to ``\bm{\sigma}``.
 # However, we've already imposed boundary data on `u` for a Dirichlet boundary condition, and imposing
 # boundary data for ``\bm{\sigma}`` might overconstrain our problem.
@@ -119,7 +119,7 @@ end
 # ### A note on the choice of gradient variables
 #
 # It is often simpler to transform the solution variables (and solution gradients) to another set of
-# variables prior to computing the viscous fluxes (see [`CompressibleNavierStokesDiffusion2D`](@ref)
+# variables prior to computing the parabolic fluxes (see [`CompressibleNavierStokesDiffusion2D`](@ref)
 # for an example of this). If this is done, then the boundary condition for the `Gradient` operator
 # should be modified accordingly as well.
 #
@@ -170,7 +170,7 @@ callbacks = CallbackSet(SummaryCallback())
 time_int_tol = 1.0e-6
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks);
-println("Number of timesteps: ", sol.destats.naccept)
+println("Number of timesteps: ", sol.stats.naccept)
 
 using Plots
 plot(sol)
@@ -179,10 +179,10 @@ plot(sol)
 
 # In the example above, we used an adaptive timestep based on truncation error estimates.
 # Alternatively, we can also use a CFL-based timestep control, cf. [`StepsizeCallback`](@ref).
-# To be able to do so, we need to define [`max_diffusivity`](@ref) and 
+# To be able to do so, we need to define [`max_diffusivity`](@ref) and
 # [`have_constant_diffusivity`](@ref) for the new parabolic terms.
-# In Trixi.jl, currently only the standard Laplace Diffusion and Compressible Navier-Stokes-Fourier 
-# viscous terms are implemented.
+# In Trixi.jl, currently only the standard Laplace Diffusion and Compressible Navier-Stokes-Fourier
+# parabolic terms are implemented.
 # Since these equations have **isotropic** diffusivity, i.e., direction-independent coefficients,
 # [`max_diffusivity`](@ref) is expected to return a scalar value.
 #
@@ -198,17 +198,17 @@ lambda_max() = maximum(abs.(eigvals(diffusivity)))
     return Trixi.True()
 end
 
-# Return the estimated maximum diffusivity for CFL calculations based on 
+# Return the estimated maximum diffusivity for CFL calculations based on
 # the spectral radius of the diffusivity matrix computed above
 @inline function Trixi.max_diffusivity(equations_parabolic::ConstantAnisotropicDiffusion2D)
     return lambda_max()
 end
 
-# We supply now the advective(hyperbolic) and diffusive(parabolic) CFL numbers
-cfl_advective = 2.0 # Not restrictive for this example
-cfl_diffusive = 0.21 # Restricts the timestep
-stepsize_callback = StepsizeCallback(cfl = cfl_advective,
-                                     cfl_diffusive = cfl_diffusive)
+# We now supply the hyperbolic and parabolic CFL numbers
+cfl_hyperbolic = 2.0 # Not restrictive for this example
+cfl_parabolic = 0.21 # Restricts the timestep
+stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
+                                     cfl_parabolic = cfl_parabolic)
 
 # Add the stepsize callback to the existing callbacks
 callbacks = CallbackSet(SummaryCallback(), stepsize_callback);
@@ -216,7 +216,7 @@ callbacks = CallbackSet(SummaryCallback(), stepsize_callback);
 sol = solve(ode, RDPK3SpFSAL49();
             adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks);
-println("Number of timesteps: ", sol.destats.naccept)
+println("Number of timesteps: ", sol.stats.naccept)
 
 plot(sol)
 

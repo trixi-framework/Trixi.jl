@@ -26,6 +26,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` above
         include("test_mpi_p4est_3d.jl")
         include("test_mpi_t8code_3d.jl")
+        include("test_mpi_p4est_parabolic_2d.jl")
     end
 end # MPI
 

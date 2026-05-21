@@ -72,3 +72,7 @@ end
                                                                 equations_parabolic::LaplaceDiffusionEntropyVariables)
     return flux_inner
 end
+
+include("laplace_diffusion_entropy_variables_1d.jl")
+include("laplace_diffusion_entropy_variables_2d.jl")
+include("laplace_diffusion_entropy_variables_3d.jl")
