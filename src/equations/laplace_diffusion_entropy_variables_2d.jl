@@ -5,6 +5,13 @@ function LaplaceDiffusionEntropyVariables2D(diffusivity, equations_hyperbolic)
                                                                  equations_hyperbolic)
 end
 
+function jacobian_entropy2cons(w,
+                               equations::LaplaceDiffusionEntropyVariables{2,
+                                                                           <:CompressibleEulerEquations2D})
+    return equations.diffusivity *
+           jacobian_entropy2cons(w, equations.equations_hyperbolic)
+end
+
 function flux(u, gradients, orientation::Integer,
               equations::LaplaceDiffusionEntropyVariables{2})
     dudx, dudy = gradients

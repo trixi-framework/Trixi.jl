@@ -1,6 +1,7 @@
 module TestType
 
 using Test
+using ForwardDiff
 using Trixi
 
 include("test_trixi.jl")
@@ -1938,6 +1939,103 @@ isdir(outdir) && rm(outdir, recursive = true)
             equations_2d = LinearDiffusionEquation2D(RealT(0.1))
             @test eltype(@inferred cons2prim(u, equations_2d)) == RealT
             @test eltype(@inferred cons2entropy(u, equations_2d)) == RealT
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables1D(RealT(0.01),
+                                                                               equations)
+
+            prim = SVector(RealT(1), RealT(0.2), RealT(2))
+            w = cons2entropy(prim2cons(prim, equations), equations)
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = (gradient,)
+
+            J_euler = @inferred Trixi.jacobian_entropy2cons(w, equations)
+            @test size(J_euler) == (3, 3)
+            @test eltype(J_euler) == RealT
+            @test J_euler ≈ transpose(J_euler)
+
+            J_parabolic = @inferred Trixi.jacobian_entropy2cons(w, equations_parabolic)
+            @test J_parabolic ≈ equations_parabolic.diffusivity * J_euler
+            @test J_parabolic ≈
+                  equations_parabolic.diffusivity *
+                  ForwardDiff.jacobian(ww -> entropy2cons(ww,
+                                                          equations_parabolic),
+                                       w)
+            @test J_euler ≈ ForwardDiff.jacobian(ww -> entropy2cons(ww, equations), w)
+
+            @test eltype(@inferred flux(w, gradients, 1, equations_parabolic)) == RealT
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.01),
+                                                                               equations)
+
+            prim = SVector(RealT(1), RealT(0.2), RealT(0.2), RealT(2))
+            w = cons2entropy(prim2cons(prim, equations), equations)
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient)
+
+            J_euler = @inferred Trixi.jacobian_entropy2cons(w, equations)
+            @test size(J_euler) == (4, 4)
+            @test eltype(J_euler) == RealT
+            @test J_euler ≈ transpose(J_euler)
+
+            J_parabolic = @inferred Trixi.jacobian_entropy2cons(w, equations_parabolic)
+            @test size(J_parabolic) == (4, 4)
+            @test eltype(J_parabolic) == RealT
+            @test J_parabolic ≈ equations_parabolic.diffusivity * J_euler
+
+            J_ref_parabolic = equations_parabolic.diffusivity *
+                              ForwardDiff.jacobian(ww -> entropy2cons(ww,
+                                                                      equations_parabolic),
+                                                   w)
+            J_ref_euler = ForwardDiff.jacobian(ww -> entropy2cons(ww, equations), w)
+            @test J_parabolic ≈ J_ref_parabolic
+            @test J_euler ≈ J_ref_euler
+
+            for orientation in (1, 2)
+                @test eltype(@inferred flux(w, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.01),
+                                                                               equations)
+
+            prim = SVector(RealT(1), RealT(0.2), RealT(0.2), RealT(0.1), RealT(2))
+            w = cons2entropy(prim2cons(prim, equations), equations)
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient, gradient)
+
+            J_euler = @inferred Trixi.jacobian_entropy2cons(w, equations)
+            @test size(J_euler) == (5, 5)
+            @test eltype(J_euler) == RealT
+            @test J_euler ≈ transpose(J_euler)
+
+            J_parabolic = @inferred Trixi.jacobian_entropy2cons(w, equations_parabolic)
+            @test J_parabolic ≈ equations_parabolic.diffusivity * J_euler
+            @test J_parabolic ≈
+                  equations_parabolic.diffusivity *
+                  ForwardDiff.jacobian(ww -> entropy2cons(ww,
+                                                          equations_parabolic),
+                                       w)
+            @test J_euler ≈ ForwardDiff.jacobian(ww -> entropy2cons(ww, equations), w)
+
+            for orientation in (1, 2, 3)
+                @test eltype(@inferred flux(w, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
         end
     end
 
