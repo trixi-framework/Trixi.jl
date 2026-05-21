@@ -121,6 +121,16 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
                                                                   gradient_variables)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::CompressibleNavierStokesDiffusion1D) where {NewRealT}
+    mu = equations.mu isa Real ? NewRealT(equations.mu) : Adapt.adapt(to, equations.mu)
+    equations_hyperbolic = Adapt.adapt(to, equations.equations_hyperbolic)
+    return CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+                                               mu = mu,
+                                               Prandtl = NewRealT(equations.Pr),
+                                               gradient_variables = equations.gradient_variables)
+end
+
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
 # varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion1D) = ("v1", "T")

@@ -44,6 +44,12 @@ function VanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
     return VanDerWaals(promote(a, b, gamma, R, cv)...)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               eos::VanDerWaals) where {NewRealT}
+    return VanDerWaals(; a = NewRealT(eos.a), b = NewRealT(eos.b),
+                       gamma = NewRealT(eos.gamma), R = NewRealT(eos.R))
+end
+
 """
     pressure(V, T, eos::VanDerWaals)
 

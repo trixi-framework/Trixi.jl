@@ -32,6 +32,19 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::LaplaceDiffusionEntropyVariables{NDIMS}) where {
+                                                                                           NDIMS,
+                                                                                           NewRealT}
+    diffusivity = equations.diffusivity isa AbstractFloat ?
+                  NewRealT(equations.diffusivity) : equations.diffusivity
+    equations_hyperbolic = Adapt.adapt(to, equations.equations_hyperbolic)
+    return LaplaceDiffusionEntropyVariables{NDIMS, typeof(equations_hyperbolic),
+                                            nvariables(equations_hyperbolic),
+                                            typeof(diffusivity)}(diffusivity,
+                                                                 equations_hyperbolic)
+end
+
 # This is used to compute the diffusivity tensor for LaplaceDiffusionEntropyVariables.
 # This is the generic fallback using AD (assuming entropy2cons exists)
 function jacobian_entropy2cons(w, equations)

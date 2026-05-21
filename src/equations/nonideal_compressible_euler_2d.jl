@@ -50,6 +50,13 @@ struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
     equation_of_state::EoS
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::NonIdealCompressibleEulerEquations2D) where {
+                                                                                       NewRealT}
+    eos = Adapt.adapt(to, equations.equation_of_state)
+    return NonIdealCompressibleEulerEquations2D(eos)
+end
+
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end

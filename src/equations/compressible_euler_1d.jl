@@ -42,6 +42,11 @@ struct CompressibleEulerEquations1D{RealT <: Real} <:
     end
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::CompressibleEulerEquations1D) where {NewRealT}
+    return CompressibleEulerEquations1D(NewRealT(equations.gamma))
+end
+
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D)
     return ("rho", "rho_v1", "rho_e_total")
 end

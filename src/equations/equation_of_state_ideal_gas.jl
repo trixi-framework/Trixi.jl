@@ -33,6 +33,11 @@ function IdealGas(gamma = 1.4, R = 287)
     return IdealGas(promote(gamma, R, cv)...)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               eos::IdealGas) where {NewRealT}
+    return IdealGas(NewRealT(eos.gamma), NewRealT(eos.R))
+end
+
 """
     pressure(V, T, eos::IdealGas)
 

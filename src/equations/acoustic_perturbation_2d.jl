@@ -68,6 +68,14 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2, <:Real},
                                            rho_mean_global)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::AcousticPerturbationEquations2D) where {NewRealT}
+    v_mean_global = SVector{2, NewRealT}(equations.v_mean_global)
+    c_mean_global = NewRealT(equations.c_mean_global)
+    rho_mean_global = NewRealT(equations.rho_mean_global)
+    return AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+end
+
 function varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D)
     return ("v1_prime", "v2_prime", "p_prime_scaled",
             "v1_mean", "v2_mean", "c_mean", "rho_mean")

@@ -29,6 +29,11 @@ function HelmholtzIdealGas(gamma = 1.4, R = 287)
     return HelmholtzIdealGas(promote(gamma, R)...)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               eos::HelmholtzIdealGas) where {NewRealT}
+    return HelmholtzIdealGas(NewRealT(eos.gamma), NewRealT(eos.R))
+end
+
 @doc raw"""
     helmholtz(V, T, eos::HelmholtzIdealGas)
 

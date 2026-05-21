@@ -63,6 +63,14 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
     return LinearElasticityEquations1D(rho, sqrt(c1_squared), E)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::LinearElasticityEquations1D) where {NewRealT}
+    rho = NewRealT(equations.rho)
+    c1 = NewRealT(equations.c1)
+    E = NewRealT(equations.E)
+    return LinearElasticityEquations1D(rho, c1, E)
+end
+
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
     return ("v1", "sigma11")
 end

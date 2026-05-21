@@ -101,6 +101,19 @@ end
     return RealT
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               eqs::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP,
+                                                                               RealT}) where {
+                                                                                              NVARS,
+                                                                                              NCOMP,
+                                                                                              RealT,
+                                                                                              NewRealT}
+    gammas = SVector{NCOMP, NewRealT}(eqs.gammas)
+    gas_constants = SVector{NCOMP, NewRealT}(eqs.gas_constants)
+    return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, NewRealT}(gammas,
+                                                                               gas_constants)
+end
+
 function varnames(::typeof(cons2cons),
                   equations::CompressibleEulerMulticomponentEquations2D)
     cons = ("rho_v1", "rho_v2", "rho_e_total")

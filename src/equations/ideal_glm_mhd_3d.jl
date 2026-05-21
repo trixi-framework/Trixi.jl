@@ -68,6 +68,11 @@ function IdealGlmMhdEquations3D(gamma, inv_gamma_minus_one, c_h)
     return IdealGlmMhdEquations3D(gamma, c_h)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::IdealGlmMhdEquations3D) where {NewRealT}
+    return IdealGlmMhdEquations3D(NewRealT(equations.gamma), NewRealT(equations.c_h))
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = True()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D)
     return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e_total", "B1", "B2", "B3", "psi")

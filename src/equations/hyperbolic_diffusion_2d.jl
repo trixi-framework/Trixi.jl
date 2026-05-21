@@ -25,6 +25,14 @@ function HyperbolicDiffusionEquations2D(; nu = 1.0, Lr = inv(2pi))
     return HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::HyperbolicDiffusionEquations2D) where {NewRealT}
+    Lr = NewRealT(equations.Lr)
+    inv_Tr = NewRealT(equations.inv_Tr)
+    nu = NewRealT(equations.nu)
+    return HyperbolicDiffusionEquations2D(Lr, inv_Tr, nu)
+end
+
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 function default_analysis_errors(::HyperbolicDiffusionEquations2D)

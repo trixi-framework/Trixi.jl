@@ -25,6 +25,14 @@ function HyperbolicDiffusionEquations3D(; nu = 1.0, Lr = inv(2pi))
     return HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::HyperbolicDiffusionEquations3D) where {NewRealT}
+    Lr = NewRealT(equations.Lr)
+    inv_Tr = NewRealT(equations.inv_Tr)
+    nu = NewRealT(equations.nu)
+    return HyperbolicDiffusionEquations3D(Lr, inv_Tr, nu)
+end
+
 function varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations3D)
     return ("phi", "q1", "q2", "q3")
 end

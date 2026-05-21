@@ -57,6 +57,14 @@ function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
                                       rho_mean_global)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::LinearizedEulerEquations2D) where {NewRealT}
+    v_mean_global = SVector{2, NewRealT}(equations.v_mean_global)
+    c_mean_global = NewRealT(equations.c_mean_global)
+    rho_mean_global = NewRealT(equations.rho_mean_global)
+    return LinearizedEulerEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+end
+
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations2D)
     return ("rho_prime", "v1_prime", "v2_prime", "p_prime")
 end

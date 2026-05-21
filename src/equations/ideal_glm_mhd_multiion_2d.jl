@@ -194,6 +194,34 @@ function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, gas_constants,
                                           initial_c_h = c_h)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               eqs::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
+                                                                    EP, ET}) where {
+                                                                                    NVARS,
+                                                                                    NCOMP,
+                                                                                    RealT,
+                                                                                    EP,
+                                                                                    ET,
+                                                                                    NewRealT}
+    gammas = SVector{NCOMP, NewRealT}(eqs.gammas)
+    charge_to_mass = SVector{NCOMP, NewRealT}(eqs.charge_to_mass)
+    gas_constants = SVector{NCOMP, NewRealT}(eqs.gas_constants)
+    molar_masses = SVector{NCOMP, NewRealT}(eqs.molar_masses)
+    ion_ion_collision_constants = map(NewRealT, eqs.ion_ion_collision_constants)
+    ion_electron_collision_constants = SVector{NCOMP, NewRealT}(eqs.ion_electron_collision_constants)
+    c_h = NewRealT(eqs.c_h)
+    return IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, NewRealT, EP,
+                                          ET}(gammas,
+                                              charge_to_mass,
+                                              gas_constants,
+                                              molar_masses,
+                                              ion_ion_collision_constants,
+                                              ion_electron_collision_constants,
+                                              eqs.electron_pressure,
+                                              eqs.electron_temperature,
+                                              c_h)
+end
+
 @inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {
                                                                                          NVARS,
                                                                                          NCOMP,

@@ -133,6 +133,28 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
                                        collision_op)
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::LatticeBoltzmannEquations2D) where {NewRealT}
+    c = NewRealT(equations.c)
+    c_s = NewRealT(equations.c_s)
+    rho0 = NewRealT(equations.rho0)
+    Ma = NewRealT(equations.Ma)
+    u0 = NewRealT(equations.u0)
+    Re = NewRealT(equations.Re)
+    L = NewRealT(equations.L)
+    nu = NewRealT(equations.nu)
+    weights = SVector{9, NewRealT}(equations.weights)
+    v_alpha1 = SVector{9, NewRealT}(equations.v_alpha1)
+    v_alpha2 = SVector{9, NewRealT}(equations.v_alpha2)
+    return LatticeBoltzmannEquations2D{NewRealT, typeof(equations.collision_op)}(c, c_s, rho0,
+                                                                                  Ma, u0, Re,
+                                                                                  L, nu,
+                                                                                  weights,
+                                                                                  v_alpha1,
+                                                                                  v_alpha2,
+                                                                                  equations.collision_op)
+end
+
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D)
     return ntuple(v -> "pdf" * string(v), nvariables(equations))
 end

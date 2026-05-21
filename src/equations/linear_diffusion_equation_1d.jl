@@ -20,6 +20,11 @@ struct LinearDiffusionEquation1D{RealT <: Real} <: AbstractLaplaceDiffusion{1, 1
     diffusivity::RealT
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::LinearDiffusionEquation1D) where {NewRealT}
+    return LinearDiffusionEquation1D(NewRealT(equations.diffusivity))
+end
+
 varnames(::typeof(cons2cons), ::LinearDiffusionEquation1D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearDiffusionEquation1D) = ("scalar",)
 varnames(::typeof(cons2entropy), ::LinearDiffusionEquation1D) = ("scalar",)

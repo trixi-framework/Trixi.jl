@@ -47,6 +47,11 @@ struct IdealGlmMhdEquations1D{RealT <: Real} <: AbstractIdealGlmMhdEquations{1, 
     end
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::IdealGlmMhdEquations1D) where {NewRealT}
+    return IdealGlmMhdEquations1D(NewRealT(equations.gamma))
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = False()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations1D)
     return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e_total", "B1", "B2", "B3")
