@@ -107,7 +107,6 @@ end
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-                        # Expected errors are exactly the same as with TreeMesh!
                         l2=Float32[4.912578089985958e-5,
                                    5.3683407014580115e-5,
                                    5.368099834769191e-5,
