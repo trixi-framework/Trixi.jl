@@ -58,8 +58,7 @@ end
     @test real(ode.p.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
-    # TODO: `equations` are currently not `adapt`ed correctly
-    @test_broken eltype(ode.p.equations.advection_velocity) == Float32
+    @test eltype(ode.p.equations.advection_velocity) == Float32
 
     @test ode.u0 isa ROCArray
     @test ode.p.solver.basis.derivative_matrix isa ROCArray

@@ -23,6 +23,12 @@ function LinearScalarAdvectionEquation1D(a::Real)
     return LinearScalarAdvectionEquation1D(SVector(a))
 end
 
+function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
+                               equations::LinearScalarAdvectionEquation1D) where {NewRealT}
+    advection_velocity = SVector{1, NewRealT}(equations.advection_velocity)
+    return LinearScalarAdvectionEquation1D(advection_velocity)
+end
+
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar",)
 
