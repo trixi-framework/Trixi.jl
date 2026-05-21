@@ -87,6 +87,7 @@ end
     @test real(ode.p.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
+    @test typeof(equations.gamma) == Float64
 
     @test ode.u0 isa Array
     @test ode.p.solver.basis.derivative_matrix isa Array
@@ -111,7 +112,8 @@ end
                                      6.214141845717336e-5],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
-                        storage_type=CuArray, gamma=Float32(1.4))
+                        storage_type=CuArray,
+                        gamma=Float32(1.4)) # TODO: This should not be required
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
@@ -121,6 +123,7 @@ end
     @test real(ode.p.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
+    @test typeof(equations.gamma) == Float32
 
     @test ode.u0 isa CuArray
     @test ode.p.solver.basis.derivative_matrix isa CuArray
