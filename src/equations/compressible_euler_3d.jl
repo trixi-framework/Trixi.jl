@@ -1849,6 +1849,37 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 
+@doc raw"""
+    jacobian_entropy2cons(w, equations::CompressibleEulerEquations3D)
+
+Jacobian of the mapping from entropy variables to conservative variables, ``\partial u / \partial w``.
+Symmetric matrix; see Barth (1999), p. 205.
+- Barth (1999)
+  Numerical methods for gasdynamic systems on unstructured meshes.
+  [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
+"""
+@inline function jacobian_entropy2cons(w, equations::CompressibleEulerEquations3D)
+    @unpack inv_gamma_minus_one = equations
+    u = entropy2cons(w, equations)
+    rho, v1, v2, v3, p = cons2prim(u, equations)
+    rho_e = u[5]
+    h = (rho_e + p) / rho
+    v_square = v1^2 + v2^2 + v3^2
+    rho_v1 = rho * v1
+    rho_v2 = rho * v2
+    rho_v3 = rho * v3
+    rho_h_v1 = rho * h * v1
+    rho_h_v2 = rho * h * v2
+    rho_h_v3 = rho * h * v3
+    h55 = (p^2 * inv_gamma_minus_one + rho_e^2) / rho + v_square * p
+
+    return @SMatrix [rho rho_v1 rho_v2 rho_v3 rho_e
+                     rho_v1 rho_v1 * v1+p rho_v1*v2 rho_v1*v3 rho_h_v1
+                     rho_v2 rho_v1*v2 rho_v2 * v2+p rho_v2*v3 rho_h_v2
+                     rho_v3 rho_v1*v3 rho_v2*v3 rho_v3 * v3+p rho_h_v3
+                     rho_e rho_h_v1 rho_h_v2 rho_h_v3 h55]
+end
+
 @inline function density(u, equations::CompressibleEulerEquations3D)
     rho = u[1]
     return rho
