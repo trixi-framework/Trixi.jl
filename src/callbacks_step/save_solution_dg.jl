@@ -144,8 +144,8 @@ function save_solution_file(u, time, dt, timestep,
 
         # Store each variable of the solution data.
         for v in 1:n_vars
-            temp = zeros(size(u.u))
-            n_nodes, n_elems = size(u.u)
+            temp = zeros(size(u))
+            n_nodes, n_elems = size(u)
             for i_elem in 1:n_elems
                 for i_node in 1:n_nodes
                     temp[i_node, i_elem] = data[i_node, i_elem][v]
