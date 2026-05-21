@@ -19,9 +19,9 @@ end
 @testset "KernelAbstractions CPU 2D" begin
 #! format: noindent
 
-@trixi_testset "elixir_advection_basic_gpu.jl" begin
+@trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_advection_basic_gpu.jl"),
+                                 "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5)
@@ -31,9 +31,9 @@ end
     @test_allocations(Trixi.rhs!, ode.p, sol, 75_000)
 end
 
-@trixi_testset "elixir_advection_basic_gpu.jl Float32" begin
+@trixi_testset "elixir_advection_basic.jl Float32" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_advection_basic_gpu.jl"),
+                                 "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
@@ -87,9 +87,9 @@ end
 @testset "KernelAbstractions CPU 3D" begin
 #! format: noindent
 
-@trixi_testset "elixir_advection_basic_gpu.jl" begin
+@trixi_testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                 "elixir_advection_basic_gpu.jl"),
+                                 "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
@@ -99,9 +99,9 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 450_000)
 end
 
-@trixi_testset "elixir_advection_basic_gpu.jl Float32" begin
+@trixi_testset "elixir_advection_basic.jl Float32" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
-                                 "elixir_advection_basic_gpu.jl"),
+                                 "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
                         l2=[Float32(0.00016263963870641478)],
                         linf=[Float32(0.0014537194925779984)],
