@@ -255,17 +255,23 @@ from the entropy variables via
     return SVector(v1, T)
 end
 
-# the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
-# For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
-# variables into primitive variables.
+"""
+    convert_transformed_to_velocity_temperature(u_transformed, equations::CompressibleNavierStokesDiffusion1D)
+
+Convert transformed gradient variables to velocity and temperature `(v_1, T)`.
+
+The [`flux`](@ref) function receives transformed variables from [`gradient_variable_transformation`](@ref).
+This function takes advantage of the fact that, for CompressibleNavierStokesDiffusion1D, parabolic fluxes 
+depend only on velocity and temperature.
+"""
 @inline function convert_transformed_to_velocity_temperature(u_transformed,
-                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
+                                                             equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
     _, v1, T = u_transformed
     return SVector(v1, T)
 end
 
 @inline function convert_transformed_to_velocity_temperature(u_transformed,
-                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
+                                                             equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     return entropy2velocity_temperature(u_transformed, equations)
 end
 
