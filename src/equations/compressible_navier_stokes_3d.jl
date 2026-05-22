@@ -286,9 +286,12 @@ end
     entropy2prim(w, equations::AbstractCompressibleNavierStokesDiffusion{3, 5})
 
 Directly convert entropy variables `w` to primitive variables.
-Velocities and temperature are computed directly from the entropy variables following
-(Hughes, Franca, Mallet 1986) via
-``T = -1/w_5``, ``v_1 = -w_2/w_5``, ``v_2 = -w_3/w_5``, and ``v_3 = -w_4/w_5``, where ``w_5 = -\\rho/p``.
+Velocities and temperature are computed directly from the entropy variables via
+``T = -1/w_5``, ``v_1 = -w_2/w_5``, ``v_2 = -w_3/w_5``, and ``v_3 = -w_4/w_5``, 
+where ``w_5 = -\\rho/p``. This follows
+- Hughes, Franca, Mallet (1986) 
+  A new finite element formulation for CFD
+  [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 
 Note that the first primitive variable is set to `w[1]` instead of `rho`; this
 first variable is unused in Navier-Stokes calculations.
