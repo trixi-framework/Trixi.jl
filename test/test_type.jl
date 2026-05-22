@@ -1074,7 +1074,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @trixi_testset "Testing Trixi.entropy2prim for CompressibleNavierStokesDiffusion" begin
+    @timed_testset "Testing Trixi.entropy2prim for CompressibleNavierStokesDiffusion" begin
         for RealT in (Float32, Float64)
             prandtl_number = RealT(0.72)
             mu = RealT(0.01)
