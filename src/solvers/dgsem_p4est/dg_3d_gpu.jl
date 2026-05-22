@@ -81,6 +81,26 @@ end
                                        index_range, interface)
 end
 
+function prolong2boundaries!(backend::Backend, cache, u,
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                             equations, dg::DG)
+    @unpack boundaries = cache
+		@unpack neighbor_ids, node_indices = boundaries
+    index_range = eachnode(dg)
+    nboundaries = length(eachboundary(dg, cache))  
+	kernel_cache = kernel_filter_cache(cache)
+		kernel! = prolong2boundaries_kernel!(backend)
+		kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids, node_indices, ndrange = nboundaries)
+    return nothing
+end
+
+@kernel function prolong2boundaries_kernel!(u, MeshT, equations, dg, index_range, u_boundaries, neighbor_ids, node_indices)
+
+boundary = @index(Global)
+prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries, neighbor_ids, node_indices, boundary)
+end
+
+
 @kernel function calc_sources_KAkernel!(du, u, t, source_terms,
                                         node_coordinates,
                                         equations::AbstractEquations{3}, dg, cache)
