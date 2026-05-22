@@ -951,8 +951,8 @@ end
                                                      ::Type{<:Union{StructuredMesh{3},
                                                                     P4estMesh{3},
                                                                     T8codeMesh{3}}},
-                                                     equations, dg, inverse_jacobian, i,
-                                                     j, k, element)
+                                                     equations, dg, inverse_jacobian,
+                                                     i, j, k, element)
     # Negative sign included to account for the negated surface and volume terms,
     # see e.g. the computation of `derivative_hat` in the basis setup and 
     # the comment in `calc_surface_integral!`.

@@ -95,9 +95,8 @@ end
 @kernel function apply_jacobian_KAkernel!(du, MeshT, equations, dg::DG,
                                           inverse_jacobian)
     i, j, k, element = @index(Global, NTuple)
-    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian, i,
-                                        j, k,
-                                        element)
+    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian,
+                                        i, j, k, element)
 end
 
 @kernel function calc_sources_KAkernel!(du, u, t, source_terms,
