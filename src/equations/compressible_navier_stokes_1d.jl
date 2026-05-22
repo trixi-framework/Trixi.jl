@@ -148,7 +148,7 @@ end
 function flux(u, gradients, orientation::Integer,
               equations::CompressibleNavierStokesDiffusion1D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
-    _, v1, _ = convert_transformed_to_primitive(u, equations)
+    v1, _ = convert_transformed_to_velocity_temperature(u, equations)
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
@@ -236,37 +236,37 @@ function entropy2cons(w, equations::CompressibleNavierStokesDiffusion1D)
 end
 
 """
-    entropy2prim(w, equations::AbstractCompressibleNavierStokesDiffusion{1, 3})
+    entropy2velocity_temperature(w, equations::AbstractCompressibleNavierStokesDiffusion{1, 3})
 
-Directly convert entropy variables `w` to primitive variables. 
-Velocities and temperature are computed directly from the entropy variables via 
+This directly converts entropy variables `w` to velocity and temperature, which are computed 
+from the entropy variables via 
 ``T = -1/w_3`` and ``v_1 = -w_2/w_3``, where ``w_3 = -\\rho/p`` following
+
 - Hughes, Franca, Mallet (1986) 
   A new finite element formulation for CFD
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
-
-Note that the first primitive variable is set to `w[1]` instead of `rho`; this 
-first variable is unused in Navier-Stokes calculations. 
 """
-@inline function entropy2prim(w, ::AbstractCompressibleNavierStokesDiffusion{1, 3})
+@inline function entropy2velocity_temperature(w,
+                                              ::AbstractCompressibleNavierStokesDiffusion{1,
+                                                                                          3})
     inv_w3 = inv(w[3])
     T = -inv_w3
     v1 = -w[2] * inv_w3
-    # First component is unused on the entropy-gradient path; store w[1] for layout compatibility.
-    return SVector(w[1], v1, T)
+    return SVector(v1, T)
 end
 
 # the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
 # For CNS, it is simplest to formulate the parabolic terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
-@inline function convert_transformed_to_primitive(u_transformed,
+@inline function convert_transformed_to_velocity_temperature(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
-    return u_transformed
+    _, v1, T = u_transformed
+    return SVector(v1, T)
 end
 
-@inline function convert_transformed_to_primitive(u_transformed,
+@inline function convert_transformed_to_velocity_temperature(u_transformed,
                                                   equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
-    return entropy2prim(u_transformed, equations)
+    return entropy2velocity_temperature(u_transformed, equations)
 end
 
 # Takes the solution values `u` and gradient of the entropy variables (w_2, w_3) and
@@ -282,7 +282,7 @@ end
 # the first argument is always the "transformed" variables.
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
-    _, v1, T = entropy2prim(w, equations)
+    v1, T = entropy2velocity_temperature(w, equations)
 
     return SVector(gradient_entropy_vars[1],
                    T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[3]), # grad(u) = T*(grad(w_2)+v1*grad(w_3))
