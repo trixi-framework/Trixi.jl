@@ -130,7 +130,7 @@ end
     @test real(ode.p.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
-    @test typeof(equations.gamma) == Float64
+    @test typeof(equations.gamma) == Float32
 
     @test ode.u0 isa CuArray
     @test ode.p.solver.basis.derivative_matrix isa CuArray
