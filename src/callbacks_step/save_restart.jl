@@ -107,6 +107,11 @@ end
 
 @inline function save_restart_file(u_ode, t, dt, iter,
                                    semi::AbstractSemidiscretization, restart_callback)
+    # TODO GPU currently on CPU
+    backend = trixi_backend(u_ode)
+    if backend !== nothing
+        u_ode = Array(u_ode)
+    end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
     return save_restart_file(u, t, dt, iter, mesh, equations, solver, cache,
