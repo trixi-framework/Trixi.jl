@@ -405,12 +405,12 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
-            # Evaluate in the module that defines RealT so that type names like
+            # Evaluate in the module of the calling context so that type names like
             # `Float128` (introduced by Quadmath.jl v1's `show`) are in scope.
-            RealT_module = parentmodule(real(mesh))
-            coordinates_min = Core.eval(RealT_module,
+            eval_module = get(io, :module, Main)::Module
+            coordinates_min = Core.eval(eval_module,
                                         Meta.parse(split(mapping_lines[1], "= ")[2]))
-            coordinates_max = Core.eval(RealT_module,
+            coordinates_max = Core.eval(eval_module,
                                         Meta.parse(split(mapping_lines[2], "= ")[2]))
             dims = length(coordinates_max)
             summary_line(increment_indent(io), "domain",
