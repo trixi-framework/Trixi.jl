@@ -12,10 +12,11 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
 
     #Idea for FV: "Improve plotting for 2D/3D simulations with polydeg = 0 on the TreeMesh (finite volume case) #2998" 
 
-    z_data = data[variable_id]
+    #z_data = data[variable_id]
 
     if length(x) == size(data[variable_id], 1) && length(y) == size(data[variable_id], 2)
         
+        dx = (x[end] - x[begin]) / (length(x) - 1)
         dy = (y[end] - y[begin]) / (length(y) - 1)
         
         y_edges = collect(range(y[begin] - dy/2, y[end] + dy/2, length=length(y) + 1))
@@ -32,7 +33,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
         yguide --> _get_guide(orientation_y)
         seriestype --> :heatmap
         
-        return x_edges, y_edges, z_data #data[variable_id]
+        #return x_edges, y_edges, z_data #data[variable_id]
+        return x_edges, y_edges, data[variable_id]
     end
 
 
@@ -52,7 +54,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     seriestype --> :heatmap
 
     # Return data for plotting
-    return x, y, z_data #data[variable_id]
+    #return x, y, z_data #data[variable_id]
+    return x, y, data[variable_id]
 end
 
 # Visualize the mesh in a 2D plot
