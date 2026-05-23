@@ -292,7 +292,6 @@ from the entropy variables via
 - Hughes, Franca, Mallet (1986) 
   A new finite element formulation for CFD
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
-
 """
 @inline function entropy2velocity_temperature(w,
                                               ::AbstractCompressibleNavierStokesDiffusion{3,
@@ -311,7 +310,7 @@ end
 Convert transformed gradient variables to velocity and temperature `(v_1, v_2, v_3, T)`.
 
 The [`flux`](@ref) function receives transformed variables from [`gradient_variable_transformation`](@ref).
-This function takes advantage of the fact that, for CompressibleNavierStokesDiffusion3D, parabolic fluxes 
+This function takes advantage of the fact that, for [`CompressibleNavierStokesDiffusion3D`](@ref), parabolic fluxes 
 depend only on velocity and temperature.
 """
 @inline function convert_transformed_to_velocity_temperature(u_transformed,
