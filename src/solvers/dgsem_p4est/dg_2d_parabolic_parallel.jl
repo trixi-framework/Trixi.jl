@@ -23,6 +23,7 @@ function rhs_parabolic!(du, u, t,
     end
 
     ### Gradient computation ###
+    # Note that the first step (start MPI receive) was already done earlier.
 
     # Prolong transformed variables to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars gradient" begin
