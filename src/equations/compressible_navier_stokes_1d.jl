@@ -258,11 +258,9 @@ end
 """
     convert_transformed_to_velocity_temperature(u_transformed, equations::CompressibleNavierStokesDiffusion1D)
 
-Convert transformed gradient variables to velocity and temperature `(v_1, T)`.
-
-The [`flux`](@ref) function receives transformed variables from [`gradient_variable_transformation`](@ref).
-This function takes advantage of the fact that, for [`CompressibleNavierStokesDiffusion1D`](@ref), parabolic fluxes 
-depend only on velocity and temperature.
+Convert transformed gradient variables from [`gradient_variable_transformation`](@ref) to `(v_1, T)`. For
+[`CompressibleNavierStokesDiffusion1D`](@ref), gradients are always converted to gradients of primitive variables, 
+so the parabolic fluxes only require velocity and temperature to evaluate.
 """
 @inline function convert_transformed_to_velocity_temperature(u_transformed,
                                                              equations::CompressibleNavierStokesDiffusion1D{GradientVariablesPrimitive})
