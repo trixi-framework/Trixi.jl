@@ -414,44 +414,47 @@ function prolong2boundaries!(backend::Nothing, cache, u,
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
     @threaded for boundary in eachboundary(dg, cache)
-	prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, boundaries.u, neighbor_ids, node_indices, boundary)
+        prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range,
+                                         boundaries.u, neighbor_ids, node_indices,
+                                         boundary)
     end
 
     return nothing
 end
 
 function prolong2boundaries_per_boundary!(u,
-			     MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
-                             equations, dg::DG, index_range, u_boundaries, neighbor_ids, node_indices, boundary)
-        # Copy solution data from the element using "delayed indexing" with
-        # a start value and two step sizes to get the correct face and orientation.
-        element = neighbor_ids[boundary]
-        node_indices = node_indices[boundary]
+                                          MeshT::Type{<:Union{P4estMesh{3},
+                                                              T8codeMesh{3}}},
+                                          equations, dg::DG, index_range, u_boundaries,
+                                          neighbor_ids, node_indices, boundary)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and two step sizes to get the correct face and orientation.
+    element = neighbor_ids[boundary]
+    node_index = node_indices[boundary]
 
-        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
-                                                                            index_range)
-        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
-                                                                            index_range)
-        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
-                                                                            index_range)
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_index[1],
+                                                                        index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_index[2],
+                                                                        index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_index[3],
+                                                                        index_range)
 
-        i_node = i_node_start
-        j_node = j_node_start
-        k_node = k_node_start
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                for v in eachvariable(equations)
-                    u_boundaries[v, i, j, boundary] = u[v, i_node, j_node, k_node,
-                                                        element]
-                end
-                i_node += i_node_step_i
-                j_node += j_node_step_i
-                k_node += k_node_step_i
+    i_node = i_node_start
+    j_node = j_node_start
+    k_node = k_node_start
+    for j in eachnode(dg)
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                u_boundaries[v, i, j, boundary] = u[v, i_node, j_node, k_node,
+                                                    element]
             end
-            i_node += i_node_step_j
-            j_node += j_node_step_j
-            k_node += k_node_step_j
+            i_node += i_node_step_i
+            j_node += j_node_step_i
+            k_node += k_node_step_i
         end
+        i_node += i_node_step_j
+        j_node += j_node_step_j
+        k_node += k_node_step_j
     end
 
     return nothing
