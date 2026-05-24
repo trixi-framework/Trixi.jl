@@ -676,7 +676,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{2}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides = boundaries
@@ -715,7 +715,7 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{2}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
