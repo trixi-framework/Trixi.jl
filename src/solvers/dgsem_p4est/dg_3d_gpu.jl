@@ -100,6 +100,8 @@ end
     boundary = @index(Global)
     prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
                                      neighbor_ids, node_indices, boundary)
+end
+
 function apply_jacobian!(backend::Backend, du,
                          mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
