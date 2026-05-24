@@ -207,9 +207,9 @@ function init_mpi_mortars(mesh::Union{P4estMeshParallel, T8codeMeshParallel}, eq
                                                       _u, _node_indices,
                                                       _normal_directions)
 
-    if n_mpi_mortars > 0
+    #if n_mpi_mortars > 0
         init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
-    end
+    #end
 
     return mpi_mortars
 end
