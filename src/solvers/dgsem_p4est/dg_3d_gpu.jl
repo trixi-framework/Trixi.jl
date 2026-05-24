@@ -100,6 +100,22 @@ end
     boundary = @index(Global)
     prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
                                      neighbor_ids, node_indices, boundary)
+function apply_jacobian!(backend::Backend, du,
+                         mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                         equations, dg::DG, cache)
+    @unpack inverse_jacobian = cache.elements
+
+    kernel! = apply_jacobian_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
+            ndrange = (nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+    return nothing
+end
+
+@kernel function apply_jacobian_KAkernel!(du, MeshT, equations, dg::DG,
+                                          inverse_jacobian)
+    i, j, k, element = @index(Global, NTuple)
+    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian,
+                                        i, j, k, element)
 end
 
 @kernel function calc_sources_KAkernel!(du, u, t, source_terms,

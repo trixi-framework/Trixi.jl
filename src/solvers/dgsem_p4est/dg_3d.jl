@@ -97,9 +97,10 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
-        prolong2interfaces_per_interface!(interfaces.u, u, typeof(mesh), equations,
+        prolong2interfaces_per_interface!(interfaces.u, u, MeshT, equations,
                                           neighbor_ids, node_indices, index_range,
                                           interface)
     end
@@ -188,12 +189,14 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
+    SolverT = typeof(dg)
 
     @threaded for interface in eachinterface(dg, cache)
         calc_interface_flux_per_interface!(surface_flux_values,
-                                           typeof(mesh),
+                                           MeshT,
                                            have_nonconservative_terms,
-                                           equations, surface_integral, typeof(dg),
+                                           equations, surface_integral, SolverT,
                                            cache.interfaces.u, neighbor_ids,
                                            node_indices,
                                            contravariant_vectors, index_range,
@@ -975,9 +978,10 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
+    MeshT = typeof(mesh)
 
     @threaded for element in eachelement(dg, cache)
-        calc_surface_integral_per_element!(du, typeof(mesh),
+        calc_surface_integral_per_element!(du, MeshT,
                                            equations, surface_integral,
                                            dg, inverse_weights[1],
                                            surface_flux_values,
