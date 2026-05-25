@@ -2098,15 +2098,17 @@ end
 end
 
 @doc raw"""
-    jacobian_entropy2cons(w, equations::CompressibleEulerEquations2D)
+    apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations2D)
 
-Jacobian of the mapping from entropy variables to conservative variables, ``\partial u / \partial w``.
-Symmetric matrix; see Barth (1999), p. 205.
+Calculate the Jacobian for the mapping from entropy variables to conservative 
+variables at the entropy variable state `w` and apply it to the vector `dw`.
+
+The explicit Jacobian formula can be found in Barth (1999), p. 205.
 - Barth (1999)
   Numerical methods for gasdynamic systems on unstructured meshes.
   [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
 """
-@inline function jacobian_entropy2cons(w, equations::CompressibleEulerEquations2D)
+@inline function apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations2D)
     @unpack inv_gamma_minus_one = equations
     u = entropy2cons(w, equations)
     rho, v1, v2, p = cons2prim(u, equations)
@@ -2119,10 +2121,12 @@ Symmetric matrix; see Barth (1999), p. 205.
     rho_h_v2 = rho * h * v2
     h44 = (p^2 * inv_gamma_minus_one + rho_e^2) / rho + v_square * p
 
-    return @SMatrix [rho rho_v1 rho_v2 rho_e
-                     rho_v1 rho_v1 * v1+p rho_v1*v2 rho_h_v1
-                     rho_v2 rho_v1*v2 rho_v2 * v2+p rho_h_v2
-                     rho_e rho_h_v1 rho_h_v2 h44]
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_v2 * dw[3] + rho_e * dw[4],
+                   rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_v1 * v2 * dw[3] +
+                   rho_h_v1 * dw[4],
+                   rho_v2 * dw[1] + rho_v1 * v2 * dw[2] + (rho_v2 * v2 + p) * dw[3] +
+                   rho_h_v2 * dw[4],
+                   rho_e * dw[1] + rho_h_v1 * dw[2] + rho_h_v2 * dw[3] + h44 * dw[4])
 end
 
 @inline function density(u, equations::CompressibleEulerEquations2D)

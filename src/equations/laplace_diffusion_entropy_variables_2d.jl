@@ -5,20 +5,12 @@ function LaplaceDiffusionEntropyVariables2D(diffusivity, equations_hyperbolic)
                                                                  equations_hyperbolic)
 end
 
-function jacobian_entropy2cons(w,
-                               equations::LaplaceDiffusionEntropyVariables{2,
-                                                                           <:CompressibleEulerEquations2D})
-    return equations.diffusivity *
-           jacobian_entropy2cons(w, equations.equations_hyperbolic)
-end
-
 function flux(u, gradients, orientation::Integer,
               equations::LaplaceDiffusionEntropyVariables{2})
     dudx, dudy = gradients
-    diffusivity = jacobian_entropy2cons(u, equations)
     if orientation == 1
-        return SVector(diffusivity * dudx)
+        return SVector(equations.diffusivity * apply_jacobian_entropy2cons(dudx, u, equations))
     else # if orientation == 2
-        return SVector(diffusivity * dudy)
+        return SVector(equations.diffusivity * apply_jacobian_entropy2cons(dudy, u, equations))
     end
 end

@@ -32,10 +32,21 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
-# This is used to compute the diffusivity tensor for LaplaceDiffusionEntropyVariables.
-# This is the generic fallback using AD (assuming entropy2cons exists)
-function jacobian_entropy2cons(w, equations)
-    return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
+# Jacobian-vector product for LaplaceDiffusionEntropyVariables fluxes.
+function apply_jacobian_entropy2cons(dw, w,
+                                     equations::LaplaceDiffusionEntropyVariables{NDIMS,
+                                                                                <:AbstractCompressibleEulerEquations{NDIMS}}) where {NDIMS}
+    return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
+end
+
+"""
+    apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVariables)
+
+Jacobian-vector product ``(\\partial u / \\partial w) \\cdot dw`` via AD fallback.
+Forms the full Jacobian with `ForwardDiff.jacobian` and multiplies by `dw`.
+"""
+function apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVariables)
+    return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w) * dw
 end
 
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
