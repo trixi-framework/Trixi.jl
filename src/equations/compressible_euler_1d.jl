@@ -1059,16 +1059,18 @@ The explicit Jacobian formula can be found in Barth (1999), p. 205.
                                              equations::CompressibleEulerEquations1D)
     @unpack inv_gamma_minus_one = equations
     u = entropy2cons(w, equations)
-    rho, v1, p = cons2prim(u, equations)
-    rho_e = u[3]
-    h = (rho_e + p) / rho
-    rho_v1 = rho * v1
-    rho_h_v1 = rho * h * v1
-    h33 = (p^2 * inv_gamma_minus_one + rho_e^2) / rho + v1^2 * p
+    rho, rho_v1, rho_e_total = u
+    _, v1, p = cons2prim(u, equations)
 
-    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_e * dw[3],
+    # total enthalpy terms from Barth 
+    a_squared = equations.gamma * p / rho
+    H = a_squared * inv_gamma_minus_one + 0.5f0 * v1^2
+    rho_h_v1 = rho * v1 * H
+    h33 = rho * H^2 - a_squared * p * inv_gamma_minus_one
+
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_e_total * dw[3],
                    rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_h_v1 * dw[3],
-                   rho_e * dw[1] + rho_h_v1 * dw[2] + h33 * dw[3])
+                   rho_e_total * dw[1] + rho_h_v1 * dw[2] + h33 * dw[3])
 end
 
 @inline function density(u, equations::CompressibleEulerEquations1D)
