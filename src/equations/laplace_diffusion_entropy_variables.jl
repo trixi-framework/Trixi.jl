@@ -33,9 +33,23 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
 end
 
 # Jacobian-vector product for LaplaceDiffusionEntropyVariables fluxes.
+# Note that we do not specialize for AbstractCompressibleEulerEquations
+# as that also covers CompressibleEulerEquationsQuasi1D and NonIdealCompressibleEulerEquations.
 function apply_jacobian_entropy2cons(dw, w,
-                                     equations::LaplaceDiffusionEntropyVariables{NDIMS,
-                                                                                 <:AbstractCompressibleEulerEquations{NDIMS}}) where {NDIMS}
+                                     equations::LaplaceDiffusionEntropyVariables{1,
+                                                                                 <:CompressibleEulerEquations1D})
+    return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
+end
+
+function apply_jacobian_entropy2cons(dw, w,
+                                     equations::LaplaceDiffusionEntropyVariables{2,
+                                                                                 <:CompressibleEulerEquations2D})
+    return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
+end
+
+function apply_jacobian_entropy2cons(dw, w,
+                                     equations::LaplaceDiffusionEntropyVariables{3,
+                                                                                 <:CompressibleEulerEquations3D})
     return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
 end
 
