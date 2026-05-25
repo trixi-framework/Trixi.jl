@@ -770,9 +770,15 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
                 @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
                 @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
-
-                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                if equations_parabolic.gradient_variables isa GradientVariablesEntropy
+                    w = cons2entropy(u, equations_parabolic)
+                    @test eltype(@inferred Trixi.entropy2velocity_temperature(w,
                                                                               equations_parabolic)) ==
+                          RealT
+                end
+
+                @test eltype(@inferred Trixi.convert_transformed_to_velocity_temperature(u_transformed,
+                                                                                         equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradients,
                                                                              equations_parabolic)) ==
@@ -880,13 +886,19 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
                 @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
                 @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+                if equations_parabolic.gradient_variables isa GradientVariablesEntropy
+                    w = cons2entropy(u, equations_parabolic)
+                    @test eltype(@inferred Trixi.entropy2velocity_temperature(w,
+                                                                              equations_parabolic)) ==
+                          RealT
+                end
                 @test typeof(@inferred Trixi.enstrophy(u, gradients, equations_parabolic)) ==
                       RealT
                 @test typeof(@inferred Trixi.vorticity(u, gradients, equations_parabolic)) ==
                       RealT
 
-                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
-                                                                              equations_parabolic)) ==
+                @test eltype(@inferred Trixi.convert_transformed_to_velocity_temperature(u_transformed,
+                                                                                         equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
                                                                              equations_parabolic)) ==
@@ -1001,13 +1013,19 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
                 @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
                 @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+                if equations_parabolic.gradient_variables isa GradientVariablesEntropy
+                    w = cons2entropy(u, equations_parabolic)
+                    @test eltype(@inferred Trixi.entropy2velocity_temperature(w,
+                                                                              equations_parabolic)) ==
+                          RealT
+                end
                 @test typeof(@inferred Trixi.enstrophy(u, gradients, equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred Trixi.vorticity(u, gradients, equations_parabolic)) ==
                       RealT
 
-                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
-                                                                              equations_parabolic)) ==
+                @test eltype(@inferred Trixi.convert_transformed_to_velocity_temperature(u_transformed,
+                                                                                         equations_parabolic)) ==
                       RealT
                 @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
                                                                              equations_parabolic)) ==
@@ -1056,6 +1074,51 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                equations_parabolic)) ==
                       RealT
             end
+        end
+    end
+
+    @timed_testset "Testing Trixi.entropy2velocity_temperature for CompressibleNavierStokesDiffusion" begin
+        for RealT in (Float32, Float64)
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
+
+            equations_1d = CompressibleEulerEquations1D(RealT(1.4))
+            equations_parabolic_1d = CompressibleNavierStokesDiffusion1D(equations_1d,
+                                                                         mu = mu,
+                                                                         Prandtl = prandtl_number,
+                                                                         gradient_variables = GradientVariablesEntropy())
+            u_1d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(4.0)), equations_1d)
+            w_1d = cons2entropy(u_1d, equations_parabolic_1d)
+            @test Trixi.entropy2velocity_temperature(w_1d, equations_parabolic_1d) ≈
+                  cons2prim(u_1d, equations_parabolic_1d)[2:end]
+            @test length(Trixi.entropy2velocity_temperature(w_1d, equations_parabolic_1d)) ==
+                  2
+
+            equations_2d = CompressibleEulerEquations2D(RealT(1.4))
+            equations_parabolic_2d = CompressibleNavierStokesDiffusion2D(equations_2d,
+                                                                         mu = mu,
+                                                                         Prandtl = prandtl_number,
+                                                                         gradient_variables = GradientVariablesEntropy())
+            u_2d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(0.2), RealT(4.0)),
+                             equations_2d)
+            w_2d = cons2entropy(u_2d, equations_parabolic_2d)
+            @test Trixi.entropy2velocity_temperature(w_2d, equations_parabolic_2d) ≈
+                  cons2prim(u_2d, equations_parabolic_2d)[2:end]
+            @test length(Trixi.entropy2velocity_temperature(w_2d, equations_parabolic_2d)) ==
+                  3
+
+            equations_3d = CompressibleEulerEquations3D(RealT(1.4))
+            equations_parabolic_3d = CompressibleNavierStokesDiffusion3D(equations_3d,
+                                                                         mu = mu,
+                                                                         Prandtl = prandtl_number,
+                                                                         gradient_variables = GradientVariablesEntropy())
+            u_3d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(0.2), RealT(0.3),
+                                     RealT(4.0)), equations_3d)
+            w_3d = cons2entropy(u_3d, equations_parabolic_3d)
+            @test Trixi.entropy2velocity_temperature(w_3d, equations_parabolic_3d) ≈
+                  cons2prim(u_3d, equations_parabolic_3d)[2:end]
+            @test length(Trixi.entropy2velocity_temperature(w_3d, equations_parabolic_3d)) ==
+                  4
         end
     end
 
