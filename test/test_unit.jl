@@ -734,6 +734,27 @@ end
     end
 end
 
+@timed_testset "LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" begin
+    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    for (equations_parabolic, prim, dw) in (
+        (LaplaceDiffusionEntropyVariables1D(0.01, CompressibleEulerEquations1D(1.4)),
+         SVector(rho, v1, p), SVector(0.1, 0.1, 0.1)),
+        (LaplaceDiffusionEntropyVariables2D(0.01, CompressibleEulerEquations2D(1.4)),
+         SVector(rho, v1, v2, p), SVector(0.1, 0.1, 0.1, 0.1)),
+        (LaplaceDiffusionEntropyVariables3D(0.01, CompressibleEulerEquations3D(1.4)),
+         SVector(rho, v1, v2, v3, p), SVector(0.1, 0.1, 0.1, 0.1, 0.1)),
+    )
+        equations = equations_parabolic.equations_hyperbolic
+        w = cons2entropy(prim2cons(prim, equations), equations)
+        jvp_specialized = Trixi.apply_jacobian_entropy2cons(dw, w, equations_parabolic)
+        jvp_generic = invoke(Trixi.apply_jacobian_entropy2cons,
+                               Tuple{typeof(dw), typeof(w), Trixi.LaplaceDiffusionEntropyVariables},
+                               dw, w, equations_parabolic)
+        @test jvp_specialized ≈ jvp_generic
+    end
+end
+
 # It is for many equations possible to compute ρ ⋅ p more efficiently
 # than computing the pressure (and density if needed) separately and then multiplying.
 # This is due to the computation of the kinetic energy term, which usually involves
