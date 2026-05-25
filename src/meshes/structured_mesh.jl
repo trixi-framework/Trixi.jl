@@ -145,6 +145,38 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                           mapping_as_string = mapping_as_string)
 end
 
+"""
+    StructuredMesh(; coordinates_min, coordinates_max, refinement_level, periodicity=false)
+
+Create a rectangular `StructuredMesh` using keyword arguments only, for easy mesh-type swapping
+with [`TreeMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
+
+The number of cells per dimension is `2^refinement_level`.
+
+Note that `StructuredMesh` does not support adaptive mesh refinement;
+`refinement_level` only sets the initial uniform resolution.
+
+# Arguments
+- `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
+- `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
+  Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: the number of cells in each dimension is set to `2^refinement_level`.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
+"""
+function StructuredMesh(; coordinates_min,
+                        coordinates_max,
+                        refinement_level,
+                        periodicity = false)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    NDIMS = length(coordinates_min)
+    cells_per_dimension = ntuple(_ -> 2^refinement_level, NDIMS)
+    return StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                          periodicity = periodicity)
+end
+
 # Extract a string of the code that defines the mapping function
 function mapping2string(mapping, ndims, RealT = Float64)
     return string(code_string(mapping, ntuple(_ -> RealT, ndims)))

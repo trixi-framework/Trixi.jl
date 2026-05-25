@@ -146,5 +146,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
-                                 thread = Trixi.True());
+                                 thread = Trixi.Threaded());
             dt = 1.0, ode_default_options()..., callback = callbacks)
