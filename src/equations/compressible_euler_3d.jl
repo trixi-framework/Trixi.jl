@@ -1860,7 +1860,8 @@ The explicit Jacobian formula can be found in Barth (1999), p. 205.
   Numerical methods for gasdynamic systems on unstructured meshes.
   [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
 """
-@inline function apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations3D)
+@inline function apply_jacobian_entropy2cons(dw, w,
+                                             equations::CompressibleEulerEquations3D)
     @unpack inv_gamma_minus_one = equations
     u = entropy2cons(w, equations)
     rho, v1, v2, v3, p = cons2prim(u, equations)
@@ -1875,14 +1876,16 @@ The explicit Jacobian formula can be found in Barth (1999), p. 205.
     rho_h_v3 = rho * h * v3
     h55 = (p^2 * inv_gamma_minus_one + rho_e^2) / rho + v_square * p
 
-    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_v2 * dw[3] + rho_v3 * dw[4] + rho_e * dw[5],
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_v2 * dw[3] + rho_v3 * dw[4] +
+                   rho_e * dw[5],
                    rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_v1 * v2 * dw[3] +
                    rho_v1 * v3 * dw[4] + rho_h_v1 * dw[5],
                    rho_v2 * dw[1] + rho_v1 * v2 * dw[2] + (rho_v2 * v2 + p) * dw[3] +
                    rho_v2 * v3 * dw[4] + rho_h_v2 * dw[5],
                    rho_v3 * dw[1] + rho_v1 * v3 * dw[2] + rho_v2 * v3 * dw[3] +
                    (rho_v3 * v3 + p) * dw[4] + rho_h_v3 * dw[5],
-                   rho_e * dw[1] + rho_h_v1 * dw[2] + rho_h_v2 * dw[3] + rho_h_v3 * dw[4] +
+                   rho_e * dw[1] + rho_h_v1 * dw[2] + rho_h_v2 * dw[3] +
+                   rho_h_v3 * dw[4] +
                    h55 * dw[5])
 end
 

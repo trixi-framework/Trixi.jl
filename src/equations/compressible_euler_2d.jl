@@ -2108,7 +2108,8 @@ The explicit Jacobian formula can be found in Barth (1999), p. 205.
   Numerical methods for gasdynamic systems on unstructured meshes.
   [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
 """
-@inline function apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations2D)
+@inline function apply_jacobian_entropy2cons(dw, w,
+                                             equations::CompressibleEulerEquations2D)
     @unpack inv_gamma_minus_one = equations
     u = entropy2cons(w, equations)
     rho, v1, v2, p = cons2prim(u, equations)

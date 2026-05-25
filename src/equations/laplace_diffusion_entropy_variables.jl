@@ -35,7 +35,7 @@ end
 # Jacobian-vector product for LaplaceDiffusionEntropyVariables fluxes.
 function apply_jacobian_entropy2cons(dw, w,
                                      equations::LaplaceDiffusionEntropyVariables{NDIMS,
-                                                                                <:AbstractCompressibleEulerEquations{NDIMS}}) where {NDIMS}
+                                                                                 <:AbstractCompressibleEulerEquations{NDIMS}}) where {NDIMS}
     return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
 end
 
