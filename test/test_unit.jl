@@ -735,7 +735,7 @@ end
 end
 
 @timed_testset "LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" begin
-    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
+    rho, v1, v2, v3, p = 1.0, 0.1, -0.2, 0.3, 2.0
 
     for (equations_parabolic, prim, dw) in ((LaplaceDiffusionEntropyVariables1D(0.01,
                                                                                 CompressibleEulerEquations1D(1.4)),
