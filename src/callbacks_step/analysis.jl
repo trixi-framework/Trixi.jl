@@ -681,6 +681,10 @@ pretty_form_ascii(::typeof(cross_helicity)) = "v_dot_B"
 pretty_form_utf(::typeof(enstrophy)) = "∑enstrophy"
 pretty_form_ascii(::typeof(enstrophy)) = "enstrophy"
 
+function kinetic_energy_dissipation end
+pretty_form_utf(::typeof(kinetic_energy_dissipation)) = "∑ke_dissipation"
+pretty_form_ascii(::typeof(kinetic_energy_dissipation)) = "ke_dissipation"
+
 pretty_form_utf(::Val{:l2_divb}) = "L2 ∇⋅B"
 pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"
 

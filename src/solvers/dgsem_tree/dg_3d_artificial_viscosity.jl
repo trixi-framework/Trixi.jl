@@ -463,12 +463,8 @@
                            boundary_conditions, boundary_conditions_parabolic,
                            source_terms::Source,
                            dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}             
-<<<<<<< HEAD
-        (; u_transformed, flux_parabolic, gradients) = cache_parabolic.parabolic_container
-=======
         (; u_transformed, flux_parabolic, gradients, filtered_gradients,
             filtered_parabolic, tmp_gradient, tmp_parabolic) = cache_parabolic.parabolic_container
->>>>>>> 3c7f618fe (add svv impl)
         backend = trixi_backend(u)
         # Reset du
         @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
@@ -543,11 +539,11 @@
             calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
                                  equations_artificial_viscosity, dg, cache)
         end
-        #calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
-        #                        dg, cache)
-        calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
-            filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
-            entropy_residual, equations, mesh, dg, cache)
+        calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
+                                dg, cache)
+        #calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
+        #    filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
+        #    entropy_residual, equations, mesh, dg, cache)
 
         # # TODO: accumulate into flux_viscous instead
         # # accumulate the AV term

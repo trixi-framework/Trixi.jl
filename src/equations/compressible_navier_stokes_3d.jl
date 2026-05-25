@@ -380,6 +380,11 @@ In 3D, ``\boldsymbol{\omega}`` is a full three-component vector.
     return 0.5f0 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
 end
 
+# @inline function kinetc_energy_dissipation(u, du_local, equations)
+#     n_vel = norm(velocity(u, equations)) 
+#     return u1 * du_local[2] + u2 * du_local[3] + u3 * du_loca[4] - 0.5 * (n_vel * n_vel) * du_local[1]
+# end
+
 @doc raw"""
     vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
 

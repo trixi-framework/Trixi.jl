@@ -3,18 +3,12 @@
                           dg::DG, cache, RealT, uEltype)
         coefficients = zeros(real(dg), nelements(dg, cache))
         svv_coefficients = zeros(real(dg), nelements(dg, cache))
-        norm_coefficients = zero(real(dg))
-        norm_svv_coefficients = zero(real(dg))
         norm_residuals = zero(real(dg))
 
         ## create element filtered flux and transform gradients
         ## this does not create the whole mesh variables to save memory
         ## we reuse memory
-        tot_nodes = nnodes(dg)^ndims(mesh)
-        nvars = nvariables(artificial_viscosity.equations_artificial_viscosity)
-
-        cache = (; coefficients,
-                 norm_coefficients, norm_svv_coefficients, norm_residuals)
+        cache = (; coefficients, svv_coefficients, norm_residuals)
         return cache
     end
 

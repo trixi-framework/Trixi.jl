@@ -269,7 +269,7 @@ export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
        entropy_potential,
        energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
-       enstrophy, vorticity
+       enstrophy, vorticity, kinetic_energy_dissipation
 export lake_at_rest_error
 export ncomponents, eachcomponent
 export have_constant_speed
