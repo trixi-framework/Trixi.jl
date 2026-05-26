@@ -122,11 +122,13 @@ end
 # Uses `string(x)` (no type wrapper) so the result is always eval-able without
 # external imports.  Appends ".0" when `string(x)` produces an integer-like
 # token (e.g. Quadmath v1's `string(Float128(-1.0))` returns "-1").
+function coords_to_str(x::Real)
+    s = string(x)
+    return any(c -> c in ".eEfFinNaA", s) ? s : s * ".0"
+end
+
 function coords_to_str(coords::NTuple{N}) where {N}
-    strs = map(coords) do x
-        s = string(x)
-        any(c -> c in ".eEfFinNaA", s) ? s : s * ".0"
-    end
+    strs = map(coords_to_str, coords)
     return N == 1 ? "($(only(strs)),)" : "($(join(strs, ", ")))"
 end
 
