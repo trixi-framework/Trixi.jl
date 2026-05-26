@@ -1401,9 +1401,6 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
                                  levels, resolution, nvisnodes_per_level)
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
-
-    println("DEBUG: n_nodes_in ist aktuell: ", n_nodes_in, " | Shape: ", size(unstructured_data))
-
     
     # Bypasses polynomial interpolation. Directly projects cell centers from continuous [-1,1] space to matrix indices.
     if n_nodes_in == 1
