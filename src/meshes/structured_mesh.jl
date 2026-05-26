@@ -417,6 +417,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
+            # TODO: `@eval` is evil
             coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
             coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
             dims = length(coordinates_max)
