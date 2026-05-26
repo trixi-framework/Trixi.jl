@@ -994,6 +994,34 @@ end
     end
 end
 
+@timed_testset "Makie visualization tests for 1D" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = PlotData1D(sol)
+
+    # convert_arguments enables lines(pd["scalar"])
+    fap = lines(pd["scalar"])
+    @test fap isa Makie.FigureAxisPlot
+
+    # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
+    fap2 = Makie.plot(pd["scalar"])
+    @test fap2 isa Makie.FigureAxisPlot
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = Makie.plot(pd)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+    @test fig isa Makie.Figure
+    @test axes isa AbstractArray{<:Makie.Axis}
+
+    # Makie.plot(sol) for 1D solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+end
+
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                  "elixir_euler_wall_bc.jl"))
