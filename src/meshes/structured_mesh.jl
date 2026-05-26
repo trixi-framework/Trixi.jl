@@ -118,6 +118,18 @@ function StructuredMesh(cells_per_dimension, faces::Tuple;
                           mapping_as_string = mapping_as_string)
 end
 
+# Format a coordinate tuple as a plain Julia float-literal tuple string.
+# Uses `string(x)` (no type wrapper) so the result is always eval-able without
+# external imports.  Appends ".0" when `string(x)` produces an integer-like
+# token (e.g. Quadmath v1's `string(Float128(-1.0))` returns "-1").
+function coords_to_str(coords::NTuple{N}) where {N}
+    strs = map(coords) do x
+        s = string(x)
+        any(c -> c in ".eEfFinNaA", s) ? s : s * ".0"
+    end
+    return N == 1 ? "($(only(strs)),)" : "($(join(strs, ", ")))"
+end
+
 """
     StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                    periodicity = false)
@@ -139,7 +151,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
 
-    mapping_as_string = """coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
+    mapping_as_string = """coordinates_min = $(coords_to_str(coordinates_min));coordinates_max = $(coords_to_str(coordinates_max));mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
@@ -405,13 +417,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
-            # Evaluate in the module of the calling context so that type names like
-            # `Float128` (introduced by Quadmath.jl v1's `show`) are in scope.
-            eval_module = get(io, :module, Main)::Module
-            coordinates_min = Core.eval(eval_module,
-                                        Meta.parse(split(mapping_lines[1], "= ")[2]))
-            coordinates_max = Core.eval(eval_module,
-                                        Meta.parse(split(mapping_lines[2], "= ")[2]))
+            coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
+            coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
             dims = length(coordinates_max)
             summary_line(increment_indent(io), "domain",
                          join(["[$(coordinates_min[i]), $(coordinates_max[i])]"
