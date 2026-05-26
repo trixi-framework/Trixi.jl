@@ -10,10 +10,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
-    #Idea for FV: "Improve plotting for 2D/3D simulations with polydeg = 0 on the TreeMesh (finite volume case) #2998" 
-
-    #z_data = data[variable_id]
-
+     
+    # Convert centers to edges to prevent heatmap from clipping boundary cells.
     if length(x) == size(data[variable_id], 1) && length(y) == size(data[variable_id], 2)
         
         dx = (x[end] - x[begin]) / (length(x) - 1)
@@ -33,7 +31,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
         yguide --> _get_guide(orientation_y)
         seriestype --> :heatmap
         
-        #return x_edges, y_edges, z_data #data[variable_id]
         return x_edges, y_edges, data[variable_id]
     end
 

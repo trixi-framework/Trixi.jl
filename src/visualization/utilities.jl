@@ -1404,7 +1404,8 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
     println("DEBUG: n_nodes_in ist aktuell: ", n_nodes_in, " | Shape: ", size(unstructured_data))
 
-    #Idea for FV: "Improve plotting for 2D/3D simulations with polydeg = 0 on the TreeMesh (finite volume case) #2998" 
+    
+    # Bypasses polynomial interpolation. Directly projects cell centers from continuous [-1,1] space to matrix indices.
     if n_nodes_in == 1
         max_level = maximum(levels)
         true_resolution = 2^max_level
