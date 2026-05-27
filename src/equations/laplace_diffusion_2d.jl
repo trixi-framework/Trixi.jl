@@ -18,12 +18,10 @@ function LaplaceDiffusion2D(diffusivity, equations_hyperbolic)
                               typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::LaplaceDiffusion2D) where {NewRealT}
+function Base.similar(equations::LaplaceDiffusion2D, ::Type{NewRealT}) where {NewRealT}
     diffusivity = equations.diffusivity isa AbstractFloat ?
-                  NewRealT(equations.diffusivity) : equations.diffusivity
-    equations_hyperbolic = Adapt.adapt(to, equations.equations_hyperbolic)
-    return LaplaceDiffusion2D(diffusivity, equations_hyperbolic)
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    return LaplaceDiffusion2D(diffusivity, similar(equations.equations_hyperbolic, NewRealT))
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)

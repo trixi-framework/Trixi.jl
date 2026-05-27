@@ -50,11 +50,9 @@ struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
     equation_of_state::EoS
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::NonIdealCompressibleEulerEquations2D) where {
-                                                                                       NewRealT}
-    eos = Adapt.adapt(to, equations.equation_of_state)
-    return NonIdealCompressibleEulerEquations2D(eos)
+function Base.similar(equations::NonIdealCompressibleEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return NonIdealCompressibleEulerEquations2D(similar(equations.equation_of_state, NewRealT))
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)

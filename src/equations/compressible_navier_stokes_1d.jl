@@ -121,13 +121,13 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
                                                                   gradient_variables)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::CompressibleNavierStokesDiffusion1D) where {NewRealT}
-    mu = equations.mu isa Real ? NewRealT(equations.mu) : Adapt.adapt(to, equations.mu)
-    equations_hyperbolic = Adapt.adapt(to, equations.equations_hyperbolic)
-    return CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+function Base.similar(equations::CompressibleNavierStokesDiffusion1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    mu = equations.mu isa Real ? convert(NewRealT, equations.mu) : equations.mu
+    return CompressibleNavierStokesDiffusion1D(similar(equations.equations_hyperbolic,
+                                                       NewRealT);
                                                mu = mu,
-                                               Prandtl = NewRealT(equations.Pr),
+                                               Prandtl = convert(NewRealT, equations.Pr),
                                                gradient_variables = equations.gradient_variables)
 end
 

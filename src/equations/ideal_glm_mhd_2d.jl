@@ -68,9 +68,9 @@ function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
     return IdealGlmMhdEquations2D(gamma, c_h)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::IdealGlmMhdEquations2D) where {NewRealT}
-    return IdealGlmMhdEquations2D(NewRealT(equations.gamma), NewRealT(equations.c_h))
+function Base.similar(equations::IdealGlmMhdEquations2D, ::Type{NewRealT}) where {NewRealT}
+    return IdealGlmMhdEquations2D(convert(NewRealT, equations.gamma),
+                                  convert(NewRealT, equations.c_h))
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()

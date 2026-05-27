@@ -61,9 +61,8 @@ struct CompressibleEulerEquationsQuasi1D{RealT <: Real} <:
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::CompressibleEulerEquationsQuasi1D) where {NewRealT}
-    return CompressibleEulerEquationsQuasi1D(NewRealT(equations.gamma))
+function Base.similar(equations::CompressibleEulerEquationsQuasi1D, ::Type{NewRealT}) where {NewRealT}
+    return CompressibleEulerEquationsQuasi1D(convert(NewRealT, equations.gamma))
 end
 
 have_nonconservative_terms(::CompressibleEulerEquationsQuasi1D) = True()

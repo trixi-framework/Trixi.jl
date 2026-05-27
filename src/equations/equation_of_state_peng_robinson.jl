@@ -64,10 +64,10 @@ function PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
                                     inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               eos::PengRobinson) where {NewRealT}
-    return PengRobinson(NewRealT(eos.a0), NewRealT(eos.b), NewRealT(eos.cv0),
-                        NewRealT(eos.kappa), NewRealT(eos.Tc), NewRealT(eos.R))
+function Base.similar(eos::PengRobinson, ::Type{NewRealT}) where {NewRealT}
+    return PengRobinson(convert(NewRealT, eos.a0), convert(NewRealT, eos.b),
+                        convert(NewRealT, eos.cv0), convert(NewRealT, eos.kappa),
+                        convert(NewRealT, eos.Tc), convert(NewRealT, eos.R))
 end
 
 """

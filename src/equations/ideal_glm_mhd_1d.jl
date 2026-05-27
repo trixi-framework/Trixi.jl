@@ -47,9 +47,8 @@ struct IdealGlmMhdEquations1D{RealT <: Real} <: AbstractIdealGlmMhdEquations{1, 
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::IdealGlmMhdEquations1D) where {NewRealT}
-    return IdealGlmMhdEquations1D(NewRealT(equations.gamma))
+function Base.similar(equations::IdealGlmMhdEquations1D, ::Type{NewRealT}) where {NewRealT}
+    return IdealGlmMhdEquations1D(convert(NewRealT, equations.gamma))
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = False()

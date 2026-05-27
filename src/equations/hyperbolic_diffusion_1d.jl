@@ -31,12 +31,10 @@ function HyperbolicDiffusionEquations1D(; nu = 1.0, Lr = inv(2pi))
     return HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::HyperbolicDiffusionEquations1D) where {NewRealT}
-    Lr = NewRealT(equations.Lr)
-    inv_Tr = NewRealT(equations.inv_Tr)
-    nu = NewRealT(equations.nu)
-    return HyperbolicDiffusionEquations1D(Lr, inv_Tr, nu)
+function Base.similar(equations::HyperbolicDiffusionEquations1D, ::Type{NewRealT}) where {NewRealT}
+    return HyperbolicDiffusionEquations1D(convert(NewRealT, equations.Lr),
+                                          convert(NewRealT, equations.inv_Tr),
+                                          convert(NewRealT, equations.nu))
 end
 
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")

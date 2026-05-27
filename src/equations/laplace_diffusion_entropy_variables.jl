@@ -32,14 +32,11 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::LaplaceDiffusionEntropyVariables{NDIMS}) where {
-                                                                                          NDIMS,
-                                                                                          NewRealT
-                                                                                          }
+function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
+                      ::Type{NewRealT}) where {NDIMS, NewRealT}
     diffusivity = equations.diffusivity isa AbstractFloat ?
-                  NewRealT(equations.diffusivity) : equations.diffusivity
-    equations_hyperbolic = Adapt.adapt(to, equations.equations_hyperbolic)
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    equations_hyperbolic = similar(equations.equations_hyperbolic, NewRealT)
     return LaplaceDiffusionEntropyVariables{NDIMS, typeof(equations_hyperbolic),
                                             nvariables(equations_hyperbolic),
                                             typeof(diffusivity)}(diffusivity,

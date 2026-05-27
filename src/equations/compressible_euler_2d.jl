@@ -48,9 +48,8 @@ struct CompressibleEulerEquations2D{RealT <: Real} <:
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::CompressibleEulerEquations2D) where {NewRealT}
-    return CompressibleEulerEquations2D(NewRealT(equations.gamma))
+function Base.similar(equations::CompressibleEulerEquations2D, ::Type{NewRealT}) where {NewRealT}
+    return CompressibleEulerEquations2D(convert(NewRealT, equations.gamma))
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations2D)

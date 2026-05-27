@@ -48,10 +48,9 @@ struct PolytropicEulerEquations2D{RealT <: Real} <:
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::PolytropicEulerEquations2D) where {NewRealT}
-    return PolytropicEulerEquations2D(NewRealT(equations.gamma),
-                                      NewRealT(equations.kappa))
+function Base.similar(equations::PolytropicEulerEquations2D, ::Type{NewRealT}) where {NewRealT}
+    return PolytropicEulerEquations2D(convert(NewRealT, equations.gamma),
+                                      convert(NewRealT, equations.kappa))
 end
 
 function varnames(::typeof(cons2cons), ::PolytropicEulerEquations2D)

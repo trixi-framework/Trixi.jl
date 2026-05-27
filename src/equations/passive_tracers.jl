@@ -28,18 +28,11 @@ function PassiveTracerEquations(flow_equations::AbstractEquations; n_tracers::In
                                   typeof(flow_equations)}(flow_equations)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::PassiveTracerEquations{NDIMS, NVARS, NTracers,
-                                                                 FlowEquations}) where {
-                                                                                        NDIMS,
-                                                                                        NVARS,
-                                                                                        NTracers,
-                                                                                        FlowEquations,
-                                                                                        NewRealT
-                                                                                        }
-    flow_equations = Adapt.adapt(to, equations.flow_equations)
-    NewFlowEquations = typeof(flow_equations)
-    return PassiveTracerEquations{NDIMS, NVARS, NTracers, NewFlowEquations}(flow_equations)
+function Base.similar(equations::PassiveTracerEquations{NDIMS, NVARS, NTracers},
+                      ::Type{NewRealT}) where {NDIMS, NVARS, NTracers, NewRealT}
+    flow_equations = similar(equations.flow_equations, NewRealT)
+    return PassiveTracerEquations{NDIMS, NVARS, NTracers,
+                                  typeof(flow_equations)}(flow_equations)
 end
 
 # Get the number of passive tracers

@@ -53,9 +53,8 @@ struct CompressibleEulerEquations3D{RealT <: Real} <:
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::CompressibleEulerEquations3D) where {NewRealT}
-    return CompressibleEulerEquations3D(NewRealT(equations.gamma))
+function Base.similar(equations::CompressibleEulerEquations3D, ::Type{NewRealT}) where {NewRealT}
+    return CompressibleEulerEquations3D(convert(NewRealT, equations.gamma))
 end
 
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D)

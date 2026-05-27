@@ -27,10 +27,9 @@ function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
     return LinearScalarAdvectionEquation2D(SVector(a1, a2))
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::LinearScalarAdvectionEquation2D) where {NewRealT}
-    advection_velocity = SVector{2, NewRealT}(equations.advection_velocity)
-    return LinearScalarAdvectionEquation2D(advection_velocity)
+function Base.similar(equations::LinearScalarAdvectionEquation2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearScalarAdvectionEquation2D(SVector{2, NewRealT}(equations.advection_velocity))
 end
 
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar",)

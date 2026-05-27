@@ -54,12 +54,10 @@ function LinearizedEulerEquations1D(; v_mean_global::Real,
                                       rho_mean_global)
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::LinearizedEulerEquations1D) where {NewRealT}
-    v_mean_global = NewRealT(equations.v_mean_global)
-    c_mean_global = NewRealT(equations.c_mean_global)
-    rho_mean_global = NewRealT(equations.rho_mean_global)
-    return LinearizedEulerEquations1D(v_mean_global, c_mean_global, rho_mean_global)
+function Base.similar(equations::LinearizedEulerEquations1D, ::Type{NewRealT}) where {NewRealT}
+    return LinearizedEulerEquations1D(convert(NewRealT, equations.v_mean_global),
+                                      convert(NewRealT, equations.c_mean_global),
+                                      convert(NewRealT, equations.rho_mean_global))
 end
 
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations1D)

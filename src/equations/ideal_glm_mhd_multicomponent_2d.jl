@@ -132,20 +132,12 @@ end
     return RealT
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               eqs::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP,
-                                                                         RealT}) where {
-                                                                                        NVARS,
-                                                                                        NCOMP,
-                                                                                        RealT,
-                                                                                        NewRealT
-                                                                                        }
-    gammas = SVector{NCOMP, NewRealT}(eqs.gammas)
-    gas_constants = SVector{NCOMP, NewRealT}(eqs.gas_constants)
-    c_h = NewRealT(eqs.c_h)
-    return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, NewRealT}(gammas,
-                                                                        gas_constants,
-                                                                        c_h)
+function Base.similar(eqs::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
+    return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP,
+                                                NewRealT}(SVector{NCOMP, NewRealT}(eqs.gammas),
+                                                          SVector{NCOMP, NewRealT}(eqs.gas_constants),
+                                                          convert(NewRealT, eqs.c_h))
 end
 
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations2D) = True()

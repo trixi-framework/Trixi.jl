@@ -27,9 +27,8 @@ struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquatio
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::TrafficFlowLWREquations1D) where {NewRealT}
-    return TrafficFlowLWREquations1D(NewRealT(equations.v_max))
+function Base.similar(equations::TrafficFlowLWREquations1D, ::Type{NewRealT}) where {NewRealT}
+    return TrafficFlowLWREquations1D(convert(NewRealT, equations.v_max))
 end
 
 varnames(::typeof(cons2cons), ::TrafficFlowLWREquations1D) = ("car-density",)

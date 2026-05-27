@@ -42,9 +42,8 @@ struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
     end
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::MaxwellEquations1D) where {NewRealT}
-    return MaxwellEquations1D(NewRealT(equations.speed_of_light))
+function Base.similar(equations::MaxwellEquations1D, ::Type{NewRealT}) where {NewRealT}
+    return MaxwellEquations1D(convert(NewRealT, equations.speed_of_light))
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)

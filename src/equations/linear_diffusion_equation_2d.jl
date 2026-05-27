@@ -21,9 +21,8 @@ struct LinearDiffusionEquation2D{RealT <: Real} <: AbstractLaplaceDiffusion{2, 1
     diffusivity::RealT
 end
 
-function Adapt.adapt_structure(to::TrixiAdaptor{<:Any, NewRealT},
-                               equations::LinearDiffusionEquation2D) where {NewRealT}
-    return LinearDiffusionEquation2D(NewRealT(equations.diffusivity))
+function Base.similar(equations::LinearDiffusionEquation2D, ::Type{NewRealT}) where {NewRealT}
+    return LinearDiffusionEquation2D(convert(NewRealT, equations.diffusivity))
 end
 
 varnames(::typeof(cons2cons), ::LinearDiffusionEquation2D) = ("scalar",)
