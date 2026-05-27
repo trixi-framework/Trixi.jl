@@ -53,7 +53,7 @@ single boundary condition that gets applied to all boundaries.
 which will be available, e.g., in flux computations. The current `equations` need to set
 `have_aux_node_vars to `True()` and `n_aux_node_vars` to the number of auxiliary variables
 per node. Upon refinement, `aux_field` will be called again to recompute the auxiliary variables.
-NOTE: Currently only TreeMesh in 2D is supported.
+NOTE: This is experimental!
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
