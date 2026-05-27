@@ -130,7 +130,8 @@ function Base.similar(equations::CompressibleNavierStokesDiffusion3D,
     return CompressibleNavierStokesDiffusion3D(similar(equations.equations_hyperbolic,
                                                        NewRealT);
                                                mu = mu,
-                                               Prandtl = convert(NewRealT, equations.Pr),
+                                               Prandtl = convert(NewRealT,
+                                                                 equations.Pr),
                                                gradient_variables = equations.gradient_variables)
 end
 

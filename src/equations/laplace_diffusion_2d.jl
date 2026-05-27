@@ -25,7 +25,8 @@ end
 function Base.similar(equations::LaplaceDiffusion2D, ::Type{NewRealT}) where {NewRealT}
     diffusivity = equations.diffusivity isa AbstractFloat ?
                   convert(NewRealT, equations.diffusivity) : equations.diffusivity
-    return LaplaceDiffusion2D(diffusivity, similar(equations.equations_hyperbolic, NewRealT))
+    return LaplaceDiffusion2D(diffusivity,
+                              similar(equations.equations_hyperbolic, NewRealT))
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)

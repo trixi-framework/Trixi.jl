@@ -108,8 +108,10 @@ end
 function Base.similar(eqs::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP},
                       ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
     return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP,
-                                                      NewRealT}(SVector{NCOMP, NewRealT}(eqs.gammas),
-                                                                SVector{NCOMP, NewRealT}(eqs.gas_constants))
+                                                      NewRealT}(SVector{NCOMP,
+                                                                        NewRealT}(eqs.gammas),
+                                                                SVector{NCOMP,
+                                                                        NewRealT}(eqs.gas_constants))
 end
 
 function varnames(::typeof(cons2cons),

@@ -58,7 +58,8 @@ end
 # this allows to move semidiscretizations and their components including
 # the equations to GPUs and adapt the floating point type, e.g.,
 # to `Float32` to improve performance on GPUs.
-function Base.similar(equations::LinearizedEulerEquations1D, ::Type{NewRealT}) where {NewRealT}
+function Base.similar(equations::LinearizedEulerEquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
     return LinearizedEulerEquations1D(convert(NewRealT, equations.v_mean_global),
                                       convert(NewRealT, equations.c_mean_global),
                                       convert(NewRealT, equations.rho_mean_global))

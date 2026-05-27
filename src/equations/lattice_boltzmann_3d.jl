@@ -191,7 +191,8 @@ end
 # this allows to move semidiscretizations and their components including
 # the equations to GPUs and adapt the floating point type, e.g.,
 # to `Float32` to improve performance on GPUs.
-function Base.similar(equations::LatticeBoltzmannEquations3D, ::Type{NewRealT}) where {NewRealT}
+function Base.similar(equations::LatticeBoltzmannEquations3D,
+                      ::Type{NewRealT}) where {NewRealT}
     return LatticeBoltzmannEquations3D{NewRealT,
                                        typeof(equations.collision_op)}(convert(NewRealT,
                                                                                equations.c),
@@ -209,10 +210,14 @@ function Base.similar(equations::LatticeBoltzmannEquations3D, ::Type{NewRealT}) 
                                                                                equations.L),
                                                                        convert(NewRealT,
                                                                                equations.nu),
-                                                                       SVector{27, NewRealT}(equations.weights),
-                                                                       SVector{27, NewRealT}(equations.v_alpha1),
-                                                                       SVector{27, NewRealT}(equations.v_alpha2),
-                                                                       SVector{27, NewRealT}(equations.v_alpha3),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.weights),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha1),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha2),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha3),
                                                                        equations.collision_op)
 end
 

@@ -50,7 +50,8 @@ end
 # to `Float32` to improve performance on GPUs.
 function Base.similar(eos::VanDerWaals, ::Type{NewRealT}) where {NewRealT}
     return VanDerWaals(; a = convert(NewRealT, eos.a), b = convert(NewRealT, eos.b),
-                       gamma = convert(NewRealT, eos.gamma), R = convert(NewRealT, eos.R))
+                       gamma = convert(NewRealT, eos.gamma),
+                       R = convert(NewRealT, eos.R))
 end
 
 """

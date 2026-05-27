@@ -52,7 +52,8 @@ end
 
 function Base.similar(equations::NonIdealCompressibleEulerEquations2D,
                       ::Type{NewRealT}) where {NewRealT}
-    return NonIdealCompressibleEulerEquations2D(similar(equations.equation_of_state, NewRealT))
+    return NonIdealCompressibleEulerEquations2D(similar(equations.equation_of_state,
+                                                        NewRealT))
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)

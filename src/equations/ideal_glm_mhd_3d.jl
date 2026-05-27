@@ -72,7 +72,8 @@ end
 # this allows to move semidiscretizations and their components including
 # the equations to GPUs and adapt the floating point type, e.g.,
 # to `Float32` to improve performance on GPUs.
-function Base.similar(equations::IdealGlmMhdEquations3D, ::Type{NewRealT}) where {NewRealT}
+function Base.similar(equations::IdealGlmMhdEquations3D,
+                      ::Type{NewRealT}) where {NewRealT}
     return IdealGlmMhdEquations3D(convert(NewRealT, equations.gamma),
                                   convert(NewRealT, equations.c_h))
 end

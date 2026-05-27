@@ -51,7 +51,8 @@ end
 # to `Float32` to improve performance on GPUs.
 function Base.similar(equations::NonIdealCompressibleEulerEquations1D,
                       ::Type{NewRealT}) where {NewRealT}
-    return NonIdealCompressibleEulerEquations1D(similar(equations.equation_of_state, NewRealT))
+    return NonIdealCompressibleEulerEquations1D(similar(equations.equation_of_state,
+                                                        NewRealT))
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
