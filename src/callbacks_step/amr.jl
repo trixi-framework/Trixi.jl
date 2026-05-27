@@ -1000,7 +1000,9 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
     @unpack controller_value = controller.cache
     resize!(controller_value, nelements(dg, cache))
 
-    alpha = controller.indicator(u, mesh, equations, dg, cache; kwargs...)
+    backend = trixi_backend(u)
+
+    alpha = controller.indicator(backend, u, mesh, equations, dg, cache; kwargs...)
     current_levels = current_element_levels(mesh, dg, cache)
 
     @threaded for element in eachelement(dg, cache)
