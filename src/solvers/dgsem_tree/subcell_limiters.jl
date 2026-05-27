@@ -346,7 +346,7 @@ end
 @inline function calc_mortar_limiting_factor!(u, semi, t, dt)
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
     (; local_twosided_variables_cons, positivity_variables_cons,
-    positivity_variables_nonlinear, local_onesided_variables_nonlinear) = solver.mortar
+    positivity_variables_nonlinear, local_onesided_variables_nonlinear) = solver.mortar.limiter
 
     (; limiting_factor) = cache.mortars
     @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))

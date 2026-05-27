@@ -174,13 +174,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-mortar = MortarIDP(equations, basis;
-                   positivity_variables_cons = ["rho"],
-                   positivity_variables_nonlinear = [pressure],
-                   # local_twosided_variables_cons = ["rho"],
-                   # local_onesided_variables_nonlinear = [(entropy_guermond_etal,
-                   #                                        min)]
-                   )
+mortar = MortarIDP(equations, basis, limiter_idp)
+
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-0.5, -0.5)

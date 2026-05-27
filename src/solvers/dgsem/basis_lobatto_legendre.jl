@@ -230,14 +230,8 @@ end
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
 struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH,
-                                LimitingVariablesNonlinear,
-                                LimitingOnesidedVariablesNonlinear,
-                                Mortar} <:
-       AbstractMortar{RealT}
-    local_twosided_variables_cons::Vector{Int}
-    positivity_variables_cons::Vector{Int}
-    positivity_variables_nonlinear::LimitingVariablesNonlinear
-    local_onesided_variables_nonlinear::LimitingOnesidedVariablesNonlinear
+                                Limiter, Mortar} <: AbstractMortar{RealT}
+    limiter::Limiter
     pure_low_order::Bool
     mortar_l2::Mortar
     # LENGTH = `2 * (NDIMS - 1) + 1`
@@ -246,13 +240,10 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH,
     output_directory::String
 end
 
-function MortarIDP(equations, basis::LobattoLegendreBasis;
-                   local_twosided_variables_cons = String[],
-                   positivity_variables_cons = String[],
-                   positivity_variables_nonlinear = [],
-                   local_onesided_variables_nonlinear = [],
+function MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
                    pure_low_order = false,
                    output_directory = "out")
+    @assert limiter isa SubcellLimiterIDP
     RealT = real(basis)
     n_dims = ndims(equations)
     nnodes_ = nnodes(basis)
@@ -261,35 +252,10 @@ function MortarIDP(equations, basis::LobattoLegendreBasis;
 
     mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT)
 
-    local_twosided_variables_cons_ = get_variable_index.(local_twosided_variables_cons,
-                                                         equations)
-    positivity_variables_cons_ = get_variable_index.(positivity_variables_cons,
-                                                     equations)
-    # When passing `min` or `max` in the elixir, the specific function of Base is used.
-    # To speed up the simulation, we replace it with `Trixi.min` and `Trixi.max` respectively.
-    local_onesided_variables_nonlinear_ = Tuple{Function, Function}[]
-    for (variable, min_or_max) in local_onesided_variables_nonlinear
-        if min_or_max === Base.max
-            push!(local_onesided_variables_nonlinear_, (variable, max))
-        elseif min_or_max === Base.min
-            push!(local_onesided_variables_nonlinear_, (variable, min))
-        elseif min_or_max === Trixi.max || min_or_max === Trixi.min
-            push!(local_onesided_variables_nonlinear_, (variable, min_or_max))
-        else
-            error("Parameter $min_or_max is not a valid input. Use `max` or `min` instead.")
-        end
-    end
-    local_onesided_variables_nonlinear_ = Tuple(local_onesided_variables_nonlinear_)
-    positivity_variables_nonlinear = Tuple(positivity_variables_nonlinear)
-
     LobattoLegendreMortarIDP{RealT, nnodes_, n_dims,
                              2 * (n_dims - 1) + 1,
-                             typeof(positivity_variables_nonlinear),
-                             typeof(local_onesided_variables_nonlinear_),
-                             typeof(mortar_l2)}(local_twosided_variables_cons_,
-                                                positivity_variables_cons_,
-                                                positivity_variables_nonlinear,
-                                                local_onesided_variables_nonlinear_,
+                             typeof(limiter),
+                             typeof(mortar_l2)}(limiter,
                                                 pure_low_order,
                                                 mortar_l2,
                                                 mortar_weights,
@@ -300,41 +266,13 @@ end
 function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
 
-    string = "LobattoLegendreMortarIDP("
-    if length(mortar.local_twosided_variables_cons) > 0 ||
-       length(mortar.local_onesided_variables_nonlinear) > 0
-        string *= ", local: $(mortar.local_twosided_variables_cons), $(mortar.local_onesided_variables_nonlinear)"
-    end
-    if length(mortar.positivity_variables_cons) > 0 ||
-       length(mortar.positivity_variables_nonlinear) > 0
-        string *= ", positivity: $(mortar.positivity_variables_cons), $(mortar.positivity_variables_nonlinear)"
-    end
-    print(io, string)
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
+          "limiter=", mortar.limiter, ", pure_low_order=", mortar.pure_low_order, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
 
-    setup = []
-    if length(mortar.local_twosided_variables_cons) > 0
-        push!(setup,
-              "" => "local two-sided limiting for conservative variables " *
-                    string(mortar.local_twosided_variables_cons))
-    end
-    if length(mortar.local_onesided_variables_nonlinear) > 0
-        push!(setup,
-              "" => "local one-sided limiting for nonlinear variables " *
-                    string(mortar.local_onesided_variables_nonlinear))
-    end
-    if length(mortar.positivity_variables_cons) > 0
-        push!(setup,
-              "" => "positivity limiting for conservative variables " *
-                    string(mortar.positivity_variables_cons))
-    end
-    if length(mortar.positivity_variables_nonlinear) > 0
-        push!(setup,
-              "" => "positivity limiting for " *
-                    string(mortar.positivity_variables_nonlinear))
-    end
+    setup = ["limiter" => string(mortar.limiter)]
     if mortar.pure_low_order
         push!(setup, "" => "pure low-order mortars")
     end
