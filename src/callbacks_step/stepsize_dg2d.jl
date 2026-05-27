@@ -177,7 +177,7 @@ function max_dt(u, t,
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-@inline function max_scaled_speed_per_element(u,
+@inline function max_scaled_speed_per_element(u, aux,
                                               ::Type{<:Union{StructuredMesh{2},
                                                              UnstructuredMesh2D,
                                                              P4estMesh{2},
@@ -192,6 +192,39 @@ end
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         lambda1, lambda2 = max_abs_speeds(u_node, equations)
+
+        # Local speeds transformed to the reference element
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                              i, j, element)
+        lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2)
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                              i, j, element)
+        lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+        max_lambda1 = Base.max(max_lambda1, lambda1_transformed * inv_jacobian)
+        max_lambda2 = Base.max(max_lambda2, lambda2_transformed * inv_jacobian)
+    end
+    return max_lambda1 + max_lambda2
+end
+
+@inline function max_scaled_speed_per_element(u, aux,
+                                              ::Type{<:Union{StructuredMesh{2},
+                                                             UnstructuredMesh2D,
+                                                             P4estMesh{2},
+                                                             T8codeMesh{2},
+                                                             StructuredMeshView{2}}},
+                                              constant_speed::False,
+                                              have_aux_node_vars::True, equations,
+                                              dg::DG,
+                                              contravariant_vectors, inverse_jacobian,
+                                              element)
+    max_lambda1 = max_lambda2 = zero(eltype(u))
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, element)
+        lambda1, lambda2 = max_abs_speeds(u_node, aux_node, equations)
 
         # Local speeds transformed to the reference element
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
@@ -255,7 +288,7 @@ function max_dt(u, t,
     return 4 / (nnodes(dg) * max_scaled_diffusivity)
 end
 
-@inline function max_scaled_speed_per_element(u,
+@inline function max_scaled_speed_per_element(u, aux,
                                               ::Type{<:Union{StructuredMesh{2},
                                                              UnstructuredMesh2D,
                                                              P4estMesh{2},
@@ -352,7 +385,7 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
     return dt
 end
 
-function max_dt(u, t, mesh::ParallelP4estMesh{2},
+function max_dt(u, t, mesh::P4estMeshParallel{2},
                 constant_speed::False, have_aux_node_vars::True,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
@@ -371,7 +404,7 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
     return dt
 end
 
-function max_dt(u, t, mesh::ParallelP4estMesh{2},
+function max_dt(u, t, mesh::P4estMeshParallel{2},
                 constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
