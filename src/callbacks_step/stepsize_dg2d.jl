@@ -110,7 +110,7 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
                 Tuple{typeof(u), typeof(t), TreeMesh{2},
                       typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, have_constant_speed, False(), equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -129,7 +129,7 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
                 Tuple{typeof(u), typeof(t), TreeMesh{2},
                       typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, have_constant_speed, True(), equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -148,7 +148,7 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
                 Tuple{typeof(u), typeof(t), TreeMesh{2},
                       typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, have_constant_speed, False(), equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]

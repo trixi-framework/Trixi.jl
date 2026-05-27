@@ -192,7 +192,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, have_aux_node_vars, equations,
+                                have_nonconservative_terms, have_aux_node_vars,
+                                equations,
                                 volume_integral, dg, cache)
     end
 
@@ -328,7 +329,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     @threaded for element in eachelement(dg, cache)
         # run default volume integral
         volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, have_aux_node_vars, equations,
+                                have_nonconservative_terms, have_aux_node_vars,
+                                equations,
                                 volume_integral_default, dg, cache)
 
         # Check entropy production of "high order" volume integral.

@@ -286,43 +286,6 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function calc_interface_flux!(backend::Backend, surface_flux_values,
-                              mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                          T8codeMesh{2}},
-                              have_nonconservative_terms, have_aux_node_vars,
-                              equations, surface_integral,
-                              dg::DGSEM{<:LobattoLegendreBasis}, cache)
-    ninterfaces(cache.interfaces) == 0 && return nothing
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    @unpack contravariant_vectors = cache.elements
-    index_range = eachnode(dg)
-
-    kernel! = calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms,
-            equations, surface_integral, typeof(dg), cache.interfaces.u,
-            neighbor_ids, node_indices, contravariant_vectors, index_range,
-            ndrange = ninterfaces(cache.interfaces))
-
-    return nothing
-end
-
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values,
-                                               MeshT::Type{<:Union{P4estMesh{2},
-                                                                   P4estMeshView{2},
-                                                                   T8codeMesh{2}}},
-                                               have_nonconservative_terms,
-                                               equations, surface_integral,
-                                               SolverT::Type{<:DG}, u_interface,
-                                               neighbor_ids, node_indices,
-                                               contravariant_vectors, index_range)
-    interface = @index(Global)
-    calc_interface_flux_per_interface!(surface_flux_values, MeshT,
-                                       have_nonconservative_terms, equations,
-                                       surface_integral, SolverT, u_interface,
-                                       interface, neighbor_ids, node_indices,
-                                       contravariant_vectors, index_range)
-end
-
 @inline function calc_interface_flux_per_interface!(surface_flux_values,
                                                     MeshT::Type{<:Union{P4estMesh{2},
                                                                         P4estMeshView{2},
