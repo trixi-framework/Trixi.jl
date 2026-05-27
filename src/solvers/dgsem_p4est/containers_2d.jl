@@ -284,9 +284,9 @@ function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{2},
         for i in index_range
             for v in axes(aux_surface_node_vars, 2)
                 aux_surface_node_vars[1, v, i, interface] = aux_node_vars[v,
-                                                                                      i_primary,
-                                                                                      j_primary,
-                                                                                      primary_element]
+                                                                          i_primary,
+                                                                          j_primary,
+                                                                          primary_element]
             end
             i_primary += i_primary_step
             j_primary += j_primary_step
@@ -307,9 +307,9 @@ function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{2},
         for i in index_range
             for v in axes(aux_surface_node_vars, 2)
                 aux_surface_node_vars[2, v, i, interface] = aux_node_vars[v,
-                                                                                      i_secondary,
-                                                                                      j_secondary,
-                                                                                      secondary_element]
+                                                                          i_secondary,
+                                                                          j_secondary,
+                                                                          secondary_element]
             end
             i_secondary += i_secondary_step
             j_secondary += j_secondary_step
@@ -321,7 +321,7 @@ end
 # Initialize auxiliary boundary node variables
 # 2D P4est implementation, similar to prolong2boundaries
 function init_aux_boundary_node_vars!(aux_vars, mesh::P4estMesh{2},
-                                     equations, solver, cache)
+                                      equations, solver, cache)
     @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
     @unpack neighbor_ids, node_indices = cache.boundaries
     index_range = eachnode(solver)
@@ -339,7 +339,9 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::P4estMesh{2},
         j_node = j_node_start
         for i in eachnode(solver)
             for v in axes(aux_boundary_node_vars, 2)
-                aux_boundary_node_vars[1, v, i, boundary] = aux_node_vars[v, i_node, j_node, element]
+                aux_boundary_node_vars[1, v, i, boundary] = aux_node_vars[v, i_node,
+                                                                          j_node,
+                                                                          element]
             end
             i_node += i_node_step
             j_node += j_node_step
@@ -369,15 +371,17 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{2}, equations, sol
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
-        
+
         for position in 1:2
             i_small = i_small_start
             j_small = j_small_start
             element = neighbor_ids[position, mortar]
             for i in eachnode(solver)
                 for v in axes(aux_mortar_node_vars, 2)
-                    aux_mortar_node_vars[:, v, position, i, mortar] .=
-                            aux_node_vars[v, i_small, j_small, element]
+                    aux_mortar_node_vars[:, v, position, i, mortar] .= aux_node_vars[v,
+                                                                                     i_small,
+                                                                                     j_small,
+                                                                                     element]
                 end
                 i_small += i_small_step
                 j_small += j_small_step
@@ -391,7 +395,7 @@ end
 # 2D TreeMesh implementation, similar to prolong2mpiinterfaces
 # However we directly assign to both sides, assuming the aux field had no jumps. Therefore
 # we do not need any exchange.
-function init_aux_mpiinterface_node_vars!(aux_vars, mesh::ParallelP4estMesh{2},
+function init_aux_mpiinterface_node_vars!(aux_vars, mesh::P4estMeshParallel{2},
                                           equations,
                                           solver, cache)
     @unpack aux_node_vars, aux_mpiinterface_node_vars = aux_vars
@@ -416,9 +420,10 @@ function init_aux_mpiinterface_node_vars!(aux_vars, mesh::ParallelP4estMesh{2},
         j_element = j_element_start
         for i in eachnode(solver)
             for v in axes(aux_mpiinterface_node_vars, 2)
-                aux_mpiinterface_node_vars[:, v, i, interface] .= aux_node_vars[v, i_element,
-                                                                  j_element,
-                                                                  local_element]
+                aux_mpiinterface_node_vars[:, v, i, interface] .= aux_node_vars[v,
+                                                                                i_element,
+                                                                                j_element,
+                                                                                local_element]
             end
             i_element += i_element_step
             j_element += j_element_step
@@ -431,7 +436,7 @@ end
 # 2D P4est implementation, similar to prolong2mpimortars
 # However: - We only assign the small element values (only leftright = 1 is used)
 #          - These have to be communicated
-function init_aux_mpimortar_node_vars!(aux_vars, mesh::ParallelP4estMesh{2}, equations,
+function init_aux_mpimortar_node_vars!(aux_vars, mesh::P4estMeshParallel{2}, equations,
                                        solver, cache)
     @unpack aux_node_vars, aux_mpimortar_node_vars = aux_vars
     @unpack node_indices = cache.mpi_mortars
@@ -456,7 +461,10 @@ function init_aux_mpimortar_node_vars!(aux_vars, mesh::ParallelP4estMesh{2}, equ
                 j_small = j_small_start
                 for i in eachnode(solver)
                     for v in axes(aux_mpimortar_node_vars, 2)
-                        aux_mpimortar_node_vars[1, v, position, i, mortar] = aux_node_vars[v, i_small, j_small, element]
+                        aux_mpimortar_node_vars[1, v, position, i, mortar] = aux_node_vars[v,
+                                                                                           i_small,
+                                                                                           j_small,
+                                                                                           element]
                     end
                     i_small += i_small_step
                     j_small += j_small_step

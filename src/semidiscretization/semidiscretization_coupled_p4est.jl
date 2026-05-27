@@ -453,7 +453,8 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
         for node in eachnode(dg)
             calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                 mesh, have_nonconservative_terms(equations),
-                                equations, surface_integral, dg, cache,
+                                have_aux_node_vars(equations), equations,
+                                surface_integral, dg, cache,
                                 i_node, j_node,
                                 node, direction, element, boundary,
                                 u_parent)

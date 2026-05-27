@@ -498,8 +498,11 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeMe
             for j in eachnode(solver)
                 for i in eachnode(solver)
                     for v in axes(aux_mortar_node_vars, 2)
-                        aux_mortar_node_vars[:, v, position, i, j, mortar] .=
-                            aux_node_vars[v, i_small, j_small, k_small, element]
+                        aux_mortar_node_vars[:, v, position, i, j, mortar] .= aux_node_vars[v,
+                                                                                            i_small,
+                                                                                            j_small,
+                                                                                            k_small,
+                                                                                            element]
                     end
                     i_small += i_small_step_i
                     j_small += j_small_step_i
