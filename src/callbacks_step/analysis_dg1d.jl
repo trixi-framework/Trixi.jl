@@ -243,8 +243,9 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{1}, have_aux_node_vars::False,
-                 equations::IdealGlmMhdEquations1D, dg::DGSEM, cache)
+                 mesh::TreeMesh{1},
+                 have_aux_node_vars::False, equations::IdealGlmMhdEquations1D,
+                 dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache,
                           dg.basis.derivative_matrix) do u, i, element, equations, dg,
                                                          derivative_matrix
@@ -258,8 +259,9 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{1}, have_aux_node_vars::False,
-                 equations::IdealGlmMhdEquations1D, dg::DGSEM, cache)
+                 mesh::TreeMesh{1},
+                 have_aux_node_vars::False, equations::IdealGlmMhdEquations1D,
+                 dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors

@@ -8,7 +8,7 @@ for human readability.
 - Auxiliary variables ([#2348]).
   An additional container in `cache` is made available to central functions like flux
   computations. Possible applications are steady background states, variable velocity
-  fields, geometrical information, or any other pointwise, passive quantity that is
+  fields, geometrical information, or any other pointwise, passive (constant in time) quantity that is
   required in addition to the unknows in the governing equations. The auxiliary variables
   are set up by supplying a function to the `SemidiscretizationHyperbolic` constructor via
   the keyword argument `aux_field`.

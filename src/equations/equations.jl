@@ -81,7 +81,7 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
                          "variable " * string(variable),
                          varnames(cons2cons, equations)[variable])
         end
-        if have_aux_node_vars(equations) == Trixi.True()
+        if have_aux_node_vars(equations) == True()
             summary_line(io, "#auxiliary variables", n_aux_node_vars(equations))
             for variable in eachauxvariable(equations)
                 summary_line(increment_indent(io),
