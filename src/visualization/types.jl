@@ -399,13 +399,39 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     # construct a triangulation of the plotting nodes
     t = reference_plotting_triangulation((r_plot, s_plot))
 
-    # extract x,y coordinates and solutions on each element
-    uEltype = eltype(u)
-    nvars = nvariables(equations)
+    # extract x,y coordinates on each element
     x = reshape(view(cache.elements.node_coordinates, 1, :, :, :), n_nodes_2d,
                 n_elements)
     y = reshape(view(cache.elements.node_coordinates, 2, :, :, :), n_nodes_2d,
                 n_elements)
+
+    # extract solution on each element and apply solution_variables mapping
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names = SVector(varnames(solution_variables_, equations))
+    nvars = length(variable_names)
+    u_extracted = extract_and_map_solution_variables(u, x, n_nodes_2d, n_elements,
+                                                     nvars,
+                                                     have_aux_node_vars(equations),
+                                                     equations, dg, cache,
+                                                     solution_variables_)
+
+    # interpolate to volume plotting points
+    uEltype = eltype(u)
+    xplot, yplot = plotting_interp_matrix * x, plotting_interp_matrix * y
+    uplot = StructArray{SVector{nvars, uEltype}}(map(x -> plotting_interp_matrix * x,
+                                                     StructArrays.components(u_extracted)))
+
+    xfp, yfp, ufp = mesh_plotting_wireframe(u_extracted, mesh, equations, dg, cache;
+                                            nvisnodes = nvisnodes)
+
+    return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+end
+
+@inline function extract_and_map_solution_variables(u, x, n_nodes_2d, n_elements, nvars,
+                                                    have_aux_node_vars::False,
+                                                    equations,
+                                                    dg, cache, solution_variables)
+    uEltype = eltype(u)
     u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> similar(x,
                                                                            (n_nodes_2d,
                                                                             n_elements)),
@@ -414,27 +440,32 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
         sk = 1
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            u_extracted[sk, element] = u_node
+            u_extracted[sk, element] = solution_variables(u_node, equations)
             sk += 1
         end
     end
+    return u_extracted
+end
 
-    # interpolate to volume plotting points
-    xplot, yplot = plotting_interp_matrix * x, plotting_interp_matrix * y
-    uplot = StructArray{SVector{nvars, uEltype}}(map(x -> plotting_interp_matrix * x,
-                                                     StructArrays.components(u_extracted)))
-
-    xfp, yfp, ufp = mesh_plotting_wireframe(u_extracted, mesh, equations, dg, cache;
-                                            nvisnodes = nvisnodes)
-
-    # convert variables based on solution_variables mapping
-    solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names = SVector(varnames(solution_variables_, equations))
-
-    transform_to_solution_variables!(uplot, solution_variables_, equations)
-    transform_to_solution_variables!(ufp, solution_variables_, equations)
-
-    return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+@inline function extract_and_map_solution_variables(u, x, n_nodes_2d, n_elements, nvars,
+                                                    have_aux_node_vars::True, equations,
+                                                    dg, cache, solution_variables)
+    @unpack aux_node_vars = cache.aux_vars
+    uEltype = eltype(u)
+    u_extracted = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> similar(x,
+                                                                           (n_nodes_2d,
+                                                                            n_elements)),
+                                                              nvars))
+    for element in eachelement(dg, cache)
+        sk = 1
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, element)
+            u_extracted[sk, element] = solution_variables(u_node, aux_node, equations)
+            sk += 1
+        end
+    end
+    return u_extracted
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
