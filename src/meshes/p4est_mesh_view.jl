@@ -59,21 +59,23 @@ function extract_p4est_mesh_view(elements_parent,
                                  equations,
                                  dg,
                                  ::Type{uEltype}) where {uEltype <: Real}
-    # Create deepcopy to get completely independent elements container
-    elements = deepcopy(elements_parent)
-    resize!(elements, length(mesh.cell_ids))
+    # Allocate a compact container sized to the view (no deepcopy of parent geometry).
+    NDIMS = ndims(mesh)
+    elements = _alloc_p4est_element_container(length(mesh.cell_ids), Val(NDIMS),
+                                              real(mesh), uEltype,
+                                              nnodes(dg), nvariables(equations))
 
-    # Copy relevant entries from parent mesh
-    @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
-                                                                         mesh.cell_ids]
-    @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
-                                                                       mesh.cell_ids]
-    @views elements.node_coordinates .= elements_parent.node_coordinates[..,
-                                                                         mesh.cell_ids]
+    # Copy geometry from parent, gathering only the cells in this view.
+    @views elements.inverse_jacobian      .= elements_parent.inverse_jacobian[..,
+                                                                              mesh.cell_ids]
+    @views elements.jacobian_matrix       .= elements_parent.jacobian_matrix[..,
+                                                                             mesh.cell_ids]
+    @views elements.node_coordinates      .= elements_parent.node_coordinates[..,
+                                                                              mesh.cell_ids]
     @views elements.contravariant_vectors .= elements_parent.contravariant_vectors[..,
                                                                                    mesh.cell_ids]
-    @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
-                                                                               mesh.cell_ids]
+    # surface_flux_values is a write buffer; it will be filled by the first RHS evaluation.
+
     # Extract interfaces that belong to mesh view.
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
