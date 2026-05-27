@@ -1461,7 +1461,8 @@ function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            aux_local = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+            aux_local = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k,
+                                          element)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, k, element)
             du_local = source_terms(u_local, aux_local, x_local, t, equations)
