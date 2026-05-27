@@ -291,6 +291,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     #        release, just delete this analysis quantity from the callback.
     # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
     memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
+    device_memory_use = trixi_device_memory_use(trixi_backend(u_ode))
+    if device_memory_use !== nothing
+        device_memory_use /= 2^20 # bytes -> MiB
+    else
+        device_memory_use = 0.0
+    end
 
     @trixi_timeit timer() "analyze solution" begin
         # General information
@@ -316,7 +322,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
-                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
+                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)) *
+                    "               " *
+                    " device memory:  " * @sprintf("%14.3f MiB", device_memory_use))
 
         # Level information (only for AMR and/or non-uniform `TreeMesh`es)
         print_level_information(integrator.opts.callback, mesh, solver, cache)

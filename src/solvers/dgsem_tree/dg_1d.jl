@@ -112,8 +112,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations), equations,
-                      dg, cache)
+        calc_sources!(backend, du, u, t, source_terms,
+                      have_aux_node_vars(equations), equations, dg, cache)
     end
 
     return nothing
@@ -774,13 +774,15 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{1},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::False,
-                       equations::AbstractEquations{1}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
+                       have_aux_node_vars::False, equations::AbstractEquations{1},
+                       dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_aux_node_vars::False,
-                       equations::AbstractEquations{1}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       have_aux_node_vars::False, equations::AbstractEquations{1},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)

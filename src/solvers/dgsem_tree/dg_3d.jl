@@ -1430,13 +1430,15 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::False,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
+                       have_aux_node_vars::False, equations::AbstractEquations{3},
+                       dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_aux_node_vars::False,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       have_aux_node_vars::False, equations::AbstractEquations{3},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)
