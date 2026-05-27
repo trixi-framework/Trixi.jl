@@ -35,7 +35,7 @@ steps:
       rocm: "*"
       rocmgpu: "gfx1100" # see https://github.com/trixi-framework/Trixi.jl/pull/2939
     commands: |
-      julia -e 'import Pkg; Pkg.add(PackageSpec(url="https://github.com/JuliaGPU/AMDGPU.jl", rev="lr/compiler"))'
+      julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/JuliaGPU/AMDGPU.jl", rev="lr/compiler"))'
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:
