@@ -27,7 +27,8 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-      - JuliaCI/julia-test#v1: ~
+      - JuliaCI/julia-test#v1:
+          allow_reresolve: false
     env:
       TRIXI_TEST: "AMDGPU"
     agents:
