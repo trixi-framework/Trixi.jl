@@ -5,13 +5,15 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-- Auxiliary variables ([#2348]).
+- Experimental support for auxiliary variables ([#2348]).
   An additional container in `cache` is made available to central functions like flux
   computations. Possible applications are steady background states, variable velocity
-  fields, geometrical information, or any other pointwise, passive (constant in time) quantity that is
-  required in addition to the unknows in the governing equations. The auxiliary variables
-  are set up by supplying a function to the `SemidiscretizationHyperbolic` constructor via
-  the keyword argument `aux_field`.
+  fields, geometrical information, or any other pointwise, passive (constant in time)
+  quantity that is required in addition to the unknows in the governing equations. The
+  auxiliary variables are set up by supplying a function to the
+  `SemidiscretizationHyperbolic` constructor via the keyword argument `aux_field`.
+  The current `equations` need to set `have_aux_node_vars to `True()` and `n_aux_node_vars`
+  to the number of auxiliary variables per node.
 
 ## Changes in the v0.16 lifecycle
 
