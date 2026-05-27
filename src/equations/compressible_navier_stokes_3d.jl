@@ -120,6 +120,10 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
                                                                   gradient_variables)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::CompressibleNavierStokesDiffusion3D,
                       ::Type{NewRealT}) where {NewRealT}
     mu = equations.mu isa Real ? convert(NewRealT, equations.mu) : equations.mu

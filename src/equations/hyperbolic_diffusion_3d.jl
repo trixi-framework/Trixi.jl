@@ -25,6 +25,10 @@ function HyperbolicDiffusionEquations3D(; nu = 1.0, Lr = inv(2pi))
     return HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::HyperbolicDiffusionEquations3D, ::Type{NewRealT}) where {NewRealT}
     return HyperbolicDiffusionEquations3D(convert(NewRealT, equations.Lr),
                                           convert(NewRealT, equations.inv_Tr),

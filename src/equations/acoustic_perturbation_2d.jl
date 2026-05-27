@@ -68,6 +68,10 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2, <:Real},
                                            rho_mean_global)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::AcousticPerturbationEquations2D,
                       ::Type{NewRealT}) where {NewRealT}
     return AcousticPerturbationEquations2D(SVector{2, NewRealT}(equations.v_mean_global),

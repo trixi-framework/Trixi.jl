@@ -133,6 +133,10 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
                                        collision_op)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::LatticeBoltzmannEquations2D, ::Type{NewRealT}) where {NewRealT}
     return LatticeBoltzmannEquations2D{NewRealT,
                                        typeof(equations.collision_op)}(convert(NewRealT,

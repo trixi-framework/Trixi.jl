@@ -47,6 +47,10 @@ struct IdealGlmMhdEquations1D{RealT <: Real} <: AbstractIdealGlmMhdEquations{1, 
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::IdealGlmMhdEquations1D, ::Type{NewRealT}) where {NewRealT}
     return IdealGlmMhdEquations1D(convert(NewRealT, equations.gamma))
 end

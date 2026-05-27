@@ -48,6 +48,10 @@ struct CompressibleEulerEquations2D{RealT <: Real} <:
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::CompressibleEulerEquations2D, ::Type{NewRealT}) where {NewRealT}
     return CompressibleEulerEquations2D(convert(NewRealT, equations.gamma))
 end

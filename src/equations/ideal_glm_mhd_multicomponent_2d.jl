@@ -132,6 +132,10 @@ end
     return RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(eqs::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP},
                       ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP,

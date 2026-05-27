@@ -32,6 +32,10 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
 function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
                       ::Type{NewRealT}) where {NDIMS, NewRealT}
     diffusivity = equations.diffusivity isa AbstractFloat ?
