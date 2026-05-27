@@ -2147,6 +2147,68 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Laplace Diffusion Entropy Variables 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables1D(RealT(0.1),
+                                                                               equations)
+
+            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT))
+            orientation = 1
+
+            @test eltype(@inferred flux(u, (gradients,), orientation, equations_parabolic)) ==
+                  RealT
+
+            adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations_parabolic)
+            @test adapted isa Trixi.LaplaceDiffusionEntropyVariables{1}
+            @test typeof(adapted.diffusivity) == Float32
+            @test adapted.equations_hyperbolic isa CompressibleEulerEquations1D{Float32}
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.1),
+                                                                               equations)
+
+            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
+            orientations = [1, 2]
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+
+            adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations_parabolic)
+            @test adapted isa Trixi.LaplaceDiffusionEntropyVariables{2}
+            @test typeof(adapted.diffusivity) == Float32
+            @test adapted.equations_hyperbolic isa CompressibleEulerEquations2D{Float32}
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.1),
+                                                                               equations)
+
+            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
+                                    zero(RealT))
+            orientations = [1, 2, 3]
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+
+            adapted = @inferred Trixi.trixi_adapt(Array, Float32, equations_parabolic)
+            @test adapted isa Trixi.LaplaceDiffusionEntropyVariables{3}
+            @test typeof(adapted.diffusivity) == Float32
+            @test adapted.equations_hyperbolic isa CompressibleEulerEquations3D{Float32}
+        end
+    end
+
     @timed_testset "Lattice Boltzmann 2D" begin
         for RealT in (Float32, Float64)
             equations = @inferred LatticeBoltzmannEquations2D(Ma = RealT(0.1), Re = 1000)
