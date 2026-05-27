@@ -168,12 +168,12 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
                                                        _aux_mpiinterface_node_vars,
                                                        _aux_mpimortar_node_vars,
                                                        aux_field)
-    init_aux_vars!(aux_vars, mesh, equations, solver, cache)
+    #init_aux_vars!(aux_vars, mesh, equations, solver, cache)
     return aux_vars
 end
 
-function init_aux_vars!(aux_vars, mesh, equations, solver, cache)
-    init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
+function init_aux_vars!(aux_vars, mesh, equations, solver, cache, t)
+    init_aux_node_vars!(aux_vars, mesh, equations, solver, cache, t)
     init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_boundary_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver, cache)
@@ -184,7 +184,7 @@ function init_aux_vars!(aux_vars, mesh, equations, solver, cache)
 end
 
 # Initialize auxiliary node variables (generic implementation)
-function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
+function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache, t)
     @unpack aux_node_vars, aux_field = aux_vars
     @unpack node_coordinates = cache.elements
 
@@ -196,7 +196,7 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
             x_local = get_node_coords(node_coordinates, equations, solver,
                                       node_ci, element)
             set_aux_node_vars!(aux_node_vars,
-                               aux_field(x_local, equations),
+                               aux_field(x_local, t, equations),
                                equations, solver, node_ci, element)
         end
     end

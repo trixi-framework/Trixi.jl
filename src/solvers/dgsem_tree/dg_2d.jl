@@ -122,6 +122,12 @@ function rhs!(du, u, t,
         set_zero!(du, dg, cache)
     end
 
+    # Recompute aux vars
+    @trixi_timeit_ext backend timer() "recompute aux vars" begin
+        recompute_aux_vars!(mesh, have_aux_node_vars(equations), equations, dg, cache,
+                            t)
+    end
+
     # Calculate volume integral
     @trixi_timeit_ext backend timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
@@ -1590,5 +1596,16 @@ function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
     end
 
     return nothing
+end
+
+@inline function recompute_aux_vars!(mesh, have_aux_node_vars::False, equations, dg,
+                                     cache, t)
+    return
+end
+
+@inline function recompute_aux_vars!(mesh, have_aux_node_vars::True, equations, dg,
+                                     cache, t)
+    init_aux_vars!(cache.aux_vars, mesh, equations, dg, cache, t)
+    return
 end
 end # @muladd
