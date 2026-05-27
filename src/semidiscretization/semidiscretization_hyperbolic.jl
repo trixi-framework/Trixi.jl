@@ -510,7 +510,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         print_boundary_conditions(io, semi)
 
         summary_line(io, "source terms", semi.source_terms)
-        if have_aux_node_vars(semi.equations) == Trixi.True()
+        if have_aux_node_vars(semi.equations) == True()
             summary_line(io, "auxiliary variables",
                          semi.cache.aux_vars.aux_field)
         end

@@ -202,8 +202,8 @@ DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed)
 end
 
 # same as above for equations with auxiliary variables
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll,
-                                                              aux_rr,
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              aux_ll, aux_rr,
                                                               orientation_or_normal_direction,
                                                               equations)
     λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
