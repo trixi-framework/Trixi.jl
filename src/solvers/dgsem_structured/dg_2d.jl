@@ -753,9 +753,10 @@ function apply_jacobian!(backend::Nothing, du,
                                      T8codeMesh{2}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
+    MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
-            apply_jacobian_per_quadrature_node!(du, typeof(mesh), equations, dg,
+            apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg,
                                                 inverse_jacobian,
                                                 i, j, element)
         end
