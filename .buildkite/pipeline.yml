@@ -34,6 +34,8 @@ steps:
       queue: "juliagpu"
       rocm: "*"
       rocmgpu: "gfx1100" # see https://github.com/trixi-framework/Trixi.jl/pull/2939
+    commands: |
+      julia -e 'import Pkg; Pkg.add(\"AMDGPU#lr/compiler\")'
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:
