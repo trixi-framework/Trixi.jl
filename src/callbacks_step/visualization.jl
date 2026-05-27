@@ -139,25 +139,32 @@ end
 
 # this method is called when the callback is activated
 function (visualization_callback::VisualizationCallback)(integrator)
-    u_ode = integrator.u
-    semi = integrator.p
-    @unpack plot_data_creator, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator = visualization_callback
+    @trixi_timeit timer() "visualization" begin
+        u_ode = integrator.u
+        semi = integrator.p
+        @unpack plot_data_creator, plot_arguments, solution_variables, variable_names, show_mesh, plot_creator = visualization_callback
 
-    # Extract plot data
-    plot_data = plot_data_creator(u_ode, semi, solution_variables = solution_variables)
+        # Extract plot data
+        @trixi_timeit timer() "data extraction" begin
+            plot_data = plot_data_creator(u_ode, semi,
+                                          solution_variables = solution_variables)
+        end
 
-    # If variable names were not specified, plot everything
-    if isempty(variable_names)
-        variable_names = String[keys(plot_data)...]
+        # If variable names were not specified, plot everything
+        if isempty(variable_names)
+            variable_names = String[keys(plot_data)...]
+        end
+
+        # Create plot
+        @trixi_timeit timer() "plotting" begin
+            plot_creator(plot_data, variable_names;
+                         show_mesh = show_mesh, plot_arguments = plot_arguments,
+                         time = integrator.t, timestep = integrator.stats.naccept)
+        end
+
+        # avoid re-evaluating possible FSAL stages
+        derivative_discontinuity!(integrator, false)
     end
-
-    # Create plot
-    plot_creator(plot_data, variable_names;
-                 show_mesh = show_mesh, plot_arguments = plot_arguments,
-                 time = integrator.t, timestep = integrator.stats.naccept)
-
-    # avoid re-evaluating possible FSAL stages
-    derivative_discontinuity!(integrator, false)
     return nothing
 end
 
