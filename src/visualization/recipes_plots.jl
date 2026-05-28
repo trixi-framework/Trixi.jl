@@ -51,7 +51,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     seriestype --> :heatmap
 
     # Return data for plotting
-    #return x, y, z_data #data[variable_id]
     return x, y, data[variable_id]
 end
 

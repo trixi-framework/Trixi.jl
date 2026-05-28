@@ -1,14 +1,17 @@
 using OrdinaryDiffEqLowOrderRK
 using Trixi
-using Plots
-using OrdinaryDiffEq
+
 ###############################################################################
 # semidiscretization of the linear advection equation
 
 equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
 
-#set the initial condition
-initial_condition(x, t, equations) = SVector(sinpi(x[1]) * sinpi(x[2]))
+# The initial condition can also be used as analytical solution, e.g.,
+# for convergence tests.
+function initial_condition(x, t, equations::LinearScalarAdvectionEquation2D)
+    a = equations.advection_velocity
+    return SVector(sinpi(x[1] - a[1] * t) * sinpi(x[2] - a[2] * t))
+end
 
 # Create DG solver with polynomial degree = 0, i.e., a first order finite volume solver,
 # with (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -18,8 +21,7 @@ coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max, 
-                n_cells_max = 10^5, 
+mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 periodicity = true)
 
@@ -51,6 +53,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 sol = solve(ode, Euler();
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-
-plot(sol)

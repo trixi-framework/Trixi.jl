@@ -274,7 +274,6 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
     levels = mesh.tree.levels[leaf_cell_ids]
 
-
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
 
