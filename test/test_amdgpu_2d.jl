@@ -114,7 +114,7 @@ end
                                      6.214141845717336e-5],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
-                        storage_type=ROCArray) 
+                        storage_type=ROCArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
