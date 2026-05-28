@@ -25,6 +25,7 @@ efficiency.
 abstract type AbstractEquationOfState end
 
 include("equation_of_state_ideal_gas.jl")
+include("equation_of_state_thermally_perfect_gas.jl")
 include("equation_of_state_vdw.jl")
 include("equation_of_state_peng_robinson.jl")
 

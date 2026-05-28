@@ -204,6 +204,7 @@ include("visualization/visualization.jl")
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D,
        CompressibleEulerEquations3D,
+    ThermallyPerfectGas,
        CompressibleEulerMulticomponentEquations1D,
        CompressibleEulerMulticomponentEquations2D,
        CompressibleEulerEquationsQuasi1D,
