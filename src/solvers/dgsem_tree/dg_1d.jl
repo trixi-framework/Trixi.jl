@@ -518,7 +518,9 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-function prolong2boundaries!(backend::Nothing, cache, u,
+# Used for both the purely hyperbolic conserved variables `u`
+# and the parabolic flux in x-direction in the 1D parabolic case.
+function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
@@ -530,11 +532,11 @@ function prolong2boundaries!(backend::Nothing, cache, u,
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[1, v, boundary] = u[v, nnodes(dg), element]
+                boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg), element]
             end
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[2, v, boundary] = u[v, 1, element]
+                boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
             end
         end
     end
@@ -542,7 +544,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
     return nothing
 end
 
-function prolong2boundaries!(backend::Nothing, cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                              mesh::TreeMesh{1}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
@@ -563,7 +565,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                     # Not += to allow `@muladd` to turn these into FMAs
                     # (see comment at the top of the file)
                     boundary_u_1 = (boundary_u_1 +
-                                    u[v, ii, element] *
+                                    u_or_flux_parabolic[v, ii, element] *
                                     boundary_interpolation[ii, 2])
                 end
                 boundaries.u[1, v, boundary] = boundary_u_1
@@ -573,7 +575,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
                 boundary_u_2 = zero(eltype(boundaries.u))
                 for ii in eachnode(dg)
                     boundary_u_2 = (boundary_u_2 +
-                                    u[v, ii, element] *
+                                    u_or_flux_parabolic[v, ii, element] *
                                     boundary_interpolation[ii, 1])
                 end
                 boundaries.u[2, v, boundary] = boundary_u_2
