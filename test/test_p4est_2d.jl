@@ -28,6 +28,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test real(semi32.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi32.mesh) == Float64
+    @test eltype(semi32.equations.advection_velocity) == Float32
 end
 
 @trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin

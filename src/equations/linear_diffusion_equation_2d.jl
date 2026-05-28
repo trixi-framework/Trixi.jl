@@ -21,6 +21,15 @@ struct LinearDiffusionEquation2D{RealT <: Real} <: AbstractLaplaceDiffusion{2, 1
     diffusivity::RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearDiffusionEquation2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearDiffusionEquation2D(convert(NewRealT, equations.diffusivity))
+end
+
 varnames(::typeof(cons2cons), ::LinearDiffusionEquation2D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearDiffusionEquation2D) = ("scalar",)
 varnames(::typeof(cons2entropy), ::LinearDiffusionEquation2D) = ("scalar",)
