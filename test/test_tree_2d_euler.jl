@@ -1163,6 +1163,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 100)
+
+    # Test Spectral Analysis Post Processing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        151.3586176349759,
+        7.114099105633191,
+        1.7757841081685988,
+        0.7908299040437797,
+        0.44703605555828874,
+        0.2886969568982364
+    ] rtol=1.0e-12
 end
 
 # Coverage test for all initial conditions
