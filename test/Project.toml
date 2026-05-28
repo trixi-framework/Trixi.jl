@@ -45,7 +45,7 @@ TrixiTest = "0a316866-cbd0-4425-8bcb-08103b2c1f26"
 
 [compat]
 ADTypes = "1.14"
-AMDGPU = "~2.2.1, ~2.3"
+AMDGPU = "2.2.1"
 Accessors = "0.1.42"
 Adapt = "4.4"
 Aqua = "0.8"
