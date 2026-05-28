@@ -23,16 +23,17 @@ function calc_node_coordinates!(node_coordinates,
 
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
 
+    scheme = t8_forest_get_scheme(mesh.forest)
+
     current_index = 0
     for itree in 0:(num_local_trees - 1)
         tree_class = t8_forest_get_tree_class(mesh.forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
-        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_leaf_elements(mesh.forest, itree)
         global_itree = t8_forest_global_tree_id(mesh.forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
-            element_level = t8_element_level(eclass_scheme, element)
+            element = t8_forest_get_leaf_element_in_tree(mesh.forest, itree, ielement)
+            element_level = t8_element_get_level(scheme, tree_class, element)
 
             # Note, `t8_hex_len` is encoded as an integer (Morton encoding) in
             # relation to `t8_hex_root_len`. This line transforms the
@@ -40,8 +41,8 @@ function calc_node_coordinates!(node_coordinates,
             element_length = t8_hex_len(element_level) / t8_hex_root_len
 
             element_coords = Vector{RealT}(undef, 3)
-            t8_element_vertex_reference_coords(eclass_scheme, element, 0,
-                                               pointer(element_coords))
+            t8_element_get_vertex_reference_coords(scheme, tree_class, element, 0,
+                                                   pointer(element_coords))
 
             nodes_out_x = (2 *
                            (element_length * 0.5f0 * (nodes .+ 1) .+ element_coords[1]) .-
@@ -72,6 +73,9 @@ function calc_node_coordinates!(node_coordinates,
 end
 
 # This routine was copied and adapted from `src/dgsem_p4est/containers_3d.jl`: `orientation_to_indices_p4est`.
+# It simplified a lot with t8code v4. However, it relies on the ordering given by t8code's space filling curve, and could
+# become a point of failure.
+# xref: https://github.com/DLR-AMR/t8code/issues/2190
 function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
                                    other_face, orientation, neighbor_ielements,
                                    mortar_id)
@@ -88,7 +92,9 @@ function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{3}, my_face,
 
     # If both or none are right-handed when looked at from the outside, they will have different
     # orientations when looked at from the same side of the interface.
-    flipped = my_right_handed == other_right_handed
+    # TODO: with t8code v4 it is apparently not necessary swap mortar indices in this case
+    flipped = false # my_right_handed == other_right_handed
+    orientation = 0
 
     # In the following illustrations, the face corner numbering of `p4est` is shown.
     # ξ and η are the local coordinates of the respective face.
