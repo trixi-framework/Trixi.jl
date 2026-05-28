@@ -3065,6 +3065,7 @@ end
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                                    normal_direction,
+                                                                   normal_direction,
                                                                    equations,
                                                                    Trixi.NonConservativeJump(),
                                                                    noncons)
