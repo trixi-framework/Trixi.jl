@@ -82,7 +82,7 @@ end
 end
 
 function prolong2boundaries!(backend::Backend, cache, u,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{3}},
                              equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_ids, node_indices = boundaries
@@ -104,7 +104,7 @@ end
 
 function calc_boundary_flux!(backend::Backend, cache, t::Real,
                              boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
+                             mesh::P4estMesh,
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 

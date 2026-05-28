@@ -564,6 +564,32 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     return nothing
 end
 
+function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
+                             mesh::TreeMesh{1},
+                             equations_parabolic::AbstractEquationsParabolic, dg::DG)
+    @unpack boundaries = cache
+    @unpack neighbor_sides = boundaries
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        # boundary in x-direction
+        if neighbor_sides[boundary] == 1
+            # element in -x direction of boundary
+            for v in eachvariable(equations)
+                boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
+                                                                   element]
+            end
+        else # Element in +x direction of boundary
+            for v in eachvariable(equations)
+                boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
+            end
+        end
+    end
+
+    return nothing
+end
+
 # Needed to *not* flip the sign of the inverse Jacobian.
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,

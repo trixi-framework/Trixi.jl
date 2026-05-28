@@ -518,9 +518,7 @@ function calc_interface_flux!(surface_flux_values,
     return nothing
 end
 
-# Used for both the purely hyperbolic conserved variables `u`
-# and the parabolic flux in x-direction in the 1D parabolic case.
-function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{1}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
@@ -532,12 +530,11 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
-                                                                   element]
+                boundaries.u[1, v, boundary] = u[v, nnodes(dg), element]
             end
         else # Element in +x direction of boundary
             for v in eachvariable(equations)
-                boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
+                boundaries.u[2, v, boundary] = u[v, 1, element]
             end
         end
     end

@@ -263,12 +263,12 @@ function calc_boundary_flux!(backend::Nothing, cache, t::Real,
 end
 
 # Function barrier for type stability
-function calc_boundary_flux!(backend, cache, t, boundary_conditions,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_conditions,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
-    calc_boundary_flux_by_type!(backend, cache, t, boundary_condition_types,
+    calc_boundary_flux_by_type!(cache, t, boundary_condition_types,
                                 boundary_indices,
                                 mesh, equations, surface_integral, dg)
     return nothing
@@ -276,7 +276,7 @@ end
 
 # Iterate over tuples of boundary condition types and associated indices
 # in a type-stable way using "lispy tuple programming".
-function calc_boundary_flux_by_type!(backend::Nothing, cache, t, BCs::NTuple{N, Any},
+function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  T8codeMesh},
