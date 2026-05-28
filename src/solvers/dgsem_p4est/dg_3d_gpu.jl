@@ -116,34 +116,29 @@ function calc_boundary_flux!(backend::Backend, cache, t, boundary_conditions,
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
     @unpack node_coordinates, contravariant_vectors = cache.elements
-    calc_boundary_flux_by_type_gpu!(backend, cache, t,
-                                    boundary_condition_types, boundary_indices,
-                                    mesh, equations, surface_integral, dg,
-                                    node_coordinates, contravariant_vectors)
+    calc_boundary_flux_by_type!(backend, cache, t,
+                                boundary_condition_types, boundary_indices,
+                                mesh, equations, surface_integral, dg,
+                                node_coordinates, contravariant_vectors)
     return nothing
 end
 
-function calc_boundary_flux_by_type_gpu!(backend::Backend, cache, t,
-                                         BCs::Tuple{},
-                                         BC_indices::Tuple{},
-                                         mesh, equations, surface_integral, dg,
-                                         node_coordinates, contravariant_vectors)
+function calc_boundary_flux_by_type!(backend::Backend, cache, t,
+                                     BCs::Tuple{},
+                                     BC_indices::Tuple{},
+                                     mesh, equations, surface_integral, dg,
+                                     node_coordinates, contravariant_vectors)
     return nothing
 end
 
-function calc_boundary_flux_by_type_gpu!(backend::Backend, cache, t,
-                                         BCs::Tuple{Any, Vararg{Any}},
-                                         BC_indices::Tuple{AbstractVector{Int},
-                                                           Vararg{AbstractVector{Int}}},
-                                         #=
-                                         BCs::NTuple{N, Any},
-                                         BC_indices::NTuple{N, AbstractVector{Int}},
-                                         =#
-                                         mesh::Union{UnstructuredMesh2D, P4estMesh,
-                                                     T8codeMesh},
-                                         equations, surface_integral, dg::DG,
-                                         node_coordinates, contravariant_vectors)
-    #where {N}
+function calc_boundary_flux_by_type!(backend::Backend, cache, t,
+                                     BCs::Tuple{Any, Vararg{Any}},
+                                     BC_indices::Tuple{AbstractVector{Int},
+                                                       Vararg{AbstractVector{Int}}},
+                                     mesh::Union{UnstructuredMesh2D, P4estMesh,
+                                                 T8codeMesh},
+                                     equations, surface_integral, dg::DG,
+                                     node_coordinates, contravariant_vectors)
     boundary_condition = first(BCs)
     boundary_condition_indices = first(BC_indices)
     length(boundary_condition_indices) == 0 && return nothing
@@ -168,12 +163,11 @@ function calc_boundary_flux_by_type_gpu!(backend::Backend, cache, t,
             dg,
             kernel_cache, node_coordinates, contravariant_vectors;
             ndrange = n_boundaries)
-    KernelAbstractions.synchronize(backend)
-    calc_boundary_flux_by_type_gpu!(backend, cache, t,
-                                    Base.tail(BCs),
-                                    Base.tail(BC_indices),
-                                    mesh, equations, surface_integral, dg,
-                                    node_coordinates, contravariant_vectors)
+    calc_boundary_flux_by_type!(backend, cache, t,
+                                Base.tail(BCs),
+                                Base.tail(BC_indices),
+                                mesh, equations, surface_integral, dg,
+                                node_coordinates, contravariant_vectors)
     return nothing
 end
 
@@ -231,7 +225,7 @@ function calc_boundary_flux_per_boundary!(u,
     k_node = k_node_start
     for j in eachnode(dg)
         for i in eachnode(dg)
-            calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh,
+            calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
                                 have_nonconservative_terms(equations), equations,
                                 surface_integral, dg, cache, i_node, j_node, k_node,
                                 i, j, direction, element, boundary, node_coordinates,
@@ -247,32 +241,33 @@ function calc_boundary_flux_per_boundary!(u,
 end
 
 # inlined version of the boundary flux calculation along a physical interface
-function calc_boundary_flux_gpu!(u, surface_flux_values, t, boundary_condition,
-                                 mesh,
-                                 have_nonconservative_terms::False, equations,
-                                 surface_integral, dg, cache,
-                                 i_index, j_index,
-                                 node_index, direction_index, element_index,
-                                 boundary_index, node_coordinates,
-                                 contravariant_vectors)
+@inline function calc_boundary_flux!(u, surface_flux_values, t, boundary_condition,
+                                     MeshT,
+                                     have_nonconservative_terms::False, equations,
+                                     surface_integral, dg, cache,
+                                     i_index, j_index, k_index, i_node_index,
+                                     j_node_index,
+                                     direction_index, element,
+                                     boundary, node_coordinates,
+                                     contravariant_vectors)
     @unpack surface_flux = surface_integral
 
     # Extract solution data from boundary container
-    u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
+    u_inner = get_node_vars(u, equations, dg, i_node_index, j_node_index, boundary)
 
     # Outward-pointing normal direction (not normalized)
     normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
+                                            i_index, j_index, k_index, element)
 
     # Coordinates at boundary node
     x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, element_index)
+                        i_index, j_index, k_index, element)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+        surface_flux_values[v, i_node_index, j_node_index, direction_index, element] = flux_[v]
     end
 end
 

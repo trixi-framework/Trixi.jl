@@ -587,7 +587,7 @@ end
 function prolong2boundaries!(cache, u, u_parent, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    return prolong2boundaries!(cache, u, mesh, equations, dg)
+    return prolong2boundaries!(nothing, cache, u, mesh, equations, dg)
 end
 
 function calc_boundary_flux!(cache, t::Real, boundary_condition::BC, boundary_indexing,
