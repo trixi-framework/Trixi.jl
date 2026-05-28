@@ -47,6 +47,11 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
     return nothing
 end
 
+@inline function calc_bounds_twosided_mortar!(var_min, var_max, variable, u,
+                                              semi, mesh::StructuredMesh{2})
+    return nothing
+end
+
 @inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
                                                 boundary_conditions,
                                                 mesh::StructuredMesh{2},
@@ -173,6 +178,11 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
         end
     end
 
+    return nothing
+end
+
+@inline function calc_bounds_onesided_mortar!(var_minmax, min_or_max, variable, u,
+                                              semi, mesh::StructuredMesh{2})
     return nothing
 end
 

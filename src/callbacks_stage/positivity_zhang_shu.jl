@@ -40,6 +40,13 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
     return nothing
 end
 
+# Version used by the AMR callback
+function (limiter!::PositivityPreservingLimiterZhangShu)(u, mesh, equations, solver,
+                                                         cache, args...)
+    limiter_zhang_shu!(u, limiter!.thresholds, limiter!.variables, mesh, equations,
+                       solver, cache, args...)
+end
+
 # Iterate over tuples in a type-stable way using "lispy tuple programming",
 # similar to https://stackoverflow.com/a/55849398:
 # Iterating over tuples of different functions isn't type-stable in general
@@ -49,21 +56,22 @@ end
 # compile times can increase otherwise - but a handful of elements per tuple
 # is definitely fine.
 function limiter_zhang_shu!(u, thresholds::NTuple{N, <:Real}, variables::NTuple{N, Any},
-                            mesh, equations, solver, cache) where {N}
+                            mesh, equations, solver, cache, args...) where {N}
     threshold = first(thresholds)
     remaining_thresholds = Base.tail(thresholds)
     variable = first(variables)
     remaining_variables = Base.tail(variables)
 
-    limiter_zhang_shu!(u, threshold, variable, mesh, equations, solver, cache)
+    limiter_zhang_shu!(u, threshold, variable, mesh, equations, solver, cache,
+                       args...)
     limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations,
-                       solver, cache)
+                       solver, cache, args...)
     return nothing
 end
 
 # terminate the type-stable iteration over tuples
 function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
-                            mesh, equations, solver, cache)
+                            mesh, equations, solver, cache, args...)
     return nothing
 end
 
