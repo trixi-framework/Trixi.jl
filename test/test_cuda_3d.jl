@@ -89,20 +89,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    @test real(ode.p.solver) == Float64
-    @test real(ode.p.solver.basis) == Float64
-    @test real(ode.p.solver.mortar) == Float64
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
-    @test typeof(equations.gamma) == Float64
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
 
     @test ode.u0 isa Array
-    @test ode.p.solver.basis.derivative_matrix isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
 
-    @test Trixi.storage_type(ode.p.cache.elements) === Array
-    @test Trixi.storage_type(ode.p.cache.interfaces) === Array
-    @test Trixi.storage_type(ode.p.cache.boundaries) === Array
-    @test Trixi.storage_type(ode.p.cache.mortars) === Array
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
 @trixi_testset "elixir_euler_source_terms.jl Float32 / CUDA" begin
@@ -126,20 +126,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 100_000)
-    @test real(ode.p.solver) == Float32
-    @test real(ode.p.solver.basis) == Float32
-    @test real(ode.p.solver.mortar) == Float32
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
-    @test typeof(equations.gamma) == Float32
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
 
     @test ode.u0 isa CuArray
-    @test ode.p.solver.basis.derivative_matrix isa CuArray
+    @test semi.solver.basis.derivative_matrix isa CuArray
 
-    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
-    @test Trixi.storage_type(ode.p.cache.interfaces) === CuArray
-    @test Trixi.storage_type(ode.p.cache.boundaries) === CuArray
-    @test Trixi.storage_type(ode.p.cache.mortars) === CuArray
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
+    @test Trixi.storage_type(semi.cache.interfaces) === CuArray
+    @test Trixi.storage_type(semi.cache.boundaries) === CuArray
+    @test Trixi.storage_type(semi.cache.mortars) === CuArray
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
