@@ -1,7 +1,8 @@
 # Package extension for adding CUDA-based features to Trixi.jl
 module TrixiCUDAExt
 
-using CUDACore: CUDACore, CuArray, CuDeviceArray, CUDABackend, KernelAdaptor, @device_override
+using CUDACore: CUDACore, CuArray, CuDeviceArray, CUDABackend, KernelAdaptor,
+                @device_override
 using CUDATools: CUDATools, NVML, has_nvml
 import Trixi
 
