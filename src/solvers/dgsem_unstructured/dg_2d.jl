@@ -220,7 +220,7 @@ function calc_interface_flux!(surface_flux_values,
 end
 
 # move the approximate solution onto physical boundaries within a "right-handed" element
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, dg::DG)
     @unpack boundaries = cache
@@ -253,7 +253,7 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(backend, cache, t::Real,
+function calc_boundary_flux!(backend::Nothing, cache, t::Real,
                              boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
