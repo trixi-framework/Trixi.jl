@@ -102,6 +102,15 @@ end
                                      neighbor_ids, node_indices, boundary)
 end
 
+function calc_boundary_flux!(backend::Backend, cache, t::Real,
+                             boundary_condition::BoundaryConditionPeriodic,
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
+                             equations, surface_integral, dg::DG)
+    @assert isempty(eachboundary(dg, cache))
+
+    return nothing
+end
+
 function calc_boundary_flux!(backend::Backend, cache, t, boundary_conditions,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
