@@ -22,6 +22,16 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    @testset "Nodal API" begin
+        coords = Trixi.get_coordinates(sol)
+        @test size(coords) == size(semi.cache.elements.node_coordinates)
+        @test coords == semi.cache.elements.node_coordinates
+
+        u_nodal = Trixi.get_u(sol)
+        @test size(u_nodal) == size(Trixi.wrap_array(sol.u[end], semi))
+        @test u_nodal == Trixi.wrap_array(sol.u[end], semi)
+    end
 end
 
 @trixi_testset "elixir_advection_float32.jl" begin
@@ -830,8 +840,9 @@ end
 
     # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                  tspan[1])
+    rhs_wrapped! = (du_ode,
+    u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                          tspan[1])
 
     @test_nowarn jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 end
@@ -887,7 +898,11 @@ end
 @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
-                        linf=[1.0771947577311836, 1.9143913544309838, 2.149549109115789],
+                        linf=[
+                            1.0771947577311836,
+                            1.9143913544309838,
+                            2.149549109115789
+                        ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
