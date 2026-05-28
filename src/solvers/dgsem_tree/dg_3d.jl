@@ -700,7 +700,8 @@ function prolong2boundaries!(backend::Nothing, cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(backend::Nothing, cache, t,
+                             boundary_conditions::NamedTuple,
                              mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries

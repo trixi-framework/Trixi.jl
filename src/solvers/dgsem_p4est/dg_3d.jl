@@ -512,9 +512,9 @@ function calc_boundary_flux_per_boundary!(cache, t, boundary_condition::BC,
     return nothing
 end
 
-function calc_boundary_flux_first!(cache, t, boundary_condition::BC, boundary_indexing,
-                                   mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   equations, surface_integral, dg::DG) where {BC}
+function calc_boundary_flux!(cache, t::Real, boundary_condition::BC, boundary_indexing,
+                             mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                             equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)

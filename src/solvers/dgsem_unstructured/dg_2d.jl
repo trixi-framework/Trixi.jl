@@ -253,7 +253,7 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(backend, cache, t,
+function calc_boundary_flux!(backend, cache, t::Real,
                              boundary_condition::BoundaryConditionPeriodic,
                              mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
@@ -289,8 +289,8 @@ function calc_boundary_flux_by_type!(backend::Nothing, cache, t, BCs::NTuple{N, 
     remaining_boundary_condition_indices = Base.tail(BC_indices)
 
     # process the first boundary condition type
-    calc_boundary_flux_first!(cache, t, boundary_condition, boundary_condition_indices,
-                              mesh, equations, surface_integral, dg)
+    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
+                        mesh, equations, surface_integral, dg)
 
     # recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
@@ -308,9 +308,9 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
     return nothing
 end
 
-function calc_boundary_flux_first!(cache, t, boundary_condition::BC, boundary_indexing,
-                                   mesh::UnstructuredMesh2D, equations,
-                                   surface_integral, dg::DG) where {BC}
+function calc_boundary_flux!(cache, t::Real, boundary_condition::BC, boundary_indexing,
+                             mesh::UnstructuredMesh2D, equations,
+                             surface_integral, dg::DG) where {BC}
     @unpack surface_flux_values = cache.elements
     @unpack element_id, element_side_id = cache.boundaries
 
