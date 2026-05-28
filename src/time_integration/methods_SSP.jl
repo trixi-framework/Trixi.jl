@@ -132,6 +132,15 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                                                 kwargs...),
                                      false, true, false)
 
+    # Check whether `SubcellLimiterIDPCorrection` is the first stage callback for `VolumeIntegralSubcellLimiting`.
+    if ode.p.solver.volume_integral isa VolumeIntegralSubcellLimiting
+        if isempty(alg.stage_callbacks)
+            @warn "`VolumeIntegralSubcellLimiting` requires `SubcellLimiterIDPCorrection` as the first stage callback of `SimpleAlgorithmSSP`."
+        elseif !(alg.stage_callbacks[1] isa SubcellLimiterIDPCorrection)
+            error("Invalid stage callback order for `SimpleAlgorithmSSP` with `VolumeIntegralSubcellLimiting`: the first stage callback must be `SubcellLimiterIDPCorrection` so RHS corrections are applied for a-posteriori subcell limiting.")
+        end
+    end
+
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
 
