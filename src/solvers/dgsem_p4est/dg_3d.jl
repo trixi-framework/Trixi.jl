@@ -463,55 +463,6 @@ function prolong2boundaries_per_boundary!(u,
     return nothing
 end
 
-function calc_boundary_flux_per_boundary!(cache, t, boundary_condition::BC,
-                                          boundary_indexing,
-                                          mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                          equations, surface_integral,
-                                          dg::DG) where {BC}
-    @unpack boundaries = cache
-    @unpack surface_flux_values = cache.elements
-    index_range = eachnode(dg)
-
-    @threaded for local_index in eachindex(boundary_indexing)
-        # Use the local index to get the global boundary index from the
-        # pre-sorted list
-        boundary = boundary_indexing[local_index]
-
-        # Get information on the adjacent element, compute the surface fluxes,
-        # and store them
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
-        direction = indices2direction(node_indices)
-
-        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
-                                                                            index_range)
-        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
-                                                                            index_range)
-        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
-                                                                            index_range)
-
-        i_node = i_node_start
-        j_node = j_node_start
-        k_node = k_node_start
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                calc_boundary_flux!(surface_flux_values, t, boundary_condition, mesh,
-                                    have_nonconservative_terms(equations), equations,
-                                    surface_integral, dg, cache, i_node, j_node, k_node,
-                                    i, j, direction, element, boundary)
-                i_node += i_node_step_i
-                j_node += j_node_step_i
-                k_node += k_node_step_i
-            end
-            i_node += i_node_step_j
-            j_node += j_node_step_j
-            k_node += k_node_step_j
-        end
-    end
-
-    return nothing
-end
-
 function calc_boundary_flux!(cache, t::Real, boundary_condition::BC, boundary_indexing,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                              equations, surface_integral, dg::DG) where {BC}
