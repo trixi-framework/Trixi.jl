@@ -37,7 +37,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    element,
                                    ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                                   T8codeMesh{3}}},
-                                   have_nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -95,7 +96,8 @@ end
                                            ::Type{<:Union{StructuredMesh{3},
                                                           P4estMesh{3},
                                                           T8codeMesh{3}}},
-                                           have_nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -178,9 +180,11 @@ end
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3},
                                                                T8codeMesh{3}}},
-                                           have_nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     flux_differencing_kernel!(du, u, element, MeshT, have_nonconservative_terms,
+                              have_aux_node_vars,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
                               equations, volume_flux, dg, cache, alpha)
@@ -193,6 +197,7 @@ end
                                                                P4estMesh{3},
                                                                T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
+                                           have_aux_node_vars::False,
                                            combine_conservative_and_nonconservative_fluxes::False,
                                            equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -201,8 +206,9 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
-                              dg, cache, alpha)
+    flux_differencing_kernel!(du, u, element, MeshT, False(), have_aux_node_vars,
+                              equations,
+                              symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -284,6 +290,7 @@ end
                                                           P4estMesh{3},
                                                           T8codeMesh{3}}},
                                            have_nonconservative_terms::True,
+                                           have_aux_node_vars::False,
                                            combine_conservative_and_nonconservative_fluxes::True,
                                            equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
@@ -379,6 +386,7 @@ end
                               ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                              T8codeMesh{3}}},
                               have_nonconservative_terms::False,
+                              have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -440,6 +448,7 @@ end
                               ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                              T8codeMesh{3}}},
                               have_nonconservative_terms::True,
+                              have_aux_node_vars::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -535,7 +544,8 @@ end
                                 fstar3_L, fstar3_R, u,
                                 ::Type{<:Union{StructuredMesh{3}, P4estMesh{3},
                                                T8codeMesh{3}}},
-                                have_nonconservative_terms::False, equations,
+                                have_nonconservative_terms::False,
+                                have_aux_node_vars::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
                                 cons2recon, recon2cons)

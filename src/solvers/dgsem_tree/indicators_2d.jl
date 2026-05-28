@@ -28,7 +28,9 @@ end
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
-                                                   u, element, mesh::AbstractMesh{2},
+                                                   u,
+                                                   element, mesh::AbstractMesh{2},
+                                                   have_aux_node_vars,
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -39,10 +41,8 @@ end
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-        u_local = get_node_vars(u, equations, dg, i, j, element)
-        indicator[i, j] = indicator_hg.variable(u_local, equations)
-    end
+    calc_indicator_inner!(indicator, u, element, mesh, indicator_hg.variable,
+                          have_aux_node_vars, equations, dg, cache)
 
     # Convert to modal representation
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
@@ -98,6 +98,16 @@ end
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
     return nothing
+end
+
+@inline function calc_indicator_inner!(indicator, u, element, mesh::AbstractMesh{2},
+                                       indicator_variable,
+                                       have_aux_node_vars::False, equations,
+                                       solver, cache)
+    for j in eachnode(solver), i in eachnode(solver)
+        u_local = get_node_vars(u, equations, solver, i, j, element)
+        indicator[i, j] = indicator_variable(u_local, equations)
+    end
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
