@@ -82,7 +82,7 @@ end
 end
 
 function prolong2boundaries!(backend::Backend, cache, u,
-                             mesh::Union{P4estMesh{3}},
+                             mesh::P4estMesh,
                              equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_ids, node_indices = boundaries
