@@ -28,6 +28,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test real(ode.p.solver.mortar) == Float64
     # TODO: remake ignores the mesh itself as well
     @test real(ode.p.mesh) == Float64
+    @test eltype(ode.p.equations.advection_velocity) == Float64
 
     @test ode.u0 isa Array
     @test ode.p.solver.basis.derivative_matrix isa Array
@@ -57,6 +58,7 @@ end
     @test real(ode.p.solver.mortar) == Float32
     # TODO: remake ignores the mesh itself as well
     @test real(ode.p.mesh) == Float64
+    @test eltype(ode.p.equations.advection_velocity) == Float32
 
     @test ode.u0 isa ROCArray
     @test ode.p.solver.basis.derivative_matrix isa ROCArray
