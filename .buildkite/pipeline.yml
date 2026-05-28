@@ -27,16 +27,13 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-      - JuliaCI/julia-test#v1:
-          allow_reresolve: false
+      - JuliaCI/julia-test#v1: ~
     env:
       TRIXI_TEST: "AMDGPU"
     agents:
       queue: "juliagpu"
       rocm: "*"
       rocmgpu: "gfx1100" # see https://github.com/trixi-framework/Trixi.jl/pull/2939
-    commands: |
-      julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaGPU/AMDGPU.jl", rev="lr/compiler"); Pkg.instantiate()'
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:
