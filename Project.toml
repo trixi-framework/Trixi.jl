@@ -56,7 +56,8 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
 AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
-CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+CUDACore = "bd0ed864-bdfe-4181-a5ed-ce625a5fdea2"
+CUDATools = "9ec180c6-1c07-47c7-9e6e-ebefa4d1f6d0"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
@@ -67,7 +68,7 @@ SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 
 [extensions]
 TrixiAMDGPUExt = "AMDGPU"
-TrixiCUDAExt = "CUDA"
+TrixiCUDAExt = ["CUDACore", "CUDATools"]
 TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
@@ -80,7 +81,8 @@ AMDGPU = "2.2.1"
 AcceleratedKernels = "0.4.3"
 Accessors = "0.1.42"
 Adapt = "4.4"
-CUDA = "5.9.1, 6"
+CUDACore = "6"
+CUDATools = "6"
 CodeTracking = "1.0.5, 2, 3"
 ConstructionBase = "1.5.8"
 Convex = "0.16"
