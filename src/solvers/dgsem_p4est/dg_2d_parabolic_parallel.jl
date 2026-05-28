@@ -230,7 +230,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh,
+        prolong2boundaries!(nothing, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 

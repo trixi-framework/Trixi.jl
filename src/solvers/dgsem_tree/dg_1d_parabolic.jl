@@ -92,7 +92,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
+        prolong2boundaries!(nothing, cache, flux_parabolic, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes.
