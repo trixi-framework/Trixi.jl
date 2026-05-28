@@ -174,6 +174,12 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 end
 
+@timed_testset "PlotData2D on TreeMesh with polydeg = 0" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_finite_volume.jl"))
+    @trixi_test_nowarn Plots.plot(sol)
+end
+
 # check that ScalarPlotData2D works for Quad elements
 @timed_testset "ScalarPlotData2D with DGMulti Quad elements" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
