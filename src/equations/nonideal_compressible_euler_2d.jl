@@ -50,6 +50,12 @@ struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
     equation_of_state::EoS
 end
 
+function Base.similar(equations::NonIdealCompressibleEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return NonIdealCompressibleEulerEquations2D(similar(equations.equation_of_state,
+                                                        NewRealT))
+end
+
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
