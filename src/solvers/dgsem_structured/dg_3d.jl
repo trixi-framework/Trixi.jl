@@ -831,7 +831,7 @@ end
     return nothing
 end
 
-function calc_boundary_flux!(backend::Nothing, cache, t,
+function calc_boundary_flux!(cache, t,
                              boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{3}, equations, surface_integral,
                              dg::DG)

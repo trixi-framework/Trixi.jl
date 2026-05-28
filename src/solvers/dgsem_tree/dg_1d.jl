@@ -542,7 +542,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
     return nothing
 end
 
-function prolong2boundaries!(cache, u_or_flux_parabolic,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{1}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
@@ -563,7 +563,7 @@ function prolong2boundaries!(cache, u_or_flux_parabolic,
                     # Not += to allow `@muladd` to turn these into FMAs
                     # (see comment at the top of the file)
                     boundary_u_1 = (boundary_u_1 +
-                                    u_or_flux_parabolic[v, ii, element] *
+                                    u[v, ii, element] *
                                     boundary_interpolation[ii, 2])
                 end
                 boundaries.u[1, v, boundary] = boundary_u_1
@@ -573,7 +573,7 @@ function prolong2boundaries!(cache, u_or_flux_parabolic,
                 boundary_u_2 = zero(eltype(boundaries.u))
                 for ii in eachnode(dg)
                     boundary_u_2 = (boundary_u_2 +
-                                    u_or_flux_parabolic[v, ii, element] *
+                                    u[v, ii, element] *
                                     boundary_interpolation[ii, 1])
                 end
                 boundaries.u[2, v, boundary] = boundary_u_2

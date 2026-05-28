@@ -509,6 +509,7 @@ end
 function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
+    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
@@ -538,7 +539,8 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic, dg)
+        prolong2boundaries!(backend, cache, u_transformed, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes
@@ -559,32 +561,6 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                   cache)
-    end
-
-    return nothing
-end
-
-function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
-                             mesh::TreeMesh{1},
-                             equations_parabolic::AbstractEquationsParabolic, dg::DG)
-    @unpack boundaries = cache
-    @unpack neighbor_sides = boundaries
-
-    @threaded for boundary in eachboundary(dg, cache)
-        element = boundaries.neighbor_ids[boundary]
-
-        # boundary in x-direction
-        if neighbor_sides[boundary] == 1
-            # element in -x direction of boundary
-            for v in eachvariable(equations)
-                boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
-                                                                   element]
-            end
-        else # Element in +x direction of boundary
-            for v in eachvariable(equations)
-                boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
-            end
-        end
     end
 
     return nothing

@@ -348,47 +348,6 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
-                             mesh::TreeMesh{2},
-                             equations_parabolic::AbstractEquationsParabolic,
-                             dg::DG)
-    @unpack boundaries = cache
-    @unpack orientations, neighbor_sides = boundaries
-
-    @threaded for boundary in eachboundary(dg, cache)
-        element = boundaries.neighbor_ids[boundary]
-
-        if orientations[boundary] == 1
-            # boundary in x-direction
-            if neighbor_sides[boundary] == 1
-                # element in -x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
-                end
-            else # Element in +x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    boundaries.u[2, v, l, boundary] = u[v, 1, l, element]
-                end
-            end
-        else # if orientations[boundary] == 2
-            # boundary in y-direction
-            if neighbor_sides[boundary] == 1
-                # element in -y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
-                end
-            else
-                # element in +y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations_parabolic)
-                    boundaries.u[2, v, l, boundary] = u[v, l, 1, element]
-                end
-            end
-        end
-    end
-
-    return nothing
-end
-
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
 # avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
@@ -1200,6 +1159,8 @@ function calc_gradient!(gradients, u_transformed, t,
                         mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
+    backend = trixi_backend(u_transformed)
+
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_gradients!(gradients, dg, cache)
@@ -1228,7 +1189,8 @@ function calc_gradient!(gradients, u_transformed, t,
     # Prolong solution to boundaries
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic, dg)
+        prolong2boundaries!(backend, cache, u_transformed, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes
