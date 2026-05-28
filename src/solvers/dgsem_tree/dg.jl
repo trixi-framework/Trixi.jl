@@ -43,6 +43,7 @@ include("subcell_finite_volume_O2.jl")
 
 # 1D DG implementation
 include("dg_1d.jl")
+include("dg_1d_artificial_viscosity.jl")
 include("dg_1d_parabolic.jl")
 
 # 2D DG implementation

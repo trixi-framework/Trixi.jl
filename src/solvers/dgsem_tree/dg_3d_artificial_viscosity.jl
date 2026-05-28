@@ -285,7 +285,7 @@
         end
         return nothing
     end
- 
+
     function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
                                      equations, mesh::TreeMesh{3}, dg, cache)
         #push!(cache.artificial_viscosity.norm_coefficients, 0.0)
@@ -340,6 +340,88 @@
                 #                equations, dg, i, j, k, element)
                 # set_node_vars!(flux_parabolic_z, ecav_coefficient * flux_viscous_z_node,
                 #                equations, dg, i, j, k, element)
+                multiply_to_node_vars!(flux_parabolic_x, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_to_node_vars!(flux_parabolic_y, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+                multiply_to_node_vars!(flux_parabolic_z, ecav_coefficient, equations, dg, i, j, k, 
+                                                    element)
+            end
+        end
+        #cache.artificial_viscosity.norm_coefficients[end] = sqrt(cache.artificial_viscosity.norm_coefficients[end])
+        return nothing
+    end
+ 
+    function calc_ecav_ducros_coefficients!(u, sensor, 
+            flux_parabolic, gradients, entropy_residual,
+                    equations, equations_parabolic,
+                    mesh::TreeMesh{3}, dg, cache)
+        #push!(cache.artificial_viscosity.norm_coefficients, 0.0)
+        flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
+        gradients_x, gradients_y, gradients_z = gradients
+
+        set_zero!(sensor, dg, cache)
+        derivative_matrix = dg.basis.derivative_matrix
+
+        @threaded for element in eachelement(dg, cache)
+            volume_jacobian_ = volume_jacobian(element, mesh, cache)
+
+            # calculate viscous dissipation (ECAV denominator)
+            element_viscous_dissipation = zero(real(dg))
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                flux_viscous_x_node = get_node_vars(flux_parabolic_x, equations, dg, i, j, k, 
+                                                    element)
+                flux_viscous_y_node = get_node_vars(flux_parabolic_y, equations, dg, i, j, k, 
+                                                    element)
+                flux_viscous_z_node = get_node_vars(flux_parabolic_z, equations, dg, i, j, k, 
+                                                    element)
+                gradients_x_node = get_node_vars(gradients_x, equations, dg, i, j, k, element)
+                gradients_y_node = get_node_vars(gradients_y, equations, dg, i, j, k, element)
+                gradients_z_node = get_node_vars(gradients_z, equations, dg, i, j, k, element)
+                viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
+                viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
+                viscous_dissipation_z = dot(flux_viscous_z_node, gradients_z_node)
+
+                weight_ijk = dg.basis.weights[i] * dg.basis.weights[j] * dg.basis.weights[k]
+                element_viscous_dissipation = element_viscous_dissipation +
+                                              (viscous_dissipation_x +
+                                               viscous_dissipation_y + 
+                                                viscous_dissipation_z) * weight_ijk *
+                                              volume_jacobian_
+                ### For Ducros sensor, added here for efficiency, for simplicity, should be in a
+                ### separate function call
+
+                divb = zero(eltype(u))
+                for l in eachnode(dg)
+                    u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+                    u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+                    u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+                    v_ljk = velocity(u_ljk, equations)
+                    v_ilk = velocity(u_ilk, equations)
+                    v_ijl = velocity(u_ijl, equations)
+
+                    divb += (derivative_matrix[i, l] * v_ljk[1] +
+                            derivative_matrix[j, l] * v_ilk[2] +
+                            derivative_matrix[k, l] * v_ijl[3])
+                end
+                divb *= cache.elements.inverse_jacobian[element]
+                add_constant_to_vars!(sensor, divb * divb, equations, dg, i, j, k, element)
+                u_node = get_node_vars(u, equations, dg, i, j, k, element)
+                gradients_node = (gradients_x_node, gradients_y_node, gradients_z_node)
+                v = norm(vorticity(u_node, gradients_node, equations_parabolic))
+                ducros_to_node_vars!(sensor, v * v, equations, dg, i, j, k, element)
+            end
+
+            # Scale viscous flux by ecav coefficient.
+            # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
+            # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
+            ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
+                                                 element_viscous_dissipation)
+            #ecav_coefficient = 0.0;   
+            cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                ecav_coefficient = get_node_vars(sensor, equations, dg, i, j, k, element)[1] * ecav_coefficient
                 multiply_to_node_vars!(flux_parabolic_x, ecav_coefficient, equations, dg, i, j, k, 
                                                     element)
                 multiply_to_node_vars!(flux_parabolic_y, ecav_coefficient, equations, dg, i, j, k, 
@@ -541,6 +623,10 @@
         end
         calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
                                 dg, cache)
+        #(; sensor) = cache.artificial_viscosity
+        #calc_ecav_ducros_coefficients!(u, sensor, 
+        #    flux_parabolic, gradients, entropy_residual, equations, 
+        #        equations_parabolic, mesh, dg, cache)
         #calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
         #    filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
         #    entropy_residual, equations, mesh, dg, cache)
@@ -575,7 +661,7 @@
 
         # Calculate source terms
         @trixi_timeit_ext backend timer() "source terms" begin
-            calc_sources!(du, u, t, source_terms, equations, dg, cache)
+            calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
         end
 
         return nothing

@@ -1103,9 +1103,23 @@ end
     return nothing
 end
 
+@inline function add_constant_to_vars!(u, alpha, equations, solver::DG, indices...)
+    for v in eachvariable(equations)
+        u[v, indices...] += alpha
+    end
+    return nothing
+end
+
 @inline function multiply_to_node_vars!(u, alpha, equations, solver::DG, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = alpha * u[v, indices...]
+    end
+    return nothing
+end
+
+@inline function ducros_to_node_vars!(u, alpha, equations, solver::DG, indices...)
+    for v in eachvariable(equations)
+        u[v, indices...] = u[v, indices...] / (u[v, indices...] + alpha * alpha + eps())
     end
     return nothing
 end

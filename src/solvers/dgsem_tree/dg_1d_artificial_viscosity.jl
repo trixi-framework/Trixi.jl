@@ -1,65 +1,31 @@
 @muladd begin
-    function create_cache(mesh, artificial_viscosity::EntropyCorrectionArtificialViscosity,
-                          dg::DG, cache, RealT, uEltype)
-        coefficients = zeros(real(dg), nelements(dg, cache))
-        svv_coefficients = zeros(real(dg), nelements(dg, cache))
-        norm_residuals = zero(real(dg))
-
-        ## create element filtered flux and transform gradients
-        ## this does not create the whole mesh variables to save memory
-        ## we reuse memory
-        n_nodes = nnodes(dg)
-        n_vars = nvariables(artificial_viscosity.equations_artificial_viscosity)
-        n_elements = nelements(dg, cache)
-        sensor = Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-        #velocity_data = Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-        cache = (; sensor, coefficients, svv_coefficients, norm_residuals)
-        return cache
-    end
-
-    function calc_volume_entropy_residual(du, u, element, mesh::TreeMesh{2}, equations, dg,
+    function calc_volume_entropy_residual(du, u, element, mesh::TreeMesh{1}, equations, dg,
                                           cache)
 
         # calculate volume integral
         volume_integral_du_entropy = zero(real(dg))
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
-            du_node = get_node_vars(du, equations, dg, i, j, element)
-            weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            du_node = get_node_vars(du, equations, dg, i, element)
+            weight_i = dg.basis.weights[i]
 
             # calc integral(-dv/dx_i * f(u)) -> missing factor of J
             volume_integral_du_entropy = volume_integral_du_entropy +
                                          dot(cons2entropy(u_node, equations), du_node) *
-                                         weight_ij
+                                         weight_i
         end
 
         # calculate surface integral
         surface_integral_entropy_potential = zero(real(dg))
-        for ii in eachnode(dg)
-            # x direction
-            u_left = get_node_vars(u, equations, dg, 1, ii, element)
-            u_right = get_node_vars(u, equations, dg, nnodes(dg), ii, element)
-            surface_integral_entropy_potential = surface_integral_entropy_potential +
-                                                 dg.basis.weights[ii] *
-                                                 (entropy_potential(u_right,
-                                                                    SVector(1.0f0, 0.0f0),
-                                                                    equations) +
-                                                  entropy_potential(u_left,
-                                                                    SVector(-1.0f0, 0.0f0),
-                                                                    equations))
-
-            # y direction
-            u_left = get_node_vars(u, equations, dg, ii, 1, element)
-            u_right = get_node_vars(u, equations, dg, ii, nnodes(dg), element)
-            surface_integral_entropy_potential = surface_integral_entropy_potential +
-                                                 dg.basis.weights[ii] *
-                                                 (entropy_potential(u_right,
-                                                                    SVector(0.0f0, 1.0f0),
-                                                                    equations) +
-                                                  entropy_potential(u_left,
-                                                                    SVector(0.0f0, -1.0f0),
-                                                                    equations))
-        end
+        # x direction
+        u_left = get_node_vars(u, equations, dg, 1, element)
+        u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
+        surface_integral_entropy_potential = (entropy_potential(u_right,
+                                                SVector(1.0f0),
+                                                                equations) +
+                                                entropy_potential(u_left,
+                                                                SVector(-1.0f0),
+                                                                equations))
 
         # by default, the volume_integral contribution to du does not scale by any geometric terms
         # For TreeMesh, these geometric terms are ds/dx = 0 and dr/dx * J = 0.5 * h. Thus, to calculate 
@@ -71,28 +37,21 @@
     end
 
     function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
-                                     equations, mesh::TreeMesh{2}, dg, cache)
+                                     equations, mesh::TreeMesh{1}, dg, cache)
         @threaded for element in eachelement(dg, cache)
             volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
             # calculate viscous dissipation (ECAV denominator)
             element_viscous_dissipation = zero(real(dg))
-            for j in eachnode(dg), i in eachnode(dg)
-                flux_parabolic_x_node = get_node_vars(flux_parabolic[1], equations, dg, i,
-                                                      j,
+            for i in eachnode(dg)
+                flux_parabolic_x_node = get_node_vars(flux_parabolic, equations, dg, i,
                                                       element)
-                flux_parabolic_y_node = get_node_vars(flux_parabolic[2], equations, dg, i,
-                                                      j,
-                                                      element)
-                gradients_x_node = get_node_vars(gradients[1], equations, dg, i, j, element)
-                gradients_y_node = get_node_vars(gradients[2], equations, dg, i, j, element)
+                gradients_x_node = get_node_vars(gradients, equations, dg, i, element)
                 viscous_dissipation_x = dot(flux_parabolic_x_node, gradients_x_node)
-                viscous_dissipation_y = dot(flux_parabolic_y_node, gradients_y_node)
 
-                weight_ij = dg.basis.weights[i] * dg.basis.weights[j]
+                weight_i = dg.basis.weights[i]
                 element_viscous_dissipation = element_viscous_dissipation +
-                                              (viscous_dissipation_x +
-                                               viscous_dissipation_y) * weight_ij *
+                                              (viscous_dissipation_x) * weight_i *
                                               volume_jacobian_
             end
 
@@ -102,23 +61,17 @@
             ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
                                                  element_viscous_dissipation)
             cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
-            for j in eachnode(dg), i in eachnode(dg)
-                flux_parabolic_x_node = get_node_vars(flux_parabolic[1], equations, dg, i,
-                                                      j,
+            for i in eachnode(dg)
+                flux_parabolic_x_node = get_node_vars(flux_parabolic, equations, dg, i,
                                                       element)
-                flux_parabolic_y_node = get_node_vars(flux_parabolic[2], equations, dg, i,
-                                                      j,
-                                                      element)
-                set_node_vars!(flux_parabolic[1], ecav_coefficient * flux_parabolic_x_node,
-                               equations, dg, i, j, element)
-                set_node_vars!(flux_parabolic[2], ecav_coefficient * flux_parabolic_y_node,
-                               equations, dg, i, j, element)
+                set_node_vars!(flux_parabolic, ecav_coefficient * flux_parabolic_x_node,
+                               equations, dg, i, element)
             end
         end
         return nothing
     end
 
-    function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{2},
+    function rhs_artificial_viscosity!(du, u, t, mesh::TreeMesh{1},
                                        equations, equations_parabolic,
                                        equations_artificial_viscosity,
                                        boundary_conditions, boundary_conditions_parabolic,
@@ -225,7 +178,7 @@
         return nothing
     end
 
-    function rhs_combined!(du, u, t, mesh::TreeMesh{2},
+    function rhs_combined!(du, u, t, mesh::TreeMesh{1},
                            equations, equations_parabolic, equations_artificial_viscosity,
                            boundary_conditions, boundary_conditions_parabolic,
                            source_terms::Source,
@@ -255,12 +208,12 @@
 
         # Prolong solution to interfaces
         @trixi_timeit_ext backend timer() "prolong2interfaces" begin
-            prolong2interfaces!(backend, cache, u, mesh, equations, dg)
+            prolong2interfaces!(cache, u, mesh, equations, dg)
         end
 
         # Calculate interface fluxes
         @trixi_timeit_ext backend timer() "interface flux" begin
-            calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
+            calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                                  have_nonconservative_terms(equations), equations,
                                  dg.surface_integral, dg, cache)
         end
@@ -346,35 +299,24 @@
 
     function accum_viscous_fluxes!(flux_viscous,
                                    gradients, u_transformed,
-                                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
+                                   mesh::Union{TreeMesh{1}, P4estMesh{1}},
                                    equations_parabolic::AbstractEquationsParabolic,
                                    dg::DG, cache)
-        gradients_x, gradients_y = gradients
-        flux_viscous_x, flux_viscous_y = flux_viscous # output arrays
 
         @threaded for element in eachelement(dg, cache)
-            for j in eachnode(dg), i in eachnode(dg)
+            for i in eachnode(dg)
                 # Get solution and gradients
                 u_node = get_node_vars(u_transformed, equations_parabolic, dg,
-                                       i, j, element)
-                gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
-                                                 i, j, element)
-                gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
-                                                 i, j, element)
-
+                                       i, element)
+                gradients_node = get_node_vars(gradients, equations_parabolic, dg,
+                                                 i, element)
                 # Calculate viscous flux and store each component for later use
-                flux_viscous_node_x = flux(u_node, (gradients_1_node, gradients_2_node), 1,
+                flux_viscous_node = flux(u_node, (gradients_node,), 1,
                                            equations_parabolic)
-                flux_viscous_node_y = flux(u_node, (gradients_1_node, gradients_2_node), 2,
-                                           equations_parabolic)
-
                 # flip sign for Trixi's parabolic convention
-                add_to_node_vars!(flux_viscous_x, -flux_viscous_node_x, equations_parabolic,
+                add_to_node_vars!(flux_viscous, -flux_viscous_node, equations_parabolic,
                                   dg,
-                                  i, j, element)
-                add_to_node_vars!(flux_viscous_y, -flux_viscous_node_y, equations_parabolic,
-                                  dg,
-                                  i, j, element)
+                                  i, element)
             end
         end
 
