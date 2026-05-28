@@ -202,14 +202,6 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
     return nothing
 end
 
-@kernel function volume_integral_KAkernel!(du, u, MeshT,
-                                           have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM, cache)
-    element = @index(Global)
-    volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
-                            equations, volume_integral, dg, cache)
-end
-
 @inline function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
