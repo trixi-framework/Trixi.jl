@@ -1113,6 +1113,59 @@ function calc_surface_integral_gradient!(gradients,
     return nothing
 end
 
+function prolong2boundaries!(cache, u,
+                             mesh::TreeMesh{3},
+                             equations_parabolic::AbstractEquationsParabolic, dg::DG)
+    @unpack boundaries = cache
+    @unpack orientations, neighbor_sides = boundaries
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                    boundaries.u[1, v, j, k, boundary] = u[v, nnodes(dg), j, k, element]
+                end
+            else # Element in +x direction of boundary
+                for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                    boundaries.u[2, v, j, k, boundary] = u[v, 1, j, k, element]
+                end
+            end
+        elseif orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                    boundaries.u[1, v, i, k, boundary] = u[v, i, nnodes(dg), k, element]
+                end
+            else
+                # element in +y direction of boundary
+                for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                    boundaries.u[2, v, i, k, boundary] = u[v, i, 1, k, element]
+                end
+            end
+        else #if orientations[boundary] == 3
+            # boundary in z-direction
+            if neighbor_sides[boundary] == 1
+                # element in -z direction of boundary
+                for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                    boundaries.u[1, v, i, j, boundary] = u[v, i, j, nnodes(dg), element]
+                end
+            else
+                # element in +z direction of boundary
+                for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                    boundaries.u[2, v, i, j, boundary] = u[v, i, j, 1, element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
 function apply_jacobian_parabolic!(gradients::NTuple{3}, mesh::AbstractMesh{3},
                                    equations_parabolic::AbstractEquationsParabolic,
                                    dg::DG, cache)
