@@ -377,7 +377,8 @@ end
 end
 
 @inline function calc_interface_flux!(surface_flux_values,
-                                      ::Type{<:Union{P4estMesh{2}, T8codeMesh{2}}},
+                                      ::Type{<:Union{P4estMesh{2}, P4estMeshView{2},
+                                                     T8codeMesh{2}}},
                                       have_nonconservative_terms::True,
                                       combine_conservative_and_nonconservative_fluxes::True,
                                       equations,
@@ -431,8 +432,9 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
@@ -470,7 +472,8 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
@@ -501,11 +504,11 @@ end
     return nothing
 end
 
-# inlined version of the boundary flux calculation along a physical interface
-# Inlined version of the boundary flux calculation for P4estMeshView{2}.
-# BoundaryConditionCoupledP4est reads neighbor state from its stored fields,
-# so no extra u_parent argument is needed.
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+# Inlined version of the boundary flux for BoundaryConditionCoupledP4est on P4estMeshView{2}.
+# BoundaryConditionCoupledP4est reads neighbor state from its stored primed fields
+# and takes boundary_index instead of the usual (x, t) coordinates.
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::AbstractCoupledP4estBC,
                                      mesh::P4estMeshView{2},
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
@@ -534,12 +537,15 @@ end
     return nothing
 end
 
-# Inlined version of the boundary flux with nonconservative terms for P4estMeshView{2}.
-# The boundary condition functor handles combining conservative and nonconservative fluxes internally.
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+# Specializations for AbstractCoupledP4estBC with nonconservative terms.
+# The coupled BC already returns a single combined flux (conservative + 0.5*nonconservative),
+# so we just store it directly regardless of the combine dispatch tag.
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::AbstractCoupledP4estBC,
                                      mesh::P4estMeshView{2},
-                                     nonconservative_terms::True, equations,
-                                     surface_integral, dg::DG, cache,
+                                     have_nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::False,
+                                     equations, surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
                                      boundary_index)
@@ -547,10 +553,7 @@ end
     @unpack contravariant_vectors = cache.elements
     @unpack surface_flux = surface_integral
 
-    # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
     normal_direction = get_normal_direction(direction_index, contravariant_vectors,
                                             i_index, j_index, element_index)
 
@@ -558,7 +561,33 @@ end
                                element_index, normal_direction, surface_flux,
                                normal_direction, boundary_index)
 
-    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+    return nothing
+end
+
+@inline function calc_boundary_flux!(surface_flux_values, t,
+                                     boundary_condition::AbstractCoupledP4estBC,
+                                     mesh::P4estMeshView{2},
+                                     have_nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::True,
+                                     equations, surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
+                               element_index, normal_direction, surface_flux,
+                               normal_direction, boundary_index)
+
     for v in eachvariable(equations)
         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
     end
@@ -567,7 +596,8 @@ end
 
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
@@ -585,7 +615,8 @@ end
 end
 
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::False,
                                      equations,
@@ -626,7 +657,8 @@ end
 end
 
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                 T8codeMesh{2}},
                                      have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::True,
                                      equations,
@@ -662,8 +694,9 @@ end
 end
 
 # Function barrier for type stability.
-# BoundaryConditionCoupledP4est reads the coupled solution from its stored fields,
-# so no extra u_parent argument is needed.
+# BoundaryConditionCoupledP4est reads the coupled solution from its stored fields
+# (set by priming in SemidiscretizationCoupledP4est.rhs!), so no extra argument
+# needs to be threaded through the boundary flux chain.
 function calc_boundary_flux!(cache, t, boundary_conditions,
                              mesh::P4estMeshView,
                              equations, surface_integral, dg::DG)
@@ -813,7 +846,8 @@ end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                   mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                               T8codeMesh{2}},
                                    have_nonconservative_terms::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
@@ -836,7 +870,8 @@ end
 # Inlined version of the mortar flux computation on small elements for equations with conservative and
 # nonconservative terms
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                   mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                               T8codeMesh{2}},
                                    have_nonconservative_terms::True, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
@@ -870,7 +905,8 @@ end
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                            mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                        T8codeMesh{2}},
                                             equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache, mortar, fstar_primary,
@@ -1021,77 +1057,4 @@ end
     return nothing
 end
 
-# Call this for coupled P4estMeshView simulations.
-# The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
-# the additional variable u_parent is needed, compared to non-coupled systems.
-function rhs!(du, u, t, u_parent, semis,
-              mesh::P4estMeshView{2},
-              equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = nothing
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(backend, du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, u_parent, semis, mesh, equations,
-                            dg.surface_integral, dg)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg, u_parent)
-    end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg)
-    end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(backend, du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(backend, du, mesh, equations, dg,
-                                                     cache)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
-    end
-
-    return nothing
-end
 end # @muladd

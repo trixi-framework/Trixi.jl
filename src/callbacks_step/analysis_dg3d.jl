@@ -161,7 +161,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func, _u, t, analyzer,
                           mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
@@ -174,6 +174,17 @@ function calc_error_norms(func, u, t, analyzer,
         node_coordinates = Array(node_coordinates)
         inverse_jacobian = Array(inverse_jacobian)
         u = Array(u)
+    end
+
+    # TODO GPU AnalysisCallback currently lives on CPU
+    backend = trixi_backend(_u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        @unpack node_coordinates, inverse_jacobian = cache.elements
+        u = _u
+    else
+        node_coordinates = Array(cache.elements.node_coordinates)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+        u = Array(_u)
     end
 
     # Set up data structures
@@ -386,7 +397,7 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate_via_indices(func::Func, u,
+function integrate_via_indices(func::Func, _u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
@@ -502,7 +513,7 @@ function integrate(func::Func, u,
     end
 end
 
-function analyze(::typeof(entropy_timederivative), du, u, t,
+function analyze(::typeof(entropy_timederivative), _du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
