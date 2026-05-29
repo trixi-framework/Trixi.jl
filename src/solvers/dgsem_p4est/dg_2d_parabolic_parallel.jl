@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent    
 function rhs_parabolic!(du, u, t,
-                        mesh::P4estMeshParallel{2},
+                        mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -199,7 +199,7 @@ function rhs_parabolic!(du, u, t,
 end
 
 function calc_gradient_local!(gradients, u_transformed, t,
-                              mesh::P4estMeshParallel{2},
+                              mesh::Union{P4estMeshParallel{2}, P4estMeshParallel{3}},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
     # Reset gradients
