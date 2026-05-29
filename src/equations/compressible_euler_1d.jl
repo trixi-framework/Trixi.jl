@@ -1068,6 +1068,11 @@ The explicit Jacobian formula can be found in Barth (1999), p. 205.
     rho_h_v1 = rho * v1 * H
     h33 = rho * H^2 - a_squared * p * inv_gamma_minus_one
 
+    # Apply the Jacobian
+    # [rho          rho_v1          rho_e_total
+    #  rho_v1       rho_v1 * v1 + p rho_h_v1
+    #  rho_e_total  rho_h_v1        h33]
+    # to the vector dw.
     return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_e_total * dw[3],
                    rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_h_v1 * dw[3],
                    rho_e_total * dw[1] + rho_h_v1 * dw[2] + h33 * dw[3])
