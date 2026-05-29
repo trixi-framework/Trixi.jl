@@ -141,6 +141,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         import Metal
         if Metal.functional()
             include("test_metal_2d.jl")
+            include("test_metal_3d.jl")
         else
             @warn "Unable to run Metal tests on this machine"
         end
