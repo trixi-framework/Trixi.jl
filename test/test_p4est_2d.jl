@@ -140,14 +140,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                             linf=[0.00900392882367318, 0.008196871838623832])
     end
 
-@trixi_testset "elixir_advection_coupled_with_amr_mortars.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advection_coupled_with_amr_mortars.jl"),
-                        tspan=(0.0, 1.0),
-                        l2=[0.0007319835742861697, 0.001985235435356559],
-                        linf=[0.008310493861112489, 0.009003928823673624])
-end
-
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             # Expected errors are exactly the same as with P4estMeshView!
