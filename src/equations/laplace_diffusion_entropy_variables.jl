@@ -63,6 +63,21 @@ function apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVa
     return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w) * dw
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
+                      ::Type{NewRealT}) where {NDIMS, NewRealT}
+    diffusivity = equations.diffusivity isa AbstractFloat ?
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    equations_hyperbolic = similar(equations.equations_hyperbolic, NewRealT)
+    return LaplaceDiffusionEntropyVariables{NDIMS, typeof(equations_hyperbolic),
+                                            nvariables(equations_hyperbolic),
+                                            typeof(diffusivity)}(diffusivity,
+                                                                 equations_hyperbolic)
+end
+
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
 # Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any 
 # spatial dimension. 
