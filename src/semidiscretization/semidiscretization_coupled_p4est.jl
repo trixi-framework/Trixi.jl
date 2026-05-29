@@ -73,11 +73,12 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
 
     # Precompute element offsets (1-based) into u_global for each system.
     n_nodes = length(semis[1].mesh.parent.nodes)
+    NDIMS = ndims(semis[1])
     element_offset = zeros(Int, length(semis))
     element_offset[1] = 1
     for i in 2:length(semis)
         element_offset[i] = element_offset[i - 1] +
-                            n_nodes^2 * nvariables(semis[i - 1].equations) *
+                            n_nodes^NDIMS * nvariables(semis[i - 1].equations) *
                             length(semis[i - 1].mesh.cell_ids)
     end
 
@@ -92,7 +93,7 @@ function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
     RealT = promote_type(real.(semis)...)
     ndofs_nvars_global = sum(nvariables(s.equations) * length(s.mesh.cell_ids)
                              for s in semis)
-    u_global = Vector{RealT}(undef, n_nodes^2 * ndofs_nvars_global)
+    u_global = Vector{RealT}(undef, n_nodes^NDIMS * ndofs_nvars_global)
 
     SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
                                    typeof(coupling_functions), RealT}(semis, u_indices,
@@ -222,6 +223,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
+    NDIMS = ndims(semi.semis[1])
 
     # Update all AMR-dependent lookup tables when the parent cell count has changed.
     if ncells(semi.semis[1].mesh.parent) != length(semi.mesh_ids)
@@ -232,14 +234,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     semi.element_offset[1] = 1
     for i in 2:nsystems(semi)
         semi.element_offset[i] = semi.element_offset[i - 1] +
-                                 n_nodes^2 * nvariables(semi.semis[i - 1].equations) *
+                                 n_nodes^NDIMS * nvariables(semi.semis[i - 1].equations) *
                                  length(semi.semis[i - 1].mesh.cell_ids)
     end
 
     # Resize the global solution buffer if AMR changed element counts, then fill it.
     ndofs_nvars_global = sum(nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
                              for semi_ in semi.semis)
-    n_global = n_nodes^2 * ndofs_nvars_global
+    n_global = n_nodes^NDIMS * ndofs_nvars_global
     if length(semi.u_global) != n_global
         resize!(semi.u_global, n_global)
     end
@@ -257,7 +259,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                 (var - 1) +
                 n_vars * (i_node - 1) +
                 n_vars * n_nodes * (j_node - 1) +
-                n_vars * n_nodes^2 * (local_element - 1)] = u_loc_reshape[var,
+                n_vars * n_nodes^NDIMS * (local_element - 1)] = u_loc_reshape[var,
                                                                           i_node,
                                                                           j_node,
                                                                           local_element]
