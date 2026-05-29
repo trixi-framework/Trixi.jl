@@ -8,16 +8,17 @@ equations = CompressibleEulerEquations3D(1.4)
 
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations3D)
-    A = 1.0 # magnitude of speed
-    Ms = 0.1 # maximum Mach number
+    RealT = eltype(x)
+    A = one(RealT) # magnitude of speed
+    Ms = RealT(0.1) # maximum Mach number
 
-    rho = 1.0
+    rho = one(RealT)
     v1 = A * sin(x[1]) * cos(x[2]) * cos(x[3])
     v2 = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
-    v3 = 0.0
+    v3 = zero(RealT)
     p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
     p = p +
-        1.0 / 16.0 * A^2 * rho *
+        (RealT(1) / RealT(16)) * A^2 * rho *
         (cos(2 * x[1]) * cos(2 * x[3]) +
          2 * cos(2 * x[2]) + 2 * cos(2 * x[1]) + cos(2 * x[2]) * cos(2 * x[3]))
 
@@ -69,7 +70,7 @@ maxiters = 200
 
 # disable warnings when maxiters is reached
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
-                  dt = 1.0,
+                  dt = 1.0f0,
                   save_everystep = false, callback = callbacks,
                   maxiters = maxiters, verbose = false)
 
