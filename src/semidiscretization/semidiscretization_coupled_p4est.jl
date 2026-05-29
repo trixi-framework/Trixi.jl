@@ -43,6 +43,7 @@ the state vector of system `i` given a state vector `u` of system `j`.
 """
 function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+    @assert all(semi -> nnodes(semi.solver) == nnodes(semis[1].solver), semis) "All semidiscretizations must use the same number of nodes per direction (i.e. the same polydeg)!"
 
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
