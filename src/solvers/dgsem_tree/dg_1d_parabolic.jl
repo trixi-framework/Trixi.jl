@@ -92,7 +92,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
+        prolong2boundaries!(nothing, cache, flux_parabolic, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes.
@@ -509,6 +510,7 @@ end
 function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
+    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
@@ -538,7 +540,8 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh, equations_parabolic, dg)
+        prolong2boundaries!(backend, cache, u_transformed, mesh, equations_parabolic,
+                            dg)
     end
 
     # Calculate boundary fluxes
