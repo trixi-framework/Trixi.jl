@@ -444,7 +444,7 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, Int,
                                      typeof(equations), typeof(dg),
                                      map(typeof, args)...))
-    init = neutral = (integral0, zero(real(mesh)))
+    init = neutral = (integral0, zero(eltype(weights)))
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
