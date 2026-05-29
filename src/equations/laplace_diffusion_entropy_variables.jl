@@ -56,7 +56,7 @@ end
 """
     apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVariables)
 
-Jacobian-vector product ``(\\partial u / \\partial w) \\cdot dw`` via AD fallback.
+AD fallback for the Jacobian-vector product ``(\\partial u / \\partial w) \\cdot dw``.
 Forms the full Jacobian with `ForwardDiff.jacobian` and multiplies by `dw`.
 """
 function apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVariables)
