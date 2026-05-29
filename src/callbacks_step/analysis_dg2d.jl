@@ -398,7 +398,7 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     # TODO: Technically we need device_promote_op here that "infers" the function within the context of the GPU.
     integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, typeof(equations),
                                      typeof(dg), map(typeof, args)...))
-    init = neutral = (integral0, zero(real(mesh)))
+    init = neutral = (integral0, zero(eltype(weights)))
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
