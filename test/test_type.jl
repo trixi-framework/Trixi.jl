@@ -2224,11 +2224,12 @@ isdir(outdir) && rm(outdir, recursive = true)
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.1),
                                                                                equations)
 
-            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
+            u = gradient = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
             orientations = [1, 2]
 
             for orientation in orientations
-                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                @test eltype(@inferred flux(u, (gradient, gradient), orientation,
+                                            equations_parabolic)) ==
                       RealT
             end
 
@@ -2245,12 +2246,13 @@ isdir(outdir) && rm(outdir, recursive = true)
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.1),
                                                                                equations)
 
-            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
-                                    zero(RealT))
+            u = gradient = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
+                                   zero(RealT))
             orientations = [1, 2, 3]
 
             for orientation in orientations
-                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                @test eltype(@inferred flux(u, (gradient, gradient, gradient), orientation,
+                                            equations_parabolic)) ==
                       RealT
             end
 
