@@ -86,9 +86,9 @@ function prolong2boundaries!(backend::Backend, cache, u,
                              equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_ids, node_indices = boundaries
-    index_range = eachnode(dg)
     nboundaries = length(eachboundary(dg, cache))
-    kernel_cache = kernel_filter_cache(cache)
+    nboundaries == 0 && return nothing
+    index_range = eachnode(dg)
     kernel! = prolong2boundaries_kernel!(backend)
     kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids,
             node_indices, ndrange = nboundaries)
@@ -147,7 +147,6 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
 
     index_range = eachnode(dg)
     n_boundaries = length(boundary_condition_indices)
-    kernel_cache = kernel_filter_cache(cache)
     kernel! = calc_boundary_flux_kernel!(backend)
     kernel!(boundaries.u,
             cache.elements.surface_flux_values,
@@ -163,6 +162,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
             dg,
             kernel_cache, node_coordinates, contravariant_vectors;
             ndrange = n_boundaries)
+
     calc_boundary_flux_by_type!(backend, cache, t,
                                 Base.tail(BCs),
                                 Base.tail(BC_indices),
