@@ -702,6 +702,45 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_mhd_diffusive_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_mhd_diffusive_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        l2=[
+                            0.0004116128509325779,
+                            0.00036814884676657775,
+                            0.0001840549172200986,
+                            0.00041160289050570597,
+                            0.0006466984296429635,
+                            0.00035508188815208295,
+                            0.0001674172635960932,
+                            0.0004116028925699057,
+                            0.0002071739772953961
+                        ],
+                        linf=[
+                            0.0009555943359085273,
+                            0.0008219628131384445,
+                            0.0004109349573939488,
+                            0.0009189751786070101,
+                            0.001563862431769758,
+                            0.0007616368087000613,
+                            0.00038520072282821616,
+                            0.0009189819855924472,
+                            0.0004912622864071299
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Check specialised methods on ViscoResistiveMhd2D for coverage
+    equations_parabolic = semi.equations_parabolic
+    @test Trixi.gradient_variable_transformation(equations_parabolic) ===
+          Trixi.cons2prim
+    u_node = initial_condition(SVector(0.0, 0.0), 0.0, semi.equations)
+    @test Trixi.max_diffusivity(u_node, equations_parabolic) isa Real
+    @test Trixi.energy_magnetic_mhd(u_node, equations_parabolic) isa Real
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
