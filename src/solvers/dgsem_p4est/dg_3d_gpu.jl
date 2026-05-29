@@ -147,6 +147,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
 
     index_range = eachnode(dg)
     n_boundaries = length(boundary_condition_indices)
+    kernel_cache = kernel_filter_cache(cache)
     kernel! = calc_boundary_flux_kernel!(backend)
     kernel!(boundaries.u,
             cache.elements.surface_flux_values,
