@@ -1401,6 +1401,35 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
                                  levels, resolution, nvisnodes_per_level)
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
+    
+    # Bypasses polynomial interpolation. Directly projects cell centers from continuous [-1,1] space to matrix indices.
+    if n_nodes_in == 1
+        max_level = maximum(levels)
+        true_resolution = 2^max_level
+        
+        # Each matrix is perfectly sized to the uniform maximum resolution without overhead.structured = [Matrix{Float64}(undef, true_resolution, true_resolution) for _ in 1:n_variables]
+        structured = [Matrix{Float64}(undef, true_resolution, true_resolution) for _ in 1:n_variables]
+
+        # Iterate through all unstructured elements to map them into the structured matrix
+        for element_id in 1:n_elements
+            cx, cy = normalized_coordinates[:, element_id]
+            
+            # Map the continuous spatial coordinates from [-1, 1] to discrete matrix indices [1, true_resolution].
+            # The +0.5 shift combined with round() acts as a floor-like cell assignment.
+            ix = round(Int, (cx + 1) / 2 * true_resolution + 0.5)
+            iy = round(Int, (cy + 1) / 2 * true_resolution + 0.5)
+            
+            ix = clamp(ix, 1, true_resolution)
+            iy = clamp(iy, 1, true_resolution)
+            
+            for v in 1:n_variables
+                structured[v][ix, iy] = unstructured_data[1, 1, element_id, v]
+            end
+        end
+        
+        return structured
+    end
+    
 
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)

@@ -30,6 +30,15 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_finite_volume.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_finite_volume.jl"),
+                        l2=[5.00967278e-01],
+                        linf=[5.04160350e-01])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_implicit_sparse_jacobian.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_implicit_sparse_jacobian.jl"),

@@ -276,17 +276,52 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
-    x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
-                                                               length_level_0,
-                                                               leaf_cell_ids,
-                                                               coordinates, levels,
-                                                               ndims(mesh),
-                                                               unstructured_data,
-                                                               nnodes(solver),
-                                                               grid_lines,
-                                                               max_supported_level,
-                                                               nvisnodes,
-                                                               slice, point)
+
+    # For 1 node per cell, we use a finite volume method and want to visualize
+    # cell mean values as piecewise constant solution instead of point values.
+    # Thus, we map unstructured data directly to a uniform structured matrix matching the max mesh level.
+    if nnodes(solver) == 1 && ndims(mesh) == 2
+            # For piecewise constant solutions, it does not make sense to perform
+            # any interpolation.
+            if !(isnothing(nvisnodes) || nvisnodes == 1)
+                throw(ArgumentError("For finite volume methods (`polydeg = 0`), `nvisnodes` must be `nothing` or `1`; got $nvisnodes."))
+            end
+            
+            max_level = maximum(levels)
+            true_resolution = Int(2^max_level)
+            
+            resolution_param = [true_resolution, true_resolution] 
+            nvis_param = 1
+
+            structured_matrix = unstructured2structured(unstructured_data, coordinates, levels, resolution_param, nvis_param)
+
+            if structured_matrix isa Vector
+                data = structured_matrix
+            else
+                data = [structured_matrix]
+            end
+            
+            x = collect(range(-1.0 + 1.0/true_resolution, 1.0 - 1.0/true_resolution, length=true_resolution))
+            y = copy(x)
+            
+            mesh_vertices_x = Float64[]
+            mesh_vertices_y = Float64[]
+    else
+
+        x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
+                                                                length_level_0,
+                                                                leaf_cell_ids,
+                                                                coordinates, levels,
+                                                                ndims(mesh),
+                                                                unstructured_data,
+                                                                nnodes(solver),
+                                                                grid_lines,
+                                                                max_supported_level,
+                                                                nvisnodes,
+                                                                slice, point)
+        
+    end
+    
     variable_names = SVector(varnames(solution_variables_, equations))
 
     orientation_x, orientation_y = _get_orientations(mesh, slice)
