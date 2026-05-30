@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 using SummationByPartsOperators: UniformMesh1D
 
-# Continous Galerkin SBP operator
+# Continuous Galerkin SBP operator
 D = couple_continuously(legendre_derivative_operator(xmin = -1.0, xmax = 1.0, N = 4),
                         UniformMesh1D(xmin = -1.0, xmax = 1.0, Nx = 8))
 
@@ -31,7 +31,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
-callbacks = CallbackSet(summary_callback, analysis_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
 # run the simulation
