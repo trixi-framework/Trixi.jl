@@ -281,6 +281,12 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     # cell mean values as piecewise constant solution instead of point values.
     # Thus, we map unstructured data directly to a uniform structured matrix matching the max mesh level.
     if nnodes(solver) == 1 && ndims(mesh) == 2
+            # For piecewise constant solutions, it does not make sense to perform
+            # any interpolation.
+            if !(isnothing(nvisnodes) || nvisnodes == 1)
+                throw(ArgumentError("For finite volume methods (`polydeg = 0`), `nvisnodes` must be `nothing` or `1`; got $nvisnodes."))
+            end
+            
             max_level = maximum(levels)
             true_resolution = Int(2^max_level)
             
