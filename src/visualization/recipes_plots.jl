@@ -7,12 +7,12 @@
 
 # Visualize a single variable in a 2D plot (default: heatmap)
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
-    @unpack plot_data, variable_id = pds
+    @unpack plot_data, variable_id, solver = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
      
     # Convert centers to edges to prevent heatmap from clipping boundary cells.
-    if length(x) == size(data[variable_id], 1) && length(y) == size(data[variable_id], 2)
+    if nnodes (solver) ==1 && length(x) == size(data[variable_id], 1) && length(y) == size(data[variable_id], 2)
         
         dx = (x[end] - x[begin]) / (length(x) - 1)
         dy = (y[end] - y[begin]) / (length(y) - 1)
