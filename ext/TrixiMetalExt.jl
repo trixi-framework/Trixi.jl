@@ -27,17 +27,18 @@ end
                 Trixi.nvariables(equations) * Trixi.nnodes(dg)^Trixi.ndims(mesh) *
                 Trixi.nelements(dg, cache)
     end
-    return reshape(u_ode, (Trixi.nvariables(equations),
-                           ntuple(_ -> Trixi.nnodes(dg), Trixi.ndims(mesh))...,
-                           Trixi.nelements(dg, cache)))
+    return reshape(u_ode,
+                   (Trixi.nvariables(equations),
+                    ntuple(_ -> Trixi.nnodes(dg), Trixi.ndims(mesh))...,
+                    Trixi.nelements(dg, cache)))
 end
 
 @static if Trixi._PREFERENCE_LOG == "log_Trixi_NaN"
     # Metal only supports single and half-precision floating-point types
     @device_override Trixi.log(x::Float32) = ccall("extern air.log.f32", llvmcall, Cfloat,
-                                                    (Cfloat,), x)
+                                                   (Cfloat,), x)
     @device_override Trixi.log(x::Float16) = ccall("extern air.log.f16", llvmcall, Float16,
-                                                    (Float16,), x)
+                                                   (Float16,), x)
 end
 
 function Trixi.trixi_backend_info!(setup, ::MetalBackend)
