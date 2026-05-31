@@ -27,6 +27,15 @@ struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquatio
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::TrafficFlowLWREquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return TrafficFlowLWREquations1D(convert(NewRealT, equations.v_max))
+end
+
 varnames(::typeof(cons2cons), ::TrafficFlowLWREquations1D) = ("car-density",)
 varnames(::typeof(cons2prim), ::TrafficFlowLWREquations1D) = ("car-density",)
 
