@@ -9,13 +9,13 @@ function flux(u, gradients, orientation::Integer,
               equations::LaplaceDiffusionEntropyVariables{3})
     dudx, dudy, dudz = gradients
     if orientation == 1
-        return SVector(equations.diffusivity *
-                       apply_jacobian_entropy2cons(dudx, u, equations))
+        return equations.diffusivity *
+               apply_jacobian_entropy2cons(dudx, u, equations)
     elseif orientation == 2
-        return SVector(equations.diffusivity *
-                       apply_jacobian_entropy2cons(dudy, u, equations))
+        return equations.diffusivity *
+               apply_jacobian_entropy2cons(dudy, u, equations)
     else # if orientation == 3
-        return SVector(equations.diffusivity *
-                       apply_jacobian_entropy2cons(dudz, u, equations))
+        return equations.diffusivity *
+               apply_jacobian_entropy2cons(dudz, u, equations)
     end
 end
