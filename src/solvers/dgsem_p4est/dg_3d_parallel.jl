@@ -54,12 +54,12 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations, dg)
+        prolong2boundaries!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+        calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
