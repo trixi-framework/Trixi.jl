@@ -587,7 +587,8 @@ end
 function prolong2boundaries!(cache, u, u_parent, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    return prolong2boundaries!(nothing, cache, u, mesh, equations, dg)
+    backend = trixi_backend(u)
+    return prolong2boundaries!(backend, cache, u, mesh, equations, dg)
 end
 
 function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,

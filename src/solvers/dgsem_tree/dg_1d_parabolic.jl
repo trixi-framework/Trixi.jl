@@ -35,6 +35,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
     backend = trixi_backend(u_transformed)
+
     # Convert conservative variables to a form more suitable for parabolic flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic, dg,
