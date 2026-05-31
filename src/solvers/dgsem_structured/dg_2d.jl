@@ -677,7 +677,8 @@ end
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(cache, t,
+                             boundary_conditions::NamedTuple,
                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                              equations, surface_integral,
                              dg::DG)
