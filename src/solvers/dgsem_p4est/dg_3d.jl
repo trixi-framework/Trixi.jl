@@ -463,7 +463,8 @@ function prolong2boundaries_per_boundary!(u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t::Real, boundary_condition::BC, boundary_indexing,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
+                             boundary_indexing,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
