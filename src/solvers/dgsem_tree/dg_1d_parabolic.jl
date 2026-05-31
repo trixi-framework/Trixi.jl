@@ -34,7 +34,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
-
+    backend = trixi_backend(u_transformed)
     # Convert conservative variables to a form more suitable for parabolic flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic, dg,
@@ -92,7 +92,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries!` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(nothing, cache, flux_parabolic, mesh, equations_parabolic,
+        prolong2boundaries!(backend, cache, flux_parabolic, mesh, equations_parabolic,
                             dg)
     end
 
