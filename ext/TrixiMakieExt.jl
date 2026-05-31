@@ -375,13 +375,14 @@ function Makie.convert_arguments(::Type{<:Makie.Plot},
     return (x, data[:, variable_id])
 end
 
-function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figure())
+function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figure();
+                    kwargs...)
     @unpack plot_data, variable_id = pds
     @unpack x, variable_names, mesh_vertices_x = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
                     xlabel = _makie_guide(plot_data.orientation_x))
-    plt = Makie.lines!(ax, pds)
+    plt = Makie.lines!(ax, pds; kwargs...)
     Makie.xlims!(ax, x[begin], x[end])
 
     return Makie.FigureAxisPlot(fig, ax, plt)

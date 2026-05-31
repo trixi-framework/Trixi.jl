@@ -1007,6 +1007,10 @@ end
     fap2 = Makie.plot(pd["scalar"])
     @test fap2 isa Makie.FigureAxisPlot
 
+    # kwargs are forwarded to lines!
+    fap3 = Makie.plot(pd["scalar"], color = :red, linewidth = 2)
+    @test fap3 isa Makie.FigureAxisPlot
+
     # Makie.plot(pd) gives layout for all variables
     fa = Makie.plot(pd)
     fig, axes = fa
