@@ -590,7 +590,8 @@ function prolong2boundaries!(cache, u, u_parent, semis,
     return prolong2boundaries!(nothing, cache, u, mesh, equations, dg)
 end
 
-function calc_boundary_flux!(cache, t::Real, boundary_condition::BC, boundary_indexing,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
+                             boundary_indexing,
                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
