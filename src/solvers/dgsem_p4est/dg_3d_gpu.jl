@@ -18,7 +18,7 @@
     kernel!(du, u, equations,
             typeof(mesh),
             have_nonconservative_terms,
-	    combine_conservative_and_nonconservative_fluxes(volume_flux, equations),
+            combine_conservative_and_nonconservative_fluxes(volume_flux, equations),
             dg,
             volume_integral, _nnodes,
             derivative_split,
@@ -27,15 +27,16 @@
     return nothing
 end
 
-@kernel function flux_differencing_kernel!(du, u, equations, MeshT::Type{<:P4estMesh{3}},
-                                                                  have_nonconservative_terms::False,
-					   			  combine_conservative_and_nonconservative_fluxes::False,
-                                                                  dg::DGSEM,
-                                                                  volume_integral,
-                                                                  num_nodes,
-                                                                  derivative_split,
-                                                                  contravariant_vectors,
-                                                                  alpha = true)
+@kernel function flux_differencing_kernel!(du, u, equations,
+                                           MeshT::Type{<:P4estMesh{3}},
+                                           have_nonconservative_terms::False,
+                                           combine_conservative_and_nonconservative_fluxes::False,
+                                           dg::DGSEM,
+                                           volume_integral,
+                                           num_nodes,
+                                           derivative_split,
+                                           contravariant_vectors,
+                                           alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -115,7 +116,6 @@ end
     volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                             equations, volume_integral, dg, cache)
 end
-
 
 function prolong2interfaces!(backend::Backend, cache, u,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
