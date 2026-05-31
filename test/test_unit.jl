@@ -752,11 +752,10 @@ end
         equations = equations_parabolic.equations_hyperbolic
         w = cons2entropy(prim2cons(prim, equations), equations)
         jvp_specialized = Trixi.apply_jacobian_entropy2cons(dw, w, equations_parabolic)
-        jvp_generic = invoke(Trixi.apply_jacobian_entropy2cons,
-                             Tuple{typeof(dw), typeof(w),
-                                   Trixi.LaplaceDiffusionEntropyVariables},
-                             dw, w, equations_parabolic)
-        @test jvp_specialized ≈ jvp_generic
+        jvp_ad = invoke(Trixi.apply_jacobian_entropy2cons,
+                        Tuple{typeof(dw), typeof(w), Trixi.AbstractEquations},
+                        dw, w, equations)
+        @test jvp_specialized ≈ jvp_ad
     end
 end
 

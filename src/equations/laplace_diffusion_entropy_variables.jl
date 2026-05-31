@@ -32,34 +32,16 @@ function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     return entropy2cons(w, equations.equations_hyperbolic)
 end
 
-# Jacobian-vector product for LaplaceDiffusionEntropyVariables fluxes.
-# Note that we do not specialize for AbstractCompressibleEulerEquations since that also 
-# covers CompressibleEulerEquationsQuasi1D and NonIdealCompressibleEulerEquations.
+# Jacobian-vector product for LaplaceDiffusionEntropyVariables parabolic fluxes.
+# Calls either a specialized `apply_jacobian_entropy2cons` for specific equations
+# or an AD fallback. 
 function apply_jacobian_entropy2cons(dw, w,
-                                     equations::LaplaceDiffusionEntropyVariables{1,
-                                                                                 <:CompressibleEulerEquations1D})
-    return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
+                                     equations_parabolic::LaplaceDiffusionEntropyVariables)
+    return apply_jacobian_entropy2cons(dw, w, equations_parabolic.equations_hyperbolic)
 end
 
-function apply_jacobian_entropy2cons(dw, w,
-                                     equations::LaplaceDiffusionEntropyVariables{2,
-                                                                                 <:CompressibleEulerEquations2D})
-    return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
-end
-
-function apply_jacobian_entropy2cons(dw, w,
-                                     equations::LaplaceDiffusionEntropyVariables{3,
-                                                                                 <:CompressibleEulerEquations3D})
-    return apply_jacobian_entropy2cons(dw, w, equations.equations_hyperbolic)
-end
-
-"""
-    apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVariables)
-
-AD fallback for the Jacobian-vector product ``(\\partial u / \\partial w) \\cdot dw``.
-Forms the full Jacobian with `ForwardDiff.jacobian` and multiplies by `dw`.
-"""
-function apply_jacobian_entropy2cons(dw, w, equations::LaplaceDiffusionEntropyVariables)
+# `ForwardDiff.jacobian` fallback for the Jacobian-vector product.
+function apply_jacobian_entropy2cons(dw, w, equations::AbstractEquations)
     return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w) * dw
 end
 
