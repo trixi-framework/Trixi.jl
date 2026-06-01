@@ -309,6 +309,55 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+    # @test_trixi_include errors due to an @info call by StartUpDG.jl during 
+    # Gmsh file parsing. To avoid this, we directly call trixi_include. 
+    # We pass @__MODULE__ to ensure that variables defined during the test 
+    # are visible inside the @trixi_testset block. 
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
+                  polydeg = 2, adaptive = false, tspan = (0.0, 1e-3))
+    l2, linf = analysis_callback(sol)
+    @test isapprox(l2,
+                   [0.00045155999383061246,
+                       0.0007997114439550152,
+                       2.370224947246212e-6,
+                       0.002037206524508959
+                   ])
+    @test isapprox(linf,
+                   [
+                       0.07544209921557377,
+                       0.17673745170823008,
+                       0.0009825284037637686,
+                       0.3386662161532019
+                   ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    # Note: these test values were generated using Julia v1.10.11~x64. Running this on v1.12 
+    # using an M-series MacBook Pro resulted in test values with an O(1e-7) difference. 
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
+                        h=0.1, tspan=(0.0, 0.1),
+                        l2=[
+                            0.14885535871013134,
+                            0.2644911888198318,
+                            0.17695450167569188,
+                            0.6616829855205953
+                        ],
+                        linf=[
+                            0.9552906049227992,
+                            1.313125417849597,
+                            1.1049630606394683,
+                            3.6468143028339775
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
@@ -553,6 +602,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test Spectral Analysis Post Processing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        1.9993746355056,
+        0.0006253399291566656,
+        2.6902140946235064e-32,
+        2.4561773100445993e-8,
+        3.952257929835444e-12,
+        9.766774928701462e-32
+    ] rtol=1.0e-12
 end
 
 @trixi_testset "elixir_euler_cgsbp_periodic.jl" begin

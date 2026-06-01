@@ -688,16 +688,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
                         l2=[
-                            0.4456769501001288,
-                            0.15182934074195198,
-                            0.15182934074202267,
-                            0.6163380678495841
+                            0.4458551685453463,
+                            0.15187885920928818,
+                            0.15187885920579852,
+                            0.6171564682488643
                         ],
                         linf=[
-                            1.6991300568875336,
-                            0.9017734777842971,
-                            0.9017734776841926,
-                            6.455103686573007
+                            1.683620478124428,
+                            0.9025036658429718,
+                            0.9025036660419865,
+                            6.467780546540997
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -1337,6 +1337,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 100)
+
+    # Test Spectral Analysis Post Processing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        151.3586176349759,
+        7.114099105633191,
+        1.7757841081685988,
+        0.7908299040437797,
+        0.44703605555828874,
+        0.2886969568982364
+    ] rtol=1.0e-12
 end
 
 # Coverage test for all initial conditions

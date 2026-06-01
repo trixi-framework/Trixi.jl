@@ -144,12 +144,12 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit_ext backend timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations, dg)
+        prolong2boundaries!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit_ext backend timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+        calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
@@ -179,7 +179,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit_ext backend timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
@@ -677,7 +677,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{2}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides = boundaries
@@ -716,7 +716,7 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{2}, equations,
                              dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
@@ -792,7 +792,8 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(backend::Nothing, cache, t,
+                             boundary_conditions::NamedTuple,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
@@ -1360,12 +1361,12 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{2},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources!(du, u, t, source_terms::Nothing,
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{2}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms,
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
                        equations::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
