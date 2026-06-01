@@ -389,10 +389,10 @@ function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figu
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
-function Makie.plot!(pm::PlotMesh{<:AbstractPlotData{1}})
+function Makie.plot!(pm::PlotMesh{<:AbstractPlotData{1}}; kwargs...)
     ax = Makie.current_axis()
     plt = Makie.vlines!(ax, pm.plot_data.mesh_vertices_x;
-                        color = :grey, linewidth = 1)
+                        color = :grey, linewidth = 1, kwargs...)
     display(Makie.current_figure())
     return plt
 end
