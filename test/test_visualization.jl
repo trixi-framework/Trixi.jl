@@ -1027,7 +1027,8 @@ end
 
     # kwargs are forwarded to vlines! in PlotMesh
     Makie.plot(pd["scalar"])
-    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black, linestyle = :dash)
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
 end
 
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
