@@ -9,7 +9,7 @@ using Trixi
 
 # Use additional symbols that are not exported
 using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,
-             PlotData1D, PlotData2DTriangulated, 
+             PlotData1D, PlotData2DTriangulated,
              TrixiODESolution,
              wrap_array_native, mesh_equations_solver_cache
 
