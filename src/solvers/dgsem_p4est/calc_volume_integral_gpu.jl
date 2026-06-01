@@ -28,7 +28,7 @@
     return nothing
 end
 
-@kernel function flux_differencing_KAKernel!(du, u, equations,
+@kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:P4estMesh{3}},
                                              have_nonconservative_terms::False,
                                              combine_conservative_and_nonconservative_fluxes::False,
