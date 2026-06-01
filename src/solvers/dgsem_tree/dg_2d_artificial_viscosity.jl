@@ -12,8 +12,9 @@
         n_vars = nvariables(artificial_viscosity.equations_artificial_viscosity)
         n_elements = nelements(dg, cache)
         sensor = Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
+        max_coeff = Float64[]
         #velocity_data = Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-        cache = (; sensor, coefficients, svv_coefficients, norm_residuals)
+        cache = (; sensor, max_coeff, coefficients, svv_coefficients, norm_residuals)
         return cache
     end
 
@@ -72,7 +73,8 @@
 
     function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
                                      equations, mesh::TreeMesh{2}, dg, cache)
-        @threaded for element in eachelement(dg, cache)
+        element_v = 0.0;
+        for element in eachelement(dg, cache)
             volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
             # calculate viscous dissipation (ECAV denominator)
@@ -101,6 +103,7 @@
             # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
             ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
                                                  element_viscous_dissipation)
+            #ecav_coefficient = 0.0
             cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
             for j in eachnode(dg), i in eachnode(dg)
                 flux_parabolic_x_node = get_node_vars(flux_parabolic[1], equations, dg, i,
@@ -114,7 +117,9 @@
                 set_node_vars!(flux_parabolic[2], ecav_coefficient * flux_parabolic_y_node,
                                equations, dg, i, j, element)
             end
+            element_v = max(element_v, element_viscous_dissipation)
         end
+        push!(cache.artificial_viscosity.max_coeff, maximum(cache.artificial_viscosity.coefficients))
         return nothing
     end
 
@@ -145,7 +150,6 @@
             entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh,
                                                                      equations, dg, cache)
         end
-
         # Prolong solution to interfaces
         @trixi_timeit_ext backend timer() "prolong2interfaces" begin
             prolong2interfaces!(backend, cache, u, mesh, equations, dg)
@@ -252,6 +256,7 @@
             entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh,
                                                                      equations, dg, cache)
         end
+        #push!(cache.artificial_viscosity.max_coeff, maximum(-min.(0.0, entropy_residual)))
 
         # Prolong solution to interfaces
         @trixi_timeit_ext backend timer() "prolong2interfaces" begin
@@ -289,6 +294,7 @@
             transform_variables!(u_transformed, u, mesh, equations_parabolic,
                                  dg, cache)
         end
+        #push!(cache.artificial_viscosity.max_coeff, maximum(u_transformed))
 
         # Compute the gradients of the transformed variables
         @trixi_timeit timer() "calculate gradient" begin
@@ -296,6 +302,7 @@
                            equations_parabolic, boundary_conditions_parabolic,
                            dg, parabolic_scheme, cache)
         end
+        #push!(cache.artificial_viscosity.max_coeff, maximum(gradients[1]))
 
         # ========= AV specific part ============
 

@@ -60,7 +60,7 @@
         # the surface integrals should be scaled by the 1D Jacobian as well. 
         jacobian_1d = inv(cache.elements.inverse_jacobian[element])# O(h) 
         return (volume_integral_du_entropy + surface_integral_entropy_potential) *
-               jacobian_1d
+               jacobian_1d * jacobian_1d;
         #cache.artificial_viscosity.norm_residuals[end] += res * res;
         #return res
     end
@@ -260,7 +260,7 @@
             # Scale viscous flux by ecav coefficient.
             # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
             # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
-            w = 1000.0;
+            w = 1.0
             num = min(0, entropy_residual[element])
             denom = element_viscous_dissipation * element_viscous_dissipation + 
                     w * svv_element_viscous_dissipation * svv_element_viscous_dissipation
@@ -288,7 +288,6 @@
 
     function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
                                      equations, mesh::TreeMesh{3}, dg, cache)
-        #push!(cache.artificial_viscosity.norm_coefficients, 0.0)
         flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
         gradients_x, gradients_y, gradients_z = gradients
 
@@ -297,6 +296,7 @@
 
             # calculate viscous dissipation (ECAV denominator)
             element_viscous_dissipation = zero(real(dg))
+
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 flux_viscous_x_node = get_node_vars(flux_parabolic_x, equations, dg, i, j, k, 
                                                     element)
@@ -318,7 +318,6 @@
                                                 viscous_dissipation_z) * weight_ijk *
                                               volume_jacobian_
             end
-
             # Scale viscous flux by ecav coefficient.
             # Note: we usually use "-min(0, entropy_residual)" to define the ECAV coefficient, but we
             # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
@@ -349,6 +348,7 @@
             end
         end
         #cache.artificial_viscosity.norm_coefficients[end] = sqrt(cache.artificial_viscosity.norm_coefficients[end])
+        #push!(cache.artificial_viscosity.max_coeff, maximum(cache.artificial_viscosity.coefficients))
         return nothing
     end
  
@@ -381,6 +381,7 @@
                 viscous_dissipation_x = dot(flux_viscous_x_node, gradients_x_node)
                 viscous_dissipation_y = dot(flux_viscous_y_node, gradients_y_node)
                 viscous_dissipation_z = dot(flux_viscous_z_node, gradients_z_node)
+
 
                 weight_ijk = dg.basis.weights[i] * dg.basis.weights[j] * dg.basis.weights[k]
                 element_viscous_dissipation = element_viscous_dissipation +
@@ -564,11 +565,12 @@
 
         # calculate entropy residual
         entropy_residual = cache.artificial_viscosity.coefficients # reuse storage
-        #push!(cache.artificial_viscosity.norm_residuals, 0.0)
         @threaded for element in eachelement(dg, cache)
             entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh,
                                                                      equations, dg, cache)
         end
+        #push!(cache.artificial_viscosity.max_coeff, maximum(-min.(0.0, entropy_residual)))
+
         #cache.artificial_viscosity.norm_residuals[end] = sqrt(cache.artificial_viscosity.norm_residuals[end])
 
         # Prolong solution to interfaces
@@ -621,15 +623,15 @@
             calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
                                  equations_artificial_viscosity, dg, cache)
         end
-        calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
-                                dg, cache)
-        #(; sensor) = cache.artificial_viscosity
-        #calc_ecav_ducros_coefficients!(u, sensor, 
-        #    flux_parabolic, gradients, entropy_residual, equations, 
-        #        equations_parabolic, mesh, dg, cache)
-        #calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
-        #    filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
-        #    entropy_residual, equations, mesh, dg, cache)
+        #calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
+        #                        dg, cache)
+        (; sensor) = cache.artificial_viscosity
+        calc_ecav_ducros_coefficients!(u, sensor, 
+            flux_parabolic, gradients, entropy_residual, equations, 
+                equations_parabolic, mesh, dg, cache)
+       # calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
+       #     filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
+       #     entropy_residual, equations, mesh, dg, cache)
 
         # # TODO: accumulate into flux_viscous instead
         # # accumulate the AV term

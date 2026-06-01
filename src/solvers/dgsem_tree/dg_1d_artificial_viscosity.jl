@@ -32,8 +32,8 @@
         # the volume integral over the physical element, we need to scale by the 1D Jacobian. Similarly,
         # the surface integrals should be scaled by the 1D Jacobian as well. 
         jacobian_1d = inv(cache.elements.inverse_jacobian[element]) # O(h) 
-        return (volume_integral_du_entropy + surface_integral_entropy_potential) *
-               jacobian_1d
+        return (volume_integral_du_entropy + surface_integral_entropy_potential) #*
+               #jacobian_1d
     end
 
     function calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual,
@@ -51,8 +51,7 @@
 
                 weight_i = dg.basis.weights[i]
                 element_viscous_dissipation = element_viscous_dissipation +
-                                              (viscous_dissipation_x) * weight_i *
-                                              volume_jacobian_
+                                              (viscous_dissipation_x) * weight_i * volume_jacobian_
             end
 
             # Scale viscous flux by ecav coefficient.
@@ -60,6 +59,7 @@
             # flip the sign to account for the fact that viscous terms are negated by convention in Trixi.jl.
             ecav_coefficient = regularized_ratio(min(0, entropy_residual[element]),
                                                  element_viscous_dissipation)
+            #ecav_coefficient = 0.0
             cache.artificial_viscosity.coefficients[element] = -ecav_coefficient # save output
             for i in eachnode(dg)
                 flux_parabolic_x_node = get_node_vars(flux_parabolic, equations, dg, i,
@@ -68,6 +68,7 @@
                                equations, dg, i, element)
             end
         end
+        push!(cache.artificial_viscosity.max_coeff, maximum(cache.artificial_viscosity.coefficients))
         return nothing
     end
 
@@ -205,6 +206,7 @@
             entropy_residual[element] = calc_volume_entropy_residual(du, u, element, mesh,
                                                                      equations, dg, cache)
         end
+        #push!(cache.artificial_viscosity.max_coeff, maximum(-min.(0.0, entropy_residual)))
 
         # Prolong solution to interfaces
         @trixi_timeit_ext backend timer() "prolong2interfaces" begin
@@ -249,6 +251,7 @@
                            equations_parabolic, boundary_conditions_parabolic,
                            dg, parabolic_scheme, cache)
         end
+        #push!(cache.artificial_viscosity.max_coeff, maximum(u_transformed))
 
         # ========= AV specific part ============
 
