@@ -262,30 +262,31 @@ function (indicator_max::IndicatorMax)(backend::Backend, u::AbstractArray{<:Any,
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
     @unpack alpha = indicator_max.cache
+    alpha = trixi_adapt(storage_type(u), eltype(u), alpha)
     resize!(alpha, nelements(dg, cache))
     indicator_variable = indicator_max.variable
 
-    num_elements = nelements(dg, cache)
-    init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
+    kernel! = calc_IndicatorMax_kernel!(backend)
+    kernel!(alpha, u, equations, dg, indicator_variable,
+            ndrange = nelements(dg, cache))
 
-    # Provide a custom neutral and init element since we "reduce" over 1:num_elements
-    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
-                                                    init, neutral) do element
-        calc_IndicatorMax_per_element(u, equations, dg, indicator_variable, element)
-    end
-
-    return max_scaled_speed
+    return alpha
 end
 
-@inline function calc_IndicatorMax_per_element(u, equations, dg, indicator_variable,
-                                               element)
+@kernel function calc_IndicatorMax_kernel!(alpha, u, equations, dg, indicator_variable)
+    element = @index(Global)
+    calc_IndicatorMax_per_element!(alpha, u, equations, dg, indicator_variable, element)
+end
+
+@inline function calc_IndicatorMax_per_element!(alpha, u, equations, dg, indicator_variable,
+                                                element)
     max_indicator = zero(eltype(u))
     # Calculate indicator variables at Gauss-Lobatto nodes
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, k, element)
         max_indicator = Base.max(max_indicator, indicator_variable(u_local, equations))
     end
-    return max_indicator
+    alpha[element] = max_indicator
 end
 
 function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},
