@@ -1003,6 +1003,9 @@ end
     fap = lines(pd["scalar"])
     @test fap isa Makie.FigureAxisPlot
 
+    # plottype for 1D PlotDataSeries is Lines
+    @test Makie.plottype(pd["scalar"]) == Makie.Lines
+
     # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
     fap2 = Makie.plot(pd["scalar"])
     @test fap2 isa Makie.FigureAxisPlot
@@ -1013,6 +1016,9 @@ end
 
     # Makie.plot(pd) gives layout for all variables
     fa = Makie.plot(pd)
+
+    # show_mesh kwarg triggers vlines! for mesh vertices
+    @trixi_test_nowarn Makie.plot(pd, show_mesh = true)
     fig, axes = fa
     @trixi_test_nowarn Base.show(fa) === nothing
     @test fig isa Makie.Figure
