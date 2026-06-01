@@ -44,7 +44,6 @@ end
 
     @unpack volume_flux = volume_integral
 
-    # Calculate volume integral in one element
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
     # pull the contravariant vectors in each coordinate direction
@@ -57,18 +56,17 @@ end
     # of the `volume_flux` to save half of the possible two-point flux
     # computations.
     #
-    # Instead of assigning thread `i` the partners `i+1, …, _nnodes` (which
-    # leaves low-index threads with much more work than high-index ones and
-    # causes load imbalance within a warp), we distribute the half-sweep
-    # cyclically: each thread visits `half = div(_nnodes,2)` partners at a fixed
-    # rotating offset. Every unordered pair `{i, m}` is still covered exactly
+    # Instead of assigning thread i the partners i+1, …, N,
+    # we distribute the half-sweep cyclically: each thread visits
+    # half = div(N,2) partners at a fixed rotating offset.
+    # Every unordered pair is still covered exactly
     # once, but now every thread performs the same number of loop iterations.
-    # When `_nnodes` is even (odd polynomial degree) the antipodal pair at
-    # offset `half` is shared by two threads, so its contribution is weighted by
-    # `1/2` to avoid double counting.
+    # When N is even (odd polynomial degree) the antipodal pair at
+    # offset half is shared by two threads, so its contribution is weighted by
+    # 1/2 to avoid double counting.
     #
     # See Section 4.1 (Eq. 6) of
-    # - Waterhouse, Waruszewski, Wilcox, Warburton, Giraldo (2026)
+    # - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
     #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
     #   with Non-Conservative Terms.
     #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
@@ -77,7 +75,7 @@ end
     even_nodes = iseven(_nnodes)
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
-        # weight the antipodal pair by 1/2 only when `_nnodes` is even
+        # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
 
         # first coordinate direction: rotate the partner index along `i`
