@@ -94,7 +94,7 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float64
 
-    @test ode.u0 isa Arraynal
+    @test ode.u0 isa Array
     @test semi.solver.basis.derivative_matrix isa Array
 
     @test Trixi.storage_type(semi.cache.elements) === Array
