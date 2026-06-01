@@ -170,8 +170,8 @@ end
 
 @trixi_testset "elixir_advection_cgsbp_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cgsbp_nonperiodic.jl"),
-                        l2=[0.0003456207813729696],
-                        linf=[0.000963554267240263])
+                        l2=[3.456207813727315e-4],
+                        linf=[9.635542672389308e-4])
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 

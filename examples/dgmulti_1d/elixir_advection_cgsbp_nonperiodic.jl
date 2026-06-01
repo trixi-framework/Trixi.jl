@@ -17,13 +17,15 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 mesh = DGMultiMesh(dg, (1,),
                    coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                   is_on_boundary = Dict(:left => x -> x ≈ -1.0, :right => x -> x ≈ 1.0),
                    periodicity = false)
 
 # nonperiodic BCs
 initial_condition = initial_condition_convergence_test
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = (;
-                                                           :entire_boundary => BoundaryConditionDirichlet(initial_condition_convergence_test)))
+                                                           :left => BoundaryConditionDirichlet(initial_condition_convergence_test),
+                                                           :right => boundary_condition_do_nothing))
 
 tspan = (0.0, 1.7)
 ode = semidiscretize(semi, tspan)
