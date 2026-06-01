@@ -8,13 +8,16 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in 
+- `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
+- A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
   ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).
 - A new semidiscretization type `SemidiscretizationParabolic` has been added to support purely parabolic equations with no hyperbolic part.
 The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality ([#2874]).
 - A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 - Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
+- Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
+- Added postprocessing for kinetic energy spectral analysis via `compute_kinetic_energy_spectrum` for `AbstractCompressibleEulerEquations` on `TreeMesh`/`DGSEM` and on `DGMultiMesh`/`DGMultiSBP` in 2D and 3D; the routine returns matching integer wavenumber shells and the isotropic 1D spectrum `E(k)`.
 
 ## Changes when updating to v0.16 from v0.15.x
 
@@ -55,6 +58,7 @@ Moreover, some internal functions have been renamed accordingly, including the r
 
 #### Added
 
+- Added shock capturing support for `DGMulti` solvers with `SBP()` approximation types on triangular (`Tri`), tetrahedral (`Tet`), quadrilateral (`Quad`), and hexahedral (`Hex`) elements. `GaussSBP()` approximation types are also supported on `Quad` and `Hex` elements.
 - It is now possible to use `ViscousFormulationLocalDG()` as the `solver_parabolic` for non-conforming `P4estMesh`es.
 This is useful for (locally) diffusion-dominated problems.
 This enables in particular adaptive mesh refinement for that solver-mesh combination ([#2712]).

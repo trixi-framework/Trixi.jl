@@ -154,6 +154,10 @@ end
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+    if semi.solver.volume_integral isa VolumeIntegralAdaptive
+        println("Note: The following deviations are only computed in elements where subcell limiting is active.")
+        println("In other elements, the solution is not checked for bounds violations.")
+    end
     if local_twosided
         for v in limiter.local_twosided_variables_cons
             v_string = string(v)

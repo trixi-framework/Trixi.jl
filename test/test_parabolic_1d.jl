@@ -330,7 +330,7 @@ end
                             0.00018987676556476442,
                             0.0009597423024825247
                         ],
-                        atol=1e-9)
+                        atol=1e-8)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

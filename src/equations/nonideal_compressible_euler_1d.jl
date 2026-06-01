@@ -45,6 +45,16 @@ struct NonIdealCompressibleEulerEquations1D{EoS <: AbstractEquationOfState} <:
     equation_of_state::EoS
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::NonIdealCompressibleEulerEquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return NonIdealCompressibleEulerEquations1D(similar(equations.equation_of_state,
+                                                        NewRealT))
+end
+
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations1D)
     return ("rho", "rho_v1", "rho_e_total")
 end
