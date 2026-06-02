@@ -5,19 +5,21 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.16 lifecycle
+
+#### Added
 - Experimental support for auxiliary variables ([#2348]).
-  An additional container in `cache` is made available to central functions like flux
-  computations. Possible applications are steady background states, variable velocity
+  An additional container `aux_vars` in `cache` is made available in central functions like
+  flux computations. Possible applications are steady background states, variable velocity
   fields, geometrical information, or any other pointwise, passive (constant in time)
   quantity that is required in addition to the unknows in the governing equations. The
   auxiliary variables are set up by supplying a function to the
   `SemidiscretizationHyperbolic` constructor via the keyword argument `aux_field`.
   The current `equations` need to set `have_aux_node_vars to `True()` and `n_aux_node_vars`
   to the number of auxiliary variables per node.
-
-## Changes in the v0.16 lifecycle
-
-#### Added
+  So far, a simplyfying continuity assumption is made for the auxiliary variables, which
+  e.g. allows to directly compute values at neighboring (mortar) interfaces instead of
+  MPI-communicating their values.
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
   ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).
