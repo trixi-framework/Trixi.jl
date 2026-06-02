@@ -459,7 +459,19 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                              UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                 have_aux_node_vars::False, equations, dg::Union{DGSEM, FDSBP}, cache)
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
+    # The entropy_timederivative may depend on auxiliary variables.
+    return analyze(entropy_timederivative, du, u, t,
+                   mesh,
+                   have_aux_node_vars(equations), equations,
+                   dg, cache)             
+end
+
+@inline function analyze(::typeof(entropy_timederivative), du, u, t,
+                         mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                                     UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                         have_aux_node_vars::False, equations,
+                         dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, element, equations, dg, du
@@ -469,10 +481,11 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
     end
 end
 
-function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
-                             UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                 have_aux_node_vars::True, equations, dg::DG, cache)
+@inline function analyze(::typeof(entropy_timederivative), du, u, t,
+                         mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                                     UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                         have_aux_node_vars::True, equations,
+                         dg::Union{DGSEM, FDSBP}, cache)
     @unpack aux_node_vars = cache.aux_vars
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
@@ -480,13 +493,12 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
         u_node = get_node_vars(u, equations, dg, i, j, element)
         aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, element)
         du_node = get_node_vars(du, equations, dg, i, j, element)
-        dot(cons2entropy(u_node, aux_node, equations), du_node)
+        return dot(cons2entropy(u_node, aux_node, equations), du_node)
     end
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{2},
-                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
+                 mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
                                                          dg, cache, derivative_matrix
@@ -509,7 +521,7 @@ end
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
-                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
@@ -538,7 +550,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors
@@ -567,7 +579,7 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
-                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 

@@ -505,7 +505,7 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
-                 have_aux_node_vars::False, equations, dg::Union{DGSEM, FDSBP}, cache)
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
@@ -516,8 +516,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{3}, have_aux_node_vars::False, equations,
-                 dg::DGSEM, cache)
+                 mesh::TreeMesh{3}, equations, dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, k, element, equations,
                                                          dg, cache, derivative_matrix
@@ -542,8 +541,7 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                 have_aux_node_vars::False, equations,
-                 dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, k, element, equations,
@@ -579,8 +577,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{3}, have_aux_node_vars::False, equations,
-                 dg::DGSEM, cache)
+                 mesh::TreeMesh{3}, equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors
@@ -616,8 +613,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                 have_aux_node_vars::False, equations,
-                 dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
