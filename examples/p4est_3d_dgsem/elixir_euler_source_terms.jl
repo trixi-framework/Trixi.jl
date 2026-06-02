@@ -40,7 +40,10 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 
 tspan = (0.0, 5.0)
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, tspan)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 
