@@ -1110,7 +1110,8 @@ end
     Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
     Makie.plot(pd["rho"])
-    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black, linestyle = :dash)
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
 
     # test unpacking/iteration for FigureAndAxes
     fa = Makie.plot(sol)
