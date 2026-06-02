@@ -13,7 +13,7 @@ for human readability.
   by a new `P4estCoupledMortarContainer` and associated flux routines. A `fallback_bc`
   keyword argument was added to [`BoundaryConditionCoupledP4est`](@ref) to handle
   non-rectangular mesh-view splits where a face name can appear at both a view interface
-  and a physical domain edge ([#XXXX]).
+  and a physical domain edge ([#2598]).
 - A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 
