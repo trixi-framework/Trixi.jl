@@ -1017,8 +1017,8 @@ end
     # Makie.plot(pd) gives layout for all variables
     fa = Makie.plot(pd)
 
-    # show_mesh kwarg triggers vlines! for mesh vertices
-    @trixi_test_nowarn Makie.plot(pd, show_mesh = true)
+    # plot_mesh kwarg triggers vlines! for mesh vertices
+    @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
     fig, axes = fa
     @trixi_test_nowarn Base.show(fa) === nothing
     @test fig isa Makie.Figure
@@ -1032,6 +1032,48 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
 
     # kwargs are forwarded to vlines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
+end
+
+@timed_testset "Makie visualization tests for TreeMesh2D" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DCartesian
+
+    # plottype for 2D PlotDataSeries is Heatmap
+    @test Makie.plottype(pd["scalar"]) == Makie.Heatmap
+
+    # convert_arguments enables heatmap(pd["scalar"])
+    fap = heatmap(pd["scalar"])
+    @test fap isa Makie.FigureAxisPlot
+
+    # Makie.plot(pds) gives title, xlabel, ylabel and colorbar
+    fap2 = Makie.plot(pd["scalar"])
+    @test fap2 isa Makie.FigureAxisPlot
+
+    # kwargs are forwarded to heatmap!
+    fap3 = Makie.plot(pd["scalar"], colormap = :heat)
+    @test fap3 isa Makie.FigureAxisPlot
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = Makie.plot(pd)
+    @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+    @test fig isa Makie.Figure
+    @test axes isa AbstractArray{<:Makie.Axis}
+
+    # Makie.plot(sol) for 2D TreeMesh solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to lines! in PlotMesh
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
@@ -1056,6 +1098,19 @@ end
 
     # test heatmap plot
     @trixi_test_nowarn Makie.plot(sol, plot_mesh = true)
+
+    # single-variable plot with axis and colorbar (works for all PlotData2DTriangulated meshes)
+    pd = PlotData2D(sol)
+    fap = Makie.plot(pd["rho"])
+    @test fap isa Makie.FigureAxisPlot
+    @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
+    @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
+
+    # explicit PlotMesh overlay (works for all PlotData2DTriangulated meshes)
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black, linestyle = :dash)
 
     # test unpacking/iteration for FigureAndAxes
     fa = Makie.plot(sol)

@@ -472,8 +472,10 @@ Further information regarding the development of Trixi2Vtk can be found in the
 
 In addition to [Plots.jl](@ref Plots.jl) support, Trixi.jl includes visualization utilities through
 [Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi.jl provides Makie-based visualization options
-both for heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes) as well as for
-interactive surface plots. Support is currently limited to the [`UnstructuredMesh2D`](@ref) type.
+for 1D line plots and 2D heatmap plots (similar to the [Plots.jl](@ref Plots.jl) recipes), as well as
+interactive surface plots. Heatmap plots are supported for all 2D mesh types
+([`TreeMesh`](@ref), [`P4estMesh`](@ref), [`UnstructuredMesh2D`](@ref), [`StructuredMesh`](@ref), [`T8codeMesh`](@ref), DGMulti meshes);
+interactive surface plots are available for [`UnstructuredMesh2D`](@ref) and compatible mesh types.
 
 !!! note
     Plotting via Makie.jl is still considered an experimental feature and might
@@ -486,32 +488,75 @@ Makie backend (for example, [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/)
 julia> using GLMakie
 ```
 
-To visualize the solution and mesh with a heatmap-type plot, simply run
-```julia
-julia> plot(sol)
-```
 !!! note
     Both Makie.jl and Plots.jl export `plot`, so if you load both libraries, you will have to
     specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
 
-As with Plots.jl recipes, one can view individual solution components by creating a `PlotData2D`
-object and indexing into it with the desired variable name
+
+### 1D visualization
+
+After running a 1D simulation, visualize the solution with
 ```julia
-julia> pd = PlotData2D(sol)
-julia> plot(pd["rho"])
+julia> plot(sol)
 ```
-Unlike the Plots.jl recipe, mesh plotting is controlled using the keyword argument
-`plot_mesh = false`, e.g.,
+This creates a line plot with one subplot per solution variable.
+
+For more control, first create a [`PlotData1D`](@ref) object:
 ```julia
-julia> plot(sol; plot_mesh=false)
+julia> pd = PlotData1D(sol)
+julia> plot(pd["scalar"])       # single variable
+julia> plot(pd)                 # all variables as subplots
+julia> plot(pd, plot_mesh=true) # with mesh lines
 ```
-The plot command also returns figure and axis handles, which can be used to edit plot titles or
-labels:
+The plot returns handles,
+which can be used to further customize the figure:
 ```julia
-julia> fig, axes = plot(sol)
-julia> axes[1,1].title = "New title for subplot (1,1)"
+julia> fig, axes = plot(pd)
+julia> axes[1,1].title = "New title"
+```
+Mesh lines can be added on top of an existing single-variable plot via
+```julia
+julia> plot(pd["scalar"])
+julia> plot!(Trixi.getmesh(pd))  # or plot!(Trixi.PlotMesh(pd))
 ```
 
+### 2D visualization
+
+After running a 2D simulation, visualize all solution variables with
+```julia
+julia> Makie.plot(sol)
+```
+This creates a grid of heatmaps with one subplot per variable, each with its own colorbar.
+
+For more control, first create a [`PlotData2D`](@ref) object:
+```julia
+julia> pd = PlotData2D(sol)
+julia> plot(pd["rho"])             # single variable with colorbar
+julia> plot(pd)                    # all variables as subplots
+julia> plot(pd, plot_mesh = true)  # with mesh overlay
+```
+The plot returns handles that can be used to further customize the figure:
+```julia
+julia> fig, axes = plot(pd)
+julia> axes[1,1].title = "New title for subplot (1,1)"
+```
+Mesh lines can be added on top of an existing single-variable plot via
+```julia
+julia> plot(pd["rho"])
+julia> plot!(Trixi.getmesh(pd))
+```
+A key advantage of Makie over Plots.jl is the ability to compose plots on a custom axis,
+for example to set custom titles, labels, or to place colorbars manually, e.g:
+```julia
+julia> trixi_include(joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_curved.jl"))
+julia> pd = PlotData2D(sol)
+julia> fig = Figure()
+julia> ax = Axis(fig[1, 1], title = "Density", xlabel = "x", ylabel = "y",
+                       aspect = Makie.DataAspect())
+julia> plt = Makie.plot!(ax, pd["rho"], colormap = :berlin)
+julia> Colorbar(fig[1, 2], colormap = :berlin)
+julia> plot!(Trixi.getmesh(pd))
+```
 Trixi.jl also supports interactive surface plots using `iplot`.
 After executing
 ```julia
@@ -535,4 +580,3 @@ by providing an appropriate keyword argument. For example, `plot(sol, colormap=:
 `iplot(sol, colormap=:blues)` produce the following figures:
 
 ![makie-plot-example](https://user-images.githubusercontent.com/1156048/132954265-e7d395a8-f894-4056-841b-87711b7ba012.png)
-![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)
