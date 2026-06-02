@@ -94,7 +94,6 @@ include("dg_3d.jl")
 include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
 include("dg_3d_gpu.jl")
-include("calc_volume_integral_gpu.jl")
 
 # Subcell limiters
 include("subcell_limiters.jl")
