@@ -18,6 +18,17 @@ function LaplaceDiffusion2D(diffusivity, equations_hyperbolic)
                               typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LaplaceDiffusion2D, ::Type{NewRealT}) where {NewRealT}
+    diffusivity = equations.diffusivity isa AbstractFloat ?
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    return LaplaceDiffusion2D(diffusivity,
+                              similar(equations.equations_hyperbolic, NewRealT))
+end
+
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end

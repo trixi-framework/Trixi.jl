@@ -20,14 +20,14 @@ basis = LobattoLegendreBasis(polydeg)
 volume_integral_weakform = VolumeIntegralWeakForm()
 volume_integral_fluxdiff = VolumeIntegralFluxDifferencing(volume_flux)
 
-# This indicator compares the entropy production of the weak form to the 
+# This indicator compares the entropy production of the weak form to the
 # true entropy evolution in that cell.
 # If the weak form dissipates more entropy than the true evolution
 # the indicator renders this admissible. Otherwise, the more stable
 # volume integral is to be used.
 indicator = IndicatorEntropyChange(maximum_entropy_increase = 0.0)
 
-# Adaptive volume integral using the entropy change indicator to perform the 
+# Adaptive volume integral using the entropy change indicator to perform the
 # stabilized/EC volume integral when needed and keeping the weak form if it is more diffusive.
 volume_integral = VolumeIntegralAdaptive(indicator = indicator,
                                          volume_integral_default = volume_integral_weakform,
@@ -74,4 +74,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, ode_default_options()..., callback = callbacks);
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);
