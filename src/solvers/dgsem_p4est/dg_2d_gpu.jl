@@ -31,36 +31,6 @@ end
                                       neighbor_ids, node_indices, index_range)
 end
 
-function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                            T8codeMesh{2}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM{<:LobattoLegendreBasis}, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
-
-    kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, surface_integral, dg, inverse_weights[1],
-            surface_flux_values, ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function calc_surface_integral_KAkernel!(du,
-                                                 MeshT::Type{<:Union{P4estMesh{2},
-                                                                     P4estMeshView{2},
-                                                                     T8codeMesh{2}}},
-                                                 equations,
-                                                 surface_integral::SurfaceIntegralWeakForm,
-                                                 dg::DGSEM{<:LobattoLegendreBasis},
-                                                 factor,
-                                                 surface_flux_values)
-    element = @index(Global)
-    calc_surface_integral_per_element!(du, MeshT, equations, surface_integral,
-                                       dg, factor, surface_flux_values, element)
-end
-
 function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
@@ -121,6 +91,60 @@ function prolong2boundaries_per_boundary!(u,
     end
 
     return nothing
+end
+
+function calc_surface_integral!(backend::Backend, du, u,
+                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM, cache)
+    @unpack inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+    _nnodes = nnodes(dg)
+    kernel! = calc_surface_integral_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, inverse_weights[1],
+            Val(_nnodes),
+            surface_flux_values,
+            ndrange = (_nnodes, _nnodes, nelements(dg, cache)))
+
+    return nothing
+end
+
+@kernel function calc_surface_integral_KAkernel!(du, MeshT::Type{<:P4estMesh{2}},
+                                                 equations, factor, ::Val{_nnodes},
+                                                 surface_flux_values) where {_nnodes}
+    i, j, element = @index(Global, NTuple)
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    #
+    # factor = inverse_weights[1]
+    # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+    for v in eachvariable(equations)
+        sum = zero(eltype(du))
+
+        if i == 1
+            # surface at -x
+            sum = sum + surface_flux_values[v, j, 1, element]
+        elseif i == _nnodes
+            # surface at +x
+            sum = sum + surface_flux_values[v, j, 2, element]
+        end
+
+        if j == 1
+            # surface at -y
+            sum = sum + surface_flux_values[v, i, 3, element]
+        elseif j == _nnodes
+            # surface at +y
+            sum = sum + surface_flux_values[v, i, 4, element]
+        end
+
+        du[v, i, j, element] = du[v, i, j, element] + sum * factor
+    end
 end
 
 function apply_jacobian!(backend::Backend, du,
