@@ -111,8 +111,8 @@ function calc_surface_integral!(backend::Backend, du, u,
 end
 
 @kernel function calc_surface_integral_KAkernel!(du, MeshT::Type{<:P4estMesh{2}},
-                                                 equations, factor, ::Val{_nnodes},
-                                                 surface_flux_values) where {_nnodes}
+                                                 equations, factor, ::Val{NNODES},
+                                                 surface_flux_values) where {NNODES}
     i, j, element = @index(Global, NTuple)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
@@ -125,25 +125,25 @@ end
     # factor = inverse_weights[1]
     # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     for v in eachvariable(equations)
-        sum = zero(eltype(du))
+        du_node = zero(eltype(du))
 
         if i == 1
             # surface at -x
-            sum = sum + surface_flux_values[v, j, 1, element]
-        elseif i == _nnodes
+            du_node = du_node + surface_flux_values[v, j, 1, element]
+        elseif i == NNODES
             # surface at +x
-            sum = sum + surface_flux_values[v, j, 2, element]
+            du_node = du_node + surface_flux_values[v, j, 2, element]
         end
 
         if j == 1
             # surface at -y
-            sum = sum + surface_flux_values[v, i, 3, element]
-        elseif j == _nnodes
+            du_node = du_node + surface_flux_values[v, i, 3, element]
+        elseif j == NNODES
             # surface at +y
-            sum = sum + surface_flux_values[v, i, 4, element]
+            du_node = du_node + surface_flux_values[v, i, 4, element]
         end
 
-        du[v, i, j, element] = du[v, i, j, element] + sum * factor
+        du[v, i, j, element] = du[v, i, j, element] + du_node * factor
     end
 end
 

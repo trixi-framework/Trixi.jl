@@ -33,10 +33,10 @@ end
                                              combine_conservative_and_nonconservative_fluxes::False,
                                              dg::DGSEM,
                                              volume_integral,
-                                             ::Val{_nnodes},
+                                             ::Val{NNODES},
                                              derivative_split,
                                              contravariant_vectors,
-                                             alpha = true) where {_nnodes}
+                                             alpha = true) where {NNODES}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -70,15 +70,15 @@ end
     #   with Non-Conservative Terms.
     #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
 
-    half_nnodes = div(_nnodes, 2)
-    even_nodes = iseven(_nnodes)
+    half_nnodes = div(NNODES, 2)
+    even_nodes = iseven(NNODES)
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
 
         # first coordinate direction: rotate the partner index along `i`
-        ii = mod(i - 1 + offset, _nnodes) + 1
+        ii = mod(i - 1 + offset, NNODES) + 1
         u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
         # pull the contravariant vectors and compute the average
         Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
@@ -97,7 +97,7 @@ end
                                            ii, j, k, element)
 
         # second coordinate direction: rotate the partner index along `j`
-        jj = mod(j - 1 + offset, _nnodes) + 1
+        jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
@@ -116,7 +116,7 @@ end
                                            i, jj, k, element)
 
         # third coordinate direction: rotate the partner index along `k`
-        kk = mod(k - 1 + offset, _nnodes) + 1
+        kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
@@ -398,8 +398,8 @@ function calc_surface_integral!(backend::Backend, du, u,
 end
 
 @kernel function calc_surface_integral_KAkernel!(du, MeshT::Type{<:P4estMesh{3}},
-                                                 equations, factor, ::Val{_nnodes},
-                                                 surface_flux_values) where {_nnodes}
+                                                 equations, factor, ::Val{NNODES},
+                                                 surface_flux_values) where {NNODES}
     i, j, k, element = @index(Global, NTuple)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
@@ -412,32 +412,32 @@ end
     # factor = inverse_weights[1]
     # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     for v in eachvariable(equations)
-        sum = zero(eltype(du))
+        du_node = zero(eltype(du))
 
         if i == 1
             # surface at -x
-            sum = sum + surface_flux_values[v, j, k, 1, element]
-        elseif i == _nnodes
+            du_node = du_node + surface_flux_values[v, j, k, 1, element]
+        elseif i == NNODES
             # surface at +x
-            sum = sum + surface_flux_values[v, j, k, 2, element]
+            du_node = du_node + surface_flux_values[v, j, k, 2, element]
         end
 
         if j == 1
             # surface at -y
-            sum = sum + surface_flux_values[v, i, k, 3, element]
-        elseif j == _nnodes
+            du_node = du_node + surface_flux_values[v, i, k, 3, element]
+        elseif j == NNODES
             # surface at +y
-            sum = sum + surface_flux_values[v, i, k, 4, element]
+            du_node = du_node + surface_flux_values[v, i, k, 4, element]
         end
 
         if k == 1
             # surface at -z
-            sum = sum + surface_flux_values[v, i, j, 5, element]
-        elseif k == _nnodes
+            du_node = du_node + surface_flux_values[v, i, j, 5, element]
+        elseif k == NNODES
             # surface at +z
-            sum = sum + surface_flux_values[v, i, j, 6, element]
+            du_node = du_node + surface_flux_values[v, i, j, 6, element]
         end
-        du[v, i, j, k, element] = du[v, i, j, k, element] + sum * factor
+        du[v, i, j, k, element] = du[v, i, j, k, element] + du_node * factor
     end
 end
 
