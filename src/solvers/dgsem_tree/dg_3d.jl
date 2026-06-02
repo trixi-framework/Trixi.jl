@@ -648,7 +648,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{3}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides = boundaries
@@ -700,7 +700,8 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(backend::Nothing, cache, t,
+                             boundary_conditions::NamedTuple,
                              mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
@@ -1422,12 +1423,12 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
 end
 
 # Need dimension specific version to avoid error at dispatching
-function calc_sources!(du, u, t, source_terms::Nothing,
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms,
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
                        equations::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
