@@ -1,6 +1,7 @@
 module TestType
 
 using Test
+using ForwardDiff
 using Trixi
 
 include("test_trixi.jl")
@@ -2092,6 +2093,57 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Laplace Diffusion Entropy Variables 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables1D(RealT(0.01),
+                                                                               equations)
+
+            prim = SVector(RealT(1), RealT(0.2), RealT(2))
+            w = cons2entropy(prim2cons(prim, equations), equations)
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = (gradient,)
+
+            @test eltype(@inferred flux(w, gradients, 1, equations_parabolic)) == RealT
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.01),
+                                                                               equations)
+
+            prim = SVector(RealT(1), RealT(0.2), RealT(0.2), RealT(2))
+            w = cons2entropy(prim2cons(prim, equations), equations)
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient)
+
+            for orientation in (1, 2)
+                @test eltype(@inferred flux(w, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+        end
+    end
+
+    @timed_testset "Laplace Diffusion Entropy Variables 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
+            equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.01),
+                                                                               equations)
+
+            prim = SVector(RealT(1), RealT(0.2), RealT(0.2), RealT(0.1), RealT(2))
+            w = cons2entropy(prim2cons(prim, equations), equations)
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient, gradient)
+
+            for orientation in (1, 2, 3)
+                @test eltype(@inferred flux(w, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+        end
+    end
+
     @timed_testset "Laplace Diffusion 2D" begin
         for RealT in (Float32, Float64)
             equations = LinearScalarAdvectionEquation2D(RealT(1), RealT(1))
@@ -2172,11 +2224,12 @@ isdir(outdir) && rm(outdir, recursive = true)
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.1),
                                                                                equations)
 
-            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
+            u = gradient = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
             orientations = [1, 2]
 
             for orientation in orientations
-                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                @test eltype(@inferred flux(u, (gradient, gradient), orientation,
+                                            equations_parabolic)) ==
                       RealT
             end
 
@@ -2193,12 +2246,13 @@ isdir(outdir) && rm(outdir, recursive = true)
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.1),
                                                                                equations)
 
-            u = gradients = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
-                                    zero(RealT))
+            u = gradient = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
+                                   zero(RealT))
             orientations = [1, 2, 3]
 
             for orientation in orientations
-                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                @test eltype(@inferred flux(u, (gradient, gradient, gradient), orientation,
+                                            equations_parabolic)) ==
                       RealT
             end
 
