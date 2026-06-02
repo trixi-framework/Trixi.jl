@@ -98,6 +98,31 @@ end
                                        contravariant_vectors, index_range)
 end
 
+function prolong2boundaries_per_boundary!(u,
+                                          MeshT::Type{<:P4estMesh{2}},
+                                          equations, dg::DG, index_range, u_boundaries,
+                                          neighbor_ids, node_indices, boundary)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    element = neighbor_ids[boundary]
+    node_index = node_indices[boundary]
+
+    i_node_start, i_node_step = index_to_start_step_2d(node_index[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_index[2], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
+    for i in eachnode(dg)
+        for v in eachvariable(equations)
+            u_boundaries[v, i, boundary] = u[v, i_node, j_node, element]
+        end
+        i_node += i_node_step
+        j_node += j_node_step
+    end
+
+    return nothing
+end
+
 function apply_jacobian!(backend::Backend, du,
                          mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                      T8codeMesh{2}},

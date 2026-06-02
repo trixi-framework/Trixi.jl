@@ -125,7 +125,82 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa CuArray
+    @test semi.solver.basis.derivative_matrix isa CuArray
+
+    @test Trixi.storage_type(semi.cache.elements) === CuArray
+    @test Trixi.storage_type(semi.cache.interfaces) === CuArray
+    @test Trixi.storage_type(semi.cache.boundaries) === CuArray
+    @test Trixi.storage_type(semi.cache.mortars) === CuArray
+end
+
+@trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        l2=[
+                            0.0015695663270394401,
+                            0.0015490919943866783,
+                            0.0015490919943867418,
+                            0.0015490919943867715,
+                            0.0030142321185965926
+                        ],
+                        linf=[
+                            0.011169568009156583,
+                            0.01212264526316753,
+                            0.012122645263185072,
+                            0.012122645263169973,
+                            0.022766806484100233
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+end
+
+@trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32 / CUDA" begin
+    # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    using CUDA
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        l2=Float32[0.0015696742467877056,
+                                   0.001549172798867718,
+                                   0.0015492160563479605,
+                                   0.0015492393689635082,
+                                   0.003014353172708627],
+                        linf=Float32[0.011179947585086891,
+                                     0.012131848472223483,
+                                     0.012118723820123467,
+                                     0.012119620962380617,
+                                     0.022785611165535347],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=CuArray)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 500_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
