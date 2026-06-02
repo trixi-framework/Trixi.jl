@@ -12,7 +12,6 @@
                                        dg::DGSEM, cache)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
-    nodes = eachnode(dg)
     kernel! = flux_differencing_KAkernel!(backend)
     _nnodes = nnodes(dg)
     kernel!(du, u, equations,
