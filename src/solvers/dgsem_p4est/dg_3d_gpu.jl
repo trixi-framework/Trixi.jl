@@ -137,14 +137,6 @@ end
     end
 end
 
-@kernel function volume_integral_KAkernel!(du, u, MeshT,
-                                           have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM, cache)
-    element = @index(Global)
-    volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
-                            equations, volume_integral, dg, cache)
-end
-
 function prolong2interfaces!(backend::Backend, cache, u,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                              equations, dg::DG)
