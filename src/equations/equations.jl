@@ -189,6 +189,27 @@ end
     return flux
 end
 
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+    # So far, there are no seperate auxiliary variables on boundaries
+
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    end
+
+    return flux
+end
+
 # Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
 # passing a tuple of surface flux functions for nonconservative terms
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
@@ -653,6 +674,8 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+
+include("linear_variable_scalar_advection_2d.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
