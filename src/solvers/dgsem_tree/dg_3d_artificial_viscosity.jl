@@ -587,12 +587,12 @@
 
         # Prolong solution to boundaries
         @trixi_timeit_ext backend timer() "prolong2boundaries" begin
-            prolong2boundaries!(cache, u, mesh, equations, dg)
+            prolong2boundaries!(backend, cache, u, mesh, equations, dg)
         end
 
         # Calculate boundary fluxes
         @trixi_timeit_ext backend timer() "boundary flux" begin
-            calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+            calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                                 dg.surface_integral, dg)
         end
 
@@ -623,12 +623,12 @@
             calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
                                  equations_artificial_viscosity, dg, cache)
         end
-        #calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
-        #                        dg, cache)
-        (; sensor) = cache.artificial_viscosity
-        calc_ecav_ducros_coefficients!(u, sensor, 
-            flux_parabolic, gradients, entropy_residual, equations, 
-                equations_parabolic, mesh, dg, cache)
+        calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
+                                dg, cache)
+        #(; sensor) = cache.artificial_viscosity
+        #calc_ecav_ducros_coefficients!(u, sensor, 
+        #    flux_parabolic, gradients, entropy_residual, equations, 
+        #       equations_parabolic, mesh, dg, cache)
        # calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
        #     filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
        #     entropy_residual, equations, mesh, dg, cache)
