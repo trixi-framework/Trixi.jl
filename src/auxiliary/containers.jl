@@ -388,7 +388,13 @@ function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
     return adapt(Storage, x)
 end
 
-# 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
+# 3. Equations and equations of state: delegate to Base.similar
+function Adapt.adapt_structure(::TrixiAdaptor{<:Any, NewRealT},
+                               equations::AbstractEquations) where {NewRealT}
+    return similar(equations, NewRealT)
+end
+
+# 4. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
 
 function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
     return unsafe_wrap_or_alloc(Storage, vec, size)
