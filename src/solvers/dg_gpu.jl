@@ -1,5 +1,7 @@
 using Atomix: @atomic
 
+# Atomix requires updating operators such as `+=` to generate atomic operations and avoid race conditions
+# See https://github.com/trixi-framework/Trixi.jl/pull/3015#discussion_r3342476726
 @inline function multiply_add_to_first_axis_atomic!(u, factor, u_node::SVector{N},
                                                     indices...) where {N}
     for v in Base.OneTo(N)
