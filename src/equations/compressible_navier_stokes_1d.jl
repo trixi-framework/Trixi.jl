@@ -121,6 +121,21 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
                                                                   gradient_variables)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::CompressibleNavierStokesDiffusion1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    mu = equations.mu isa Real ? convert(NewRealT, equations.mu) : equations.mu
+    return CompressibleNavierStokesDiffusion1D(similar(equations.equations_hyperbolic,
+                                                       NewRealT);
+                                               mu = mu,
+                                               Prandtl = convert(NewRealT,
+                                                                 equations.Pr),
+                                               gradient_variables = equations.gradient_variables)
+end
+
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
 # varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion1D) = ("v1", "T")

@@ -11,6 +11,7 @@ function rhs_parabolic!(du, u, t,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
+    backend = trixi_backend(u_transformed)
 
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
@@ -182,7 +183,7 @@ function rhs_parabolic!(du, u, t,
     end
 
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
+        calc_surface_integral!(backend, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
     end
 
@@ -202,6 +203,8 @@ function calc_gradient_local!(gradients, u_transformed, t,
                               mesh::P4estMeshParallel{2},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
+    backend = trixi_backend(u_transformed)
+
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_gradients!(gradients, dg, cache)
@@ -216,7 +219,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
     # Prolong solution to interfaces.
     # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(nothing, cache, u_transformed, mesh,
+        prolong2interfaces!(backend, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 
@@ -230,7 +233,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh,
+        prolong2boundaries!(backend, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 
