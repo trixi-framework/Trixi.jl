@@ -184,6 +184,10 @@ running in parallel with MPI.
     return sum(ndofsglobal, semi.semis)
 end
 
+@inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupledP4est)
+    return mesh_equations_solver_cache(semi.semis[1])
+end
+
 function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
     @unpack u_indices = semi
 
