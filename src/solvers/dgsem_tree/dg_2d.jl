@@ -1017,7 +1017,7 @@ function calc_mortar_flux!(surface_flux_values,
                     orientation)
 
         # For non-conservative equations, we need two numerical fluxes
-        # (primanry and secondary). To use the same implementation of
+        # (primary and secondary). To use the same implementation of
         # `mortar_fluxes_to_elements!`, we pass the primary fluxes as
         # secondary fluxes as well in the conservative case. This is
         # possible since for conservative equations, numerical fluxes
