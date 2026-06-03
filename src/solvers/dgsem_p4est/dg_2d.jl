@@ -552,7 +552,7 @@ end
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, dg::DG)
     @unpack boundaries = cache
@@ -587,10 +587,12 @@ end
 function prolong2boundaries!(cache, u, u_parent, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    return prolong2boundaries!(cache, u, mesh, equations, dg)
+    backend = trixi_backend(u)
+    return prolong2boundaries!(backend, cache, u, mesh, equations, dg)
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
+                             boundary_indexing,
                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
