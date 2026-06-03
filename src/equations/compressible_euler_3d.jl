@@ -1858,6 +1858,51 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 
+@doc raw"""
+    apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations3D)
+
+Calculate the Jacobian for the mapping from entropy variables to conservative 
+variables at the entropy variable state `w` and apply it to the vector `dw`.
+
+The explicit Jacobian formula can be found in Barth (1999), p. 205.
+- Barth (1999)
+  Numerical methods for gasdynamic systems on unstructured meshes.
+  [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
+"""
+@inline function apply_jacobian_entropy2cons(dw, w,
+                                             equations::CompressibleEulerEquations3D)
+    @unpack inv_gamma_minus_one = equations
+    u = entropy2cons(w, equations)
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
+    _, v1, v2, v3, p = cons2prim(u, equations)
+
+    # total enthalpy terms from Barth
+    a_squared = equations.gamma * p / rho
+    H = a_squared * inv_gamma_minus_one + 0.5f0 * (v1^2 + v2^2 + v3^2)
+    rho_h_v1 = rho_v1 * H
+    rho_h_v2 = rho_v2 * H
+    rho_h_v3 = rho_v3 * H
+    h55 = rho * H^2 - a_squared * p * inv_gamma_minus_one
+
+    # Apply the Jacobian
+    # [rho          rho_v1          rho_v2          rho_v3          rho_e_total
+    #  rho_v1       rho_v1 * v1 + p rho_v1 * v2    rho_v1 * v3    rho_h_v1
+    #  rho_v2       rho_v1 * v2     rho_v2 * v2 + p rho_v2 * v3    rho_h_v2
+    #  rho_v3       rho_v1 * v3     rho_v2 * v3    rho_v3 * v3 + p rho_h_v3
+    #  rho_e_total  rho_h_v1        rho_h_v2        rho_h_v3        h55]
+    # to the vector dw.
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_v2 * dw[3] + rho_v3 * dw[4] +
+                   rho_e_total * dw[5],
+                   rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_v1 * v2 * dw[3] +
+                   rho_v1 * v3 * dw[4] + rho_h_v1 * dw[5],
+                   rho_v2 * dw[1] + rho_v1 * v2 * dw[2] + (rho_v2 * v2 + p) * dw[3] +
+                   rho_v2 * v3 * dw[4] + rho_h_v2 * dw[5],
+                   rho_v3 * dw[1] + rho_v1 * v3 * dw[2] + rho_v2 * v3 * dw[3] +
+                   (rho_v3 * v3 + p) * dw[4] + rho_h_v3 * dw[5],
+                   rho_e_total * dw[1] + rho_h_v1 * dw[2] + rho_h_v2 * dw[3] +
+                   rho_h_v3 * dw[4] + h55 * dw[5])
+end
+
 @inline function density(u, equations::CompressibleEulerEquations3D)
     rho = u[1]
     return rho

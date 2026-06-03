@@ -1053,6 +1053,40 @@ end
     return SVector(rho, rho_v1, rho_e_total)
 end
 
+@doc raw"""
+    apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations1D)
+
+Calculate the Jacobian for the mapping from entropy variables to conservative 
+variables at the entropy variable state `w` and apply it to the vector `dw`.
+
+The explicit Jacobian formula can be found in Barth (1999), p. 205.
+- Barth (1999)
+  Numerical methods for gasdynamic systems on unstructured meshes.
+  [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
+"""
+@inline function apply_jacobian_entropy2cons(dw, w,
+                                             equations::CompressibleEulerEquations1D)
+    @unpack inv_gamma_minus_one = equations
+    u = entropy2cons(w, equations)
+    rho, rho_v1, rho_e_total = u
+    _, v1, p = cons2prim(u, equations)
+
+    # total enthalpy terms from Barth 
+    a_squared = equations.gamma * p / rho
+    H = a_squared * inv_gamma_minus_one + 0.5f0 * v1^2
+    rho_h_v1 = rho * v1 * H
+    h33 = rho * H^2 - a_squared * p * inv_gamma_minus_one
+
+    # Apply the Jacobian
+    # [rho          rho_v1          rho_e_total
+    #  rho_v1       rho_v1 * v1 + p rho_h_v1
+    #  rho_e_total  rho_h_v1        h33]
+    # to the vector dw.
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_e_total * dw[3],
+                   rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_h_v1 * dw[3],
+                   rho_e_total * dw[1] + rho_h_v1 * dw[2] + h33 * dw[3])
+end
+
 @inline function density(u, equations::CompressibleEulerEquations1D)
     rho = u[1]
     return rho

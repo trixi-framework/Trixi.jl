@@ -115,10 +115,10 @@ The original paper is
 
 # Arguments
 - `num_stages` (`Int`): Number of stages in the PERK method.
-- `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
+- `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing
     monomial coefficients of the stability polynomial of PERK method.
     The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
-- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown.
     In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
 - `tspan`: Time span of the simulation.
 - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
@@ -132,7 +132,7 @@ The original paper is
 
 !!! note
     To use this integrator, the user must import the
-    [Convex.jl](https://github.com/jump-dev/Convex.jl) and 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl) and
     [ECOS.jl](https://github.com/jump-dev/ECOS.jl) packages
     unless the coefficients are provided in a `gamma_<num_stages>.txt` file.
 """
@@ -222,11 +222,12 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
 
     k1 = zero(u0) # Additional PERK register
 
-    t0 = first(ode.tspan)
+    t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
 
-    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t0, tdir, dt, dt, iter,
+    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t, tdir, dt, dt, iter,
                                              ode.p,
                                              (prob = ode,), ode.f, alg,
                                              PairedExplicitRKOptions(callback,

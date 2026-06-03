@@ -141,5 +141,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 
-sol = solve(ode, SSPRK33(), dt = 42.0,
+sol = solve(ode, SSPRK33(),
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

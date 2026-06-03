@@ -58,7 +58,7 @@ mesh = P4estMesh(trees_per_dimension,
                  polydeg = 3, mapping = mapping,
                  periodicity = true)
 
-# The multi-ion GLM-MHD equations require the inclusion of source_terms_lorentz 
+# The multi-ion GLM-MHD equations require the inclusion of source_terms_lorentz
 # whenever multiple ion species are present
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_lorentz,
@@ -97,5 +97,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

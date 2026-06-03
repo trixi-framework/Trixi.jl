@@ -8,7 +8,9 @@ using Makie: Makie, GeometryBasics
 using Trixi
 
 # Use additional symbols that are not exported
-using Trixi: PlotData2DTriangulated, TrixiODESolution, PlotDataSeries, ScalarData, @muladd,
+using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,
+             PlotData1D, PlotData2DTriangulated,
+             TrixiODESolution,
              wrap_array_native, mesh_equations_solver_cache
 
 # Import functions such that they can be extended with new methods
@@ -135,6 +137,8 @@ end
 
 # We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
 default_Makie_colormap() = :inferno
+
+_makie_guide(orientation) = orientation == 1 ? "x" : orientation == 2 ? "y" : "z"
 
 # convenience struct for editing Makie plots after they're created.
 struct FigureAndAxes{Axes}
@@ -362,13 +366,68 @@ end
 
 # redirects Makie.plot(pd::PlotDataSeries) to custom recipe TrixiHeatmap(pd)
 Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHeatmap
+Makie.plottype(::PlotDataSeries{<:AbstractPlotData{1}}) = Makie.Lines
+
+# Makie recipe for PlotDataSeries
+function Makie.convert_arguments(::Type{<:Makie.Plot},
+                                 pds::PlotDataSeries{<:AbstractPlotData{1}})
+    @unpack plot_data, variable_id = pds
+    @unpack x, data = plot_data
+    return (x, data[:, variable_id])
+end
+
+function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figure();
+                    kwargs...)
+    @unpack plot_data, variable_id = pds
+    @unpack x, variable_names, mesh_vertices_x = plot_data
+    ax = Makie.Axis(fig[1, 1],
+                    title = variable_names[variable_id],
+                    xlabel = _makie_guide(plot_data.orientation_x))
+    plt = Makie.lines!(ax, pds; kwargs...)
+    Makie.xlims!(ax, x[begin], x[end])
+
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.plot!(pm::PlotMesh{<:AbstractPlotData{1}}; kwargs...)
+    ax = Makie.current_axis()
+    plt = Makie.vlines!(ax, pm.plot_data.mesh_vertices_x;
+                        color = :grey, linewidth = 1, kwargs...)
+    display(Makie.current_figure())
+    return plt
+end
+
+function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); show_mesh = false)
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
+
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        @unpack x, mesh_vertices_x = pds.plot_data
+        ax = Makie.Axis(fig[row, col],
+                        title = variable_name,
+                        xlabel = _makie_guide(pd.orientation_x))
+        axes[row, col] = ax
+        Makie.lines!(ax, pds)
+        Makie.xlims!(ax, x[begin], x[end])
+        if show_mesh
+            Makie.vlines!(ax, mesh_vertices_x; color = :grey, linewidth = 1)
+        end
+    end
+
+    display(fig)
+    return FigureAndAxes(fig, axes)
+end
 
 # Makie does not yet support layouts in its plot recipes, so we overload `Makie.plot` directly.
-function Makie.plot(sol::TrixiODESolution;
-                    plot_mesh = false, solution_variables = nothing,
-                    colormap = default_Makie_colormap())
-    return Makie.plot(PlotData2DTriangulated(sol; solution_variables); plot_mesh,
-                      colormap)
+function Makie.plot(sol::TrixiODESolution; solution_variables = nothing, kwargs...)
+    if ndims(sol.prob.p) == 1
+        return Makie.plot(PlotData1D(sol; solution_variables); kwargs...)
+    else
+        return Makie.plot(PlotData2DTriangulated(sol; solution_variables); kwargs...)
+    end
 end
 
 function Makie.plot(pd::PlotData2DTriangulated, fig = Makie.Figure();

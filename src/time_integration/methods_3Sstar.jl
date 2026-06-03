@@ -156,6 +156,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     u_tmp1 = similar(u)
     u_tmp2 = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     iter = 0
     integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter,
                                         ode.p,
