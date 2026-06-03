@@ -412,10 +412,37 @@ In 3D, ``\boldsymbol{\omega}`` is a full three-component vector.
     return 0.5f0 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
 end
 
-# @inline function kinetc_energy_dissipation(u, du_local, equations)
-#     n_vel = norm(velocity(u, equations)) 
-#     return u1 * du_local[2] + u2 * du_local[3] + u3 * du_loca[4] - 0.5 * (n_vel * n_vel) * du_local[1]
-# end
+@inline function solenodial_dissipation(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+    omega = vorticity(u, gradients, equations)
+    mu = dynamic_viscosity(u, equations)
+    return mu * (omega[1]^2 + omega[2]^2 + omega[3]^2)
+end
+
+@inline function dilatational_dissipation(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+    mu = dynamic_viscosity(u, equations)
+    return mu * divergence_velocity(u, gradients, equations)^2
+end
+
+@inline function divergence_velocity(u, gradients, 
+    equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
+    # Need to convert to entropy variables first for `convert_derivative_to_primitive` to work correctly.
+    w = cons2entropy(u, equations)
+
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, dv1dx, _, _, _ = convert_derivative_to_primitive(w, gradients[1], equations)
+    _, _, dv2dy, _, _ = convert_derivative_to_primitive(w, gradients[2], equations)
+    _, _, _, dv3dz, _ = convert_derivative_to_primitive(w, gradients[3], equations)
+
+    return dv1dx + dv2dy + dv3dz
+end
+
+@inline function divergence_velocity(u, gradients, 
+    equations::CompressibleNavierStokesDiffusion3D)
+    _, dv1dx, _, _, _ = convert_derivative_to_primitive(w, gradients[1], equations)
+    _, _, dv2dy, _, _ = convert_derivative_to_primitive(w, gradients[2], equations)
+    _, _, _, dv3dz, _ = convert_derivative_to_primitive(w, gradients[3], equations)
+    return dv1dx + dv2dy + dv3dz
+end
 
 @doc raw"""
     vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)

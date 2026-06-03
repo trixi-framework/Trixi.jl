@@ -548,6 +548,7 @@
                            dg::DG, parabolic_scheme, cache, cache_parabolic) where {Source}             
         (; u_transformed, flux_parabolic, gradients, filtered_gradients,
             filtered_parabolic, tmp_gradient, tmp_parabolic) = cache_parabolic.parabolic_container
+        (; ecav_choice) = cache
         backend = trixi_backend(u)
         # Reset du
         @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
@@ -623,16 +624,20 @@
             calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed, mesh,
                                  equations_artificial_viscosity, dg, cache)
         end
-        calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
-                                dg, cache)
-        #(; sensor) = cache.artificial_viscosity
-        #calc_ecav_ducros_coefficients!(u, sensor, 
-        #    flux_parabolic, gradients, entropy_residual, equations, 
-        #       equations_parabolic, mesh, dg, cache)
-       # calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
-       #     filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
-       #     entropy_residual, equations, mesh, dg, cache)
-
+        if (ecav_choice == :ecav)
+            calc_ecav_coefficients!(flux_parabolic, gradients, entropy_residual, equations, mesh,
+                                    dg, cache)
+        elseif (ecav_choice == :ecav_svv)
+            calc_ecav_svv_coefficients!(flux_parabolic, gradients, 
+                filtered_parabolic, filtered_gradients, tmp_gradient, tmp_parabolic,
+                entropy_residual, equations, mesh, dg, cache)
+        elseif (ecav_choice == :ecav_ducros)
+            (; sensor) = cache.artificial_viscosity
+            calc_ecav_ducros_coefficients!(u, sensor, 
+                flux_parabolic, gradients, entropy_residual, equations, 
+                equations_parabolic, mesh, dg, cache)
+        end
+       
         # # TODO: accumulate into flux_viscous instead
         # # accumulate the AV term
         # @trixi_timeit timer() "calc AV divergence" calc_divergence!(du, flux_viscous, u, mesh, 

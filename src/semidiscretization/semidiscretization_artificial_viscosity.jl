@@ -63,7 +63,7 @@ Construct a semidiscretization of a hyperbolic-parabolic PDE with artificial vis
 """
 function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
                                                initial_condition, solver;
-                                               VDM = I, filter = I,
+                                               VDM = I, filter = I, ecav_choice = :ecav,
                                                combine_rhs = False(),
                                                equations_artificial_viscosity = default_artificial_viscosity(equations[1]),
                                                solver_parabolic = default_parabolic_solver(),
@@ -89,7 +89,7 @@ function SemidiscretizationArtificialViscosity(mesh, equations::Tuple,
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
 
     F1D = VDM * Diagonal(filter) * inv(VDM);
-    cache = (; cache..., F1D, filter, 
+    cache = (; cache..., F1D, filter, ecav_choice,
              artificial_viscosity =
              create_cache(mesh, artificial_viscosity, solver, cache, RealT, uEltype))
 
