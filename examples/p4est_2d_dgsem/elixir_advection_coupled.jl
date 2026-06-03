@@ -16,14 +16,17 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (8, 8)
 
-# Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements
-# Since we couple through the boundaries, the periodicity does not matter here,
-# but it is to trigger parts of the code for the test.
+# Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements.
+# The mesh is periodic so that the outer faces of the ring view connect to the
+# opposite ring faces as regular internal interfaces, rather than appearing as
+# physical domain boundaries. This makes the combined coupled system truly
+# double-periodic: the solution travels across the center square into the ring
+# and wraps around.
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
                         coordinates_max = coordinates_max,
                         initial_refinement_level = 0,
-                        periodicity = false)
+                        periodicity = true)
 
 # Define the mesh views consisting of a small square in the center
 # and a square ring around it.
@@ -39,8 +42,6 @@ coupling_functions[1, 2] = (x, u, equations_other, equations_own) -> u
 coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> u
 coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
-# The mesh is coupled across the physical boundaries, which makes this setup
-# effectively double periodic.
 boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
                        y_neg = BoundaryConditionCoupledP4est(coupling_functions),
                        y_pos = BoundaryConditionCoupledP4est(coupling_functions),
