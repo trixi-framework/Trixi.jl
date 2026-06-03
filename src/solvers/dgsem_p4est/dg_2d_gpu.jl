@@ -100,7 +100,8 @@ function calc_surface_integral!(backend::Backend, du, u,
                                             P4estMeshView{2}},
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM, cache)
+                                dg::DGSEM{<:LobattoLegendreBasis},
+                                cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
     NNODES = nnodes(dg)
