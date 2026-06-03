@@ -461,7 +461,8 @@ function apply_jacobian!(backend::Backend, du,
 end
 
 @kernel function apply_jacobian_KAkernel!(du,
-                                          MeshT::Type{<:P4estMesh{3}},
+                                          MeshT::Type{<:Union{P4estMesh{3},
+                                                              T8codeMesh{3}}},
                                           equations, dg::DG,
                                           inverse_jacobian)
     i, j, k, element = @index(Global, NTuple)
