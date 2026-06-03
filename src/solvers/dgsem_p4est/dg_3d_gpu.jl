@@ -301,8 +301,8 @@ end
                                             t,
                                             boundary_condition,
                                             index_range,
-                                            mesh::Union{P4estMesh,
-                                                        T8codeMesh},
+                                            MeshT::Type{<:Union{P4estMesh,
+                                                                T8codeMesh}},
                                             equations,
                                             surface_integral,
                                             dg,
@@ -315,7 +315,7 @@ end
 
         calc_boundary_flux_per_boundary!(u,
                                          surface_flux_values, t, boundary_condition,
-                                         mesh, equations, surface_integral, dg, cache,
+                                         MeshT, equations, surface_integral, dg, cache,
                                          boundary, neighbor_ids, node_indices_arr,
                                          index_range, node_coordinates,
                                          contravariant_vectors)
