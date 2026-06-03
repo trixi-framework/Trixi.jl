@@ -69,7 +69,9 @@ end
 end
 
 function prolong2boundaries_per_boundary!(u,
-                                          MeshT::Type{<:P4estMesh{2}},
+                                          MeshT::Type{<:Union{P4estMesh{2},
+                                                              P4estMeshView{2},
+                                                              T8codeMesh{2}}},
                                           equations, dg::DG, index_range, u_boundaries,
                                           neighbor_ids, node_indices, boundary)
     # Copy solution data from the element using "delayed indexing" with
@@ -94,23 +96,27 @@ function prolong2boundaries_per_boundary!(u,
 end
 
 function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                mesh::Union{P4estMesh{2}, T8codeMesh{2},
+                                            P4estMeshView{2}},
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
-    _nnodes = nnodes(dg)
+    NNODES = nnodes(dg)
     kernel! = calc_surface_integral_KAkernel!(backend)
     kernel!(du, typeof(mesh), equations, inverse_weights[1],
-            Val(_nnodes),
+            Val(NNODES),
             surface_flux_values,
-            ndrange = (_nnodes, _nnodes, nelements(dg, cache)))
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
 
     return nothing
 end
 
-@kernel function calc_surface_integral_KAkernel!(du, MeshT::Type{<:P4estMesh{2}},
+@kernel function calc_surface_integral_KAkernel!(du,
+                                                 MeshT::Type{<:Union{P4estMesh{2},
+                                                                     P4estMeshView{2},
+                                                                     T8codeMesh{2}}},
                                                  equations, factor, ::Val{NNODES},
                                                  surface_flux_values) where {NNODES}
     i, j, element = @index(Global, NTuple)
