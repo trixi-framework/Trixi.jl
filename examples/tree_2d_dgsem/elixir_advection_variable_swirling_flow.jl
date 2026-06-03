@@ -12,7 +12,8 @@ using Plots
 
 equations = LinearVariableScalarAdvectionEquation2D()
 
-function initial_condition_advected_objects(x, t, equations::LinearVariableScalarAdvectionEquation2D)
+function initial_condition_advected_objects(x, t,
+                                            equations::LinearVariableScalarAdvectionEquation2D)
     RealT = eltype(x)
 
     # smooth hump

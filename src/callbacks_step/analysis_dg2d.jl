@@ -464,11 +464,12 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
     return analyze(entropy_timederivative, du, u, t,
                    mesh,
                    have_aux_node_vars(equations), equations,
-                   dg, cache)             
+                   dg, cache)
 end
 
 @inline function analyze(::typeof(entropy_timederivative), du, u, t,
-                         mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                     StructuredMeshView{2},
                                      UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                          have_aux_node_vars::False, equations,
                          dg::Union{DGSEM, FDSBP}, cache)
@@ -482,7 +483,8 @@ end
 end
 
 @inline function analyze(::typeof(entropy_timederivative), du, u, t,
-                         mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                     StructuredMeshView{2},
                                      UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                          have_aux_node_vars::True, equations,
                          dg::Union{DGSEM, FDSBP}, cache)

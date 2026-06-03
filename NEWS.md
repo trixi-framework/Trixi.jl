@@ -17,7 +17,7 @@ for human readability.
   `SemidiscretizationHyperbolic` constructor via the keyword argument `aux_field`.
   The current `equations` need to set `have_aux_node_vars to `True()` and `n_aux_node_vars`
   to the number of auxiliary variables per node.
-  So far, a simplyfying continuity assumption is made for the auxiliary variables, which
+  So far, a simplifying continuity assumption is made for the auxiliary variables, which
   e.g. allows to directly compute values at neighboring (mortar) interfaces instead of
   MPI-communicating their values.
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).

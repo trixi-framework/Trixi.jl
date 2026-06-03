@@ -196,7 +196,7 @@ end
                                                                   surface_flux_function,
                                                                   equations)
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
-    # So far, there are no seperate auxiliary variables on boundaries
+    # So far, there are no separate auxiliary variables on boundaries
 
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
