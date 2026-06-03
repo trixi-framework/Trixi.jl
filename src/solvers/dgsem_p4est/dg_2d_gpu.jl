@@ -124,25 +124,17 @@ end
     #
     # factor = inverse_weights[1]
     # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+    x_node_interface = (i == 1) | (i == NNODES)
+    y_node_interface = (j == 1) | (j == NNODES)
+    x_face = ifelse(i == 1, 1, 2)
+    y_face = ifelse(j == 1, 3, 4)
+    _zero = zero(eltype(du))
     for v in eachvariable(equations)
-        du_node = zero(eltype(du))
-
-        if i == 1
-            # surface at -x
-            du_node = du_node + surface_flux_values[v, j, 1, element]
-        elseif i == NNODES
-            # surface at +x
-            du_node = du_node + surface_flux_values[v, j, 2, element]
-        end
-
-        if j == 1
-            # surface at -y
-            du_node = du_node + surface_flux_values[v, i, 3, element]
-        elseif j == NNODES
-            # surface at +y
-            du_node = du_node + surface_flux_values[v, i, 4, element]
-        end
-
+        x_contribution = ifelse(x_node_interface,
+                                surface_flux_values[v, j, x_face, element], _zero)
+        y_contribution = ifelse(y_node_interface,
+                                surface_flux_values[v, i, y_face, element], _zero)
+        du_node = x_contribution + y_contribution
         du[v, i, j, element] = du[v, i, j, element] + du_node * factor
     end
 end
