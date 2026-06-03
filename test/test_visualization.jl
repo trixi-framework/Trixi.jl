@@ -1046,8 +1046,8 @@ end
     # plottype for 2D PlotDataSeries is Heatmap
     @test Makie.plottype(pd["scalar"]) == Makie.Heatmap
 
-    # convert_arguments enables heatmap(pd["scalar"])
-    fap = heatmap(pd["scalar"])
+    # convert_arguments enables Makie.heatmap(pd["scalar"])
+    fap = Makie.heatmap(pd["scalar"])
     @test fap isa Makie.FigureAxisPlot
 
     # Makie.plot(pds) gives title, xlabel, ylabel and colorbar
@@ -1104,6 +1104,7 @@ end
     fap = Makie.plot(pd["rho"])
     @test fap isa Makie.FigureAxisPlot
     @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
+    # plot_mesh = true 
     @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
 
     # explicit PlotMesh overlay (works for all PlotData2DTriangulated meshes)
@@ -1125,6 +1126,13 @@ end
     for i in eachindex(sol.u)
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
+    @trixi_test_nowarn Trixi.iplot(sol)
+end
+
+@timed_testset "Makie iplot for DGMulti with VectorOfArray solution" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_curved.jl"))
+
     @trixi_test_nowarn Trixi.iplot(sol)
 end
 end

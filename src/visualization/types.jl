@@ -691,6 +691,8 @@ PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) 
                                                                                              dg,
                                                                                              cache;
                                                                                              kwargs...)
+PlotData2DTriangulated(u, mesh, equations, dg::DGMulti{2}, cache;
+kwargs...) = PlotData2D(u, mesh, equations, dg, cache; kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
