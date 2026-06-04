@@ -87,11 +87,9 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::PositivityPreservingLimi
     if get(io, :compact, false)
         show(io, limiter)
     else
-        setup = Pair{String, Any}[
-            "local_limiter!" => Base.typename(typeof(limiter.local_limiter!)).name,
-            "global_limiter_tol" => global_limiter_tol,
-            "max_davis_yin_iterations" => max_davis_yin_iterations,
-        ]
+        setup = Pair{String, Any}["local_limiter!" => Base.typename(typeof(limiter.local_limiter!)).name,
+                                  "global_limiter_tol" => global_limiter_tol,
+                                  "max_davis_yin_iterations" => max_davis_yin_iterations]
         if history_davis_yin_iterations !== nothing
             push!(setup, "history_davis_yin_iterations" => history_davis_yin_iterations)
         end
