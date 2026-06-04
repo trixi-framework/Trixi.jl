@@ -349,7 +349,7 @@ end
                                           surface_i_node_index, surface_j_node_index,
                                           local_direction_index, local_element_index)
     @unpack u = cache.mpi_interfaces
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    surface_flux = surface_integral.surface_flux
 
     u_ll, u_rr = get_surface_node_vars(u, equations, dg,
                                        interface_i_node_index, interface_j_node_index,
