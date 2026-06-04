@@ -92,9 +92,7 @@ stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)
 
-ode_solver = RDPK3SpFSAL35(; stage_limiter!)
-ode_solver = RK4(; stage_limiter!)
-sol = solve(ode, ode_solver;
+sol = solve(ode, RDPK3SpFSAL35(; stage_limiter!);
             adaptive = false, dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 

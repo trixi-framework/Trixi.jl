@@ -43,7 +43,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (2e-1, 5.0e-6),
                                                      variables = (Trixi.density, pressure))
-stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi; record_davis_yin_iterations=true)
+stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
+                                                     record_davis_yin_iterations = true)
 
 sol = solve(ode, RDPK3SpFSAL35(; stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
