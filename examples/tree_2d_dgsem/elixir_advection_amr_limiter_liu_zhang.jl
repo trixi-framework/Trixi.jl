@@ -56,7 +56,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 4,
                                       med_level = 5, med_threshold = 0.1,
                                       max_level = 6, max_threshold = 0.6)
-                                      
+
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true)
@@ -71,14 +71,6 @@ local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-1,),
                                                      variables = ((u, equations) -> u[1],))
 stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
 
-sol = solve(ode, RDPK3SpFSAL35(stage_limiter!); adaptive = false,
+sol = solve(ode, RDPK3SpFSAL35(; stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-using Plots
-pd = PlotData2D(sol)
-plot(pd)
-plot!(getmesh(pd))
-
-u = Trixi.wrap_array_native(sol.u[end], semi)
-title!("Minimum value of the solution: $(minimum(u))")
