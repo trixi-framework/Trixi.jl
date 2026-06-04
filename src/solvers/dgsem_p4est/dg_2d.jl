@@ -75,10 +75,11 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
         prolong2interfaces_per_interface!(interfaces.u, u, interface,
-                                          typeof(mesh), equations,
+                                          MeshT, equations,
                                           neighbor_ids, node_indices, index_range)
     end
     return nothing
@@ -141,10 +142,11 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack boundary_interpolation = dg.basis
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
         prolong2interfaces_per_interface!(interfaces.u, u, interface,
-                                          typeof(mesh), equations,
+                                          MeshT, equations,
                                           neighbor_ids, node_indices, index_range,
                                           boundary_interpolation)
     end
@@ -269,11 +271,13 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # element data.
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
+    SolverT = typeof(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
+        calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                            have_nonconservative_terms,
-                                           equations, surface_integral, typeof(dg),
+                                           equations, surface_integral, SolverT,
                                            cache.interfaces.u, interface,
                                            neighbor_ids, node_indices,
                                            contravariant_vectors, index_range)
@@ -361,11 +365,13 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # interface data.
     @unpack normal_directions = cache.interfaces
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
+    SolverT = typeof(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
+        calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                            have_nonconservative_terms,
-                                           equations, surface_integral, typeof(dg),
+                                           equations, surface_integral, SolverT,
                                            cache.interfaces.u, interface,
                                            neighbor_ids, node_indices,
                                            normal_directions, index_range)
@@ -546,7 +552,7 @@ end
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, dg::DG)
     @unpack boundaries = cache
@@ -581,10 +587,12 @@ end
 function prolong2boundaries!(cache, u, u_parent, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    return prolong2boundaries!(cache, u, mesh, equations, dg)
+    backend = trixi_backend(u)
+    return prolong2boundaries!(backend, cache, u, mesh, equations, dg)
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
+                             boundary_indexing,
                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
@@ -1056,9 +1064,10 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 dg::DGSEM{<:LobattoLegendreBasis}, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
+    MeshT = typeof(mesh)
 
     @threaded for element in eachelement(dg, cache)
-        calc_surface_integral_per_element!(du, typeof(mesh), equations,
+        calc_surface_integral_per_element!(du, MeshT, equations,
                                            surface_integral, dg, inverse_weights[1],
                                            surface_flux_values, element)
     end
@@ -1070,9 +1079,10 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
+    MeshT = typeof(mesh)
 
     @threaded for element in eachelement(dg, cache)
-        calc_surface_integral_per_element!(du, typeof(mesh), equations,
+        calc_surface_integral_per_element!(du, MeshT, equations,
                                            surface_integral, dg,
                                            boundary_interpolation_inverse_weights,
                                            surface_flux_values, element)
@@ -1245,7 +1255,7 @@ function rhs!(du, u, t, u_parent, semis,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing

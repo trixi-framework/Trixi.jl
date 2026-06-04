@@ -994,6 +994,49 @@ end
     end
 end
 
+@timed_testset "Makie visualization tests for 1D" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = PlotData1D(sol)
+
+    # convert_arguments enables lines(pd["scalar"])
+    fap = lines(pd["scalar"])
+    @test fap isa Makie.FigureAxisPlot
+
+    # plottype for 1D PlotDataSeries is Lines
+    @test Makie.plottype(pd["scalar"]) == Makie.Lines
+
+    # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
+    fap2 = Makie.plot(pd["scalar"])
+    @test fap2 isa Makie.FigureAxisPlot
+
+    # kwargs are forwarded to lines!
+    fap3 = Makie.plot(pd["scalar"], color = :red, linewidth = 2)
+    @test fap3 isa Makie.FigureAxisPlot
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = Makie.plot(pd)
+
+    # show_mesh kwarg triggers vlines! for mesh vertices
+    @trixi_test_nowarn Makie.plot(pd, show_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+    @test fig isa Makie.Figure
+    @test axes isa AbstractArray{<:Makie.Axis}
+
+    # Makie.plot(sol) for 1D solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to vlines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
+end
+
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                  "elixir_euler_wall_bc.jl"))
