@@ -1,4 +1,14 @@
 
+"""
+    PositivityPreservingLimiterLiuZhang(local_limiter!, semi; kwargs...)
+
+Positivity-preserving limiter which combines a global cell-average limiter 
+with a local limiter such as [`PositivityPreservingLimiterZhangShu`](@ref).
+The global cell-average limiter is from:
+- Liu, Milesis, Shu, Zhang (2026)
+  Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
+  [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
+"""
 mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
                                                    DavisYinZ <: AbstractVector,
