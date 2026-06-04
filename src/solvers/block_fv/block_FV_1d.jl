@@ -1,280 +1,96 @@
-# copied from fdsbp_tree_1d.jl, no changes yet
-
-# !!! warning "Experimental implementation (upwind SBP)"
-#     This is an experimental feature and may change in future releases.
-
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
-# Since these FMAs can increase the performance of many numerical algorithms,
-# we need to opt-in explicitly.
-# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
 
-# 1D caches
+# Cache creation for VolumeIntegralFiniteVolume
+# Thread-local storage for the n+1 interface fluxes within each block.
+# Slots 1 and n+1 (the element-boundary interfaces) stay zero; they are
+# handled by the surface integral.
 function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralStrongForm,
-                      dg, cache_containers, uEltype)
-    prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
-                                                                            ntuple(_ -> nnodes(dg),
-                                                                                   ndims(mesh))...)
-    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
-
-    return (; f_threaded)
-end
-
-function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralUpwind,
-                      dg, cache_containers, uEltype)
-    u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
-                                                            Val{nvariables(equations)}()))
-    f = StructArray([(u_node, u_node)])
-    f_minus_plus_threaded = [similar(f, ntuple(_ -> nnodes(dg), ndims(mesh))...)
-                             for _ in 1:Threads.maxthreadid()]
-
-    f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[1])
-    f_minus_threaded = [f_minus]
-    f_plus_threaded = [f_plus]
-    for i in 2:Threads.maxthreadid()
-        f_minus, f_plus = StructArrays.components(f_minus_plus_threaded[i])
-        push!(f_minus_threaded, f_minus)
-        push!(f_plus_threaded, f_plus)
+                      volume_integral::VolumeIntegralFiniteVolume,
+                      dg::BlockFV, cache_containers, uEltype)
+    n = nnodes(dg)
+    MA = MArray{Tuple{nvariables(equations), n + 1}, uEltype, 2,
+                nvariables(equations) * (n + 1)}
+    fstar_threaded = [MA(undef) for _ in 1:Threads.maxthreadid()]
+    for fstar in fstar_threaded
+        fstar[:, 1] .= zero(uEltype)
+        fstar[:, n + 1] .= zero(uEltype)
     end
-
-    return (; f_minus_plus_threaded, f_minus_threaded, f_plus_threaded)
+    return (; fstar_threaded)
 end
 
-# 2D volume integral contributions for `VolumeIntegralStrongForm`
+#####################################################################
+# Volume integral: FV flux differences at internal faces
+# The update for reference-element cell i is:
+# du[i] += inv_h * (fstar[i+1] - fstar[i])
+# where inv_h = n/2 = 1/h_ref (uniform cell size h_ref = 2/n).
+# Boundary slots fstar[1] and fstar[n+1] are kept zero so that the
+# surface integral can add the element-boundary fluxes separately.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{1},
                                have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralStrongForm,
-                               dg::FDSBP, cache)
-    D = dg.basis # SBP derivative operator
-    @unpack f_threaded = cache
-
-    # SBP operators from SummationByPartsOperators.jl implement the basic interface
-    # of matrix-vector multiplication. Thus, we pass an "array of structures",
-    # packing all variables per node in an `SVector`.
-    if nvariables(equations) == 1
-        # `reinterpret(reshape, ...)` removes the leading dimension only if more
-        # than one variable is used.
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nelements(dg, cache))
-        du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)},
-                                         du),
-                             nnodes(dg), nelements(dg, cache))
-    else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-        du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)},
-                                 du)
-    end
-
-    # Use the tensor product structure to compute the discrete derivatives of
-    # the fluxes line-by-line and add them to `du` for each element.
-    @threaded for element in eachelement(dg, cache)
-        f_element = f_threaded[Threads.threadid()]
-        u_element = view(u_vectors, :, element)
-
-        # x direction
-        @. f_element = flux(u_element, 1, equations)
-        mul!(view(du_vectors, :, element), D, view(f_element, :),
-             one(eltype(du)), one(eltype(du)))
-    end
-
-    return nothing
-end
-
-# 1D volume integral contributions for `VolumeIntegralUpwind`.
-# Note that the plus / minus notation of the operators does not refer to the
-# upwind / downwind directions of the fluxes.
-# Instead, the plus / minus refers to the direction of the biasing within
-# the finite difference stencils. Thus, the D^- operator acts on the positive
-# part of the flux splitting f^+ and the D^+ operator acts on the negative part
-# of the flux splitting f^-.
-function calc_volume_integral!(backend::Nothing, du, u,
-                               mesh::TreeMesh{1},
-                               have_nonconservative_terms::False, equations,
-                               volume_integral::VolumeIntegralUpwind,
-                               dg::FDSBP, cache)
-    # Assume that
-    # dg.basis isa SummationByPartsOperators.UpwindOperators
-    D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
-    D_plus = dg.basis.plus   # Upwind SBP D^+ derivative operator
-    @unpack f_minus_plus_threaded, f_minus_threaded, f_plus_threaded = cache
-    @unpack splitting = volume_integral
-
-    # SBP operators from SummationByPartsOperators.jl implement the basic interface
-    # of matrix-vector multiplication. Thus, we pass an "array of structures",
-    # packing all variables per node in an `SVector`.
-    if nvariables(equations) == 1
-        # `reinterpret(reshape, ...)` removes the leading dimension only if more
-        # than one variable is used.
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nelements(dg, cache))
-        du_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(du)},
-                                         du),
-                             nnodes(dg), nelements(dg, cache))
-    else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-        du_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(du)},
-                                 du)
-    end
-
-    # Use the tensor product structure to compute the discrete derivatives of
-    # the fluxes line-by-line and add them to `du` for each element.
-    @threaded for element in eachelement(dg, cache)
-        # f_minus_plus_element wraps the storage provided by f_minus_element and
-        # f_plus_element such that we can use a single plain broadcasting below.
-        # f_minus_element and f_plus_element are updated in broadcasting calls
-        # of the form `@. f_minus_plus_element = ...`.
-        f_minus_plus_element = f_minus_plus_threaded[Threads.threadid()]
-        f_minus_element = f_minus_threaded[Threads.threadid()]
-        f_plus_element = f_plus_threaded[Threads.threadid()]
-        u_element = view(u_vectors, :, element)
-
-        # x direction
-        @. f_minus_plus_element = splitting(u_element, 1, equations)
-        mul!(view(du_vectors, :, element), D_plus, view(f_minus_element, :),
-             one(eltype(du)), one(eltype(du)))
-        mul!(view(du_vectors, :, element), D_minus, view(f_plus_element, :),
-             one(eltype(du)), one(eltype(du)))
-    end
-
-    return nothing
-end
-
-function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{1},
-                                equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::DG, cache)
-    inv_weight_left = inv(left_boundary_weight(dg.basis))
-    inv_weight_right = inv(right_boundary_weight(dg.basis))
-    @unpack surface_flux_values = cache.elements
+                               volume_integral::VolumeIntegralFiniteVolume,
+                               dg::BlockFV, cache)
+    @unpack surface_flux = volume_integral
+    @unpack fstar_threaded = cache
+    inv_h = nnodes(dg) * one(eltype(u)) / 2  # = 1 / h_ref
 
     @threaded for element in eachelement(dg, cache)
-        # surface at -x
-        u_node = get_node_vars(u, equations, dg, 1, element)
-        f_node = flux(u_node, 1, equations)
-        f_num = get_node_vars(surface_flux_values, equations, dg, 1, element)
-        multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
-                                   equations, dg, 1, element)
+        fstar = fstar_threaded[Threads.threadid()]
 
-        # surface at +x
-        u_node = get_node_vars(u, equations, dg, nnodes(dg), element)
-        f_node = flux(u_node, 1, equations)
-        f_num = get_node_vars(surface_flux_values, equations, dg, 2, element)
-        multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
-                                   equations, dg, nnodes(dg), element)
-    end
+        # Fluxes at internal interfaces i + 1/2 for i = 1, ..., n-1
+        for i in 2:nnodes(dg)
+            u_ll = get_node_vars(u, equations, dg, i - 1, element)
+            u_rr = get_node_vars(u, equations, dg, i, element)
+            f = surface_flux(u_ll, u_rr, 1, equations)
+            set_node_vars!(fstar, f, equations, dg, i)
+        end
 
-    return nothing
-end
-
-# Periodic FDSBP operators need to use a single element without boundaries
-function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh1D,
-                                equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::PeriodicFDSBP, cache)
-    @assert nelements(dg, cache) == 1
-    return nothing
-end
-
-# Specialized interface flux computation because the upwind solver does
-# not require a standard numerical flux (Riemann solver). The flux splitting
-# already separates the solution information into right-traveling and
-# left-traveling information. So we only need to compute the appropriate
-# flux information at each side of an interface.
-function calc_interface_flux!(surface_flux_values,
-                              mesh::TreeMesh{1},
-                              have_nonconservative_terms::False, equations,
-                              surface_integral::SurfaceIntegralUpwind,
-                              dg::FDSBP, cache)
-    @unpack splitting = surface_integral
-    @unpack u, neighbor_ids, orientations = cache.interfaces
-
-    @threaded for interface in eachinterface(dg, cache)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
-
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
-
-        # Pull the left and right solution data
-        u_ll, u_rr = get_surface_node_vars(u, equations, dg, interface)
-
-        # Compute the upwind coupling terms where right-traveling
-        # information comes from the left and left-traveling information
-        # comes from the right
-        flux_minus_rr = splitting(u_rr, Val{:minus}(), orientations[interface],
-                                  equations)
-        flux_plus_ll = splitting(u_ll, Val{:plus}(), orientations[interface], equations)
-
-        # Save the upwind coupling into the appropriate side of the elements
-        for v in eachvariable(equations)
-            surface_flux_values[v, left_direction, left_id] = flux_minus_rr[v]
-            surface_flux_values[v, right_direction, right_id] = flux_plus_ll[v]
+        # Apply flux differences to du (boundary slots are zero)
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                du[v, i, element] += inv_h * (fstar[v, i + 1] - fstar[v, i])
+            end
         end
     end
 
     return nothing
 end
 
-# Implementation of fully upwind SATs. The surface flux values are pre-computed
-# in the specialized `calc_interface_flux` routine. These SATs are still of
-# a strong form penalty type, except that the interior flux at a particular
-# side of the element are computed in the upwind direction.
-function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{1},
-                                equations, surface_integral::SurfaceIntegralUpwind,
-                                dg::FDSBP, cache)
-    inv_weight_left = inv(left_boundary_weight(dg.basis))
-    inv_weight_right = inv(right_boundary_weight(dg.basis))
+#####################################################################
+# Surface integral: element-boundary fluxes added to the boundary cells
+# After apply_jacobian! multiplies by -inverse_jacobian, the combined
+# volume + surface contribution gives the correct FV flux-difference update
+# for every cell, including the outermost ones.
+function calc_surface_integral!(backend::Nothing, du, u,
+                                mesh::TreeMesh{1},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::BlockFV, cache)
+    inv_h = nnodes(dg) * one(eltype(du)) / 2  # = n/2 = 1/h_ref
     @unpack surface_flux_values = cache.elements
-    @unpack splitting = surface_integral
 
     @threaded for element in eachelement(dg, cache)
-        # surface at -x
-        u_node = get_node_vars(u, equations, dg, 1, element)
-        f_node = splitting(u_node, Val{:plus}(), 1, equations)
-        f_num = get_node_vars(surface_flux_values, equations, dg, 1, element)
-        multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
-                                   equations, dg, 1, element)
-
-        # surface at +x
-        u_node = get_node_vars(u, equations, dg, nnodes(dg), element)
-        f_node = splitting(u_node, Val{:minus}(), 1, equations)
-        f_num = get_node_vars(surface_flux_values, equations, dg, 2, element)
-        multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
-                                   equations, dg, nnodes(dg), element)
+        for v in eachvariable(equations)
+            # Left element boundary (direction 1 = -x)
+            du[v, 1, element] -= surface_flux_values[v, 1, element] * inv_h
+            # Right element boundary (direction 2 = +x)
+            du[v, nnodes(dg), element] += surface_flux_values[v, 2, element] * inv_h
+        end
     end
 
     return nothing
 end
 
-# Periodic FDSBP operators need to use a single element without boundaries
-function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh1D,
-                                equations, surface_integral::SurfaceIntegralUpwind,
-                                dg::PeriodicFDSBP, cache)
-    @assert nelements(dg, cache) == 1
-    return nothing
-end
-
-# AnalysisCallback
-
+#####################################################################
+# Integrate a function over the domain using FV quadrature
 function integrate_via_indices(func::Func, u,
                                mesh::TreeMesh{1}, equations,
-                               dg::FDSBP, cache, args...; normalize = true) where {Func}
-    # TODO: FD. This is rather inefficient right now and allocates...
-    M = SummationByPartsOperators.mass_matrix(dg.basis)
-    if M isa UniformScaling
-        M = M(nnodes(dg))
-    end
-    weights = diag(M)
+                               dg::BlockFV, cache, args...;
+                               normalize = true) where {Func}
+    @unpack weights = dg.basis
 
-    # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, equations, dg, args...))
 
-    # Use quadrature to numerically integrate over entire domain
     @batch reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for i in eachnode(dg)
@@ -283,7 +99,6 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    # Normalize with total volume
     if normalize
         integral = integral / total_volume(mesh)
     end
@@ -291,29 +106,25 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
+#####################################################################
+# Compute discrete L2 and L∞ error norms
+# No polynomial interpolation is needed; the solution is a cell average at
+# each FV cell center, so we evaluate the exact solution there directly.
 function calc_error_norms(func, u, t, analyzer,
                           mesh::TreeMesh{1}, equations, initial_condition,
-                          dg::FDSBP, cache, cache_analysis)
-    # TODO: FD. This is rather inefficient right now and allocates...
-    M = SummationByPartsOperators.mass_matrix(dg.basis)
-    if M isa UniformScaling
-        M = M(nnodes(dg))
-    end
-    weights = diag(M)
+                          dg::BlockFV, cache, cache_analysis)
+    @unpack weights = dg.basis
     @unpack node_coordinates = cache.elements
 
-    # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
     linf_error = copy(l2_error)
 
-    # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
-        # Calculate errors at each node
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
-        for i in eachnode(analyzer)
-            u_exact = initial_condition(get_node_coords(node_coordinates, equations, dg,
-                                                        i, element), t, equations)
+        for i in eachnode(dg)
+            x = get_node_coords(node_coordinates, equations, dg, i, element)
+            u_exact = initial_condition(x, t, equations)
             diff = func(u_exact, equations) -
                    func(get_node_vars(u, equations, dg, i, element), equations)
             l2_error += diff .^ 2 * (weights[i] * volume_jacobian_)
@@ -321,7 +132,6 @@ function calc_error_norms(func, u, t, analyzer,
         end
     end
 
-    # For L2 error, divide by total volume
     total_volume_ = total_volume(mesh)
     l2_error = @. sqrt(l2_error / total_volume_)
 

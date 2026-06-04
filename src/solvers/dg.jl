@@ -1130,6 +1130,11 @@ include("dgsem/dgsem.jl")
 include("fdsbp_tree/fdsbp.jl")
 include("fdsbp_unstructured/fdsbp.jl")
 
+# Block-structured finite volume methods
+include("block_fv/finite_volume_basis.jl")
+include("block_fv/block_FV_1d.jl")
+include("block_fv/block_FV_2d.jl")
+
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
