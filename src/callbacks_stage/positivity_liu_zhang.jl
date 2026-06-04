@@ -27,7 +27,6 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     history_davis_yin_iterations::Vector{Int}
 end
 
-# TODO: choose parameter values more rigorously
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
                                              global_limiter_tol = 1e3 * eps(real(semi)),
@@ -70,8 +69,9 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 semi::AbstractSemidiscretization,
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages, sqrt_cell_volumes,
-    total_volume, global_limiter_tol, max_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
+    (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages,
+    sqrt_cell_volumes, total_volume, global_limiter_tol,
+    max_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
     u = wrap_array(u_ode, semi)
 
