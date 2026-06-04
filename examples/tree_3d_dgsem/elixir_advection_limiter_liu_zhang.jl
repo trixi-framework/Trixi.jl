@@ -23,7 +23,7 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure
+                periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
@@ -47,18 +47,7 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 # We use a large CFL number here, which causes Zhang-Shu limiting by itself to fail.
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
-amr_indicator = IndicatorLöhner(semi, variable = first)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 3,
-                                      med_level = 4, med_threshold = 0.1,
-                                      max_level = 5, max_threshold = 0.6)
-
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
-callbacks = CallbackSet(summary_callback, analysis_callback, amr_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 
 ###############################################################################
 # run the simulation

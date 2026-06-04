@@ -20,11 +20,11 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_limiter_liu_zhang.jl" begin
+@trixi_testset "elixir_advection_limiter_liu_zhang.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advection_amr_limiter_liu_zhang.jl"),
-                        l2=[0.09543530228753379],
-                        linf=[0.8482865922903144])
+                                 "elixir_advection_limiter_liu_zhang.jl"),
+                        l2=[0.09906427048468684],
+                        linf=[0.8512982403210421])
     u = Trixi.wrap_array_native(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
