@@ -25,7 +25,7 @@ end
                                  "elixir_advection_limiter_liu_zhang.jl"),
                         l2=[0.09906427048468684],
                         linf=[0.8512982403210421],
-                        record_davis_yin_iterations = true)
+                        record_davis_yin_iterations=true)
     u = Trixi.wrap_array_native(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()

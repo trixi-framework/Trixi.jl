@@ -28,8 +28,8 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    ProjectedCellAverages <: AbstractVector,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
-                                                   RealT <: Real, 
-                                                   HistoryDavisYinIterations} 
+                                                   RealT <: Real,
+                                                   HistoryDavisYinIterations}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
     davis_yin_Z::DavisYinZ
