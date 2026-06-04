@@ -28,7 +28,7 @@ using Accessors: @reset
 using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
                      cross,
                      normalize, I,
-                     UniformScaling, det, pinv
+                     UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
                     rowvals, nzrange, nonzeros

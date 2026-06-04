@@ -77,6 +77,6 @@ local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
                                                      variables = ((u, equations) -> u[1],))
 stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
 
-sol = solve(ode, RDPK3SpFSAL35(stage_limiter!); adaptive = false,
+sol = solve(ode, RDPK3SpFSAL35(; stage_limiter!); adaptive = false,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

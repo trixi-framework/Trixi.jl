@@ -108,10 +108,11 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                 break
             end
         end
+        cell_average_bounds_violated && break
     end
 
     # if any cell average violates a positivity bound, apply the global limiter
-    if cell_average_bounds_violated == true
+    if cell_average_bounds_violated
         @trixi_timeit timer() "positivity-preserving limiter" begin
             global_cell_average_limiter!(u, cell_averages,
                                          davis_yin_Z, projected_cell_averages,
