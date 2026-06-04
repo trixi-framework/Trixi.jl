@@ -94,7 +94,6 @@ end
                         l2=[0.40243297135739065],
                         linf=[1.4242538145005352])
     u = Trixi.wrap_array_native(sol.u[end], semi)
-    @test !any(isnan, u)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
