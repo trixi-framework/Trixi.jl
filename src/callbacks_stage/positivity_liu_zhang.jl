@@ -15,7 +15,8 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    ProjectedCellAverages <: AbstractVector,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
-                                                   RealT <: Real}
+                                                   RealT <: Real, 
+                                                   HistoryDavisYinIterations} 
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
     davis_yin_Z::DavisYinZ
@@ -24,7 +25,7 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     total_volume::RealT
     global_limiter_tol::RealT
     max_davis_yin_iterations::Int
-    history_davis_yin_iterations::Vector{Int}
+    history_davis_yin_iterations::HistoryDavisYinIterations
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
@@ -56,7 +57,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     davis_yin_Z = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
 
-    history_davis_yin_iterations = Int[]
+    history_davis_yin_iterations = record_davis_yin_iterations ? Int[] : nothing
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
