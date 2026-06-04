@@ -132,8 +132,6 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     return nothing
 end
 
-include("admissible_projection_euler.jl")
-
 # for any scalar equation, the admissible set is assumed to be u > u_lower, and 
 # projection to the admissible set is simply a clipping operation
 @inline function project_to_admissible_set(cell_average, lower_bound, variables,
