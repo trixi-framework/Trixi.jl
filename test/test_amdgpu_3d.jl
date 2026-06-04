@@ -190,6 +190,7 @@ end
 @trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
+    using Trixi
     @inline function flux_volume_combined(u_ll, u_rr, normal_direction::AbstractVector,
                                           equations::IdealGlmMhdEquations3D)
         flux = flux_hindenlang_gassner(u_ll, u_rr, normal_direction, equations)

@@ -177,6 +177,7 @@ end
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl native" begin
+    using Trixi
     @inline function flux_volume_combined(u_ll, u_rr, normal_direction::AbstractVector,
                                           equations::IdealGlmMhdEquations3D)
         flux = flux_hindenlang_gassner(u_ll, u_rr, normal_direction, equations)
@@ -226,6 +227,7 @@ end
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl Float32" begin
+    using Trixi
     @inline function flux_volume_combined(u_ll, u_rr, normal_direction::AbstractVector,
                                           equations::IdealGlmMhdEquations3D)
         flux = flux_hindenlang_gassner(u_ll, u_rr, normal_direction, equations)
