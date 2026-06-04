@@ -2,10 +2,191 @@ module TestExamplesMPIP4estMesh3D
 
 using Test
 using Trixi
+using Trixi: @muladd
 
 include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+
+@muladd @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
+                                                                        normal_direction::AbstractVector,
+                                                                        equations::IdealGlmMhdEquations3D)
+    # Unpack left and right states
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll,
+                                                                               equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr,
+                                                                               equations)
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] +
+                 v3_ll * normal_direction[3]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] +
+                 v3_rr * normal_direction[3]
+    B_dot_n_ll = B1_ll * normal_direction[1] + B2_ll * normal_direction[2] +
+                 B3_ll * normal_direction[3]
+    B_dot_n_rr = B1_rr * normal_direction[1] + B2_rr * normal_direction[2] +
+                 B3_rr * normal_direction[3]
+
+    # Compute the necessary mean values needed for either direction
+    rho_mean = Trixi.ln_mean(rho_ll, rho_rr)
+    # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
+    # in exact arithmetic since
+    #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
+    #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
+    inv_rho_p_mean = p_ll * p_rr * Trixi.inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    psi_avg = 0.5f0 * (psi_ll + psi_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+    magnetic_square_avg = 0.5f0 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+
+    # Calculate fluxes depending on normal_direction
+    f1 = rho_mean * 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
+    f2 = (f1 * v1_avg + (p_avg + magnetic_square_avg) * normal_direction[1]
+          -
+          0.5f0 * (B_dot_n_ll * B1_rr + B_dot_n_rr * B1_ll))
+    f3 = (f1 * v2_avg + (p_avg + magnetic_square_avg) * normal_direction[2]
+          -
+          0.5f0 * (B_dot_n_ll * B2_rr + B_dot_n_rr * B2_ll))
+    f4 = (f1 * v3_avg + (p_avg + magnetic_square_avg) * normal_direction[3]
+          -
+          0.5f0 * (B_dot_n_ll * B3_rr + B_dot_n_rr * B3_ll))
+    #f5 below
+    f6 = (equations.c_h * psi_avg * normal_direction[1]
+          +
+          0.5f0 * (v_dot_n_ll * B1_ll - v1_ll * B_dot_n_ll +
+           v_dot_n_rr * B1_rr - v1_rr * B_dot_n_rr))
+    f7 = (equations.c_h * psi_avg * normal_direction[2]
+          +
+          0.5f0 * (v_dot_n_ll * B2_ll - v2_ll * B_dot_n_ll +
+           v_dot_n_rr * B2_rr - v2_rr * B_dot_n_rr))
+    f8 = (equations.c_h * psi_avg * normal_direction[3]
+          +
+          0.5f0 * (v_dot_n_ll * B3_ll - v3_ll * B_dot_n_ll +
+           v_dot_n_rr * B3_rr - v3_rr * B_dot_n_rr))
+    f9 = equations.c_h * 0.5f0 * (B_dot_n_ll + B_dot_n_rr)
+    # total energy flux is complicated and involves the previous components
+    f5 = (f1 *
+          (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
+          +
+          0.5f0 * (+p_ll * v_dot_n_rr + p_rr * v_dot_n_ll
+           + (v_dot_n_ll * B1_ll * B1_rr + v_dot_n_rr * B1_rr * B1_ll)
+           + (v_dot_n_ll * B2_ll * B2_rr + v_dot_n_rr * B2_rr * B2_ll)
+           + (v_dot_n_ll * B3_ll * B3_rr + v_dot_n_rr * B3_rr * B3_ll)
+           -
+           (v1_ll * B_dot_n_ll * B1_rr + v1_rr * B_dot_n_rr * B1_ll)
+           -
+           (v2_ll * B_dot_n_ll * B2_rr + v2_rr * B_dot_n_rr * B2_ll)
+           -
+           (v3_ll * B_dot_n_ll * B3_rr + v3_rr * B_dot_n_rr * B3_ll)
+           +
+           equations.c_h * (B_dot_n_ll * psi_rr + B_dot_n_rr * psi_ll)))
+
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    v_dot_B_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
+    f = SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
+    g_left = SVector(0,
+                     B1_ll * B_dot_n_rr,
+                     B2_ll * B_dot_n_rr,
+                     B3_ll * B_dot_n_rr,
+                     v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+                     v1_ll * B_dot_n_rr,
+                     v2_ll * B_dot_n_rr,
+                     v3_ll * B_dot_n_rr,
+                     v_dot_n_ll * psi_rr)
+
+    g_right = SVector(0,
+                      B1_rr * B_dot_n_ll,
+                      B2_rr * B_dot_n_ll,
+                      B3_rr * B_dot_n_ll,
+                      v_dot_B_rr * B_dot_n_ll + v_dot_n_rr * psi_rr * psi_ll,
+                      v1_rr * B_dot_n_ll,
+                      v2_rr * B_dot_n_ll,
+                      v3_rr * B_dot_n_ll,
+                      v_dot_n_rr * psi_ll)
+    flux_left = f + 0.5f0 * g_left
+    flux_right = f + 0.5f0 * g_right
+    return flux_left, flux_right
+end
+
+@inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hindenlang_gassner_nonconservative_powell),
+equations::IdealGlmMhdEquations3D) = Trixi.True()
+
+@muladd @inline function flux_hlle_nonconservative_powell(u_ll, u_rr,
+                                                          normal_direction::AbstractVector,
+                                                          equations::IdealGlmMhdEquations3D)
+    f = flux_hlle(u_ll, u_rr, normal_direction, equations)
+
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+    v3_rr = rho_v3_rr / rho_rr
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+    v_dot_B_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
+
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] +
+                 v3_ll * normal_direction[3]
+    B_dot_n_rr = B1_rr * normal_direction[1] +
+                 B2_rr * normal_direction[2] +
+                 B3_rr * normal_direction[3]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] +
+                 v3_rr * normal_direction[3]
+    B_dot_n_ll = B1_ll * normal_direction[1] +
+                 B2_ll * normal_direction[2] +
+                 B3_ll * normal_direction[3]
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
+    g_left = SVector(0,
+                     B1_ll * B_dot_n_rr,
+                     B2_ll * B_dot_n_rr,
+                     B3_ll * B_dot_n_rr,
+                     v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
+                     v1_ll * B_dot_n_rr,
+                     v2_ll * B_dot_n_rr,
+                     v3_ll * B_dot_n_rr,
+                     v_dot_n_ll * psi_rr)
+
+    g_right = SVector(0,
+                      B1_rr * B_dot_n_ll,
+                      B2_rr * B_dot_n_ll,
+                      B3_rr * B_dot_n_ll,
+                      v_dot_B_rr * B_dot_n_ll + v_dot_n_rr * psi_rr * psi_ll,
+                      v1_rr * B_dot_n_ll,
+                      v2_rr * B_dot_n_ll,
+                      v3_rr * B_dot_n_ll,
+                      v_dot_n_rr * psi_ll)
+    flux_left = f + 0.5f0 * g_left
+    flux_right = f + 0.5f0 * g_right
+
+    return flux_left, flux_right
+end
+
+@inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hlle_nonconservative_powell),
+equations::IdealGlmMhdEquations3D) = Trixi.True()
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function::typeof(flux_hlle_nonconservative_powell),
+                                                                  equations)
+
+    # get the external value of the solution
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    flux, _ = surface_flux_function(u_inner, u_boundary, normal_direction,
+                                    equations)
+    return flux
+end
 
 @testset "P4estMesh MPI 3D" begin
 #! format: noindent
@@ -244,201 +425,29 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 end
 
 @trixi_testset "MPI 3D, combine_conservative_and_nonconservative_fluxes" begin
-    @muladd @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
-                                                                            normal_direction::AbstractVector,
-                                                                            equations::IdealGlmMhdEquations3D)
-        # Unpack left and right states
-        rho_ll, v1_ll, v2_ll, v3_ll, p_ll, B1_ll, B2_ll, B3_ll, psi_ll = cons2prim(u_ll,
-                                                                                   equations)
-        rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr, psi_rr = cons2prim(u_rr,
-                                                                                   equations)
-        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] +
-                     v3_ll * normal_direction[3]
-        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] +
-                     v3_rr * normal_direction[3]
-        B_dot_n_ll = B1_ll * normal_direction[1] + B2_ll * normal_direction[2] +
-                     B3_ll * normal_direction[3]
-        B_dot_n_rr = B1_rr * normal_direction[1] + B2_rr * normal_direction[2] +
-                     B3_rr * normal_direction[3]
-
-        # Compute the necessary mean values needed for either direction
-        rho_mean = Trixi.ln_mean(rho_ll, rho_rr)
-        # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
-        # in exact arithmetic since
-        #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
-        #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
-        inv_rho_p_mean = p_ll * p_rr * Trixi.inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
-        v1_avg = 0.5f0 * (v1_ll + v1_rr)
-        v2_avg = 0.5f0 * (v2_ll + v2_rr)
-        v3_avg = 0.5f0 * (v3_ll + v3_rr)
-        p_avg = 0.5f0 * (p_ll + p_rr)
-        psi_avg = 0.5f0 * (psi_ll + psi_rr)
-        velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
-        magnetic_square_avg = 0.5f0 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
-
-        # Calculate fluxes depending on normal_direction
-        f1 = rho_mean * 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
-        f2 = (f1 * v1_avg + (p_avg + magnetic_square_avg) * normal_direction[1]
-              -
-              0.5f0 * (B_dot_n_ll * B1_rr + B_dot_n_rr * B1_ll))
-        f3 = (f1 * v2_avg + (p_avg + magnetic_square_avg) * normal_direction[2]
-              -
-              0.5f0 * (B_dot_n_ll * B2_rr + B_dot_n_rr * B2_ll))
-        f4 = (f1 * v3_avg + (p_avg + magnetic_square_avg) * normal_direction[3]
-              -
-              0.5f0 * (B_dot_n_ll * B3_rr + B_dot_n_rr * B3_ll))
-        #f5 below
-        f6 = (equations.c_h * psi_avg * normal_direction[1]
-              +
-              0.5f0 * (v_dot_n_ll * B1_ll - v1_ll * B_dot_n_ll +
-               v_dot_n_rr * B1_rr - v1_rr * B_dot_n_rr))
-        f7 = (equations.c_h * psi_avg * normal_direction[2]
-              +
-              0.5f0 * (v_dot_n_ll * B2_ll - v2_ll * B_dot_n_ll +
-               v_dot_n_rr * B2_rr - v2_rr * B_dot_n_rr))
-        f8 = (equations.c_h * psi_avg * normal_direction[3]
-              +
-              0.5f0 * (v_dot_n_ll * B3_ll - v3_ll * B_dot_n_ll +
-               v_dot_n_rr * B3_rr - v3_rr * B_dot_n_rr))
-        f9 = equations.c_h * 0.5f0 * (B_dot_n_ll + B_dot_n_rr)
-        # total energy flux is complicated and involves the previous components
-        f5 = (f1 *
-              (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
-              +
-              0.5f0 * (+p_ll * v_dot_n_rr + p_rr * v_dot_n_ll
-               + (v_dot_n_ll * B1_ll * B1_rr + v_dot_n_rr * B1_rr * B1_ll)
-               + (v_dot_n_ll * B2_ll * B2_rr + v_dot_n_rr * B2_rr * B2_ll)
-               + (v_dot_n_ll * B3_ll * B3_rr + v_dot_n_rr * B3_rr * B3_ll)
-               -
-               (v1_ll * B_dot_n_ll * B1_rr + v1_rr * B_dot_n_rr * B1_ll)
-               -
-               (v2_ll * B_dot_n_ll * B2_rr + v2_rr * B_dot_n_rr * B2_ll)
-               -
-               (v3_ll * B_dot_n_ll * B3_rr + v3_rr * B_dot_n_rr * B3_ll)
-               +
-               equations.c_h * (B_dot_n_ll * psi_rr + B_dot_n_rr * psi_ll)))
-
-        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
-
-        v_dot_B_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
-        f = SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
-        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
-        g_left = SVector(0,
-                         B1_ll * B_dot_n_rr,
-                         B2_ll * B_dot_n_rr,
-                         B3_ll * B_dot_n_rr,
-                         v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
-                         v1_ll * B_dot_n_rr,
-                         v2_ll * B_dot_n_rr,
-                         v3_ll * B_dot_n_rr,
-                         v_dot_n_ll * psi_rr)
-
-        g_right = SVector(0,
-                          B1_rr * B_dot_n_ll,
-                          B2_rr * B_dot_n_ll,
-                          B3_rr * B_dot_n_ll,
-                          v_dot_B_rr * B_dot_n_ll + v_dot_n_rr * psi_rr * psi_ll,
-                          v1_rr * B_dot_n_ll,
-                          v2_rr * B_dot_n_ll,
-                          v3_rr * B_dot_n_ll,
-                          v_dot_n_rr * psi_ll)
-        flux_left = f + 0.5f0 * g_left
-        flux_right = f + 0.5f0 * g_right
-        return flux_left, flux_right
-    end
-
-    @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hindenlang_gassner_nonconservative_powell),
-    equations::IdealGlmMhdEquations3D) = Trixi.True()
-
-    @muladd @inline function flux_hlle_nonconservative_powell(u_ll, u_rr,
-                                                              normal_direction::AbstractVector,
-                                                              equations::IdealGlmMhdEquations3D)
-        f = flux_hlle(u_ll, u_rr, normal_direction, equations)
-
-        rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_total_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-        rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_total_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
-
-        v1_ll = rho_v1_ll / rho_ll
-        v2_ll = rho_v2_ll / rho_ll
-        v3_ll = rho_v3_ll / rho_ll
-        v1_rr = rho_v1_rr / rho_rr
-        v2_rr = rho_v2_rr / rho_rr
-        v3_rr = rho_v3_rr / rho_rr
-        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
-        v_dot_B_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
-
-        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] +
-                     v3_ll * normal_direction[3]
-        B_dot_n_rr = B1_rr * normal_direction[1] +
-                     B2_rr * normal_direction[2] +
-                     B3_rr * normal_direction[3]
-        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] +
-                     v3_rr * normal_direction[3]
-        B_dot_n_ll = B1_ll * normal_direction[1] +
-                     B2_ll * normal_direction[2] +
-                     B3_ll * normal_direction[3]
-
-        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
-        g_left = SVector(0,
-                         B1_ll * B_dot_n_rr,
-                         B2_ll * B_dot_n_rr,
-                         B3_ll * B_dot_n_rr,
-                         v_dot_B_ll * B_dot_n_rr + v_dot_n_ll * psi_ll * psi_rr,
-                         v1_ll * B_dot_n_rr,
-                         v2_ll * B_dot_n_rr,
-                         v3_ll * B_dot_n_rr,
-                         v_dot_n_ll * psi_rr)
-
-        g_right = SVector(0,
-                          B1_rr * B_dot_n_ll,
-                          B2_rr * B_dot_n_ll,
-                          B3_rr * B_dot_n_ll,
-                          v_dot_B_rr * B_dot_n_ll + v_dot_n_rr * psi_rr * psi_ll,
-                          v1_rr * B_dot_n_ll,
-                          v2_rr * B_dot_n_ll,
-                          v3_rr * B_dot_n_ll,
-                          v_dot_n_rr * psi_ll)
-        flux_left = f + 0.5f0 * g_left
-        flux_right = f + 0.5f0 * g_right
-
-        return flux_left, flux_right
-    end
-
-    @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hlle_nonconservative_powell),
-    equations::IdealGlmMhdEquations3D) = Trixi.True()
-
-    @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
-                                                                      normal_direction::AbstractVector,
-                                                                      x, t,
-                                                                      surface_flux_function::typeof(flux_hlle_nonconservative_powell),
-                                                                      equations)
-
-        # get the external value of the solution
-        u_boundary = boundary_condition.boundary_value_function(x, t, equations)
-
-        # Calculate boundary flux
-        flux, _ = surface_flux_function(u_inner, u_boundary, normal_direction,
-                                        equations)
-        return flux
-    end
-
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonperiodic.jl"),
                         l2=[
-                            0.0015106060984283647,
-                            0.0014733349038567685,
-                            0.00147333490385685,
-                            0.001473334903856929,
-                            0.0028149479453087093
+                            0.00016685346840278242,
+                            0.0005154506694638523,
+                            0.0002741403494840161,
+                            0.000628064982690625,
+                            0.0007117011840167738,
+                            0.00057551775851691,
+                            0.00016486658455163385,
+                            0.0006159196451236003,
+                            5.620082696216583e-6
                         ],
                         linf=[
-                            0.008070806335238156,
-                            0.009007245083113125,
-                            0.009007245083121784,
-                            0.009007245083102688,
-                            0.01562861968368434
+                            0.0009856622498860546,
+                            0.003212690078978092,
+                            0.0018209418605107178,
+                            0.0030958340409428936,
+                            0.004144802264713476,
+                            0.0032428624362619285,
+                            0.001133536401913826,
+                            0.003183818489931725,
+                            2.3051612160404968e-5
                         ],
                         surface_flux=flux_hlle_nonconservative_powell,
                         volume_integral=VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell),
