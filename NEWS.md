@@ -8,6 +8,9 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
+- Added `PositivityPreservingLimiterLiuZhang`, a global cell-average positivity limiter composable
+  with `PositivityPreservingLimiterZhangShu` on `TreeMesh`/`DGSEM`. Currently supports scalar
+  equations with lower-bound constraints only.
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
