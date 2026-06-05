@@ -23,6 +23,21 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_blockfv")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_advection_basic.jl with less n_nodes and higher refinement" begin
+    # This has exactly the same degrees of freedom and errors as the previous test.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        n_nodes = 2,
+                        initial_refinement_level = 5,
+                        l2=[0.017295205942012868],
+                        linf=[0.02444847499806624],
+                        tspan=(0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 end # Linear scalar advection
 
 @testset "Compressible Euler equations" begin
@@ -40,7 +55,8 @@ end # Linear scalar advection
                             0.008833868998898514,
                             0.0011042336248863194],
                         tspan=(0.0, 0.5))
-
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
@@ -56,7 +72,8 @@ end
                             0.8127969969547908,
                             2.271903270249524],
                         tspan=(0.0, 1.0))
-
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
@@ -72,10 +89,13 @@ end
                             0.013649501767585726,
                             0.03876289859195037],
                         tspan=(0.0, 0.5))
-
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
 end # Compressible Euler equations
+
 end # BlockFV 2D
 
 end # module
