@@ -6,7 +6,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-solver = BlockFV(n_nodes = 4, surface_flux = flux_lax_friedrichs)
+solver = BlockFV(n_nodes = 4, surface_flux = flux_hllc)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)

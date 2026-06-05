@@ -50,7 +50,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 
-solver = BlockFV(n_nodes = 10, surface_flux = flux_lax_friedrichs)
+solver = BlockFV(n_nodes = 10, surface_flux = flux_hllc)
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)

@@ -6,7 +6,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-solver = BlockFV(n_nodes = 8, surface_flux = flux_lax_friedrichs)
+solver = BlockFV(n_nodes = 8, surface_flux = flux_hllc)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
@@ -26,7 +26,9 @@ tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
+
 analysis_callback = AnalysisCallback(semi, interval = 100)
+
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
