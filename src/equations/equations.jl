@@ -406,8 +406,10 @@ have_constant_speed(::AbstractEquations) = False()
 
 """
     have_aux_node_vars(equations)
-Trait function determining whether `equations` need to access additional auxiliary
-variables.
+Trait function determining whether auxiliary variables should be stored at each node 
+alongside the solution variables and used to compute the flux for `equations`. When 
+`True()`, the signature of [`flux`](@ref) becomes the following:
+
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_aux_node_vars(::AbstractEquations) = False()
