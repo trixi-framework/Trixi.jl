@@ -204,7 +204,8 @@ function flux(u, gradients, orientation::Integer,
     # more complex functions like Sutherland's law are possible.
     # `dynamic_viscosity` is a helper function that handles both cases
     # by dispatching on the type of `equations.mu`.
-    mu = dynamic_viscosity(u, equations)
+    u_org = entropy2cons(u, equations)
+    mu = dynamic_viscosity(u_org, equations)
 
     if orientation == 1
         # parabolic flux components in the x-direction
@@ -438,9 +439,9 @@ end
 
 @inline function divergence_velocity(u, gradients, 
     equations::CompressibleNavierStokesDiffusion3D)
-    _, dv1dx, _, _, _ = convert_derivative_to_primitive(w, gradients[1], equations)
-    _, _, dv2dy, _, _ = convert_derivative_to_primitive(w, gradients[2], equations)
-    _, _, _, dv3dz, _ = convert_derivative_to_primitive(w, gradients[3], equations)
+    _, dv1dx, _, _, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, _, dv2dy, _, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    _, _, _, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3], equations)
     return dv1dx + dv2dy + dv3dz
 end
 
