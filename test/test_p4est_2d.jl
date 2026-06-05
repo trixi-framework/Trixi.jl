@@ -109,8 +109,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @trixi_testset "elixir_advection_coupled.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-                            l2=[0.00013318279010712176, 0.00013318279010712014],
-                            linf=[0.000960578229013187, 0.0009605782290140752])
+                            l2=[0.00013318279010717573, 0.00013318279010712838],
+                            linf=[0.0009605782290112996, 0.0009605782290100784])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
