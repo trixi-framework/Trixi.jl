@@ -15,9 +15,13 @@ dg = DGMulti(element_type = Line(),
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
+left(x, tol = 50 * eps()) = abs(x[1] + 1) < tol
+right(x, tol = 50 * eps()) = abs(x[1] - 1) < tol
+is_on_boundary = (; left = left, right = right)
+
 mesh = DGMultiMesh(dg, (1,),
                    coordinates_min = (-1.0,), coordinates_max = (1.0,),
-                   is_on_boundary = Dict(:left => x -> x ≈ -1.0, :right => x -> x ≈ 1.0),
+                   is_on_boundary = is_on_boundary,
                    periodicity = false)
 
 # nonperiodic BCs
