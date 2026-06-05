@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
 
@@ -72,10 +76,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
         for j in eachnode(dg)
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    du[v, i, j, element] += inv_h *
-                                            (fstar_x[v, i + 1, j] - fstar_x[v, i, j])
-                    du[v, i, j, element] += inv_h *
-                                            (fstar_y[v, i, j + 1] - fstar_y[v, i, j])
+                    du[v, i, j, element] = (du[v, i, j, element] +
+                                            inv_h *
+                                            (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
+                                            inv_h *
+                                            (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
                 end
             end
         end
@@ -92,26 +97,30 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::TreeMesh{2},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::BlockFV, cache)
-    inv_h = nnodes(dg) * one(eltype(du)) / 2
     @unpack surface_flux_values = cache.elements
+    inv_h = nnodes(dg) * one(eltype(du)) / 2
 
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg)
             for v in eachvariable(equations)
                 # left boundary (-x): update leftmost column i=1
-                du[v, 1, j, element] -= surface_flux_values[v, j, 1, element] * inv_h
+                du[v, 1, j, element] = du[v, 1, j, element] -
+                                       inv_h * surface_flux_values[v, j, 1, element]
                 # right boundary (+x): update rightmost column i=n
-                du[v, nnodes(dg), j, element] += surface_flux_values[v, j, 2,
-                                                                     element] * inv_h
+                du[v, nnodes(dg), j, element] = du[v, nnodes(dg), j, element] +
+                                                inv_h *
+                                                surface_flux_values[v, j, 2, element]
             end
         end
         for i in eachnode(dg)
             for v in eachvariable(equations)
                 # bottom boundary (-y): update bottom row j=1
-                du[v, i, 1, element] -= surface_flux_values[v, i, 3, element] * inv_h
+                du[v, i, 1, element] = du[v, i, 1, element] -
+                                       inv_h * surface_flux_values[v, i, 3, element]
                 # top boundary (+y): update top row j=n
-                du[v, i, nnodes(dg), element] += surface_flux_values[v, i, 4,
-                                                                     element] * inv_h
+                du[v, i, nnodes(dg), element] = du[v, i, nnodes(dg), element] +
+                                                inv_h *
+                                                surface_flux_values[v, i, 4, element]
             end
         end
     end
@@ -139,7 +148,10 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    normalize && (integral /= total_volume(mesh))
+    if normalize
+        integral = integral / total_volume(mesh)
+    end
+
     return integral
 end
 

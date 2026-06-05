@@ -1,3 +1,7 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
 
@@ -49,7 +53,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
         # Apply flux differences to du (boundary slots are zero)
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                du[v, i, element] += inv_h * (fstar[v, i + 1] - fstar[v, i])
+                du[v, i, element] = du[v, i, element] +
+                                    inv_h * (fstar[v, i + 1] - fstar[v, i])
             end
         end
     end
@@ -66,15 +71,17 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 mesh::TreeMesh{1},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::BlockFV, cache)
-    inv_h = nnodes(dg) * one(eltype(du)) / 2  # = n/2 = 1/h_ref
     @unpack surface_flux_values = cache.elements
+    inv_h = nnodes(dg) * one(eltype(du)) / 2  # = n/2 = 1/h_ref
 
     @threaded for element in eachelement(dg, cache)
         for v in eachvariable(equations)
             # Left element boundary (direction 1 = -x)
-            du[v, 1, element] -= surface_flux_values[v, 1, element] * inv_h
+            du[v, 1, element] = du[v, 1, element] -
+                                inv_h * surface_flux_values[v, 1, element]
             # Right element boundary (direction 2 = +x)
-            du[v, nnodes(dg), element] += surface_flux_values[v, 2, element] * inv_h
+            du[v, nnodes(dg), element] = du[v, nnodes(dg), element] +
+                                         inv_h * surface_flux_values[v, 2, element]
         end
     end
 
