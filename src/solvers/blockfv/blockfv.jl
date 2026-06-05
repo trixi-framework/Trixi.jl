@@ -10,6 +10,9 @@
 
 A finite volume basis with `n_nodes` equidistant, cell-centered nodes on the
 reference interval `[-1, 1]`.
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
 """
 struct UniformFiniteVolumeBasis{RealT, NNODES, VectorT <: AbstractVector{RealT}}
     nodes::VectorT
@@ -71,6 +74,9 @@ end
 
 Create a block finite volume solver with `n_nodes` volumes per coordinate direction
 in each cell of the mesh and the `surface_flux` as numerical flux.
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
 """
 const BlockFV = DG{Basis} where {Basis <: UniformFiniteVolumeBasis}
 
