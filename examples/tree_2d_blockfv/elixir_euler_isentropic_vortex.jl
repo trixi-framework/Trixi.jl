@@ -57,7 +57,6 @@ coordinates_max = (10.0, 10.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations,
@@ -72,15 +71,19 @@ tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
+
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
 stepsize_callback = StepsizeCallback(cfl = 0.5)
+
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback,
                         alive_callback)
 
 ###############################################################################
 # run the simulation
 sol = solve(ode, Euler();
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

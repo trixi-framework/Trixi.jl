@@ -1,4 +1,3 @@
-#has just been copied, needs to be changed.
 using OrdinaryDiffEqLowOrderRK
 using Trixi
 
@@ -8,17 +7,15 @@ using Trixi
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
-# Create DG solver with polynomial degree = 0, i.e., a first order finite volume solver,
-# with (local) Lax-Friedrichs/Rusanov flux as surface flux
+# Create a block finite volume solver with n_nodes volumes per coordinate direction
+# in each cell of the mesh and the (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = BlockFV(n_nodes = 8, surface_flux = flux_lax_friedrichs)
 
+# Create a uniformly refined mesh with periodic boundaries
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate
-
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -51,5 +48,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, Euler();
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
