@@ -27,8 +27,8 @@ end
 @trixi_testset "elixir_advection_basic.jl with less n_nodes and higher refinement" begin
     # This has exactly the same degrees of freedom and errors as the previous test.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                        n_nodes = 2,
-                        initial_refinement_level = 5,
+                        n_nodes=2,
+                        initial_refinement_level=5,
                         l2=[0.017295205942012868],
                         linf=[0.02444847499806624],
                         tspan=(0.0, 0.5))
@@ -37,7 +37,6 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-
 end # Linear scalar advection
 
 @testset "Compressible Euler equations" begin
@@ -93,9 +92,7 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-
 end # Compressible Euler equations
-
 end # BlockFV 2D
 
 end # module
