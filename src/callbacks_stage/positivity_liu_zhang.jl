@@ -1,6 +1,9 @@
 
 """
-    PositivityPreservingLimiterLiuZhang(local_limiter!, semi; kwargs...)
+    PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
+                                        global_limiter_tol = 1e3 * eps(real(semi)),
+                                        max_davis_yin_iterations = 500,
+                                        record_davis_yin_iterations = false)
 
 Positivity-preserving limiter which combines a global cell-average limiter 
 with a local limiter such as [`PositivityPreservingLimiterZhangShu`](@ref).
@@ -8,6 +11,16 @@ The global cell-average limiter is from:
 - Liu, Milesis, Shu, Zhang (2026)
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
   [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
+
+Currently, admissibility is enforced via projection onto lower bounds only for
+scalar equations (`nvariables == 1`).
+
+The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
+splitting iteration in the global cell-average limiter.
+`max_davis_yin_iterations` sets the maximum number of Davis-Yin iterations per global
+limiting step.
+If `record_davis_yin_iterations` is `true`, the number of Davis-Yin iterations used at each
+global limiting step is appended to `history_davis_yin_iterations`.
 """
 mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
@@ -15,7 +28,8 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    ProjectedCellAverages <: AbstractVector,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
-                                                   RealT <: Real}
+                                                   RealT <: Real,
+                                                   HistoryDavisYinIterations}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
     davis_yin_Z::DavisYinZ
@@ -24,7 +38,7 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     total_volume::RealT
     global_limiter_tol::RealT
     max_davis_yin_iterations::Int
-    history_davis_yin_iterations::Vector{Int}
+    history_davis_yin_iterations::HistoryDavisYinIterations
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
@@ -56,7 +70,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     davis_yin_Z = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
 
-    history_davis_yin_iterations = Int[]
+    history_davis_yin_iterations = record_davis_yin_iterations ? Int[] : nothing
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
@@ -163,8 +177,6 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
 
     return nothing
 end
-
-include("admissible_projection_euler.jl")
 
 # for any scalar equation, the admissible set is assumed to be u > u_lower, and 
 # projection to the admissible set is simply a clipping operation
