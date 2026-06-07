@@ -14,7 +14,7 @@ using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,
              wrap_array_native, mesh_equations_solver_cache
 
 # Import functions such that they can be extended with new methods
-import Trixi: iplot, iplot!
+import Trixi: iplot, iplot!, trixiheatmap, trixiheatmap!
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -276,6 +276,18 @@ function iplot(u, mesh, equations, solver, cache;
     return iplot(pd; kwargs...)
 end
 
+# DGMulti solvers use PlotData2D which dispatches to PlotData2DTriangulated internally
+function iplot(u, mesh, equations, dg::DGMulti, cache;
+               solution_variables = nothing, nvisnodes = 2 * nnodes(dg), kwargs...)
+    @assert ndims(mesh) == 2
+
+    pd = PlotData2D(u, mesh, equations, dg, cache;
+                    solution_variables = solution_variables,
+                    nvisnodes = nvisnodes)
+
+    return iplot(pd; kwargs...)
+end
+
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 function iplot(u, semi; kwargs...)
@@ -333,7 +345,7 @@ end
 # custom `trixiheatmap` plots. See also https://docs.makie.org/stable/documentation/recipes/
 Makie.@recipe(TrixiHeatmap, plot_data_series) do scene
     return Makie.Theme(colormap = default_Makie_colormap(),
-                       plot_mesh = true)
+                       plot_mesh = false)
 end
 
 function Makie.plot!(myplot::TrixiHeatmap)
@@ -371,7 +383,7 @@ function Makie.convert_arguments(::Type{<:Makie.Plot},
 end
 
 function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figure();
-                    kwargs...)
+                    plot_mesh = false, kwargs...)
     @unpack plot_data, variable_id = pds
     @unpack x, variable_names, mesh_vertices_x = plot_data
     ax = Makie.Axis(fig[1, 1],
@@ -379,7 +391,9 @@ function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figu
                     xlabel = _makie_guide(plot_data.orientation_x))
     plt = Makie.lines!(ax, pds; kwargs...)
     Makie.xlims!(ax, x[begin], x[end])
-
+    if plot_mesh
+        Makie.vlines!(ax, mesh_vertices_x; color = :grey, linewidth = 1)
+    end
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 

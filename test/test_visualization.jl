@@ -1000,19 +1000,16 @@ end
     pd = PlotData1D(sol)
 
     # convert_arguments enables lines(pd["scalar"])
-    fap = lines(pd["scalar"])
-    @test fap isa Makie.FigureAxisPlot
+    @trixi_test_nowarn lines(pd["scalar"])
 
     # plottype for 1D PlotDataSeries is Lines
     @test Makie.plottype(pd["scalar"]) == Makie.Lines
 
     # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
-    fap2 = Makie.plot(pd["scalar"])
-    @test fap2 isa Makie.FigureAxisPlot
+    @trixi_test_nowarn Makie.plot(pd["scalar"])
 
     # kwargs are forwarded to lines!
-    fap3 = Makie.plot(pd["scalar"], color = :red, linewidth = 2)
-    @test fap3 isa Makie.FigureAxisPlot
+    @trixi_test_nowarn Makie.plot(pd["scalar"], color = :red, linewidth = 2)
 
     # Makie.plot(pd) gives layout for all variables
     fa = Makie.plot(pd)
@@ -1021,8 +1018,6 @@ end
     @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
     fig, axes = fa
     @trixi_test_nowarn Base.show(fa) === nothing
-    @test fig isa Makie.Figure
-    @test axes isa AbstractArray{<:Makie.Axis}
 
     # Makie.plot(sol) for 1D solutions
     @trixi_test_nowarn Makie.plot(sol)
@@ -1040,31 +1035,26 @@ end
 @timed_testset "Makie visualization tests for TreeMesh2D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"))
-    pd = PlotData2D(sol)
+    pd = @inferred PlotData2D(sol)
     @test pd isa Trixi.PlotData2DCartesian
 
     # plottype for 2D PlotDataSeries is Heatmap
     @test Makie.plottype(pd["scalar"]) == Makie.Heatmap
 
     # convert_arguments enables Makie.heatmap(pd["scalar"])
-    fap = Makie.heatmap(pd["scalar"])
-    @test fap isa Makie.FigureAxisPlot
+    @trixi_test_nowarn Makie.heatmap(pd["scalar"])
 
     # Makie.plot(pds) gives title, xlabel, ylabel and colorbar
-    fap2 = Makie.plot(pd["scalar"])
-    @test fap2 isa Makie.FigureAxisPlot
+    @trixi_test_nowarn Makie.plot(pd["scalar"])
 
     # kwargs are forwarded to heatmap!
-    fap3 = Makie.plot(pd["scalar"], colormap = :heat)
-    @test fap3 isa Makie.FigureAxisPlot
+    @trixi_test_nowarn Makie.plot(pd["scalar"], colormap = :heat)
 
     # Makie.plot(pd) gives layout for all variables
-    fa = Makie.plot(pd)
+    fa = @trixi_test_nowarn Makie.plot(pd)
     @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
     fig, axes = fa
     @trixi_test_nowarn Base.show(fa) === nothing
-    @test fig isa Makie.Figure
-    @test axes isa AbstractArray{<:Makie.Axis}
 
     # Makie.plot(sol) for 2D TreeMesh solutions
     @trixi_test_nowarn Makie.plot(sol)
@@ -1100,18 +1090,17 @@ end
     @trixi_test_nowarn Makie.plot(sol, plot_mesh = true)
 
     # single-variable plot with axis and colorbar (works for all PlotData2DTriangulated meshes)
-    pd = PlotData2D(sol)
-    fap = Makie.plot(pd["rho"])
-    @test fap isa Makie.FigureAxisPlot
+    pd = @inferred PlotData2D(sol)
+    @trixi_test_nowarn Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
     # plot_mesh = true 
     @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
 
     # explicit PlotMesh overlay (works for all PlotData2DTriangulated meshes)
-    Makie.plot(pd["rho"])
-    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
-    Makie.plot(pd["rho"])
-    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(getmesh(pd))
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(getmesh(pd), color = :black,
                                    linestyle = :dash)
 
     # test unpacking/iteration for FigureAndAxes

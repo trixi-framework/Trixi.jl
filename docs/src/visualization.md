@@ -473,7 +473,7 @@ Further information regarding the development of Trixi2Vtk can be found in the
 In addition to [Plots.jl](@ref Plots.jl) support, Trixi.jl includes visualization utilities through
 [Makie.jl](https://github.com/JuliaPlots/Makie.jl/). Trixi.jl provides Makie-based visualization options
 for 1D line plots and 2D heatmap-type plots (similar to the [Plots.jl](@ref Plots.jl) recipes), as well as
-interactive surface plots via `iplot` for all supported 2D mesh types.
+interactive surface plots via [`iplot`](@ref) for all supported 2D mesh types.
 
 !!! note
     Plotting via Makie.jl is still considered an experimental feature and might
@@ -489,6 +489,11 @@ julia> using CairoMakie
     Both Makie.jl and Plots.jl export `plot`, so if you load both libraries, you will have to
     specify which `plot` function to call via `Plots.plot` or `Makie.plot`.
 
+Trixi.jl's Makie support provides two interface levels:
+- **High-level**: `plot`/`plot!` automatically selects the correct plot type, adds axis labels,
+  colorbars, and respects the `plot_mesh` keyword.
+- **Low-level**: for custom axis setups, use `lines!` (1D), `heatmap!` (2D, Cartesian),
+  or `trixiheatmap!` (2D, non-Cartesian).
 
 ### 1D visualization
 
@@ -513,7 +518,12 @@ fig
 With mesh lines overlaid:
 ```@example makie-1d
 plot(pd["scalar"])
-plot!(Trixi.getmesh(pd))
+plot!(getmesh(pd))
+```
+
+Alternatively, you can also pass the keyword argument `plot_mesh = true`:
+```@example makie-1d
+plot(pd["scalar"], plot_mesh = true)
 ```
 
 ### 2D visualization
@@ -541,7 +551,13 @@ With mesh overlay:
 plot(pd, plot_mesh = true)
 ```
 
-A key advantage of Makie over Plots.jl is the ability to compose plots on a custom axis,
+Note that `plot!(getmesh(pd))` only plots the mesh in the currently active axis, e.g.,
+```@example makie-2d
+plot(pd)
+plot!(getmesh(pd))
+```
+
+A key advantage of Makie.jl over Plots.jl is the ability to compose plots on a custom axis,
 for example to set custom titles, labels, or to place colorbars manually:
 ```@example makie-2d
 fig = Figure()
@@ -549,10 +565,13 @@ ax = Axis(fig[1, 1], title = "Density", xlabel = "x", ylabel = "y",
                 aspect = DataAspect())
 plt = plot!(ax, pd["rho"], colormap = :berlin)
 Colorbar(fig[1, 2], colormap = :berlin)
-plot!(Trixi.getmesh(pd))
+plot!(getmesh(pd))
 ```
-Trixi.jl also supports interactive surface plots using `iplot`.
-This requires [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/):
+
+### Interactive visualization
+
+Trixi.jl also supports interactive surface plots using [`iplot`](@ref).
+This requires [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/):
 ```julia
 julia> using GLMakie
 ```
@@ -578,3 +597,4 @@ by providing an appropriate keyword argument. For example, `plot(sol, colormap=:
 `iplot(sol, colormap=:blues)` produce the following figures:
 
 ![makie-plot-example](https://user-images.githubusercontent.com/1156048/132954265-e7d395a8-f894-4056-841b-87711b7ba012.png)
+![makie-iplot-example](https://user-images.githubusercontent.com/1156048/131613266-8a86a074-62fb-49d6-bf6b-8df94d2a9b65.png)
