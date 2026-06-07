@@ -245,7 +245,7 @@ function integrate_via_indices(func::Func, u,
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
@@ -276,7 +276,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
     linf_error = copy(l2_error)
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)

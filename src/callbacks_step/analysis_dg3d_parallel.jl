@@ -16,7 +16,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
     linf_error = copy(l2_error)
-    volume = zero(real(mesh))
+    volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
@@ -79,7 +79,7 @@ function integrate_via_indices(func::Func, u,
     # https://github.com/trixi-framework/Trixi.jl/pull/2126/files/7cbc57cfcba93e67353566e10fce1f3edac27330#r1814483243.
     integral = zero(func(zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg),
                                nnodes(dg), 1), 1, 1, 1, 1, equations, dg, args...))
-    volume = zero(real(mesh))
+    volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, volume)) for element in eachelement(dg, cache)
