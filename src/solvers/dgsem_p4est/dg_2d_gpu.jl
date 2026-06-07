@@ -31,36 +31,6 @@ end
                                       neighbor_ids, node_indices, index_range)
 end
 
-function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                            T8codeMesh{2}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM{<:LobattoLegendreBasis}, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
-
-    kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, surface_integral, dg, inverse_weights[1],
-            surface_flux_values, ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function calc_surface_integral_KAkernel!(du,
-                                                 MeshT::Type{<:Union{P4estMesh{2},
-                                                                     P4estMeshView{2},
-                                                                     T8codeMesh{2}}},
-                                                 equations,
-                                                 surface_integral::SurfaceIntegralWeakForm,
-                                                 dg::DGSEM{<:LobattoLegendreBasis},
-                                                 factor,
-                                                 surface_flux_values)
-    element = @index(Global)
-    calc_surface_integral_per_element!(du, MeshT, equations, surface_integral,
-                                       dg, factor, surface_flux_values, element)
-end
-
 function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
@@ -96,6 +66,84 @@ end
                                        surface_integral, SolverT, u_interface,
                                        interface, neighbor_ids, node_indices,
                                        contravariant_vectors, index_range)
+end
+
+function prolong2boundaries_per_boundary!(u,
+                                          MeshT::Type{<:Union{P4estMesh{2},
+                                                              P4estMeshView{2},
+                                                              T8codeMesh{2}}},
+                                          equations, dg::DG, index_range, u_boundaries,
+                                          neighbor_ids, node_indices, boundary)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    element = neighbor_ids[boundary]
+    node_index = node_indices[boundary]
+
+    i_node_start, i_node_step = index_to_start_step_2d(node_index[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_index[2], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
+    for i in eachnode(dg)
+        for v in eachvariable(equations)
+            u_boundaries[v, i, boundary] = u[v, i_node, j_node, element]
+        end
+        i_node += i_node_step
+        j_node += j_node_step
+    end
+
+    return nothing
+end
+
+function calc_surface_integral!(backend::Backend, du, u,
+                                mesh::Union{P4estMesh{2}, T8codeMesh{2},
+                                            P4estMeshView{2}},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM{<:LobattoLegendreBasis},
+                                cache)
+    @unpack inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+    NNODES = nnodes(dg)
+    kernel! = calc_surface_integral_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, inverse_weights[1],
+            Val(NNODES),
+            surface_flux_values,
+            ndrange = (NNODES, NNODES, nelements(dg, cache)))
+
+    return nothing
+end
+
+@kernel function calc_surface_integral_KAkernel!(du,
+                                                 MeshT::Type{<:Union{P4estMesh{2},
+                                                                     P4estMeshView{2},
+                                                                     T8codeMesh{2}}},
+                                                 equations, factor, ::Val{NNODES},
+                                                 surface_flux_values) where {NNODES}
+    i, j, element = @index(Global, NTuple)
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    #
+    # factor = inverse_weights[1]
+    # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+    x_node_interface = (i == 1) | (i == NNODES)
+    y_node_interface = (j == 1) | (j == NNODES)
+    x_face = ifelse(i == 1, 1, 2)
+    y_face = ifelse(j == 1, 3, 4)
+    _zero = zero(eltype(du))
+    for v in eachvariable(equations)
+        x_contribution = ifelse(x_node_interface,
+                                surface_flux_values[v, j, x_face, element], _zero)
+        y_contribution = ifelse(y_node_interface,
+                                surface_flux_values[v, i, y_face, element], _zero)
+        du_node = x_contribution + y_contribution
+        du[v, i, j, element] = du[v, i, j, element] + du_node * factor
+    end
 end
 
 function apply_jacobian!(backend::Backend, du,
