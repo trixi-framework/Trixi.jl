@@ -354,7 +354,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     return nothing
 end
 
-
 ################################################################################
 ### AnalysisCallback
 ################################################################################
