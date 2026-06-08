@@ -66,12 +66,12 @@ function extract_p4est_mesh_view(elements_parent,
                                               nnodes(dg), nvariables(equations))
 
     # Copy geometry from parent, gathering only the cells in this view.
-    @views elements.inverse_jacobian      .= elements_parent.inverse_jacobian[..,
-                                                                              mesh.cell_ids]
-    @views elements.jacobian_matrix       .= elements_parent.jacobian_matrix[..,
-                                                                             mesh.cell_ids]
-    @views elements.node_coordinates      .= elements_parent.node_coordinates[..,
-                                                                              mesh.cell_ids]
+    @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
+                                                                         mesh.cell_ids]
+    @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
+                                                                       mesh.cell_ids]
+    @views elements.node_coordinates .= elements_parent.node_coordinates[..,
+                                                                         mesh.cell_ids]
     @views elements.contravariant_vectors .= elements_parent.contravariant_vectors[..,
                                                                                    mesh.cell_ids]
     # surface_flux_values is a write buffer; it will be filled by the first RHS evaluation.
