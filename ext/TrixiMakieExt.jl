@@ -161,20 +161,6 @@ function Base.iterate(fa::FigureAndAxes, state = 1)
     end
 end
 
-"""
-    iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-          plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
-          variable_to_plot_in=1)
-
-Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
-
-Keywords:
-- variable_to_plot_in: variable to show by default
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-function iplot end
 
 # Enables `iplot(PlotData2D(sol))`.
 function iplot(pd::PlotData2DTriangulated;
