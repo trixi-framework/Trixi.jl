@@ -274,7 +274,8 @@ function extract_neighbor_ids_parent(mesh::P4estMeshView,
     neighbor_ids_parent = zeros(Int, length(boundaries.neighbor_ids))
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         parent_id = mesh.cell_ids[id]
-        neighbor_ids_parent[idx] = get(interface_lookup, (parent_id, boundaries.name[idx]),
+        neighbor_ids_parent[idx] = get(interface_lookup,
+                                       (parent_id, boundaries.name[idx]),
                                        0)
     end
 
