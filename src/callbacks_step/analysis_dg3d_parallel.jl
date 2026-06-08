@@ -71,6 +71,7 @@ function integrate_via_indices(func::Func, u,
                                equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), 1)`
@@ -84,7 +85,7 @@ function integrate_via_indices(func::Func, u,
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, volume)) for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, k, element]))
             integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
                         func(u, i, j, k, element, equations, dg, args...)
             volume += volume_jacobian * weights[i] * weights[j] * weights[k]
