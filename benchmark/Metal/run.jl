@@ -51,6 +51,22 @@ function main(elixir_path)
         indent = 2
         JSON.print(f, metrics, indent)
     end
+
+    # run profiler (requires xctrace from a full Xcode install)
+    maxiters = 5
+    initial_refinement_level = 1
+
+    if !success(`xtrace version`)
+        println("Skipping profiler: xctrace not available (install Xcode to enable profiling).")
+    else
+        println("Running profiler (Float32)...")
+        trixi_include(elixir_path,
+                      maxiters = maxiters,
+                      initial_refinement_level = initial_refinement_level,
+                      storage_type = storage_type,
+                      real_type = Float32,
+                      run_profiler = true)
+    end
 end
 
 # hardcoded elixir
