@@ -240,7 +240,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     semi.element_offset[1] = 1
     for i in 2:nsystems(semi)
         semi.element_offset[i] = semi.element_offset[i - 1] +
-                                 n_nodes^NDIMS * nvariables(semi.semis[i - 1].equations) *
+                                 n_nodes^NDIMS *
+                                 nvariables(semi.semis[i - 1].equations) *
                                  length(semi.semis[i - 1].mesh.cell_ids)
     end
 
