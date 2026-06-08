@@ -67,11 +67,15 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 # run the simulation
 
 maxiters = 200
+run_profiler = false
 
 # disable warnings when maxiters is reached
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
-                  dt = 1.0f0,
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks,
                   maxiters = maxiters, verbose = false)
-
-solve!(integrator)
+if run_profiler
+    Metal.@profile solve!(integrator)
+else
+    solve!(integrator)
+end
