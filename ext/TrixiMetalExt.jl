@@ -26,7 +26,7 @@ end
 
 function Trixi.trixi_backend_info!(setup, ::MetalBackend)
     push!(setup, "Backend" => "KernelAbstractions Metal")
-    # Reimplementation of Metal.versioninfo() to fit with Trixi's summary box format
+    # Reimplementation of Metal.versioninfo() to fit with Trixi.jl's summary box format
     # see https://github.com/JuliaGPU/Metal.jl/blob/main/src/utilities.jl
     if !Metal.functional()
         push!(setup, "Metal" => "Metal not functional")
