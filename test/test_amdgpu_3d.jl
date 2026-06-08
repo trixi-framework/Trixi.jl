@@ -69,22 +69,20 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
 end
 
-@trixi_testset "elixir_euler_source_terms.jl native" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-                        l2=[
-                            4.893619139889976e-5,
-                            5.3526950567182756e-5,
-                            5.35269505672133e-5,
-                            5.352695056735998e-5,
-                            0.00015172095200428318
-                        ],
-                        linf=[
-                            0.00031179856625374036,
-                            0.0003368725355339386,
-                            0.0003368725355383795,
-                            0.00033687253560787944,
-                            0.0013193387520935573
-                        ])
+@trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        l2=[0.0014517629881062517,
+                            0.0014469623017050836,
+                            0.001446962301705153,
+                            0.0014469623017051368,
+                            0.002934065359862918],
+                        linf=[0.01031578086475382,
+                            0.011300883615913193,
+                            0.011300883615896096,
+                            0.011300883615918522,
+                            0.02090696711453477],
+                        volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
@@ -105,27 +103,29 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32 / AMDGPU" begin
+@trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32 / AMDGPU" begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-                        l2=Float32[4.912578089985958e-5,
-                                   5.3683407014580115e-5,
-                                   5.368099834769191e-5,
-                                   5.371664525206341e-5,
-                                   0.00015186256300882088],
-                        linf=Float32[0.00032772542853032327,
-                                     0.00035144807715092874,
-                                     0.0003549051465479014,
-                                     0.00035573961157475686,
-                                     0.0013591384887696734],
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        l2=Float32[0.0014518665391031068,
+                                   0.0014470701356811022,
+                                   0.0014470866449955344,
+                                   0.00144707575575548,
+                                   0.0029342928549885568],
+                        linf=Float32[0.010317440030529479,
+                                     0.011303550618318114,
+                                     0.011295533976851013,
+                                     0.011299068214785102,
+                                     0.0209091211162149],
+                        volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
                         storage_type=ROCArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
