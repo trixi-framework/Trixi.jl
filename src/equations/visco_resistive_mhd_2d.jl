@@ -50,7 +50,7 @@ For the induction term we have the usual Laplace operator on the magnetic field
 but we also include terms with `div(B)`.
 Divergence cleaning is done using the `\psi` field.
 
-For more details see e.g. arXiv:2012.12040.
+For more details see e.g. [arXiv:2012.12040](https://arxiv.org/abs/2012.12040).
 """
 struct ViscoResistiveMhd2D{GradientVariables, RealT <: Real,
                            E <: AbstractIdealGlmMhdEquations{2}} <:
