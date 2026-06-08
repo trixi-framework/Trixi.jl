@@ -1008,6 +1008,9 @@ end
     # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
     @trixi_test_nowarn Makie.plot(pd["scalar"])
 
+    # plot_mesh kwarg triggers vlines!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], plot_mesh = true)
+
     # kwargs are forwarded to lines!
     @trixi_test_nowarn Makie.plot(pd["scalar"], color = :red, linewidth = 2)
 
