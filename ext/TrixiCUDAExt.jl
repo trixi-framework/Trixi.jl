@@ -3,7 +3,6 @@ module TrixiCUDAExt
 
 using CUDACore: CUDACore, CuArray, CuDeviceArray, CUDABackend, KernelAdaptor,
                 @device_override
-using CUDATools: CUDATools, NVML, has_nvml
 import Trixi
 
 function Trixi.storage_type(::Type{<:CuArray})
@@ -40,14 +39,7 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
     push!(setup,
           "  - toolkit" => CUDACore.local_toolkit ? "local installation" :
                            "artifact installation")
-
-    if has_nvml()
-        driver_str = string(NVML.driver_version())
-    else
-        driver_str = "unknown"
-    end
-    driver_str *= " for $(CUDACore.driver_version())"
-    push!(setup, "  - driver" => driver_str)
+    push!(setup, "  - driver" => string(CUDACore.driver_version()))
     push!(setup, "  - compiler" => string(CUDACore.compiler_version()))
 
     # Skip CUDA libraries
@@ -63,42 +55,17 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
         push!(setup, "CUDA devices:" => "")
     end
     for (i, dev) in enumerate(devs)
-        function query_nvml()
-            mig = CUDACore.uuid(dev) != CUDACore.parent_uuid(dev)
-            nvml_gpu = NVML.Device(CUDACore.parent_uuid(dev))
-            nvml_dev = NVML.Device(CUDACore.uuid(dev); mig)
-
-            str = NVML.name(nvml_dev)
-            cap = NVML.compute_capability(nvml_gpu)
-            mem = NVML.memory_info(nvml_dev)
-
-            (; str, cap, mem)
-        end
-
         function query_cuda()
             str = CUDACore.name(dev)
             cap = CUDACore.capability(dev)
             mem = CUDACore.device!(dev) do
-                # this requires a device context, so we prefer NVML
                 (free = CUDACore.free_memory(), total = CUDACore.total_memory())
             end
             (; str, cap, mem)
         end
 
-        str, cap, mem = if has_nvml()
-            try
-                query_nvml()
-            catch err
-                if !isa(err, NVML.NVMLError) ||
-                   !in(err.code,
-                       [NVML.ERROR_NOT_SUPPORTED, NVML.ERROR_NO_PERMISSION])
-                    rethrow()
-                end
-                query_cuda()
-            end
-        else
-            query_cuda()
-        end
+        str, cap, mem = query_cuda()
+
         push!(setup,
               "  $i" => "$str (sm_$(cap.major)$(cap.minor), $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
     end
