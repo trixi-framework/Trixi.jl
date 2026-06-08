@@ -124,6 +124,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
     integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
@@ -213,7 +214,7 @@ end
 get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)

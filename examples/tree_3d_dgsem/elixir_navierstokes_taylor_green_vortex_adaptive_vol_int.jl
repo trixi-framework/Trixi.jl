@@ -99,5 +99,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True()); adaptive = true,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded()); adaptive = true,
             ode_default_options()..., callback = callbacks)
