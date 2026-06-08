@@ -1,9 +1,6 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
-###############################################################################
-# semidiscretization of the compressible Navier-Stokes equations
-
 prandtl_number() = 0.72
 mu() = 6.25e-4 # equivalent to Re = 1600
 
@@ -32,10 +29,11 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
+    RealT = eltype(x)
+
+    @unpack gamma, inv_gamma_minus_one = equations
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    RealT = eltype(x)
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -69,7 +67,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     E_x = p_x * inv_gamma_minus_one + 0.5f0 * rho_x * v1^2 + rho * v1 * v1_x
 
     # Some convenience constants
-    T_const = equations.gamma * inv_gamma_minus_one / Pr
+    T_const = gamma * inv_gamma_minus_one / Pr
     inv_rho_cubed = 1 / (rho^3)
 
     # compute the source terms
