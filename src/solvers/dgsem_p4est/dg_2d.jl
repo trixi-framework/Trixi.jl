@@ -432,7 +432,6 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
