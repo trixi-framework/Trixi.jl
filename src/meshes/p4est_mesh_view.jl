@@ -485,7 +485,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
         filename = joinpath(output_directory, @sprintf("mesh%s.h5", timestep_str))
         p4est_filename = @sprintf("p4est_data%s", timestep_str)
     else
-        filename = joinpath(output_directory, @sprintf("mesh_%s%s.h5", system_str, timestep_str))
+        filename = joinpath(output_directory,
+                            @sprintf("mesh_%s%s.h5", system_str, timestep_str))
         p4est_filename = @sprintf("p4est_data_%s%s", system_str, timestep_str)
     end
     p4est_file = joinpath(output_directory, p4est_filename)
