@@ -196,6 +196,7 @@ function integrate_via_indices(func::Func, u,
                                mesh::StructuredMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
     @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, equations, dg, args...))
@@ -205,7 +206,7 @@ function integrate_via_indices(func::Func, u,
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for i in eachnode(dg)
-            jacobian_volume = abs(inv(cache.elements.inverse_jacobian[i, element]))
+            jacobian_volume = abs(inv(inverse_jacobian[i, element]))
             integral += jacobian_volume * weights[i] *
                         func(u, i, element, equations, dg, args...)
             total_volume += jacobian_volume * weights[i]
