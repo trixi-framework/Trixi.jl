@@ -56,7 +56,7 @@ function main(elixir_path)
     maxiters = 5
     initial_refinement_level = 1
 
-    if !success(`xtrace version`)
+    if !success(`xctrace version`)
         println("Skipping profiler: xctrace not available (install Xcode to enable profiling).")
     else
         println("Running profiler (Float32)...")
