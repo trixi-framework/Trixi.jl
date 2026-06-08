@@ -313,6 +313,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test spectral analysis postprocessing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        2.9990297742578704,
+        2.268161833677494e-31,
+        0.0009716043949720252,
+        2.2476478160620453e-7,
+        3.257756218102617e-30,
+        1.0540654523593192e-7
+    ] rtol=1.0e-12
 end
 
 @trixi_testset "elixir_advection_tensor_wedge.jl" begin
@@ -343,6 +354,18 @@ end
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
                                          n_cells_max = 0,
                                          RealT = Float64)
+end
+
+@trixi_testset "elixir_euler_shockcapturing.jl (Hex, GaussSBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
+                        l2=[1.33894396e-02, 7.62751979e-03, 7.62751979e-03,
+                            7.62751979e-03, 4.93582917e-02],
+                        linf=[2.18776976e-01, 1.04524872e-01, 1.04524872e-01,
+                            1.04524872e-01, 8.01212059e-01])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end
 

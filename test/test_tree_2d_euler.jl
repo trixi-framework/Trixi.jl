@@ -564,6 +564,38 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
+@trixi_testset "elixir_euler_sedov_adaptive_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_adaptive_sc_subcell.jl"),
+                        l2=[
+                            0.4458551685453463,
+                            0.15187885920928818,
+                            0.15187885920579852,
+                            0.6171564682488643
+                        ],
+                        linf=[
+                            1.683620478124428,
+                            0.9025036658429718,
+                            0.9025036660419865,
+                            6.467780546540997
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=4,
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
+    @test startswith(lines[end], "140")
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
@@ -583,6 +615,25 @@ end
                                               analysis_callback, alive_callback,
                                               stepsize_callback),
                         surface_flux=flux_hlle),
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_medium_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_medium_blast_wave_amr.jl"),
+                        l2=[
+                            0.07516809124651969,
+                            0.06704693534133646,
+                            0.06704688657885655,
+                            0.7141874829243302
+                        ],
+                        linf=[
+                            0.26235706632716616,
+                            0.4461055713613948,
+                            0.44610560001534244,
+                            3.098711401193811
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -725,8 +776,8 @@ end
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (with entropy correction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
-                        # adding `scaling = 2` increases the amount of subcell FV blended in by 
-                        # a factor of 2. If this is not added, the KHI simulation crashes with a 
+                        # adding `scaling = 2` increases the amount of subcell FV blended in by
+                        # a factor of 2. If this is not added, the KHI simulation crashes with a
                         # positivity violation at some time t < 3.
                         solver=DGSEM(basis, flux_lax_friedrichs,
                                      VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
@@ -1112,6 +1163,17 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 100)
+
+    # Test Spectral Analysis Post Processing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        151.3586176349759,
+        7.114099105633191,
+        1.7757841081685988,
+        0.7908299040437797,
+        0.44703605555828874,
+        0.2886969568982364
+    ] rtol=1.0e-12
 end
 
 # Coverage test for all initial conditions

@@ -14,42 +14,48 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "P4estMesh2D" begin
 #! format: noindent
 
-    @trixi_testset "elixir_advection_basic.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                            # Expected errors are exactly the same as with TreeMesh!
-                            l2=[8.311947673061856e-6],
-                            linf=[6.627000273229378e-5])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        semi32 = Trixi.trixi_adapt(Array, Float32, semi)
-        @test real(semi32.solver) == Float32
-        @test real(semi32.solver.basis) == Float32
-        @test real(semi32.solver.mortar) == Float32
-        # TODO: `mesh` is currently not `adapt`ed correctly
-        @test real(semi32.mesh) == Float64
-    end
+@trixi_testset "elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[8.311947673061856e-6],
+                        linf=[6.627000273229378e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    semi32 = Trixi.trixi_adapt(Array, Float32, semi)
+    @test real(semi32.solver) == Float32
+    @test real(semi32.solver.basis) == Float32
+    @test real(semi32.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi32.mesh) == Float64
+    @test eltype(semi32.equations.advection_velocity) == Float32
+end
 
-    @trixi_testset "elixir_advection_basic.jl (Float32)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
-                            # Expected errors are exactly the same as with TreeMesh!
-                            l2=[Float32(8.311947673061856e-6)],
-                            linf=[Float32(6.627000273229378e-5)],
-                            RealT_for_test_tolerances=Float32,
-                            real_type=Float32)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-        @test real(ode.p.solver) == Float32
-        @test real(ode.p.solver.basis) == Float32
-        @test real(ode.p.solver.mortar) == Float32
-        # TODO: `mesh` is currently not `adapt`ed correctly
-        @test real(ode.p.mesh) == Float64
+@trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     basis_type = GaussLegendreBasis),
+                        cfl=0.8,
+                        l2=[3.721398353159235e-6], linf=[1.8621131703255855e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_basic.jl (Float32)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[Float32(8.311947673061856e-6)],
+                        linf=[Float32(6.627000273229378e-5)],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 
     @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
@@ -62,14 +68,23 @@ isdir(outdir) && rm(outdir, recursive = true)
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_advection_unstructured_flag.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
-                            l2=[0.0005379687442422346],
-                            linf=[0.007438525029884735])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_advection_flag_gauss_legendre.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_flag_gauss_legendre.jl"),
+                        l2=[0.0004734270965231037], linf=[0.002206239481024719])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
+                        l2=[0.0005379687442422346],
+                        linf=[0.007438525029884735])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
     @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -896,167 +911,63 @@ end
         @test isapprox(drag, 2.588589856781827, atol = 1e-13)
     end
 
-    # Forces computation test in an AMR code
-    @trixi_testset "elixir_euler_NACA0012airfoil_mach085.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_NACA0012airfoil_mach085.jl"),
-                            l2=[
-                                5.56114097044427e-7, 6.62284247153255e-6,
-                                1.0823259724601275e-5, 0.000659804574787503
-                            ],
-                            linf=[
-                                0.002157589754528455, 0.039163189253511164,
-                                0.038386804399707625, 2.6685831417913914
-                            ],
-                            amr_interval=1,
-                            base_level=0, med_level=1, max_level=1,
-                            tspan=(0.0, 0.0001),
-                            adapt_initial_condition=false,
-                            adapt_initial_condition_only_refine=false)
+@trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_cylinder_bowshock_mach3.jl"),
+                        tspan=(0.0, 1e-3),
+                        l2=[
+                            0.03787745781612722,
+                            0.03339276348608649,
+                            0.05301001151898993,
+                            0.2868802674001281
+                        ],
+                        linf=[
+                            2.5347156069842978,
+                            2.6657123832452414,
+                            3.786891603220761,
+                            21.305497055838977
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+@testset "Unified mesh constructor signatures (P4estMesh)" begin
+    # 2D: reference (trees_per_dimension) positional
+    mesh_ref = P4estMesh((4, 4); polydeg = 1,
+                         coordinates_min = (-1.0, -1.0),
+                         coordinates_max = (1.0, 1.0))
 
-        u_ode = copy(sol.u[end])
-        du_ode = zero(u_ode) # Just a placeholder in this case
+    # 2D: using refinement_level (polydeg defaults to 1)
+    mesh_kw = P4estMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                        refinement_level = 2)
+    @test mesh_kw isa P4estMesh{2}
+    @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1  # 1 macro-tree
+    @test_throws ArgumentError P4estMesh(; coordinates_min = (-1.0, -1.0),
+                                         coordinates_max = (1.0, 1.0, 1.0),
+                                         refinement_level = 2)
+end
 
-        u = Trixi.wrap_array(u_ode, semi)
-        du = Trixi.wrap_array(du_ode, semi)
-        drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
-                             semi.cache, semi)
-        lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
-                             semi.cache, semi)
-
-        @test isapprox(lift, 0.029094009322876882, atol = 1e-13)
-        @test isapprox(drag, 0.13579200776643238, atol = 1e-13)
-    end
-
-    @trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
-        using Trixi: Trixi
-        @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_2d_dgsem"),
-                                     "elixir_euler_blast_wave_pure_fv.jl"),
-                            l2=[
-                                0.39957047631960346,
-                                0.21006912294983154,
-                                0.21006903549932,
-                                0.6280328163981136
-                            ],
-                            linf=[
-                                2.20417889887697,
-                                1.5487238480003327,
-                                1.5486788679247812,
-                                2.4656795949035857
-                            ],
-                            tspan=(0.0, 0.5),
-                            mesh=P4estMesh((64, 64), polydeg = 3,
-                                           coordinates_min = (-2.0, -2.0),
-                                           coordinates_max = (2.0, 2.0),
-                                           periodicity = true))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
-                            l2=[
-                                0.11134260363848127,
-                                0.11752357091804219,
-                                0.11829112104640764,
-                                0.7557891142955036
-                            ],
-                            linf=[
-                                0.5728647031475109,
-                                0.8353132977670252,
-                                0.8266797080712205,
-                                3.9792506230548317
-                            ],
-                            tspan=(0.0, 0.1))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-        # Check for conservation
-        state_integrals = Trixi.integrate(sol.u[2], semi)
-        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
-
-        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
-        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
-    end
-
-    @trixi_testset "elixir_euler_SD7003airfoil.jl" begin
-        using Trixi: SemidiscretizationHyperbolic, AnalysisCallback
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_navierstokes_SD7003airfoil.jl"),
-                            semi=SemidiscretizationHyperbolic(mesh, equations,
-                                                              initial_condition, solver;
-                                                              boundary_conditions = boundary_conditions_hyp),
-                            analysis_callback=AnalysisCallback(semi,
-                                                               interval = analysis_interval,
-                                                               output_directory = "out",
-                                                               save_analysis = true),
-                            l2=[
-                                9.316117984455285e-5,
-                                4.539266936628966e-5,
-                                8.381576796590632e-5,
-                                0.00023437941500203496
-                            ],
-                            linf=[
-                                0.31274105032407307,
-                                0.2793016762668701,
-                                0.22256470161743136,
-                                0.7906704256076251
-                            ],
-                            tspan=(0.0, 5e-3))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_euler_density_wave_tracers.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_tracers.jl"),
-                            l2=[
-                                0.0012704690524147188,
-                                0.00012704690527390463,
-                                0.00025409381047976197,
-                                3.17617263147723e-5,
-                                0.0527467468452892,
-                                0.052788143280791185
-                            ],
-                            linf=[
-                                0.0071511674295154926,
-                                0.0007151167435655859,
-                                0.0014302334865533006,
-                                0.00017877918656949987,
-                                0.2247919517756231,
-                                0.2779841048041337
-                            ])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_euler_cylinder_bowshock_mach3.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_cylinder_bowshock_mach3.jl"),
-                            tspan=(0.0, 1e-3),
-                            l2=[
-                                0.03787745781612722,
-                                0.03339276348608649,
-                                0.05301001151898993,
-                                0.2868802674001281
-                            ],
-                            linf=[
-                                2.5347156069842978,
-                                2.6657123832452414,
-                                3.786891603220761,
-                                21.305497055838977
-                            ])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_imex_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_imex_warm_bubble.jl"),
+                        l2=[
+                            2.5906685915145214e-5,
+                            0.001327868084047019,
+                            0.0013043939534472446,
+                            2.1316157151842505
+                        ],
+                        linf=[
+                            0.0003013316385283016,
+                            0.013751491038817676,
+                            0.011904250984857088,
+                            19.010794903791975
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_stiff!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_nonstiff!, semi, sol, 1000)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

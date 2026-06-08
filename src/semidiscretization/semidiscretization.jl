@@ -65,6 +65,9 @@ function integrate(u_ode, semi::AbstractSemidiscretization; normalize = true)
     return integrate(cons2cons, u_ode, semi; normalize = normalize)
 end
 
+# Select the right-hand side function corresponding to the semidiscretization `semi`.
+@inline default_rhs(::AbstractSemidiscretization) = rhs!
+
 """
     calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis)
 
@@ -123,18 +126,19 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     end
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
+    rhs_semi! = default_rhs(semi)
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    iip = true # is-inplace, i.e., we modify a vector when calling `rhs_semi!`
+    specialize = SciMLBase.FullSpecialize # specialize on `rhs_semi!` and parameters (semi)
 
     # Check if Jacobian prototype is provided for sparse Jacobian
     if jac_prototype !== nothing
         # Convert `jac_prototype` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-        ode = SciMLBase.ODEFunction(rhs!,
+        ode = SciMLBase.ODEFunction(rhs_semi!,
                                     jac_prototype = convert.(eltype(u0_ode),
                                                              jac_prototype),
                                     colorvec = colorvec) # coloring vector is optional
@@ -142,9 +146,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
     else
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
-        # but we stick to the lean direct in-place function `rhs!` and
+        # but we stick to the lean direct in-place function `rhs_semi!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+        return ODEProblem{iip, specialize}(rhs_semi!, u0_ode, tspan, semi)
     end
 end
 
@@ -177,18 +181,19 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     end
 
     u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file
+    rhs_semi! = default_rhs(semi)
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling rhs!
-    specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
+    iip = true # is-inplace, i.e., we modify a vector when calling `rhs_semi!`
+    specialize = SciMLBase.FullSpecialize # specialize on `rhs_semi!` and parameters (semi)
 
     # Check if Jacobian prototype is provided for sparse Jacobian
     if jac_prototype !== nothing
         # Convert `jac_prototype` to real type, as seen here:
         # https://docs.sciml.ai/DiffEqDocs/stable/tutorials/advanced_ode_example/#Declaring-a-Sparse-Jacobian-with-Automatic-Sparsity-Detection
-        ode = SciMLBase.ODEFunction(rhs!,
+        ode = SciMLBase.ODEFunction(rhs_semi!,
                                     jac_prototype = convert.(eltype(u0_ode),
                                                              jac_prototype),
                                     colorvec = colorvec) # coloring vector is optional
@@ -196,9 +201,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
         return ODEProblem{iip, specialize}(ode, u0_ode, tspan, semi)
     else
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
-        # but we stick to the lean direct in-place function `rhs!` and
+        # but we stick to the lean direct in-place function `rhs_semi!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+        return ODEProblem{iip, specialize}(rhs_semi!, u0_ode, tspan, semi)
     end
 end
 
@@ -236,6 +241,33 @@ function compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
                                  mesh_equations_solver_cache(semi)...)
 end
 
+# Helper function to compute linear structure for a given semidiscretization
+# `semi` and applied RHS `apply_rhs!`
+function _linear_structure_from_rhs(semi::AbstractSemidiscretization, apply_rhs!)
+    # allocate memory
+    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+    du_ode = similar(u_ode)
+
+    # get the right hand side from boundary conditions and optional source terms
+    u_ode .= zero(eltype(u_ode))
+    apply_rhs!(du_ode, u_ode)
+    b = -du_ode
+
+    # Create a copy of `b` used internally to extract the linear part of `semi`.
+    # This is necessary to get everything correct when the user updates the
+    # returned vector `b`.
+    b_tmp = copy(b)
+
+    # wrap the linear operator
+    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+        apply_rhs!(dest, src)
+        @. dest += b_tmp
+        return dest
+    end
+
+    return A, b
+end
+
 """
     linear_structure(semi::AbstractSemidiscretization;
                      t0 = zero(real(semi)))
@@ -270,28 +302,11 @@ function linear_structure(semi::AbstractSemidiscretization;
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
-    # allocate memory
-    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
-    du_ode = similar(u_ode)
-
-    # get the right hand side from boundary conditions and optional source terms
-    u_ode .= zero(eltype(u_ode))
-    rhs!(du_ode, u_ode, semi, t0)
-    b = -du_ode
-
-    # Create a copy of `b` used internally to extract the linear part of `semi`.
-    # This is necessary to get everything correct when the user updates the
-    # returned vector `b`.
-    b_tmp = copy(b)
-
-    # wrap the linear operator
-    A = LinearMap(length(u_ode), ismutating = true) do dest, src
-        rhs!(dest, src, semi, t0)
-        @. dest += b_tmp
-        return dest
+    apply_rhs! = function (dest, src)
+        return rhs!(dest, src, semi, t0)
     end
 
-    return A, b
+    return _linear_structure_from_rhs(semi, apply_rhs!)
 end
 
 """
@@ -311,9 +326,10 @@ function jacobian_fd(semi::AbstractSemidiscretization;
     du0_ode = similar(u_ode)
     dup_ode = similar(u_ode)
     dum_ode = similar(u_ode)
+    rhs_semi! = default_rhs(semi)
 
     # compute residual of linearization state
-    rhs!(du0_ode, u_ode, semi, t0)
+    rhs_semi!(du0_ode, u_ode, semi, t0)
 
     # initialize Jacobian matrix
     J = zeros(eltype(u_ode), length(u_ode), length(u_ode))
@@ -331,11 +347,11 @@ function jacobian_fd(semi::AbstractSemidiscretization;
 
         # plus fluctuation
         u_ode[idx] = u0_ode[idx] + epsilon
-        rhs!(dup_ode, u_ode, semi, t0)
+        rhs_semi!(dup_ode, u_ode, semi, t0)
 
         # minus fluctuation
         u_ode[idx] = u0_ode[idx] - epsilon
-        rhs!(dum_ode, u_ode, semi, t0)
+        rhs_semi!(dum_ode, u_ode, semi, t0)
 
         # restore linearization state
         u_ode[idx] = u0_ode[idx]
@@ -374,11 +390,12 @@ end
 
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    rhs_semi! = default_rhs(new_semi)
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
     # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
-        return Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+        return rhs_semi!(du_ode, u_ode, new_semi, t0)
     end
 
     return J
@@ -409,6 +426,7 @@ end
 
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    rhs_semi! = default_rhs(new_semi)
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
     # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
@@ -424,7 +442,7 @@ function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain,
                                                                                          :,
                                                                                          v),
                                                                                nvariables(semi)))
-        return Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+        return rhs_semi!(du_ode, u_ode, new_semi, t0)
     end
 
     return J
@@ -447,11 +465,12 @@ end
 
 function _jacobian_ad_forward_staticarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    rhs_semi! = default_rhs(new_semi)
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
         u_ode = reinterpret(SVector{nvariables(semi), eltype(config)}, u_ode_plain)
         du_ode = reinterpret(SVector{nvariables(semi), eltype(config)}, du_ode_plain)
-        return Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+        return rhs_semi!(du_ode, u_ode, new_semi, t0)
     end
 
     return J
