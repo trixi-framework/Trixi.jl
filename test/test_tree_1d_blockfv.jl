@@ -28,14 +28,14 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         n_nodes=8,
                         initial_refinement_level=5,
-                    tspan=(0.0, 0.5))
+                        tspan=(0.0, 0.5))
     res1 = analysis_callback(sol)
 
     # Compute with fewer volumes per macro cell.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         n_nodes=4,
                         initial_refinement_level=6,
-                    tspan=(0.0, 0.5))
+                        tspan=(0.0, 0.5))
     res2 = analysis_callback(sol)
 
     # Both setups have exactly the same degrees of freedom.
@@ -59,7 +59,8 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
     # Compute with one volume per macro cell, DG with polydeg = 0.
-    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_finite_volume.jl"),
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_advection_finite_volume.jl"),
                         polydeg=0,
                         initial_refinement_level=5)
     res2 = @inferred analysis_callback(sol)

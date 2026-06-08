@@ -27,9 +27,9 @@ end
 @trixi_testset "elixir_advection_basic.jl with less n_nodes and higher refinement" begin
     # Compute with more volumes per macro cell.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                    n_nodes=4,
-                    initial_refinement_level=4,
-                    tspan=(0.0, 0.5))
+                        n_nodes=4,
+                        initial_refinement_level=4,
+                        tspan=(0.0, 0.5))
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -37,9 +37,9 @@ end
 
     # Compute with fewer volumes per macro cell.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                    n_nodes=2,
-                    initial_refinement_level=5,
-                    tspan=(0.0, 0.5))
+                        n_nodes=2,
+                        initial_refinement_level=5,
+                        tspan=(0.0, 0.5))
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
