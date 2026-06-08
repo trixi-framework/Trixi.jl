@@ -267,9 +267,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
                 n_vars * (i_node - 1) +
                 n_vars * n_nodes * (j_node - 1) +
                 n_vars * n_nodes^NDIMS * (local_element - 1)] = u_loc_reshape[var,
-                                                                          i_node,
-                                                                          j_node,
-                                                                          local_element]
+                                                                              i_node,
+                                                                              j_node,
+                                                                              local_element]
             end
         end
     end
