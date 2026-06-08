@@ -161,7 +161,6 @@ function Base.iterate(fa::FigureAndAxes, state = 1)
     end
 end
 
-
 # Enables `iplot(PlotData2D(sol))`.
 function iplot(pd::PlotData2DTriangulated;
                plot_mesh = true, show_axis = false, colormap = default_Makie_colormap(),
