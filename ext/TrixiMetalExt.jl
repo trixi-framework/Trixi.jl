@@ -16,23 +16,6 @@ function Trixi.unsafe_wrap_or_alloc(::Type{<:MtlDeviceArray}, vec::MtlDeviceArra
     return reshape(vec, size)
 end
 
-function Trixi.unsafe_wrap_or_alloc(::Type{<:MtlArray}, vec::MtlArray, size)
-    return reshape(vec, size)
-end
-
-@inline function Trixi.wrap_array(u_ode::MtlArray{<:Any, 1}, mesh::Trixi.AbstractMesh,
-                                  equations, dg::Trixi.DGSEM, cache)
-    @boundscheck begin
-        @assert length(u_ode) ==
-                Trixi.nvariables(equations) * Trixi.nnodes(dg)^Trixi.ndims(mesh) *
-                Trixi.nelements(dg, cache)
-    end
-    return reshape(u_ode,
-                   (Trixi.nvariables(equations),
-                    ntuple(_ -> Trixi.nnodes(dg), Trixi.ndims(mesh))...,
-                    Trixi.nelements(dg, cache)))
-end
-
 @static if Trixi._PREFERENCE_LOG == "log_Trixi_NaN"
     # Metal only supports single and half-precision floating-point types
     @device_override Trixi.log(x::Float32) = ccall("extern air.log.f32", llvmcall, Cfloat,
