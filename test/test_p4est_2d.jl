@@ -132,13 +132,22 @@ isdir(outdir) && rm(outdir, recursive = true)
                             linf=[0.008310493861112489, 0.009003928823673624])
     end
 
-    @trixi_testset "elixir_advection_coupled_checkerboard_views.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_coupled_checkerboard_views.jl"),
-                            tspan=(0.0, 1.0),
-                            l2=[0.0015361594792012185, 0.001455051112944291],
-                            linf=[0.00900392882367318, 0.008196871838623832])
-    end
+@trixi_testset "elixir_advection_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
+                        l2=[0.00013318279010717573, 0.00013318279010712838],
+                        linf=[0.0009605782290112996, 0.0009605782290100784])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+
+    # Test show methods for code coverage.
+    @test_nowarn show(stdout, semi)
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5");
+                                         n_cells_max = 0,
+                                         RealT = typeof(parent_mesh).parameters[3])
+end
 
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
