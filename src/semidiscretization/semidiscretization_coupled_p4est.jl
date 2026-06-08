@@ -217,7 +217,8 @@ function update_mesh_lookup!(semi::SemidiscretizationCoupledP4est)
     fill!(semi.view_cell_ids, 0)
     for i in eachindex(semi.semis)
         cell_ids = semi.semis[i].mesh.cell_ids
-        semi.view_cell_ids[cell_ids] = parent_cell_id_to_view(cell_ids, semi.semis[i].mesh)
+        semi.view_cell_ids[cell_ids] = parent_cell_id_to_view(cell_ids,
+                                                              semi.semis[i].mesh)
         semi.mesh_ids[cell_ids] .= i
     end
     return nothing
