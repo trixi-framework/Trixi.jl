@@ -57,8 +57,7 @@ function initial_condition_constant_alfven_2d(x, t, equations)
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
-# Source terms for the manufactured solution. Derived with SymPy using the
-# visco_resistive_mhd2d.py script.
+# Source terms for the manufactured solution.
 @inline function source_terms_mhd_convergence_test_2d(u, x, t, equations)
     # 2D Alfvén wave manufactured solution residuals
     mu_ = mu()
