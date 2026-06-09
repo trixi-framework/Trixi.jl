@@ -95,7 +95,4 @@ sol = solve(ode,
             RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
                           step_limiter! = global_limiter!);
             adaptive = false, dt = 1,
-            ode_default_options()..., callback = callbacks);
-
-using Plots
-plot(PlotData1D(sol.u[end], semi)["rho"], yaxis = :log)
+            ode_default_options()..., callback = callbacks)
