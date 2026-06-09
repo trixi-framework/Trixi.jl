@@ -41,13 +41,20 @@ using Reexport: @reexport
 using MPI: MPI
 
 @reexport using SciMLBase: CallbackSet
-using SciMLBase: DiscreteCallback,
+using SciMLBase: SciMLBase, DiscreteCallback,
                  ODEProblem, ODESolution,
                  SplitODEProblem
-import SciMLBase: get_du, get_tmp_cache, u_modified!,
+import SciMLBase: get_du, get_tmp_cache,
                   init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake, add_tstop!, has_tstop, first_tstop
+# To keep backwards compatibility with SciMLBase v2, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
+@static if isdefined(SciMLBase, :derivative_discontinuity!)
+    import SciMLBase: derivative_discontinuity!
+else
+    const derivative_discontinuity! = SciMLBase.u_modified!
+end
 
 using DelimitedFiles: readdlm
 using Downloads: Downloads
@@ -58,6 +65,7 @@ using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
+using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
@@ -80,6 +88,31 @@ using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
 using Static: Static, One, True, False
+
+@doc """
+    Trixi.Threaded()
+
+Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
+[`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference. Both OrdinaryDiffEq.jl and
+Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend, 
+(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms, 
+since we have observed negative interactions between Polyester.jl and the Julia native shared memory parallelism.
+""" Threaded
+
+@static if _PREFERENCE_THREADING === "polyester"
+    @static if isdefined(DiffEqBase, :Threaded)
+        Threaded() = DiffEqBase.Threaded()
+    else
+        Threaded() = True()
+    end
+else
+    @static if isdefined(DiffEqBase, :Threaded)
+        Threaded() = DiffEqBase.Serial()
+    else
+        Threaded() = False()
+    end
+end
+
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -151,6 +184,7 @@ include("semidiscretization/semidiscretization_parabolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("semidiscretization/semidiscretization_split.jl")
 include("semidiscretization/semidiscretization_coupled_p4est.jl")
 include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
@@ -158,6 +192,9 @@ include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
+
+# Postprocessing utilities
+include("postprocessing/spectral_analysis.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
@@ -271,6 +308,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
 export DG,
        DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
+       BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
@@ -303,6 +341,8 @@ export SemidiscretizationParabolic
 
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
+
+export SemidiscretizationHyperbolicSplit
 
 export SemidiscretizationEulerAcoustics
 
@@ -338,6 +378,7 @@ export trixi_include, examples_dir, get_examples, default_example,
 export ode_norm, ode_unstable_check
 
 export convergence_test,
+       compute_kinetic_energy_spectrum,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
        linear_structure, linear_structure_parabolic
 
@@ -351,6 +392,13 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        iplot, iplot!
 
 function __init__()
+    # Skip MPI/library initialization during precompilation of subsequent packages.
+    # The specific case we are guarding against is recompilation when running under MPI,
+    # then the MPI launcher will error if more processes than asked for are launched. 
+    if ccall(:jl_generating_output, Cint, ()) == 1
+        return nothing
+    end
+
     init_mpi()
 
     init_p4est()

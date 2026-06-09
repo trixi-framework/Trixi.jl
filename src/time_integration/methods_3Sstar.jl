@@ -156,6 +156,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     u_tmp1 = similar(u)
     u_tmp2 = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     iter = 0
     integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter,
                                         ode.p,
@@ -220,7 +221,7 @@ function get_tmp_cache(integrator::SimpleIntegrator3Sstar)
 end
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegrator3Sstar, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegrator3Sstar, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegrator3Sstar)
