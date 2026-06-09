@@ -925,77 +925,75 @@ end
 end
 
 @trixi_testset "elixir_euler_weak_blast_wave_amr_sc_subcell.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
-                        l2=[
-                            0.142640045511438,
-                            0.13563092096235604,
-                            0.13563092096235616,
-                            0.7947679290484526
-                        ],
-                        linf=[
-                            0.8314993359477174,
-                            1.011839302911654,
-                            1.0118393029116455,
-                            4.459887011971617
-                        ],
-                        tspan=(0.0, 0.1),)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom
-    # integrator which are not *recorded* for the methods from
-    # OrdinaryDiffEq.jl
-    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @trixi_testset "positivity limiting" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                            l2=[
+                                0.142640045511438,
+                                0.13563092096235604,
+                                0.13563092096235616,
+                                0.7947679290484526
+                            ],
+                            linf=[
+                                0.8314993359477174,
+                                1.011839302911654,
+                                1.0118393029116455,
+                                4.459887011971617
+                            ],
+                            tspan=(0.0, 0.1))
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    end
 
-    # Check for conservation
-    state_integrals = Trixi.integrate(sol.u[2], semi)
-    initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+    @trixi_testset "local limiting" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                            local_twosided_variables_cons=["rho"],
+                            local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                                 min)],
+                            cfl=0.3,
+                            l2=[
+                                0.12116568894320531,
+                                0.12080144659831989,
+                                0.12080182468846586,
+                                0.7674969125714499
+                            ],
+                            linf=[
+                                0.5306771285666401,
+                                0.7030034879432127,
+                                0.7029848252725505,
+                                4.074752487022456
+                            ],
+                            tspan=(0.0, 0.1))
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    end
 
-    @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-12)
-    @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-    @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-    @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
+    @trixi_testset "conservation" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                            tspan=(0.0, 0.1),
+                            pure_low_order=true)
+        # Check for conservation
+        state_integrals = Trixi.integrate(sol.u[2], semi)
+        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-12)
+        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
+    end
 end
-
-# TODO: Local limiting is not yet supported for P4estMesh
-# @trixi_testset "elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting)" begin
-#     @test_trixi_include(joinpath(EXAMPLES_DIR,
-#                                  "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
-#                         local_twosided_variables_cons=["rho"],
-#                         local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
-#                                                              min)],
-#                         cfl=0.3,
-#                         l2=[
-#                             0.12116568894320531,
-#                             0.12080144659831989,
-#                             0.12080182468846586,
-#                             0.7674969125714499
-#                         ],
-#                         linf=[
-#                             0.5306771285666401,
-#                             0.7030034879432127,
-#                             0.7029848252725505,
-#                             4.074752487022456
-#                         ],
-#                         tspan=(0.0, 0.1))
-#     # Ensure that we do not have excessive memory allocations
-#     # (e.g., from type instabilities)
-#     # Larger values for allowed allocations due to usage of custom
-#     # integrator which are not *recorded* for the methods from
-#     # OrdinaryDiffEq.jl
-#     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-#     @test_allocations(Trixi.rhs!, semi, sol, 15000)
-
-#     # Check for conservation
-#     state_integrals = Trixi.integrate(sol.u[2], semi)
-#     initial_state_integrals = analysis_callback.affect!.initial_state_integrals
-
-#     @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-12)
-#     @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-#     @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-#     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
-# end
 
 @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
