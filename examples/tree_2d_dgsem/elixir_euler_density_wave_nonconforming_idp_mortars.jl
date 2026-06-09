@@ -40,12 +40,12 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
-refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
-                       coordinates_max = (0.5, 0.5)),)
+refinement_patches = ((type = "box", coordinates_min = (-0.5, -0.5),
+                       coordinates_max = (0.0, 0.5)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 refinement_patches = refinement_patches,
-                n_cells_max = 10_000,
+                n_cells_max = 100_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

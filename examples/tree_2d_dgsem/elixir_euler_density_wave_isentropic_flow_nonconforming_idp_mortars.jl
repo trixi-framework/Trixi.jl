@@ -82,8 +82,8 @@ solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 # why I expanded the domain to [-2/sqrt(2), 2/sqrt(2)]^2.
 coordinates_min = (-2 / sqrt(2), -2 / sqrt(2))
 coordinates_max = (2 / sqrt(2), 2 / sqrt(2))
-refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
-                       coordinates_max = (0.5, 0.5)),)
+refinement_patches = ((type = "box", coordinates_min = (-1 / sqrt(2), -1 / sqrt(2)),
+                       coordinates_max = (0.0, 1 / sqrt(2))),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
@@ -107,7 +107,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 5,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
