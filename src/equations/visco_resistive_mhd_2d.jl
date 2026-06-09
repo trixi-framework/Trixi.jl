@@ -201,11 +201,7 @@ end
     return u_transformed
 end
 
-# Takes the solution values `u` and gradient of the entropy variables (w_2, w_3, w_4) and
-# reverse engineers the gradients to be terms of the primitive variables (v1, v2, T).
-# Helpful because then the diffusive fluxes have the same form as on paper.
-# Note, the first component of `gradient_entropy_vars` contains gradient(rho) which is unused.
-# TODO: parabolic; entropy stable viscous terms
+# When gradient variables are primitive, the gradient is already in primitive form — no conversion needed.
 @inline function convert_derivative_to_primitive(u, gradient,
                                                  ::ViscoResistiveMhd2D{GradientVariablesPrimitive})
     return gradient
