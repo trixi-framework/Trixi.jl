@@ -60,9 +60,12 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
                                                      variables = ((u, equations) -> u[1],))
 record_davis_yin_iterations = false
-stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
-                                                     record_davis_yin_iterations)
+global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
+                                                      record_davis_yin_iterations)
 
-sol = solve(ode, RDPK3SpFSAL35(; stage_limiter!); adaptive = false,
+sol = solve(ode,
+            RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
+                          step_limiter! = global_limiter!);
+            adaptive = false,
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

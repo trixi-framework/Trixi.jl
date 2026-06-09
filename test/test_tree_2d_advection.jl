@@ -29,7 +29,7 @@ end
     u = Trixi.wrap_array_native(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
-    @test stage_limiter!.history_davis_yin_iterations == [87, 74, 74, 68]
+    @test global_limiter!.history_davis_yin_iterations == [87, 74, 74, 68]
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
