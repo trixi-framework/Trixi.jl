@@ -66,7 +66,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = false)
 
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
-                         x_pos = boundary_condition_do_nothing)
+                       x_pos = boundary_condition_do_nothing)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions)
@@ -80,7 +80,8 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 5000)
 alive_callback = AliveCallback(analysis_interval = 1000)
 stepsize_callback = StepsizeCallback(cfl = 0.6)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
+                        stepsize_callback)
 
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-11, 1.0e-11),
                                                      variables = (Trixi.density, pressure))
@@ -89,10 +90,11 @@ global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi,
 
 ###############################################################################
 # run the simulation
-        
-sol = solve(ode, RDPK3SpFSAL35(; stage_limiter! = global_limiter!, 
-                                 step_limiter! = global_limiter!); 
-            adaptive = false, dt = 1, 
+
+sol = solve(ode,
+            RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
+                          step_limiter! = global_limiter!);
+            adaptive = false, dt = 1,
             ode_default_options()..., callback = callbacks);
 
 using Plots
