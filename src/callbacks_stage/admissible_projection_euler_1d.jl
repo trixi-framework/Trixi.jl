@@ -1,7 +1,7 @@
 @inline function project_to_admissible_set(cell_average, lower_bound, variables,
                                            equations::CompressibleEulerEquations1D)
     rho_floor, rho_e_floor = variable_projection_floors(lower_bound, variables, equations)
-    return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor)
+    return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor, equations)
 end
 
 function variable_projection_floors(thresholds, variables,
@@ -10,11 +10,11 @@ function variable_projection_floors(thresholds, variables,
     rho_floor = nothing
     rho_e_floor = nothing
     for (threshold, variable) in zip(thresholds, variables)
-        if limiter_variable_is(variable, Trixi.density)
+        if variable === Trixi.density
             rho_floor = threshold
-        elseif limiter_variable_is(variable, energy_internal)
+        elseif variable === energy_internal
             rho_e_floor = threshold
-        elseif limiter_variable_is(variable, pressure)
+        elseif variable === pressure
             rho_e_floor = threshold / (equations.gamma - 1)
         else
             error("PositivityPreservingLimiterLiuZhang for compressible Euler requires ",
@@ -33,12 +33,11 @@ function variable_projection_floors(thresholds, variables,
     return rho_floor, rho_e_floor
 end
 
-@inline function limiter_variable_is(variable, reference)
-    return variable === reference
-end
-
-@inline function euler_admissible_1d(rho, m, E, rho_floor, rho_e_floor)
-    return rho >= rho_floor && m * m + 2 * rho_e_floor * rho <= 2 * rho * E
+@inline function state_is_admissible(u, thresholds, equations::CompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
+    rho_floor, rho_e_floor = thresholds
+    return rho >= rho_floor &&
+           rho_v1 * rho_v1 + 2 * rho_e_floor * rho <= 2 * rho * rho_e_total
 end
 
 @inline function euler_admissible_projection_tol(rho_floor, rho_e_floor,
@@ -46,23 +45,26 @@ end
     return min(rho_floor, rho_e_floor) * sqrt(eps(RealT))
 end
 
-@inline function projection_distance_squared_1d(rho, m, E, x, y, z)
-    return (rho - x)^2 + (m - y)^2 + (E - z)^2
+@inline function projection_distance_squared_1d(rho, rho_v1, rho_e_total, x, y, z)
+    return (rho - x)^2 + (rho_v1 - y)^2 + (rho_e_total - z)^2
 end
 
-@inline function consider_projection_candidate_1d!(best_dist2, best_rho, best_m, best_E,
-                                                   has_candidate,
-                                                   rho, m, E, x, y, z)
-    dist2 = projection_distance_squared_1d(rho, m, E, x, y, z)
+@inline function consider_projection_candidate_1d!(best_dist2, best_rho, best_rho_v1,
+                                                   best_rho_e_total, has_candidate,
+                                                   rho, rho_v1, rho_e_total, x, y, z)
+    dist2 = projection_distance_squared_1d(rho, rho_v1, rho_e_total, x, y, z)
     if !has_candidate || dist2 < best_dist2
-        return dist2, rho, m, E, true
+        return dist2, rho, rho_v1, rho_e_total, true
     end
-    return best_dist2, best_rho, best_m, best_E, has_candidate
+    return best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate
 end
 
-@inline function cubic_momentum_constraint_satisfied(m, y, x, rho_floor, rho_e_floor)
-    return ((m > zero(m) && y > m) || (m < zero(m) && y < m)) &&
-           2 * rho_floor * x + m * (y - m) < 2 * rho_floor * rho_e_floor
+@inline function cubic_momentum_constraint_satisfied(rho_v1, rho_v1_orig, rho_orig,
+                                                     rho_floor, rho_e_floor)
+    return ((rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
+            (rho_v1 < zero(rho_v1) && rho_v1_orig < rho_v1)) &&
+           2 * rho_floor * rho_orig + rho_v1 * (rho_v1_orig - rho_v1) <
+           2 * rho_floor * rho_e_floor
 end
 
 @inline function clamp_small_negative_discriminant(delta, admissible_projection_tol)
@@ -95,52 +97,54 @@ function fill_depressed_cubic_roots!(roots, p, q)
     return n_roots
 end
 
-function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor)
-    rho, m, E = u
+function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
+                                            equations::CompressibleEulerEquations1D)
+    rho, rho_v1, rho_e_total = u
     RealT = typeof(rho)
+    thresholds = (rho_floor, rho_e_floor)
     admissible_projection_tol = euler_admissible_projection_tol(rho_floor, rho_e_floor,
                                                                 RealT)
 
-    if euler_admissible_1d(rho, m, E, rho_floor, rho_e_floor)
+    if state_is_admissible(u, thresholds, equations)
         return u
     end
 
-    x, y, z = rho, m, E
+    x, y, z = rho, rho_v1, rho_e_total
     best_dist2 = typemax(RealT)
     best_rho = zero(RealT)
-    best_m = zero(RealT)
-    best_E = zero(RealT)
+    best_rho_v1 = zero(RealT)
+    best_rho_e_total = zero(RealT)
     has_candidate = false
 
     # Case: mu = 0 and lambda > 0
     if x < rho_floor && 2 * rho_floor * rho_e_floor + y * y <= 2 * rho_floor * z
-        best_dist2, best_rho, best_m, best_E, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                                best_rho,
-                                                                                                best_m,
-                                                                                                best_E,
-                                                                                                has_candidate,
-                                                                                                rho_floor,
-                                                                                                y,
-                                                                                                z,
-                                                                                                x,
-                                                                                                y,
-                                                                                                z)
+        best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
+                                                                                                               best_rho,
+                                                                                                               best_rho_v1,
+                                                                                                               best_rho_e_total,
+                                                                                                               has_candidate,
+                                                                                                               rho_floor,
+                                                                                                               y,
+                                                                                                               z,
+                                                                                                               x,
+                                                                                                               y,
+                                                                                                               z)
     end
 
     # Case: mu > 0 and lambda > 0
     if abs(y) < admissible_projection_tol
         if x < rho_floor && z < rho_e_floor
-            best_dist2, best_rho, best_m, best_E, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                                    best_rho,
-                                                                                                    best_m,
-                                                                                                    best_E,
-                                                                                                    has_candidate,
-                                                                                                    rho_floor,
-                                                                                                    zero(RealT),
-                                                                                                    rho_e_floor,
-                                                                                                    x,
-                                                                                                    y,
-                                                                                                    z)
+            best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
+                                                                                                                   best_rho,
+                                                                                                                   best_rho_v1,
+                                                                                                                   best_rho_e_total,
+                                                                                                                   has_candidate,
+                                                                                                                   rho_floor,
+                                                                                                                   zero(RealT),
+                                                                                                                   rho_e_floor,
+                                                                                                                   x,
+                                                                                                                   y,
+                                                                                                                   z)
         end
     else
         p = 2 * rho_floor * (2 * rho_e_floor - z)
@@ -148,20 +152,20 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor)
         roots = MVector{3, RealT}(undef)
         n_roots = fill_depressed_cubic_roots!(roots, p, q)
         for i in 1:n_roots
-            m1 = roots[i]
-            if cubic_momentum_constraint_satisfied(m1, y, x, rho_floor, rho_e_floor)
-                E1 = rho_e_floor + m1 * m1 / (2 * rho_floor)
-                best_dist2, best_rho, best_m, best_E, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                                        best_rho,
-                                                                                                        best_m,
-                                                                                                        best_E,
-                                                                                                        has_candidate,
-                                                                                                        rho_floor,
-                                                                                                        m1,
-                                                                                                        E1,
-                                                                                                        x,
-                                                                                                        y,
-                                                                                                        z)
+            rho_v1_c = roots[i]
+            if cubic_momentum_constraint_satisfied(rho_v1_c, y, x, rho_floor, rho_e_floor)
+                rho_e_total_c = rho_e_floor + rho_v1_c * rho_v1_c / (2 * rho_floor)
+                best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
+                                                                                                                       best_rho,
+                                                                                                                       best_rho_v1,
+                                                                                                                       best_rho_e_total,
+                                                                                                                       has_candidate,
+                                                                                                                       rho_floor,
+                                                                                                                       rho_v1_c,
+                                                                                                                       rho_e_total_c,
+                                                                                                                       x,
+                                                                                                                       y,
+                                                                                                                       z)
             end
         end
     end
@@ -169,17 +173,17 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor)
     # Case: mu > 0 and lambda = 0
     if abs(y) < admissible_projection_tol
         if x >= rho_floor && z < rho_e_floor
-            best_dist2, best_rho, best_m, best_E, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                                    best_rho,
-                                                                                                    best_m,
-                                                                                                    best_E,
-                                                                                                    has_candidate,
-                                                                                                    x,
-                                                                                                    zero(RealT),
-                                                                                                    rho_e_floor,
-                                                                                                    x,
-                                                                                                    y,
-                                                                                                    z)
+            best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
+                                                                                                                   best_rho,
+                                                                                                                   best_rho_v1,
+                                                                                                                   best_rho_e_total,
+                                                                                                                   has_candidate,
+                                                                                                                   x,
+                                                                                                                   zero(RealT),
+                                                                                                                   rho_e_floor,
+                                                                                                                   x,
+                                                                                                                   y,
+                                                                                                                   z)
         end
     else
         delta2 = x * x -
@@ -192,21 +196,22 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor)
                                                            admissible_projection_tol)
                 if rho_c >= rho_floor - admissible_projection_tol && delta3 >= zero(delta3)
                     sqrt_delta3 = sqrt(delta3)
-                    for m_c in (0.5 * (y - sqrt_delta3), 0.5 * (y + sqrt_delta3))
-                        if rho_e_floor * rho_c + 0.5f0 * m_c * m_c >
+                    for rho_v1_c in (0.5 * (y - sqrt_delta3), 0.5 * (y + sqrt_delta3))
+                        if rho_e_floor * rho_c + 0.5f0 * rho_v1_c * rho_v1_c >
                            z * rho_c * (1 - admissible_projection_tol)
-                            E_c = rho_e_floor + 0.5f0 * m_c * m_c / rho_c
-                            best_dist2, best_rho, best_m, best_E, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                                                    best_rho,
-                                                                                                                    best_m,
-                                                                                                                    best_E,
-                                                                                                                    has_candidate,
-                                                                                                                    rho_c,
-                                                                                                                    m_c,
-                                                                                                                    E_c,
-                                                                                                                    x,
-                                                                                                                    y,
-                                                                                                                    z)
+                            rho_e_total_c = rho_e_floor +
+                                            0.5f0 * rho_v1_c * rho_v1_c / rho_c
+                            best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
+                                                                                                                                   best_rho,
+                                                                                                                                   best_rho_v1,
+                                                                                                                                   best_rho_e_total,
+                                                                                                                                   has_candidate,
+                                                                                                                                   rho_c,
+                                                                                                                                   rho_v1_c,
+                                                                                                                                   rho_e_total_c,
+                                                                                                                                   x,
+                                                                                                                                   y,
+                                                                                                                                   z)
                         end
                     end
                 end
@@ -219,5 +224,5 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor)
               " with rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
     end
 
-    return SVector(best_rho, best_m, best_E)
+    return SVector(best_rho, best_rho_v1, best_rho_e_total)
 end
