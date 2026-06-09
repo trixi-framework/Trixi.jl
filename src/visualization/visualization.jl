@@ -38,19 +38,31 @@ object `fig_axis`. Requires [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.j
 """
 function iplot! end
 """
-    trixiheatmap(ax, pd; kwargs...)
-    trixiheatmap!(ax, pd; kwargs...)
+    trixiheatmap(pd; kwargs...)
 
-Plot a [`PlotDataSeries`](@ref) from a [`PlotData2DTriangulated`](@ref) object as a 2D heatmap.
-`trixiheatmap` creates a new figure; `trixiheatmap!` adds to an existing axis `ax`.
+Plot a `PlotDataSeries` from a `PlotData2DTriangulated` object as a 2D heatmap
+in a new figure.
 Requires a Makie backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
 
-Note: For Cartesian mesh types (e.g., [`TreeMesh`](@ref)), use Makie's built-in `heatmap`/`heatmap!`
-instead, as `trixiheatmap!` only supports triangulated data.
+Note: For Cartesian mesh type ([`TreeMesh`](@ref)), use Makie's built-in `heatmap`
+instead, as `trixiheatmap` only supports triangulated data.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
 function trixiheatmap end
+"""
+    trixiheatmap!(ax, pd; kwargs...)
+
+Add a heatmap of a `PlotDataSeries` from a `PlotData2DTriangulated` object to an existing
+Makie axis `ax`.
+Requires a Makie backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
+
+Note: For Cartesian mesh type ([`TreeMesh`](@ref)), use Makie's built-in `heatmap!`
+instead, as `trixiheatmap!` only supports triangulated data.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 function trixiheatmap! end
 end # @muladd
