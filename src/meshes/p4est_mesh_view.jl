@@ -485,7 +485,7 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
     # Include system tag in the filename so that multiple views in a coupled
     # setup each get their own mesh file rather than overwriting each other.
     system_str = string(system)
-    timestep_str = timestep > 0 ? @sprintf("_%09d", timestep) : ""
+    timestep_str = @sprintf("_%09d", timestep)
     if isempty(system_str)
         filename = joinpath(output_directory, @sprintf("mesh%s.h5", timestep_str))
         p4est_filename = @sprintf("p4est_data%s", timestep_str)
