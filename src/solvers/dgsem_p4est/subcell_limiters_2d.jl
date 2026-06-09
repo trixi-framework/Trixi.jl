@@ -641,17 +641,23 @@ end
             Pm_large *= n_mortars_large
 
             Qp_upper = abs(Qp_upper) /
-                       (abs(Pp_upper) + eps(typeof(Qp_upper)) * 100 * abs(var_max_upper))
+                       (abs(Pp_upper) +
+                        eps(typeof(Qp_upper)) * 100 * abs(var_max_upper))
             Qm_upper = abs(Qm_upper) /
-                       (abs(Pm_upper) + eps(typeof(Qm_upper)) * 100 * abs(var_max_upper))
+                       (abs(Pm_upper) +
+                        eps(typeof(Qm_upper)) * 100 * abs(var_max_upper))
             Qp_lower = abs(Qp_lower) /
-                       (abs(Pp_lower) + eps(typeof(Qp_lower)) * 100 * abs(var_max_lower))
+                       (abs(Pp_lower) +
+                        eps(typeof(Qp_lower)) * 100 * abs(var_max_lower))
             Qm_lower = abs(Qm_lower) /
-                       (abs(Pm_lower) + eps(typeof(Qm_lower)) * 100 * abs(var_max_lower))
+                       (abs(Pm_lower) +
+                        eps(typeof(Qm_lower)) * 100 * abs(var_max_lower))
             Qp_large = abs(Qp_large) /
-                       (abs(Pp_large) + eps(typeof(Qp_large)) * 100 * abs(var_max_large))
+                       (abs(Pp_large) +
+                        eps(typeof(Qp_large)) * 100 * abs(var_max_large))
             Qm_large = abs(Qm_large) /
-                       (abs(Pm_large) + eps(typeof(Qm_large)) * 100 * abs(var_max_large))
+                       (abs(Pm_large) +
+                        eps(typeof(Qm_large)) * 100 * abs(var_max_large))
 
             # Calculate limiting factor
             Q = min(1, Qp_upper, Qm_upper, Qp_lower, Qm_lower, Qp_large, Qm_large)
