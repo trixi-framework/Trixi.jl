@@ -870,6 +870,16 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     return nothing
 end
 
+# CPU backend entry point called from the generic 9-arg rhs! in dgsem_tree/dg_2d.jl.
+# Strips the backend argument and delegates to the 7-arg function barrier above.
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_conditions,
+                             mesh::P4estMeshView,
+                             equations, surface_integral, dg::DG)
+    calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, surface_integral,
+                        dg)
+    return nothing
+end
+
 function prolong2mortars!(cache, u,
                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                           equations,
