@@ -1035,7 +1035,7 @@ end
                                    linestyle = :dash)
 end
 
-@timed_testset "Makie visualization tests for TreeMesh2D" begin
+@trixi_testset "Makie visualization tests for TreeMesh2D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"))
     pd = @inferred PlotData2D(sol)

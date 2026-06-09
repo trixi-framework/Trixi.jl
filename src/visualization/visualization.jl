@@ -17,15 +17,40 @@ include("recipes_plots.jl")
     iplot(u, semi; kwargs...)
 
 Create an interactive surface plot of a Trixi.jl simulation using
-[GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/). The plot can be rotated
-(click and hold), zoomed (scroll), and panned (right click and drag). Two toggle buttons
-control whether mesh lines are visible above and below the solution surface.
+[GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/). This requires
+GLMakie.jl to be loaded.
+
+The plot can be rotated (click and hold), zoomed (scroll), and panned (right click and drag).
+Two toggle buttons control whether mesh lines are visible above and below the solution surface.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
 function iplot end
+"""
+    iplot!(fig_axis, pd; kwargs...)
+
+Add an interactive surface plot of the scalar data `pd` to an existing Makie figure or axis
+object `fig_axis`. Requires [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/) to be loaded.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 function iplot! end
+"""
+    trixiheatmap(ax, pd; kwargs...)
+    trixiheatmap!(ax, pd; kwargs...)
+
+Plot a [`PlotDataSeries`](@ref) from a [`PlotData2DTriangulated`](@ref) object as a 2D heatmap.
+`trixiheatmap` creates a new figure; `trixiheatmap!` adds to an existing axis `ax`.
+Requires a Makie backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
+
+Note: For Cartesian mesh types (e.g., [`TreeMesh`](@ref)), use Makie's built-in `heatmap`/`heatmap!`
+instead, as `trixiheatmap!` only supports triangulated data.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 function trixiheatmap end
 function trixiheatmap! end
 end # @muladd

@@ -479,8 +479,8 @@ interactive surface plots via [`iplot`](@ref) for all supported 2D mesh types.
     Plotting via Makie.jl is still considered an experimental feature and might
     change in any future releases.
 
-To use Makie-based visualization, load [CairoMakie](https://github.com/JuliaPlots/CairoMakie.jl)
-for static plots or [GLMakie](https://github.com/JuliaPlots/GLMakie.jl/) for interactive use:
+To use Makie-based visualization, load [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl)
+for static plots or [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/) for interactive use:
 ```julia
 julia> using CairoMakie 
 ```
@@ -493,7 +493,7 @@ Trixi.jl's Makie support provides two interface levels:
 - **High-level**: `plot`/`plot!` automatically selects the correct plot type, adds axis labels,
   colorbars, and respects the `plot_mesh` keyword.
 - **Low-level**: for custom axis setups, use `lines!` (1D), `heatmap!` (2D, Cartesian),
-  or `trixiheatmap!` (2D, non-Cartesian).
+  or [`trixiheatmap!`](@ref) (2D, non-Cartesian).
 
 ### 1D visualization
 
@@ -564,7 +564,7 @@ fig = Figure()
 ax = Axis(fig[1, 1], title = "Density", xlabel = "x", ylabel = "y",
                 aspect = DataAspect())
 plt = plot!(ax, pd["rho"], colormap = :berlin)
-Colorbar(fig[1, 2], colormap = :berlin)
+Colorbar(fig[1, 2], plt)
 plot!(getmesh(pd))
 ```
 
