@@ -21,26 +21,29 @@ function initial_condition_leblanc_shock_tube(x, t,
     RealT = eltype(x)
     gamma = equations.gamma
     x_interface = RealT(0.33)
-    if x[1] < x_interface
-        rho = one(RealT)
-        v1 = zero(RealT)
-        p = (gamma - 1) * RealT(1.0e-1)
-    elseif x[1] ≈ x_interface
-        rho_ll = one(RealT)
-        v1_ll = zero(RealT)
-        p_ll = (gamma - 1) * RealT(1.0e-1)
-        rho_rr = RealT(1.0e-3)
-        v1_rr = zero(RealT)
-        p_rr = (gamma - 1) * RealT(1.0e-10)
 
+    rho_ll = one(RealT)
+    v1_ll = zero(RealT)
+    p_ll = (gamma - 1) * RealT(1.0e-1)
+
+    rho_rr = RealT(1.0e-3)
+    v1_rr = zero(RealT)
+    p_rr = (gamma - 1) * RealT(1.0e-10)
+
+    if x[1] < x_interface
+        rho = rho_ll
+        v1 = v1_ll
+        p = p_ll
+    elseif x[1] ≈ x_interface
         rho = (rho_ll + rho_rr) / 2
         v1 = (v1_ll + v1_rr) / 2
         p = (p_ll + p_rr) / 2
     else
-        rho = RealT(1.0e-3)
-        v1 = zero(RealT)
-        p = (gamma - 1) * RealT(1.0e-10)
+        rho = rho_rr
+        v1 = v1_rr
+        p = p_rr
     end
+
     return prim2cons(SVector(rho, v1, p), equations)
 end
 
@@ -49,24 +52,15 @@ coordinates_min, coordinates_max = 0.0, 1.0
 tspan = (0.0, 2 / 3)
 
 surface_flux = flux_lax_friedrichs
-basis = LobattoLegendreBasis(3)
-
-solver = DGSEM(basis, flux_lax_friedrichs, VolumeIntegralWeakForm())
-
-indicator_ec = IndicatorEntropyCorrection(equations, basis)
-volume_integral_default = VolumeIntegralWeakForm()
-volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolume(surface_flux)
-volume_integral = VolumeIntegralAdaptive(indicator_ec,
-                                         volume_integral_default,
-                                         volume_integral_entropy_stable)
-solver = DGSEM(basis, surface_flux, volume_integral)
+volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux, volume_integral = volume_integral)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 9,
-                n_cells_max = 30_000, periodicity = false)
+                periodicity = false)
 
 boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
-                       x_pos = boundary_condition_do_nothing)
+                         x_pos = boundary_condition_do_nothing)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions)
@@ -79,21 +73,19 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 5000)
 alive_callback = AliveCallback(analysis_interval = 1000)
-stepsize_callback = StepsizeCallback(cfl = 0.9)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-12, 1.0e-12),
                                                      variables = (Trixi.density, pressure))
-stage_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi)
-# stage_limiter! = local_limiter!
+global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi,
+                                                      record_davis_yin_iterations = true)
 
 ###############################################################################
 # run the simulation
-
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
-                        stepsize_callback)
-
-sol = solve(ode, RDPK3SpFSAL35(; stage_limiter!);
-            adaptive = false, dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+        
+sol = solve(ode, RDPK3SpFSAL35(; stage_limiter! = global_limiter!, 
+                                 step_limiter! = global_limiter!); 
+            adaptive = true, dt = 1e-7, abstol=1e-5, reltol=1e-5, 
             ode_default_options()..., callback = callbacks);
 
 using Plots
