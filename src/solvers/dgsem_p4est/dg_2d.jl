@@ -872,8 +872,10 @@ end
 
 # CPU backend entry point called from the generic 9-arg rhs! in dgsem_tree/dg_2d.jl.
 # Strips the backend argument and delegates to the 7-arg function barrier above.
+# Uses P4estMeshView{2} (not the bare P4estMeshView) to be strictly more specific
+# than the per-BC dispatch in semidiscretization_coupled_p4est.jl and avoid ambiguity.
 function calc_boundary_flux!(backend::Nothing, cache, t, boundary_conditions,
-                             mesh::P4estMeshView,
+                             mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
     calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, surface_integral,
                         dg)
