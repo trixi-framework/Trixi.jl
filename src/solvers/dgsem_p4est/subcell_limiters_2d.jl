@@ -630,8 +630,8 @@ end
             Qm_lower = abs(Qm_lower) / (abs(Pm_lower) + eps(typeof(Qm_lower)) * 100)
             Qm_large = abs(Qm_large) / (abs(Pm_large) + eps(typeof(Qm_large)) * 100)
 
-            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Qm_upper,
-                                          1 - Qm_lower, 1 - Qm_large)
+            Q = min(1, Qm_upper, Qm_lower, Qm_large)
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Q)
 
             i_small += i_small_step
             j_small += j_small_step

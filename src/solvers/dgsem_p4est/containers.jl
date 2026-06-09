@@ -834,6 +834,8 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
 
+    precompute_n_mortars_per_nodes!(volume_integral, dg, cache, mesh)
+
     return nothing
 end
 
