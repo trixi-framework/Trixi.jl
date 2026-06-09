@@ -28,6 +28,17 @@ function PassiveTracerEquations(flow_equations::AbstractEquations; n_tracers::In
                                   typeof(flow_equations)}(flow_equations)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::PassiveTracerEquations{NDIMS, NVARS, NTracers},
+                      ::Type{NewRealT}) where {NDIMS, NVARS, NTracers, NewRealT}
+    flow_equations = similar(equations.flow_equations, NewRealT)
+    return PassiveTracerEquations{NDIMS, NVARS, NTracers,
+                                  typeof(flow_equations)}(flow_equations)
+end
+
 # Get the number of passive tracers
 @inline ntracers(::PassiveTracerEquations{NDIMS, NVARS, NTracers, FlowEquations}) where {NDIMS, NVARS,
 NTracers, FlowEquations} = NTracers

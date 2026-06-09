@@ -46,7 +46,8 @@ coordinates_max = (3.0, 3.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure
+                n_cells_max = 30_000, # set maximum capacity of tree data structure
+                periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -86,5 +87,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, time
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -187,6 +187,40 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op = collision_bgk,
                                        collision_op)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LatticeBoltzmannEquations3D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LatticeBoltzmannEquations3D{NewRealT,
+                                       typeof(equations.collision_op)}(convert(NewRealT,
+                                                                               equations.c),
+                                                                       convert(NewRealT,
+                                                                               equations.c_s),
+                                                                       convert(NewRealT,
+                                                                               equations.rho0),
+                                                                       convert(NewRealT,
+                                                                               equations.Ma),
+                                                                       convert(NewRealT,
+                                                                               equations.u0),
+                                                                       convert(NewRealT,
+                                                                               equations.Re),
+                                                                       convert(NewRealT,
+                                                                               equations.L),
+                                                                       convert(NewRealT,
+                                                                               equations.nu),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.weights),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha1),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha2),
+                                                                       SVector{27,
+                                                                               NewRealT}(equations.v_alpha3),
+                                                                       equations.collision_op)
+end
+
 function varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D)
     return ntuple(v -> "pdf" * string(v), Val(nvariables(equations)))
 end

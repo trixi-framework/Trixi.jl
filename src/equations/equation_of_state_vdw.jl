@@ -44,6 +44,16 @@ function VanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
     return VanDerWaals(promote(a, b, gamma, R, cv)...)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eos::VanDerWaals, ::Type{NewRealT}) where {NewRealT}
+    return VanDerWaals(; a = convert(NewRealT, eos.a), b = convert(NewRealT, eos.b),
+                       gamma = convert(NewRealT, eos.gamma),
+                       R = convert(NewRealT, eos.R))
+end
+
 """
     pressure(V, T, eos::VanDerWaals)
 

@@ -174,6 +174,19 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 end
 
+# check that ScalarPlotData2D works for Quad elements
+@timed_testset "ScalarPlotData2D with DGMulti Quad elements" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        tspan=(0.0, 0.0),
+                        element_type=Quad(),
+                        cells_per_dimension=(2, 2))
+    semi = sol.prob.p
+    u = parent(sol.u[end])
+    scalar_data = StructArrays.component(u, 1)
+    @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+end
+
 @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
@@ -631,6 +644,23 @@ end
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
 
+@timed_testset "PlotData2D (DGMulti Tri SBP)" begin
+    # Regression test for plotting with SBP on triangular elements (reference triangulation of rstp).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        cells_per_dimension=(4, 4),
+                        approximation_type=SBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+                        tspan=(0.0, 0.0))
+
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test size(pd.t, 1) > 0
+
+    @trixi_test_nowarn Plots.plot(pd)
+    @trixi_test_nowarn Plots.plot(pd["rho"])
+end
+
 @timed_testset "1D plot recipes (StructuredMesh)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_1d_dgsem",
                                  "elixir_euler_source_terms.jl"),
@@ -962,6 +992,49 @@ end
             ENV["GKSwstype"] = restore
         end
     end
+end
+
+@timed_testset "Makie visualization tests for 1D" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = PlotData1D(sol)
+
+    # convert_arguments enables lines(pd["scalar"])
+    fap = lines(pd["scalar"])
+    @test fap isa Makie.FigureAxisPlot
+
+    # plottype for 1D PlotDataSeries is Lines
+    @test Makie.plottype(pd["scalar"]) == Makie.Lines
+
+    # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
+    fap2 = Makie.plot(pd["scalar"])
+    @test fap2 isa Makie.FigureAxisPlot
+
+    # kwargs are forwarded to lines!
+    fap3 = Makie.plot(pd["scalar"], color = :red, linewidth = 2)
+    @test fap3 isa Makie.FigureAxisPlot
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = Makie.plot(pd)
+
+    # show_mesh kwarg triggers vlines! for mesh vertices
+    @trixi_test_nowarn Makie.plot(pd, show_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+    @test fig isa Makie.Figure
+    @test axes isa AbstractArray{<:Makie.Axis}
+
+    # Makie.plot(sol) for 1D solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to vlines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
 end
 
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin

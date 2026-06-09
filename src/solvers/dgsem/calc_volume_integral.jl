@@ -180,33 +180,14 @@ end
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, typeof(mesh),
+        volume_integral_kernel!(du, u, element, MeshT,
                                 have_nonconservative_terms, equations,
                                 volume_integral, dg, cache)
     end
 
     return nothing
-end
-
-function calc_volume_integral!(backend::Backend, du, u, mesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral, dg::DGSEM, cache)
-    nelements(dg, cache) == 0 && return nothing
-    kernel! = volume_integral_KAkernel!(backend)
-    kernel_cache = kernel_filter_cache(cache)
-    kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
-            volume_integral, dg, kernel_cache,
-            ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function volume_integral_KAkernel!(du, u, MeshT,
-                                           have_nonconservative_terms, equations,
-                                           volume_integral, dg::DGSEM, cache)
-    element = @index(Global)
-    volume_integral_kernel!(du, u, element, MeshT, have_nonconservative_terms,
-                            equations, volume_integral, dg, cache)
 end
 
 @inline function calc_volume_integral!(backend::Nothing, du, u, mesh,
@@ -223,17 +204,18 @@ end
     # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+    MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         alpha_element = alpha[element]
         # Clip blending factor for values close to zero (-> default volume integral)
         default_volume_integral = isapprox(alpha_element, 0, atol = atol)
 
         if default_volume_integral
-            volume_integral_kernel!(du, u, element, typeof(mesh),
+            volume_integral_kernel!(du, u, element, MeshT,
                                     have_nonconservative_terms, equations,
                                     volume_integral_default, dg, cache)
         else
-            volume_integral_kernel!(du, u, element, typeof(mesh),
+            volume_integral_kernel!(du, u, element, MeshT,
                                     have_nonconservative_terms, equations,
                                     volume_integral_stabilized, dg, cache)
         end
@@ -257,24 +239,25 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+    MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         alpha_element = alpha[element]
         # Clip blending factor for values close to zero (-> pure DG)
         dg_only = isapprox(alpha_element, 0, atol = atol)
 
         if dg_only
-            volume_integral_kernel!(du, u, element, typeof(mesh),
+            volume_integral_kernel!(du, u, element, MeshT,
                                     have_nonconservative_terms, equations,
                                     volume_integral_default, dg, cache)
         else
             # Calculate DG volume integral contribution
-            volume_integral_kernel!(du, u, element, typeof(mesh),
+            volume_integral_kernel!(du, u, element, MeshT,
                                     have_nonconservative_terms, equations,
                                     volume_integral_blend_high_order, dg, cache,
                                     1 - alpha_element)
 
             # Calculate FV volume integral contribution
-            volume_integral_kernel!(du, u, element, typeof(mesh),
+            volume_integral_kernel!(du, u, element, MeshT,
                                     have_nonconservative_terms, equations,
                                     volume_integral_blend_low_order, dg, cache,
                                     alpha_element)
@@ -301,32 +284,33 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                                                                                dg,
                                                                                                cache)
 
+    MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        # run default volume integral 
-        volume_integral_kernel!(du, u, element, typeof(mesh),
+        # run default volume integral
+        volume_integral_kernel!(du, u, element, MeshT,
                                 have_nonconservative_terms, equations,
                                 volume_integral_default, dg, cache)
 
-        # Check entropy production of "high order" volume integral. 
-        # 
+        # Check entropy production of "high order" volume integral.
+        #
         # Note that, for `TreeMesh`, both volume and surface integrals are calculated
-        # on the reference element. For other mesh types, because the volume integral 
-        # incorporates the scaled contravariant vectors, the surface integral should 
+        # on the reference element. For other mesh types, because the volume integral
+        # incorporates the scaled contravariant vectors, the surface integral should
         # be calculated on the physical element instead.
         #
         # Minus sign because of the flipped sign of the volume term in the DG RHS.
         # No scaling by inverse Jacobian here, as there is no Jacobian multiplication
         # in `integrate_reference_element`.
         dS_volume_integral = -entropy_change_reference_element(du, u, element,
-                                                               typeof(mesh), equations,
+                                                               MeshT, equations,
                                                                dg, cache)
 
         # Compute true entropy change given by surface integral of the entropy potential
         dS_true = surface_integral_reference_element(entropy_potential, u, element,
-                                                     typeof(mesh), equations, dg, cache)
+                                                     MeshT, equations, dg, cache)
 
-        # This quantity should be ≤ 0 for an entropy stable volume integral, and 
-        # exactly zero for an entropy conservative volume integral. 
+        # This quantity should be ≤ 0 for an entropy stable volume integral, and
+        # exactly zero for an entropy conservative volume integral.
         entropy_residual = dS_volume_integral - dS_true
 
         if entropy_residual > 0
@@ -334,19 +318,19 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             du_FD_element = du_element_threaded[Threads.threadid()]
             @views du_FD_element .= du[.., element]
 
-            # Reset pure flux-differencing volume integral 
+            # Reset pure flux-differencing volume integral
             # Note that this assumes that the volume terms are computed first,
             # before any surface terms are added.
             du[.., element] .= zero(eltype(du))
 
             # Calculate entropy stable volume integral contribution
-            volume_integral_kernel!(du, u, element, typeof(mesh),
+            volume_integral_kernel!(du, u, element, MeshT,
                                     have_nonconservative_terms, equations,
                                     volume_integral_stabilized, dg, cache)
 
             dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
                                                                               element,
-                                                                              typeof(mesh),
+                                                                              MeshT,
                                                                               equations,
                                                                               dg,
                                                                               cache)
