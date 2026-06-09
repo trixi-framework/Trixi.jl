@@ -38,6 +38,16 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_limiter_liu_zhang_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_limiter_liu_zhang_amr.jl"),
+                        l2=[0.08104042028981003], linf=[0.5248014378267982])
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-3,) up to a tolerance
+    @test minimum(u) > 1e-3 - 10 * eps()
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_basic.jl (max_abs_speed)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         surface_flux=FluxLaxFriedrichs(max_abs_speed),
