@@ -252,6 +252,11 @@ function global_cell_average_limiter!(u, cell_averages,
         num_davis_yin_iterations += 1
     end
 
+    if num_davis_yin_iterations == max_davis_yin_iterations
+        @warn "Davis-Yin iteration did not converge in $(max_davis_yin_iterations) iterations; " *
+              "residual = $(residual) while tolerance = $(global_limiter_tol)."
+    end
+
     if history_davis_yin_iterations !== nothing
         push!(history_davis_yin_iterations, num_davis_yin_iterations)
     end
