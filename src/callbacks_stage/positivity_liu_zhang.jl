@@ -283,13 +283,13 @@ function global_cell_average_limiter!(u, cell_averages,
         sqrt_cell_volume = sqrt_cell_volumes[element]
         new_cell_average = project_to_admissible_set(davis_yin_Z[element] /
                                                      sqrt_cell_volume,
-                                                     lower_bound, variables, equations)                      
+                                                     lower_bound, variables, equations)
 
         set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
                     cache)
 
         # for visualization and debugging only                    
-        cell_averages[element] = new_cell_average 
+        cell_averages[element] = new_cell_average
     end
 
     return nothing
