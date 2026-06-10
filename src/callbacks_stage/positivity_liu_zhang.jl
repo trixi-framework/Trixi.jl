@@ -170,10 +170,11 @@ function global_cell_average_limiter!(u, cell_averages,
                                       mesh, equations, dg, cache)
     global_integral = zero(eltype(cell_averages))
     for element in eachelement(dg, cache)
-        cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
-        global_integral = global_integral + cell_averages[element] * cell_volume
+        cell_volume = sqrt_cell_volumes[element]^2
+        global_integral += cell_averages[element] * cell_volume
     end
 
+    # residual ||X^{k+1} - X^k||_{L^2} for the Davis-Yin iteration
     residual = floatmax(real(mesh))
 
     @threaded for element in eachelement(dg, cache)
@@ -222,7 +223,7 @@ function global_cell_average_limiter!(u, cell_averages,
         # Step 2: calculate primal variable Y and conservation residual
         global_integral_Y = zero(first(davis_yin_Z))
         for element in eachelement(dg, cache)
-            sqrt_cell_volume = sqrt_cell_volumes[element]            
+            sqrt_cell_volume = sqrt_cell_volumes[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
             Y = projected_cell_averages[element] - davis_yin_Z[element] + u_weighted_target
             global_integral_Y += sqrt_cell_volume * Y
