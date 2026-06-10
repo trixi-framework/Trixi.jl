@@ -5,10 +5,12 @@ using Trixi
 # semidiscretization of the visco-resistive compressible MHD equations
 
 prandtl_number() = 0.72
-mu() = 1e-3
-eta() = 1e-3
+# mu() = 1e-3
+# eta() = 1e-3
+mu() = 5e-3
+eta() = 5e-3
 
-equations = IdealGlmMhdEquations2D(5 / 3)
+equations = IdealGlmMhdEquations2D(2.0)
 equations_parabolic = ViscoResistiveMhd2D(equations, mu = mu(),
                                           Prandtl = prandtl_number(),
                                           eta = eta(),
@@ -28,6 +30,35 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
                 periodicity = true,
                 n_cells_max = 10_000) # set maximum capacity of tree data structure
+
+# Test case proposed by Bohm (2019), Section 5.2 (https://arxiv.org/pdf/1802.07341).
+function initial_condition_bohm_2d(x, t, equations)
+    h = 0.5*sin(2*pi*(x[1] + x[2] - t)) + 2
+
+    return SVector(h, h, h, 0, 2*h^2 + h, h, -h, 0, 0)
+end
+
+@inline function source_terms_mhd_convergence_test_bohm_2d(u, x, t, equations)
+    mu_ = mu()
+    eta_ = eta()
+    Pr_ = prandtl_number()
+
+    h = 0.5*sin(2*pi*(x[1] + x[2] - t)) + 2
+    h_x = pi*cos(2*pi*(x[1] + x[2] - t))
+    h_xx = -2*pi^2*sin(2*pi*(x[1] + x[2] - t))
+
+    r_1 = h_x
+    r_2 = h_x + 4*h*h_x
+    r_3 = r_2
+    r_4 = zero(h_x)
+    r_5 = h_x + 12*h*h_x - 4*eta_*(h_x^2 + h*h_xx) - 4*mu_*h_xx/Pr_
+    r_6 = h_x - 2*eta_*h_xx
+    r_7 = -h_x + 2*eta_*h_xx
+    r_8 = 0
+    r_9 = 0
+
+    SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
+end
 
 # This is a modified 2D Alfvén wave with a periodic density variation, following
 # Altmann (2012) http://dx.doi.org/10.18419/opus-3895.
@@ -2166,13 +2197,14 @@ end
     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
-initial_condition = initial_condition_constant_alfven_2d
+# initial_condition = initial_condition_constant_alfven_2d
+initial_condition = initial_condition_bohm_2d
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic),
-                                             source_terms = source_terms_mhd_convergence_test_2d)
+                                             source_terms = source_terms_mhd_convergence_test_bohm_2d)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
