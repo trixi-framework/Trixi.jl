@@ -560,7 +560,7 @@ function rhs!(du, u, t,
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
         calc_sources!(backend, du, u, t, source_terms,
-                      have_aux_node_vars(equations),equations, dg, cache)
+                      have_aux_node_vars(equations), equations, dg, cache)
     end
 
     # Finish to send MPI data
