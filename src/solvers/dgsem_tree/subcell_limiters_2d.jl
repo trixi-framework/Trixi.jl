@@ -23,6 +23,8 @@
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         # Calculate bounds at Gauss-Lobatto nodes
+        var_min[:, :, element] .= typemax(eltype(var_min))
+        var_max[:, :, element] .= typemin(eltype(var_max))
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
             var_min[i, j, element] = min(var_min[i, j, element], var)
