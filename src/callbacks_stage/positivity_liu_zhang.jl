@@ -43,7 +43,7 @@ end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
-                                             global_limiter_tol = 1e3 * eps(real(semi)),
+                                             global_limiter_tol = 1e2 * eps(real(semi)),
                                              max_davis_yin_iterations = 500,
                                              record_davis_yin_iterations = false)
     return PositivityPreservingLimiterLiuZhang(local_limiter!,
@@ -171,6 +171,23 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
         end
     end
 
+    # # TODO: remove this once we're done debugging
+    # for element in eachelement(dg, cache)
+    #     u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
+    #     constraint_tolerance = minimum(local_limiter!.thresholds) * 100 * eps(eltype(u_mean))
+    #     # constraint_tolerance = zero(eltype(u_mean))
+
+    #     if !satisfies_constraints(u_mean, local_limiter!.thresholds,
+    #                               local_limiter!.variables, equations;
+    #                               tolerance = constraint_tolerance)           
+    #         println("variable[1] = $(local_limiter!.variables[1](u_mean, equations))")
+    #         println("variable[2] = $(local_limiter!.variables[2](u_mean, equations))")
+    #         println("constraint_residual = $(constraint_residual(u_mean, local_limiter!.thresholds, local_limiter!.variables, equations))")
+    #         error("Before local limiter, element mean violates positivity constraints; " *
+    #               "adaptive filter cannot recover a constraint-satisfying state")
+    #     end
+    # end
+
     # after the global limiter, call a local (e.g., Zhang-Shu type) limiter to 
     # enforce pointwise positivity 
     local_limiter!(u_ode, integrator, semi, t)
@@ -266,10 +283,13 @@ function global_cell_average_limiter!(u, cell_averages,
         sqrt_cell_volume = sqrt_cell_volumes[element]
         new_cell_average = project_to_admissible_set(davis_yin_Z[element] /
                                                      sqrt_cell_volume,
-                                                     lower_bound, variables, equations)
+                                                     lower_bound, variables, equations)                      
+
         set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
                     cache)
-        cell_averages[element] = new_cell_average
+
+        # for visualization and debugging only                    
+        cell_averages[element] = new_cell_average 
     end
 
     return nothing
