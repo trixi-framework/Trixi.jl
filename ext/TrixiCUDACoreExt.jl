@@ -1,5 +1,5 @@
 # Package extension for adding CUDA-based features to Trixi.jl
-module TrixiCUDAExt
+module TrixiCUDACoreExt
 
 using CUDACore: CUDACore, CuArray, CuDeviceArray, CUDABackend, KernelAdaptor,
                 @device_override

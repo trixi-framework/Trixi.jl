@@ -68,7 +68,7 @@ SparseConnectivityTracer = "9f842d2f-2579-4b1d-911e-f412cf18a3f5"
 
 [extensions]
 TrixiAMDGPUExt = "AMDGPU"
-TrixiCUDAExt = "CUDACore"
+TrixiCUDACoreExt = "CUDACore"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
