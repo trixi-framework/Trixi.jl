@@ -192,7 +192,8 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), False(), equations,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), have_aux_node_vars,
+                              equations,
                               symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -782,8 +783,8 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
 end
 
 function calc_sources!(backend::Nothing, du, u, t, source_terms,
-                       have_aux_node_vars::False,
-                       equations::AbstractEquations{1}, dg::DG, cache)
+                       have_aux_node_vars::False, equations::AbstractEquations{1},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)

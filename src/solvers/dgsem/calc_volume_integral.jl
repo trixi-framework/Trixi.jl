@@ -223,13 +223,13 @@ end
 
         if default_volume_integral
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms,
-                                    have_aux_node_vars, equations,
+                                    have_nonconservative_terms, have_aux_node_vars,
+                                    equations,
                                     volume_integral_default, dg, cache)
         else
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms,
-                                    have_aux_node_vars, equations,
+                                    have_nonconservative_terms, have_aux_node_vars,
+                                    equations,
                                     volume_integral_stabilized, dg, cache)
         end
     end
@@ -261,21 +261,21 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
         if dg_only
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms,
-                                    have_aux_node_vars, equations,
+                                    have_nonconservative_terms, have_aux_node_vars,
+                                    equations,
                                     volume_integral_default, dg, cache)
         else
             # Calculate DG volume integral contribution
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms,
-                                    have_aux_node_vars, equations,
+                                    have_nonconservative_terms, have_aux_node_vars,
+                                    equations,
                                     volume_integral_blend_high_order, dg, cache,
                                     1 - alpha_element)
 
             # Calculate FV volume integral contribution
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms,
-                                    have_aux_node_vars, equations,
+                                    have_nonconservative_terms, have_aux_node_vars,
+                                    equations,
                                     volume_integral_blend_low_order, dg, cache,
                                     alpha_element)
         end
@@ -304,7 +304,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        # run default volume integral 
+        # run default volume integral
         volume_integral_kernel!(du, u, element, MeshT,
                                 have_nonconservative_terms, have_aux_node_vars,
                                 equations,
@@ -344,8 +344,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
             # Calculate entropy stable volume integral contribution
             volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms,
-                                    have_aux_node_vars, equations,
+                                    have_nonconservative_terms, have_aux_node_vars,
+                                    equations,
                                     volume_integral_stabilized, dg, cache)
 
             dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,

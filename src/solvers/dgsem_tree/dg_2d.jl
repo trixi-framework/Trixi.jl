@@ -181,8 +181,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit_ext backend timer() "source terms" begin
-        calc_sources!(backend, du, u, t, source_terms, have_aux_node_vars(equations),
-                      equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms,
+                      have_aux_node_vars(equations), equations, dg, cache)
     end
 
     return nothing
@@ -305,7 +305,8 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), False(), equations,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), have_aux_node_vars,
+                              equations,
                               symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -876,6 +877,7 @@ end
 function calc_boundary_flux!(backend::Nothing, cache, t,
                              boundary_conditions::NamedTuple,
                              mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
+    @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
 
     # Calculate indices
@@ -883,22 +885,22 @@ function calc_boundary_flux!(backend::Nothing, cache, t,
     firsts = lasts - n_boundaries_per_direction .+ 1
 
     # Calc boundary fluxes in each direction
-    calc_boundary_flux_by_direction!(t, boundary_conditions[1],
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
                                      have_nonconservative_terms(equations),
                                      have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      1, firsts[1], lasts[1])
-    calc_boundary_flux_by_direction!(t, boundary_conditions[2],
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
                                      have_nonconservative_terms(equations),
                                      have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      2, firsts[2], lasts[2])
-    calc_boundary_flux_by_direction!(t, boundary_conditions[3],
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[3],
                                      have_nonconservative_terms(equations),
                                      have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
                                      3, firsts[3], lasts[3])
-    calc_boundary_flux_by_direction!(t, boundary_conditions[4],
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[4],
                                      have_nonconservative_terms(equations),
                                      have_aux_node_vars(equations),
                                      equations, surface_integral, dg, cache,
@@ -907,12 +909,13 @@ function calc_boundary_flux!(backend::Nothing, cache, t,
     return nothing
 end
 
-function calc_boundary_flux_by_direction!(t, boundary_condition,
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
+                                          t,
+                                          boundary_condition,
                                           have_nonconservative_terms::False,
                                           have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    @unpack surface_flux_values = cache.elements
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
@@ -943,12 +946,13 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
     return nothing
 end
 
-function calc_boundary_flux_by_direction!(t, boundary_condition,
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
+                                          t,
+                                          boundary_condition,
                                           have_nonconservative_terms::False,
                                           have_aux_node_vars::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    @unpack surface_flux_values = cache.elements
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
     @unpack aux_boundary_node_vars = cache.aux_vars
@@ -984,12 +988,13 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
     return nothing
 end
 
-function calc_boundary_flux_by_direction!(t, boundary_condition,
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 4},
+                                          t,
+                                          boundary_condition,
                                           have_nonconservative_terms::True,
                                           have_aux_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    @unpack surface_flux_values = cache.elements
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
@@ -1557,8 +1562,8 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
 end
 
 function calc_sources!(backend::Nothing, du, u, t, source_terms,
-                       have_aux_node_vars::False,
-                       equations::AbstractEquations{2}, dg::DG, cache)
+                       have_aux_node_vars::False, equations::AbstractEquations{2},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)
@@ -1574,8 +1579,9 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
-                       equations::AbstractEquations{2}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       have_aux_node_vars::True, equations::AbstractEquations{2},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
     @unpack aux_node_vars = cache.aux_vars
 
