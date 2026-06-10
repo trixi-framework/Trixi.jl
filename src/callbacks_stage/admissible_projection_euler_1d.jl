@@ -221,7 +221,8 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
 
     if !has_candidate
         error("Failed to find projection onto Euler admissible set for state ", u,
-              " with rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
+              " with rho = ", rho, " and rho_e = ", rho_e_total - 0.5f0 * rho_v1 * rho_v1 / rho,
+              " and rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
     end
 
     return SVector(best_rho, best_rho_v1, best_rho_e_total)
