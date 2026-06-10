@@ -278,7 +278,8 @@ end
     calc_IndicatorMax_per_element!(alpha, u, equations, dg, indicator_variable, element)
 end
 
-@inline function calc_IndicatorMax_per_element!(alpha, u, equations, dg, indicator_variable,
+@inline function calc_IndicatorMax_per_element!(alpha, u, equations, dg,
+                                                indicator_variable,
                                                 element)
     max_indicator = zero(eltype(u))
     # Calculate indicator variables at Gauss-Lobatto nodes

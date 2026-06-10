@@ -34,7 +34,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 tspan = (0.0, 0.3)
 ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
-
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
