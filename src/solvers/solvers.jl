@@ -32,5 +32,6 @@ end
 include("solvers_parabolic.jl")
 
 include("dg.jl")
+include("dg_gpu.jl")
 include("dgmulti/dgmulti.jl")
 end # @muladd
