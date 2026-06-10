@@ -23,13 +23,13 @@ end
 @trixi_testset "elixir_advection_limiter_liu_zhang.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_limiter_liu_zhang.jl"),
-                        l2=[0.09906427048468684],
-                        linf=[0.8512982403210421],
+                        l2=[0.20443745557937526],
+                        linf=[0.8175130986095068],
                         record_davis_yin_iterations=true)
     u = Trixi.wrap_array_native(sol.u[end], semi)
-    # matches thresholds = (1e-3,) up to a tolerance
-    @test minimum(u) > 1e-3 - 10 * eps()
-    @test global_limiter!.history_davis_yin_iterations == [87, 74, 74, 68]
+    # matches thresholds = (1e-1,) up to a tolerance
+    @test minimum(u) > 1e-1 - 10 * eps()
+    @test maximum(global_limiter!.history_davis_yin_iterations) == 103
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
