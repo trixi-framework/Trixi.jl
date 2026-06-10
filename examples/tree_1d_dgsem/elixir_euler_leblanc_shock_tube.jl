@@ -52,13 +52,18 @@ coordinates_min, coordinates_max = 0.0, 1.0
 tspan = (0.0, 2 / 3)
 
 surface_flux = flux_lax_friedrichs
-basis = LobattoLegendreBasis(3)
-indicator_ec = IndicatorEntropyCorrection(equations, basis)
-volume_integral_default = VolumeIntegralWeakForm()
-volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolume(surface_flux)
-volume_integral = VolumeIntegralAdaptive(indicator_ec,
-                                         volume_integral_default,
-                                         volume_integral_entropy_stable)
+basis = LobattoLegendreBasis(7)
+
+# volume_integral = VolumeIntegralWeakForm()
+volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+
+# indicator_ec = IndicatorEntropyCorrection(equations, basis)
+# volume_integral_default = VolumeIntegralWeakForm()
+# volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolume(surface_flux)
+# volume_integral = VolumeIntegralAdaptive(indicator_ec,
+#                                          volume_integral_default,
+#                                          volume_integral_entropy_stable)
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -79,20 +84,29 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 5000)
 alive_callback = AliveCallback(analysis_interval = 1000)
-stepsize_callback = StepsizeCallback(cfl = 0.6)
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
-                        stepsize_callback)
+stepsize_callback = StepsizeCallback(cfl = 0.7)
 
-local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-11, 1.0e-11),
-                                                     variables = (Trixi.density, pressure))
-global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi,
+thresholds = (1.0e-12, 1.0e-12)
+variables = (Trixi.density, energy_internal)
+local_limiter! = PositivityPreservingLimiterZhangShu(; thresholds, variables)
+global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
                                                       record_davis_yin_iterations = true)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode,
-            RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
-                          step_limiter! = global_limiter!);
-            adaptive = false, dt = 1,
-            ode_default_options()..., callback = callbacks)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
+                        stepsize_callback)
+solver = RDPK3SpFSAL35(; stage_limiter! = global_limiter!, step_limiter! = global_limiter!)
+kwargs = (; adaptive = false, dt = 1, ode_default_options()...)
+
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+solver = RDPK3SpFSAL35(; stage_limiter! = global_limiter!, step_limiter! = global_limiter!)
+kwargs = (; adaptive = true, dt = 1e-7, abstol = 1e-5, reltol = 1e-5,
+          ode_default_options()...)
+
+sol = solve(ode, solver;
+            kwargs..., callback = callbacks);
+
+using Plots
+plot(PlotData1D(sol.u[end], semi)["rho"], yaxis = :log)
