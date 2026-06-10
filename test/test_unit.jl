@@ -33,6 +33,66 @@ isdir(outdir) && rm(outdir, recursive = true)
 @testset "Unit tests" begin
 #! format: noindent
 
+@timed_testset "Spectral analysis" begin
+    @testset "compute_kinetic_energy_spectrum" begin
+        rho_2d = ones(4, 4)
+        velocity_1_2d = ones(4, 4)
+        velocity_2_2d = zeros(4, 4)
+
+        wavenumbers_2d, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
+                                                                                   velocity_2_2d)
+        @test wavenumbers_2d == 0:3
+        @test energy_spectrum_2d[1] ≈ 0.5
+        @test all(isapprox.(energy_spectrum_2d[2:end], 0, atol = 100 * eps()))
+
+        velocity_1_2d .= [sin(2 * pi * (i - 1) / size(rho_2d, 1))
+                          for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
+        velocity_2_2d .= [cos(2 * pi * (j - 1) / size(rho_2d, 2))
+                          for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
+        _, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_2d) .*
+                                                                      velocity_1_2d,
+                                                                      sqrt.(rho_2d) .*
+                                                                      velocity_2_2d)
+        mean_kinetic_energy_2d = sum(@. 0.5 * rho_2d *
+                                        (velocity_1_2d^2 + velocity_2_2d^2)) /
+                                 length(rho_2d)
+        @test sum(energy_spectrum_2d) ≈ mean_kinetic_energy_2d
+
+        rho_3d = ones(4, 4, 4)
+        velocity_1_3d = ones(4, 4, 4)
+        velocity_2_3d = zeros(4, 4, 4)
+        velocity_3_3d = zeros(4, 4, 4)
+
+        wavenumbers_3d, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
+                                                                                   velocity_2_3d,
+                                                                                   velocity_3_3d)
+        @test wavenumbers_3d == 0:3
+        @test energy_spectrum_3d[1] ≈ 0.5
+        @test all(isapprox.(energy_spectrum_3d[2:end], 0, atol = 100 * eps()))
+
+        velocity_1_3d .= [sin(2 * pi * (i - 1) / size(rho_3d, 1))
+                          for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
+                              k in axes(rho_3d, 3)]
+        velocity_2_3d .= [cos(2 * pi * (j - 1) / size(rho_3d, 2))
+                          for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
+                              k in axes(rho_3d, 3)]
+        velocity_3_3d .= [sin(2 * pi * (k - 1) / size(rho_3d, 3))
+                          for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
+                              k in axes(rho_3d, 3)]
+        _, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_3d) .*
+                                                                      velocity_1_3d,
+                                                                      sqrt.(rho_3d) .*
+                                                                      velocity_2_3d,
+                                                                      sqrt.(rho_3d) .*
+                                                                      velocity_3_3d)
+        mean_kinetic_energy_3d = sum(@. 0.5 * rho_3d *
+                                        (velocity_1_3d^2 + velocity_2_3d^2 +
+                                         velocity_3_3d^2)) /
+                                 length(rho_3d)
+        @test sum(energy_spectrum_3d) ≈ mean_kinetic_energy_3d
+    end
+end
+
 @timed_testset "SerialTree" begin
     @testset "constructors" begin
         @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
@@ -79,8 +139,9 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true) isa
-              TreeMesh
+        mesh = @inferred TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0,
+                                                                            true)
+        @test mesh isa TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
@@ -93,6 +154,17 @@ end
                                             initial_refinement_level = 2,
                                             n_cells_max = 10_000,
                                             periodicity = true)
+
+        # Keyword-only constructor
+        mesh_ref = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                            initial_refinement_level = 2, n_cells_max = 10_000)
+        mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0),
+                           refinement_level = 2)
+        @test Trixi.ncells(mesh_kw) == Trixi.ncells(mesh_ref)
+        @test_throws ArgumentError TreeMesh(; coordinates_min = (-1.0, -1.0),
+                                            coordinates_max = (1.0, 1.0, 1.0),
+                                            refinement_level = 2)
     end
 
     @testset "helper functions" begin
@@ -107,8 +179,8 @@ end
                                 initial_refinement_level = ref_level,
                                 n_cells_max = 10_000, periodicity = true)
 
-                @test Trixi.ndims(mesh) == ndims
-                @test Trixi.ncells(mesh) == (2^ndims)^ref_level
+                @test @inferred(Trixi.ndims(mesh)) == ndims
+                @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
             end
         end
     end
@@ -119,7 +191,7 @@ end
         @testset "mpi_nranks() = 2" begin
             Trixi.mpi_nranks() = 2
             let
-                @test Trixi.mpi_nranks() == 2
+                @test @inferred(Trixi.mpi_nranks()) == 2
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
@@ -659,6 +731,31 @@ end
         cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+end
+
+@timed_testset "LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" begin
+    rho, v1, v2, v3, p = 1.0, 0.1, -0.2, 0.3, 2.0
+
+    for (equations_parabolic, prim, dw) in ((LaplaceDiffusionEntropyVariables1D(0.01,
+                                                                                CompressibleEulerEquations1D(1.4)),
+                                             SVector(rho, v1, p),
+                                             SVector(1.0, 0.1, 2.0)),
+                                            (LaplaceDiffusionEntropyVariables2D(0.01,
+                                                                                CompressibleEulerEquations2D(1.4)),
+                                             SVector(rho, v1, v2, p),
+                                             SVector(1.0, 0.1, -0.2, 2.0)),
+                                            (LaplaceDiffusionEntropyVariables3D(0.01,
+                                                                                CompressibleEulerEquations3D(1.4)),
+                                             SVector(rho, v1, v2, v3, p),
+                                             SVector(1.0, 0.1, -0.2, 0.3, 2.0)))
+        equations = equations_parabolic.equations_hyperbolic
+        w = cons2entropy(prim2cons(prim, equations), equations)
+        jvp_specialized = Trixi.apply_jacobian_entropy2cons(dw, w, equations_parabolic)
+        jvp_ad = invoke(Trixi.apply_jacobian_entropy2cons,
+                        Tuple{typeof(dw), typeof(w), Trixi.AbstractEquations},
+                        dw, w, equations)
+        @test jvp_specialized ≈ jvp_ad
     end
 end
 
@@ -3561,6 +3658,134 @@ end
 
     @test Trixi.ndims(semi) == 2
 end
+end
+
+@testset "Unified mesh constructor signatures (StructuredMesh)" begin
+    # 1D: keyword interface (2^2 = 4 cells per dimension)
+    mesh_1d_ref = StructuredMesh((4,), (-1.0,), (1.0,))
+    mesh_1d_kw = StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                                refinement_level = 2)
+    @test mesh_1d_ref.cells_per_dimension == mesh_1d_kw.cells_per_dimension
+
+    # 2D: keyword interface
+    mesh_2d_ref = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
+    mesh_2d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                coordinates_max = (1.0, 1.0),
+                                refinement_level = 2)
+    @test mesh_2d_ref.cells_per_dimension == mesh_2d_kw.cells_per_dimension
+
+    # 3D: keyword interface
+    mesh_3d_ref = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
+    mesh_3d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0, -1.0),
+                                coordinates_max = (1.0, 1.0, 1.0),
+                                refinement_level = 2)
+    @test mesh_3d_ref.cells_per_dimension == mesh_3d_kw.cells_per_dimension
+    @test_throws ArgumentError StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                              coordinates_max = (1.0, 1.0, 1.0),
+                                              refinement_level = 2)
+end
+
+@testset "Unified mesh constructor signatures (DGMultiMesh)" begin
+    dg_1d = DGMulti(polydeg = 2, element_type = Line(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 1D: keyword interface (2^2 = 4 elements)
+    mesh_1d_ref = DGMultiMesh(dg_1d, (4,))
+    mesh_1d_kw = DGMultiMesh(dg_1d; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                             refinement_level = 2)
+    @test mesh_1d_ref.md.num_elements == mesh_1d_kw.md.num_elements
+
+    dg_2d = DGMulti(polydeg = 2, element_type = Quad(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 2D: keyword interface
+    mesh_2d_ref = DGMultiMesh(dg_2d, (4, 4))
+    mesh_2d_kw = DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                             coordinates_max = (1.0, 1.0), refinement_level = 2)
+    @test mesh_2d_ref.md.num_elements == mesh_2d_kw.md.num_elements
+    @test_throws ArgumentError DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                                           coordinates_max = (1.0, 1.0, 1.0),
+                                           refinement_level = 2)
+end
+
+@testset "TreeMesh without n_cells_max" begin
+    for NDIMS in 1:3
+        coords_min = ntuple(_ -> -1.0, NDIMS)
+        coords_max = ntuple(_ -> 1.0, NDIMS)
+        mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
+        @test mesh.tree.capacity >= mesh.tree.length
+    end
+end
+
+@testset "TreeMesh auto-growth matches large-capacity tree" begin
+    for NDIMS in 1:2
+        coords_min = ntuple(_ -> -1.0, NDIMS)
+        coords_max = ntuple(_ -> 1.0, NDIMS)
+
+        # Reference: large capacity, no growth needed
+        mesh_ref = TreeMesh(coords_min, coords_max;
+                            n_cells_max = 10_000,
+                            initial_refinement_level = 3)
+        # Test: starts tiny, must grow during construction and again during AMR
+        mesh_small = TreeMesh(coords_min, coords_max;
+                              n_cells_max = 2,
+                              initial_refinement_level = 3)
+
+        # Post-construction AMR: refine all leaf cells once on both trees
+        Trixi.refine!(mesh_ref.tree)
+        Trixi.refine!(mesh_small.tree)
+
+        tr = mesh_ref.tree
+        ts = mesh_small.tree
+
+        @test ts.length == tr.length
+        @test ts.capacity >= ts.length
+        @test ts.parent_ids[1:(ts.length)] == tr.parent_ids[1:(tr.length)]
+        @test ts.child_ids[:, 1:(ts.length)] == tr.child_ids[:, 1:(tr.length)]
+        @test ts.neighbor_ids[:, 1:(ts.length)] == tr.neighbor_ids[:, 1:(tr.length)]
+        @test ts.levels[1:(ts.length)] == tr.levels[1:(tr.length)]
+        @test ts.coordinates[:, 1:(ts.length)] ≈ tr.coordinates[:, 1:(tr.length)]
+        @test ts.original_cell_ids[1:(ts.length)] == tr.original_cell_ids[1:(tr.length)]
+        # Wrapped matrix sizes must match current capacity
+        @test size(ts.child_ids) == (2^NDIMS, ts.capacity + 1)
+        @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
+        @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
+    end
+end
+
+@testset "load_mesh n_cells_max compatibility" begin
+    mktempdir() do dir
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                        initial_refinement_level = 2, n_cells_max = 1000)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+        saved_cap = mesh.tree.capacity
+
+        # n_cells_max = nothing: use saved capacity
+        m1 = Trixi.load_mesh_serial(mesh_file; n_cells_max = nothing, RealT = Float64)
+        @test m1.tree.capacity == saved_cap
+
+        # n_cells_max = 0: legacy alias, use saved capacity
+        m2 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 0, RealT = Float64)
+        @test m2.tree.capacity == saved_cap
+
+        # n_cells_max smaller than saved: still use saved capacity
+        m3 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 1, RealT = Float64)
+        @test m3.tree.capacity == saved_cap
+
+        # n_cells_max larger than saved: use provided value
+        m4 = Trixi.load_mesh_serial(mesh_file; n_cells_max = saved_cap + 500,
+                                    RealT = Float64)
+        @test m4.tree.capacity == saved_cap + 500
+
+        # negative value: rejected
+        @test_throws ArgumentError Trixi.load_mesh_serial(mesh_file; n_cells_max = -1,
+                                                          RealT = Float64)
+    end
 end
 
 end #module

@@ -159,7 +159,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 time_int_tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
             abstol = time_int_tol, reltol = time_int_tol,
             adaptive = true, dt = 1e-3, # needed only for tests/CI
             ode_default_options()..., callback = callbacks);
