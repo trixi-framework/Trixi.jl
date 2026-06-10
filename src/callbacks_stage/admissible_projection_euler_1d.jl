@@ -1,7 +1,8 @@
 @inline function project_to_admissible_set(cell_average, lower_bound, variables,
                                            equations::CompressibleEulerEquations1D)
     rho_floor, rho_e_floor = variable_projection_floors(lower_bound, variables, equations)
-    return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor, equations)
+    return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
+                                              equations)
 end
 
 function variable_projection_floors(thresholds, variables,
@@ -33,16 +34,19 @@ function variable_projection_floors(thresholds, variables,
     return rho_floor, rho_e_floor
 end
 
-@inline function state_is_admissible(u, thresholds, equations::CompressibleEulerEquations1D)
+@inline function state_is_admissible(u, thresholds, arithmetic_tol,
+                                     equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
     rho_floor, rho_e_floor = thresholds
-    return rho >= rho_floor &&
-           rho_v1 * rho_v1 + 2 * rho_e_floor * rho <= 2 * rho * rho_e_total
+    return rho >= rho_floor * (1 - arithmetic_tol) &&
+           rho_v1 * rho_v1 + 2 * rho_e_floor * rho <=
+           2 * rho * rho_e_total * (1 + arithmetic_tol)
 end
 
-@inline function euler_admissible_projection_tol(rho_floor, rho_e_floor,
-                                                 ::Type{RealT}) where {RealT}
-    return min(rho_floor, rho_e_floor) * sqrt(eps(RealT))
+# TODO: move into PositivityPreservingLimiterLiuZhang struct when 1D/2D share a common setup path
+@inline function euler_arithmetic_tol(rho_floor, rho_e_floor,
+                                      ::Type{RealT}) where {RealT}
+    return 10 * eps(RealT)
 end
 
 @inline function projection_distance_squared_1d(rho, rho_v1, rho_e_total, x, y, z)
@@ -67,15 +71,20 @@ end
            2 * rho_floor * rho_e_floor
 end
 
-@inline function clamp_small_negative_discriminant(delta, admissible_projection_tol)
-    if delta < zero(delta) && delta > -admissible_projection_tol
+@inline function clamp_small_negative_discriminant(delta, arithmetic_tol)
+    if delta < zero(delta) && delta > -arithmetic_tol
         return zero(delta)
     end
     return delta
 end
 
-# Fill at most three real roots of m^3 + p*m + q = 0 into `roots`; return the number of roots.
-function fill_depressed_cubic_roots!(roots, p, q)
+# Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::SVector{3,T}).
+# `roots` is zero-initialized; only indices 1:n_roots are overwritten. Unused slots stay
+# zero so the SVector has no undefined entries (callers must still loop only 1:n_roots;
+# 0 is a valid root and must not be inferred from the trailing zeros alone).
+function calc_depressed_cubic_roots(p, q)
+    T = typeof(p)
+    roots = zeros(MVector{3, T})
     delta = 4 * p^3 + 27 * q^2
     n_roots = 0
     if delta > zero(delta)
@@ -94,7 +103,7 @@ function fill_depressed_cubic_roots!(roots, p, q)
         roots[2] = sqrt(-p / 3) * (cos(theta / 3) + sqrt(3) * sin(theta / 3))
         roots[3] = sqrt(-p / 3) * (cos(theta / 3) - sqrt(3) * sin(theta / 3))
     end
-    return n_roots
+    return n_roots, SVector(roots)
 end
 
 function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
@@ -102,10 +111,10 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
     rho, rho_v1, rho_e_total = u
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)
-    admissible_projection_tol = euler_admissible_projection_tol(rho_floor, rho_e_floor,
-                                                                RealT)
+    arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor, RealT)
+    @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
-    if state_is_admissible(u, thresholds, equations)
+    if state_is_admissible(u, thresholds, arithmetic_tol, equations)
         return u
     end
 
@@ -132,7 +141,7 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
     end
 
     # Case: mu > 0 and lambda > 0
-    if abs(y) < admissible_projection_tol
+    if abs(y) < arithmetic_tol
         if x < rho_floor && z < rho_e_floor
             best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
                                                                                                                    best_rho,
@@ -149,8 +158,7 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
     else
         p = 2 * rho_floor * (2 * rho_e_floor - z)
         q = -2 * rho_floor * rho_floor * y
-        roots = MVector{3, RealT}(undef)
-        n_roots = fill_depressed_cubic_roots!(roots, p, q)
+        n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
             rho_v1_c = roots[i]
             if cubic_momentum_constraint_satisfied(rho_v1_c, y, x, rho_floor, rho_e_floor)
@@ -171,7 +179,7 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
     end
 
     # Case: mu > 0 and lambda = 0
-    if abs(y) < admissible_projection_tol
+    if abs(y) < arithmetic_tol
         if x >= rho_floor && z < rho_e_floor
             best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
                                                                                                                    best_rho,
@@ -190,15 +198,21 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
                  (2 * x * y * y * (z - rho_e_floor) - y^4) /
                  (2 * y * y + (rho_e_floor + x - z)^2)
         if delta2 >= zero(delta2)
-            for rho_c in (0.5 * (x - sqrt(delta2)), 0.5 * (x + sqrt(delta2)))
+            sqrt_delta2 = sqrt(delta2)
+            for rho_c in (0.5 * (x - sqrt_delta2), 0.5 * (x + sqrt_delta2))
                 delta3 = -8 * rho_c * rho_c + 8 * x * rho_c + y * y
                 delta3 = clamp_small_negative_discriminant(delta3,
-                                                           admissible_projection_tol)
-                if rho_c >= rho_floor - admissible_projection_tol && delta3 >= zero(delta3)
+                                                           arithmetic_tol)
+                if rho_c >= rho_floor - arithmetic_tol && delta3 >= zero(delta3)
                     sqrt_delta3 = sqrt(delta3)
                     for rho_v1_c in (0.5 * (y - sqrt_delta3), 0.5 * (y + sqrt_delta3))
+                        # μ > 0 sign check (λ = 0 branch): candidate energy must exceed the original.
+                        # ρ_c = ½(x ± √Δ₂) can suffer catastrophic cancellation when x and √Δ₂ are
+                        # opposite in sign and similar in magnitude; the resulting error in ρ_c can
+                        # flip this comparison. Remedies: relax (1 - arithmetic_tol), e.g. to
+                        # sqrt(eps(RealT)), or detect cancellation and evaluate ρ_c via a stable formula.
                         if rho_e_floor * rho_c + 0.5f0 * rho_v1_c * rho_v1_c >
-                           z * rho_c * (1 - admissible_projection_tol)
+                           z * rho_c * (1 - arithmetic_tol)
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * rho_v1_c * rho_v1_c / rho_c
                             best_dist2, best_rho, best_rho_v1, best_rho_e_total, has_candidate = consider_projection_candidate_1d!(best_dist2,
@@ -221,7 +235,8 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
 
     if !has_candidate
         error("Failed to find projection onto Euler admissible set for state ", u,
-              " with rho = ", rho, " and rho_e = ", rho_e_total - 0.5f0 * rho_v1 * rho_v1 / rho,
+              " with rho = ", rho, " and rho_e = ",
+              rho_e_total - 0.5f0 * rho_v1 * rho_v1 / rho,
               " and rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
     end
 

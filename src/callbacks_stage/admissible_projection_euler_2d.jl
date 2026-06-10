@@ -1,15 +1,17 @@
 @inline function project_to_admissible_set(cell_average, lower_bound, variables,
                                            equations::CompressibleEulerEquations2D)
     rho_floor, rho_e_floor = variable_projection_floors(lower_bound, variables, equations)
-    return project_euler_2d_to_admissible_set(cell_average, rho_floor, rho_e_floor, equations)
+    return project_euler_2d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
+                                              equations)
 end
 
-@inline function state_is_admissible(u, thresholds, equations::CompressibleEulerEquations2D)
+@inline function state_is_admissible(u, thresholds, arithmetic_tol,
+                                     equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
     rho_floor, rho_e_floor = thresholds
-    return rho >= rho_floor &&
+    return rho >= rho_floor * (1 - arithmetic_tol) &&
            rho_v1 * rho_v1 + rho_v2 * rho_v2 + 2 * rho_e_floor * rho <=
-           2 * rho * rho_e_total
+           2 * rho * rho_e_total * (1 + arithmetic_tol)
 end
 
 @inline function projection_distance_squared_2d(rho, rho_v1, rho_v2, rho_e_total, x, y1, y2,
@@ -39,14 +41,13 @@ end
 
 function project_euler_2d_cubic_branch!(best_dist2, best_rho, best_rho_v1, best_rho_v2,
                                         best_rho_e_total, has_candidate, x, y1, y2, z,
-                                        rho_floor, rho_e_floor, admissible_projection_tol,
+                                        rho_floor, rho_e_floor, arithmetic_tol,
                                         use_v1_as_primary)
-    roots = MVector{3, typeof(x)}(undef)
     if use_v1_as_primary
         a = 1 + (y2 / y1)^2
         p = rho_floor * (4 * rho_e_floor - 2 * z) / a
         q = -2 * rho_floor * rho_e_floor * y1 / a
-        n_roots = fill_depressed_cubic_roots!(roots, p, q)
+        n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
             rho_v1_c = roots[i]
             if cubic_momentum_constraint_satisfied_2d(rho_v1_c, y1, x, a, rho_floor,
@@ -74,7 +75,7 @@ function project_euler_2d_cubic_branch!(best_dist2, best_rho, best_rho_v1, best_
         a = 1 + (y1 / y2)^2
         p = rho_floor * (4 * rho_e_floor - 2 * z) / a
         q = -2 * rho_floor * rho_e_floor * y2 / a
-        n_roots = fill_depressed_cubic_roots!(roots, p, q)
+        n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
             rho_v2_c = roots[i]
             if cubic_momentum_constraint_satisfied_2d(rho_v2_c, y2, x, a, rho_floor,
@@ -105,8 +106,12 @@ end
 function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
                                               best_rho_v2, best_rho_e_total,
                                               has_candidate, x, y1, y2, z, rho_floor,
-                                              rho_e_floor, admissible_projection_tol,
+                                              rho_e_floor, arithmetic_tol,
                                               use_v1_as_primary)
+    # μ > 0 energy checks below (λ = 0 branch): ρ_c = ½(x ± √Δ_ρ) can suffer catastrophic
+    # cancellation when x and √Δ_ρ are opposite in sign and similar in magnitude; error in ρ_c
+    # can then flip the (1 - arithmetic_tol) comparison. Remedies: relax that factor, e.g. to
+    # sqrt(eps(RealT)), or detect cancellation and evaluate ρ_c via a stable formula.
     if use_v1_as_primary
         a = 1 + (y2 / y1)^2
         delta_rho = x * x -
@@ -116,14 +121,14 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
             for rho_c in (0.5 * (x - sqrt(delta_rho)), 0.5 * (x + sqrt(delta_rho)))
                 delta_rho_v1 = -8 * a * rho_c * rho_c + 8 * a * x * rho_c + (a * y1)^2
                 delta_rho_v1 = clamp_small_negative_discriminant(delta_rho_v1,
-                                                                 admissible_projection_tol)
-                if rho_c >= rho_floor - admissible_projection_tol &&
+                                                                 arithmetic_tol)
+                if rho_c >= rho_floor - arithmetic_tol &&
                    delta_rho_v1 >= zero(delta_rho_v1)
                     sqrt_delta_rho_v1 = sqrt(delta_rho_v1) / a
                     for rho_v1_c in (0.5 * (y1 - sqrt_delta_rho_v1),
                                      0.5 * (y1 + sqrt_delta_rho_v1))
                         if (rho_e_floor * rho_c + 0.5f0 * a * rho_v1_c * rho_v1_c >
-                            z * rho_c * (1 - admissible_projection_tol))
+                            z * rho_c * (1 - arithmetic_tol))
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * a * rho_v1_c * rho_v1_c / rho_c
                             best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
@@ -156,14 +161,14 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
             for rho_c in (0.5 * (x - sqrt(delta_rho)), 0.5 * (x + sqrt(delta_rho)))
                 delta_rho_v2 = -8 * a * rho_c * rho_c + 8 * a * x * rho_c + (a * y2)^2
                 delta_rho_v2 = clamp_small_negative_discriminant(delta_rho_v2,
-                                                                 admissible_projection_tol)
-                if rho_c >= rho_floor - admissible_projection_tol &&
+                                                                 arithmetic_tol)
+                if rho_c >= rho_floor - arithmetic_tol &&
                    delta_rho_v2 >= zero(delta_rho_v2)
                     sqrt_delta_rho_v2 = sqrt(delta_rho_v2) / a
                     for rho_v2_c in (0.5 * (y2 - sqrt_delta_rho_v2),
                                      0.5 * (y2 + sqrt_delta_rho_v2))
                         if (rho_e_floor * rho_c + 0.5f0 * a * rho_v2_c * rho_v2_c >
-                            z * rho_c * (1 - admissible_projection_tol))
+                            z * rho_c * (1 - arithmetic_tol))
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * a * rho_v2_c * rho_v2_c / rho_c
                             best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
@@ -196,10 +201,10 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
     rho, rho_v1, rho_v2, rho_e_total = u
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)
-    admissible_projection_tol = euler_admissible_projection_tol(rho_floor, rho_e_floor,
-                                                                RealT)
+    arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor, RealT)
+    @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
-    if state_is_admissible(u, thresholds, equations)
+    if state_is_admissible(u, thresholds, arithmetic_tol, equations)
         return u
     end
 
@@ -230,7 +235,7 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
     end
 
     # Case: mu > 0 and lambda > 0
-    if abs(y1) < admissible_projection_tol && abs(y2) < admissible_projection_tol
+    if abs(y1) < arithmetic_tol && abs(y2) < arithmetic_tol
         if x < rho_floor && z < rho_e_floor
             best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
                                                                                                                                 best_rho,
@@ -261,12 +266,12 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
                                                                                                                          z,
                                                                                                                          rho_floor,
                                                                                                                          rho_e_floor,
-                                                                                                                         admissible_projection_tol,
+                                                                                                                         arithmetic_tol,
                                                                                                                          use_v1_as_primary)
     end
 
     # Case: mu > 0 and lambda = 0
-    if abs(y1) < admissible_projection_tol && abs(y2) < admissible_projection_tol
+    if abs(y1) < arithmetic_tol && abs(y2) < arithmetic_tol
         if x >= rho_floor && z < rho_e_floor
             best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
                                                                                                                                 best_rho,
@@ -297,7 +302,7 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
                                                                                                                                z,
                                                                                                                                rho_floor,
                                                                                                                                rho_e_floor,
-                                                                                                                               admissible_projection_tol,
+                                                                                                                               arithmetic_tol,
                                                                                                                                use_v1_as_primary)
     end
 
