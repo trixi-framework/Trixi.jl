@@ -379,9 +379,7 @@ function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figu
     @unpack x, variable_names, mesh_vertices_x = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
-                    titlesize = 20,
-                    xlabel = _makie_guide(plot_data.orientation_x),
-                    xlabelsize = 18)
+                    xlabel = _makie_guide(plot_data.orientation_x))
     plt = Makie.lines!(ax, pds; kwargs...)
     Makie.xlims!(ax, x[begin], x[end])
     if plot_mesh
@@ -409,9 +407,7 @@ function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); plot_mesh = false)
         @unpack x, mesh_vertices_x = pds.plot_data
         ax = Makie.Axis(fig[row, col],
                         title = variable_name,
-                        titlesize = 20,
-                        xlabel = _makie_guide(pd.orientation_x),
-                        xlabelsize = 18)
+                        xlabel = _makie_guide(pd.orientation_x))
         axes[row, col] = ax
         Makie.lines!(ax, pds)
         Makie.xlims!(ax, x[begin], x[end])
@@ -438,10 +434,8 @@ function Makie.plot(pds::PlotDataSeries{<:PlotData2DCartesian},
     @unpack x, y, variable_names = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
-                    titlesize = 20,
                     xlabel = _makie_guide(plot_data.orientation_x),
-                    ylabel = _makie_guide(plot_data.orientation_y),
-                    xlabelsize = 18, ylabelsize = 18)
+                    ylabel = _makie_guide(plot_data.orientation_y))
     plt = Makie.heatmap!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
     ax.aspect = Makie.DataAspect()
@@ -471,10 +465,8 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
         @unpack x, y, mesh_vertices_x, mesh_vertices_y = pds.plot_data
         ax = Makie.Axis(fig[row, col],
                         title = variable_name,
-                        titlesize = 20,
                         xlabel = _makie_guide(pd.orientation_x),
-                        ylabel = _makie_guide(pd.orientation_y),
-                        xlabelsize = 18, ylabelsize = 18)
+                        ylabel = _makie_guide(pd.orientation_y))
         axes[row, col] = ax
         plt = Makie.heatmap!(ax, pds; colormap)
         Makie.Colorbar(fig[row, col][1, 2], plt)
@@ -508,9 +500,7 @@ function Makie.plot(pds::PlotDataSeries{<:PlotData2DTriangulated},
     @unpack variable_names = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
-                    titlesize = 20,
                     xlabel = _makie_guide(1), ylabel = _makie_guide(2),
-                    xlabelsize = 18, ylabelsize = 18,
                     aspect = Makie.DataAspect())
     plt = trixiheatmap!(ax, pds; plot_mesh, colormap, kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
@@ -549,8 +539,7 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
     end
 
     axes = [Makie.Axis(fig[i, j],
-                       xlabel = _makie_guide(1), ylabel = _makie_guide(2),
-                       xlabelsize = 18, ylabelsize = 18, titlesize = 20)
+                       xlabel = _makie_guide(1), ylabel = _makie_guide(2))
             for j in 1:rows, i in 1:cols]
     row_list, col_list = ([i for j in 1:rows, i in 1:cols],
                           [j for j in 1:rows, i in 1:cols])
