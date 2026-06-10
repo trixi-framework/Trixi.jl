@@ -267,18 +267,6 @@ function iplot(u, mesh, equations, solver, cache;
     return iplot(pd; kwargs...)
 end
 
-# DGMulti solvers use PlotData2D which dispatches to PlotData2DTriangulated internally
-function iplot(u, mesh, equations, dg::DGMulti, cache;
-               solution_variables = nothing, nvisnodes = 2 * nnodes(dg), kwargs...)
-    @assert ndims(mesh) == 2
-
-    pd = PlotData2D(u, mesh, equations, dg, cache;
-                    solution_variables = solution_variables,
-                    nvisnodes = nvisnodes)
-
-    return iplot(pd; kwargs...)
-end
-
 # redirect `iplot(sol)` to dispatchable `iplot` signature.
 iplot(sol::TrixiODESolution; kwargs...) = iplot(sol.u[end], sol.prob.p; kwargs...)
 function iplot(u, semi; kwargs...)
