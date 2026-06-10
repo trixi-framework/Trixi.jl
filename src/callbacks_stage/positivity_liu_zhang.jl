@@ -58,14 +58,15 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              global_limiter_tol, max_davis_yin_iterations,
                                              record_davis_yin_iterations)
     uEltype = real(dg)
-    n_elements = nelements(dg, cache)
-    T = SVector{nvariables(equations), uEltype}
 
+    n_elements = nelements(dg, cache)
     cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache)
                     for element in eachelement(dg, cache)]
     sqrt_cell_volumes = sqrt.(cell_volumes)
     total_volume = sum(cell_volumes)
 
+    # create resizable arrays
+    T = SVector{nvariables(equations), uEltype}
     cell_averages = Vector{T}(undef, n_elements)
     davis_yin_Z = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
