@@ -181,20 +181,34 @@ function global_cell_average_limiter!(u, cell_averages,
         davis_yin_Z[element] = cell_averages[element] * sqrt_cell_volume
     end
 
-    # the Davis-Yin splitting method uses variables X, Y, Z.
-    # Z is initialized to the solution cell averages "u_avg_original" scaled by the square root 
-    # of the cell volumes. The iteration is then:
-    # 1. Project to admissible set: X_{1/2} = proj(Z)
-    # 2. Enforce conservation: 
-    #      X = Y + (global_integral - dot(sqrt_cell_volumes, u_avg_original)) * pinv(sqrt_cell_volumes)
-    # 3. Update dual variable: Z = Z + (X - X_{1/2})
-    # and is repeated until (X - X_{1/2}) is smaller than the tolerance or the maximum number of
-    # iterations is reached. 
+    # Davis-Yin splitting minimizes the cell average L2 error 
+    #           ||Z/sqrt(cell_volume) - U_avg||_{L^2}^2 = ||Z - U_avg * sqrt(cell_volume)||_{L^2}^2 
+    # Here, Z ≈ U_avg * sqrt(cell_volume). This reformulation significantly accelerates convergence 
+    # of the Davis-Yin iteration for non-uniform meshes. 
+
+    # Davis-Yin splitting uses variables X, Y, Z, where 
+    # - Z is the "dual variable" and solution that is returned by the iteration.
+    # - X is the projection of Z onto the admissible set.
+    # - Y is the primal variable, through which the conservation and admissibility constraints are coupled.
+    # 
+    # The iteration then proceeds as follows: given cell averages u_avg,
+    # 1. Project to admissible set: X_{1/2} = proj(Z / sqrt(cell_volume)) * sqrt(cell_volume)
+    # 2. Update the primal variable Y: Y = 2 * X_{1/2} - Z - gamma * grad_h
+    #    Here, gamma = 1 and grad_h = 2 * cell_volumes .* (X_{1/2} .- u_avg * sqrt(cell_volume)), 
+    #    so this step simplifies to 
+    #                       Y = X_{1/2} - Z + u_avg * sqrt(cell_volume)
+    # 3. Enforce conservation: 
+    #      X = Y + (global_integral - dot(sqrt_cell_volumes, u_avg)) * pinv(sqrt_cell_volumes)
+    # 4. Update dual variable: Z = Z + (X - X_{1/2})
+    # This is repeated until (X - X_{1/2}) is smaller than the tolerance.
     # 
     # The implementation implements this with only two buffers: X (projected_cell_averages) and Z.
+    # Y is not stored explicitly, but is recalculated once in step 3.
     num_davis_yin_iterations = 0
     while residual > global_limiter_tol &&
         num_davis_yin_iterations < max_davis_yin_iterations
+
+        # Step 1: projection to admissible set
         @threaded for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
             projected_cell_averages[element] = project_to_admissible_set(davis_yin_Z[element] /
@@ -205,27 +219,32 @@ function global_cell_average_limiter!(u, cell_averages,
                                                sqrt_cell_volume
         end
 
-        sqrt_weighted_sum_Y = zero(first(davis_yin_Z))
+        # Step 2: calculate primal variable Y and conservation residual
+        global_integral_Y = zero(first(davis_yin_Z))
         for element in eachelement(dg, cache)
-            sqrt_cell_volume = sqrt_cell_volumes[element]
-            P = projected_cell_averages[element]
+            sqrt_cell_volume = sqrt_cell_volumes[element]            
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
-            Y = P - davis_yin_Z[element] + u_weighted_target
-            sqrt_weighted_sum_Y = sqrt_weighted_sum_Y + sqrt_cell_volume * Y
+            Y = projected_cell_averages[element] - davis_yin_Z[element] + u_weighted_target
+            global_integral_Y += sqrt_cell_volume * Y
         end
+        conservation_residual = global_integral - global_integral_Y
 
-        conservation_residual = global_integral - sqrt_weighted_sum_Y
-
+        # Step 3: enforce conservation on Y and update dual variable Z
         residual_squared = zero(real(mesh))
         for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
-            z_old = davis_yin_Z[element]
+            Z_old = davis_yin_Z[element]
             P = projected_cell_averages[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
-            Y = P - z_old + u_weighted_target
-            coeff = sqrt_cell_volume / total_volume
-            X = Y + coeff * conservation_residual
-            davis_yin_Z[element] = z_old + (X - P)
+
+            # recalculate Y and enforce global conservation on X 
+            Y = P - Z_old + u_weighted_target
+            X = Y + (sqrt_cell_volume / total_volume) * conservation_residual
+
+            # update dual variable Z
+            davis_yin_Z[element] = Z_old + (X - P)
+
+            # calculate residual
             residual_squared += sum(abs2, X - P)
         end
         residual = sqrt(residual_squared)
@@ -237,7 +256,9 @@ function global_cell_average_limiter!(u, cell_averages,
         push!(history_davis_yin_iterations, num_davis_yin_iterations)
     end
 
-    # replace solution cell averages with the new cell averages
+    # replace solution cell averages with projections of the new cell averages.
+    # convergence of the Davis-Yin iteration ensures that conservation is satisfied
+    # up to the iteration tolerance.
     @threaded for element in eachelement(dg, cache)
         old_cell_average = cell_averages[element]
         sqrt_cell_volume = sqrt_cell_volumes[element]
