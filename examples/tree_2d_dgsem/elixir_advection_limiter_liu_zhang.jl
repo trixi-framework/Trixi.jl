@@ -57,15 +57,14 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 ###############################################################################
 # run the simulation
 
-local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-1,),
                                                      variables = ((u, equations) -> u[1],))
-record_davis_yin_iterations = false
 global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
-                                                      record_davis_yin_iterations)
+                                                      record_davis_yin_iterations = true)
 
 sol = solve(ode,
-            RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
-                          step_limiter! = global_limiter!);
-            adaptive = false,
-            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            CarpenterKennedy2N54(; stage_limiter! = global_limiter!,
+                                 step_limiter! = global_limiter!,
+                                 williamson_condition = false);
+            adaptive = false, dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
