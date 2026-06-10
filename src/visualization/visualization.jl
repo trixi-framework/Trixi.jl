@@ -23,6 +23,8 @@ GLMakie.jl to be loaded.
 The plot can be rotated (click and hold), zoomed (scroll), and panned (right click and drag).
 Two toggle buttons control whether mesh lines are visible above and below the solution surface.
 
+See also [`iplot!`](@ref) for adding an interactive surface plot to an existing Makie.jl figure or axis.
+
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
@@ -30,8 +32,10 @@ function iplot end
 """
     iplot!(fig_axis, pd; kwargs...)
 
-Add an interactive surface plot of the scalar data `pd` to an existing Makie figure or axis
+Add an interactive surface plot of the scalar data `pd` to an existing Makie.jl figure or axis
 object `fig_axis`. Requires [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/) to be loaded.
+
+See also [`iplot`](@ref) for creating a new interactive surface plot.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -42,10 +46,12 @@ function iplot! end
 
 Plot a `PlotDataSeries` from a `PlotData2DTriangulated` object as a 2D heatmap
 in a new figure.
-Requires a Makie backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
+Requires a Makie.jl backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
 
-Note: For Cartesian mesh type ([`TreeMesh`](@ref)), use Makie's built-in `heatmap`
+Note: For Cartesian mesh type ([`TreeMesh`](@ref)), use Makie.jl's built-in `heatmap`
 instead, as `trixiheatmap` only supports triangulated data.
+
+See also [`trixiheatmap!`](@ref) for adding a heatmap to an existing Makie.jl axis.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -55,11 +61,13 @@ function trixiheatmap end
     trixiheatmap!(ax, pd; kwargs...)
 
 Add a heatmap of a `PlotDataSeries` from a `PlotData2DTriangulated` object to an existing
-Makie axis `ax`.
-Requires a Makie backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
+Makie.jl axis `ax`.
+Requires a Makie.jl backend such as [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl) to be loaded.
 
-Note: For Cartesian mesh type ([`TreeMesh`](@ref)), use Makie's built-in `heatmap!`
+Note: For Cartesian mesh type ([`TreeMesh`](@ref)), use Makie.jl's built-in `heatmap!`
 instead, as `trixiheatmap!` only supports triangulated data.
+
+See also [`trixiheatmap`](@ref) for creating a new heatmap figure.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
