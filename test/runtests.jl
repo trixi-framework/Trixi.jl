@@ -102,6 +102,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include(joinpath(@__DIR__, "test_unit.jl"))
         include(joinpath(@__DIR__, "test_type.jl"))
         include(joinpath(@__DIR__, "test_visualization.jl"))
+        include(joinpath(@__DIR__, "test_trixi_state_vector.jl"))
     end
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
         include(joinpath(@__DIR__, "test_special_elixirs.jl"))

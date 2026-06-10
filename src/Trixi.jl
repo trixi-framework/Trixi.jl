@@ -172,6 +172,7 @@ include("basic_types.jl")
 include("auxiliary/auxiliary.jl")
 include("auxiliary/vector_of_arrays.jl")
 include("auxiliary/mpi.jl")
+include("auxiliary/trixi_state_vector.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
 include("equations/equations.jl")
@@ -375,6 +376,8 @@ export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
 
 export ode_norm, ode_unstable_check
+
+export TrixiStateVector
 
 export convergence_test,
        compute_kinetic_energy_spectrum,

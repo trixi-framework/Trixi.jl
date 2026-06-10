@@ -8,6 +8,11 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
+- The ODE state vector created by `semidiscretize` is now wrapped in a `TrixiStateVector`
+by default (opt out via `wrap_state = false`). The wrapper behaves like the underlying
+plain vector but provides MPI-aware `LinearAlgebra.dot` and `LinearAlgebra.norm`, enabling
+matrix-free Krylov solvers (e.g., `KrylovJL_GMRES`) for implicit time integration in
+MPI-parallel runs.
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
   ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).

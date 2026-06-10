@@ -29,7 +29,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(ode.p.mesh) == Float64
 
-    @test ode.u0 isa Array
+    @test ode.u0 isa TrixiStateVector
     @test ode.p.solver.basis.derivative_matrix isa Array
 
     @test Trixi.storage_type(ode.p.cache.elements) === Array

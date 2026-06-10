@@ -85,7 +85,8 @@ end
                    jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                    colorvec::Union{AbstractVector, Nothing} = nothing,
                    storage_type = nothing,
-                   real_type = nothing)
+                   real_type = nothing,
+                   wrap_state::Bool = true)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -95,16 +96,19 @@ Optional keyword arguments:
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
-- `storage_type` and `real_type`: Configure the underlying computational datastructures. 
-  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
+- `storage_type` and `real_type`: Configure the underlying computational datastructures.
+  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
+- `wrap_state`: If `true`, wraps the initial state vector in a [`TrixiStateVector`](@ref), enabling
+  MPI-distributed `norm` and `dot` for matrix-free Krylov solvers such as `KrylovJL_GMRES`.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true,
                         storage_type = nothing,
-                        real_type = nothing)
+                        real_type = nothing,
+                        wrap_state::Bool = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -112,6 +116,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         Polyester.reset_threads!()
     end
 
+    gpu_storage = storage_type !== nothing && storage_type !== Array
     if !(storage_type === nothing && real_type === nothing)
         if storage_type === nothing
             storage_type = Array
@@ -126,6 +131,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     end
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
+    if wrap_state && u0_ode isa Vector && !gpu_storage
+        u0_ode = TrixiStateVector(u0_ode)
+    end
     rhs_semi! = default_rhs(semi)
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
@@ -172,7 +180,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
                         restart_file::AbstractString;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true)
+                        reset_threads = true,
+                        wrap_state::Bool = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -181,6 +190,9 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     end
 
     u0_ode = load_restart_file(semi, restart_file) # Load initial condition from restart file
+    if wrap_state && u0_ode isa Vector
+        u0_ode = TrixiStateVector(u0_ode)
+    end
     rhs_semi! = default_rhs(semi)
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using

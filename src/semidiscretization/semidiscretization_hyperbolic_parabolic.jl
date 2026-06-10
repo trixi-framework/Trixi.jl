@@ -267,7 +267,8 @@ Optional keyword arguments:
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true)
+                        reset_threads = true,
+                        wrap_state::Bool = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -276,6 +277,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
     end
 
     u0_ode = compute_coefficients(first(tspan), semi)
+    if wrap_state && u0_ode isa Vector
+        u0_ode = TrixiStateVector(u0_ode)
+    end
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
@@ -329,7 +333,8 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         restart_file::AbstractString;
                         jac_prototype_parabolic::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec_parabolic::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true)
+                        reset_threads = true,
+                        wrap_state::Bool = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -338,6 +343,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
     end
 
     u0_ode = load_restart_file(semi, restart_file)
+    if wrap_state && u0_ode isa Vector
+        u0_ode = TrixiStateVector(u0_ode)
+    end
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328

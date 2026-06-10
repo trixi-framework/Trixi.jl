@@ -44,6 +44,31 @@ end # MPI
     end
 end # MPI supporting functionality
 
+@trixi_testset "TrixiStateVector MPI norm and dot" begin
+    using Trixi: Trixi, TrixiStateVector, mpi_comm, mpi_rank
+    using LinearAlgebra: norm, dot
+
+    # Each rank contributes rank-dependent data so that the global reduction is
+    # non-trivial and differs from any single-rank local result.
+    rank = mpi_rank()
+    v = TrixiStateVector(Float64[rank + 1, rank + 2, rank + 3])
+    w = TrixiStateVector(ones(Float64, 3))
+
+    # Expected global norm: sqrt of sum of abs2 across all ranks.
+    local_sumabs2 = sum(abs2, v.data)
+    expected_norm = sqrt(Trixi.MPI.Allreduce(local_sumabs2, +, mpi_comm()))
+    @test norm(v) ≈ expected_norm
+
+    # Expected global dot product: sum of local dot products across all ranks.
+    local_dot = dot(v.data, w.data)
+    expected_dot = Trixi.MPI.Allreduce(local_dot, +, mpi_comm())
+    @test dot(v, w) ≈ expected_dot
+
+    # ode_norm dispatches to the AbstractArray method, which already performs
+    # an MPI.Allreduce internally; verify it is callable and positive.
+    @test ode_norm(v, 0.0) > 0
+end # TrixiStateVector MPI norm and dot
+
 # Clean up afterwards: delete Trixi.jl output directory
 Trixi.mpi_isroot() && @test_nowarn rm(outdir, recursive = true)
 Trixi.MPI.Barrier(Trixi.mpi_comm())

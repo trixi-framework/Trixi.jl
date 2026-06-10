@@ -170,7 +170,8 @@ will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
-                        reset_threads = true)
+                        reset_threads = true,
+                        wrap_state::Bool = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -178,6 +179,9 @@ function semidiscretize(semi::SemidiscretizationHyperbolicSplit, tspan;
         Trixi.Polyester.reset_threads!()
     end
     u0_ode = compute_coefficients(first(tspan), semi)
+    if wrap_state && u0_ode isa Vector
+        u0_ode = TrixiStateVector(u0_ode)
+    end
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
