@@ -14,21 +14,17 @@ end
            2 * rho * rho_e_total * (1 + arithmetic_tol)
 end
 
-@inline function projection_distance_squared_2d(rho, rho_v1, rho_v2, rho_e_total, x, y1, y2,
-                                                z)
-    return (rho - x)^2 + (rho_v1 - y1)^2 + (rho_v2 - y2)^2 + (rho_e_total - z)^2
+@inline function projection_distance_squared_2d(u_candidate, u)
+    return sum(abs2, u_candidate - u)
 end
 
-@inline function consider_projection_candidate_2d!(best_dist2, best_rho, best_rho_v1,
-                                                   best_rho_v2, best_rho_e_total,
-                                                   has_candidate,
-                                                   rho, rho_v1, rho_v2, rho_e_total, x, y1,
-                                                   y2, z)
-    dist2 = projection_distance_squared_2d(rho, rho_v1, rho_v2, rho_e_total, x, y1, y2, z)
+@inline function consider_projection_candidate_2d!(best_dist2, best_u, has_candidate,
+                                                   u_candidate, u)
+    dist2 = projection_distance_squared_2d(u_candidate, u)
     if !has_candidate || dist2 < best_dist2
-        return dist2, rho, rho_v1, rho_v2, rho_e_total, true
+        return dist2, u_candidate, true
     end
-    return best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate
+    return best_dist2, best_u, has_candidate
 end
 
 @inline function cubic_momentum_constraint_satisfied_2d(rho_v1, rho_v1_orig, rho_orig, a,
@@ -39,10 +35,10 @@ end
            2 * rho_floor * rho_e_floor
 end
 
-function project_euler_2d_cubic_branch!(best_dist2, best_rho, best_rho_v1, best_rho_v2,
-                                        best_rho_e_total, has_candidate, x, y1, y2, z,
+function project_euler_2d_cubic_branch!(best_dist2, best_u, has_candidate, u,
                                         rho_floor, rho_e_floor, arithmetic_tol,
                                         use_v1_as_primary)
+    x, y1, y2, z = u
     if use_v1_as_primary
         a = 1 + (y2 / y1)^2
         p = rho_floor * (4 * rho_e_floor - 2 * z) / a
@@ -53,22 +49,16 @@ function project_euler_2d_cubic_branch!(best_dist2, best_rho, best_rho_v1, best_
             if cubic_momentum_constraint_satisfied_2d(rho_v1_c, y1, x, a, rho_floor,
                                                       rho_e_floor)
                 rho_e_total_c = rho_e_floor + a * rho_v1_c * rho_v1_c / (2 * rho_floor)
-                best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                                    best_rho,
-                                                                                                                                    best_rho_v1,
-                                                                                                                                    best_rho_v2,
-                                                                                                                                    best_rho_e_total,
-                                                                                                                                    has_candidate,
-                                                                                                                                    rho_floor,
-                                                                                                                                    rho_v1_c,
-                                                                                                                                    (y2 /
-                                                                                                                                     y1) *
-                                                                                                                                    rho_v1_c,
-                                                                                                                                    rho_e_total_c,
-                                                                                                                                    x,
-                                                                                                                                    y1,
-                                                                                                                                    y2,
-                                                                                                                                    z)
+                best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                                      best_u,
+                                                                                      has_candidate,
+                                                                                      SVector(rho_floor,
+                                                                                              rho_v1_c,
+                                                                                              (y2 /
+                                                                                               y1) *
+                                                                                              rho_v1_c,
+                                                                                              rho_e_total_c),
+                                                                                      u)
             end
         end
     else
@@ -81,37 +71,30 @@ function project_euler_2d_cubic_branch!(best_dist2, best_rho, best_rho_v1, best_
             if cubic_momentum_constraint_satisfied_2d(rho_v2_c, y2, x, a, rho_floor,
                                                       rho_e_floor)
                 rho_e_total_c = rho_e_floor + a * rho_v2_c * rho_v2_c / (2 * rho_floor)
-                best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                                    best_rho,
-                                                                                                                                    best_rho_v1,
-                                                                                                                                    best_rho_v2,
-                                                                                                                                    best_rho_e_total,
-                                                                                                                                    has_candidate,
-                                                                                                                                    rho_floor,
-                                                                                                                                    (y1 /
-                                                                                                                                     y2) *
-                                                                                                                                    rho_v2_c,
-                                                                                                                                    rho_v2_c,
-                                                                                                                                    rho_e_total_c,
-                                                                                                                                    x,
-                                                                                                                                    y1,
-                                                                                                                                    y2,
-                                                                                                                                    z)
+                best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                                      best_u,
+                                                                                      has_candidate,
+                                                                                      SVector(rho_floor,
+                                                                                              (y1 /
+                                                                                               y2) *
+                                                                                              rho_v2_c,
+                                                                                              rho_v2_c,
+                                                                                              rho_e_total_c),
+                                                                                      u)
             end
         end
     end
-    return best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate
+    return best_dist2, best_u, has_candidate
 end
 
-function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
-                                              best_rho_v2, best_rho_e_total,
-                                              has_candidate, x, y1, y2, z, rho_floor,
-                                              rho_e_floor, arithmetic_tol,
+function project_euler_2d_lambda_zero_branch!(best_dist2, best_u, has_candidate, u,
+                                              rho_floor, rho_e_floor, arithmetic_tol,
                                               use_v1_as_primary)
     # μ > 0 energy checks below (λ = 0 branch): ρ_c = ½(x ± √Δ_ρ) can suffer catastrophic
     # cancellation when x and √Δ_ρ are opposite in sign and similar in magnitude; error in ρ_c
     # can then flip the (1 - arithmetic_tol) comparison. Remedies: relax that factor, e.g. to
     # sqrt(eps(RealT)), or detect cancellation and evaluate ρ_c via a stable formula.
+    x, y1, y2, z = u
     if use_v1_as_primary
         a = 1 + (y2 / y1)^2
         delta_rho = x * x -
@@ -120,8 +103,11 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
         if delta_rho >= zero(delta_rho)
             for rho_c in (0.5 * (x - sqrt(delta_rho)), 0.5 * (x + sqrt(delta_rho)))
                 delta_rho_v1 = -8 * a * rho_c * rho_c + 8 * a * x * rho_c + (a * y1)^2
-                delta_rho_v1 = clamp_small_negative_discriminant(delta_rho_v1,
-                                                                 arithmetic_tol)
+                # Roundoff can make delta_rho_v1 slightly negative at the real-root boundary;
+                # treat as zero so the >= 0 check passes and sqrt(delta_rho_v1) is valid.
+                if delta_rho_v1 < zero(delta_rho_v1) && delta_rho_v1 > -arithmetic_tol
+                    delta_rho_v1 = zero(delta_rho_v1)
+                end
                 if rho_c >= rho_floor - arithmetic_tol &&
                    delta_rho_v1 >= zero(delta_rho_v1)
                     sqrt_delta_rho_v1 = sqrt(delta_rho_v1) / a
@@ -131,22 +117,16 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
                             z * rho_c * (1 - arithmetic_tol))
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * a * rho_v1_c * rho_v1_c / rho_c
-                            best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                                                best_rho,
-                                                                                                                                                best_rho_v1,
-                                                                                                                                                best_rho_v2,
-                                                                                                                                                best_rho_e_total,
-                                                                                                                                                has_candidate,
-                                                                                                                                                rho_c,
-                                                                                                                                                rho_v1_c,
-                                                                                                                                                (y2 /
-                                                                                                                                                 y1) *
-                                                                                                                                                rho_v1_c,
-                                                                                                                                                rho_e_total_c,
-                                                                                                                                                x,
-                                                                                                                                                y1,
-                                                                                                                                                y2,
-                                                                                                                                                z)
+                            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                                                  best_u,
+                                                                                                  has_candidate,
+                                                                                                  SVector(rho_c,
+                                                                                                          rho_v1_c,
+                                                                                                          (y2 /
+                                                                                                           y1) *
+                                                                                                          rho_v1_c,
+                                                                                                          rho_e_total_c),
+                                                                                                  u)
                         end
                     end
                 end
@@ -160,8 +140,11 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
         if delta_rho >= zero(delta_rho)
             for rho_c in (0.5 * (x - sqrt(delta_rho)), 0.5 * (x + sqrt(delta_rho)))
                 delta_rho_v2 = -8 * a * rho_c * rho_c + 8 * a * x * rho_c + (a * y2)^2
-                delta_rho_v2 = clamp_small_negative_discriminant(delta_rho_v2,
-                                                                 arithmetic_tol)
+                # Roundoff can make delta_rho_v2 slightly negative at the real-root boundary;
+                # treat as zero so the >= 0 check passes and sqrt(delta_rho_v2) is valid.
+                if delta_rho_v2 < zero(delta_rho_v2) && delta_rho_v2 > -arithmetic_tol
+                    delta_rho_v2 = zero(delta_rho_v2)
+                end
                 if rho_c >= rho_floor - arithmetic_tol &&
                    delta_rho_v2 >= zero(delta_rho_v2)
                     sqrt_delta_rho_v2 = sqrt(delta_rho_v2) / a
@@ -171,29 +154,23 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_rho, best_rho_v1,
                             z * rho_c * (1 - arithmetic_tol))
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * a * rho_v2_c * rho_v2_c / rho_c
-                            best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                                                best_rho,
-                                                                                                                                                best_rho_v1,
-                                                                                                                                                best_rho_v2,
-                                                                                                                                                best_rho_e_total,
-                                                                                                                                                has_candidate,
-                                                                                                                                                rho_c,
-                                                                                                                                                (y1 /
-                                                                                                                                                 y2) *
-                                                                                                                                                rho_v2_c,
-                                                                                                                                                rho_v2_c,
-                                                                                                                                                rho_e_total_c,
-                                                                                                                                                x,
-                                                                                                                                                y1,
-                                                                                                                                                y2,
-                                                                                                                                                z)
+                            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                                                  best_u,
+                                                                                                  has_candidate,
+                                                                                                  SVector(rho_c,
+                                                                                                          (y1 /
+                                                                                                           y2) *
+                                                                                                          rho_v2_c,
+                                                                                                          rho_v2_c,
+                                                                                                          rho_e_total_c),
+                                                                                                  u)
                         end
                     end
                 end
             end
         end
     end
-    return best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate
+    return best_dist2, best_u, has_candidate
 end
 
 function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
@@ -210,100 +187,67 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
 
     x, y1, y2, z = rho, rho_v1, rho_v2, rho_e_total
     best_dist2 = typemax(RealT)
-    best_rho = zero(RealT)
-    best_rho_v1 = zero(RealT)
-    best_rho_v2 = zero(RealT)
-    best_rho_e_total = zero(RealT)
+    best_u = zero(typeof(u))
     has_candidate = false
 
     # Case: mu = 0 and lambda > 0
     if x < rho_floor && 2 * rho_floor * rho_e_floor + y1 * y1 + y2 * y2 <= 2 * rho_floor * z
-        best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                            best_rho,
-                                                                                                                            best_rho_v1,
-                                                                                                                            best_rho_v2,
-                                                                                                                            best_rho_e_total,
-                                                                                                                            has_candidate,
-                                                                                                                            rho_floor,
-                                                                                                                            y1,
-                                                                                                                            y2,
-                                                                                                                            z,
-                                                                                                                            x,
-                                                                                                                            y1,
-                                                                                                                            y2,
-                                                                                                                            z)
+        best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                              best_u,
+                                                                              has_candidate,
+                                                                              SVector(rho_floor,
+                                                                                      y1,
+                                                                                      y2,
+                                                                                      z),
+                                                                              u)
     end
 
     # Case: mu > 0 and lambda > 0
     if abs(y1) < arithmetic_tol && abs(y2) < arithmetic_tol
         if x < rho_floor && z < rho_e_floor
-            best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                                best_rho,
-                                                                                                                                best_rho_v1,
-                                                                                                                                best_rho_v2,
-                                                                                                                                best_rho_e_total,
-                                                                                                                                has_candidate,
-                                                                                                                                rho_floor,
-                                                                                                                                zero(RealT),
-                                                                                                                                zero(RealT),
-                                                                                                                                rho_e_floor,
-                                                                                                                                x,
-                                                                                                                                y1,
-                                                                                                                                y2,
-                                                                                                                                z)
+            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                                  best_u,
+                                                                                  has_candidate,
+                                                                                  SVector(rho_floor,
+                                                                                          zero(RealT),
+                                                                                          zero(RealT),
+                                                                                          rho_e_floor),
+                                                                                  u)
         end
     else
         use_v1_as_primary = abs(y1) >= abs(y2)
-        best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = project_euler_2d_cubic_branch!(best_dist2,
-                                                                                                                         best_rho,
-                                                                                                                         best_rho_v1,
-                                                                                                                         best_rho_v2,
-                                                                                                                         best_rho_e_total,
-                                                                                                                         has_candidate,
-                                                                                                                         x,
-                                                                                                                         y1,
-                                                                                                                         y2,
-                                                                                                                         z,
-                                                                                                                         rho_floor,
-                                                                                                                         rho_e_floor,
-                                                                                                                         arithmetic_tol,
-                                                                                                                         use_v1_as_primary)
+        best_dist2, best_u, has_candidate = project_euler_2d_cubic_branch!(best_dist2,
+                                                                           best_u,
+                                                                           has_candidate,
+                                                                           u,
+                                                                           rho_floor,
+                                                                           rho_e_floor,
+                                                                           arithmetic_tol,
+                                                                           use_v1_as_primary)
     end
 
     # Case: mu > 0 and lambda = 0
     if abs(y1) < arithmetic_tol && abs(y2) < arithmetic_tol
         if x >= rho_floor && z < rho_e_floor
-            best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                                                                best_rho,
-                                                                                                                                best_rho_v1,
-                                                                                                                                best_rho_v2,
-                                                                                                                                best_rho_e_total,
-                                                                                                                                has_candidate,
-                                                                                                                                x,
-                                                                                                                                zero(RealT),
-                                                                                                                                zero(RealT),
-                                                                                                                                rho_e_floor,
-                                                                                                                                x,
-                                                                                                                                y1,
-                                                                                                                                y2,
-                                                                                                                                z)
+            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                                                                                  best_u,
+                                                                                  has_candidate,
+                                                                                  SVector(x,
+                                                                                          zero(RealT),
+                                                                                          zero(RealT),
+                                                                                          rho_e_floor),
+                                                                                  u)
         end
     else
         use_v1_as_primary = abs(y1) >= abs(y2)
-        best_dist2, best_rho, best_rho_v1, best_rho_v2, best_rho_e_total, has_candidate = project_euler_2d_lambda_zero_branch!(best_dist2,
-                                                                                                                               best_rho,
-                                                                                                                               best_rho_v1,
-                                                                                                                               best_rho_v2,
-                                                                                                                               best_rho_e_total,
-                                                                                                                               has_candidate,
-                                                                                                                               x,
-                                                                                                                               y1,
-                                                                                                                               y2,
-                                                                                                                               z,
-                                                                                                                               rho_floor,
-                                                                                                                               rho_e_floor,
-                                                                                                                               arithmetic_tol,
-                                                                                                                               use_v1_as_primary)
+        best_dist2, best_u, has_candidate = project_euler_2d_lambda_zero_branch!(best_dist2,
+                                                                                 best_u,
+                                                                                 has_candidate,
+                                                                                 u,
+                                                                                 rho_floor,
+                                                                                 rho_e_floor,
+                                                                                 arithmetic_tol,
+                                                                                 use_v1_as_primary)
     end
 
     if !has_candidate
@@ -311,5 +255,5 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
               " with rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
     end
 
-    return SVector(best_rho, best_rho_v1, best_rho_v2, best_rho_e_total)
+    return best_u
 end
