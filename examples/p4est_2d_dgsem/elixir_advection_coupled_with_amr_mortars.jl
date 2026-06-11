@@ -1,6 +1,5 @@
 using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
-using P4est
 
 ###############################################################################
 # Coupled mesh views with hanging nodes (mortars) at the view interface.
