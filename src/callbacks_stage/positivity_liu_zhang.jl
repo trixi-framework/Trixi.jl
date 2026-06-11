@@ -193,34 +193,44 @@ function global_cell_average_limiter!(u, cell_averages,
     # residual ||X^{k+1} - X^k||_{L^2} for the Davis-Yin iteration
     residual = floatmax(real(mesh))
 
+    # Davis-Yin splitting minimizes the cell average L2 error 
+    #           ||Z/sqrt(cell_volume) - U_avg||_{L^2}^2 = ||Z - U_avg * sqrt(cell_volume)||_{L^2}^2 
+    # Here, Z ≈ U_avg * sqrt(cell_volume). This reformulation significantly accelerates convergence 
+    # of the Davis-Yin iteration for non-uniform meshes. 
+    # 
+    # Davis-Yin splitting uses variables X (stored in `projected_cell_averages`), Y, and 
+    # Z (stored in `davis_yin_Z`), where 
+    # - Z is the "dual variable" and solution that is returned by the iteration.
+    # - X is the projection of Z onto the admissible set.
+    # - Y is the primal variable, through which conservation and admissibility constraints are coupled.
+    # 
+    # The iteration then proceeds as follows: given DG cell averages u_avg, 
+    # 0. Initialize Z = u_avg * sqrt(cell_volume)
+    # 1. If u_avg violates positivity, project u_avg = Z / sqrt(cell_volume) to the admissible set: 
+    #                       X_{1/2} = proj(Z / sqrt(cell_volume)) * sqrt(cell_volume)
+    #    where "proj" denotes pointwise projection of a solution state to the admissible set.
+    # 2. Update the primal variable 
+    #                       Y: Y = 2 * X_{1/2} - Z - gamma * grad_h
+    #    Here, gamma = 1 is known to be an optimal step size, and grad_h is the gradient of the 
+    #    conservation constraint:
+    #             grad_h = 2 * cell_volumes .* (X_{1/2} .- u_avg * sqrt(cell_volume)) 
+    #    so Step 2 simplifies to 
+    #                       Y = X_{1/2} - Z + u_avg * sqrt(cell_volume)
+    # 3. Enforce conservation: 
+    #      X = Y + (global_integral - dot(sqrt_cell_volumes, u_avg)) * pinv(sqrt_cell_volumes)
+    # 4. Update dual variable: Z = Z + (X - X_{1/2})
+    # 
+    # Step 1-4 are repeated until ||X - X_{1/2}||_{L^2} is smaller than the tolerance.
+    # 
+    # The implementation uses only two buffers: X (projected_cell_averages) and Z (davis_yin_Z).
+    # The vector Y is not stored explicitly, but is recalculated step 3.
+
+    # Step 0: initialize dual variable Z = u_avg * sqrt(cell_volume)
     @threaded for element in eachelement(dg, cache)
         sqrt_cell_volume = sqrt_cell_volumes[element]
         davis_yin_Z[element] = cell_averages[element] * sqrt_cell_volume
     end
 
-    # Davis-Yin splitting minimizes the cell average L2 error 
-    #           ||Z/sqrt(cell_volume) - U_avg||_{L^2}^2 = ||Z - U_avg * sqrt(cell_volume)||_{L^2}^2 
-    # Here, Z ≈ U_avg * sqrt(cell_volume). This reformulation significantly accelerates convergence 
-    # of the Davis-Yin iteration for non-uniform meshes. 
-
-    # Davis-Yin splitting uses variables X, Y, Z, where 
-    # - Z is the "dual variable" and solution that is returned by the iteration.
-    # - X is the projection of Z onto the admissible set.
-    # - Y is the primal variable, through which the conservation and admissibility constraints are coupled.
-    # 
-    # The iteration then proceeds as follows: given cell averages u_avg,
-    # 1. Project to admissible set: X_{1/2} = proj(Z / sqrt(cell_volume)) * sqrt(cell_volume)
-    # 2. Update the primal variable Y: Y = 2 * X_{1/2} - Z - gamma * grad_h
-    #    Here, gamma = 1 and grad_h = 2 * cell_volumes .* (X_{1/2} .- u_avg * sqrt(cell_volume)), 
-    #    so this step simplifies to 
-    #                       Y = X_{1/2} - Z + u_avg * sqrt(cell_volume)
-    # 3. Enforce conservation: 
-    #      X = Y + (global_integral - dot(sqrt_cell_volumes, u_avg)) * pinv(sqrt_cell_volumes)
-    # 4. Update dual variable: Z = Z + (X - X_{1/2})
-    # This is repeated until (X - X_{1/2}) is smaller than the tolerance.
-    # 
-    # The implementation implements this with only two buffers: X (projected_cell_averages) and Z.
-    # Y is not stored explicitly, but is recalculated once in step 3.
     num_davis_yin_iterations = 0
     while residual > global_limiter_tol &&
         num_davis_yin_iterations < max_davis_yin_iterations
