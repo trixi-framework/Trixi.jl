@@ -220,7 +220,7 @@ end
 function global_cell_average_limiter!(u, cell_averages,
                                       davis_yin_Z, projected_cell_averages,
                                       sqrt_cell_volumes, total_volume,
-                                      lower_bound, variables,
+                                      lower_bounds, variables,
                                       global_limiter_tol,
                                       max_davis_yin_iterations,
                                       history_davis_yin_iterations,
@@ -281,7 +281,7 @@ function global_cell_average_limiter!(u, cell_averages,
             sqrt_cell_volume = sqrt_cell_volumes[element]
             projected_cell_averages[element] = project_to_admissible_set(davis_yin_Z[element] /
                                                                          sqrt_cell_volume,
-                                                                         lower_bound,
+                                                                         lower_bounds,
                                                                          variables,
                                                                          equations) *
                                                sqrt_cell_volume
@@ -337,7 +337,7 @@ function global_cell_average_limiter!(u, cell_averages,
         sqrt_cell_volume = sqrt_cell_volumes[element]
         new_cell_average = project_to_admissible_set(davis_yin_Z[element] /
                                                      sqrt_cell_volume,
-                                                     lower_bound, variables, equations)
+                                                     lower_bounds, variables, equations)
 
         set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
                     cache)

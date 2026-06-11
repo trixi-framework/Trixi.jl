@@ -1,6 +1,6 @@
-@inline function project_to_admissible_set(cell_average, lower_bound, variables,
+@inline function project_to_admissible_set(cell_average, lower_bounds, variables,
                                            equations::CompressibleEulerEquations2D)
-    rho_floor, rho_e_floor = variable_projection_floors(lower_bound, variables, equations)
+    rho_floor, rho_e_floor = lower_bounds
     return project_euler_2d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
                                               equations)
 end
