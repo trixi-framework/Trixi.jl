@@ -6,7 +6,7 @@ using Trixi: @muladd
 #
 # In this elixir, we employ the specialization that combines conservative and
 # nonconservative fluxes in a single kernel, avoiding repeated operations such as
-# computing the primitive variables and multiple means for both fluxes.
+# computing the primitive variables and multiple mean values for both fluxes.
 # The single kernel must return the two contributions
 #
 #   flux_cons(u_ll, u_rr, normal_direction, equations)
