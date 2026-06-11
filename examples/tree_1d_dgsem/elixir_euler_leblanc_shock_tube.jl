@@ -1,5 +1,4 @@
 using OrdinaryDiffEqLowStorageRK
-using OrdinaryDiffEqLowOrderRK
 using Trixi
 
 ###############################################################################
