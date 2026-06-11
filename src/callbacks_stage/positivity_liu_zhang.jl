@@ -45,6 +45,8 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
                                                    RealT <: Real,
+                                                   ProjectionThresholds,
+                                                   ProjectionVariables,
                                                    HistoryDavisYinIterations}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
@@ -54,7 +56,50 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     total_volume::RealT
     global_limiter_tol::RealT
     max_davis_yin_iterations::Int
+    projection_thresholds::ProjectionThresholds
+    projection_variables::ProjectionVariables
     history_davis_yin_iterations::HistoryDavisYinIterations
+end
+
+# For compressible Euler, convert local limiter variables and thresholds 
+# to `(rho_floor, rho_e_floor)` with variables `(Trixi.density, energy_internal)`.
+function convert_variables_and_thresholds(thresholds, variables,
+                            equations::Union{CompressibleEulerEquations1D,
+                                             CompressibleEulerEquations2D})
+    if length(thresholds) != 2 || length(variables) != 2
+        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
+              "two limiter variables: one for density and one for internal energy or pressure.")
+    end
+
+    rho_floor = nothing
+    rho_e_floor = nothing
+    for (threshold, variable) in zip(thresholds, variables)
+        if variable === Trixi.density
+            rho_floor = threshold
+        elseif variable === energy_internal
+            rho_e_floor = threshold
+        elseif variable === pressure
+            # convert pressure floor to internal energy floor; 
+            # for ideal gas, p / (gamma - 1) = rho_e
+            rho_e_floor = threshold / (equations.gamma - 1)
+        else
+            error("PositivityPreservingLimiterLiuZhang for compressible Euler requires ",
+                  "variables = (density, energy_internal) or (density, pressure) ",
+                  "(in either order); got unsupported variable.")
+        end
+    end
+    if rho_floor === nothing || rho_e_floor === nothing
+        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
+              "one limiter variable for density and one for internal energy or pressure.")
+    end
+
+    # return sorted thresholds and variables
+    return (rho_floor, rho_e_floor), (Trixi.density, energy_internal)
+end
+
+# generic fallback: copy over the local limiter variables and thresholds as-is.
+function convert_variables_and_thresholds(thresholds, variables, equations)
+    return thresholds, variables
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
@@ -89,10 +134,16 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
 
     history_davis_yin_iterations = record_davis_yin_iterations ? Int[] : nothing
 
+    # convert local limiter variables and thresholds to the format expected by the global limiter
+    projection_thresholds, projection_variables = convert_variables_and_thresholds(local_limiter!.thresholds,
+                                                                               local_limiter!.variables,
+                                                                               equations)
+
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
                                                sqrt_cell_volumes, total_volume,
                                                global_limiter_tol, max_davis_yin_iterations,
+                                               projection_thresholds, projection_variables,
                                                history_davis_yin_iterations)
 end
 
@@ -134,7 +185,8 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages,
     sqrt_cell_volumes, total_volume, global_limiter_tol,
-    max_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
+    max_davis_yin_iterations, projection_thresholds, projection_variables,
+    history_davis_yin_iterations) = global_limiter!
 
     u = wrap_array(u_ode, semi)
 
@@ -180,8 +232,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
             global_cell_average_limiter!(u, cell_averages,
                                          davis_yin_Z, projected_cell_averages,
                                          sqrt_cell_volumes, total_volume,
-                                         local_limiter!.thresholds,
-                                         local_limiter!.variables,
+                                         projection_thresholds, projection_variables,
                                          global_limiter_tol, max_davis_yin_iterations,
                                          history_davis_yin_iterations,
                                          mesh_equations_solver_cache(semi)...)

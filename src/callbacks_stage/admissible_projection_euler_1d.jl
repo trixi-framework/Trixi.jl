@@ -23,40 +23,9 @@ This code was translated from code written by Prof. Chen Liu using AI tools.
 """
 @inline function project_to_admissible_set(cell_average, lower_bound, variables,
                                            equations::CompressibleEulerEquations1D)
-    rho_floor, rho_e_floor = variable_projection_floors(lower_bound, variables, equations)
+    rho_floor, rho_e_floor = lower_bound
     return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
                                               equations)
-end
-
-# Liu-Zhang limiting requires an internal energy bound; if a pressure bound is specified,
-# it is converted to an internal energy bound.
-function variable_projection_floors(thresholds, variables,
-                                    equations::Union{CompressibleEulerEquations1D,
-                                                     CompressibleEulerEquations2D})
-    rho_floor = nothing
-    rho_e_floor = nothing
-    for (threshold, variable) in zip(thresholds, variables)
-        if variable === Trixi.density
-            rho_floor = threshold
-        elseif variable === energy_internal
-            rho_e_floor = threshold
-        elseif variable === pressure
-            rho_e_floor = threshold / (equations.gamma - 1)
-        else
-            error("PositivityPreservingLimiterLiuZhang for CompressibleEulerEquations1D requires ",
-                  "variables = (density, energy_internal) or (density, pressure) ",
-                  "(in either order); got unsupported variable.")
-        end
-    end
-    if rho_floor === nothing || rho_e_floor === nothing
-        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
-              "one density threshold and one internal-energy or pressure threshold.")
-    end
-    if rho_floor <= 0 || rho_e_floor <= 0
-        error("Density and internal-energy floors must be positive; got rho_floor = ",
-              rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
-    end
-    return rho_floor, rho_e_floor
 end
 
 @inline function state_is_admissible(u, thresholds, arithmetic_tol,
