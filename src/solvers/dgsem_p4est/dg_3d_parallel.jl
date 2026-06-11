@@ -359,7 +359,7 @@ end
     if local_side == 1
         flux_, _ = surface_flux(u_ll, u_rr, normal_direction, equations)
     else # local_side == 2
-        _, flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
+        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)[2]
     end
 
     for v in eachvariable(equations)
