@@ -88,7 +88,7 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+                      mortar_l2::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -897,8 +897,8 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_l2::LobattoLegendreMortarL2,
-                          dg::DGSEM)
+                          mortar_l2::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis},
+                          dg::Union{DGSEM, BlockFV})
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
