@@ -75,6 +75,25 @@ end
 end
 end # Linear scalar advection
 
+@trixi_testset "elixir_euler_source_term_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_term_nonperiodic.jl"),
+                        l2=[
+                            0.002731217832538043,
+                            0.007376919568806639,
+                            0.016930190678112387
+                        ],
+                        linf=[
+                            0.004741980711226557,
+                            0.012698717999668485,
+                            0.03145807677659285
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @testset "UniformFiniteVolumeBasis and VolumeIntegralFiniteVolume" begin
     basis = UniformFiniteVolumeBasis(4)
     @test Trixi.polydeg(basis) == 0
