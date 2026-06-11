@@ -7,18 +7,34 @@
 
 Positivity-preserving limiter which combines a global cell-average limiter 
 with a local limiter such as [`PositivityPreservingLimiterZhangShu`](@ref).
-The global cell-average limiter is from:
+The Davis-Yin splitting implementation of the global cell-average limiter is from:
 - Liu, Milesis, Shu, Zhang (2026)
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
   [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
+
+The "Liu-Zhang" naming convention reflects that, while other co-authors have been involved, 
+C. Liu and X. Zhang are the main developers of the optimization-based limiter, and are the 
+two authors who are on all of the other optimization-based limiter papers.
+- Liu, Shu, Zhang (2026)
+  Efficient admissible set projection in optimization-based invariant-domain-preserving limiters for ideal MHD
+  [arXiv: 2605.10929](https://arxiv.org/abs/2605.10929)
+- Liu, Hu, Taitano, Zhang (2025)
+  An optimization-based positivity-preserving limiter in semi-implicit discontinuous Galerkin schemes solving Fokker-Planck equations
+  [doi: 10.1016/j.camwa.2025.05.008](https://doi.org/10.1016/j.camwa.2025.05.008)
+- Liu, Riviere, Shen, Zhang (2024)
+  A simple and efficient convex optimization based bound-preserving high order accurate limiter for Cahn-Hilliard-Navier-Stokes system
+  [doi: 10.1137/23M1587853](https://doi.org/10.1137/23M1587853)
+- Liu, Buzzard, Zhang (2024)
+  An optimization based limiter for enforcing positivity in a semi-implicit discontinuous Galerkin scheme for compressible Navier-Stokes equations
+  [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
 
 Currently, admissibility is enforced via projection onto lower bounds only for
 scalar equations (`nvariables == 1`).
 
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
-splitting iteration in the global cell-average limiter.
-`max_davis_yin_iterations` sets the maximum number of Davis-Yin iterations per global
-limiting step.
+splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets 
+the maximum number of Davis-Yin iterations per global limiting step.
+
 If `record_davis_yin_iterations` is `true`, the number of Davis-Yin iterations used at each
 global limiting step is appended to `history_davis_yin_iterations`.
 """
