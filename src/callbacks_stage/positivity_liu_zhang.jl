@@ -7,15 +7,34 @@
 
 Positivity-preserving limiter which combines a global cell-average limiter 
 with a local limiter such as [`PositivityPreservingLimiterZhangShu`](@ref).
-The global cell-average limiter is from:
+The Davis-Yin splitting implementation of the global cell-average limiter is from:
 - Liu, Milesis, Shu, Zhang (2026)
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
   [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
 
+The "Liu-Zhang" naming convention reflects that, while other co-authors have been involved, 
+C. Liu and X. Zhang are the main developers of the optimization-based limiter, and are the 
+two authors who are on all of the other optimization-based limiter papers.
+- Liu, Shu, Zhang (2026)
+  Efficient admissible set projection in optimization-based invariant-domain-preserving limiters for ideal MHD
+  [arXiv: 2605.10929](https://arxiv.org/abs/2605.10929)
+- Liu, Hu, Taitano, Zhang (2025)
+  An optimization-based positivity-preserving limiter in semi-implicit discontinuous Galerkin schemes solving Fokker-Planck equations
+  [doi: 10.1016/j.camwa.2025.05.008](https://doi.org/10.1016/j.camwa.2025.05.008)
+- Liu, Riviere, Shen, Zhang (2024)
+  A simple and efficient convex optimization based bound-preserving high order accurate limiter for Cahn-Hilliard-Navier-Stokes system
+  [doi: 10.1137/23M1587853](https://doi.org/10.1137/23M1587853)
+- Liu, Buzzard, Zhang (2024)
+  An optimization based limiter for enforcing positivity in a semi-implicit discontinuous Galerkin scheme for compressible Navier-Stokes equations
+  [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
+
+Currently, admissibility is enforced via projection onto lower bounds only for
+scalar equations (`nvariables == 1`).
+
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
-splitting iteration in the global cell-average limiter.
-`max_davis_yin_iterations` sets the maximum number of Davis-Yin iterations per global
-limiting step.
+splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets 
+the maximum number of Davis-Yin iterations per global limiting step.
+
 If `record_davis_yin_iterations` is `true`, the number of Davis-Yin iterations used at each
 global limiting step is appended to `history_davis_yin_iterations`.
 """
@@ -215,34 +234,44 @@ function global_cell_average_limiter!(u, cell_averages,
     # residual ||X^{k+1} - X^k||_{L^2} for the Davis-Yin iteration
     residual = floatmax(real(mesh))
 
+    # Davis-Yin splitting minimizes the cell average L2 error 
+    #           ||Z/sqrt(cell_volume) - U_avg||_{L^2}^2 = ||Z - U_avg * sqrt(cell_volume)||_{L^2}^2 
+    # Here, Z ≈ U_avg * sqrt(cell_volume). This reformulation significantly accelerates convergence 
+    # of the Davis-Yin iteration for non-uniform meshes. 
+    # 
+    # Davis-Yin splitting uses variables X (stored in `projected_cell_averages`), Y, and 
+    # Z (stored in `davis_yin_Z`), where 
+    # - Z is the "dual variable" and solution that is returned by the iteration.
+    # - X is the projection of Z onto the admissible set.
+    # - Y is the primal variable, through which conservation and admissibility constraints are coupled.
+    # 
+    # The iteration then proceeds as follows: given DG cell averages u_avg, 
+    # 0. Initialize Z = u_avg * sqrt(cell_volume)
+    # 1. If u_avg violates positivity, project u_avg = Z / sqrt(cell_volume) to the admissible set: 
+    #                       X_{1/2} = proj(Z / sqrt(cell_volume)) * sqrt(cell_volume)
+    #    where "proj" denotes pointwise projection of a solution state to the admissible set.
+    # 2. Update the primal variable 
+    #                       Y: Y = 2 * X_{1/2} - Z - gamma * grad_h
+    #    Here, gamma = 1 is known to be an optimal step size, and grad_h is the gradient of the 
+    #    conservation constraint:
+    #             grad_h = 2 * cell_volumes .* (X_{1/2} .- u_avg * sqrt(cell_volume)) 
+    #    so Step 2 simplifies to 
+    #                       Y = X_{1/2} - Z + u_avg * sqrt(cell_volume)
+    # 3. Enforce conservation: 
+    #      X = Y + (global_integral - dot(sqrt_cell_volumes, u_avg)) * pinv(sqrt_cell_volumes)
+    # 4. Update dual variable: Z = Z + (X - X_{1/2})
+    # 
+    # Step 1-4 are repeated until ||X - X_{1/2}||_{L^2} is smaller than the tolerance.
+    # 
+    # The implementation uses only two buffers: X (projected_cell_averages) and Z (davis_yin_Z).
+    # The vector Y is not stored explicitly, but is recalculated step 3.
+
+    # Step 0: initialize dual variable Z = u_avg * sqrt(cell_volume)
     @threaded for element in eachelement(dg, cache)
         sqrt_cell_volume = sqrt_cell_volumes[element]
         davis_yin_Z[element] = cell_averages[element] * sqrt_cell_volume
     end
 
-    # Davis-Yin splitting minimizes the cell average L2 error 
-    #           ||Z/sqrt(cell_volume) - U_avg||_{L^2}^2 = ||Z - U_avg * sqrt(cell_volume)||_{L^2}^2 
-    # Here, Z ≈ U_avg * sqrt(cell_volume). This reformulation significantly accelerates convergence 
-    # of the Davis-Yin iteration for non-uniform meshes. 
-
-    # Davis-Yin splitting uses variables X, Y, Z, where 
-    # - Z is the "dual variable" and solution that is returned by the iteration.
-    # - X is the projection of Z onto the admissible set.
-    # - Y is the primal variable, through which the conservation and admissibility constraints are coupled.
-    # 
-    # The iteration then proceeds as follows: given cell averages u_avg,
-    # 1. Project to admissible set: X_{1/2} = proj(Z / sqrt(cell_volume)) * sqrt(cell_volume)
-    # 2. Update the primal variable Y: Y = 2 * X_{1/2} - Z - gamma * grad_h
-    #    Here, gamma = 1 and grad_h = 2 * cell_volumes .* (X_{1/2} .- u_avg * sqrt(cell_volume)), 
-    #    so this step simplifies to 
-    #                       Y = X_{1/2} - Z + u_avg * sqrt(cell_volume)
-    # 3. Enforce conservation: 
-    #      X = Y + (global_integral - dot(sqrt_cell_volumes, u_avg)) * pinv(sqrt_cell_volumes)
-    # 4. Update dual variable: Z = Z + (X - X_{1/2})
-    # This is repeated until (X - X_{1/2}) is smaller than the tolerance.
-    # 
-    # The implementation implements this with only two buffers: X (projected_cell_averages) and Z.
-    # Y is not stored explicitly, but is recalculated once in step 3.
     num_davis_yin_iterations = 0
     while residual > global_limiter_tol &&
         num_davis_yin_iterations < max_davis_yin_iterations
