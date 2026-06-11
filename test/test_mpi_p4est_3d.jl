@@ -268,8 +268,6 @@ end
                             0.003183818489931725,
                             2.3051612160404968e-5
                         ],
-                        surface_flux=flux_hlle_nonconservative_powell,
-                        volume_integral=VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell),
                         tspan=(0.0, 0.1))
 
     # Ensure that we do not have excessive memory allocations
