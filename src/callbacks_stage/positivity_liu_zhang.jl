@@ -12,9 +12,6 @@ The global cell-average limiter is from:
   Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
   [doi: 10.1016/j.jcp.2026.114839](https://doi.org/10.1016/j.jcp.2026.114839)
 
-Currently, admissibility is enforced via projection onto lower bounds only for
-scalar equations (`nvariables == 1`).
-
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
 splitting iteration in the global cell-average limiter.
 `max_davis_yin_iterations` sets the maximum number of Davis-Yin iterations per global
