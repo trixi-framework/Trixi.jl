@@ -192,7 +192,7 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
                 delta3 = -8 * rho_c * rho_c + 8 * x * rho_c + y * y
                 # if delta is small and negative, return zero
                 if delta3 < zero(delta3) && delta3 > -arithmetic_tol
-                    return zero(delta3)
+                    delta3 = zero(delta3)
                 end
                 if rho_c >= rho_floor - arithmetic_tol && delta3 >= zero(delta3)
                     sqrt_delta3 = sqrt(delta3)
