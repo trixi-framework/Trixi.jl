@@ -2,7 +2,6 @@ module TestExamplesMPIP4estMesh3D
 
 using Test
 using Trixi
-using Trixi: @muladd
 
 include("test_trixi.jl")
 
