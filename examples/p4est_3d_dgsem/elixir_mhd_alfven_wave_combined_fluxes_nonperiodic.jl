@@ -3,7 +3,21 @@ using Trixi
 using Trixi: @muladd
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
-
+#
+# In this elixir, we employ the specialization that combines conservative and
+# nonconservative fluxes in a single kernel, avoiding repeated operations such as
+# computing the primitive variables and multiple means for both fluxes.
+# The single kernel must return the two contributions
+#
+#   flux_cons(u_ll, u_rr, normal_direction, equations)
+#     + 0.5f0 * flux_noncons(u_ll, u_rr, normal_direction, equations)
+#
+# and
+#
+#   flux_cons(u_ll, u_rr, normal_direction, equations)
+#     + 0.5f0 * flux_noncons(u_rr, u_ll, normal_direction, equations),
+#
+# as shown below.
 @muladd @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
                                                                         normal_direction::AbstractVector,
                                                                         equations::IdealGlmMhdEquations3D)
@@ -168,6 +182,23 @@ end
 
 @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hlle_nonconservative_powell),
 equations::IdealGlmMhdEquations3D) = Trixi.True()
+
+# For nonperiodic boundary conditions, the boundary flux must also be specialized
+# such that it returns only the first contribution of the surface flux function.
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function::typeof(flux_hlle_nonconservative_powell),
+                                                                  equations)
+
+    # get the external value of the solution
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    flux, _ = surface_flux_function(u_inner, u_boundary, normal_direction,
+                                    equations)
+    return flux
+end
 
 equations = IdealGlmMhdEquations3D(5 / 3)
 

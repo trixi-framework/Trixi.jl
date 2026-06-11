@@ -7,21 +7,6 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 
-@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
-                                                                  normal_direction::AbstractVector,
-                                                                  x, t,
-                                                                  surface_flux_function::typeof(flux_hlle_nonconservative_powell),
-                                                                  equations)
-
-    # get the external value of the solution
-    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
-
-    # Calculate boundary flux
-    flux, _ = surface_flux_function(u_inner, u_boundary, normal_direction,
-                                    equations)
-    return flux
-end
-
 @testset "P4estMesh MPI 3D" begin
 #! format: noindent
 
