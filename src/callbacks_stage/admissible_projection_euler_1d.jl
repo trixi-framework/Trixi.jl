@@ -96,39 +96,34 @@ end
            2 * rho_floor * rho_e_floor
 end
 
-@inline function clamp_small_negative_discriminant(delta, arithmetic_tol)
-    if delta < zero(delta) && delta > -arithmetic_tol
-        return zero(delta)
-    end
-    return delta
-end
-
 # Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::SVector{3,T}).
 # `roots` is zero-initialized; only indices 1:n_roots are overwritten. Unused slots stay
 # zero so the SVector has no undefined entries (callers must still loop only 1:n_roots;
 # 0 is a valid root and must not be inferred from the trailing zeros alone).
 function calc_depressed_cubic_roots(p, q)
     T = typeof(p)
-    roots = zeros(MVector{3, T})
+    root_1 = zero(T)
+    root_2 = zero(T)
+    root_3 = zero(T)
     delta = 4 * p^3 + 27 * q^2
     n_roots = 0
     if delta > zero(delta)
         Y1 = 1.5 * (9 * q + sqrt(3 * delta))
         Y2 = 1.5 * (9 * q - sqrt(3 * delta))
         n_roots = 1
-        roots[1] = -(sign(Y1) * abs(Y1)^(1 // 3) + sign(Y2) * abs(Y2)^(1 // 3)) / 3
+        root_1 = -(sign(Y1) * abs(Y1)^(1 // 3) + sign(Y2) * abs(Y2)^(1 // 3)) / 3
     elseif iszero(delta) && (!iszero(p) || !iszero(q))
         n_roots = 2
-        roots[1] = 3 * q / p
-        roots[2] = -1.5 * q / p
+        root_1 = 3 * q / p
+        root_2 = -1.5 * q / p
     elseif delta < zero(delta)
         theta = acos(-1.5 * sqrt(-3 / p) * q / p)
         n_roots = 3
-        roots[1] = -2 * sqrt(-p / 3) * cos(theta / 3)
-        roots[2] = sqrt(-p / 3) * (cos(theta / 3) + sqrt(3) * sin(theta / 3))
-        roots[3] = sqrt(-p / 3) * (cos(theta / 3) - sqrt(3) * sin(theta / 3))
+        root_1 = -2 * sqrt(-p / 3) * cos(theta / 3)
+        root_2 = sqrt(-p / 3) * (cos(theta / 3) + sqrt(3) * sin(theta / 3))
+        root_3 = sqrt(-p / 3) * (cos(theta / 3) - sqrt(3) * sin(theta / 3))
     end
-    return n_roots, SVector(roots)
+    return n_roots, SVector(root_1, root_2, root_3)
 end
 
 function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
@@ -226,8 +221,10 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
             sqrt_delta2 = sqrt(delta2)
             for rho_c in (0.5 * (x - sqrt_delta2), 0.5 * (x + sqrt_delta2))
                 delta3 = -8 * rho_c * rho_c + 8 * x * rho_c + y * y
-                delta3 = clamp_small_negative_discriminant(delta3,
-                                                           arithmetic_tol)
+                # if delta is small and negative, return zero
+                if delta3 < zero(delta3) && delta3 > -arithmetic_tol
+                    return zero(delta3)
+                end
                 if rho_c >= rho_floor - arithmetic_tol && delta3 >= zero(delta3)
                     sqrt_delta3 = sqrt(delta3)
                     for rho_v1_c in (0.5 * (y - sqrt_delta3), 0.5 * (y + sqrt_delta3))
