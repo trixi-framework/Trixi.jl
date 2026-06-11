@@ -1,3 +1,26 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
+"""
+    project_to_admissible_set(cell_average, lower_bound, variables,
+                              equations::CompressibleEulerEquations1D)
+
+Implements Appendix B.2 of
+- Liu, Milesis, Shu, Zhang (2026)
+  Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
+  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
+
+Given an out-of-bounds solution state, this returns the closest point in the admissible set.
+This is possible by noting that there are only a finite number of possible candidate states
+that satisfy the KKT conditions. This implementation enumerates all candidates and returns 
+the one that is closest to the input state. 
+
+This code was translated from code written by Prof. Chen Liu using AI tools. 
+"""
 @inline function project_to_admissible_set(cell_average, lower_bound, variables,
                                            equations::CompressibleEulerEquations1D)
     rho_floor, rho_e_floor = variable_projection_floors(lower_bound, variables, equations)
@@ -5,6 +28,8 @@
                                               equations)
 end
 
+# Liu-Zhang limiting requires an internal energy bound; if a pressure bound is specified,
+# it is converted to an internal energy bound.
 function variable_projection_floors(thresholds, variables,
                                     equations::Union{CompressibleEulerEquations1D,
                                                      CompressibleEulerEquations2D})
@@ -18,7 +43,7 @@ function variable_projection_floors(thresholds, variables,
         elseif variable === pressure
             rho_e_floor = threshold / (equations.gamma - 1)
         else
-            error("PositivityPreservingLimiterLiuZhang for compressible Euler requires ",
+            error("PositivityPreservingLimiterLiuZhang for CompressibleEulerEquations1D requires ",
                   "variables = (density, energy_internal) or (density, pressure) ",
                   "(in either order); got unsupported variable.")
         end
@@ -112,7 +137,7 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)
     arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor, RealT)
-    @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
+    @assert arithmetic_tol < minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
     if state_is_admissible(u, thresholds, arithmetic_tol, equations)
         return u
@@ -242,3 +267,5 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
 
     return SVector(best_rho, best_rho_v1, best_rho_e_total)
 end
+
+end # @muladd
