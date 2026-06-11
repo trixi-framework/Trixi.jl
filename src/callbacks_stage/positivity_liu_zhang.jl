@@ -64,8 +64,8 @@ end
 # For compressible Euler, convert local limiter variables and thresholds 
 # to `(rho_floor, rho_e_floor)` with variables `(Trixi.density, energy_internal)`.
 function convert_variables_and_thresholds(thresholds, variables,
-                            equations::Union{CompressibleEulerEquations1D,
-                                             CompressibleEulerEquations2D})
+                                          equations::Union{CompressibleEulerEquations1D,
+                                                           CompressibleEulerEquations2D})
     if length(thresholds) != 2 || length(variables) != 2
         error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
               "two limiter variables: one for density and one for internal energy or pressure.")
@@ -136,8 +136,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
 
     # convert local limiter variables and thresholds to the format expected by the global limiter
     projection_thresholds, projection_variables = convert_variables_and_thresholds(local_limiter!.thresholds,
-                                                                               local_limiter!.variables,
-                                                                               equations)
+                                                                                   local_limiter!.variables,
+                                                                                   equations)
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
