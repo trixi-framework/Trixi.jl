@@ -21,9 +21,9 @@ the one that is closest to the input state.
 
 This code was translated from code written by Prof. Chen Liu using AI tools. 
 """
-@inline function project_to_admissible_set(cell_average, lower_bound, variables,
+@inline function project_to_admissible_set(cell_average, lower_bounds, variables,
                                            equations::CompressibleEulerEquations1D)
-    rho_floor, rho_e_floor = lower_bound
+    rho_floor, rho_e_floor = lower_bounds
     return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
                                               equations)
 end
