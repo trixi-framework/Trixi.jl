@@ -6,8 +6,10 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                        basis::LobattoLegendreBasis)
+function init_elements!(elements,
+                        mesh::Union{P4estMesh{3}, T8codeMesh{3}, P4estMesh{2},
+                                    P4estMeshView{2}, T8codeMesh{2}},
+                        basis::AbstractBasisSBP)
     @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
     # TODO GPU
@@ -39,7 +41,7 @@ function init_elements!(elements, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
 end
 
 function init_element_structs!(backend::Nothing, elements, n_elements,
-                               basis::LobattoLegendreBasis)
+                               basis::AbstractBasisSBP)
     @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
     @unpack derivative_matrix = basis
 

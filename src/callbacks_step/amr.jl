@@ -1017,7 +1017,7 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
     # mesh lives on the CPU -> current_levels lives on the CPU
     # alpha lives on the GPU, so we move it here
     if backend !== nothing
-        alpha = Array(alpha)
+        alpha = trixi_adapt(Array, eltype(alpha), alpha)
     end
 
     @threaded for element in eachelement(dg, cache)

@@ -191,7 +191,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
     return alpha
 end
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
+function (indicator_max::IndicatorMax)(backend::Nothing, u::AbstractArray{<:Any, 4},
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
     @unpack alpha, indicator_threaded = indicator_max.cache
@@ -211,6 +211,44 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
     end
 
     return alpha
+end
+
+function (indicator_max::IndicatorMax)(backend::Backend, u::AbstractArray{<:Any, 4},
+                                       mesh, equations, dg::DGSEM, cache;
+                                       kwargs...)
+    @unpack alpha = indicator_max.cache
+    resize!(alpha, nelements(dg, cache))
+
+    alpha_loc = trixi_adapt(storage_type(u), eltype(u), indicator_max.cache.alpha)
+
+    indicator_variable = indicator_max.variable
+
+    kernel! = calc_IndicatorMax_kernel_2d!(backend)
+    kernel!(alpha_loc, u, equations, dg, indicator_variable,
+            ndrange = nelements(dg, cache))
+
+    return alpha_loc
+end
+
+@kernel function calc_IndicatorMax_kernel_2d!(alpha, u::AbstractArray{<:Any, 4},
+                                              equations, dg, indicator_variable)
+    element = @index(Global)
+    calc_IndicatorMax_per_element_2d!(alpha, u, equations, dg, indicator_variable,
+                                      element)
+end
+
+@inline function calc_IndicatorMax_per_element_2d!(alpha, u::AbstractArray{<:Any, 4},
+                                                   equations, dg,
+                                                   indicator_variable,
+                                                   element)
+    max_indicator = zero(eltype(u))
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(u, equations, dg, i, j, element)
+        max_indicator = Base.max(max_indicator, indicator_variable(u_local, equations))
+    end
+    alpha[element] = max_indicator
+    return nothing
 end
 
 function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},

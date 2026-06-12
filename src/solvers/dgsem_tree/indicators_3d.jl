@@ -262,25 +262,30 @@ function (indicator_max::IndicatorMax)(backend::Backend, u::AbstractArray{<:Any,
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
     @unpack alpha = indicator_max.cache
-    alpha = trixi_adapt(storage_type(u), eltype(u), alpha)
     resize!(alpha, nelements(dg, cache))
+
+    alpha_loc = trixi_adapt(storage_type(u), eltype(u), alpha)
+
     indicator_variable = indicator_max.variable
 
-    kernel! = calc_IndicatorMax_kernel!(backend)
-    kernel!(alpha, u, equations, dg, indicator_variable,
+    kernel! = calc_IndicatorMax_kernel_3d!(backend)
+    kernel!(alpha_loc, u, equations, dg, indicator_variable,
             ndrange = nelements(dg, cache))
 
-    return alpha
+    return alpha_loc
 end
 
-@kernel function calc_IndicatorMax_kernel!(alpha, u, equations, dg, indicator_variable)
+@kernel function calc_IndicatorMax_kernel_3d!(alpha, u::AbstractArray{<:Any, 5},
+                                              equations, dg, indicator_variable)
     element = @index(Global)
-    calc_IndicatorMax_per_element!(alpha, u, equations, dg, indicator_variable, element)
+    calc_IndicatorMax_per_element_3d!(alpha, u, equations, dg, indicator_variable,
+                                      element)
 end
 
-@inline function calc_IndicatorMax_per_element!(alpha, u, equations, dg,
-                                                indicator_variable,
-                                                element)
+@inline function calc_IndicatorMax_per_element_3d!(alpha, u::AbstractArray{<:Any, 5},
+                                                   equations, dg,
+                                                   indicator_variable,
+                                                   element)
     max_indicator = zero(eltype(u))
     # Calculate indicator variables at Gauss-Lobatto nodes
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -288,6 +293,7 @@ end
         max_indicator = Base.max(max_indicator, indicator_variable(u_local, equations))
     end
     alpha[element] = max_indicator
+    return nothing
 end
 
 function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},

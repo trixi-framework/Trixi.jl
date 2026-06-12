@@ -9,7 +9,7 @@
 # On `P4estMesh`, if an element refines the solution scaled by the Jacobian `J*u` is interpolated
 # from the parent element into the eight children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
-function refine!(backend, u_ode::AbstractVector, adaptor,
+function refine!(backend::Nothing, u_ode::AbstractVector, adaptor,
                  mesh::Union{TreeMesh{3}, P4estMesh{3}},
                  equations, dg::DGSEM, cache, elements_to_refine)
 
@@ -114,7 +114,8 @@ function refine!(backend, u_ode::AbstractVector, adaptor,
     return nothing
 end
 
-function refine!(backend::Backend, u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
+function refine!(backend::Backend, u_ode::AbstractVector, adaptor,
+                 mesh::Union{P4estMesh{2}, P4estMesh{3}},
                  equations, dg::DGSEM, cache, elements_to_refine)
 
     # Return early if there is nothing to do
@@ -142,7 +143,7 @@ function refine!(backend::Backend, u_ode::AbstractVector, adaptor, mesh::P4estMe
         # - elements_to_refine_index must be incremented to point to the next element
         if elements_to_refine_index <= length(elements_to_refine) &&
            elements_to_refine[elements_to_refine_index] == i - 1
-            offsets[i] = offsets[i - 1] + 8
+            offsets[i] = offsets[i - 1] + 2^ndims(mesh)
             elements_to_refine_index += 1
             needs_refinement[i - 1] = true
         else
@@ -183,7 +184,8 @@ function refine!(backend::Backend, u_ode::AbstractVector, adaptor, mesh::P4estMe
         kernel!(u, old_u, offsets, needs_refinement,
                 adaptor.forward_upper, adaptor.forward_lower,
                 old_inverse_jacobian, cache.elements.inverse_jacobian,
-                Val(nvariables(equations)), Val(nnodes(dg)),
+                equations, dg,
+                Val(ndims(mesh)), Val(nvariables(equations)), Val(nnodes(dg)),
                 ndrange = old_n_elements)
     end # GC.@preserve old_u_ode old_inverse_jacobian
     return nothing
@@ -195,6 +197,8 @@ end
                                                    forward_upper, forward_lower,
                                                    old_inverse_jacobian,
                                                    inverse_jacobian,
+                                                   equations, dg,
+                                                   ::Val{3},
                                                    ::Val{_nvariables},
                                                    ::Val{_nnodes}) where {_nvariables,
                                                                           _nnodes}
