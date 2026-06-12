@@ -41,9 +41,9 @@ end
     eta_ = eta()
     Pr_ = prandtl_number()
 
-    h = 0.5*sin(2*pi*(x[1] + x[2] - t)) + 2
-    h_x = pi*cos(2*pi*(x[1] + x[2] - t))
-    h_xx = -2*pi^2*sin(2*pi*(x[1] + x[2] - t))
+    h = 0.5 * sin(2 * pi * (x[1] + x[2] - t)) + 2
+    h_x = pi * cos(2 * pi * (x[1] + x[2] - t))
+    h_xx = -2 * pi^2 * sin(2 * pi * (x[1] + x[2] - t))
 
     r_1 = h_x
     r_2 = h_x + 4 * h * h_x
