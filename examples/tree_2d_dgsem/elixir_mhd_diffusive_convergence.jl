@@ -46,7 +46,7 @@ end
     h_xx = -2*pi^2*sin(2*pi*(x[1] + x[2] - t))
 
     r_1 = h_x
-    r_2 = h_x + 4*h*h_x
+    r_2 = h_x + 4 * h * h_x
     r_3 = r_2
     r_4 = zero(h_x)
     r_5 = h_x + 12 * h * h_x - 4 * eta_ * (h_x^2 + h * h_xx) - 4 * mu_ * h_xx / Pr_
