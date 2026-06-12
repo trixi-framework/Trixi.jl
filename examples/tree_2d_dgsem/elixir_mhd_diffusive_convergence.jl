@@ -33,7 +33,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 function initial_condition_bohm_2d(x, t, equations)
     h = 0.5*sin(2*pi*(x[1] + x[2] - t)) + 2
 
-    return SVector(h, h, h, 0, 2*h^2 + h, h, -h, 0, 0)
+    return SVector(h, h, h, 0, 2 * h^2 + h, h, -h, 0, 0)
 end
 
 @inline function source_terms_mhd_convergence_test_bohm_2d(u, x, t, equations)
