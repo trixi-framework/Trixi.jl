@@ -31,7 +31,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 # Test case proposed by Bohm (2018), Section 5.2 (https://arxiv.org/pdf/1802.07341).
 function initial_condition_bohm_2d(x, t, equations)
-    h = 0.5*sin(2*pi*(x[1] + x[2] - t)) + 2
+    h = 0.5 * sin(2 * pi * (x[1] + x[2] - t)) + 2
 
     return SVector(h, h, h, 0, 2 * h^2 + h, h, -h, 0, 0)
 end
