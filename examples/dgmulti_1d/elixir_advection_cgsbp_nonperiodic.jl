@@ -29,7 +29,7 @@ initial_condition = initial_condition_convergence_test
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
                                     boundary_conditions = (;
                                                            left = BoundaryConditionDirichlet(initial_condition_convergence_test),
-                                                           right = boundary_condition_do_nothing)
+                                                           right = boundary_condition_do_nothing))
 
 tspan = (0.0, 1.7)
 ode = semidiscretize(semi, tspan)
