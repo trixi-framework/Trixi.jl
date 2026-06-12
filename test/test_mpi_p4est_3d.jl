@@ -242,6 +242,38 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "MPI 3D, combine_conservative_and_nonconservative_fluxes" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=[
+                            0.00016685346840278242,
+                            0.0005154506694638523,
+                            0.0002741403494840161,
+                            0.000628064982690625,
+                            0.0007117011840167738,
+                            0.00057551775851691,
+                            0.00016486658455163385,
+                            0.0006159196451236003,
+                            5.620082696216583e-6
+                        ],
+                        linf=[
+                            0.0009856622498860546,
+                            0.003212690078978092,
+                            0.0018209418605107178,
+                            0.0030958340409428936,
+                            0.004144802264713476,
+                            0.0032428624362619285,
+                            0.001133536401913826,
+                            0.003183818489931725,
+                            2.3051612160404968e-5
+                        ],
+                        tspan=(0.0, 0.1))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end # P4estMesh MPI
 
 end # module
