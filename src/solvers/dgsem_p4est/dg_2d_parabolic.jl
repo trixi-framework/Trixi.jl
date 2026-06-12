@@ -374,7 +374,7 @@ end
 function calc_volume_integral!(du, flux_parabolic, mesh::P4estMesh{2},
                                equations_parabolic::AbstractEquationsParabolic,
                                dg::DGSEM, cache)
-    (; derivative_dhat) = dg.basis
+    (; derivative_hat) = dg.basis
     (; contravariant_vectors) = cache.elements
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
@@ -392,7 +392,7 @@ function calc_volume_integral!(du, flux_parabolic, mesh::P4estMesh{2},
                                                   i, j, element)
             contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[ii, i],
+                multiply_add_to_node_vars!(du, derivative_hat[ii, i],
                                            contravariant_flux1,
                                            equations_parabolic, dg, ii, j, element)
             end
@@ -403,7 +403,7 @@ function calc_volume_integral!(du, flux_parabolic, mesh::P4estMesh{2},
                                                   i, j, element)
             contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(du, derivative_dhat[jj, j],
+                multiply_add_to_node_vars!(du, derivative_hat[jj, j],
                                            contravariant_flux2,
                                            equations_parabolic, dg, i, jj, element)
             end
@@ -872,7 +872,7 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
                                         mesh::P4estMesh{2}, # for dispatch only
                                         equations_parabolic::AbstractEquationsParabolic,
                                         dg::DG, cache)
-    @unpack derivative_dhat = dg.basis
+    @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
     gradients_x, gradients_y = gradients
 
@@ -884,13 +884,13 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
                                    i, j, element)
 
             for ii in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
+                multiply_add_to_node_vars!(gradients_x, derivative_hat[ii, i],
                                            u_node, equations_parabolic, dg,
                                            ii, j, element)
             end
 
             for jj in eachnode(dg)
-                multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
+                multiply_add_to_node_vars!(gradients_y, derivative_hat[jj, j],
                                            u_node, equations_parabolic, dg,
                                            i, jj, element)
             end
