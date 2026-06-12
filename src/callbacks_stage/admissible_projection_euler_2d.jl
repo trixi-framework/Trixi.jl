@@ -1,10 +1,3 @@
-@inline function project_to_admissible_set(cell_average, lower_bounds, variables,
-                                           equations::CompressibleEulerEquations2D)
-    rho_floor, rho_e_floor = lower_bounds
-    return project_euler_2d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
-                                              equations)
-end
-
 @inline function state_is_admissible(u, thresholds,
                                      equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
@@ -165,8 +158,26 @@ function project_euler_2d_lambda_zero_branch!(best_dist_squared, best_u, has_can
     return best_dist_squared, best_u, has_candidate
 end
 
-function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
-                                            equations::CompressibleEulerEquations2D)
+"""
+    project_to_admissible_set(cell_average, lower_bound, variables,
+                              equations::CompressibleEulerEquations2D)
+
+Implements Appendix B.2 of
+- Liu, Milesis, Shu, Zhang (2026)
+  Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
+  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
+
+Given an out-of-bounds solution state, this returns the closest point in the admissible set.
+This is possible by noting that there are only a finite number of possible candidate states
+that satisfy the KKT conditions. This implementation enumerates all candidates and returns
+the one that is closest to the input state.
+
+This code was translated from code written by Prof. Chen Liu using AI tools.
+"""
+function project_to_admissible_set(cell_average, lower_bounds, variables,
+                                   equations::CompressibleEulerEquations2D)
+    rho_floor, rho_e_floor = lower_bounds
+    u = cell_average
     rho, rho_v1, rho_v2, rho_e_total = u
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)

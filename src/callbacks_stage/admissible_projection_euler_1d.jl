@@ -5,29 +5,6 @@
 @muladd begin
 #! format: noindent
 
-"""
-    project_to_admissible_set(cell_average, lower_bound, variables,
-                              equations::CompressibleEulerEquations1D)
-
-Implements Appendix B.2 of
-- Liu, Milesis, Shu, Zhang (2026)
-  Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
-  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
-
-Given an out-of-bounds solution state, this returns the closest point in the admissible set.
-This is possible by noting that there are only a finite number of possible candidate states
-that satisfy the KKT conditions. This implementation enumerates all candidates and returns 
-the one that is closest to the input state. 
-
-This code was translated from code written by Prof. Chen Liu using AI tools. 
-"""
-@inline function project_to_admissible_set(cell_average, lower_bounds, variables,
-                                           equations::CompressibleEulerEquations1D)
-    rho_floor, rho_e_floor = lower_bounds
-    return project_euler_1d_to_admissible_set(cell_average, rho_floor, rho_e_floor,
-                                              equations)
-end
-
 @inline function state_is_admissible(u, thresholds,
                                      equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
@@ -100,8 +77,26 @@ function calc_depressed_cubic_roots(p, q)
     return n_roots, SVector(root_1, root_2, root_3)
 end
 
-function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
-                                            equations::CompressibleEulerEquations1D)
+"""
+    project_to_admissible_set(cell_average, lower_bound, variables,
+                              equations::CompressibleEulerEquations1D)
+
+Implements Appendix B.2 of
+- Liu, Milesis, Shu, Zhang (2026)
+  Efficient optimization-based invariant-domain-preserving limiters in solving gas dynamics equations
+  [arXiv: 2510.21080](https://arxiv.org/abs/2510.21080)
+
+Given an out-of-bounds solution state, this returns the closest point in the admissible set.
+This is possible by noting that there are only a finite number of possible candidate states
+that satisfy the KKT conditions. This implementation enumerates all candidates and returns 
+the one that is closest to the input state. 
+
+This code was translated from code written by Prof. Chen Liu using AI tools. 
+"""
+function project_to_admissible_set(cell_average, lower_bounds, variables,
+                                   equations::CompressibleEulerEquations1D)
+    rho_floor, rho_e_floor = lower_bounds
+    u = cell_average
     rho, rho_v1, rho_e_total = u
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)
