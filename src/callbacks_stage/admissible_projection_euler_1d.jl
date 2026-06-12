@@ -38,9 +38,9 @@ end
 end
 
 # TODO: move into PositivityPreservingLimiterLiuZhang struct when 1D/2D share a common setup path
-@inline function euler_arithmetic_tol(rho_floor, rho_e_floor,
-                                      ::Type{RealT}) where {RealT}
-    return 10 * eps(RealT)
+@inline function euler_arithmetic_tol(rho_floor, rho_e_floor)
+    T = promote_type(typeof(rho_floor), typeof(rho_e_floor))
+    return 10 * eps(T)
 end
 
 @inline function projection_distance_squared_1d(u_candidate, u)
@@ -104,7 +104,7 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
     rho, rho_v1, rho_e_total = u
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)
-    arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor, RealT)
+    arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
     @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
     if state_is_admissible(u, thresholds, arithmetic_tol, equations)

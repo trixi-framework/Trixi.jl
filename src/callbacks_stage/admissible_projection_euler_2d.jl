@@ -170,7 +170,7 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
     rho, rho_v1, rho_v2, rho_e_total = u
     RealT = typeof(rho)
     thresholds = (rho_floor, rho_e_floor)
-    arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor, RealT)
+    arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
     @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
     if state_is_admissible(u, thresholds, arithmetic_tol, equations)
