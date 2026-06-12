@@ -53,9 +53,7 @@ steps:
     env:
       TRIXI_TEST: "Metal"
     agents:
-      queue: "juliaecosystem"
-      os: "macos"
-      arch: "aarch64"
+      queue: "metal"
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:
