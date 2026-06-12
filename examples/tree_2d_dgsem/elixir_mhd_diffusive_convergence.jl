@@ -49,9 +49,9 @@ end
     r_2 = h_x + 4*h*h_x
     r_3 = r_2
     r_4 = zero(h_x)
-    r_5 = h_x + 12*h*h_x - 4*eta_*(h_x^2 + h*h_xx) - 4*mu_*h_xx/Pr_
-    r_6 = h_x - 2*eta_*h_xx
-    r_7 = -h_x + 2*eta_*h_xx
+    r_5 = h_x + 12 * h * h_x - 4 * eta_ * (h_x^2 + h * h_xx) - 4 * mu_ * h_xx / Pr_
+    r_6 = h_x - 2 * eta_ * h_xx
+    r_7 = -h_x + 2 * eta_ * h_xx
     r_8 = 0
     r_9 = 0
 
