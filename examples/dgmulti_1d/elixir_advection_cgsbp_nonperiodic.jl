@@ -3,7 +3,8 @@ using Trixi
 
 # Continuous Galerkin SBP operator
 D = couple_continuously(legendre_derivative_operator(xmin = -1.0, xmax = 1.0, N = 4),
-                        SummationByPartsOperators.UniformMesh1D(xmin = -1.0, xmax = 1.0, Nx = 8))
+                        SummationByPartsOperators.UniformMesh1D(xmin = -1.0, xmax = 1.0,
+                                                                Nx = 8))
 
 surface_flux = flux_lax_friedrichs
 dg = DGMulti(element_type = Line(),
