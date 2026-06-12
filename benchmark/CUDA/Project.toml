@@ -9,7 +9,7 @@ Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 Trixi = {path = "../.."}
 
 [compat]
-CUDA = "5.8.2"
+CUDA = "6"
 JSON = "1.4.0"
 OrdinaryDiffEqLowStorageRK = "1.12.0"
 TimerOutputs = "0.5.25"

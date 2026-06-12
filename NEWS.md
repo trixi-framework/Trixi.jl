@@ -14,6 +14,7 @@ for human readability.
   keyword argument was added to [`BoundaryConditionCoupledP4est`](@ref) to handle
   non-rectangular mesh-view splits where a face name can appear at both a view interface
   and a physical domain edge ([#2598]).
+- Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in

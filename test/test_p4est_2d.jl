@@ -87,16 +87,136 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-    @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_amr_solution_independent.jl"),
-                            # Expected errors are exactly the same as with StructuredMesh!
-                            l2=[4.949660644033807e-5],
-                            linf=[0.0004867846262313763])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_amr_solution_independent.jl"),
+                        # Expected errors are exactly the same as with StructuredMesh!
+                        l2=[4.949660644033807e-5],
+                        linf=[0.0004867846262313763])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_amr_unstructured_flag.jl"),
+                        l2=[0.0012808538770535593],
+                        linf=[0.01752690016659812])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_restart.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                        l2=[4.507575525876275e-6],
+                        linf=[6.21489667023134e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_restart_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
+                        l2=[2.869137983727866e-6],
+                        linf=[3.8353423270964804e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
+                        l2=[0.00013318279010717573, 0.00013318279010712838],
+                        linf=[0.0009605782290112996, 0.0009605782290100784])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+
+    # Ensure we cover the calculation of the node coordinates
+    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+                                                                 ntuple(_ -> length(parent_mesh.nodes),
+                                                                        2)...,
+                                                                 length(mesh1.cell_ids))
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
+                                         RealT = typeof(parent_mesh).parameters[3])
+end
+
+@trixi_testset "elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        # Expected errors are exactly the same as with P4estMeshView!
+                        l2=[0.00013773915040249946],
+                        linf=[0.0010140184322192658],
+                        initial_refinement_level=0)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_subsonic_constant.jl"),
+                        l2=[
+                            9.268884363640194e-14,
+                            1.0689589615395477e-13,
+                            1.0408994850535984e-13,
+                            1.7032684855598177e-13
+                        ],
+                        linf=[
+                            1.6986412276764895e-13,
+                            2.2503592098759465e-12,
+                            1.7696906239744284e-12,
+                            3.623767952376511e-13
+                        ],
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_riemannproblem_quadrants.jl (IndicatorEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.13734337677601663,
+                            0.141545111874825,
+                            0.14154511187482435,
+                            0.5189638257807753
+                        ],
+                        linf=[
+                            1.6514183303386551,
+                            1.8583213243336623,
+                            1.8583213243336616,
+                            7.50677554433307
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                        l2=[
+                            0.0034516244508588046,
+                            0.0023420334036925493,
+                            0.0024261923964557187,
+                            0.004731710454271893
+                        ],
+                        linf=[
+                            0.04155789011775046,
+                            0.024772109862748914,
+                            0.03759938693042297,
+                            0.08039824959535657
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
     @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
