@@ -58,8 +58,10 @@ end
     SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
+initial_condition = initial_condition_bohm_2d
+
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition_bohm_2d, solver;
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_condition_periodic,
                                                                     boundary_condition_periodic),
                                              source_terms = source_terms_mhd_convergence_test_bohm_2d)
