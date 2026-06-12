@@ -5,13 +5,13 @@
                                               equations)
 end
 
-@inline function state_is_admissible(u, thresholds, arithmetic_tol,
+@inline function state_is_admissible(u, thresholds,
                                      equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
     rho_floor, rho_e_floor = thresholds
-    return rho >= rho_floor * (1 - arithmetic_tol) &&
+    return rho >= rho_floor &&
            rho_v1 * rho_v1 + rho_v2 * rho_v2 + 2 * rho_e_floor * rho <=
-           2 * rho * rho_e_total * (1 + arithmetic_tol)
+           2 * rho * rho_e_total
 end
 
 @inline function projection_distance_squared_2d(u_candidate, u)
@@ -173,7 +173,7 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
     arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
     @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
-    if state_is_admissible(u, thresholds, arithmetic_tol, equations)
+    if state_is_admissible(u, thresholds, equations)
         return u
     end
 
