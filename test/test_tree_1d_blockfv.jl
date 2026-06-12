@@ -79,14 +79,14 @@ end # Linear scalar advection
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_term_nonperiodic.jl"),
                         l2=[
-                            0.002731217832538043,
-                            0.007376919568806639,
-                            0.016930190678112387
+                            0.004626422103035306,
+                            0.008180600152697231,
+                            0.017245734957489538
                         ],
                         linf=[
-                            0.004741980711226557,
-                            0.012698717999668485,
-                            0.03145807677659285
+                            0.007560269781625273,
+                            0.014685499562911097,
+                            0.030302774363829776
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations

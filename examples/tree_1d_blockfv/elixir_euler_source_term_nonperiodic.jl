@@ -10,7 +10,7 @@ initial_condition = initial_condition_convergence_test
 
 # Create a block finite volume solver with n_nodes volumes per coordinate direction
 # in each cell of the mesh and the (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = BlockFV(n_nodes = 4, surface_flux = flux_lax_friedrichs)
+solver = BlockFV(n_nodes = 4, surface_flux = flux_hllc)
 
 coordinates_min = (0.0,)
 coordinates_max = (2.0,)
@@ -31,7 +31,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
+# Create ODE problem with time span from 0.0 to 2.0
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 

@@ -13,6 +13,7 @@ function calc_boundary_node_coordinates!(boundaries, element, count, direction,
     cell_id = elements.cell_ids[element]
     cell_center_x = mesh.tree.coordinates[1, cell_id]
     cell_center_y = mesh.tree.coordinates[2, cell_id]
+    # because inverse_jacobian = 2/dx and dx=dy
     half_cell_length = inv(elements.inverse_jacobian[element])
 
     x_left = cell_center_x - half_cell_length
