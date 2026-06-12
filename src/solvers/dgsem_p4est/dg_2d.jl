@@ -877,7 +877,8 @@ end
 function calc_boundary_flux!(backend::Nothing, cache, t, boundary_conditions,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations, surface_integral,
+    calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                        surface_integral,
                         dg)
     return nothing
 end
