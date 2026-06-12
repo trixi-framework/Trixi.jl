@@ -18,15 +18,19 @@ end
     return sum(abs2, u_candidate - u)
 end
 
-@inline function consider_projection_candidate_2d!(best_dist2, best_u, has_candidate,
-                                                   u_candidate, u)
-    dist2 = projection_distance_squared_2d(u_candidate, u)
-    if !has_candidate || dist2 < best_dist2
-        return dist2, u_candidate, true
+# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate is closer to u
+# than the current best; otherwise return the inputs unchanged.
+@inline function update_best_candidate_2d!(best_dist_squared, best_u, has_candidate,
+                                           u_candidate, u)
+    dist_squared = projection_distance_squared_2d(u_candidate, u)
+    if !has_candidate || dist_squared < best_dist_squared
+        return dist_squared, u_candidate, true
     end
-    return best_dist2, best_u, has_candidate
+    return best_dist_squared, best_u, has_candidate
 end
 
+# Appendix B.2 (μ > 0, λ > 0 branch): filters depressed-cubic momentum roots that fail the
+# KKT sign condition or the active energy constraint at ρ = ρ_floor.
 @inline function cubic_momentum_constraint_satisfied_2d(rho_v1, rho_v1_orig, rho_orig, a,
                                                         rho_floor, rho_e_floor)
     return ((rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
@@ -35,74 +39,68 @@ end
            2 * rho_floor * rho_e_floor
 end
 
-function project_euler_2d_cubic_branch!(best_dist2, best_u, has_candidate, u,
+function project_euler_2d_cubic_branch!(best_dist_squared, best_u, has_candidate, u,
                                         rho_floor, rho_e_floor, arithmetic_tol,
                                         use_v1_as_primary)
-    x, y1, y2, z = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     if use_v1_as_primary
-        a = 1 + (y2 / y1)^2
-        p = rho_floor * (4 * rho_e_floor - 2 * z) / a
-        q = -2 * rho_floor * rho_e_floor * y1 / a
+        a = 1 + (rho_v2 / rho_v1)^2
+        p = rho_floor * (4 * rho_e_floor - 2 * rho_e_total) / a
+        q = -2 * rho_floor * rho_e_floor * rho_v1 / a
         n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
             rho_v1_c = roots[i]
-            if cubic_momentum_constraint_satisfied_2d(rho_v1_c, y1, x, a, rho_floor,
+            if cubic_momentum_constraint_satisfied_2d(rho_v1_c, rho_v1, rho, a, rho_floor,
                                                       rho_e_floor)
                 rho_e_total_c = rho_e_floor + a * rho_v1_c * rho_v1_c / (2 * rho_floor)
-                best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                rho_v2_c = (rho_v2 / rho_v1) * rho_v1_c
+                u_candidate = SVector(rho_floor, rho_v1_c, rho_v2_c, rho_e_total_c)
+                best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
                                                                                       best_u,
                                                                                       has_candidate,
-                                                                                      SVector(rho_floor,
-                                                                                              rho_v1_c,
-                                                                                              (y2 /
-                                                                                               y1) *
-                                                                                              rho_v1_c,
-                                                                                              rho_e_total_c),
+                                                                                      u_candidate,
                                                                                       u)
             end
         end
     else
-        a = 1 + (y1 / y2)^2
-        p = rho_floor * (4 * rho_e_floor - 2 * z) / a
-        q = -2 * rho_floor * rho_e_floor * y2 / a
+        a = 1 + (rho_v1 / rho_v2)^2
+        p = rho_floor * (4 * rho_e_floor - 2 * rho_e_total) / a
+        q = -2 * rho_floor * rho_e_floor * rho_v2 / a
         n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
             rho_v2_c = roots[i]
-            if cubic_momentum_constraint_satisfied_2d(rho_v2_c, y2, x, a, rho_floor,
+            if cubic_momentum_constraint_satisfied_2d(rho_v2_c, rho_v2, rho, a, rho_floor,
                                                       rho_e_floor)
                 rho_e_total_c = rho_e_floor + a * rho_v2_c * rho_v2_c / (2 * rho_floor)
-                best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                rho_v1_c = (rho_v1 / rho_v2) * rho_v2_c
+                u_candidate = SVector(rho_floor, rho_v1_c, rho_v2_c, rho_e_total_c)
+                best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
                                                                                       best_u,
                                                                                       has_candidate,
-                                                                                      SVector(rho_floor,
-                                                                                              (y1 /
-                                                                                               y2) *
-                                                                                              rho_v2_c,
-                                                                                              rho_v2_c,
-                                                                                              rho_e_total_c),
+                                                                                      u_candidate,
                                                                                       u)
             end
         end
     end
-    return best_dist2, best_u, has_candidate
+    return best_dist_squared, best_u, has_candidate
 end
 
-function project_euler_2d_lambda_zero_branch!(best_dist2, best_u, has_candidate, u,
+function project_euler_2d_lambda_zero_branch!(best_dist_squared, best_u, has_candidate, u,
                                               rho_floor, rho_e_floor, arithmetic_tol,
                                               use_v1_as_primary)
-    # μ > 0 energy checks below (λ = 0 branch): ρ_c = ½(x ± √Δ_ρ) can suffer catastrophic
-    # cancellation when x and √Δ_ρ are opposite in sign and similar in magnitude; error in ρ_c
+    # μ > 0 energy checks below (λ = 0 branch): ρ_c = ½(ρ ± √Δ_ρ) can suffer catastrophic
+    # cancellation when ρ and √Δ_ρ are opposite in sign and similar in magnitude; error in ρ_c
     # can then flip the (1 - arithmetic_tol) comparison. Remedies: relax that factor, e.g. to
     # sqrt(eps(RealT)), or detect cancellation and evaluate ρ_c via a stable formula.
-    x, y1, y2, z = u
+    rho, rho_v1, rho_v2, rho_e_total = u
     if use_v1_as_primary
-        a = 1 + (y2 / y1)^2
-        delta_rho = x * x -
-                    (2 * x * y1 * y1 * (z - rho_e_floor) - a * y1^4) /
-                    (2 * y1 * y1 + (rho_e_floor + x - z)^2 / a)
+        a = 1 + (rho_v2 / rho_v1)^2
+        delta_rho = rho * rho -
+                    (2 * rho * rho_v1 * rho_v1 * (rho_e_total - rho_e_floor) - a * rho_v1^4) /
+                    (2 * rho_v1 * rho_v1 + (rho_e_floor + rho - rho_e_total)^2 / a)
         if delta_rho >= zero(delta_rho)
-            for rho_c in (0.5 * (x - sqrt(delta_rho)), 0.5 * (x + sqrt(delta_rho)))
-                delta_rho_v1 = -8 * a * rho_c * rho_c + 8 * a * x * rho_c + (a * y1)^2
+            for rho_c in (0.5 * (rho - sqrt(delta_rho)), 0.5 * (rho + sqrt(delta_rho)))
+                delta_rho_v1 = -8 * a * rho_c * rho_c + 8 * a * rho * rho_c + (a * rho_v1)^2
                 # Roundoff can make delta_rho_v1 slightly negative at the real-root boundary;
                 # treat as zero so the >= 0 check passes and sqrt(delta_rho_v1) is valid.
                 if delta_rho_v1 < zero(delta_rho_v1) && delta_rho_v1 > -arithmetic_tol
@@ -111,21 +109,18 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_u, has_candidate,
                 if rho_c >= rho_floor - arithmetic_tol &&
                    delta_rho_v1 >= zero(delta_rho_v1)
                     sqrt_delta_rho_v1 = sqrt(delta_rho_v1) / a
-                    for rho_v1_c in (0.5 * (y1 - sqrt_delta_rho_v1),
-                                     0.5 * (y1 + sqrt_delta_rho_v1))
+                    for rho_v1_c in (0.5 * (rho_v1 - sqrt_delta_rho_v1),
+                                     0.5 * (rho_v1 + sqrt_delta_rho_v1))
                         if (rho_e_floor * rho_c + 0.5f0 * a * rho_v1_c * rho_v1_c >
-                            z * rho_c * (1 - arithmetic_tol))
+                            rho_e_total * rho_c * (1 - arithmetic_tol))
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * a * rho_v1_c * rho_v1_c / rho_c
-                            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                            rho_v2_c = (rho_v2 / rho_v1) * rho_v1_c
+                            u_candidate = SVector(rho_c, rho_v1_c, rho_v2_c, rho_e_total_c)
+                            best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
                                                                                                   best_u,
                                                                                                   has_candidate,
-                                                                                                  SVector(rho_c,
-                                                                                                          rho_v1_c,
-                                                                                                          (y2 /
-                                                                                                           y1) *
-                                                                                                          rho_v1_c,
-                                                                                                          rho_e_total_c),
+                                                                                                  u_candidate,
                                                                                                   u)
                         end
                     end
@@ -133,13 +128,13 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_u, has_candidate,
             end
         end
     else
-        a = 1 + (y1 / y2)^2
-        delta_rho = x * x -
-                    (2 * x * y2 * y2 * (z - rho_e_floor) - a * y2^4) /
-                    (2 * y2 * y2 + (rho_e_floor + x - z)^2 / a)
+        a = 1 + (rho_v1 / rho_v2)^2
+        delta_rho = rho * rho -
+                    (2 * rho * rho_v2 * rho_v2 * (rho_e_total - rho_e_floor) - a * rho_v2^4) /
+                    (2 * rho_v2 * rho_v2 + (rho_e_floor + rho - rho_e_total)^2 / a)
         if delta_rho >= zero(delta_rho)
-            for rho_c in (0.5 * (x - sqrt(delta_rho)), 0.5 * (x + sqrt(delta_rho)))
-                delta_rho_v2 = -8 * a * rho_c * rho_c + 8 * a * x * rho_c + (a * y2)^2
+            for rho_c in (0.5 * (rho - sqrt(delta_rho)), 0.5 * (rho + sqrt(delta_rho)))
+                delta_rho_v2 = -8 * a * rho_c * rho_c + 8 * a * rho * rho_c + (a * rho_v2)^2
                 # Roundoff can make delta_rho_v2 slightly negative at the real-root boundary;
                 # treat as zero so the >= 0 check passes and sqrt(delta_rho_v2) is valid.
                 if delta_rho_v2 < zero(delta_rho_v2) && delta_rho_v2 > -arithmetic_tol
@@ -148,21 +143,18 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_u, has_candidate,
                 if rho_c >= rho_floor - arithmetic_tol &&
                    delta_rho_v2 >= zero(delta_rho_v2)
                     sqrt_delta_rho_v2 = sqrt(delta_rho_v2) / a
-                    for rho_v2_c in (0.5 * (y2 - sqrt_delta_rho_v2),
-                                     0.5 * (y2 + sqrt_delta_rho_v2))
+                    for rho_v2_c in (0.5 * (rho_v2 - sqrt_delta_rho_v2),
+                                     0.5 * (rho_v2 + sqrt_delta_rho_v2))
                         if (rho_e_floor * rho_c + 0.5f0 * a * rho_v2_c * rho_v2_c >
-                            z * rho_c * (1 - arithmetic_tol))
+                            rho_e_total * rho_c * (1 - arithmetic_tol))
                             rho_e_total_c = rho_e_floor +
                                             0.5f0 * a * rho_v2_c * rho_v2_c / rho_c
-                            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
+                            rho_v1_c = (rho_v1 / rho_v2) * rho_v2_c
+                            u_candidate = SVector(rho_c, rho_v1_c, rho_v2_c, rho_e_total_c)
+                            best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
                                                                                                   best_u,
                                                                                                   has_candidate,
-                                                                                                  SVector(rho_c,
-                                                                                                          (y1 /
-                                                                                                           y2) *
-                                                                                                          rho_v2_c,
-                                                                                                          rho_v2_c,
-                                                                                                          rho_e_total_c),
+                                                                                                  u_candidate,
                                                                                                   u)
                         end
                     end
@@ -170,7 +162,7 @@ function project_euler_2d_lambda_zero_branch!(best_dist2, best_u, has_candidate,
             end
         end
     end
-    return best_dist2, best_u, has_candidate
+    return best_dist_squared, best_u, has_candidate
 end
 
 function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
@@ -185,69 +177,64 @@ function project_euler_2d_to_admissible_set(u, rho_floor, rho_e_floor,
         return u
     end
 
-    x, y1, y2, z = rho, rho_v1, rho_v2, rho_e_total
-    best_dist2 = typemax(RealT)
+    best_dist_squared = typemax(RealT)
     best_u = zero(typeof(u))
     has_candidate = false
 
     # Case: mu = 0 and lambda > 0
-    if x < rho_floor && 2 * rho_floor * rho_e_floor + y1 * y1 + y2 * y2 <= 2 * rho_floor * z
-        best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                              best_u,
-                                                                              has_candidate,
-                                                                              SVector(rho_floor,
-                                                                                      y1,
-                                                                                      y2,
-                                                                                      z),
-                                                                              u)
+    if rho < rho_floor &&
+       2 * rho_floor * rho_e_floor + rho_v1 * rho_v1 + rho_v2 * rho_v2 <=
+       2 * rho_floor * rho_e_total
+        u_candidate = SVector(rho_floor, rho_v1, rho_v2, rho_e_total)
+        best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
+                                                                             best_u,
+                                                                             has_candidate,
+                                                                             u_candidate,
+                                                                             u)
     end
 
     # Case: mu > 0 and lambda > 0
-    if abs(y1) < arithmetic_tol && abs(y2) < arithmetic_tol
-        if x < rho_floor && z < rho_e_floor
-            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                  best_u,
-                                                                                  has_candidate,
-                                                                                  SVector(rho_floor,
-                                                                                          zero(RealT),
-                                                                                          zero(RealT),
-                                                                                          rho_e_floor),
-                                                                                  u)
+    if abs(rho_v1) < arithmetic_tol && abs(rho_v2) < arithmetic_tol
+        if rho < rho_floor && rho_e_total < rho_e_floor
+            u_candidate = SVector(rho_floor, zero(RealT), zero(RealT), rho_e_floor)
+            best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
+                                                                                   best_u,
+                                                                                   has_candidate,
+                                                                                   u_candidate,
+                                                                                   u)
         end
     else
-        use_v1_as_primary = abs(y1) >= abs(y2)
-        best_dist2, best_u, has_candidate = project_euler_2d_cubic_branch!(best_dist2,
-                                                                           best_u,
-                                                                           has_candidate,
-                                                                           u,
-                                                                           rho_floor,
-                                                                           rho_e_floor,
-                                                                           arithmetic_tol,
-                                                                           use_v1_as_primary)
+        use_v1_as_primary = abs(rho_v1) >= abs(rho_v2)
+        best_dist_squared, best_u, has_candidate = project_euler_2d_cubic_branch!(best_dist_squared,
+                                                                                  best_u,
+                                                                                  has_candidate,
+                                                                                  u,
+                                                                                  rho_floor,
+                                                                                  rho_e_floor,
+                                                                                  arithmetic_tol,
+                                                                                  use_v1_as_primary)
     end
 
     # Case: mu > 0 and lambda = 0
-    if abs(y1) < arithmetic_tol && abs(y2) < arithmetic_tol
-        if x >= rho_floor && z < rho_e_floor
-            best_dist2, best_u, has_candidate = consider_projection_candidate_2d!(best_dist2,
-                                                                                  best_u,
-                                                                                  has_candidate,
-                                                                                  SVector(x,
-                                                                                          zero(RealT),
-                                                                                          zero(RealT),
-                                                                                          rho_e_floor),
-                                                                                  u)
+    if abs(rho_v1) < arithmetic_tol && abs(rho_v2) < arithmetic_tol
+        if rho >= rho_floor && rho_e_total < rho_e_floor
+            u_candidate = SVector(rho, zero(RealT), zero(RealT), rho_e_floor)
+            best_dist_squared, best_u, has_candidate = update_best_candidate_2d!(best_dist_squared,
+                                                                                   best_u,
+                                                                                   has_candidate,
+                                                                                   u_candidate,
+                                                                                   u)
         end
     else
-        use_v1_as_primary = abs(y1) >= abs(y2)
-        best_dist2, best_u, has_candidate = project_euler_2d_lambda_zero_branch!(best_dist2,
-                                                                                 best_u,
-                                                                                 has_candidate,
-                                                                                 u,
-                                                                                 rho_floor,
-                                                                                 rho_e_floor,
-                                                                                 arithmetic_tol,
-                                                                                 use_v1_as_primary)
+        use_v1_as_primary = abs(rho_v1) >= abs(rho_v2)
+        best_dist_squared, best_u, has_candidate = project_euler_2d_lambda_zero_branch!(best_dist_squared,
+                                                                                       best_u,
+                                                                                       has_candidate,
+                                                                                       u,
+                                                                                       rho_floor,
+                                                                                       rho_e_floor,
+                                                                                       arithmetic_tol,
+                                                                                       use_v1_as_primary)
     end
 
     if !has_candidate

@@ -47,15 +47,20 @@ end
     return sum(abs2, u_candidate - u)
 end
 
-@inline function consider_projection_candidate_1d!(best_dist2, best_u, has_candidate,
-                                                   u_candidate, u)
+# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate is closer to u
+# than the current best; otherwise return the inputs unchanged.
+@inline function update_best_candidate_1d!(best_dist_squared, best_u,
+                                           has_candidate,
+                                           u_candidate, u)
     dist2 = projection_distance_squared_1d(u_candidate, u)
-    if !has_candidate || dist2 < best_dist2
+    if !has_candidate || dist2 < best_dist_squared
         return dist2, u_candidate, true
     end
-    return best_dist2, best_u, has_candidate
+    return best_dist_squared, best_u, has_candidate
 end
 
+# Appendix B.2 (μ > 0, λ > 0 branch): filters depressed-cubic momentum roots that fail the
+# KKT sign condition or the active energy constraint at ρ = ρ_floor.
 @inline function cubic_momentum_constraint_satisfied(rho_v1, rho_v1_orig, rho_orig,
                                                      rho_floor, rho_e_floor)
     return ((rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
@@ -70,9 +75,6 @@ end
 # 0 is a valid root and must not be inferred from the trailing zeros alone).
 function calc_depressed_cubic_roots(p, q)
     T = typeof(p)
-    root_1 = zero(T)
-    root_2 = zero(T)
-    root_3 = zero(T)
     delta = 4 * p^3 + 27 * q^2
     n_roots = 0
     if delta > zero(delta)
@@ -80,10 +82,13 @@ function calc_depressed_cubic_roots(p, q)
         Y2 = 1.5 * (9 * q - sqrt(3 * delta))
         n_roots = 1
         root_1 = -(sign(Y1) * abs(Y1)^(1 // 3) + sign(Y2) * abs(Y2)^(1 // 3)) / 3
+        root_2 = zero(T) # not used
+        root_3 = zero(T) # not used
     elseif iszero(delta) && (!iszero(p) || !iszero(q))
         n_roots = 2
         root_1 = 3 * q / p
         root_2 = -1.5 * q / p
+        root_3 = zero(T) # not used
     elseif delta < zero(delta)
         theta = acos(-1.5 * sqrt(-3 / p) * q / p)
         n_roots = 3
@@ -106,72 +111,69 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
         return u
     end
 
-    x, y, z = rho, rho_v1, rho_e_total
-    best_dist2 = typemax(RealT)
+    best_dist_squared = typemax(RealT)
     best_u = zero(typeof(u))
     has_candidate = false
 
     # Case: mu = 0 and lambda > 0
-    if x < rho_floor && 2 * rho_floor * rho_e_floor + y * y <= 2 * rho_floor * z
-        best_dist2, best_u, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                              best_u,
-                                                                              has_candidate,
-                                                                              SVector(rho_floor,
-                                                                                      y,
-                                                                                      z),
-                                                                              u)
+    if rho < rho_floor &&
+       2 * rho_floor * rho_e_floor + rho_v1 * rho_v1 <= 2 * rho_floor * rho_e_total
+        u_candidate = SVector(rho_floor, rho_v1, rho_e_total)
+        best_dist_squared, best_u, has_candidate = update_best_candidate_1d!(best_dist_squared,
+                                                                             best_u,
+                                                                             has_candidate,
+                                                                             u_candidate,
+                                                                             u)
     end
 
     # Case: mu > 0 and lambda > 0
-    if abs(y) < arithmetic_tol
-        if x < rho_floor && z < rho_e_floor
-            best_dist2, best_u, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                  best_u,
-                                                                                  has_candidate,
-                                                                                  SVector(rho_floor,
-                                                                                          zero(RealT),
-                                                                                          rho_e_floor),
-                                                                                  u)
+    if abs(rho_v1) < arithmetic_tol
+        if rho < rho_floor && rho_e_total < rho_e_floor
+            u_candidate = SVector(rho_floor, zero(RealT), rho_e_floor)
+            best_dist_squared, best_u, has_candidate = update_best_candidate_1d!(best_dist_squared,
+                                                                                 best_u,
+                                                                                 has_candidate,
+                                                                                 u_candidate,
+                                                                                 u)
         end
     else
-        p = 2 * rho_floor * (2 * rho_e_floor - z)
-        q = -2 * rho_floor * rho_floor * y
+        p = 2 * rho_floor * (2 * rho_e_floor - rho_e_total)
+        q = -2 * rho_floor * rho_floor * rho_v1
         n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
-            rho_v1_c = roots[i]
-            if cubic_momentum_constraint_satisfied(rho_v1_c, y, x, rho_floor,
-                                                   rho_e_floor)
-                rho_e_total_c = rho_e_floor + rho_v1_c * rho_v1_c / (2 * rho_floor)
-                best_dist2, best_u, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                      best_u,
-                                                                                      has_candidate,
-                                                                                      SVector(rho_floor,
-                                                                                              rho_v1_c,
-                                                                                              rho_e_total_c),
-                                                                                      u)
+            rho_v1_candidate = roots[i]
+            if cubic_momentum_constraint_satisfied(rho_v1_candidate, rho_v1, rho,
+                                                   rho_floor, rho_e_floor)
+                rho_e_total_c = rho_e_floor +
+                                rho_v1_candidate * rho_v1_candidate / (2 * rho_floor)
+                u_candidate = SVector(rho_floor, rho_v1_candidate, rho_e_total_c)
+                best_dist_squared, best_u, has_candidate = update_best_candidate_1d!(best_dist_squared,
+                                                                                     best_u,
+                                                                                     has_candidate,
+                                                                                     u_candidate,
+                                                                                     u)
             end
         end
     end
 
     # Case: mu > 0 and lambda = 0
-    if abs(y) < arithmetic_tol
-        if x >= rho_floor && z < rho_e_floor
-            best_dist2, best_u, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                  best_u,
-                                                                                  has_candidate,
-                                                                                  SVector(x,
-                                                                                          zero(RealT),
-                                                                                          rho_e_floor),
-                                                                                  u)
+    if abs(rho_v1) < arithmetic_tol
+        if rho >= rho_floor && rho_e_total < rho_e_floor
+            u_candidate = SVector(rho, zero(RealT), rho_e_floor)
+            best_dist_squared, best_u, has_candidate = update_best_candidate_1d!(best_dist_squared,
+                                                                                 best_u,
+                                                                                 has_candidate,
+                                                                                 u_candidate,
+                                                                                 u)
         end
     else
-        delta2 = x * x -
-                 (2 * x * y * y * (z - rho_e_floor) - y^4) /
-                 (2 * y * y + (rho_e_floor + x - z)^2)
+        delta2 = rho * rho -
+                 (2 * rho * rho_v1 * rho_v1 * (rho_e_total - rho_e_floor) - rho_v1^4) /
+                 (2 * rho_v1 * rho_v1 + (rho_e_floor + rho - rho_e_total)^2)
         if delta2 >= zero(delta2)
             sqrt_delta2 = sqrt(delta2)
-            for rho_c in (0.5 * (x - sqrt_delta2), 0.5 * (x + sqrt_delta2))
-                delta3 = -8 * rho_c * rho_c + 8 * x * rho_c + y * y
+            for rho_c in (0.5 * (rho - sqrt_delta2), 0.5 * (rho + sqrt_delta2))
+                delta3 = -8 * rho_c * rho_c + 8 * rho * rho_c + rho_v1 * rho_v1
                 # Roundoff can make delta3 slightly negative at the real-root boundary;
                 # treat as zero so the >= 0 check passes and sqrt(delta3) is valid.
                 if delta3 < zero(delta3) && delta3 > -arithmetic_tol
@@ -179,23 +181,26 @@ function project_euler_1d_to_admissible_set(u, rho_floor, rho_e_floor,
                 end
                 if rho_c >= rho_floor - arithmetic_tol && delta3 >= zero(delta3)
                     sqrt_delta3 = sqrt(delta3)
-                    for rho_v1_c in (0.5 * (y - sqrt_delta3), 0.5 * (y + sqrt_delta3))
+                    for rho_v1_candidate in (0.5 * (rho_v1 - sqrt_delta3),
+                                             0.5 * (rho_v1 + sqrt_delta3))
                         # μ > 0 sign check (λ = 0 branch): candidate energy must exceed the original.
-                        # ρ_c = ½(x ± √Δ₂) can suffer catastrophic cancellation when x and √Δ₂ are
+                        # ρ_c = ½(ρ ± √Δ₂) can suffer catastrophic cancellation when ρ and √Δ₂ are
                         # opposite in sign and similar in magnitude; the resulting error in ρ_c can
                         # flip this comparison. Remedies: relax (1 - arithmetic_tol), e.g. to
                         # sqrt(eps(RealT)), or detect cancellation and evaluate ρ_c via a stable formula.
-                        if rho_e_floor * rho_c + 0.5f0 * rho_v1_c * rho_v1_c >
-                           z * rho_c * (1 - arithmetic_tol)
+                        if rho_e_floor * rho_c +
+                           0.5f0 * rho_v1_candidate * rho_v1_candidate >
+                           rho_e_total * rho_c * (1 - arithmetic_tol)
                             rho_e_total_c = rho_e_floor +
-                                            0.5f0 * rho_v1_c * rho_v1_c / rho_c
-                            best_dist2, best_u, has_candidate = consider_projection_candidate_1d!(best_dist2,
-                                                                                                  best_u,
-                                                                                                  has_candidate,
-                                                                                                  SVector(rho_c,
-                                                                                                          rho_v1_c,
-                                                                                                          rho_e_total_c),
-                                                                                                  u)
+                                            0.5f0 * rho_v1_candidate *
+                                            rho_v1_candidate / rho_c
+                            u_candidate = SVector(rho_c, rho_v1_candidate,
+                                                  rho_e_total_c)
+                            best_dist_squared, best_u, has_candidate = update_best_candidate_1d!(best_dist_squared,
+                                                                                                 best_u,
+                                                                                                 has_candidate,
+                                                                                                 u_candidate,
+                                                                                                 u)
                         end
                     end
                 end
