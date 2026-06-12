@@ -357,9 +357,11 @@ end
 
     # Compute flux and non-conservative term for this side of the interface
     if local_side == 1
-        flux_, _ = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = flux_left
     else # local_side == 2
-        flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)[2]
+        flux_left, flux_right = surface_flux(u_ll, u_rr, -normal_direction, equations)
+        flux_ = -flux_right
     end
 
     for v in eachvariable(equations)
