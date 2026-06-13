@@ -769,6 +769,26 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_therm_perf_density_wave.jl (flux_terashima_etal)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_therm_perf_density_wave.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.00012468286946510095,
+                            2.217852396509057e-5,
+                            68.65773153790823
+                        ],
+                        linf=[
+                            0.0003422210613029941,
+                            0.00010663424625556583,
+                            201.25299942566198
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),

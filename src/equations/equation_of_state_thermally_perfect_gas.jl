@@ -160,6 +160,8 @@ Temperature-dependent ratio of specific heats `c_p(T) / c_v(T)`.
     return cp / cv
 end
 
+# Used in `drho_e_internal_drho_at_const_p` which in turn is used in
+# `flux_terashima_etal` and `flux_terashima_etal_central`
 @inline function calc_pressure_derivatives(V, T, eos::ThermallyPerfectGas)
     dpdT_V = eos.R_specific / V
     dpdV_T = -eos.R_specific * T / (V^2)
