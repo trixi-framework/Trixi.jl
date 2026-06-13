@@ -187,26 +187,12 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl Float32 / CUDA" begin
+@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / CUDA" begin
     # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using CUDA
     using Trixi
-    @inline function flux_volume_combined(u_ll, u_rr, normal_direction::AbstractVector,
-                                          equations::IdealGlmMhdEquations3D)
-        flux = flux_hindenlang_gassner(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_left = flux_nonconservative_powell(u_ll, u_rr, normal_direction,
-                                                        equations)
-        noncons_flux_right = flux_nonconservative_powell(u_rr, u_ll, normal_direction,
-                                                         equations)
-        flux_left = flux + 0.5f0 * noncons_flux_left
-        flux_right = flux + 0.5f0 * noncons_flux_right
-
-        return flux_left, flux_right
-    end
-    @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_volume_combined),
-    equations::IdealGlmMhdEquations3D) = Trixi.True()
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_mhd_alfven_wave_nonperiodic.jl"),
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         l2=Float32[0.00021050235826592327, 0.0006558863204839041,
                                    0.0002821364444400733, 0.000794748435433683,
                                    0.0006839039307848098, 0.0006743445524692008,
@@ -221,9 +207,7 @@ end
                         real_type=Float32,
                         storage_type=CuArray,
                         save_solution=nothing,
-                        analysis_callback=AnalysisCallback(semi, interval = 100,
-                                                           analysis_integrals = (entropy,)),
-                        volume_flux=flux_volume_combined)
+                        analysis_callback=nothing)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
