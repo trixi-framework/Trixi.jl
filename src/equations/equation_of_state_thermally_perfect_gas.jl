@@ -1,106 +1,128 @@
 @doc raw"""
     ThermallyPerfectGas{RealT <: Real, N} <: AbstractEquationOfState
 
-Thermally perfect ideal gas equation of state with pressure
+Thermally perfect ideal gas equation of state with ideal gas pressure relation
 ```math
-p = \rho R T = \frac{R T}{V}
+p = \rho R_specific T = \frac{R_specific T}{V}
 ```
-and temperature-dependent heat capacity represented by piecewise NASA 9-coefficient
-polynomials.
+and non-constant, only temperature-dependent heat capacity represented by piecewise NASA 9-coefficient
+polynomials, see
+- McBride, Zehe, Gordon (2002).
+  NASA Glenn Coefficients for Calculating Thermodynamic Properties of Individual Species.
+  [URL](https://ntrs.nasa.gov/citations/20020085330) [PDF](https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf)
 
 For each temperature interval, the dimensionless heat capacity is
 ```math
-\frac{c_p(T)}{R} = a_1 T^{-2} + a_2 T^{-1} + a_3 + a_4 T + a_5 T^2 + a_6 T^3 + a_7 T^4.
+\frac{c_p(T)}{R_specific} = a_0 T^{-2} + a_1 T^{-1} + a_2 + a_3 T + a_4 T^2 + a_5 T^3 + a_6 T^4.
 ```
 The corresponding enthalpy and entropy are obtained by integrating `c_p(T)` and
-`c_v(T) = c_p(T) - R`.
+`c_v(T) = c_p(T) - R_specific`.
 
 Fields:
-- `R`: specific gas constant
+- `R_specific`: specific gas constant, i.e, ``R_\text{universal} / M`` where ``M`` is the molar mass of the gas.
+  The molar mass is usually provided with the NASA polynomial data.
 - `temperature_bounds`: interval boundaries with length `N + 1`
 - `coefficients`: 9 NASA coefficients per interval, stored column-wise
 """
-struct ThermallyPerfectGas{RealT <: Real, N} <: AbstractEquationOfState
-    R::RealT
-    temperature_bounds::SVector{N + 1, RealT}
-    coefficients::SMatrix{9, N, RealT, 9 * N}
+struct ThermallyPerfectGas{R_specific <: Real, TemperatureBounds <: AbstractVector,
+                           A <: AbstractMatrix} <: AbstractEquationOfState
+    R_specific::R_specific
+    temperature_bounds::TemperatureBounds
+    a::A
 end
 
 """
-    ThermallyPerfectGas(R, temperature_bounds, coefficients)
+    ThermallyPerfectGas(R_specific, temperature_bounds, a)
 
-Construct a thermally perfect gas EOS from NASA 9-coefficient polynomial data.
-`temperature_bounds` must have length `size(coefficients, 2) + 1`.
+Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coefficient polynomial data.
 """
-function ThermallyPerfectGas(R, temperature_bounds::AbstractVector,
-                             coefficients::AbstractMatrix)
-    @assert size(coefficients, 1) == 9
-    n_intervals = size(coefficients, 2)
+function ThermallyPerfectGas(R_specific, temperature_bounds::AbstractVector,
+                             a::AbstractMatrix)
+    @assert size(a, 1) == 9
+    n_intervals = size(a, 2)
     @assert length(temperature_bounds) == n_intervals + 1
     @assert issorted(temperature_bounds)
 
-    RealT = promote_type(typeof(R), eltype(temperature_bounds), eltype(coefficients))
-    return ThermallyPerfectGas{RealT, n_intervals}(convert(RealT, R),
-                                                   SVector{n_intervals + 1, RealT}(temperature_bounds),
-                                                   SMatrix{9, n_intervals, RealT}(coefficients))
+    return ThermallyPerfectGas{typeof(R_specific),
+                               typeof(temperature_bounds),
+                               typeof(a)}(R_specific, temperature_bounds, a)
 end
 
 """
-    ThermallyPerfectGas(; R, temperature_bounds, coefficients)
+    ThermallyPerfectGas(; R_specific, temperature_bounds, a)
 
-Keyword constructor for convenience.
+Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coefficient polynomial data.
 """
-function ThermallyPerfectGas(; R, temperature_bounds, coefficients)
-    return ThermallyPerfectGas(R, temperature_bounds, coefficients)
+function ThermallyPerfectGas(; R_specific, temperature_bounds, a)
+    return ThermallyPerfectGas(R_specific, temperature_bounds, a)
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas{<:Any, N}) where {N}
+    # Fetch temperature interval index for a given temperature to select the correct polynomial coefficients
     return clamp(searchsortedlast(eos.temperature_bounds, T), 1, N)
 end
 
-@inline function nasa_coefficients(T, eos::ThermallyPerfectGas)
-    return eos.coefficients[:, temperature_interval(T, eos)]
-end
+@inline function cp_molar_over_R_universal(T, eos::ThermallyPerfectGas)
+    @unpack a = eos
 
-@inline function cp_over_R(T, coeffs)
+    idx = temperature_interval(T, eos)
+
     Tinv = inv(T)
     Tinv2 = Tinv * Tinv
     T2 = T * T
     T3 = T2 * T
     T4 = T2 * T2
-    return coeffs[1] * Tinv2 + coeffs[2] * Tinv + coeffs[3] + coeffs[4] * T +
-           coeffs[5] * T2 + coeffs[6] * T3 + coeffs[7] * T4
+
+    # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
+    return a[1, idx] * Tinv2 + a[2, idx] * Tinv + a[3, idx] +
+           a[4, idx] * T + a[5, idx] * T2 +
+           a[6, idx] * T3 + a[7, idx] * T4
 end
 
-@inline function h_over_RT(T, coeffs)
+@inline function h_molar_over_TR_universal(T, eos::ThermallyPerfectGas)
+    @unpack a = eos
+
+    idx = temperature_interval(T, eos)
+
     Tinv = inv(T)
     Tinv2 = Tinv * Tinv
     T2 = T * T
     T3 = T2 * T
     T4 = T2 * T2
-    return -coeffs[1] * Tinv2 + coeffs[2] * log(T) * Tinv + coeffs[3] +
-           0.5f0 * coeffs[4] * T + (coeffs[5] / 3) * T2 + (coeffs[6] / 4) * T3 +
-           (coeffs[7] / 5) * T4 + coeffs[8] * Tinv
+
+    # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
+    return -a[1, idx] * Tinv2 + a[2, idx] * log(T) * Tinv + a[3, idx] +
+           0.5f0 * a[4, idx] * T + (a[5, idx] / 3) * T2 +
+           (a[6, idx] / 4) * T3 + (a[7, idx] / 5) * T4 + a[8, idx] * Tinv
 end
 
-@inline function s_over_R(T, V, coeffs)
+@inline function s_molar_over_R_universal(T, V, eos::ThermallyPerfectGas)
+    @unpack a = eos
+
+    idx = temperature_interval(T, eos)
+
     Tinv = inv(T)
     Tinv2 = Tinv * Tinv
     T2 = T * T
     T3 = T2 * T
     T4 = T2 * T2
-    return -0.5f0 * coeffs[1] * Tinv2 - coeffs[2] * Tinv + (coeffs[3] - 1) * log(T) +
-           coeffs[4] * T + 0.5f0 * coeffs[5] * T2 + (coeffs[6] / 3) * T3 +
-           0.25f0 * coeffs[7] * T4 + coeffs[9] + log(V)
+
+    # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
+    return -0.5f0 * a[1, idx] * Tinv2 - a[2, idx] * Tinv + a[3, idx] * log(T) +
+           a[4, idx] * T + 0.5f0 * a[5, idx] * T2 +
+           (a[6, idx] / 3) * T3 + 0.25f0 * a[7, idx] * T4 + a[9, idx]
 end
 
 @inline function pressure(V, T, eos::ThermallyPerfectGas)
-    return eos.R * T / V
+    # Ideal gas relation
+    return eos.R_specific * T / V
 end
 
 @inline function heat_capacity_constant_pressure(T, eos::ThermallyPerfectGas)
-    coeffs = nasa_coefficients(T, eos)
-    return eos.R * cp_over_R(T, coeffs)
+    # Since we are interested in specific values, we use that
+    # cp_specific = cp_molar / M = cp_molar / M * R_universal / R_universal
+    #                            =  cp_molar * R_specific / R_universal
+    return eos.R_specific * cp_molar_over_R_universal(T, eos)
 end
 
 @inline function heat_capacity_constant_pressure(V, T, eos::ThermallyPerfectGas)
@@ -108,17 +130,15 @@ end
 end
 
 @inline function heat_capacity_constant_volume(V, T, eos::ThermallyPerfectGas)
-    return heat_capacity_constant_pressure(V, T, eos) - eos.R
+    return heat_capacity_constant_pressure(V, T, eos) - eos.R_specific
 end
 
 @inline function energy_internal_specific(V, T, eos::ThermallyPerfectGas)
-    coeffs = nasa_coefficients(T, eos)
-    return eos.R * T * (h_over_RT(T, coeffs) - 1)
+    return eos.R_specific * T * (h_molar_over_TR_universal(T, eos) - 1)
 end
 
 @inline function entropy_specific(V, T, eos::ThermallyPerfectGas)
-    coeffs = nasa_coefficients(T, eos)
-    return eos.R * s_over_R(T, V, coeffs)
+    return eos.R_specific * s_molar_over_R_universal(T, V, eos)
 end
 
 @inline function speed_of_sound(V, T, eos::ThermallyPerfectGas)
@@ -133,13 +153,13 @@ Temperature-dependent ratio of specific heats `c_p(T) / c_v(T)`.
 """
 @inline function gamma(T, eos::ThermallyPerfectGas)
     cp = heat_capacity_constant_pressure(T, eos)
-    cv = cp - eos.R
+    cv = cp - eos.R_specific
     return cp / cv
 end
 
 @inline function calc_pressure_derivatives(V, T, eos::ThermallyPerfectGas)
-    dpdT_V = eos.R / V
-    dpdV_T = -eos.R * T / (V^2)
+    dpdT_V = eos.R_specific / V
+    dpdV_T = -eos.R_specific * T / (V^2)
     return dpdT_V, dpdV_T
 end
 
@@ -147,8 +167,11 @@ end
     T_min = first(eos.temperature_bounds)
     T_max = last(eos.temperature_bounds)
     T_mid = 0.5f0 * (T_min + T_max)
+    #=
     e_mid = energy_internal_specific(V, T_mid, eos)
     cv_mid = heat_capacity_constant_volume(V, T_mid, eos)
     T_guess = T_mid + (e_internal - e_mid) / cv_mid
     return clamp(T_guess, T_min, T_max)
+    =#
+    return T_mid
 end

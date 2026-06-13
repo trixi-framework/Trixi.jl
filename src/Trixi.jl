@@ -204,7 +204,6 @@ include("visualization/visualization.jl")
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D,
        CompressibleEulerEquations3D,
-    ThermallyPerfectGas,
        CompressibleEulerMulticomponentEquations1D,
        CompressibleEulerMulticomponentEquations2D,
        CompressibleEulerEquationsQuasi1D,
@@ -225,7 +224,7 @@ export AcousticPerturbationEquations2D,
        PassiveTracerEquations
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
-export IdealGas, VanDerWaals, PengRobinson, HelmholtzIdealGas
+export IdealGas, VanDerWaals, PengRobinson, HelmholtzIdealGas, ThermallyPerfectGas
 
 export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
        LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
