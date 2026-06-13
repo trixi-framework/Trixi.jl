@@ -62,13 +62,6 @@ end
 function GlmSpeedCallback(; glm_scale = 0.5f0, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
-    @show typeof(cfl)
-    @show typeof(glm_scale)
-
-    cfl, glm_scale = promote(cfl, glm_scale)
-    @show typeof(cfl)
-    @show typeof(glm_scale)
-
     cfl_function = isa(cfl, Real) ? Returns(cfl) : cfl
     glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl_function)}(glm_scale,
                                                                                    cfl_function,
