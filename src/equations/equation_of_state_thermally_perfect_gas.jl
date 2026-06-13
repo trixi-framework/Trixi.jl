@@ -39,8 +39,9 @@ Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coeffici
 function ThermallyPerfectGas(R_specific, temperature_bounds::AbstractVector,
                              a::AbstractMatrix)
     @assert size(a, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
+
     n_intervals = size(a, 2)
-    @assert length(temperature_bounds) == n_intervals + 1
+    @assert length(temperature_bounds)==n_intervals + 1 "Temperature bounds do not match the polynomial coefficients"
     @assert issorted(temperature_bounds)
 
     return ThermallyPerfectGas{typeof(R_specific),
@@ -131,6 +132,7 @@ end
 end
 
 @inline function heat_capacity_constant_volume(V, T, eos::ThermallyPerfectGas)
+    # cv = cp - R_specific
     return heat_capacity_constant_pressure(V, T, eos) - eos.R_specific
 end
 
