@@ -57,7 +57,9 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
         end
         str, arch, mem = query_amdgpu()
         push!(setup,
-              "  $i" => "$str ($arch, $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
+              "  $i" => "$str ($arch)")
+        push!(setup,
+              "  $i memory" => "$(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available")
     end
     return nothing
 end

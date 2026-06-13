@@ -67,7 +67,9 @@ function Trixi.trixi_backend_info!(setup, ::CUDABackend)
         str, cap, mem = query_cuda()
 
         push!(setup,
-              "  $i" => "$str (sm_$(cap.major)$(cap.minor), $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
+              "  $i" => "$str (sm_$(cap.major)$(cap.minor))")
+        push!(setup,
+              "  $i memory" => "$(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available")
     end
 end
 
