@@ -72,6 +72,11 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations2D) = ("rho",
                                                                          "v2",
                                                                          "p")
 
+varnames(::typeof(cons2thermo), ::NonIdealCompressibleEulerEquations2D) = ("V",
+                                                                           "v1",
+                                                                           "v2",
+                                                                           "T")
+
 # Calculate flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::NonIdealCompressibleEulerEquations2D)
