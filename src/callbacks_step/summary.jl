@@ -172,7 +172,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
     io = stdout
     io_context = IOContext(io,
                            :compact => false,
-                           :key_width => 30,
+                           :key_width => 35,
                            :total_width => 100,
                            :indentation_level => 0)
 
