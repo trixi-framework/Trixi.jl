@@ -24,20 +24,22 @@ Fields:
 - `temperature_bounds`: interval boundaries with length `N + 1`
 - `coefficients`: 9 NASA coefficients per interval, stored column-wise
 """
-struct ThermallyPerfectGas{R_specific <: Real, TemperatureBounds <: AbstractVector,
-                           A <: AbstractMatrix} <: AbstractEquationOfState
+struct ThermallyPerfectGas{R_specific <: Real,
+                           TemperatureBounds <: AbstractVector, A <: AbstractMatrix} <:
+       AbstractEquationOfState
     R_specific::R_specific
     temperature_bounds::TemperatureBounds
     a::A
 end
 
 """
-    ThermallyPerfectGas(R_specific, temperature_bounds, a)
+    ThermallyPerfectGas(R_specific::Real,
+    temperature_bounds::AbstractVector, a::AbstractMatrix)
 
 Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coefficient polynomial data.
 """
-function ThermallyPerfectGas(R_specific, temperature_bounds::AbstractVector,
-                             a::AbstractMatrix)
+function ThermallyPerfectGas(R_specific::Real,
+                             temperature_bounds::AbstractVector, a::AbstractMatrix)
     @assert size(a, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
 
     n_intervals = size(a, 2)
@@ -60,7 +62,9 @@ end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas)
     N = length(eos.temperature_bounds) - 1
-    # Fetch temperature interval index for a given temperature to select the correct polynomial coefficients
+    # Fetch temperature interval index for a given temperature to select the correct polynomial coefficients.
+    # `clamp` ensures that even for temperatures outside the provided bounds,
+    # a valid index is returned to prevent a bounds error.
     return clamp(searchsortedlast(eos.temperature_bounds, T), 1, N)
 end
 
@@ -73,7 +77,7 @@ end
     Tinv2 = Tinv * Tinv
     T2 = T * T
     T3 = T2 * T
-    T4 = T2 * T2
+    T4 = T3 * T
 
     # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
     return a[1, idx] * Tinv2 + a[2, idx] * Tinv + a[3, idx] +
@@ -90,7 +94,7 @@ end
     Tinv2 = Tinv * Tinv
     T2 = T * T
     T3 = T2 * T
-    T4 = T2 * T2
+    T4 = T3 * T
 
     # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
     return -a[1, idx] * Tinv2 + a[2, idx] * log(T) * Tinv + a[3, idx] +
@@ -107,7 +111,7 @@ end
     Tinv2 = Tinv * Tinv
     T2 = T * T
     T3 = T2 * T
-    T4 = T2 * T2
+    T4 = T3 * T
 
     # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
     return -0.5f0 * a[1, idx] * Tinv2 - a[2, idx] * Tinv + a[3, idx] * log(T) +
