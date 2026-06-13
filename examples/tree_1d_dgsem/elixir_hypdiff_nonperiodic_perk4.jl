@@ -1,6 +1,6 @@
 using Trixi
 
-# Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
+# Convex and ECOS are imported because they are used for finding the optimal time step and optimal
 # monomial coefficients in the stability polynomial of P-ERK time integrators.
 using Convex, ECOS
 
@@ -43,8 +43,8 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # Construct fourth order paired explicit Runge-Kutta method with 11 stages for given simulation setup.
-# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
-# in calculating the polynomial coefficients in the ODE algorithm.                                     
+# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used
+# in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = Trixi.PairedExplicitRK4(11, tspan, semi)
 
 cfl_number = Trixi.calculate_cfl(ode_algorithm, ode)
@@ -58,5 +58,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = Trixi.solve(ode, ode_algorithm;
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

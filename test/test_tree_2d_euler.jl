@@ -569,17 +569,20 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
                         l2=[
-                            0.4456769501001288,
-                            0.15182934074195198,
-                            0.15182934074202267,
-                            0.6163380678495841
+                            0.4458551685453463,
+                            0.15187885920928818,
+                            0.15187885920579852,
+                            0.6171564682488643
                         ],
                         linf=[
-                            1.6991300568875336,
-                            0.9017734777842971,
-                            0.9017734776841926,
-                            6.455103686573007
+                            1.683620478124428,
+                            0.9025036658429718,
+                            0.9025036660419865,
+                            6.467780546540997
                         ],
+                        # Large absolute tolerance due to nondeterministic behavior in CI runs
+                        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/3060.
+                        atol=1e-3,
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         save_errors=true)
@@ -776,8 +779,8 @@ end
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (with entropy correction)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
-                        # adding `scaling = 2` increases the amount of subcell FV blended in by 
-                        # a factor of 2. If this is not added, the KHI simulation crashes with a 
+                        # adding `scaling = 2` increases the amount of subcell FV blended in by
+                        # a factor of 2. If this is not added, the KHI simulation crashes with a
                         # positivity violation at some time t < 3.
                         solver=DGSEM(basis, flux_lax_friedrichs,
                                      VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,

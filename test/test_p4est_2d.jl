@@ -28,6 +28,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test real(semi32.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi32.mesh) == Float64
+    @test eltype(semi32.equations.advection_velocity) == Float32
 end
 
 @trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin
@@ -176,6 +177,27 @@ end
                         ],
                         initial_refinement_level=7,
                         tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_riemannproblem_quadrants.jl (IndicatorEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.13734337677601663,
+                            0.141545111874825,
+                            0.14154511187482435,
+                            0.5189638257807753
+                        ],
+                        linf=[
+                            1.6514183303386551,
+                            1.8583213243336623,
+                            1.8583213243336616,
+                            7.50677554433307
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
