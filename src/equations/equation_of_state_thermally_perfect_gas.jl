@@ -38,7 +38,7 @@ Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coeffici
 """
 function ThermallyPerfectGas(R_specific, temperature_bounds::AbstractVector,
                              a::AbstractMatrix)
-    @assert size(a, 1) == 9
+    @assert size(a, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
     n_intervals = size(a, 2)
     @assert length(temperature_bounds) == n_intervals + 1
     @assert issorted(temperature_bounds)
@@ -57,7 +57,8 @@ function ThermallyPerfectGas(; R_specific, temperature_bounds, a)
     return ThermallyPerfectGas(R_specific, temperature_bounds, a)
 end
 
-@inline function temperature_interval(T, eos::ThermallyPerfectGas{<:Any, N}) where {N}
+@inline function temperature_interval(T, eos::ThermallyPerfectGas)
+    N = length(eos.temperature_bounds) - 1
     # Fetch temperature interval index for a given temperature to select the correct polynomial coefficients
     return clamp(searchsortedlast(eos.temperature_bounds, T), 1, N)
 end
@@ -121,7 +122,7 @@ end
 @inline function heat_capacity_constant_pressure(T, eos::ThermallyPerfectGas)
     # Since we are interested in specific values, we use that
     # cp_specific = cp_molar / M = cp_molar / M * R_universal / R_universal
-    #                            =  cp_molar * R_specific / R_universal
+    #                            = cp_molar / R_universal * R_specific
     return eos.R_specific * cp_molar_over_R_universal(T, eos)
 end
 
@@ -142,8 +143,8 @@ end
 end
 
 @inline function speed_of_sound(V, T, eos::ThermallyPerfectGas)
-    gamma_ratio = gamma(T, eos)
-    return sqrt(gamma_ratio * pressure(V, T, eos) * V)
+    gamma_ = gamma(T, eos)
+    return sqrt(gamma_ * pressure(V, T, eos) * V)
 end
 
 """
@@ -163,15 +164,6 @@ end
     return dpdT_V, dpdV_T
 end
 
-@inline function eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas)
-    T_min = first(eos.temperature_bounds)
-    T_max = last(eos.temperature_bounds)
-    T_mid = 0.5f0 * (T_min + T_max)
-    #=
-    e_mid = energy_internal_specific(V, T_mid, eos)
-    cv_mid = heat_capacity_constant_volume(V, T_mid, eos)
-    T_guess = T_mid + (e_internal - e_mid) / cv_mid
-    return clamp(T_guess, T_min, T_max)
-    =#
-    return T_mid
-end
+eos_newton_tol(eos::ThermallyPerfectGas) = 1e-12
+eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas) = 300 # [K]
+eos_newton_maxiter(eos::ThermallyPerfectGas) = 20
