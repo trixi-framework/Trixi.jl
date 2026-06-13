@@ -87,7 +87,7 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
-    RealT = eltype(solver.basis.weights)
+    RealT = eltype(cache.elements.node_coordinates)
 
     # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
     c_h_deltat = calc_dt_for_cleaning_speed(RealT(cfl(t)), mesh, equations, solver,
