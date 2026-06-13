@@ -33,13 +33,11 @@ struct ThermallyPerfectGas{R_specific <: Real,
 end
 
 """
-    ThermallyPerfectGas(R_specific::Real,
-    temperature_bounds::AbstractVector, a::AbstractMatrix)
+    ThermallyPerfectGas(; R_specific, temperature_bounds, a)
 
 Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coefficient polynomial data.
 """
-function ThermallyPerfectGas(R_specific::Real,
-                             temperature_bounds::AbstractVector, a::AbstractMatrix)
+function ThermallyPerfectGas(; R_specific, temperature_bounds, a)
     @assert size(a, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
 
     n_intervals = size(a, 2)
@@ -49,15 +47,6 @@ function ThermallyPerfectGas(R_specific::Real,
     return ThermallyPerfectGas{typeof(R_specific),
                                typeof(temperature_bounds),
                                typeof(a)}(R_specific, temperature_bounds, a)
-end
-
-"""
-    ThermallyPerfectGas(; R_specific, temperature_bounds, a)
-
-Construct a [`ThermallyPerfectGas`](@ref) equation of state with NASA 9-coefficient polynomial data.
-"""
-function ThermallyPerfectGas(; R_specific, temperature_bounds, a)
-    return ThermallyPerfectGas(R_specific, temperature_bounds, a)
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas)
