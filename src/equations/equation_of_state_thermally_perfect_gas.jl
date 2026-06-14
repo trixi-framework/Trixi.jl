@@ -161,6 +161,5 @@ end
     return dpdT_V, dpdV_T
 end
 
-eos_newton_tol(eos::ThermallyPerfectGas) = 1e-12
+eos_newton_tol(eos::ThermallyPerfectGas) = 1e-8
 eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas) = 300 # [K]
-eos_newton_maxiter(eos::ThermallyPerfectGas) = 20

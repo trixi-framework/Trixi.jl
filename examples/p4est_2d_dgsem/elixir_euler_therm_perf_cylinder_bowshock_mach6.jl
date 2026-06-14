@@ -146,7 +146,7 @@ function eos()
 end
 equations = NonIdealCompressibleEulerEquations2D(eos())
 
-# Reduce tolerance to speed things up
+# Reduce tolerance to speed things up (otherwise, `eos_newton_maxiter` would need to be increased)
 Trixi.eos_newton_tol(eos::ThermallyPerfectGas) = 1e-5
 
 polydeg = 3
