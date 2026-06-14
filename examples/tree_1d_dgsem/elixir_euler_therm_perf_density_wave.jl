@@ -70,7 +70,7 @@ function Trixi.initial_condition_density_wave(x, t,
 end
 initial_condition = initial_condition_density_wave
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
 coordinates_min = -1.0 # [m]
 coordinates_max = 1.0  # [m]
