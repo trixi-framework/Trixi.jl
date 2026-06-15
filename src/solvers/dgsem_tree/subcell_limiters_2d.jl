@@ -857,6 +857,15 @@ end
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
 
+        if perform_subcell_limiting(dg.volume_integral, large_element) ||
+           perform_subcell_limiting(dg.volume_integral, lower_element) ||
+           perform_subcell_limiting(dg.volume_integral, upper_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
+        else
+            # Subcell limiting is not necessary for all elements => Skip this mortar
+            continue
+        end
+
         # Set up correct direction and factors
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
@@ -1069,6 +1078,15 @@ end
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
 
+        if perform_subcell_limiting(dg.volume_integral, large_element) ||
+           perform_subcell_limiting(dg.volume_integral, lower_element) ||
+           perform_subcell_limiting(dg.volume_integral, upper_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
+        else
+            # Subcell limiting is not necessary for all elements => Skip this mortar
+            continue
+        end
+
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
                 # L2 mortars in x-direction
@@ -1227,6 +1245,15 @@ end
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        if perform_subcell_limiting(dg.volume_integral, large_element) ||
+           perform_subcell_limiting(dg.volume_integral, lower_element) ||
+           perform_subcell_limiting(dg.volume_integral, upper_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
+        else
+            # Subcell limiting is not necessary for all elements => Skip this mortar
+            continue
+        end
 
         # Set up correct direction and factors
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
@@ -1406,6 +1433,15 @@ end
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        if perform_subcell_limiting(dg.volume_integral, large_element) ||
+           perform_subcell_limiting(dg.volume_integral, lower_element) ||
+           perform_subcell_limiting(dg.volume_integral, upper_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
+        else
+            # Subcell limiting is not necessary for all elements => Skip this mortar
+            continue
+        end
 
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientations[mortar] == 1
