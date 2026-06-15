@@ -1140,6 +1140,25 @@ end
             bound_upper = var_minmax[indices_small..., upper_element]
             bound_large = var_minmax[indices_large..., large_element]
 
+            # large element
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, direction_large, large_element)
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, direction_large, large_element)
+            if !all(isfinite, flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_large = gamma_constant_newton * factor_large *
+                                       inverse_jacobian_large *
+                                       (flux_large_high_order .- flux_large_low_order)
+
+            newton_loop!(limiting_factor, bound_large, u_large, (mortar,), variable,
+                         min_or_max, initial_check_local_onesided_newton_idp,
+                         final_check_local_onesided_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_large)
+
             # lower element
             flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
                                                   equations, dg,
@@ -1177,25 +1196,6 @@ end
                          min_or_max, initial_check_local_onesided_newton_idp,
                          final_check_local_onesided_newton_idp,
                          equations, dt, limiter, antidiffusive_flux_upper)
-
-            # large element
-            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
-                                                  equations, dg,
-                                                  i, direction_large, large_element)
-            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
-                                                 i, direction_large, large_element)
-            if !all(isfinite, flux_large_high_order)
-                limiting_factor[mortar] = 1
-                break
-            end
-            antidiffusive_flux_large = gamma_constant_newton * factor_large *
-                                       inverse_jacobian_large *
-                                       (flux_large_high_order .- flux_large_low_order)
-
-            newton_loop!(limiting_factor, bound_large, u_large, (mortar,), variable,
-                         min_or_max, initial_check_local_onesided_newton_idp,
-                         final_check_local_onesided_newton_idp,
-                         equations, dt, limiter, antidiffusive_flux_large)
         end
     end
 
