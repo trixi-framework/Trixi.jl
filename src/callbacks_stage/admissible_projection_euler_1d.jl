@@ -56,7 +56,7 @@ function calc_depressed_cubic_roots(p, q)
         Y1 = 1.5 * (9 * q + sqrt(3 * delta))
         Y2 = 1.5 * (9 * q - sqrt(3 * delta))
         n_roots = 1
-        root_1 = -(sign(Y1) * abs(Y1)^(1 // 3) + sign(Y2) * abs(Y2)^(1 // 3)) / 3
+        root_1 = -(sign(Y1) * abs(Y1)^(1 / 3) + sign(Y2) * abs(Y2)^(1 / 3)) / 3
         root_2 = zero(T) # not used
         root_3 = zero(T) # not used
     elseif iszero(delta) && (!iszero(p) || !iszero(q))
