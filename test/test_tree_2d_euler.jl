@@ -582,7 +582,8 @@ end
                         ],
                         # Large absolute tolerance due to nondeterministic behavior in CI runs
                         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/3060.
-                        atol=1e-3,
+                        # atol=1e-3,
+                        # Disabled due to testing
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         save_errors=true)
