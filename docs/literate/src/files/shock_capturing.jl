@@ -267,7 +267,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 # We add the `amr_callback` to the `CallbackSet` and run the simulation again:
 callbacks = CallbackSet(analysis_callback, amr_callback, stepsize_callback);
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false);
+sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
             dt = 1.0,
             ode_default_options()..., callback = callbacks);
 
