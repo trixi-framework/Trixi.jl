@@ -25,8 +25,8 @@ end
     return sum(abs2, u_candidate - u)
 end
 
-# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate is closer to u
-# than the current best; otherwise return the inputs unchanged.
+# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate 
+# is closer to u than the current best; otherwise return the current best.
 @inline function update_best_candidate_1d!(best_dist_squared, best_u,
                                            has_candidate,
                                            u_candidate, u)
@@ -37,8 +37,7 @@ end
     return best_dist_squared, best_u, has_candidate
 end
 
-# Appendix B.2 (μ > 0, λ > 0 branch): filters depressed-cubic momentum roots that fail the
-# KKT sign condition or the active energy constraint at ρ = ρ_floor.
+# Used in the μ > 0, λ > 0 branch of Appendix B.2 of Liu, Milesis, Shu, Zhang (2026).
 @inline function cubic_momentum_constraint_satisfied(rho_v1, rho_v1_orig, rho_orig,
                                                      rho_floor, rho_e_floor)
     return ((rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
@@ -48,9 +47,7 @@ end
 end
 
 # Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::SVector{3,T}).
-# `roots` is zero-initialized; only indices 1:n_roots are overwritten. Unused slots stay
-# zero so the SVector has no undefined entries (callers must still loop only 1:n_roots;
-# 0 is a valid root and must not be inferred from the trailing zeros alone).
+# Note that roots[n_roots+1:end] are aren't accessed. 
 function calc_depressed_cubic_roots(p, q)
     T = typeof(p)
     delta = 4 * p^3 + 27 * q^2
