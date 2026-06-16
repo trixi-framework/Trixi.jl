@@ -22,16 +22,21 @@ end
     return 10 * eps(T)
 end
 
-@inline function projection_distance_squared_1d(u_candidate, u)
+@inline function projection_distance_squared(u_candidate, u,
+                                            equations::CompressibleEulerEquations1D)
     return sum(abs2, u_candidate - u)
 end
 
 # Return (best_dist_squared, best_u, has_candidate) updated when u_candidate 
 # is closer to u than the current best; otherwise return the current best.
-@inline function update_best_candidate_1d!(best_dist_squared, best_u,
-                                           has_candidate,
-                                           u_candidate, u)
-    dist2 = projection_distance_squared_1d(u_candidate, u)
+@inline function update_best_candidate!(best_dist_squared, best_u,
+                                        has_candidate,
+                                        u_candidate, u,
+                                        equations::CompressibleEulerEquations1D)
+    dist2 = projection_distance_squared(u_candidate, u, equations)
+
+    # if the new candidate is closer than the current best candidate (or if there is no 
+    # current best candidate), return the new candidate state. 
     if !has_candidate || dist2 < best_dist_squared
         return dist2, u_candidate, true
     end
@@ -117,7 +122,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                              best_u,
                                                                              has_candidate,
                                                                              u_candidate,
-                                                                             u)
+                                                                             u,
+                                                                             equations)
     end
 
     # Case: mu > 0 and lambda > 0
@@ -128,7 +134,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                                  best_u,
                                                                                  has_candidate,
                                                                                  u_candidate,
-                                                                                 u)
+                                                                                 u,
+                                                                                 equations)
         end
     else
         p = 2 * rho_floor * (2 * rho_e_floor - rho_e_total)
@@ -145,7 +152,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                                      best_u,
                                                                                      has_candidate,
                                                                                      u_candidate,
-                                                                                     u)
+                                                                                     u,
+                                                                                     equations)
             end
         end
     end
@@ -158,7 +166,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                                  best_u,
                                                                                  has_candidate,
                                                                                  u_candidate,
-                                                                                 u)
+                                                                                 u,
+                                                                                 equations)
         end
     else
         delta2 = rho * rho -
@@ -194,7 +203,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                                                  best_u,
                                                                                                  has_candidate,
                                                                                                  u_candidate,
-                                                                                                 u)
+                                                                                                 u,
+                                                                                                 equations)
                         end
                     end
                 end
