@@ -7,10 +7,11 @@
 
 @inline function state_is_admissible(u, thresholds,
                                      equations::CompressibleEulerEquations1D)
-    rho, rho_v1, rho_e_total = u
     rho_floor, rho_e_floor = thresholds
-    return rho >= rho_floor &&
-           rho_v1 * rho_v1 + 2 * rho_e_floor * rho <= 2 * rho * rho_e_total
+    density_satisfies_floor = u[1] >= rho_floor
+    satisfies_energy_internal_constraint =
+        energy_internal(u, equations) >= rho_e_floor
+    return density_satisfies_floor && satisfies_energy_internal_constraint
 end
 
 # for compressible Euler, we introduce a small tolerance close to 
