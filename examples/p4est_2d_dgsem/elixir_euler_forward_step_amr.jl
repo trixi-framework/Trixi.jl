@@ -163,6 +163,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter! = positivity_limiter);
+sol = solve(ode, SSPRK43(; stage_limiter! = positivity_limiter);
             maxiters = 999999, ode_default_options()...,
             callback = callbacks);

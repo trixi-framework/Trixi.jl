@@ -313,7 +313,7 @@ function PlotData2DTriangulated(sol::TrixiODESolution; kwargs...)
 end
 
 # If `u` is an `Array{<:SVectors}` and not a `StructArray`, convert it to a `StructArray` first.
-function PlotData2D(u::Array{<:SVector, 2}, mesh, equations, dg::DGMulti, cache;
+function PlotData2D(u::Array{<:SVector}, mesh, equations, dg::DGMulti, cache;
                     solution_variables = nothing, nvisnodes = 2 * nnodes(dg))
     nvars = length(first(u))
     u_structarray = StructArray{eltype(u)}(ntuple(_ -> zeros(eltype(first(u)), size(u)),
@@ -373,6 +373,15 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
 
     return PlotData2DTriangulated(x_plot, y_plot, u_plot, t, x_face, y_face, face_data,
                                   variable_names)
+end
+
+# One can also call the `PlotData2DTriangulated` constructor directly for `DGMulti`
+function PlotData2DTriangulated(u, mesh, equations, dg::DGMulti, cache;
+                                solution_variables = nothing,
+                                nvisnodes = 2 * nnodes(dg))
+    return PlotData2D(u, mesh, equations, dg, cache;
+                      solution_variables = solution_variables,
+                      nvisnodes = nvisnodes)
 end
 
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
@@ -449,7 +458,7 @@ end
 Returns a `PlotData2DTriangulated` object which is used to visualize a single scalar field.
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 
-The optional argument `function_to_visualize(u, equations)` should be a function which takes 
+The optional argument `function_to_visualize(u, equations)` should be a function which takes
 in the conservative variables and equations as input and outputs a scalar variable to be visualized,
 e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
@@ -471,8 +480,8 @@ end
 
 function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equations,
                                            dg::DGMulti, cache)
-    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so 
-    # broadcasting `func_to_visualize` over the solution array will work. 
+    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so
+    # broadcasting `func_to_visualize` over the solution array will work.
     return function_to_visualize.(u, equations)
 end
 

@@ -103,6 +103,17 @@ end
     return RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
+    return IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP,
+                                                NewRealT}(SVector{NCOMP, NewRealT}(eqs.gammas),
+                                                          SVector{NCOMP, NewRealT}(eqs.gas_constants))
+end
+
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations1D) = False()
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMulticomponentEquations1D)

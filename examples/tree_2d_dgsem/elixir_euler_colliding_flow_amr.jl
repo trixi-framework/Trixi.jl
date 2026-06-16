@@ -123,5 +123,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(stage_limiter! = positivity_limiter);
+sol = solve(ode, SSPRK43(; stage_limiter! = positivity_limiter);
             ode_default_options()..., callback = callbacks);

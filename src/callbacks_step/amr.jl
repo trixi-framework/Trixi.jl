@@ -152,7 +152,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
         iterations = 1
         while has_changed
             compute_coefficients!(integrator.u, t, semi)
-            u_modified!(integrator, true)
+            derivative_discontinuity!(integrator, true)
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
             iterations = iterations + 1
@@ -206,7 +206,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
                                    integrator.t, integrator.iter; kwargs...)
         if has_changed
             resize!(integrator, length(u_ode))
-            u_modified!(integrator, true)
+            derivative_discontinuity!(integrator, true)
         end
     end
 
@@ -224,7 +224,8 @@ end
 end
 
 @inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
-                                             semi::SemidiscretizationHyperbolicParabolic,
+                                             semi::Union{SemidiscretizationHyperbolicParabolic,
+                                                         SemidiscretizationParabolic},
                                              t, iter;
                                              kwargs...)
     # Note that we don't `wrap_array` the vector `u_ode` to be able to `resize!`
@@ -393,13 +394,13 @@ end
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG,
                                      cache, cache_parabolic,
-                                     semi::SemidiscretizationHyperbolicParabolic,
+                                     semi::Union{SemidiscretizationHyperbolicParabolic,
+                                                 SemidiscretizationParabolic},
                                      t, iter;
                                      only_refine = false, only_coarsen = false)
     @unpack controller, adaptor, limiter! = amr_callback
 
     u = wrap_array(u_ode, mesh, equations, dg, cache)
-    # Indicator kept based on hyperbolic variables
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                           t = t, iter = iter)
 
@@ -650,6 +651,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                 partition!(mesh)
                 rebalance_solver!(u_ode, mesh, equations, dg, cache,
                                   old_global_first_quadrant)
+                @unpack parabolic_container = cache_parabolic
+                resize!(parabolic_container, equations, dg, cache)
             end
         end
 
