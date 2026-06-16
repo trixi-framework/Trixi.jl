@@ -568,6 +568,48 @@ Colorbar(fig[1, 2], plt)
 plot!(getmesh(pd))
 ```
 
+### Contour plots
+
+Trixi.jl supports unfilled contour lines (`contour`) and filled contour bands (`contourf`).
+These work for both Cartesian and triangulated mesh types using the same API.
+
+Unfilled contour lines for a single variable:
+```@example makie-2d
+Makie.contour(pd["rho"])
+```
+
+Filled contour bands:
+```@example makie-2d
+Makie.contourf(pd["rho"])
+```
+
+All variables at once:
+```@example makie-2d
+Makie.contour(pd)
+```
+
+Custom number of levels and mesh overlay:
+```@example makie-2d
+Makie.contour(pd["rho"], levels = 5, plot_mesh = true)
+```
+
+Both functions also accept a `TrixiODESolution` directly and dispatch based on the mesh type:
+```@example makie-2d
+Makie.contour(sol)
+```
+
+The number of levels can be controlled with `levels = n`
+or by passing an explicit vector of level values. Additional keyword arguments are forwarded
+to the underlying Makie plot — for example `colormap` and `linewidth` for contour lines:
+```@example makie-2d
+Makie.contour(pd["rho"], colormap = :berlin, linewidth = 2)
+```
+
+The mesh can be overlaid on any contour plot using `plot_mesh = true`:
+```@example makie-2d
+Makie.contourf(pd["rho"], plot_mesh = true)
+```
+
 ### Interactive visualization
 
 Trixi.jl also supports interactive surface plots using [`iplot`](@ref).
