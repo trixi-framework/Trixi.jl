@@ -6,7 +6,8 @@
 #! format: noindent
 
 @inline function state_is_admissible(u, thresholds,
-                                     equations::CompressibleEulerEquations1D)
+                                     equations::Union{CompressibleEulerEquations1D,
+                                                      CompressibleEulerEquations2D})
     rho_floor, rho_e_floor = thresholds
     density_satisfies_floor = u[1] >= rho_floor
     satisfies_energy_internal_constraint = energy_internal(u, equations) >= rho_e_floor
@@ -21,18 +22,13 @@ end
     return 10 * eps(T)
 end
 
-@inline function projection_distance_squared(u_candidate, u,
-                                             equations::CompressibleEulerEquations1D)
-    return sum(abs2, u_candidate - u)
-end
-
 # Return (best_dist_squared, best_u, has_candidate) updated when u_candidate 
 # is closer to u than the current best; otherwise return the current best.
 @inline function update_best_candidate!(best_dist_squared, best_u,
                                         has_candidate,
                                         u_candidate, u,
                                         equations::CompressibleEulerEquations1D)
-    dist_squared = projection_distance_squared(u_candidate, u, equations)
+    dist_squared = sum(abs2, u_candidate - u)
 
     # if the new candidate is closer than the current best candidate (or if there is no 
     # current best candidate), return the new candidate state. 
