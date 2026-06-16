@@ -39,6 +39,7 @@ are listed in alphabetical order:
 * Sven Goldberg
 * T. Jeremy P. Karpowski
 * Joshua Lampert
+* Vincent Marks
 * Tristan Montoya
 * Julia Odenthal
 * Sigrun Ortleb
