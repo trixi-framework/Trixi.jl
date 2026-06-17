@@ -41,7 +41,7 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
     if isempty(devs)
         push!(setup, "AMDGPU devices" => "none")
     else
-        push!(setup, "AMDGPU devices:" => "")
+        push!(setup, "AMDGPU devices" => "")
     end
     for (i, dev) in enumerate(devs)
         # TODO implement NVML like optimization
@@ -57,7 +57,9 @@ function Trixi.trixi_backend_info!(setup, ::ROCBackend)
         end
         str, arch, mem = query_amdgpu()
         push!(setup,
-              "  $i" => "$str ($arch, $(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available)")
+              "  $i (model)" => "$str ($arch)")
+        push!(setup,
+              "  $i (memory)" => "$(Base.format_bytes(mem.free)) / $(Base.format_bytes(mem.total)) available")
     end
     return nothing
 end
