@@ -131,7 +131,6 @@ pass an integer dummy `dt` (`dt = 1`, not `1.0`). See `docs/src/conventions.md`
   (hard floor 97%). Individual tests should run in < 10 s after compilation.
 - Document new public functions/types with docstrings; reference relevant
   publications. Note significant changes in `NEWS.md` with the PR number.
-- Disclose LLM/AI assistance in the PR (per `CONTRIBUTING.md`). You are
-  responsible for code you submit and must understand and explain it.
+- If a PR is created based on major contributions from the LLM/AI tool, disclose LLM/AI assistance in the PR (per `CONTRIBUTING.md`).
 - Full checklist: `.github/review-checklist.md`. Conventions and style guide:
   `docs/src/conventions.md`, `docs/src/styleguide.md`.
