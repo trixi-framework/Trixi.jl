@@ -1094,6 +1094,14 @@ end
     @trixi_test_nowarn Makie.contour!(pd["scalar"])
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.contour!(pd["scalar"], levels = 5)
+
+    # test constant-field for plot(pd) and contourf(pd) for PlotData2DCartesian
+    for i in eachindex(sol.u)
+        fill!(sol.u[i], one(eltype(sol.u[i])))
+    end
+    pd_const = PlotData2D(sol)
+    @trixi_test_nowarn Makie.plot(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const)
 end
 
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
@@ -1142,6 +1150,7 @@ end
     @trixi_test_nowarn Makie.contour(pd["rho"], levels = 5)
     @trixi_test_nowarn Makie.contour(pd["rho"], plot_mesh = true)
     @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
     @trixi_test_nowarn Makie.contour(sol)
 
     # contourf for PlotData2DTriangulated
@@ -1159,6 +1168,9 @@ end
     # single-color contour
     Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.contour!(pd["rho"], color = :black)
+    # plot_mesh = true in contour!(ax, pds)
+    fig_c, ax_c, _ = Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(ax_c, pd["rho"], plot_mesh = true)
 
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
