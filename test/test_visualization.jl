@@ -1082,6 +1082,12 @@ end
     # contourf for PlotData2DCartesian
     @trixi_test_nowarn Makie.contourf(pd["scalar"])
     @trixi_test_nowarn Makie.contourf(pd["scalar"], colormap = :viridis)
+    @trixi_test_nowarn Makie.contourf(pd["scalar"], plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+
+    # tricontourf on Cartesian data should throw
+    @test_throws ArgumentError Makie.tricontourf(sol)
 
     # contour! overlay for PlotData2DCartesian
     Makie.plot(pd["scalar"])
@@ -1141,6 +1147,7 @@ end
     # contourf for PlotData2DTriangulated
     @trixi_test_nowarn Makie.contourf(pd["rho"])
     @trixi_test_nowarn Makie.contourf(pd["rho"], colormap = :viridis)
+    @trixi_test_nowarn Makie.contourf(pd["rho"], plot_mesh = true)
     @trixi_test_nowarn Makie.contourf(pd)
     @trixi_test_nowarn Makie.tricontourf(sol)
 
@@ -1149,6 +1156,9 @@ end
     @trixi_test_nowarn Makie.contour!(pd["rho"])
     Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.contour!(pd["rho"], levels = 5)
+    # single-color contour
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"], color = :black)
 
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
@@ -1156,6 +1166,9 @@ end
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
     @trixi_test_nowarn Trixi.iplot(sol)
+    pd_const = PlotData2D(sol)
+    @trixi_test_nowarn Makie.contourf(pd_const["rho"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
 end
 
 @timed_testset "Makie iplot for DGMulti with VectorOfArray solution" begin
@@ -1163,6 +1176,13 @@ end
                                  "elixir_euler_curved.jl"))
 
     @trixi_test_nowarn Trixi.iplot(sol)
+end
+
+@timed_testset "Makie contour error handling for 1D solutions" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    @test_throws ArgumentError Makie.contour(sol)
+    @test_throws ArgumentError Makie.tricontourf(sol)
 end
 end
 
