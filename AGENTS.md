@@ -14,11 +14,14 @@ most and links back for detail.
 
 - Full test suite (long): `julia --project=. -e 'using Pkg; Pkg.test("Trixi")'`
   (`Pkg.instantiate()` first in a fresh checkout).
-- Faster iteration — Trixi's own test system: from a REPL on the **test** env
-  (`julia --project=test`), `include` a single file, e.g.
-  `include(joinpath("test", "test_tree_1d_euler.jl"))`. Files are named
+- To `include` a single file start julia from the root directory (`julia --project=.`) and use TestEnv.jl, e.g.,
+  
   `test_<mesh>_<dim>_<eq>.jl`; CI splits them into parallel jobs selected by the
   `TRIXI_TEST` variable in `test/runtests.jl`.
+- Examples live in `examples/` and development scripts often live in `run/`. They depend on packages **not** in the main
+  `Project.toml` (Plots, Makie, OrdinaryDiffEq*, ...). If present, use the dedicated `run/` project,
+  which `dev`s the local package and has those extras installed, e.g., to run an example already in the `examples/` folder:
+  
 - Format before committing (CI enforces a no-op): `utils/trixi-format.jl` or
   `julia -e 'using JuliaFormatter; format(".")'` (SciML style, `.JuliaFormatter.toml`).
 
