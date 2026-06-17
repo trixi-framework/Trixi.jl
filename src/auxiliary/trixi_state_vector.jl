@@ -34,43 +34,57 @@ end
 # -------------------------------------------------------------------------
 
 Base.size(v::TrixiStateVector) = size(v.data)
-Base.getindex(v::TrixiStateVector, i::Integer) = v.data[i]
-Base.setindex!(v::TrixiStateVector, x, i::Integer) = setindex!(v.data, x, i)
+@inline Base.getindex(v::TrixiStateVector, i::Integer) = v.data[i]
+@inline Base.setindex!(v::TrixiStateVector, x, i::Integer) = setindex!(v.data, x, i)
 Base.IndexStyle(::Type{<:TrixiStateVector}) = IndexLinear()
 
 # Krylov.jl workspace interface: allocate an uninitialized vector of length n.
 # Krylov.jl calls `S(undef, n)` where S = typeof(b) to build GMRES workspaces.
-(::Type{TrixiStateVector{T, A}})(::UndefInitializer,
-n::Integer) where {T, A <: AbstractVector{T}} = TrixiStateVector{T,
-                                                                 A}(A(undef,
-                                                                      n))
+function (::Type{TrixiStateVector{T, A}})(::UndefInitializer,
+                                          n::Integer) where {T, A <: AbstractVector{T}}
+    return TrixiStateVector{T, A}(A(undef, n))
+end
 
 # Allocation / copy: always return TrixiStateVector so the wrapper is preserved.
 Base.similar(v::TrixiStateVector) = TrixiStateVector(similar(v.data))
-Base.similar(v::TrixiStateVector, ::Type{S}) where {S} = TrixiStateVector(similar(v.data,
-                                                                                  S))
-Base.similar(v::TrixiStateVector, ::Type{S}, dims::Dims{1}) where {S} = TrixiStateVector(similar(v.data,
-                                                                                                  S,
-                                                                                                  dims))
+function Base.similar(v::TrixiStateVector, ::Type{S}) where {S}
+    return TrixiStateVector(similar(v.data, S))
+end
+function Base.similar(v::TrixiStateVector, ::Type{S}, dims::Dims{1}) where {S}
+    return TrixiStateVector(similar(v.data, S, dims))
+end
 # TrixiStateVector can only wrap vectors, so multi-dimensional `similar` has to
 # return a plain array.
-Base.similar(v::TrixiStateVector, ::Type{S}, dims::Dims) where {S} = similar(v.data, S,
-                                                                             dims)
+function Base.similar(v::TrixiStateVector, ::Type{S}, dims::Dims) where {S}
+    return similar(v.data, S, dims)
+end
 Base.copy(v::TrixiStateVector) = TrixiStateVector(copy(v.data))
-Base.copyto!(dst::TrixiStateVector, src::TrixiStateVector) = (copyto!(dst.data,
-                                                                      src.data);
-                                                              dst)
+function Base.copyto!(dst::TrixiStateVector, src::TrixiStateVector)
+    copyto!(dst.data, src.data)
+    return dst
+end
 Base.fill!(v::TrixiStateVector, x) = (fill!(v.data, x); v)
 Base.resize!(v::TrixiStateVector, n::Integer) = (resize!(v.data, n); v)
 
 # Pointer / memory layout: lets the existing `unsafe_wrap`-based `wrap_array` implementations
 # in dg.jl work without any modifications.
 Base.pointer(v::TrixiStateVector{T}) where {T} = pointer(v.data)
-Base.unsafe_convert(::Type{Ptr{T}}, v::TrixiStateVector{T}) where {T} = Base.unsafe_convert(Ptr{T},
-                                                                                            v.data)
+function Base.unsafe_convert(::Type{Ptr{T}}, v::TrixiStateVector{T}) where {T}
+    return Base.unsafe_convert(Ptr{T}, v.data)
+end
 
 # storage_type: required by wrap_array in dg.jl to determine the concrete array constructor.
 storage_type(::Type{<:TrixiStateVector{T, A}}) where {T, A} = storage_type(A)
+
+# Wrap a freshly created/loaded state vector for `semidiscretize` if requested.
+# Only plain `Vector`s are wrapped: GPU arrays and other special storage types
+# (e.g. `VectorOfArray` used by DGMulti) pass through unchanged.
+function maybe_wrap_state(u0_ode, wrap_state::Bool)
+    if wrap_state && u0_ode isa Vector
+        return TrixiStateVector(u0_ode)
+    end
+    return u0_ode
+end
 
 # -------------------------------------------------------------------------
 # Distributed linear algebra – MPI global reductions
@@ -188,6 +202,7 @@ end
 KernelAbstractions.get_backend(v::TrixiStateVector) = KernelAbstractions.get_backend(v.data)
 
 # Required by trixi_adapt so that GPU/type adaption propagates through the wrapper.
-Adapt.adapt_structure(to, v::TrixiStateVector) = TrixiStateVector(Adapt.adapt(to,
-                                                                              v.data))
+function Adapt.adapt_structure(to, v::TrixiStateVector)
+    return TrixiStateVector(Adapt.adapt(to, v.data))
+end
 end # @muladd
