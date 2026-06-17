@@ -12,9 +12,8 @@ most and links back for detail.
 
 ## Build, test, format
 
-- Full test suite (long): `julia --project=. -e 'using Pkg; Pkg.test("Trixi")'`
-  (`Pkg.instantiate()` first in a fresh checkout).
-- To `include` a single file start julia from the root directory (`julia --project=.`) and use TestEnv.jl, e.g.,
+- Full test suite: Never attempt to run the full test suite locally. It takes much too long (multiple hours).
+- To `include` a single test file, start Julia from the root directory (`julia --project=.`) and use TestEnv.jl, e.g.,
   
   `test_<mesh>_<dim>_<eq>.jl`; CI splits them into parallel jobs selected by the
   `TRIXI_TEST` variable in `test/runtests.jl`.
