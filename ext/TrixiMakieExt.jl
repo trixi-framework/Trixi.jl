@@ -470,7 +470,8 @@ function Makie.plot(pds::PlotDataSeries{<:PlotData2DCartesian},
                     xlabel = _makie_guide(plot_data.orientation_x),
                     ylabel = _makie_guide(plot_data.orientation_y))
     plt = Makie.heatmap!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
-    Makie.Colorbar(fig[1, 2], plt; ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+    Makie.Colorbar(fig[1, 2], plt; ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                   tickformat = _trixi_colorbar_tickformat)
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
     Makie.ylims!(ax, y[begin], y[end])
@@ -513,7 +514,8 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
         end
         plt = Makie.heatmap!(ax, pds; colormap, colorrange)
         Makie.Colorbar(fig[row, col][1, 2], plt;
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                       tickformat = _trixi_colorbar_tickformat)
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, x[begin], x[end])
         Makie.ylims!(ax, y[begin], y[end])
@@ -552,7 +554,8 @@ function Makie.contour(pds::PlotDataSeries{<:PlotData2DCartesian},
     if colorbar
         Makie.Colorbar(fig[1, 2]; colormap,
                        limits = _trixi_colorbar_limits(umin, umax),
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                       tickformat = _trixi_colorbar_tickformat)
     end
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
@@ -594,7 +597,8 @@ function Makie.contour(pd::PlotData2DCartesian, fig = Makie.Figure();
         if colorbar
             Makie.Colorbar(fig[row, col][1, 2]; colormap,
                            limits = _trixi_colorbar_limits(umin, umax),
-                           ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                           ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                           tickformat = _trixi_colorbar_tickformat)
         end
 
         ax.aspect = Makie.DataAspect()
@@ -668,8 +672,10 @@ function Makie.contourf(pds::PlotDataSeries{<:PlotData2DCartesian},
         cb_limits = _trixi_colorbar_limits(umin, umax)
         isapprox(umin, umax) ?
         Makie.Colorbar(fig[1, 2]; colormap, limits = cb_limits,
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat) :
-        Makie.Colorbar(fig[1, 2], plt; ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                       tickformat = _trixi_colorbar_tickformat) :
+        Makie.Colorbar(fig[1, 2], plt; ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                       tickformat = _trixi_colorbar_tickformat)
     end
     ax.aspect = Makie.DataAspect()
     Makie.xlims!(ax, x[begin], x[end])
@@ -705,13 +711,15 @@ function Makie.contourf(pd::PlotData2DCartesian, fig = Makie.Figure();
             if colorbar
                 Makie.Colorbar(fig[row, col][1, 2]; colormap,
                                limits = _trixi_colorbar_limits(umin, umax),
-                               ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                               ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                               tickformat = _trixi_colorbar_tickformat)
             end
         else
             plt = Makie.contourf!(ax, pds; colormap, kwargs...)
             if colorbar
                 Makie.Colorbar(fig[row, col][1, 2], plt;
-                               ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                               ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                               tickformat = _trixi_colorbar_tickformat)
             end
         end
         ax.aspect = Makie.DataAspect()
@@ -798,7 +806,8 @@ function Makie.contour(pds::PlotDataSeries{<:PlotData2DTriangulated},
     if colorbar
         Makie.Colorbar(fig[1, 2]; colormap,
                        limits = _trixi_colorbar_limits(umin, umax),
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                       tickformat = _trixi_colorbar_tickformat)
     end
     Makie.xlims!(ax, extrema(plot_data.x))
     Makie.ylims!(ax, extrema(plot_data.y))
@@ -850,7 +859,8 @@ function Makie.contour(pd::PlotData2DTriangulated, fig = Makie.Figure();
         if colorbar
             Makie.Colorbar(fig[row, col][1, 2]; colormap,
                            limits = _trixi_colorbar_limits(umin, umax),
-                           ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                           ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                           tickformat = _trixi_colorbar_tickformat)
         end
         Makie.xlims!(ax, extrema(pd.x))
         Makie.ylims!(ax, extrema(pd.y))
@@ -1009,7 +1019,8 @@ function Makie.plot(pds::PlotDataSeries{<:PlotData2DTriangulated},
                     xlabel = _makie_guide(1), ylabel = _makie_guide(2),
                     aspect = Makie.DataAspect())
     plt = trixiheatmap!(ax, pds; plot_mesh, colormap, kwargs...)
-    Makie.Colorbar(fig[1, 2], plt; ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+    Makie.Colorbar(fig[1, 2], plt; ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                   tickformat = _trixi_colorbar_tickformat)
     Makie.xlims!(ax, extrema(plot_data.x))
     Makie.ylims!(ax, extrema(plot_data.y))
     return Makie.FigureAxisPlot(fig, ax, plt)
@@ -1049,7 +1060,8 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
         axes[row, col] = ax
         plt = trixiheatmap!(ax, pds; plot_mesh, colormap)
         Makie.Colorbar(fig[row, col][1, 2], plt;
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4), tickformat = _trixi_colorbar_tickformat)
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4),
+                       tickformat = _trixi_colorbar_tickformat)
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, extrema(pd.x))
         Makie.ylims!(ax, extrema(pd.y))
