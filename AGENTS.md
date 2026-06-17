@@ -14,8 +14,9 @@ most and links back for detail.
 
 - Full test suite: Never attempt to run the full test suite locally. It takes much too long (multiple hours).
 - To `include` a single test file, start Julia from the root directory (`julia --project=.`) and use TestEnv.jl, e.g.,
-  ```she
-  julia --project=run examples/tree_1d_dgsem/elixir_euler_ec.jl
+  ```julia
+  using TestEnv; TestEnv.activate()
+  include(joinpath("test", "test_tree_1d_euler.jl")
   ```
   Files are named `test_<mesh>_<dim>_<eq>.jl`; CI splits them into parallel jobs selected by the
   `TRIXI_TEST` variable in `test/runtests.jl`.
