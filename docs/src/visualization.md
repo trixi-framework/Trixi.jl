@@ -610,6 +610,25 @@ The mesh can be overlaid on any contour plot using `plot_mesh = true`:
 Makie.contourf(pd["rho"], plot_mesh = true)
 ```
 
+### Overlaying contour lines on a heatmap
+
+`contour!` adds isoline contour lines on top of an existing plot without creating a new figure.
+This works for all mesh types:
+```@example makie-2d
+Makie.plot(pd["rho"])
+Makie.contour!(pd["rho"])  
+```
+
+You can also pass the axis explicitly:
+```@example makie-2d
+fig = Figure()
+ax = Axis(fig[1, 1], aspect = DataAspect())
+plt = plot!(ax, pd["rho"])
+Colorbar(fig[1, 2], plt)
+Makie.contour!(ax, pd["rho"], color = :white, linewidth = 2)
+fig
+```
+
 ### Interactive visualization
 
 Trixi.jl also supports interactive surface plots using [`iplot`](@ref).

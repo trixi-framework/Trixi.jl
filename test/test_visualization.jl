@@ -1082,6 +1082,12 @@ end
     # contourf for PlotData2DCartesian
     @trixi_test_nowarn Makie.contourf(pd["scalar"])
     @trixi_test_nowarn Makie.contourf(pd["scalar"], colormap = :viridis)
+
+    # contour! overlay for PlotData2DCartesian
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"])
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"], levels = 5)
 end
 
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
@@ -1137,6 +1143,12 @@ end
     @trixi_test_nowarn Makie.contourf(pd["rho"], colormap = :viridis)
     @trixi_test_nowarn Makie.contourf(pd)
     @trixi_test_nowarn Makie.tricontourf(sol)
+
+    # contour! overlay for PlotData2DTriangulated
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"])
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"], levels = 5)
 
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
