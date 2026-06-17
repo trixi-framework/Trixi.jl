@@ -14,13 +14,20 @@ most and links back for detail.
 
 - Full test suite: Never attempt to run the full test suite locally. It takes much too long (multiple hours).
 - To `include` a single test file, start Julia from the root directory (`julia --project=.`) and use TestEnv.jl, e.g.,
-  
-  `test_<mesh>_<dim>_<eq>.jl`; CI splits them into parallel jobs selected by the
+  ```she
+  julia --project=run examples/tree_1d_dgsem/elixir_euler_ec.jl
+  ```
+  Files are named `test_<mesh>_<dim>_<eq>.jl`; CI splits them into parallel jobs selected by the
   `TRIXI_TEST` variable in `test/runtests.jl`.
 - Examples live in `examples/` and development scripts often live in `run/`. They depend on packages **not** in the main
-  `Project.toml` (Plots, Makie, OrdinaryDiffEq*, ...). If present, use the dedicated `run/` project,
+  `Project.toml` (Plots, Makie, OrdinaryDiffEqXYZ, ...). If present, use the dedicated `run/` project,
   which `dev`s the local package and has those extras installed, e.g., to run an example already in the `examples/` folder:
-  
+   ```sh
+  julia --project=run examples/tree_1d_dgsem/elixir_euler_ec.jl
+  ```
+- For both when running tests and when running examples, if available use the MCP julia tool
+  `mcp__julia__julia_eval` to keep a persistent julia session. For running examples, `env_path` should
+  point at `run/` and for running tests `env_path` should point at `.`.
 - Format before committing (CI enforces a no-op): `utils/trixi-format.jl` or
   `julia -e 'using JuliaFormatter; format(".")'` (SciML style, `.JuliaFormatter.toml`).
 
