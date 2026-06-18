@@ -124,6 +124,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
     integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
@@ -131,14 +132,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
                                      false, true, false)
-
-    # Resize container of volume integral for subcell limiting
-    _, _, dg, cache = mesh_equations_solver_cache(integrator.p)
-    if dg.volume_integral isa VolumeIntegralSubcellLimiting
-        # `subcell_limiter_coefficients` was created with 0 elements
-        resize!(dg.volume_integral.limiter.cache.subcell_limiter_coefficients,
-                nelements(dg, cache))
-    end
 
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
@@ -221,7 +214,7 @@ end
 get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)

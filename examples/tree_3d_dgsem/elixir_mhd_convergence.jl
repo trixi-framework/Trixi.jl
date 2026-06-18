@@ -11,7 +11,7 @@ equations = IdealGlmMhdEquations3D(gamma())
     initial_condition_convergence(x, t, equations::IdealGlmMhdEquations3D)
 
 Manufactured solution for the 3D(only!) compressible ideal GLM-MHD equations.
-Proposed in 
+Proposed in
 - Marvin Bohm, Andrew R Winters, Gregor J Gassner, Dominik Derigs, Florian Hindenlang, Joachim Saur (2020):
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
   Part I: Theory and numerical verification
@@ -38,7 +38,7 @@ end
     source_terms_convergence(x, t, equations::IdealGlmMhdEquations3D)
 
 Manufactured solution for the 3D(only!) compressible ideal GLM-MHD equations.
-Proposed in 
+Proposed in
 - Marvin Bohm, Andrew R Winters, Gregor J Gassner, Dominik Derigs, Florian Hindenlang, Joachim Saur (2020):
   An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations.
   Part I: Theory and numerical verification
@@ -114,5 +114,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -46,14 +46,14 @@ end
 
 # Returns the components needed to iterate efficiently over the entries of either a
 # `SparseMatrixCSC` or `Adjoint{SparseMatrixCSC}`, for example when performing flux
-# differencing calculations. 
-# 
-# For `Adjoint{SparseMatrixCSC}` (used by `DGMultiFluxDiff`), since `parent(A)` is a 
-# `SparseMatrixCSC` stored in column-major order, iterating over its columns gives 
+# differencing calculations.
+#
+# For `Adjoint{SparseMatrixCSC}` (used by `DGMultiFluxDiff`), since `parent(A)` is a
+# `SparseMatrixCSC` stored in column-major order, iterating over its columns gives
 # row-major access to `A`.
-# 
-# For `SparseMatrixCSC` (used by `DGMultiPeriodicFDSBP`, for example), `parent(A)` 
-# simply returns `A`. 
+#
+# For `SparseMatrixCSC` (used by `DGMultiPeriodicFDSBP`, for example), `parent(A)`
+# simply returns `A`.
 @inline function sparse_operator_data(A::Union{<:SparseMatrixCSC,
                                                <:Adjoint{<:Any, <:SparseMatrixCSC}})
     A_base = parent(A)
@@ -141,6 +141,25 @@ In particular, not the face nodes themselves are returned.
 """
 @inline function each_face_node_global(mesh::DGMultiMesh, dg::DGMulti, other_args...)
     return Base.OneTo(dg.basis.Nfq * mesh.md.num_elements)
+end
+
+# The `nmodes` functions returns the number of polynomial modes for a degree N
+# approximation on a specific type of element. For tensor product elements (Quad, Hex),
+# this is the total number of modes in all dimensions, i.e., (N+1)^NDIMS.
+@inline nmodes(N, ::Line) = N + 1
+@inline nmodes(N, ::Quad) = (N + 1)^2
+@inline nmodes(N, ::Hex) = (N + 1)^3
+
+# note that this should return an integer if N is an integer; integer division
+# is used to avoid floating point errors and truncate directly to `Int`.
+@inline function nmodes(N, ::Tri)
+    return (N + 1) * (N + 2) ÷ 2
+end
+
+# note that this should return an integer if N is an integer; integer division
+# is used to avoid floating point errors and truncate directly to `Int`.
+@inline function nmodes(N, ::Tet)
+    return (N + 1) * (N + 2) * (N + 3) ÷ 6
 end
 
 # interface with semidiscretization_hyperbolic

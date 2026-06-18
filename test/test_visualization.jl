@@ -32,7 +32,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                                "elixir_euler_basic.jl"),
                         "P4estMesh" => ("p4est_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
+                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
+                        "DGMulti (FDSBP)" => ("dgmulti_2d",
+                                              "elixir_euler_cgsbp_periodic.jl"))
 
 @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
@@ -114,9 +116,12 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             u = Trixi.wrap_array_native(sol.u[end], semi)
             scalar_data = u[1, :, :, :]
         end
-        @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
-        @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
-                                                       sol.u[end], semi))
+
+        if mesh != "DGMulti (FDSBP)"
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+            @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                           sol.u[end], semi))
+        end
 
         # test for consistency between the two ScalarPlotData2D constructions
         if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
@@ -148,7 +153,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 
     @testset "1D plot from 2D solution" begin
-        if mesh != "DGMulti"
+        if mesh != "DGMulti" && mesh != "DGMulti (FDSBP)"
             @testset "Create 1D plot as slice" begin
                 @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
                                    PlotData1D
@@ -167,6 +172,19 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             end
         end
     end
+end
+
+# check that ScalarPlotData2D works for Quad elements
+@timed_testset "ScalarPlotData2D with DGMulti Quad elements" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        tspan=(0.0, 0.0),
+                        element_type=Quad(),
+                        cells_per_dimension=(2, 2))
+    semi = sol.prob.p
+    u = parent(sol.u[end])
+    scalar_data = StructArrays.component(u, 1)
+    @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
 end
 
 @timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
@@ -626,6 +644,23 @@ end
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
 
+@timed_testset "PlotData2D (DGMulti Tri SBP)" begin
+    # Regression test for plotting with SBP on triangular elements (reference triangulation of rstp).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_weakform.jl"),
+                        cells_per_dimension=(4, 4),
+                        approximation_type=SBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
+                        tspan=(0.0, 0.0))
+
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test size(pd.t, 1) > 0
+
+    @trixi_test_nowarn Plots.plot(pd)
+    @trixi_test_nowarn Plots.plot(pd["rho"])
+end
+
 @timed_testset "1D plot recipes (StructuredMesh)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_1d_dgsem",
                                  "elixir_euler_source_terms.jl"),
@@ -959,6 +994,85 @@ end
     end
 end
 
+@timed_testset "Makie visualization tests for 1D" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = PlotData1D(sol)
+
+    # convert_arguments enables lines(pd["scalar"])
+    @trixi_test_nowarn lines(pd["scalar"])
+
+    # plottype for 1D PlotDataSeries is Lines
+    @test Makie.plottype(pd["scalar"]) == Makie.Lines
+
+    # Makie.plot(pds) gives title and xlabel as for Plots.jl recipes
+    @trixi_test_nowarn Makie.plot(pd["scalar"])
+
+    # plot_mesh kwarg triggers vlines!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], plot_mesh = true)
+
+    # kwargs are forwarded to lines!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], color = :red, linewidth = 2)
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = Makie.plot(pd)
+
+    # plot_mesh kwarg triggers vlines! for mesh vertices
+    @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+
+    # Makie.plot(sol) for 1D solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to vlines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
+end
+
+@trixi_testset "Makie visualization tests for TreeMesh2D" begin
+    using CairoMakie
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"))
+    pd = @inferred PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DCartesian
+
+    # plottype for 2D PlotDataSeries is Heatmap
+    @test Makie.plottype(pd["scalar"]) == Makie.Heatmap
+
+    # convert_arguments enables Makie.heatmap(pd["scalar"])
+    @trixi_test_nowarn Makie.heatmap(pd["scalar"])
+
+    # Makie.plot(pds) gives title, xlabel, ylabel and colorbar
+    @trixi_test_nowarn Makie.plot(pd["scalar"])
+
+    # kwargs are forwarded to heatmap!
+    @trixi_test_nowarn Makie.plot(pd["scalar"], colormap = :heat)
+
+    # Makie.plot(pd) gives layout for all variables
+    fa = @trixi_test_nowarn Makie.plot(pd)
+    @trixi_test_nowarn Makie.plot(pd, plot_mesh = true)
+    fig, axes = fa
+    @trixi_test_nowarn Base.show(fa) === nothing
+
+    # Makie.plot(sol) for 2D TreeMesh solutions
+    @trixi_test_nowarn Makie.plot(sol)
+
+    # PlotMesh overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd))
+
+    # kwargs are forwarded to lines! in PlotMesh
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
+                                   linestyle = :dash)
+end
+
 @timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                  "elixir_euler_wall_bc.jl"))
@@ -979,6 +1093,20 @@ end
     # test heatmap plot
     @trixi_test_nowarn Makie.plot(sol, plot_mesh = true)
 
+    # single-variable plot with axis and colorbar (works for all PlotData2DTriangulated meshes)
+    pd = @inferred PlotData2D(sol)
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
+    # plot_mesh = true 
+    @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
+
+    # explicit PlotMesh overlay (works for all PlotData2DTriangulated meshes)
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(getmesh(pd))
+    @trixi_test_nowarn Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.plot!(getmesh(pd), color = :black,
+                                   linestyle = :dash)
+
     # test unpacking/iteration for FigureAndAxes
     fa = Makie.plot(sol)
     fig, axes = fa
@@ -991,6 +1119,13 @@ end
     for i in eachindex(sol.u)
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
+    @trixi_test_nowarn Trixi.iplot(sol)
+end
+
+@timed_testset "Makie iplot for DGMulti with VectorOfArray solution" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
+                                 "elixir_euler_curved.jl"))
+
     @trixi_test_nowarn Trixi.iplot(sol)
 end
 end

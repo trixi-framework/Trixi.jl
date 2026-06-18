@@ -59,11 +59,11 @@ coordinates_max = (1.0, 1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 100_000,
-                periodicity = true)
+                periodicity = false)
 
 # create the semi discretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions = BoundaryConditionDirichlet(initial_condition))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -97,5 +97,5 @@ callbacks = CallbackSet(summary_callback,
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);

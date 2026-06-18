@@ -28,10 +28,22 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test real(semi32.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi32.mesh) == Float64
+    @test eltype(semi32.equations.advection_velocity) == Float32
+end
+
+@trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+                                     basis_type = GaussLegendreBasis),
+                        cfl=0.8,
+                        l2=[3.721398353159235e-6], linf=[1.8621131703255855e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @trixi_testset "elixir_advection_basic.jl (Float32)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[Float32(8.311947673061856e-6)],
                         linf=[Float32(6.627000273229378e-5)],
@@ -57,6 +69,15 @@ end
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=[3.198940059144588e-5],
                         linf=[0.00030636069494005547])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_flag_gauss_legendre.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_flag_gauss_legendre.jl"),
+                        l2=[0.0004734270965231037], linf=[0.002206239481024719])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -156,6 +177,27 @@ end
                         ],
                         initial_refinement_level=7,
                         tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_riemannproblem_quadrants.jl (IndicatorEntropyCorrection)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_riemannproblem_quadrants.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.13734337677601663,
+                            0.141545111874825,
+                            0.14154511187482435,
+                            0.5189638257807753
+                        ],
+                        linf=[
+                            1.6514183303386551,
+                            1.8583213243336623,
+                            1.8583213243336616,
+                            7.50677554433307
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -1031,6 +1073,43 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testset "Unified mesh constructor signatures (P4estMesh)" begin
+    # 2D: reference (trees_per_dimension) positional
+    mesh_ref = P4estMesh((4, 4); polydeg = 1,
+                         coordinates_min = (-1.0, -1.0),
+                         coordinates_max = (1.0, 1.0))
+
+    # 2D: using refinement_level (polydeg defaults to 1)
+    mesh_kw = P4estMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                        refinement_level = 2)
+    @test mesh_kw isa P4estMesh{2}
+    @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1  # 1 macro-tree
+    @test_throws ArgumentError P4estMesh(; coordinates_min = (-1.0, -1.0),
+                                         coordinates_max = (1.0, 1.0, 1.0),
+                                         refinement_level = 2)
+end
+
+@trixi_testset "elixir_euler_imex_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_imex_warm_bubble.jl"),
+                        l2=[
+                            2.5906685915145214e-5,
+                            0.001327868084047019,
+                            0.0013043939534472446,
+                            2.1316157151842505
+                        ],
+                        linf=[
+                            0.0003013316385283016,
+                            0.013751491038817676,
+                            0.011904250984857088,
+                            19.010794903791975
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_stiff!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_nonstiff!, semi, sol, 1000)
 end
 end
 

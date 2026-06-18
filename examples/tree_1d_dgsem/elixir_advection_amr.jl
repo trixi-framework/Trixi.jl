@@ -39,7 +39,10 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+indicator_function(u, x, t) = u[1]
+
+amr_controller = ControllerThreeLevel(semi,
+                                      IndicatorNodalFunction(indicator_function, semi),
                                       base_level = 4,
                                       med_level = 5, med_threshold = 0.1,
                                       max_level = 6, max_threshold = 0.6)
@@ -59,5 +62,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

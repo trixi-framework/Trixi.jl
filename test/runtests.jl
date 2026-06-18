@@ -22,10 +22,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         @test true
 
         # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
-        mpiexec() do cmd
-            run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(joinpath(@__DIR__, "test_mpi.jl"))`)
-            return nothing
-        end
+        run(`$(mpiexec()) -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes --heap-size-hint=0.5G $(joinpath(@__DIR__, "test_mpi.jl"))`)
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded" ||
@@ -127,6 +124,16 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
             include(joinpath(@__DIR__, "test_cuda_3d.jl"))
         else
             @warn "Unable to run CUDA tests on this machine"
+        end
+    end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "AMDGPU"
+        import AMDGPU
+        if AMDGPU.functional()
+            include(joinpath(@__DIR__, "test_amdgpu_2d.jl"))
+            include(joinpath(@__DIR__, "test_amdgpu_3d.jl"))
+        else
+            @warn "Unable to run AMDGPU tests on this machine"
         end
     end
 

@@ -355,7 +355,13 @@ function download(src_url, file_path)
             if token !== nothing
                 push!(headers, "authorization" => "Bearer $token")
             end
-            Downloads.download(src_url, file_path; headers)
+            try
+                Downloads.download(src_url, file_path; headers)
+            catch exc
+                # Turn exception into something like a warning;
+                # otherwise the other ranks will wait indefinitely at the barrier below.
+                @error "Failed to download $src_url to $file_path" exception=exc
+            end
         end
     end
 

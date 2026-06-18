@@ -3,6 +3,9 @@
 
 `LaplaceDiffusion2D` represents a scalar diffusion term ``\nabla \cdot (\kappa\nabla u))``
 with diffusivity ``\kappa`` applied to each solution component defined by `equations`.
+This is intended for use as the parabolic part of a hyperbolic-parabolic system, where the 
+hyperbolic part is defined by `equations`. For a purely parabolic diffusion equation 
+without any hyperbolic part, see [`LinearDiffusionEquation2D`](@ref).
 """
 struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusion{2, N}
     diffusivity::T
@@ -13,6 +16,17 @@ function LaplaceDiffusion2D(diffusivity, equations_hyperbolic)
     return LaplaceDiffusion2D{typeof(equations_hyperbolic),
                               nvariables(equations_hyperbolic),
                               typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LaplaceDiffusion2D, ::Type{NewRealT}) where {NewRealT}
+    diffusivity = equations.diffusivity isa AbstractFloat ?
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    return LaplaceDiffusion2D(diffusivity,
+                              similar(equations.equations_hyperbolic, NewRealT))
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)

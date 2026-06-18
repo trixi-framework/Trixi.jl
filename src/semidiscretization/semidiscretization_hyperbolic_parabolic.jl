@@ -369,11 +369,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
+    backend = trixi_backend(u)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
+    @trixi_timeit_ext backend timer() "rhs!" rhs!(du, u, t, mesh, equations,
+                                                  boundary_conditions, source_terms,
+                                                  solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
@@ -385,15 +387,18 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
+    backend = trixi_backend(u)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
-                                                          equations_parabolic,
-                                                          boundary_conditions_parabolic,
-                                                          source_terms_parabolic,
-                                                          solver, solver_parabolic,
-                                                          cache, cache_parabolic)
+    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
+                                                                      equations_parabolic,
+                                                                      boundary_conditions_parabolic,
+                                                                      source_terms_parabolic,
+                                                                      solver,
+                                                                      solver_parabolic,
+                                                                      cache,
+                                                                      cache_parabolic)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[2], runtime)
 
@@ -427,37 +432,17 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
         throw(ArgumentError("`linear_structure` expects linear equations."))
     end
 
-    # allocate memory
-    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
-    du_ode = similar(u_ode)
-
-    # get the right hand side from boundary conditions and optional source terms
-    u_ode .= zero(eltype(u_ode))
-    rhs!(du_ode, u_ode, semi, t0)
-    b = -du_ode
-
-    # Repeat for parabolic part
-    rhs_parabolic!(du_ode, u_ode, semi, t0)
-    @. b -= du_ode
-
-    # Create a copy of `b` used internally to extract the linear part of `semi`.
-    # This is necessary to get everything correct when the user updates the
-    # returned vector `b`.
-    b_tmp = copy(b)
-
     # additional storage for parabolic part
-    dest_para = similar(du_ode)
+    dest_para = allocate_coefficients(mesh_equations_solver_cache(semi)...)
 
-    # wrap the linear operator
-    A = LinearMap(length(u_ode), ismutating = true) do dest, src
+    apply_rhs! = function (dest, src)
         rhs!(dest, src, semi, t0)
         rhs_parabolic!(dest_para, src, semi, t0)
-
-        @. dest += dest_para + b_tmp
+        @. dest += dest_para
         return dest
     end
 
-    return A, b
+    return _linear_structure_from_rhs(semi, apply_rhs!)
 end
 
 function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u0_ode,
@@ -514,29 +499,11 @@ function linear_structure_parabolic(semi::SemidiscretizationHyperbolicParabolic;
         throw(ArgumentError("`linear_structure_parabolic` expects equations with constant diffusive terms."))
     end
 
-    # allocate memory
-    u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
-    du_ode = similar(u_ode)
-
-    # get the parabolic right hand side from boundary conditions and optional source terms
-    u_ode .= zero(eltype(u_ode))
-    rhs_parabolic!(du_ode, u_ode, semi, t0)
-    b = -du_ode
-
-    # Create a copy of `b` used internally to extract the linear part of `semi`.
-    # This is necessary to get everything correct when the user updates the
-    # returned vector `b`.
-    b_tmp = copy(b)
-
-    # wrap the linear operator
-    A = LinearMap(length(u_ode), ismutating = true) do dest, src
-        rhs_parabolic!(dest, src, semi, t0)
-
-        @. dest += b_tmp
-        return dest
+    apply_rhs! = function (dest, src)
+        return rhs_parabolic!(dest, src, semi, t0)
     end
 
-    return A, b
+    return _linear_structure_from_rhs(semi, apply_rhs!)
 end
 
 """
