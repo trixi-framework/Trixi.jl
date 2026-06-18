@@ -34,6 +34,9 @@ combine_conservative_and_nonconservative_fluxes(::FluxVolumeTurbo, equations) = 
     return Tuple(volume_flux(u_ll, u_rr, normal, equations))
 end
 
+LoopVectorization.can_turbo(::typeof(turbo_volume_flux), ::Val) = true
+LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
+
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray, element,
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3}}},
@@ -48,6 +51,7 @@ end
                                     Val(nvariables(equations)))
 end
 
+# TODO: Fix the dispatch
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray, element,
                                            MeshT::Type{<:Union{StructuredMesh{3},
                                                                P4estMesh{3}}},
@@ -302,9 +306,6 @@ end
         return nothing
     end
 end
-
-LoopVectorization.can_turbo(::typeof(turbo_volume_flux), ::Val) = true
-LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
 
 @inline combined_turbo_flux(flux_conservative::typeof(flux_ranocha)) = flux_ranocha_turbo
 

@@ -189,8 +189,7 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version specialized on `FluxVolumeTurbo`, which dispatches
-        # to the generated `@turbo` kernel
+        # Call the optimized version 
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -198,8 +197,7 @@ end
                                         semi.solver, semi.cache, true)
         du_specialized = du[:, :, :, :, 1]
 
-        # Call the plain version using the underlying `flux_ranocha` directly, which
-        # dispatches to the generic flux differencing kernel
+        # Call the plain version 
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -211,8 +209,6 @@ end
 end
 
 @timed_testset "StructuredMesh3D, FluxVolumeTurbo(flux_shima_etal)" begin
-    # `flux_shima_etal` has no dedicated turbo specialization, so `FluxVolumeTurbo`
-    # exercises the generic default path (conserved auxiliary variables + canonical flux).
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -228,8 +224,7 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version specialized on `FluxVolumeTurbo`, which dispatches
-        # to the generated `@turbo` kernel
+        # Call the optimized version 
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -237,8 +232,7 @@ end
                                         semi.solver, semi.cache, true)
         du_specialized = du[:, :, :, :, 1]
 
-        # Call the plain version using the underlying `flux_shima_etal` directly, which
-        # dispatches to the generic flux differencing kernel
+        # Call the plain version 
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
