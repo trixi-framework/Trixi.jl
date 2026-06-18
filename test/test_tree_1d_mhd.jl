@@ -330,6 +330,38 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_mhd_shu_osher_shock_tube_positivity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_shu_osher_shock_tube_positivity.jl"),
+                        l2=[
+                            1.923669533050718,
+                            15.760572097646559,
+                            2.44702519780783,
+                            0.0,
+                            98.85626803568172,
+                            3.73142596302466e-15,
+                            1.9086692307532875,
+                            0.0
+                        ],
+                        linf=[
+                            3.038224024846205,
+                            23.99283081649757,
+                            4.158686848075679,
+                            0.0,
+                            140.50424600644305,
+                            1.1435297153639112e-14,
+                            3.2073086955046586,
+                            0.0
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
 end
 
 end # module
