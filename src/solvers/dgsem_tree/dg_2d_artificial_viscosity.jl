@@ -1,6 +1,7 @@
 @muladd begin
     function create_cache(mesh, artificial_viscosity::EntropyCorrectionArtificialViscosity,
                           dg::DG, cache, RealT, uEltype)
+        
         coefficients = zeros(real(dg), nelements(dg, cache))
         svv_coefficients = zeros(real(dg), nelements(dg, cache))
         norm_residuals = zero(real(dg))
@@ -11,6 +12,7 @@
         n_nodes = nnodes(dg)
         n_vars = nvariables(artificial_viscosity.equations_artificial_viscosity)
         n_elements = nelements(dg, cache)
+
         sensor = Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
         max_coeff = Float64[]
         #velocity_data = Array{uEltype, 5}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
@@ -164,12 +166,12 @@
 
         # Prolong solution to boundaries
         @trixi_timeit_ext backend timer() "prolong2boundaries" begin
-            prolong2boundaries!(cache, u, mesh, equations, dg)
+            prolong2boundaries!(backend, cache, u, mesh, equations, dg)
         end
 
         # Calculate boundary fluxes
         @trixi_timeit_ext backend timer() "boundary flux" begin
-            calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+            calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                                 dg.surface_integral, dg)
         end
 
@@ -272,12 +274,12 @@
 
         # Prolong solution to boundaries
         @trixi_timeit_ext backend timer() "prolong2boundaries" begin
-            prolong2boundaries!(cache, u, mesh, equations, dg)
+            prolong2boundaries!(backend, cache, u, mesh, equations, dg)
         end
 
         # Calculate boundary fluxes
         @trixi_timeit_ext backend timer() "boundary flux" begin
-            calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+            calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                                 dg.surface_integral, dg)
         end
 

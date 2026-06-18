@@ -88,6 +88,7 @@ include("containers.jl")
 
 include("dg_2d.jl")
 include("dg_2d_parabolic.jl")
+include("dg_2d_artificial_viscosity.jl")
 include("dg_2d_gpu.jl")
 
 include("dg_3d.jl")
