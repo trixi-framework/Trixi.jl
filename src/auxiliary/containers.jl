@@ -230,8 +230,8 @@ function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     return raw_copy!(c, c, from, from, destination)
 end
 
-function copyfields!(target::AbstractContainer, source::AbstractContainer) where AbstractContainer
-    for field in fieldnames(AbstractContainer)
+function copyfields!(target::Container, source::Container) where Container <: AbstractContainer
+    for field in fieldnames(Container)
         setfield!(target, field, getfield(source, field))
     end
     return target
