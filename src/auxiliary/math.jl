@@ -135,6 +135,7 @@ end
     See also [`Trixi.set_log_type!`](@ref).
     """
     @inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
+    @inline log(x::LoopVectorization.VectorizationBase.AbstractSIMD) = ifelse(x < zero(x), oftype(x, NaN), Base.log(x))
 
     @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
     @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
