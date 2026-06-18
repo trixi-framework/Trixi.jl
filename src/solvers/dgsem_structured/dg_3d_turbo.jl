@@ -19,11 +19,9 @@ combine_conservative_and_nonconservative_fluxes(::FluxVolumeTurbo, equations) = 
 
 @inline combined_turbo_flux(volume_flux) = volume_flux
 
-
 @inline n_turbo_flux_aux_node_vars(volume_flux, equations) = Val(nvariables(equations))
 
-@inline cons2fluxauxiliary(volume_flux, conserved_and_equations...) =
-    Base.front(conserved_and_equations)
+@inline cons2fluxauxiliary(volume_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
 @inline function turbo_volume_flux(volume_flux, aux_and_normals_and_equations...)
     equations = last(aux_and_normals_and_equations)
@@ -37,12 +35,12 @@ combine_conservative_and_nonconservative_fluxes(::FluxVolumeTurbo, equations) = 
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray, element,
-                                                 MeshT::Type{<:Union{StructuredMesh{3},
-                                                                     P4estMesh{3}}},
-                                                 have_nonconservative_terms::False,
-                                                 equations,
-                                                 volume_flux_turbo::FluxVolumeTurbo, dg::DGSEM,
-                                                 cache, alpha)
+                                           MeshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3}}},
+                                           have_nonconservative_terms::False,
+                                           equations,
+                                           volume_flux_turbo::FluxVolumeTurbo, dg::DGSEM,
+                                           cache, alpha)
     @unpack volume_flux = volume_flux_turbo
     flux_differencing_kernel_turbo!(_du, u_cons, element, equations,
                                     volume_flux, dg, cache, alpha,
@@ -51,13 +49,13 @@ end
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray, element,
-                                                 MeshT::Type{<:Union{StructuredMesh{3},
-                                                                     P4estMesh{3}}},
-                                                 have_nonconservative_terms::True,
-                                                 combine_conservative_and_nonconservative_fluxes::True,
-                                                 equations,
-                                                 volume_flux_turbo::FluxVolumeTurbo, dg::DGSEM,
-                                                 cache, alpha)
+                                           MeshT::Type{<:Union{StructuredMesh{3},
+                                                               P4estMesh{3}}},
+                                           have_nonconservative_terms::True,
+                                           combine_conservative_and_nonconservative_fluxes::True,
+                                           equations,
+                                           volume_flux_turbo::FluxVolumeTurbo, dg::DGSEM,
+                                           cache, alpha)
     @unpack volume_flux = volume_flux_turbo
     flux_differencing_kernel_turbo!(_du, u_cons, element, equations,
                                     volume_flux, dg, cache, alpha,
@@ -89,24 +87,28 @@ end
     flux_call = Expr(:(=), Expr(:tuple, flux...),
                      :(turbo_volume_flux(volume_turbo_flux_function,
                                          $(u_prim_ll...), $(u_prim_rr...),
-                                         normal_direction_1, normal_direction_2, normal_direction_3,
+                                         normal_direction_1, normal_direction_2,
+                                         normal_direction_3,
                                          equations)))
 
     # Build the inner `@turbo` loop body. For the x direction `loads` gives
     #   rho_ll = u_prim_permuted[jk, i, 1]   # left node, and so on
     #   rho_rr = u_prim_permuted[jk, ii, 1]  # right node
     loads(arr, idx_ll, idx_rr) = vcat([:($(u_prim_ll[v]) = $arr[$(idx_ll...), $v])
-                                        for v in 1:NAUX],
-                                       [:($(u_prim_rr[v]) = $arr[$(idx_rr...), $v])
-                                        for v in 1:NAUX])
+                                       for v in 1:NAUX],
+                                      [:($(u_prim_rr[v]) = $arr[$(idx_rr...), $v])
+                                       for v in 1:NAUX])
 
     # Compute the average of the normal_direction
     # e.g. the x direction `normals` gives
     #   normal_direction_1 = 0.5f0 * (contravariant_vectors_x[jk, i, 1] +
     #                                 contravariant_vectors_x[jk, ii, 1])   # and 2, 3
     normals(cv, idx_ll, idx_rr) = [:($(Symbol(:normal_direction_, m)) = 0.5f0 *
-                                                           ($cv[$(idx_ll...), $m] +
-                                                            $cv[$(idx_rr...), $m])) for m in 1:3]
+                                                                        ($cv[$(idx_ll...),
+                                                                             $m] +
+                                                                         $cv[$(idx_rr...),
+                                                                             $m]))
+                                   for m in 1:3]
 
     # Store the fluxes in the permuted du array
     # e.g. the x direction `stores` gives
@@ -116,7 +118,7 @@ end
                                                                           $(flux[v]))
                                            for v in 1:NVARS],
                                           [:($du_arr[$(idx_rr...), $v] += factor_r *
-                                                                         $(flux[v]))
+                                                                          $(flux[v]))
                                            for v in 1:NVARS])
 
     loads_x = loads(:u_prim_permuted, (:jk, :i), (:jk, :ii))
@@ -306,7 +308,8 @@ LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
 
 @inline combined_turbo_flux(flux_conservative::typeof(flux_ranocha)) = flux_ranocha_turbo
 
-@inline function n_turbo_flux_aux_node_vars(volume_flux::typeof(flux_ranocha_turbo), equations::CompressibleEulerEquations3D)
+@inline function n_turbo_flux_aux_node_vars(volume_flux::typeof(flux_ranocha_turbo),
+                                            equations::CompressibleEulerEquations3D)
     return Val(7)
 end
 
@@ -330,7 +333,6 @@ end
                                    normal_direction_2,
                                    normal_direction_3,
                                    equations::CompressibleEulerEquations3D)
-
     v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2 +
                  v3_ll * normal_direction_3
     v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2 +
