@@ -687,7 +687,8 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                       orientation_x)
 end
 
-function PlotData1D(u, mesh::TreeMesh, equations, solver::DG{Basis}, cache;
+#new thing
+function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
                     solution_variables = nothing, nvisnodes = nothing,
                     reinterpolate = default_reinterpolate(solver),
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
@@ -708,6 +709,9 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver::DG{Basis}, cache;
 
     left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2;
 
+    @show ndims(mesh), curve, slice #what is wrong with the slice?
+    slice = :x
+    @show ndims(mesh), curve, slice
     if ndims(mesh) == 1 && curve == nothing && slice == :x
         orientation_x = 1;
 
@@ -739,6 +743,7 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver::DG{Basis}, cache;
     return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x);
 
 end
+#end new thing
 
 # unwrap u if it is VectorOfArray
 PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
