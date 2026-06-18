@@ -230,6 +230,14 @@ function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     return raw_copy!(c, c, from, from, destination)
 end
 
+function copyfields!(target::AbstractContainer, source::AbstractContainer) where AbstractContainer
+    for field in fieldnames(AbstractContainer)
+        setfield!(target, field, getfield(source, field))
+    end
+    return target
+end
+
+
 # Trixi storage types must implement these two Adapt.jl methods
 function Adapt.adapt_structure(to, c::AbstractContainer)
     error("Interface: Must implement Adapt.adapt_structure(to, ::$(typeof(c)))")
