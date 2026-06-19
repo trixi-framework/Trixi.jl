@@ -52,8 +52,7 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    ProjectedCellAverages <: AbstractVector,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
-                                                   RealT <: Real,
-                                                   HistoryDavisYinIterations}
+                                                   RealT <: Real}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
     davis_yin_Z::DavisYinZ
@@ -62,7 +61,8 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     total_volume::RealT
     global_limiter_tol::RealT
     max_davis_yin_iterations::Int
-    history_davis_yin_iterations::HistoryDavisYinIterations
+    record_davis_yin_iterations::Bool
+    history_davis_yin_iterations::Vector{Int}
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
@@ -101,6 +101,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                                davis_yin_Z, projected_cell_averages,
                                                sqrt_cell_volumes, total_volume,
                                                global_limiter_tol, max_davis_yin_iterations,
+                                               record_davis_yin_iterations,
                                                history_davis_yin_iterations)
 end
 
@@ -109,8 +110,8 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages,
-    sqrt_cell_volumes, total_volume, global_limiter_tol,
-    max_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
+    sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations, 
+    record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
     u = wrap_array(u_ode, semi)
 
@@ -160,6 +161,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                          local_limiter!.thresholds,
                                          local_limiter!.variables,
                                          global_limiter_tol, max_davis_yin_iterations,
+                                         record_davis_yin_iterations,
                                          history_davis_yin_iterations,
                                          mesh_equations_solver_cache(semi)...)
         end
@@ -198,6 +200,7 @@ function global_cell_average_limiter!(u, cell_averages,
                                       lower_bound, variables,
                                       global_limiter_tol,
                                       max_davis_yin_iterations,
+                                      record_davis_yin_iterations,
                                       history_davis_yin_iterations,
                                       mesh, equations, dg, cache)
     global_integral = zero(eltype(cell_averages))
@@ -301,7 +304,7 @@ function global_cell_average_limiter!(u, cell_averages,
               "residual = $(residual) while tolerance = $(global_limiter_tol)."
     end
 
-    if history_davis_yin_iterations !== nothing
+    if record_davis_yin_iterations == true
         push!(history_davis_yin_iterations, num_davis_yin_iterations)
     end
 
