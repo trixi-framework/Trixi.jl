@@ -35,7 +35,9 @@ two authors who are on all of the other optimization-based limiter papers.
   [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
 
 Currently, admissibility is enforced via projection onto lower bounds only for
-scalar equations (`nvariables(equations) == 1`).
+scalar equations (`nvariables(equations) == 1`). The local limiter must use
+`variables = (first,)` so that [`project_to_admissible_set`](@ref) dispatches to
+the scalar clipping projection.
 
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
 splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets 
@@ -170,9 +172,16 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     return nothing
 end
 
-# for any scalar equation, the admissible set is assumed to be u > u_lower, and 
-# projection to the admissible set is simply a clipping operation
-@inline function project_to_admissible_set(cell_average, lower_bound, variables,
+"""
+    project_to_admissible_set(cell_average, lower_bound, variables, equations)
+
+For scalar equations, the positivity-preserving limiter enforces `u > u_lower`, and
+projection to the admissible set is a clipping operation. 
+
+To ensure that `variables` is consistent with this assumption, users must set 
+`variables = (first,)`. 
+"""
+@inline function project_to_admissible_set(cell_average, lower_bound, variables::Tuple{typeof(first)},
                                            equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
     # lower_bound and cell_average are SVectors of size 1
     return SVector(max(lower_bound[1], cell_average[1]))
