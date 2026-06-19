@@ -70,7 +70,8 @@ function Base.resize!(coupled_mortars::P4estCoupledMortarContainer, capacity)
             n_dims * n_nodes^(n_dims - 1) * n_positions * capacity)
     coupled_mortars.normal_directions = unsafe_wrap(Array, pointer(_normal_directions),
                                                     (n_dims,
-                                                     ntuple(_ -> n_nodes, n_dims - 1)...,
+                                                     ntuple(_ -> n_nodes,
+                                                            n_dims - 1)...,
                                                      n_positions, capacity))
 
     return nothing
@@ -129,6 +130,6 @@ function init_coupled_mortars(mesh, equations, basis, elements)
 end
 
 # Iterator for coupled mortars
-@inline eachcoupledmortar(dg, cache) = Base.OneTo(ncoupledmortars(cache.coupled_mortars))
-
+@inline eachcoupledmortar(dg,
+                          cache) = Base.OneTo(ncoupledmortars(cache.coupled_mortars))
 end # @muladd

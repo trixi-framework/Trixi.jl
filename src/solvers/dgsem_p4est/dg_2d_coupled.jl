@@ -17,7 +17,7 @@ This function only handles LOCAL elements - remote elements will be filled
 during flux computation from the global solution vector.
 """
 function prolong2coupledmortars!(cache, u, mesh::P4estMeshView{2}, equations,
-                                mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+                                 mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
     @unpack node_indices = cache.coupled_mortars
     index_range = eachnode(dg)
 
@@ -27,16 +27,20 @@ function prolong2coupledmortars!(cache, u, mesh::P4estMeshView{2}, equations,
 
         # Get start value and step size for indices
         small_indices = node_indices[1, mortar]
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
-                                                             index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
-                                                             index_range)
+        i_small_start,
+        i_small_step = index_to_start_step_2d(small_indices[1],
+                                              index_range)
+        j_small_start,
+        j_small_step = index_to_start_step_2d(small_indices[2],
+                                              index_range)
 
         large_indices = node_indices[2, mortar]
-        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
-                                                             index_range)
-        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
-                                                             index_range)
+        i_large_start,
+        i_large_step = index_to_start_step_2d(large_indices[1],
+                                              index_range)
+        j_large_start,
+        j_large_step = index_to_start_step_2d(large_indices[2],
+                                              index_range)
 
         for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
             if position == 3 # Large element
@@ -53,12 +57,12 @@ function prolong2coupledmortars!(cache, u, mesh::P4estMeshView{2}, equations,
                 end
 
                 # Interpolate large element face data to small face locations
-                multiply_dimensionwise!(view(cache.coupled_mortars.u, 2, :, 1, :,
-                                            mortar),
-                                       mortar_l2.forward_lower, u_buffer)
-                multiply_dimensionwise!(view(cache.coupled_mortars.u, 2, :, 2, :,
-                                            mortar),
-                                       mortar_l2.forward_upper, u_buffer)
+                multiply_dimensionwise!(view(cache.coupled_mortars.u,2,:,1,:,
+                                        mortar),
+                                        mortar_l2.forward_lower, u_buffer)
+                multiply_dimensionwise!(view(cache.coupled_mortars.u,2,:,2,:,
+                                        mortar),
+                                        mortar_l2.forward_upper, u_buffer)
             else # position in (1, 2) - Small element
                 # Copy solution data from the small elements
                 i_small = i_small_start
@@ -66,9 +70,9 @@ function prolong2coupledmortars!(cache, u, mesh::P4estMeshView{2}, equations,
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
                         cache.coupled_mortars.u[1, v, position, i, mortar] = u[v,
-                                                                                i_small,
-                                                                                j_small,
-                                                                                element]
+                        i_small,
+                        j_small,
+                        element]
                     end
                     i_small += i_small_step
                     j_small += j_small_step
@@ -90,7 +94,7 @@ The global solution vector `u_global` uses per-view offsets with layout
 `semi.element_offset[view_id]`.
 """
 function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, semi,
-                                         mesh, equations, dg, mortar_l2)
+                                          mesh, equations, dg, mortar_l2)
     global_neighbor_ids = coupled_mortars.global_neighbor_ids[mortar]
     local_neighbor_ids = coupled_mortars.local_neighbor_ids[mortar]
     local_neighbor_positions = coupled_mortars.local_neighbor_positions[mortar]
@@ -134,11 +138,7 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
                 j_node = j_start
                 for i in eachnode(dg)
                     for v in 1:n_vars_other
-                        u_remote[v] = u_global[offset +
-                                               (v - 1) +
-                                               n_vars_other * (i_node - 1) +
-                                               n_vars_other * n_nodes * (j_node - 1) +
-                                               n_vars_other * n_nodes^2 * (local_id - 1)]
+                        u_remote[v] = u_global[offset + (v - 1) + n_vars_other * (i_node - 1) + n_vars_other * n_nodes * (j_node - 1) + n_vars_other * n_nodes^2 * (local_id - 1)]
                     end
 
                     # Convert to the current system's variable space.
@@ -168,11 +168,7 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
                 j_node = j_start
                 for i in eachnode(dg)
                     for v in 1:n_vars_other
-                        u_buffer_remote[v, i] = u_global[offset +
-                                                         (v - 1) +
-                                                         n_vars_other * (i_node - 1) +
-                                                         n_vars_other * n_nodes * (j_node - 1) +
-                                                         n_vars_other * n_nodes^2 * (local_id - 1)]
+                        u_buffer_remote[v, i] = u_global[offset + (v - 1) + n_vars_other * (i_node - 1) + n_vars_other * n_nodes * (j_node - 1) + n_vars_other * n_nodes^2 * (local_id - 1)]
                     end
                     i_node += i_step
                     j_node += j_step
@@ -195,9 +191,9 @@ function fill_coupled_mortar_from_global!(coupled_mortars, mortar, u_global, sem
                 end
 
                 # Interpolate converted large face data to small element positions.
-                multiply_dimensionwise!(view(coupled_mortars.u, 2, :, 1, :, mortar),
+                multiply_dimensionwise!(view(coupled_mortars.u,2,:,1,:,mortar),
                                         mortar_l2.forward_lower, u_buffer)
-                multiply_dimensionwise!(view(coupled_mortars.u, 2, :, 2, :, mortar),
+                multiply_dimensionwise!(view(coupled_mortars.u,2,:,2,:,mortar),
                                         mortar_l2.forward_upper, u_buffer)
             end
         end
@@ -217,8 +213,10 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
                                    equations, mortar_l2::LobattoLegendreMortarL2,
                                    surface_integral, dg::DG, cache,
                                    u_global, semi)
-    @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.coupled_mortars
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, u_threaded = cache
+    @unpack local_neighbor_ids, local_neighbor_positions,
+            node_indices = cache.coupled_mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+            u_threaded = cache
     @unpack surface_flux = surface_integral
     index_range = eachnode(dg)
 
@@ -231,18 +229,21 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
         u_buffer = u_threaded[Threads.threadid()]
 
         small_indices = node_indices[1, mortar]
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
-                                                             index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
-                                                             index_range)
+        i_small_start,
+        i_small_step = index_to_start_step_2d(small_indices[1],
+                                              index_range)
+        j_small_start,
+        j_small_step = index_to_start_step_2d(small_indices[2],
+                                              index_range)
 
         for position in 1:2
             i_small = i_small_start
             j_small = j_small_start
             for i in eachnode(dg)
-                u_small, u_large = get_surface_node_vars(cache.coupled_mortars.u,
-                                                         equations, dg,
-                                                         position, i, mortar)
+                u_small,
+                u_large = get_surface_node_vars(cache.coupled_mortars.u,
+                                                equations, dg,
+                                                position, i, mortar)
                 normal_direction = get_normal_direction(cache.coupled_mortars.normal_directions,
                                                         i, position, mortar)
                 flux = surface_flux(u_small, u_large, normal_direction, equations)
@@ -272,8 +273,10 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
                                    equations, mortar_l2::LobattoLegendreMortarL2,
                                    surface_integral, dg::DG, cache,
                                    u_global, semi)
-    @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.coupled_mortars
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, u_threaded = cache
+    @unpack local_neighbor_ids, local_neighbor_positions,
+            node_indices = cache.coupled_mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+            u_threaded = cache
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     index_range = eachnode(dg)
 
@@ -286,18 +289,21 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
         u_buffer = u_threaded[Threads.threadid()]
 
         small_indices = node_indices[1, mortar]
-        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
-                                                             index_range)
-        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
-                                                             index_range)
+        i_small_start,
+        i_small_step = index_to_start_step_2d(small_indices[1],
+                                              index_range)
+        j_small_start,
+        j_small_step = index_to_start_step_2d(small_indices[2],
+                                              index_range)
 
         for position in 1:2
             i_small = i_small_start
             j_small = j_small_start
             for i in eachnode(dg)
-                u_small, u_large = get_surface_node_vars(cache.coupled_mortars.u,
-                                                         equations, dg,
-                                                         position, i, mortar)
+                u_small,
+                u_large = get_surface_node_vars(cache.coupled_mortars.u,
+                                                equations, dg,
+                                                position, i, mortar)
                 normal_direction = get_normal_direction(cache.coupled_mortars.normal_directions,
                                                         i, position, mortar)
                 flux = surface_flux(u_small, u_large, normal_direction, equations)
@@ -377,14 +383,14 @@ function coupled_mortar_fluxes_to_elements!(surface_flux_values, mesh, equations
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
                         surface_flux_values[v, end + 1 - i, large_direction, element] = u_buffer[v,
-                                                                                                 i]
+                        i]
                     end
                 end
             else
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
                         surface_flux_values[v, i, large_direction, element] = u_buffer[v,
-                                                                                       i]
+                        i]
                     end
                 end
             end
