@@ -33,10 +33,10 @@ combine_conservative_and_nonconservative_fluxes(::FluxVolumeTurbo, equations) = 
     n = nvariables(equations)
     u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
     u_rr = SVector(ntuple(v -> aux_and_normals_and_equations[n + v], Val(n)))
-    normal = SVector(aux_and_normals_and_equations[end - 3],
-                     aux_and_normals_and_equations[end - 2],
-                     aux_and_normals_and_equations[end - 1])
-    return Tuple(volume_flux(u_ll, u_rr, normal, equations))
+    normal_direction = SVector(aux_and_normals_and_equations[end - 3],
+                               aux_and_normals_and_equations[end - 2],
+                               aux_and_normals_and_equations[end - 1])
+    return volume_flux(u_ll, u_rr, normal_direction, equations)
 end
 
 @inline function volume_flux_turbo(volume_flux, have_nonconservative_terms::True,
@@ -46,12 +46,12 @@ end
     n = nvariables(equations)
     u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
     u_rr = SVector(ntuple(v -> aux_and_normals_and_equations[n + v], Val(n)))
-    normal = SVector(aux_and_normals_and_equations[end - 3],
-                     aux_and_normals_and_equations[end - 2],
-                     aux_and_normals_and_equations[end - 1])
-    flux = volume_flux_conservative(u_ll, u_rr, normal, equations)
-    noncons_left = volume_flux_nonconservative(u_ll, u_rr, normal, equations)
-    noncons_right = volume_flux_nonconservative(u_rr, u_ll, normal, equations)
+    normal_direction = SVector(aux_and_normals_and_equations[end - 3],
+                               aux_and_normals_and_equations[end - 2],
+                               aux_and_normals_and_equations[end - 1])
+    flux = volume_flux_conservative(u_ll, u_rr, normal_direction, equations)
+    noncons_left = volume_flux_nonconservative(u_ll, u_rr, normal_direction, equations)
+    noncons_right = volume_flux_nonconservative(u_rr, u_ll, normal_direction, equations)
     flux_left = flux + 0.5f0 * noncons_left
     flux_right = flux + 0.5f0 * noncons_right
     return flux_left, flux_right
