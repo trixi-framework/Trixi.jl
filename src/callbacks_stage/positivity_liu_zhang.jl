@@ -122,15 +122,6 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
         resize!(davis_yin_Z, n_elements)
         resize!(projected_cell_averages, n_elements)
         resize!(sqrt_cell_volumes, n_elements)
-
-        # recalculate total volume and sqrt of cell volumes
-        total_volume = zero(typeof(global_limiter!.total_volume))
-        for e in eachelement(dg, cache)
-            cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
-            sqrt_cell_volumes[e] = sqrt(cell_volume)
-           total_volume += cell_volume
-        end
-        global_limiter!.total_volume = total_volume
     end
 
     # calculate cell averages of all variables
@@ -153,7 +144,21 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     end
 
     # if any cell average violates a positivity bound, apply the global limiter
-    if cell_average_bounds_violated
+    if cell_average_bounds_violated                
+
+        # Recalculate total volume and sqrt of cell volumes. 
+        # Note: this can be avoided by detecting when AMR occurs; however, 
+        # the check `length(cell_averages) != n_elements` used to resize arrays 
+        # is insufficient to detect this, since AMR can refine/coarsen while 
+        # keeping the total number of elements constant.
+        total_volume = zero(typeof(global_limiter!.total_volume))
+        for e in eachelement(dg, cache)
+            cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
+            sqrt_cell_volumes[e] = sqrt(cell_volume)
+            total_volume += cell_volume
+        end
+        global_limiter!.total_volume = total_volume
+        
         @trixi_timeit timer() "positivity-preserving limiter" begin
             global_cell_average_limiter!(u, cell_averages,
                                          davis_yin_Z, projected_cell_averages,
