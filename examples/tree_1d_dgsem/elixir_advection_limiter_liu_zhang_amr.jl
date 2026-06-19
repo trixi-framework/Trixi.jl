@@ -23,7 +23,7 @@ coordinates_max = 1.0 # maximum coordinate
 # Create a mesh with periodic boundaries and adaptive refinement
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, periodicity = true)
+                periodicity = true)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
