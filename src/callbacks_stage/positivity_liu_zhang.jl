@@ -117,68 +117,76 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations,
     record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
-    u = wrap_array(u_ode, semi)
+    @trixi_timeit timer() "Liu-Zhang positivity limiter" begin
+        @trixi_timeit timer() "resize and wrap arrays" begin
+            u = wrap_array(u_ode, semi)
 
-    # resize all arrays if the number of elements has changed (e.g., due to AMR)
-    n_elements = nelements(dg, cache)
-    if length(cell_averages) != n_elements
-        resize!(cell_averages, n_elements)
-        resize!(davis_yin_Z, n_elements)
-        resize!(projected_cell_averages, n_elements)
-        resize!(sqrt_cell_volumes, n_elements)
-    end
-
-    # calculate cell averages of all variables
-    @threaded for element in eachelement(dg, cache)
-        cell_averages[element] = compute_u_mean(u, element, mesh, equations, dg, cache)
-    end
-
-    # loop through all positivity bounds enforced by the local limiter,
-    # and check if the cell average violates any of them
-    cell_average_bounds_violated = false
-    for element in eachelement(dg, cache)
-        for (index, variable) in enumerate(local_limiter!.variables)
-            if variable(cell_averages[element], equations) <
-               local_limiter!.thresholds[index]
-                cell_average_bounds_violated = true
-                break
+            # resize all arrays if the number of elements has changed (e.g., due to AMR)
+            n_elements = nelements(dg, cache)
+            if length(cell_averages) != n_elements
+                resize!(cell_averages, n_elements)
+                resize!(davis_yin_Z, n_elements)
+                resize!(projected_cell_averages, n_elements)
+                resize!(sqrt_cell_volumes, n_elements)
             end
         end
-        cell_average_bounds_violated && break
-    end
 
-    # if any cell average violates a positivity bound, apply the global limiter
-    if cell_average_bounds_violated                
+        @trixi_timeit timer() "calc cell averages, check bounds" begin
+            # calculate cell averages of all variables
+            @threaded for element in eachelement(dg, cache)
+                cell_averages[element] = compute_u_mean(u, element, mesh, equations, dg,
+                                                        cache)
+            end
 
-        # Recalculate total volume and sqrt of cell volumes. 
-        # Note: this can be avoided by detecting when AMR occurs; however, 
-        # the check `length(cell_averages) != n_elements` used to resize arrays 
-        # is insufficient to detect this, since AMR can refine/coarsen while 
-        # keeping the total number of elements constant.
-        total_volume = zero(typeof(global_limiter!.total_volume))
-        for e in eachelement(dg, cache)
-            cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
-            sqrt_cell_volumes[e] = sqrt(cell_volume)
-            total_volume += cell_volume
+            # loop through all positivity bounds enforced by the local limiter,
+            # and check if the cell average violates any of them
+            cell_average_bounds_violated = false
+            for element in eachelement(dg, cache)
+                for (index, variable) in enumerate(local_limiter!.variables)
+                    if variable(cell_averages[element], equations) <
+                       local_limiter!.thresholds[index]
+                        cell_average_bounds_violated = true
+                        break
+                    end
+                end
+                cell_average_bounds_violated && break
+            end
         end
-        global_limiter!.total_volume = total_volume
-        
-        @trixi_timeit timer() "positivity-preserving limiter" begin
-            global_cell_average_limiter!(u, cell_averages,
-                                         davis_yin_Z, projected_cell_averages,
-                                         sqrt_cell_volumes, total_volume,
-                                         local_limiter!.thresholds,
-                                         local_limiter!.variables,
-                                         global_limiter_tol, max_davis_yin_iterations,
-                                         record_davis_yin_iterations,
-                                         history_davis_yin_iterations,
-                                         mesh_equations_solver_cache(semi)...)
-        end
-    end
 
-    # after the global limiter, call a local (e.g., Zhang-Shu type) limiter to 
-    # enforce pointwise positivity 
-    local_limiter!(u_ode, integrator, semi, t)
+        # if any cell average violates a positivity bound, apply the global limiter
+        if cell_average_bounds_violated
+
+            # Recalculate total volume and sqrt of cell volumes. 
+            # Note: this can be avoided by detecting when AMR occurs; however, 
+            # the check `length(cell_averages) != n_elements` used to resize arrays 
+            # is insufficient to detect this, since AMR can refine/coarsen while 
+            # keeping the total number of elements constant.
+            total_volume = zero(typeof(global_limiter!.total_volume))
+            for e in eachelement(dg, cache)
+                cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
+                sqrt_cell_volumes[e] = sqrt(cell_volume)
+                total_volume += cell_volume
+            end
+            global_limiter!.total_volume = total_volume
+
+            @trixi_timeit timer() "global cell-average limiter" begin
+                global_cell_average_limiter!(u, cell_averages,
+                                             davis_yin_Z, projected_cell_averages,
+                                             sqrt_cell_volumes, total_volume,
+                                             local_limiter!.thresholds,
+                                             local_limiter!.variables,
+                                             global_limiter_tol,
+                                             max_davis_yin_iterations,
+                                             record_davis_yin_iterations,
+                                             history_davis_yin_iterations,
+                                             mesh_equations_solver_cache(semi)...)
+            end
+        end
+
+        # after the global limiter, call a local (e.g., Zhang-Shu type) limiter to 
+        # enforce pointwise positivity 
+        local_limiter!(u_ode, integrator, semi, t)
+    end # @trixi_timeit
 
     return nothing
 end
