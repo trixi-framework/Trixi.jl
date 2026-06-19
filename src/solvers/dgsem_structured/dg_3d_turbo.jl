@@ -93,7 +93,7 @@ end
     # Convert conserved to auxiliary variables node-wise, e.g. 
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
-    cons_reads = [:(u_cons[$c, i, j, k, element]) for c in 1:NVARS]
+    cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
     cons2aux = Expr(:(=), Expr(:tuple, [Symbol(:aux_, v) for v in 1:NAUX]...),
                     :(cons2fluxauxiliary(volume_flux, $(cons_reads...),
                                          equations)))
@@ -120,12 +120,12 @@ end
     # e.g. the x direction `normals` gives
     #   normal_direction_1 = 0.5f0 * (contravariant_vectors_x[jk, i, 1] +
     #                                 contravariant_vectors_x[jk, ii, 1])   # and 2, 3
-    normals(cv, idx_ll, idx_rr) = [:($(Symbol(:normal_direction_, m)) = 0.5f0 *
-                                                                        ($cv[$(idx_ll...),
-                                                                             $m] +
-                                                                         $cv[$(idx_rr...),
-                                                                             $m]))
-                                   for m in 1:3]
+    normals(controvariant_vector, idx_ll, idx_rr) = [:($(Symbol(:normal_direction_, m)) = 0.5f0 *
+                                                                                          ($controvariant_vector[$(idx_ll...),
+                                                                                                                 $m] +
+                                                                                           $controvariant_vector[$(idx_rr...),
+                                                                                                                 $m]))
+                                                     for m in 1:3]
 
     # Store the fluxes in the permuted du array
     # e.g. the x direction `stores` gives
@@ -354,7 +354,7 @@ end
     # Convert conserved to auxiliary variables node-wise, e.g. 
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
-    cons_reads = [:(u_cons[$c, i, j, k, element]) for c in 1:NVARS]
+    cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
     cons2aux = Expr(:(=), Expr(:tuple, [Symbol(:aux_, v) for v in 1:NAUX]...),
                     :(cons2fluxauxiliary(volume_flux, $(cons_reads...),
                                          equations)))
@@ -381,12 +381,12 @@ end
     # e.g. the x direction `normals` gives
     #   normal_direction_1 = 0.5f0 * (contravariant_vectors_x[jk, i, 1] +
     #                                 contravariant_vectors_x[jk, ii, 1])   # and 2, 3
-    normals(cv, idx_ll, idx_rr) = [:($(Symbol(:normal_direction_, m)) = 0.5f0 *
-                                                                        ($cv[$(idx_ll...),
-                                                                             $m] +
-                                                                         $cv[$(idx_rr...),
-                                                                             $m]))
-                                   for m in 1:3]
+    normals(controvariant_vector, idx_ll, idx_rr) = [:($(Symbol(:normal_direction_, m)) = 0.5f0 *
+                                                                                          ($controvariant_vector[$(idx_ll...),
+                                                                                                                 $m] +
+                                                                                           $controvariant_vector[$(idx_rr...),
+                                                                                                                 $m]))
+                                                     for m in 1:3]
 
     # Store the fluxes in the permuted du array
     # e.g. the x direction `stores` gives
