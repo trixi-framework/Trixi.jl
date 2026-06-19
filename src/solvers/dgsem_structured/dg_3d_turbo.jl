@@ -54,7 +54,7 @@ end
     noncons_right = volume_flux_nonconservative(u_rr, u_ll, normal, equations)
     flux_left = flux + 0.5f0 * noncons_left
     flux_right = flux + 0.5f0 * noncons_right
-    return (Tuple(flux_left)..., Tuple(flux_right)...)
+    return flux_left, flux_right
 end
 
 LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
@@ -600,6 +600,7 @@ end
 end
 
 @inline function volume_flux_turbo(volume_flux::typeof(flux_ranocha_turbo),
+                                   have_nonconservative_terms::False,
                                    rho_ll, v1_ll, v2_ll, v3_ll,
                                    p_ll, log_rho_ll, log_p_ll,
                                    rho_rr, v1_rr, v2_rr, v3_rr,
