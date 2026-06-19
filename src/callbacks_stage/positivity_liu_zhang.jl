@@ -49,7 +49,8 @@ global limiting step is appended to `history_davis_yin_iterations`.
 mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
                                                    DavisYinZ <: AbstractVector,
-                                                   ProjectedCellAverages <: AbstractVector,
+                                                   ProjectedCellAverages <:
+                                                   AbstractVector,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
                                                    RealT <: Real}
@@ -72,14 +73,16 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              record_davis_yin_iterations = false)
     return PositivityPreservingLimiterLiuZhang(local_limiter!,
                                                mesh_equations_solver_cache(semi)...;
-                                               global_limiter_tol, max_davis_yin_iterations,
+                                               global_limiter_tol,
+                                               max_davis_yin_iterations,
                                                record_davis_yin_iterations)
 end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              mesh::AbstractMesh, equations, dg::DGSEM,
                                              cache;
-                                             global_limiter_tol, max_davis_yin_iterations,
+                                             global_limiter_tol,
+                                             max_davis_yin_iterations,
                                              record_davis_yin_iterations)
     uEltype = real(dg)
 
@@ -100,7 +103,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
                                                sqrt_cell_volumes, total_volume,
-                                               global_limiter_tol, max_davis_yin_iterations,
+                                               global_limiter_tol,
+                                               max_davis_yin_iterations,
                                                record_davis_yin_iterations,
                                                history_davis_yin_iterations)
 end
@@ -110,7 +114,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages,
-    sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations, 
+    sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations,
     record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
     u = wrap_array(u_ode, semi)
@@ -188,7 +192,8 @@ projection to the admissible set is a clipping operation.
 To ensure that `variables` is consistent with this assumption, users must set 
 `variables = (first,)`. 
 """
-@inline function project_to_admissible_set(cell_average, lower_bound, variables::Tuple{typeof(first)},
+@inline function project_to_admissible_set(cell_average, lower_bound,
+                                           variables::Tuple{typeof(first)},
                                            equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
     # lower_bound and cell_average are SVectors of size 1
     return SVector(max(lower_bound[1], cell_average[1]))
@@ -276,7 +281,8 @@ function global_cell_average_limiter!(u, cell_averages,
         for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
-            Y = projected_cell_averages[element] - davis_yin_Z[element] + u_weighted_target
+            Y = projected_cell_averages[element] - davis_yin_Z[element] +
+                u_weighted_target
             global_integral_Y = global_integral_Y + sqrt_cell_volume * Y
         end
         conservation_residual = global_integral - global_integral_Y
