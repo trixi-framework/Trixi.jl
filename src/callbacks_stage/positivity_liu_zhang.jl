@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
 
 """
     PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
@@ -306,3 +312,4 @@ function global_cell_average_limiter!(u, cell_averages,
 
     return nothing
 end
+end # @muladd
