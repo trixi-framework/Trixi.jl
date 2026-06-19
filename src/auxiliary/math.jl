@@ -1,3 +1,4 @@
+using LoopVectorization: AbstractSIMD
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -135,11 +136,7 @@ end
     See also [`Trixi.set_log_type!`](@ref).
     """
     @inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
-    @inline log(x::LoopVectorization.VectorizationBase.AbstractSIMD) = ifelse(x <
-                                                                              zero(x),
-                                                                              oftype(x,
-                                                                                     NaN),
-                                                                              Base.log(x))
+    @inline log(x::AbstractSIMD) = ifelse(x < zero(x), oftype(x, NaN), Base.log(x))
     @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
     @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
     @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
@@ -209,8 +206,7 @@ Given ε = 1.0e-4, we use the following algorithm.
     end
 end
 
-@inline function ln_mean(x::LoopVectorization.VectorizationBase.AbstractSIMD,
-                         y::LoopVectorization.VectorizationBase.AbstractSIMD)
+@inline function ln_mean(x::AbstractSIMD, y::AbstractSIMD)
     RealT = eltype(x)
     epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
@@ -249,8 +245,7 @@ multiplication.
     end
 end
 
-@inline function inv_ln_mean(x::LoopVectorization.VectorizationBase.AbstractSIMD,
-                             y::LoopVectorization.VectorizationBase.AbstractSIMD)
+@inline function inv_ln_mean(x::AbstractSIMD, y::AbstractSIMD)
     RealT = eltype(x)
     epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
