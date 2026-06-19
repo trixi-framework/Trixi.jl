@@ -140,7 +140,6 @@ end
                                                                               oftype(x,
                                                                                      NaN),
                                                                               Base.log(x))
-
     @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
     @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
     @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
@@ -210,6 +209,20 @@ Given ε = 1.0e-4, we use the following algorithm.
     end
 end
 
+@inline function ln_mean(x::LoopVectorization.VectorizationBase.AbstractSIMD,
+                         y::LoopVectorization.VectorizationBase.AbstractSIMD)
+    RealT = eltype(x)
+    epsilon_f2 = convert(RealT, 1.0e-4)
+    f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
+    return ifelse(f2 < epsilon_f2,
+                  (x + y) / @evalpoly(f2,
+                            convert(RealT, 2),
+                            convert(RealT, 2 / 3),
+                            convert(RealT, 2 / 5),
+                            convert(RealT, 2 / 7)),
+                  (y - x) / log(y / x))
+end
+
 """
     Trixi.inv_ln_mean(x::Real, y::Real)
 
@@ -234,6 +247,20 @@ multiplication.
     else
         return log(y / x) / (y - x)
     end
+end
+
+	@inline function inv_ln_mean(x::LoopVectorization.VectorizationBase.AbstractSIMD,
+                             y::LoopVectorization.VectorizationBase.AbstractSIMD)
+    RealT = eltype(x)
+    epsilon_f2 = convert(RealT, 1.0e-4)
+    f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
+    return ifelse(f2 < epsilon_f2,
+                  @evalpoly(f2,
+                            convert(RealT, 2),
+                            convert(RealT, 2 / 3),
+                            convert(RealT, 2 / 5),
+                            convert(RealT, 2 / 7)) / (x + y),
+                  log(y / x) / (y - x))
 end
 
 # `Base.max` and `Base.min` perform additional checks for signed zeros and `NaN`s
