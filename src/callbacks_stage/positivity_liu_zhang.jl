@@ -118,17 +118,15 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
     @trixi_timeit timer() "Liu-Zhang positivity limiter" begin
-        @trixi_timeit timer() "resize and wrap arrays" begin
-            u = wrap_array(u_ode, semi)
+        u = wrap_array(u_ode, semi)
 
-            # resize all arrays if the number of elements has changed (e.g., due to AMR)
-            n_elements = nelements(dg, cache)
-            if length(cell_averages) != n_elements
-                resize!(cell_averages, n_elements)
-                resize!(davis_yin_Z, n_elements)
-                resize!(projected_cell_averages, n_elements)
-                resize!(sqrt_cell_volumes, n_elements)
-            end
+        # resize all arrays if the number of elements has changed (e.g., due to AMR)
+        n_elements = nelements(dg, cache)
+        if length(cell_averages) != n_elements
+            resize!(cell_averages, n_elements)
+            resize!(davis_yin_Z, n_elements)
+            resize!(projected_cell_averages, n_elements)
+            resize!(sqrt_cell_volumes, n_elements)
         end
 
         @trixi_timeit timer() "calc cell averages" begin
