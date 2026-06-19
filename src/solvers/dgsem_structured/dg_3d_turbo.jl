@@ -15,7 +15,6 @@ function FluxVolumeTurbo(volume_flux)
     return FluxVolumeTurbo{typeof(turbo_flux)}(turbo_flux)
 end
 
-combine_conservative_and_nonconservative_fluxes(::FluxVolumeTurbo, equations) = True()
 
 @inline combined_turbo_flux(volume_flux) = volume_flux
 
