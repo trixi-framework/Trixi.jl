@@ -131,26 +131,26 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
             end
         end
 
-        @trixi_timeit timer() "calc cell averages, check bounds" begin
+        @trixi_timeit timer() "calc cell averages" begin
             # calculate cell averages of all variables
             @threaded for element in eachelement(dg, cache)
                 cell_averages[element] = compute_u_mean(u, element, mesh, equations, dg,
                                                         cache)
             end
+        end # @trixi_timeit
 
-            # loop through all positivity bounds enforced by the local limiter,
-            # and check if the cell average violates any of them
-            cell_average_bounds_violated = false
-            for element in eachelement(dg, cache)
-                for (index, variable) in enumerate(local_limiter!.variables)
-                    if variable(cell_averages[element], equations) <
-                       local_limiter!.thresholds[index]
-                        cell_average_bounds_violated = true
-                        break
-                    end
+        # loop through all positivity bounds enforced by the local limiter,
+        # and check if the cell average violates any of them
+        cell_average_bounds_violated = false
+        for element in eachelement(dg, cache)
+            for (index, variable) in enumerate(local_limiter!.variables)
+                if variable(cell_averages[element], equations) <
+                   local_limiter!.thresholds[index]
+                    cell_average_bounds_violated = true
+                    break
                 end
-                cell_average_bounds_violated && break
             end
+            cell_average_bounds_violated && break
         end
 
         # if any cell average violates a positivity bound, apply the global limiter
