@@ -249,7 +249,7 @@ multiplication.
     end
 end
 
-	@inline function inv_ln_mean(x::LoopVectorization.VectorizationBase.AbstractSIMD,
+@inline function inv_ln_mean(x::LoopVectorization.VectorizationBase.AbstractSIMD,
                              y::LoopVectorization.VectorizationBase.AbstractSIMD)
     RealT = eltype(x)
     epsilon_f2 = convert(RealT, 1.0e-4)

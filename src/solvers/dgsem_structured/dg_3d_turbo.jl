@@ -19,7 +19,9 @@ combine_conservative_and_nonconservative_fluxes(::FluxVolumeTurbo, equations) = 
 
 @inline combined_turbo_flux(volume_flux) = volume_flux
 
-@inline combined_turbo_flux(volume_flux_conservative, volume_flux_nonconservative) = (; volume_flux_conservative, volume_flux_nonconservative)
+@inline combined_turbo_flux(volume_flux_conservative, volume_flux_nonconservative) = (;
+                                                                                      volume_flux_conservative,
+                                                                                      volume_flux_nonconservative)
 
 @inline n_turbo_flux_aux_node_vars(volume_flux, equations) = Val(nvariables(equations))
 
@@ -359,7 +361,8 @@ end
     cons2aux_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:aux_, v))) for v in 1:NAUX]
 
     # Evaluate the two-point volume flux
-    flux_call = Expr(:(=), Expr(:tuple, Expr(:tuple, flux_left...), Expr(:tuple, flux_right...)),
+    flux_call = Expr(:(=),
+                     Expr(:tuple, Expr(:tuple, flux_left...), Expr(:tuple, flux_right...)),
                      :(volume_flux_turbo(volume_flux,
                                          have_nonconservative_terms, $(u_prim_ll...),
                                          $(u_prim_rr...),
