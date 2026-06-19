@@ -19,6 +19,7 @@ end
                       positivity_variables_nonlinear = [],
                       positivity_correction_factor = 0.1,
                       local_onesided_variables_nonlinear = [],
+                      bar_states = false,
                       max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
                       gamma_constant_newton = 2 * ndims(equations))
@@ -41,8 +42,8 @@ For local one-sided limiting pass the variable function combined with the reques
 (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified specific
 entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]`.
 
-The bounds are calculated using the low-order FV solution. The positivity limiter uses
-`positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
+The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
+limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
@@ -78,6 +79,7 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     positivity_correction_factor::RealT
     local_onesided::Bool
     local_onesided_variables_nonlinear::LimitingOnesidedVariablesNonlinear # Local one-sided limiting for nonlinear variables
+    bar_states::Bool
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
@@ -91,6 +93,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_variables_nonlinear = [],
                            positivity_correction_factor = 0.1,
                            local_onesided_variables_nonlinear = [],
+                           bar_states = false,
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14),
                            gamma_constant_newton = 2 * ndims(equations))
@@ -144,7 +147,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -156,8 +159,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                             positivity_correction_factor,
                                             local_onesided,
                                             local_onesided_variables_nonlinear_,
-                                            cache,
-                                            max_iterations_newton, newton_tolerances,
+                                            bar_states, cache,
+                                            max_iterations_newton,
+                                            newton_tolerances,
                                             gamma_constant_newton)
 end
 
@@ -182,7 +186,8 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
         join(io, features, ", ")
         print(io, "Limiter=($features), ")
     end
-    print(io, "Local bounds with FV solution")
+    print(io,
+          "Local bounds with $(limiter.bar_states ? "Bar States" : "FV solution")")
     print(io, ")")
     return nothing
 end
@@ -219,7 +224,9 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                     push!(setup, "" => "Local $min_or_max limiting for $variable")
                 end
             end
-            push!(setup, "Local bounds" => "FV solution")
+            push!(setup,
+                  "Local bounds with" => (limiter.bar_states ? "Bar States" :
+                                          "FV solution"))
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
@@ -228,12 +235,23 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+                      basis::LobattoLegendreBasis, bound_keys, bar_states) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
+
+    cache = (;)
+    if bar_states
+        if NDIMS != 2
+            error("Bar states are only implemented for 2D problems.")
+        end
+        container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                       nvariables(equations),
+                                                                       nnodes(basis))
+        cache = (; cache..., container_bar_states)
+    end
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -245,12 +263,16 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
-    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
+    return (; cache..., subcell_limiter_coefficients, idp_bounds_delta_local,
             idp_bounds_delta_global)
 end
 
 function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    if limiter.bar_states
+        resize!(limiter.cache.container_bar_states, new_size)
+    end
 
     return nothing
 end

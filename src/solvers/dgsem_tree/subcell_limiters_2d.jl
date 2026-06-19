@@ -532,7 +532,9 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    if !limiter.bar_states
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    end
 
     @threaded for element in eachelement(dg, semi.cache)
 
@@ -594,7 +596,9 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
-    calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    if !limiter.bar_states
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    end
 
     # Perform Newton's bisection method to find new alpha
     @threaded for element in eachelement(dg, cache)

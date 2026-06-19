@@ -1613,4 +1613,70 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
 
     return nothing
 end
+
+# Container data structure (structure-of-arrays style) for variables used for subcell limiting using bar states
+# TODO: Use NDIMS for dimension independence
+mutable struct ContainerBarStates2D{uEltype <: Real}
+    bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
+    bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
+    lambda1::Array{uEltype, 3}                # [i, j, element]
+    lambda2::Array{uEltype, 3}
+    # internal `resize!`able storage
+    _bar_states1::Vector{uEltype}
+    _bar_states2::Vector{uEltype}
+    _lambda1::Vector{uEltype}
+    _lambda2::Vector{uEltype}
+end
+
+function ContainerBarStates2D{uEltype}(capacity::Integer, n_variables,
+                                       n_nodes) where {uEltype <: Real}
+    nan_uEltype = convert(uEltype, NaN)
+
+    # Initialize fields with defaults
+    _bar_states1 = fill(nan_uEltype, n_variables * (n_nodes + 1) * n_nodes * capacity)
+    bar_states1 = unsafe_wrap(Array, pointer(_bar_states1),
+                              (n_variables, n_nodes + 1, n_nodes, capacity))
+    _bar_states2 = fill(nan_uEltype, n_variables * n_nodes * (n_nodes + 1) * capacity)
+    bar_states2 = unsafe_wrap(Array, pointer(_bar_states2),
+                              (n_variables, n_nodes, n_nodes + 1, capacity))
+
+    _lambda1 = fill(nan_uEltype, (n_nodes + 1) * n_nodes * capacity)
+    lambda1 = unsafe_wrap(Array, pointer(_lambda1), (n_nodes + 1, n_nodes, capacity))
+    _lambda2 = fill(nan_uEltype, n_nodes * (n_nodes + 1) * capacity)
+    lambda2 = unsafe_wrap(Array, pointer(_lambda2), (n_nodes, n_nodes + 1, capacity))
+
+    return ContainerBarStates2D{uEltype}(bar_states1, bar_states2, lambda1, lambda2,
+                                         _bar_states1, _bar_states2, _lambda1, _lambda2)
+end
+
+nvariables(container::ContainerBarStates2D) = size(container.bar_states1, 1)
+nnodes(container::ContainerBarStates2D) = size(container.bar_states1, 3)
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(container::ContainerBarStates2D, capacity)
+    n_variables = nvariables(container)
+    n_nodes = nnodes(container)
+
+    @unpack _bar_states1, _bar_states2 = container
+    resize!(_bar_states1, n_variables * (n_nodes + 1) * n_nodes * capacity)
+    container.bar_states1 = unsafe_wrap(Array, pointer(_bar_states1),
+                                        (n_variables, n_nodes + 1, n_nodes, capacity))
+    resize!(_bar_states2, n_variables * n_nodes * (n_nodes + 1) * capacity)
+    container.bar_states2 = unsafe_wrap(Array, pointer(_bar_states2),
+                                        (n_variables, n_nodes, n_nodes + 1, capacity))
+
+    @unpack _lambda1, _lambda2 = container
+    resize!(_lambda1, (n_nodes + 1) * n_nodes * capacity)
+    container.lambda1 = unsafe_wrap(Array, pointer(_lambda1),
+                                    (n_nodes + 1, n_nodes, capacity))
+    resize!(_lambda2, n_nodes * (n_nodes + 1) * capacity)
+    container.lambda2 = unsafe_wrap(Array, pointer(_lambda2),
+                                    (n_nodes, n_nodes + 1, capacity))
+
+    return nothing
+end
 end # @muladd

@@ -43,6 +43,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_correction_factor = 0.1,
                                 local_twosided_variables_cons = [],
                                 local_onesided_variables_nonlinear = [],
+                                bar_states = false,
                                 max_iterations_newton = 70)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -96,7 +97,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 #                            adapt_initial_condition = true,
 #                            adapt_initial_condition_only_refine = false)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.5, bar_states = false)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
