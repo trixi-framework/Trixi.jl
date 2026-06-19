@@ -25,6 +25,12 @@ end
 
 @inline cons2fluxauxiliary(volume_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
+@inline function volume_flux_turbo(volume_flux, aux_and_normals_and_equations...)
+    equations = last(aux_and_normals_and_equations)
+    volume_flux_turbo(volume_flux, have_nonconservative_terms(equations),
+                      aux_and_normals_and_equations...)
+end
+
 @inline function volume_flux_turbo(volume_flux, have_nonconservative_terms::False,
                                    aux_and_normals_and_equations...)
     equations = last(aux_and_normals_and_equations)
@@ -100,7 +106,6 @@ end
     # Evaluate the two-point volume flux
     flux_call = Expr(:(=), Expr(:tuple, flux...),
                      :(volume_flux_turbo(volume_flux,
-                                         have_nonconservative_terms,
                                          $(u_prim_ll...), $(u_prim_rr...),
                                          normal_direction_1, normal_direction_2,
                                          normal_direction_3,
@@ -362,7 +367,7 @@ end
     flux_call = Expr(:(=),
                      Expr(:tuple, Expr(:tuple, flux_left...), Expr(:tuple, flux_right...)),
                      :(volume_flux_turbo(volume_flux,
-                                         have_nonconservative_terms, $(u_prim_ll...),
+                                         $(u_prim_ll...),
                                          $(u_prim_rr...),
                                          normal_direction_1, normal_direction_2,
                                          normal_direction_3, equations)))
@@ -598,7 +603,6 @@ end
 end
 
 @inline function volume_flux_turbo(volume_flux::typeof(flux_ranocha_turbo),
-                                   have_nonconservative_terms::False,
                                    rho_ll, v1_ll, v2_ll, v3_ll,
                                    p_ll, log_rho_ll, log_p_ll,
                                    rho_rr, v1_rr, v2_rr, v3_rr,
