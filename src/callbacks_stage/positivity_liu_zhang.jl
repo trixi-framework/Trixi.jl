@@ -29,7 +29,7 @@ two authors who are on all of the other optimization-based limiter papers.
   [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
 
 Currently, admissibility is enforced via projection onto lower bounds only for
-scalar equations (`nvariables == 1`).
+scalar equations (`nvariables(equations) == 1`).
 
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
 splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets 
@@ -87,7 +87,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     davis_yin_Z = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
 
-    history_davis_yin_iterations = record_davis_yin_iterations ? Int[] : nothing
+    history_davis_yin_iterations = Int[]
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
@@ -115,12 +115,13 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
         resize!(sqrt_cell_volumes, n_elements)
 
         # recalculate total volume and sqrt of cell volumes
-        global_limiter!.total_volume = zero(typeof(global_limiter!.total_volume))
+        total_volume = zero(typeof(global_limiter!.total_volume))
         for e in eachelement(dg, cache)
             cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
             sqrt_cell_volumes[e] = sqrt(cell_volume)
-            global_limiter!.total_volume += cell_volume
+           total_volume += cell_volume
         end
+        global_limiter!.total_volume = total_volume
     end
 
     # calculate cell averages of all variables
@@ -187,11 +188,12 @@ function global_cell_average_limiter!(u, cell_averages,
     global_integral = zero(eltype(cell_averages))
     for element in eachelement(dg, cache)
         cell_volume = sqrt_cell_volumes[element]^2
-        global_integral += cell_averages[element] * cell_volume
+        # explicit a = a + b * c instead of a += b * c to enable @muladd
+        global_integral = global_integral + cell_averages[element] * cell_volume
     end
 
     # residual ||X^{k+1} - X^k||_{L^2} for the Davis-Yin iteration
-    residual = floatmax(real(mesh))
+    residual = floatmax(eltype(sqrt_cell_volumes))
 
     # Davis-Yin splitting minimizes the cell average L2 error 
     #           ||Z/sqrt(cell_volume) - U_avg||_{L^2}^2 = ||Z - U_avg * sqrt(cell_volume)||_{L^2}^2 
@@ -252,7 +254,7 @@ function global_cell_average_limiter!(u, cell_averages,
             sqrt_cell_volume = sqrt_cell_volumes[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
             Y = projected_cell_averages[element] - davis_yin_Z[element] + u_weighted_target
-            global_integral_Y += sqrt_cell_volume * Y
+            global_integral_Y = global_integral_Y + sqrt_cell_volume * Y
         end
         conservation_residual = global_integral - global_integral_Y
 
