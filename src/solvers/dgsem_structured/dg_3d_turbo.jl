@@ -316,10 +316,7 @@ end
 @inline combined_turbo_flux(flux_conservative::typeof(flux_ranocha)) = flux_ranocha_turbo
 
 # Number of precomputed variables for the specialization flux_ranocha
-@inline function n_turbo_flux_aux_node_vars(volume_flux::typeof(flux_ranocha_turbo),
-                                            equations::CompressibleEulerEquations3D)
-    return Val(7)
-end
+@inline n_turbo_flux_aux_node_vars(volume_flux::typeof(flux_ranocha_turbo), equations::CompressibleEulerEquations3D) = Val(7)
 
 # Transformation from conserved to precomputed variables for flux_ranocha
 @inline function cons2fluxauxiliary(volume_flux::typeof(flux_ranocha_turbo),
