@@ -632,5 +632,5 @@ end
 LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
 LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
 
-Base.show(io::IO, f::FluxUpwind) = print(io, "FluxVolumeTurbo(", f.volume_flux, ")")
+Base.show(io::IO, f::FluxVolumeTurbo) = print(io, "FluxVolumeTurbo(", f.volume_flux, ")")
 end # @muladd
