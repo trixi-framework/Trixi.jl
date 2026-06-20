@@ -69,7 +69,7 @@ eos_initial_temperature(V, e_internal, eos::AbstractEquationOfState) = 1
 eos_newton_maxiter(eos) = 20
 
 """
-    temperature_from_Ve(V, e_internal, eos::AbstractEquationOfState;
+    temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
                         initial_T = os_initial_temperature(V, e_internal, eos), 
                         tol = eos_newton_tol(eos), maxiter = 100)
 
@@ -77,10 +77,10 @@ Calculates the temperature as a function of specific volume `V` and internal ene
 by using Newton's method to determine `T` such that `energy_internal_specific(V, T, eos) = e`.
 Note that the tolerance may need to be adjusted based on the specific equation of state. 
 """
-function temperature_from_Ve(V, e_internal, eos::AbstractEquationOfState;
-                             initial_T = eos_initial_temperature(V, e_internal, eos),
-                             tol = eos_newton_tol(eos),
-                             maxiter = eos_newton_maxiter(eos))
+function temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
+                              initial_T = eos_initial_temperature(V, e_internal, eos),
+                              tol = eos_newton_tol(eos),
+                              maxiter = eos_newton_maxiter(eos))
     T = initial_T
     de = energy_internal_specific(V, T, eos) - e_internal
     iter = 1
@@ -104,7 +104,7 @@ function temperature_from_Ve(V, e_internal, eos::AbstractEquationOfState;
 end
 
 """
-    temperature_from_Vp(V, p, eos::AbstractEquationOfState;
+    temperature_given_Vp(V, p, eos::AbstractEquationOfState;
                         initial_T = one(p),
                         tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
 
@@ -112,10 +112,10 @@ Calculates the temperature as a function of specific volume `V` and pressure `p`
 by using Newton's method to determine `T` such that `pressure(V, T, eos) = p`.
 Note that the tolerance may need to be adjusted based on the specific equation of state.
 """
-function temperature_from_Vp(V, p, eos::AbstractEquationOfState;
-                             initial_T = one(p),
-                             tol = eos_newton_tol(eos),
-                             maxiter = eos_newton_maxiter(eos))
+function temperature_given_Vp(V, p, eos::AbstractEquationOfState;
+                              initial_T = one(p),
+                              tol = eos_newton_tol(eos),
+                              maxiter = eos_newton_maxiter(eos))
     T = initial_T
     dp = pressure(V, T, eos) - p
     iter = 1
@@ -126,7 +126,7 @@ function temperature_from_Vp(V, p, eos::AbstractEquationOfState;
         iter += 1
     end
     if iter == maxiter
-        @warn "Solver in `temperature_from_Vp(V, p, eos)` did not converge within $maxiter iterations. " *
+        @warn "Solver in `temperature_given_Vp(V, p, eos)` did not converge within $maxiter iterations. " *
               "Final states: iter = $iter, p, V = $p, $(V) with dp = $dp"
     end
 
