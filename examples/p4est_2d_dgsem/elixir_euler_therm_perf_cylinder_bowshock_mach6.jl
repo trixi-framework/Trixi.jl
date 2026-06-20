@@ -207,8 +207,6 @@ extra_node_variables = (:gamma,)
 
 # ... and specify the function `get_node_variable` for this symbol,
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
-# Note that for parabolic(-extended) equations, `equations_parabolic` and `cache_parabolic`
-# must be declared as the last two arguments of the function to match the expected signature.
 function Trixi.get_node_variable(::Val{:gamma}, u, mesh, equations, dg, cache)
     n_nodes = nnodes(dg)
     n_elements = nelements(dg, cache)
