@@ -202,8 +202,42 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 5000)
 alive_callback = AliveCallback(alive_interval = 200)
 
+# Add `:gamma` to `extra_node_variables` tuple ...
+extra_node_variables = (:gamma,)
+
+# ... and specify the function `get_node_variable` for this symbol,
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+# Note that for parabolic(-extended) equations, `equations_parabolic` and `cache_parabolic`
+# must be declared as the last two arguments of the function to match the expected signature.
+function Trixi.get_node_variable(::Val{:gamma}, u, mesh, equations, dg, cache)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    gamma_array = zeros(eltype(cache.elements),
+                        n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                        n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+
+            # Get temperature
+            u_node_thermo = cons2thermo(u_node, equations)
+            T = u_node_thermo[4]
+
+            gamma_array[i, j, element] = Trixi.gamma(T, eos())
+        end
+    end
+
+    return gamma_array
+end
+
 save_solution = SaveSolutionCallback(interval = 5000,
-                                     solution_variables = cons2thermo)
+                                     solution_variables = cons2thermo,
+                                     extra_node_variables = extra_node_variables)
 
 amr_controller = ControllerThreeLevel(semi, shock_indicator;
                                       base_level = 0,
