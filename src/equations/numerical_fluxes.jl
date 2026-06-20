@@ -578,4 +578,59 @@ end
 end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
+
+"""
+    FluxVolumeTurbo(volume_flux)
+
+Specialize the volume flux to use the SIMD instructions via LoopVectorization.jl
+"""
+struct FluxVolumeTurbo{VolumeFlux}
+    volume_flux::VolumeFlux
+    function FluxVolumeTurbo{VolumeFlux}(volume_flux) where {VolumeFlux}
+        return new{VolumeFlux}(volume_flux)
+    end
+end
+
+# Helper function for conservative systems.
+function FluxVolumeTurbo(volume_flux)
+    turbo_flux = combined_turbo_flux(volume_flux)
+    return FluxVolumeTurbo{typeof(turbo_flux)}(turbo_flux)
+end
+
+# By default the turbo flux has no specialization and re-uses
+# the numerical flux in terms of conservative variables.
+@inline combined_turbo_flux(volume_flux) = volume_flux
+
+# By default the turbo flux has the same number of precomputed variables
+# as the number of variables.
+@inline n_turbo_flux_aux_node_vars(volume_flux, equations) = Val(nvariables(equations))
+
+# Transform the conserved variables in precomputed auxiliary variables to speed up the computation
+# of the numerical flux. When no specialization is given, this gives cons2cons.
+@inline cons2fluxauxiliary(volume_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
+
+# Numerical volume flux that recalls the plain volume flux when no specialization is given.
+@inline function volume_flux_turbo(volume_flux, aux_and_normals_and_equations...)
+    equations = last(aux_and_normals_and_equations)
+    volume_flux_turbo(volume_flux, have_nonconservative_terms(equations),
+                      aux_and_normals_and_equations...)
+end
+
+@inline function volume_flux_turbo(volume_flux, have_nonconservative_terms::False,
+                                   aux_and_normals_and_equations...)
+    equations = last(aux_and_normals_and_equations)
+    n = nvariables(equations)
+    u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> aux_and_normals_and_equations[n + v], Val(n)))
+    normal_direction = SVector(aux_and_normals_and_equations[end - 3],
+                               aux_and_normals_and_equations[end - 2],
+                               aux_and_normals_and_equations[end - 1])
+    return volume_flux(u_ll, u_rr, normal_direction, equations)
+end
+
+# Allow LoopVectorization to use SIMD instructions on volume_flux_turbo and cons2fluxauxiliary
+LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
+LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
+
+Base.show(io::IO, f::FluxUpwind) = print(io, "FluxVolumeTurbo(", f.volume_flux, ")")
 end # @muladd
