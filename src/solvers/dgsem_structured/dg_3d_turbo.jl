@@ -1,20 +1,3 @@
-# From here on, this file contains specializations of DG methods on the
-# TreeMesh3D to the compressible Euler equations.
-#
-# The specialized methods contain relatively verbose and ugly code in the sense
-# that we do not use the common "pointwise physics" interface of Trixi.jl.
-# However, this is currently (November 2021) necessary to get a significant
-# speed-up by using SIMD instructions via LoopVectorization.jl.
-#
-# TODO: SIMD. We could get even more speed-up if we did not need to permute
-#             array dimensions, i.e., if we changed the basic memory layout.
-#
-# We do not wrap this code in `@muladd begin ... end` block. Optimizations like
-# this are handled automatically by LoopVectorization.jl.
-
-# We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
-# if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
-# works efficiently here.
 """
     FluxVolumeTurbo(volume_flux)
 
