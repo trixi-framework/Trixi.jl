@@ -1,3 +1,8 @@
+"""
+    FluxVolumeTurbo(volume_flux)
+
+Specialize the volume flux to use the SIMD instructions via LoopVectorization.jl
+"""
 struct FluxVolumeTurbo{VolumeFlux}
     volume_flux::VolumeFlux
     function FluxVolumeTurbo{VolumeFlux}(volume_flux) where {VolumeFlux}
@@ -5,26 +10,34 @@ struct FluxVolumeTurbo{VolumeFlux}
     end
 end
 
+# Helper function for nonconservative systems.
 function FluxVolumeTurbo(volume_flux_conservative, volume_flux_nonconservative)
     turbo_flux = combined_turbo_flux(volume_flux_conservative, volume_flux_nonconservative)
     return FluxVolumeTurbo{typeof(turbo_flux)}(turbo_flux)
 end
 
+# Helper function for conservative systems.
 function FluxVolumeTurbo(volume_flux)
     turbo_flux = combined_turbo_flux(volume_flux)
     return FluxVolumeTurbo{typeof(turbo_flux)}(turbo_flux)
 end
 
+# By default the turbo flux has no specialization and re-uses
+# the numerical flux in terms of conservative variables.
 @inline combined_turbo_flux(volume_flux) = volume_flux
 
 @inline combined_turbo_flux(volume_flux_conservative, volume_flux_nonconservative) = (;
                                                                                       volume_flux_conservative,
                                                                                       volume_flux_nonconservative)
-
+# By default the turbo flux has the same number of precomputed variables
+# as the number of variables.
 @inline n_turbo_flux_aux_node_vars(volume_flux, equations) = Val(nvariables(equations))
 
+# Transform the conserved variables in precomputed auxiliary variables to speed up the computation
+# of the numerical flux. When no specialization is given, this gives cons2cons.
 @inline cons2fluxauxiliary(volume_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
+# Numerical volume flux that recalls the plain volume flux when no specialization is given.
 @inline function volume_flux_turbo(volume_flux, aux_and_normals_and_equations...)
     equations = last(aux_and_normals_and_equations)
     volume_flux_turbo(volume_flux, have_nonconservative_terms(equations),
@@ -61,6 +74,7 @@ end
     return flux_left, flux_right
 end
 
+# Allow LoopVectorization to use SIMD instructions on volume_flux_turbo and cons2fluxauxiliary
 LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
 LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
 
@@ -79,6 +93,8 @@ LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
                                     Val(nvariables(equations)))
 end
 
+# Generated function that writes the equivalent hand-written code as in dg_compressible_euler_3d.jl,
+# but generalizes for each number of variables and precomputed variables.
 @generated function flux_differencing_kernel_turbo!(_du::PtrArray, u_cons::PtrArray,
                                                     element,
                                                     MeshT::Type{<:Union{StructuredMesh{3},
@@ -584,13 +600,16 @@ end
     end
 end
 
+# Specialize the name of the turbo flux for flux_ranocha.
 @inline combined_turbo_flux(flux_conservative::typeof(flux_ranocha)) = flux_ranocha_turbo
 
+# Number of precomputed variables for the specialization flux_ranocha
 @inline function n_turbo_flux_aux_node_vars(volume_flux::typeof(flux_ranocha_turbo),
                                             equations::CompressibleEulerEquations3D)
     return Val(7)
 end
 
+# Transformation from conserved to precomputed variables for flux_ranocha
 @inline function cons2fluxauxiliary(volume_flux::typeof(flux_ranocha_turbo),
                                     rho, rho_v1, rho_v2, rho_v3, rho_e,
                                     equations::CompressibleEulerEquations3D)
@@ -602,6 +621,7 @@ end
     return rho, v1, v2, v3, p, log(rho), log(p)
 end
 
+# Computation of the numerical flux_ranocha with respect to precomputed variables
 @inline function volume_flux_turbo(volume_flux::typeof(flux_ranocha_turbo),
                                    rho_ll, v1_ll, v2_ll, v3_ll,
                                    p_ll, log_rho_ll, log_p_ll,
