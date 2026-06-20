@@ -22,20 +22,8 @@ function Trixi.initial_condition_density_wave(x, t,
 
     V = inv(rho)
 
-    # invert for temperature given p, V
-    T = 1
-    tol = 100 * eps(RealT)
-    dp = pressure(V, T, eos) - p
-    iter = 1
-    while abs(dp) / abs(p) > tol && iter < 100
-        dp = pressure(V, T, eos) - p
-        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-        T = max(tol, T - dp / dpdT_V)
-        iter += 1
-    end
-    if iter == 100
-        @warn "Solver for temperature(V, p) did not converge"
-    end
+    # invert for temperature given V, p.
+    T = temperature_from_Vp(V, p, eos; initial_T = 1, tol = 100 * eps(RealT), maxiter = 100)
 
     return thermo2cons(SVector(V, v1, T), equations)
 end
