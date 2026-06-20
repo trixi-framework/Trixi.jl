@@ -715,9 +715,12 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
         orientation_x = 1;
 
         for i in 1:n_elements #the loop over the cells
-            element_width = cache.elements.dx[i];
+            #element_width = cache.elements.dx[i];
+            #element_width = Trixi.get_element_length(i, cache)
+            element_width = 2.0 / cache.elements.inverse_jacobian[i]
             sub_cell_width = element_width / n_nodes;
-
+ 
+            
             for j in 1:n_nodes #thr loop over the subscells
                 idx_left  = (i - 1) * (2 * n_nodes) + 2 * j - 1; #slot number in the list x for the left side of this subcell
                 idx_right = (i - 1) * (2 * n_nodes) + 2 * j; #slot number in the list x for the right side of this subcell
