@@ -224,8 +224,7 @@ export AcousticPerturbationEquations2D,
        PassiveTracerEquations
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
-export IdealGas,
-       ThermallyPerfectGas, ThermallyPerfectGas9PolyFit,
+export IdealGas, ThermallyPerfectGas9PolyFit,
        VanDerWaals, PengRobinson, HelmholtzIdealGas
 
 export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
