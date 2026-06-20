@@ -255,7 +255,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxUpwind,
-       FluxTracerEquationsCentral
+       FluxTracerEquationsCentral, FluxVolumeTurbo
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -310,7 +310,7 @@ export DG,
        FDSBP,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
-       VolumeIntegralFluxDifferencing, FluxVolumeTurbo,
+       VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        VolumeIntegralShockCapturingHGType,
