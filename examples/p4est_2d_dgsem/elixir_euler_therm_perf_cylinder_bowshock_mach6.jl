@@ -141,11 +141,16 @@ a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
 a_ = hcat(a_cold, a_hot)
 a = Trixi.SMatrix{9, 2}(a_)
 
-eos() = ThermallyPerfectGas(R_specific = R_specific, temperature_bounds = temp_bounds, a = a)
+function eos()
+    ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                temperature_bounds = temp_bounds,
+                                a = a)
+end
+
 equations = NonIdealCompressibleEulerEquations2D(eos())
 
 # Reduce tolerance to speed things up (otherwise, `eos_newton_maxiter` would need to be increased)
-Trixi.eos_newton_tol(eos::ThermallyPerfectGas) = 1e-5
+Trixi.eos_newton_tol(eos::ThermallyPerfectGas9PolyFit) = 1e-5
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)

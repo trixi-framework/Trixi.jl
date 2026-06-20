@@ -33,8 +33,12 @@ a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
 a_ = hcat(a_cold, a_hot)
 a = Trixi.SMatrix{9, 2}(a_)
 
-eos = ThermallyPerfectGas(R_specific = R_specific, temperature_bounds = temp_bounds, a = a)
-equations = NonIdealCompressibleEulerEquations1D(eos)
+function eos()
+    ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                temperature_bounds = temp_bounds,
+                                a = a)
+end
+equations = NonIdealCompressibleEulerEquations1D(eos())
 
 # The default amplitude and frequency k are consistent with initial_condition_density_wave 
 # for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
@@ -54,11 +58,11 @@ function Trixi.initial_condition_density_wave(x, t,
     # invert for temperature given p, V
     T = 300 # [K]
     tol = 100 * eps(RealT)
-    dp = pressure(V, T, eos) - p
+    dp = pressure(V, T, eos()) - p
     iter = 1
     while abs(dp) / abs(p) > tol && iter < 100
-        dp = pressure(V, T, eos) - p
-        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
+        dp = pressure(V, T, eos()) - p
+        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos()), T)
         T = max(tol, T - dp / dpdT_V)
         iter += 1
     end
