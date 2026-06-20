@@ -694,6 +694,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
                     variable_names = nothing) where {Basis <: UniformFiniteVolumeBasis}
 
+    friendly_slice = (slice === :xy) ? :x : slice
 
     solution_variables_ = Trixi.digest_solution_variables(equations, solution_variables)
     variable_names_ = Trixi.digest_variable_names(solution_variables_, equations, variable_names)
@@ -709,10 +710,8 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
 
     left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2;
 
-    @show ndims(mesh), curve, slice #what is wrong with the slice?
-    slice = :x
-    @show ndims(mesh), curve, slice
-    if ndims(mesh) == 1 && curve == nothing && slice == :x
+    @show ndims(mesh), curve, friendly_slice #what is wrong with the slice?
+    if ndims(mesh) == 1 && curve == nothing && friendly_slice == :x
         orientation_x = 1;
 
         for i in 1:n_elements #the loop over the cells
