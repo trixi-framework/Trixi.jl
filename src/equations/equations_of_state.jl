@@ -24,6 +24,22 @@ efficiency.
 """
 abstract type AbstractEquationOfState end
 
+@doc raw"""
+    AbstractThermallyPerfectGas <: AbstractEquationOfState
+
+A thermally perfect gas takes temperature effects on the material properties into account,
+most notably the specific heat capacities ``c_p = c_p(T)`` and ``c_v = c_v(T)``
+and in turn als the ratio of specific heats ``\gamma(T) = c_p(T) / c_v(T)``.
+However, to relate pressure, density and temperature, the ideal gas law is still used, i.e.,
+```math
+p = \frac{R}{M} \rho T
+```
+where ``R`` is the universal gas constant and ``M`` is the molar mass of the gas.
+
+The typical use case for a thermally perfect gas are high-speed and high-temperature flows at low to moderate pressures.
+"""
+abstract type AbstractThermallyPerfectGas <: AbstractEquationOfState end
+
 function Adapt.adapt_structure(::TrixiAdaptor{<:Any, NewRealT},
                                eos::AbstractEquationOfState) where {NewRealT}
     return similar(eos, NewRealT)
@@ -31,6 +47,7 @@ end
 
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_thermally_perfect_gas.jl")
+
 include("equation_of_state_vdw.jl")
 include("equation_of_state_peng_robinson.jl")
 
