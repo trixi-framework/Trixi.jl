@@ -239,20 +239,19 @@ end
     @test size(pd2.data) == (128, 3)
 
     @testset "BlockFV 1D Visualization" begin
-        equations_fv = LinearScalarAdvectionEquation1D(1.0)
-        basis_fv = UniformFiniteVolumeBasis(3)
-        solver_fv = BlockFV(basis_fv)
-        mesh_fv = TreeMesh((-1.0,), (-1.0,), initial_refinement_level = 2,
-                           n_cells_max = 100, periodicity = true)
-        semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv,
-                                               initial_condition_constant, solver_fv)
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_fv",
+                                     "elixir_advection_basic,jl"), tspan=(0.0, 0.0))
+
         u_fv = compute_coefficients(0.0, semi_fv)
-        cache_fv = semi_fv.cache
+        mesh_fv = semi.mesh
+        equations_fv = semi.equations
+        solver_fv = semi.solver
+        cache_fv = semi.cache
 
         pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
         @test pd_fv_explicit isa PlotData1D
 
-        pd_fv_wrapped = PlotData1D(u_fv, semi_fv)
+        pd_fv_wrapped = PlotData1D(sol)
         @test pd_fv_wrapped isa PlotData1D
 
         @trixi_test_nowarn Plots.plot(pd_fv_wrapped)
