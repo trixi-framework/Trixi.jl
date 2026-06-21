@@ -238,6 +238,24 @@ end
     pd2 = PlotData1D(sol, nvisnodes = 2)
     @test size(pd2.data) == (128, 3)
 
+    @testset "BlockFV 1D Visualization" begin
+        equations_fv = LinearScalarAdvectionEquation1D(1.0)
+        basis_fv = UniformFiniteVolumeBasis(3)
+        solver_fv = BlockFV(basis_fv)
+        mesh_fv = TreeMesh((-1.0,), (-1.0,), initial_refinement_level = 2, n_cells_max = 100, periodicity = true)
+        semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, initial_condition_constant, solver_fv)
+        u_fv = compute_coefficients(0.0, semi_fv)
+        cache_fv = semi_fv.cache
+        
+        pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
+        @test pd_fv_explicit isa PlotData1D
+        
+        pd_fv_wrapped = PlotData1D(u_fv, semi_fv)
+        @test pd_fv_wrapped isa PlotData1D
+
+        @trixi_test_nowarn Plots.plot(pd_fv_wrapped)
+    end
+
     @testset "1D plot recipes" begin
         pd = PlotData1D(sol)
 

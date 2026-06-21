@@ -687,7 +687,6 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                       orientation_x)
 end
 
-#new thing
 function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
                     solution_variables = nothing, nvisnodes = nothing,
                     reinterpolate = default_reinterpolate(solver),
@@ -711,13 +710,10 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
 
     left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2
 
-    @show ndims(mesh), curve, friendly_slice #what is wrong with the slice?
     if ndims(mesh) == 1 && curve == nothing && friendly_slice == :x
         orientation_x = 1
 
         for i in 1:n_elements #the loop over the cells
-            #element_width = cache.elements.dx[i];
-            #element_width = Trixi.get_element_length(i, cache)
             element_width = 2.0 / cache.elements.inverse_jacobian[i]
             sub_cell_width = element_width / n_nodes
 
@@ -744,7 +740,6 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
     end
     return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x)
 end
-#end new thing
 
 # unwrap u if it is VectorOfArray
 PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache;
