@@ -110,5 +110,5 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
                    BoundsCheckCallback(save_errors = true, interval = 100))
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);

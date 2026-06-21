@@ -28,7 +28,7 @@ end
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
-    node_volume = zero(real(mesh))
+    node_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     total_volume = zero(node_volume)
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
@@ -49,7 +49,7 @@ end
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
 
-    node_volume = zero(real(mesh))
+    node_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
     total_volume = zero(node_volume)
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))

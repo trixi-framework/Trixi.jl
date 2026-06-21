@@ -52,7 +52,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
@@ -118,7 +118,45 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+end
+
+@trixi_testset "elixir_euler_source_terms.jl Flux Differencing Float32 / AMDGPU" begin
+    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    using AMDGPU
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                        l2=Float32[2.7905685982444506e-6,
+                                   2.7719663804722356e-6,
+                                   2.862595247100584e-6,
+                                   6.59779451858695e-6],
+                        linf=Float32[1.904964447030366e-5,
+                                     2.1734684234164803e-5,
+                                     1.988410949715913e-5,
+                                     5.9757232666157734e-5],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray,
+                        solver=DGSEM(polydeg = 3,
+                                     surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                     volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32

@@ -45,5 +45,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, ParsaniKetchesonDeconinck3S82(); dt = 1.0,
+sol = solve(ode, ParsaniKetchesonDeconinck3S82();
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

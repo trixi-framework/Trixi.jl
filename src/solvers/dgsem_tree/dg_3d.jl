@@ -966,8 +966,6 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
     @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
     fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
-    fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
-    fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
     fstar_tmp1_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -976,10 +974,6 @@ function calc_mortar_flux!(surface_flux_values,
         fstar_primary_upper_right = fstar_primary_upper_right_threaded[Threads.threadid()]
         fstar_primary_lower_left = fstar_primary_lower_left_threaded[Threads.threadid()]
         fstar_primary_lower_right = fstar_primary_lower_right_threaded[Threads.threadid()]
-        fstar_secondary_upper_left = fstar_secondary_upper_left_threaded[Threads.threadid()]
-        fstar_secondary_upper_right = fstar_secondary_upper_right_threaded[Threads.threadid()]
-        fstar_secondary_lower_left = fstar_secondary_lower_left_threaded[Threads.threadid()]
-        fstar_secondary_lower_right = fstar_secondary_lower_right_threaded[Threads.threadid()]
         fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
         # Calculate fluxes
@@ -992,23 +986,20 @@ function calc_mortar_flux!(surface_flux_values,
                     u_lower_left, mortar, orientation)
         calc_fstar!(fstar_primary_lower_right, equations, surface_flux, dg,
                     u_lower_right, mortar, orientation)
-        calc_fstar!(fstar_secondary_upper_left, equations, surface_flux, dg,
-                    u_upper_left, mortar, orientation)
-        calc_fstar!(fstar_secondary_upper_right, equations, surface_flux, dg,
-                    u_upper_right, mortar, orientation)
-        calc_fstar!(fstar_secondary_lower_left, equations, surface_flux, dg,
-                    u_lower_left, mortar, orientation)
-        calc_fstar!(fstar_secondary_lower_right, equations, surface_flux, dg,
-                    u_lower_right, mortar, orientation)
 
+        # For non-conservative equations, we need two numerical fluxes
+        # (primary and secondary). To use the same implementation of
+        # `mortar_fluxes_to_elements!`, we pass the primary fluxes as
+        # secondary fluxes as well in the conservative case. This is
+        # possible since for conservative equations, numerical fluxes
+        # are unique at interfaces (instead of having two different
+        # fluxes/fluctuations for non-conservative equations).
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache, mortar,
                                    fstar_primary_upper_left, fstar_primary_upper_right,
                                    fstar_primary_lower_left, fstar_primary_lower_right,
-                                   fstar_secondary_upper_left,
-                                   fstar_secondary_upper_right,
-                                   fstar_secondary_lower_left,
-                                   fstar_secondary_lower_right,
+                                   fstar_primary_upper_left, fstar_primary_upper_right,
+                                   fstar_primary_lower_left, fstar_primary_lower_right,
                                    fstar_tmp1)
     end
 

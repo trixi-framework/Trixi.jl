@@ -130,5 +130,5 @@ stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -5e-3)
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
