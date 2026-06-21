@@ -70,8 +70,8 @@ eos_newton_maxiter(eos) = 20
 
 """
     temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
-                        initial_T = os_initial_temperature(V, e_internal, eos), 
-                        tol = eos_newton_tol(eos), maxiter = 100)
+                        initial_T = eos_initial_temperature(V, e_internal, eos), 
+                        tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
 
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
 by using Newton's method to determine `T` such that `energy_internal_specific(V, T, eos) = e`.
