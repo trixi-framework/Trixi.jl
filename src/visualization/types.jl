@@ -721,7 +721,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             sub_cell_width = element_width / n_nodes;
  
             
-            for j in 1:n_nodes #thr loop over the subscells
+            for j in 1:n_nodes #the loop over the subscells
                 idx_left  = (i - 1) * (2 * n_nodes) + 2 * j - 1; #slot number in the list x for the left side of this subcell
                 idx_right = (i - 1) * (2 * n_nodes) + 2 * j; #slot number in the list x for the right side of this subcell
 
