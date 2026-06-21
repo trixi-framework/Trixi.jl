@@ -1,6 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using Trixi: ForwardDiff
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
