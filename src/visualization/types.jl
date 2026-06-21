@@ -693,12 +693,13 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
                     reinterpolate = default_reinterpolate(solver),
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
                     variable_names = nothing) where {Basis <: UniformFiniteVolumeBasis}
-
     friendly_slice = (slice === :xy) ? :x : slice
 
     solution_variables_ = Trixi.digest_solution_variables(equations, solution_variables)
-    variable_names_ = Trixi.digest_variable_names(solution_variables_, equations, variable_names)
-    unstructured_data = Trixi.get_unstructured_data(u, solution_variables_, mesh, equations, solver, cache)
+    variable_names_ = Trixi.digest_variable_names(solution_variables_, equations,
+                                                  variable_names)
+    unstructured_data = Trixi.get_unstructured_data(u, solution_variables_, mesh,
+                                                    equations, solver, cache)
 
     n_nodes = size(unstructured_data, 1);  # number of subcells per cell
     n_elements = nelements(solver, cache); # number of cells
@@ -719,17 +720,16 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             #element_width = Trixi.get_element_length(i, cache)
             element_width = 2.0 / cache.elements.inverse_jacobian[i]
             sub_cell_width = element_width / n_nodes;
- 
-            
+
             for j in 1:n_nodes #the loop over the subscells
-                idx_left  = (i - 1) * (2 * n_nodes) + 2 * j - 1; #slot number in the list x for the left side of this subcell
+                idx_left = (i - 1) * (2 * n_nodes) + 2 * j - 1; #slot number in the list x for the left side of this subcell
                 idx_right = (i - 1) * (2 * n_nodes) + 2 * j; #slot number in the list x for the right side of this subcell
 
-                x[idx_left]  = left_boundary + (j - 1) * sub_cell_width; #coordinate for the left edge of the subcell
+                x[idx_left] = left_boundary + (j - 1) * sub_cell_width; #coordinate for the left edge of the subcell
                 x[idx_right] = left_boundary + j * sub_cell_width; #coordinate for the right edge of the subcell
 
                 for v in 1:length(variable_names_) #loop over the values
-                    data[idx_left, v]  = unstructured_data[j, i, v]; #value for quantity v at left edge of subcell
+                    data[idx_left, v] = unstructured_data[j, i, v]; #value for quantity v at left edge of subcell
                     data[idx_right, v] = unstructured_data[j, i, v]; #value for quantity v at right edge of subcell
                 end
             end
@@ -738,28 +738,29 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
             left_boundary += element_width; #go to the left boundary of the next cell
         end
         mesh_vertices_x[end] = left_boundary; #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
-        
-    else 
+
+    else
         error("BlockFV is not yet supported for 2D, 3D, curves.");
     end
     return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x);
-
 end
 #end new thing
 
 # unwrap u if it is VectorOfArray
-PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
-                                                                                             mesh,
-                                                                                             equations,
-                                                                                             dg,
-                                                                                             cache;
-                                                                                             kwargs...)
-PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) = PlotData2D(parent(u),
-                                                                                             mesh,
-                                                                                             equations,
-                                                                                             dg,
-                                                                                             cache;
-                                                                                             kwargs...)
+PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache;
+           kwargs...) = PlotData1D(parent(u),
+                                   mesh,
+                                   equations,
+                                   dg,
+                                   cache;
+                                   kwargs...)
+PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache;
+           kwargs...) = PlotData2D(parent(u),
+                                   mesh,
+                                   equations,
+                                   dg,
+                                   cache;
+                                   kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
