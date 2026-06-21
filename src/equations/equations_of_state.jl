@@ -69,6 +69,26 @@ eos_initial_temperature(V, e_internal, eos::AbstractEquationOfState) = 1
 eos_newton_maxiter(eos) = 20
 
 """
+    temperature(V, e_internal, eos::AbstractEquationOfState;
+                initial_T = eos_initial_temperature(V, e_internal, eos),
+                tol = eos_newton_tol(eos),
+                maxiter = eos_newton_maxiter(eos))
+
+Calculates the temperature as a function of specific volume `V` and internal energy `e`
+by forwarding to [`temperature_given_Ve`](@ref).
+
+To compute the temperature from specific volume `V` and pressure `p`,
+use [`temperature_given_Vp`](@ref) instead.
+"""
+function temperature(V, e_internal, eos::AbstractEquationOfState;
+                     initial_T = eos_initial_temperature(V, e_internal, eos),
+                     tol = eos_newton_tol(eos),
+                     maxiter = eos_newton_maxiter(eos))
+    return temperature_given_Ve(V, e_internal, eos;
+                                initial_T, tol, maxiter)
+end
+
+"""
     temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
                         initial_T = eos_initial_temperature(V, e_internal, eos), 
                         tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))

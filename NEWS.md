@@ -5,15 +5,6 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-## Changes when updating to v0.17 from v0.16.x
-
-#### Changed
-- For `NonIdealCompressibleEulerEquations` with `AbstractEquationOfState` the nonlinear solver for the 
-temperature given specific volume `V` and internal energy `e_internal` has been renamed from
-`temperature` to `temperature_given_Ve`.
-This became necessary since in ([#3093]) we introduced another way to compute the temperature from
-`V` and pressure `p`, named `temperature_given_Vp`.
-
 ## Changes in the v0.16 lifecycle
 
 #### Added
