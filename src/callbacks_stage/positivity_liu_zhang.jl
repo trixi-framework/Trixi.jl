@@ -201,9 +201,9 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; local_limiter!, cell_averages, davis_yin_dual_vars, projected_cell_averages,
-    sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations,
-    max_davis_yin_iterations, projection_thresholds, projection_variables,
-    history_davis_yin_iterations) = global_limiter!
+    sqrt_cell_volumes, total_volume, global_limiter_tol,
+    max_davis_yin_iterations, record_davis_yin_iterations, history_davis_yin_iterations,
+    projection_thresholds, projection_variables) = global_limiter!
 
     @trixi_timeit timer() "Liu-Zhang positivity limiter" begin
         u = wrap_array(u_ode, semi)
