@@ -57,8 +57,8 @@ function prolong2coupledmortars!(cache, u, mesh::P4estMeshView{2}, equations,
                 end
 
                 # Interpolate large element face data to small face locations
-                multiply_dimensionwise!(view(cache.coupled_mortars.u,2,:,1,:,
-                                        mortar),
+                multiply_dimensionwise!(view(cache.coupled_mortars.u, 2, :, 1, :,
+                                             mortar),
                                         mortar_l2.forward_lower, u_buffer)
                 multiply_dimensionwise!(view(cache.coupled_mortars.u, 2, :, 2, :,
                                              mortar),
