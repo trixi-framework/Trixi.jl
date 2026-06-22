@@ -337,7 +337,6 @@ function global_cell_average_limiter!(u, cell_averages,
                                                      lower_bound, variables, equations)
         set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
                     cache)
-        cell_averages[element] = new_cell_average
     end
 
     return nothing
