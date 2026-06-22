@@ -64,8 +64,8 @@ equations_own) -> SVector(u[1], u[2],
                           0.0, 0.0,
                           0.0)
 coupling_functions[2, 1] = (x, u, equations_other,
-                            equations_own) -> SVector(u[1], u[2],
-                                                      u[3], u[5])
+equations_own) -> SVector(u[1], u[2],
+                          u[3], u[5])
 coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
 ###############################################################################
