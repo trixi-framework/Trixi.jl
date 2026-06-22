@@ -8,24 +8,51 @@
 #                 shock_capturing_alpha_max = 0.5)
 
 using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqLowStorageRK
 using LinearAlgebra: I
 using Trixi
 
-use_ecav = true
-use_volume_correction = !use_ecav
-use_shock_capturing = true;
-use_positivity_limiter = false
-shock_capturing_alpha_max = 1.0;
-refine = 4
-Ma = 2.0
+@inline function get_cell_volume(element, mesh::P4estMesh{2}, equations, dg, cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+    @show "hi"
+    cell_volume = zero(eltype(weights))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                        i, j, element)))
+        cell_volume += weights[i] * weights[j] * volume_jacobian
+    end
+    return cell_volume
+end
+
+@inline function get_cell_volume(element, mesh::P4estMesh{3}, equations, dg, cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    cell_volume = zero(eltype(weights))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                        i, j, k, element)))
+        cell_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
+    end
+    return cell_volume
+end
+
+use_ecav = false;
+use_volume_correction = true;
+use_shock_capturing = false;
+use_positivity_limiter = true;
+shock_capturing_alpha_max = 0.3;
+Ma = 1.1
+refine = 2
 num_trial = 1
 
 polydeg = 3
-final_time = 10.0
+final_time = 12.0
 analysis_interval = 1000
 save_interval = 1000
-abstol = 1.0e-7
-reltol = 1.0e-5
+abstol = 1.0e-8
+reltol = 1.0e-6
 saveat = 0.05
 
 ###############################################################################
@@ -35,7 +62,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 @inline function initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
     rho_freestream = 1.4
-    v1 = Ma
+    v1 = 1.5
     v2 = 0.0
     p_freestream = 1.0
 
@@ -59,15 +86,34 @@ end
     return flux(u_inner, normal_direction, equations)
 end
 
+@inline function boundary_condition_vary_outflow(u_inner,
+                                                      normal_direction::AbstractVector,
+                                                      x, t, surface_flux_function,
+                                                      equations::CompressibleEulerEquations2D)
+    rho, rho_v1, rho_v2, rho_e_total = u_inner
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v = sqrt(v1 ^2 + v2^2)
+    p = (equations.gamma - 1) * (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+    c  = sqrt(equations.gamma * p / rho)
+    if v >= c
+        return flux(u_inner, normal_direction, equations)
+    else
+        #assume non dimensionalized free stream values
+        p_freestream = 1.0
+        return flux(prim2cons(SVector(rho, v1, v2, p_freestream), equations), normal_direction, equations)
+    end
+
+end
+
 boundary_conditions_hyperbolic = (; Bottom = boundary_condition_slip_wall,
                                   Circle = boundary_condition_slip_wall,
                                   Top = boundary_condition_slip_wall,
-                                  Right = boundary_condition_outflow,
+                                  Right = boundary_condition_vary_outflow,
                                   Left = boundary_condition_supersonic_inflow)
 
 ###############################################################################
 # artificial-viscosity/parabolic setup
-
 prandtl_number() = 0.73
 mu() = 0.0
 
@@ -75,20 +121,25 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesEntropy())
 
-# The physical parabolic equation is only used to provide gradient variables and
-# storage for ECAV in this inviscid example.
-boundary_conditions_parabolic = (; Bottom = boundary_condition_do_nothing,
-                                 Circle = boundary_condition_do_nothing,
-                                 Top = boundary_condition_do_nothing,
+boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition)
+heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
+boundary_condition_parabolic_slip_wall = BoundaryConditionNavierStokesWall(Slip(), heat_bc)
+
+boundary_conditions_parabolic = (; Bottom = boundary_condition_parabolic_slip_wall,
+                                 Circle = boundary_condition_parabolic_slip_wall,
+                                 Top = boundary_condition_parabolic_slip_wall,
                                  Right = boundary_condition_do_nothing,
-                                 Left = boundary_condition_do_nothing)
+                                 Left = boundary_condition_inflow)
 
 solver_parabolic = ParabolicFormulationLocalDG()
 
 ###############################################################################
 # mesh
 
-mesh_file = joinpath(@__DIR__, "CylinderSuperSonicMa2.0.inp")
+mesh_suffix = polydeg == 1 ? "N1" : ""
+mesh_file = joinpath(@__DIR__, "CylinderSuperSonicMa" * string(Ma) * mesh_suffix * ".inp")
+#mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
+#                           joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
 
 mesh = P4estMesh{2}(mesh_file, initial_refinement_level=refine)
 
@@ -178,9 +229,13 @@ if use_positivity_limiter
                 abstol = abstol, reltol = reltol, saveat = saveat,
                 ode_default_options()..., callback = callbacks)
 else
+    #sol = solve(ode, RDPK3SpFSAL49();
+    #           abstol = abstol, reltol = reltol, saveat = saveat,
+    #            ode_default_options()..., callback = callbacks)
     sol = solve(ode, SSPRK43();
                 abstol = abstol, reltol = reltol, saveat = saveat,
                 ode_default_options()..., callback = callbacks)
+    
 end
 
 using Plots
@@ -188,6 +243,46 @@ using JLD2
 
 @save "Cylinder" * string(num_trial) * ".jld2" sol semi
 data = load("Cylinder1.jld2")
+
+function right_edge_mach_numbers(u_ode, semi)
+    (; equations, solver, cache) = semi
+    (; node_coordinates) = cache.elements
+    u = Trixi.wrap_array_native(u_ode, semi)
+
+    x_max = maximum(view(node_coordinates, 1, :, :, :))
+    tolerance = 1.0e-10 * max(1.0, abs(x_max))
+    mach_numbers = Float64[]
+
+    for element in Trixi.eachelement(solver, cache),
+        j in Trixi.eachnode(solver), i in Trixi.eachnode(solver)
+
+        x = node_coordinates[1, i, j, element]
+        abs(x - x_max) <= tolerance || continue
+
+        rho = u[1, i, j, element]
+        rho_v1 = u[2, i, j, element]
+        rho_v2 = u[3, i, j, element]
+        rho_e_total = u[4, i, j, element]
+
+        v1 = rho_v1 / rho
+        v2 = rho_v2 / rho
+        p = (equations.gamma - 1) *
+            (rho_e_total - 0.5 * (rho_v1 * v1 + rho_v2 * v2))
+        sound_speed = sqrt(equations.gamma * p / rho)
+
+        push!(mach_numbers, sqrt(v1^2 + v2^2) / sound_speed)
+    end
+
+    return mach_numbers
+end
+
+for i in 1:length(sol.u)
+    right_edge_mach = right_edge_mach_numbers(sol.u[i], semi)
+    println("Right-edge Mach number at t = $(sol.t[i]): ",
+            "min = $(minimum(right_edge_mach)), ",
+            "mean = $(sum(right_edge_mach) / length(right_edge_mach)), ",
+            "max = $(maximum(right_edge_mach))")
+end
 
 function density_schlieren(u_ode, semi; beta = 10.0)
     (; solver, cache) = semi
@@ -241,4 +336,5 @@ anim = @animate for k in eachindex(sol.u)
          color = :grays)
 end
 
-gif(anim, "rho_schlieren.gif", fps = 10)
+gif(anim, "rho_schlieren1.gif", fps = 10)
+

@@ -20,11 +20,12 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(1.4)
+Ma = 1.1
 
 @inline function initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     rho_freestream = 1.4
-    v1 = 1.5
+    v1 = Ma
     v2 = 0.0
     p_freestream = 1.0
 
@@ -34,16 +35,7 @@ end
 
 initial_condition = initial_condition_mach3_flow
 
-# Supersonic inflow boundary condition.
-# Calculate the boundary flux entirely from the external solution state, i.e., set
-# external solution state values for everything entering the domain.
-@inline function boundary_condition_supersonic_inflow(u_inner,
-                                                      normal_direction::AbstractVector,
-                                                      x, t, surface_flux_function,
-                                                      equations::CompressibleEulerEquations2D)
-    u_boundary = initial_condition_mach3_flow(x, t, equations)
-    return flux(u_boundary, normal_direction, equations)
-end
+boundary_condition_supersonic_inflow = BoundaryConditionDirichlet(initial_condition)
 
 # Supersonic outflow boundary condition.
 # Calculate the boundary flux entirely from the internal solution state. Analogous to supersonic inflow
@@ -83,9 +75,7 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-# Get the unstructured quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
-                           joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
+mesh_file = joinpath(@__DIR__, "CylinderSuperSonicMa" * string(Ma) * ".inp")
 
 mesh = P4estMesh{2}(mesh_file, initial_refinement_level=3)
 
