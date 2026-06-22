@@ -279,22 +279,6 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     return nothing
 end
 
-"""
-    project_to_admissible_set(cell_average, lower_bound, variables, equations)
-
-For scalar equations, the positivity-preserving limiter enforces `u > u_lower`, and
-projection to the admissible set is a clipping operation. 
-
-To ensure that `variables` is consistent with this assumption, users must set 
-`variables = (first,)`. 
-"""
-@inline function project_to_admissible_set(cell_average, lower_bound,
-                                           variables::Tuple{typeof(first)},
-                                           equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
-    # lower_bound and cell_average are SVectors of size 1
-    return SVector(max(lower_bound[1], cell_average[1]))
-end
-
 function global_cell_average_limiter!(u, cell_averages,
                                       davis_yin_dual_vars, projected_cell_averages,
                                       sqrt_cell_volumes, total_volume,
