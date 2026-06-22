@@ -240,13 +240,13 @@ end
 
     @testset "BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
-                                     "elixir_advection_basic.jl"), m=Module())
+                                     "elixir_advection_basic.jl"), m=workspace)
 
-        u_fv = sol.u[end]
-        mesh_fv = semi.mesh
-        equations_fv = semi.equations
-        solver_fv = semi.solver
-        cache_fv = semi.cache
+        u_fv = workspace.sol.u[end]
+        mesh_fv = workspace.semi.mesh
+        equations_fv = workspace.semi.equations
+        solver_fv = workspace.semi.solver
+        cache_fv = workspace.semi.cache
 
         pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
         @test pd_fv_explicit isa PlotData1D
