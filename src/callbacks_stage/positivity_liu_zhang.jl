@@ -59,7 +59,6 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     davis_yin_dual_vars::DavisYinDualVars
     projected_cell_averages::ProjectedCellAverages
     sqrt_cell_volumes::SqrtCellVolumes
-    total_volume::RealT
     global_limiter_tol::RealT
     max_davis_yin_iterations::Int
     record_davis_yin_iterations::Bool
@@ -87,10 +86,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     uEltype = real(dg)
 
     n_elements = nelements(dg, cache)
-    cell_volumes = [get_cell_volume(element, mesh, equations, dg, cache)
-                    for element in eachelement(dg, cache)]
-    sqrt_cell_volumes = sqrt.(cell_volumes)
-    total_volume = sum(cell_volumes)
+    sqrt_cell_volumes = [sqrt(get_cell_volume(element, mesh, equations, dg, cache))
+                         for element in eachelement(dg, cache)]
 
     # create resizable arrays
     T = SVector{nvariables(equations), uEltype}
@@ -104,7 +101,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_dual_vars,
                                                projected_cell_averages,
-                                               sqrt_cell_volumes, total_volume,
+                                               sqrt_cell_volumes,
                                                global_limiter_tol,
                                                max_davis_yin_iterations,
                                                record_davis_yin_iterations,
@@ -116,7 +113,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; local_limiter!, cell_averages, davis_yin_dual_vars, projected_cell_averages,
-    sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations,
+    sqrt_cell_volumes, global_limiter_tol, max_davis_yin_iterations,
     record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
     @trixi_timeit timer() "Liu-Zhang positivity limiter" begin
@@ -163,13 +160,12 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
             # the check `length(cell_averages) != n_elements` used to resize arrays 
             # is insufficient to detect this, since AMR can refine/coarsen while 
             # keeping the total number of elements constant.
-            total_volume = zero(typeof(global_limiter!.total_volume))
+            total_volume = zero(eltype(sqrt_cell_volumes))
             for e in eachelement(dg, cache)
                 cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
                 sqrt_cell_volumes[e] = sqrt(cell_volume)
                 total_volume += cell_volume
             end
-            global_limiter!.total_volume = total_volume
 
             @trixi_timeit timer() "global cell-average limiter" begin
                 global_cell_average_limiter!(u, cell_averages,
