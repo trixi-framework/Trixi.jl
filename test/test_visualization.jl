@@ -239,8 +239,8 @@ end
     @test size(pd2.data) == (128, 3)
 
     @testset "BlockFV 1D Visualization" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_fv",
-                                     "elixir_advection_basic,jl"), tspan=(0.0, 0.0))
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
+                                     "elixir_advection_basic.jl"), tspan=(0.0, 0.0))
 
         u_fv = sol.u[end]
         mesh_fv = semi.mesh
