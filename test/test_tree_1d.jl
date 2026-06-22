@@ -43,6 +43,9 @@ isdir(outdir) && rm(outdir, recursive = true)
     # FDSBP methods on the TreeMesh
     include("test_tree_1d_fdsbp.jl")
 
+    # Block-structured finite volume methods on TreeMesh
+    include("test_tree_1d_blockfv.jl")
+
     # Traffic flow LWR
     include("test_tree_1d_traffic_flow_lwr.jl")
 

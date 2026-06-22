@@ -318,6 +318,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
 export DG,
        DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
+       BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
@@ -381,7 +382,8 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
-export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterLiuZhang,
+       EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
@@ -400,7 +402,8 @@ export ParabolicFormulationBassiRebay1, ParabolicFormulationLocalDG
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
-       iplot, iplot!
+       iplot, iplot!,
+       trixiheatmap, trixiheatmap!
 
 function __init__()
     # Skip MPI/library initialization during precompilation of subsequent packages.

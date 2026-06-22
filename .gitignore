@@ -27,6 +27,7 @@ coverage_report/
 .vscode/
 .DS_Store
 plan*/
+*.code-workspace
 
 run*/
 run*/*
