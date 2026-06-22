@@ -203,8 +203,8 @@ end
     return first(u_mean, equations) < thresholds[1]
 end
 
-# `variables` are different `(density, pressure)` with distinct function types, 
-# so we use `NTuple{2, Any}` here instead of `NTuple{2}`.
+# `variables` may be e.g. `(density, pressure)` with distinct function types;
+# use `NTuple{2, Any}` instead of `NTuple{2}` (which is `Tuple{T, T}`).
 @inline function cell_average_violates_bounds(u_mean,
                                               equations::Union{CompressibleEulerEquations1D,
                                                                CompressibleEulerEquations2D},
