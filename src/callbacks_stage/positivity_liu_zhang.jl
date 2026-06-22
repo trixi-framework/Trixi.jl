@@ -271,11 +271,12 @@ function global_cell_average_limiter!(u, cell_averages,
         # Step 1: projection to admissible set
         @threaded for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
-            projected_cell_averages[element] = project_to_admissible_set(davis_yin_Z[element] /
-                                                                         sqrt_cell_volume,
-                                                                         lower_bound,
-                                                                         variables,
-                                                                         equations) *
+            unweighted_cell_average = davis_yin_Z[element] / sqrt_cell_volume
+            unweighted_projected_cell_average = project_to_admissible_set(unweighted_cell_average,
+                                                                          lower_bound,
+                                                                          variables,
+                                                                          equations)
+            projected_cell_averages[element] = unweighted_projected_cell_average *
                                                sqrt_cell_volume
         end
 
