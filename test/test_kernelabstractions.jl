@@ -1,25 +1,15 @@
-module TestExamplesKernelAbstractions
+@testsnippet KernelAbstractionsExamples begin
+    EXAMPLES_DIR = examples_dir()
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
-Trixi.MPI.Barrier(Trixi.mpi_comm())
-
-@testset "basic" begin
+@testitem "KernelAbstractions backend preference" setup=[Setup] tags=[:kernelabstractions] begin
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
-@testset "KernelAbstractions CPU 2D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -31,7 +21,10 @@ end
     @test_allocations(Trixi.rhs!, ode.p, sol, 75_000)
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -45,7 +38,10 @@ end
     @test_allocations(Trixi.rhs!, ode.p, sol, 60_000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl native" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -63,7 +59,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 100_000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         l2=Float32[2.4917018095933837e-6,
@@ -82,7 +81,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 600_000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Flux Differencing Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Flux Differencing Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         l2=Float32[2.7905685982444506e-6,
@@ -103,12 +105,11 @@ end
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 600_000)
 end
-end
 
-@testset "KernelAbstractions CPU 3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -120,7 +121,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 450_000)
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -134,7 +138,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 370_000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[0.0014517629881062517,
@@ -154,7 +161,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 400_000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=Float32[0.0014518665391031068,
@@ -175,10 +185,3 @@ end
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 600_000)
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive = true)
-Trixi.MPI.Barrier(Trixi.mpi_comm())
-
-end # module
