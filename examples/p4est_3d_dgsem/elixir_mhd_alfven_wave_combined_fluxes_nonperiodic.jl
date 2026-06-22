@@ -240,7 +240,7 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (entropy,))
+                                     analysis_integrals = (entropy,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
