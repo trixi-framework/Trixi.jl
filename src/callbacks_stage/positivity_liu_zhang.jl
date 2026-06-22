@@ -171,9 +171,7 @@ function Base.show(io::IO, limiter::PositivityPreservingLimiterLiuZhang)
           Base.typename(typeof(limiter.local_limiter!)).name)
     print(io, ", global_limiter_tol=", global_limiter_tol)
     print(io, ", max_davis_yin_iterations=", max_davis_yin_iterations)
-    if history_davis_yin_iterations !== nothing
-        print(io, ", history_davis_yin_iterations=", history_davis_yin_iterations)
-    end
+    print(io, ", history_davis_yin_iterations=", history_davis_yin_iterations)
     print(io, ")")
     return nothing
 end
@@ -189,9 +187,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         setup = Pair{String, Any}["local_limiter!" => Base.typename(typeof(limiter.local_limiter!)).name,
                                   "global_limiter_tol" => global_limiter_tol,
                                   "max_davis_yin_iterations" => max_davis_yin_iterations]
-        if history_davis_yin_iterations !== nothing
-            push!(setup, "history_davis_yin_iterations" => history_davis_yin_iterations)
-        end
+        push!(setup, "history_davis_yin_iterations" => history_davis_yin_iterations)
         summary_box(io, "PositivityPreservingLimiterLiuZhang", setup)
     end
 end
