@@ -239,6 +239,9 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 100
 
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     extra_analysis_integrals = (entropy,))
+
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 cfl = 1.0
@@ -247,7 +250,7 @@ stepsize_callback = StepsizeCallback(cfl = cfl)
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
 callbacks = CallbackSet(summary_callback,
-                        alive_callback,
+                        analysis_callback, alive_callback,
                         stepsize_callback,
                         glm_speed_callback)
 
