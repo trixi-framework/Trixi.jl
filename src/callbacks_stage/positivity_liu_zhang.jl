@@ -196,6 +196,24 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
+@inline function cell_average_violates_bounds(u_mean,
+                                              equations::AbstractEquations{NDIMS, 1},
+                                              thresholds::NTuple{1, <:Real},
+                                              variables::Tuple{typeof(first)}) where {NDIMS}
+    return first(u_mean, equations) < thresholds[1]
+end
+
+# `variables` are different `(density, pressure)` with distinct function types, 
+# so we use `NTuple{2, Any}` here instead of `NTuple{2}`.
+@inline function cell_average_violates_bounds(u_mean,
+                                              equations::Union{CompressibleEulerEquations1D,
+                                                               CompressibleEulerEquations2D},
+                                              thresholds::NTuple{2},
+                                              variables::NTuple{2, Any})
+    return variables[1](u_mean, equations) < thresholds[1] ||
+           variables[2](u_mean, equations) < thresholds[2]
+end
+
 function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
                                                                 semi::AbstractSemidiscretization,
                                                                 t)
@@ -229,16 +247,12 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
         # and check if the cell average violates any of them
         cell_average_bounds_violated = false
         for element in eachelement(dg, cache)
-            # TODO: check if this loses type stability for tuples of functions
-            # since the types of the `variables` will be different for e.g., (pressure, density).
-            for (index, variable) in enumerate(local_limiter!.variables)
-                if variable(cell_averages[element], equations) <
-                   local_limiter!.thresholds[index]
-                    cell_average_bounds_violated = true
-                    break
-                end
+            if cell_average_violates_bounds(cell_averages[element], equations,
+                                            local_limiter!.thresholds,
+                                            local_limiter!.variables)
+                cell_average_bounds_violated = true
+                break
             end
-            cell_average_bounds_violated && break
         end
 
         # if any cell average violates a positivity bound, apply the global limiter
