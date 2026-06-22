@@ -9,7 +9,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Step function initial condition which is 1 on [-0.5, 0.5] and zero elsewhere
 function initial_condition_heaviside_step(x, t, equations::LinearScalarAdvectionEquation2D)
-    x1, x2 = x[1], x[2]
+    x1, x2 = x
     u = abs(x1) < 0.5f0 && abs(x2) < 0.5f0 ? one(x1) : zero(x1)
     return SVector(u)
 end
@@ -73,5 +73,5 @@ sol = solve(ode,
             CarpenterKennedy2N54(; stage_limiter! = global_limiter!,
                                  step_limiter! = global_limiter!,
                                  williamson_condition = false);
-            adaptive = false, dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

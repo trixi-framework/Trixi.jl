@@ -9,7 +9,7 @@ equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Step function initial condition which is 1 on [-0.5, 0.5]^3 and zero elsewhere
 function initial_condition_heaviside_step(x, t, equations::LinearScalarAdvectionEquation3D)
-    x1, x2, x3 = x[1], x[2], x[3]
+    x1, x2, x3 = x
     u = abs(x1) < 0.5f0 && abs(x2) < 0.5f0 && abs(x3) < 0.5f0 ? one(x1) : zero(x1)
     return SVector(u)
 end
