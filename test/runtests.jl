@@ -48,19 +48,24 @@ end
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
 # re-enters this file with `TRIXI_TEST=<suite>` and `TRIXI_TEST_RUN_ITEMS=true`.
+# We use `addenv` (not `setenv`) so that we *merge* these variables into the
+# command's environment rather than replacing it: `MPI.mpiexec()` returns a `Cmd`
+# whose environment carries the library paths needed by the bundled `mpiexec`
+# (e.g. `libhwloc`), which `setenv` would wipe out.
+function run_worker(cmd, suite)
+    run(addenv(cmd, "TRIXI_TEST_RUN_ITEMS" => "true", "TRIXI_TEST" => suite))
+end
+
 function dispatch_special_suite(suite)
-    worker_env = copy(ENV)
-    worker_env["TRIXI_TEST_RUN_ITEMS"] = "true"
-    worker_env["TRIXI_TEST"] = suite
     project = dirname(Base.active_project())
     julia = Base.julia_cmd()
 
     if suite == "mpi"
         cmd = `$(MPI.mpiexec()) -n $TRIXI_MPI_NPROCS $julia --threads=1 --check-bounds=yes --heap-size-hint=0.5G --project=$project $(@__FILE__)`
-        run(setenv(cmd, worker_env))
+        run_worker(cmd, suite)
     elseif suite == "threaded" || suite == "threaded_legacy"
         cmd = `$julia --threads=$TRIXI_NTHREADS --check-bounds=yes --code-coverage=none --project=$project $(@__FILE__)`
-        run(setenv(cmd, worker_env))
+        run_worker(cmd, suite)
     elseif suite == "kernelabstractions"
         # The threading backend is selected via a preference that is read on Julia
         # startup, so we set it here (in the parent) and restore it afterwards;
@@ -69,7 +74,7 @@ function dispatch_special_suite(suite)
         Trixi.set_threading_backend!(:kernelabstractions)
         try
             cmd = `$julia --threads=$TRIXI_NTHREADS --check-bounds=yes --project=$project $(@__FILE__)`
-            run(setenv(cmd, worker_env))
+            run_worker(cmd, suite)
         finally
             Trixi.set_threading_backend!(Symbol(previous_backend))
         end
