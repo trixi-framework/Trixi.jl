@@ -60,8 +60,8 @@ function prolong2coupledmortars!(cache, u, mesh::P4estMeshView{2}, equations,
                 multiply_dimensionwise!(view(cache.coupled_mortars.u,2,:,1,:,
                                         mortar),
                                         mortar_l2.forward_lower, u_buffer)
-                multiply_dimensionwise!(view(cache.coupled_mortars.u,2,:,2,:,
-                                        mortar),
+                multiply_dimensionwise!(view(cache.coupled_mortars.u, 2, :, 2, :,
+                                             mortar),
                                         mortar_l2.forward_upper, u_buffer)
             else # position in (1, 2) - Small element
                 # Copy solution data from the small elements
