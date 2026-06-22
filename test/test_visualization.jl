@@ -240,7 +240,7 @@ end
 
     @testset "BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
-                                     "elixir_advection_basic.jl"))
+                                     "elixir_advection_basic.jl"), m=Module())
 
         u_fv = sol.u[end]
         mesh_fv = semi.mesh
