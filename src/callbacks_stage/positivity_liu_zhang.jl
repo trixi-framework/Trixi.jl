@@ -102,7 +102,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     history_davis_yin_iterations = Vector{Int}(undef, 0)
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
-                                               davis_yin_dual_vars, projected_cell_averages,
+                                               davis_yin_dual_vars,
+                                               projected_cell_averages,
                                                sqrt_cell_volumes, total_volume,
                                                global_limiter_tol,
                                                max_davis_yin_iterations,
@@ -172,7 +173,8 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
 
             @trixi_timeit timer() "global cell-average limiter" begin
                 global_cell_average_limiter!(u, cell_averages,
-                                             davis_yin_dual_vars, projected_cell_averages,
+                                             davis_yin_dual_vars,
+                                             projected_cell_averages,
                                              sqrt_cell_volumes, total_volume,
                                              local_limiter!.thresholds,
                                              local_limiter!.variables,
