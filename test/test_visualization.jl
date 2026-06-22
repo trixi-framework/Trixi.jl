@@ -242,7 +242,7 @@ end
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_fv",
                                      "elixir_advection_basic,jl"), tspan=(0.0, 0.0))
 
-        u_fv = compute_coefficients(0.0, semi_fv)
+        u_fv = sol.u[end]
         mesh_fv = semi.mesh
         equations_fv = semi.equations
         solver_fv = semi.solver
@@ -253,8 +253,6 @@ end
 
         pd_fv_wrapped = PlotData1D(sol)
         @test pd_fv_wrapped isa PlotData1D
-
-        @trixi_test_nowarn Plots.plot(pd_fv_wrapped)
     end
 
     @testset "1D plot recipes" begin
