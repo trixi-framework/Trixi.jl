@@ -205,9 +205,7 @@ end
                                      0.00019839944646198146],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
-                        storage_type=CuArray,
-                        save_solution=nothing,
-                        analysis_callback=nothing)
+                        storage_type=CuArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.

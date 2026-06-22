@@ -238,13 +238,8 @@ ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
-alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl = cfl)
@@ -252,8 +247,7 @@ stepsize_callback = StepsizeCallback(cfl = cfl)
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
+                        alive_callback,
                         stepsize_callback,
                         glm_speed_callback)
 

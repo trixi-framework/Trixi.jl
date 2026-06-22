@@ -201,9 +201,7 @@ end
                             0.002515549812865392,
                             0.004448527707559019,
                             0.0001983994478820785
-                        ],
-                        save_solution=nothing,
-                        analysis_callback=nothing)
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
@@ -225,9 +223,7 @@ end
                                      0.002515549802432071, 0.004448527671538249,
                                      0.00019839944646198146],
                         RealT_for_test_tolerances=Float32,
-                        real_type=Float32,
-                        save_solution=nothing,
-                        analysis_callback=nothing)
+                        real_type=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
