@@ -87,16 +87,9 @@ global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)
-solver = RDPK3SpFSAL35(; stage_limiter! = global_limiter!, step_limiter! = global_limiter!)
-kwargs = (; adaptive = false, dt = 1, ode_default_options()...)
 
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
-solver = RDPK3SpFSAL35(; stage_limiter! = global_limiter!, step_limiter! = global_limiter!)
-kwargs = (; adaptive = true, dt = 1e-7, abstol = 1e-5, reltol = 1e-5,
-          ode_default_options()...)
-
-sol = solve(ode, solver;
-            kwargs..., callback = callbacks);
-
-using Plots
-plot(PlotData1D(sol.u[end], semi)["rho"], yaxis = :log)
+sol = solve(ode,
+            RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
+                          step_limiter! = global_limiter!);
+            adaptive = false, dt = 1.0, # overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);

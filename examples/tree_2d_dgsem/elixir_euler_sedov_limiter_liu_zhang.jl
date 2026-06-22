@@ -10,7 +10,7 @@ equations = CompressibleEulerEquations2D(gamma)
 """
     initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
 
-The Sedov blast wave setup based on example 35.1.4 from Flash
+A slight modification of the Sedov blast wave setup based on example 35.1.4 from Flash
 - https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
@@ -25,7 +25,9 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     r0 = 0.5
     E = 1
     p0_inner = 3 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0^2)
-    p0_outer = convert(RealT, 1.0e-6) # slightly smaller initial pressure to trigger the limiter
+
+    # slightly smaller initial pressure to trigger the Liu-Zhang limiter
+    p0_outer = convert(RealT, 1.0e-6) 
 
     # Calculate primitive variables
     rho = 1
@@ -73,26 +75,13 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max = 0.5,
-                                          alpha_min = 0.001,
-                                          alpha_smooth = true,
-                                          variable = density_pressure)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 4,
-                                      max_level = 6, max_threshold = 0.01)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
 stepsize_callback = StepsizeCallback(cfl = 1.8)
 
 ###############################################################################
 # run the simulation
 
 callbacks = CallbackSet(summary_callback, analysis_callback,
-                        alive_callback, stepsize_callback, amr_callback)
+                        alive_callback, stepsize_callback)
 
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-8, 1e-8),
                                                      variables = (Trixi.density,
@@ -105,8 +94,5 @@ ode_solver = CarpenterKennedy2N54(; stage_limiter! = global_limiter!,
                                   williamson_condition = false)
 
 sol = solve(ode, ode_solver;
-            adaptive = false, dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-using Plots
-plot(PlotData2D(sol.u[end], semi)["rho"])
