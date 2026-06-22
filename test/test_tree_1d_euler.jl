@@ -393,11 +393,12 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_leblanc_shock_tube.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_leblanc_shock_tube.jl"),
-                        l2=[0.212649346, 0.0596065510, 0.0249220119],
-                        linf=[0.576394303, 0.105466213, 0.0629789012])
-    @test global_limiter!.history_davis_yin_iterations[1] == 42
+@trixi_testset "elixir_euler_leblanc_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_leblanc_limiter_liu_zhang.jl"),
+                        l2=[0.212900601, 0.0596467559, 0.0249364541],
+                        linf=[0.577864839, 0.105468742, 0.0630698303])
+    @test length(global_limiter!.history_davis_yin_iterations) == 1
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
