@@ -44,11 +44,11 @@ splitting iteration in the global cell-average limiter, and `max_davis_yin_itera
 the maximum number of Davis-Yin iterations per global limiting step.
 
 If `record_davis_yin_iterations` is `true`, the number of Davis-Yin iterations used at each
-global limiting step is appended to `history_davis_yin_iterations`.
+global limiting step is saved to the field `history_davis_yin_iterations` of the limiter.
 """
 mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    CellAverages <: AbstractVector,
-                                                   DavisYinZ <: AbstractVector,
+                                                   DavisYinDualVars <: AbstractVector,
                                                    ProjectedCellAverages <:
                                                    AbstractVector,
                                                    SqrtCellVolumes <:
@@ -98,7 +98,7 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     davis_yin_Z = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
 
-    history_davis_yin_iterations = Int[]
+    history_davis_yin_iterations = Vector{Int64}(undef)
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_Z, projected_cell_averages,
@@ -135,7 +135,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                 cell_averages[element] = compute_u_mean(u, element, mesh, equations, dg,
                                                         cache)
             end
-        end # @trixi_timeit
+        end
 
         # loop through all positivity bounds enforced by the local limiter,
         # and check if the cell average violates any of them
