@@ -255,7 +255,7 @@ end
         pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
         @test pd_fv_explicit isa PlotData1D
 
-        pd_fv_wrapped = PlotData1D(sol)
+        pd_fv_wrapped = PlotData1D(bfv_workspace.sol)
         @test pd_fv_wrapped isa PlotData1D
     end
     @testset "1D plot recipes" begin
