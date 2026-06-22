@@ -205,11 +205,6 @@ To ensure that `variables` is consistent with this assumption, users must set
     return SVector(max(lower_bound[1], cell_average[1]))
 end
 
-@inline function get_cell_volume(element, mesh::TreeMesh{NDIMS}, equations, dg,
-                                 cache) where {NDIMS}
-    return 2^NDIMS * volume_jacobian(element, mesh, cache)
-end
-
 function global_cell_average_limiter!(u, cell_averages,
                                       davis_yin_Z, projected_cell_averages,
                                       sqrt_cell_volumes, total_volume,
