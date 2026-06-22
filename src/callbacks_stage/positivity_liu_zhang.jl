@@ -346,7 +346,7 @@ function global_cell_average_limiter!(u, cell_averages,
             sqrt_cell_volume = sqrt_cell_volumes[element]
             unweighted_cell_average = davis_yin_dual_vars[element] / sqrt_cell_volume
             unweighted_projected_cell_average = project_to_admissible_set(unweighted_cell_average,
-                                                                          lower_bound,
+                                                                          lower_bounds,
                                                                           variables,
                                                                           equations)
             projected_cell_averages[element] = unweighted_projected_cell_average *
