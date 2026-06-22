@@ -52,16 +52,7 @@ tspan = (0.0, 2 / 3)
 
 surface_flux = flux_lax_friedrichs
 basis = LobattoLegendreBasis(7)
-
-# volume_integral = VolumeIntegralWeakForm()
 volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
-
-# indicator_ec = IndicatorEntropyCorrection(equations, basis)
-# volume_integral_default = VolumeIntegralWeakForm()
-# volume_integral_entropy_stable = VolumeIntegralPureLGLFiniteVolume(surface_flux)
-# volume_integral = VolumeIntegralAdaptive(indicator_ec,
-#                                          volume_integral_default,
-#                                          volume_integral_entropy_stable)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
