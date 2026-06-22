@@ -157,7 +157,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                                sqrt_cell_volumes, total_volume,
                                                global_limiter_tol,
                                                max_davis_yin_iterations,
-                                               projection_thresholds, projection_variables,
+                                               projection_thresholds,
+                                               projection_variables,
                                                record_davis_yin_iterations,
                                                history_davis_yin_iterations)
 end
@@ -177,7 +178,8 @@ function Base.show(io::IO, limiter::PositivityPreservingLimiterLiuZhang)
     return nothing
 end
 
-function Base.show(io::IO, ::MIME"text/plain", limiter::PositivityPreservingLimiterLiuZhang)
+function Base.show(io::IO, ::MIME"text/plain",
+                   limiter::PositivityPreservingLimiterLiuZhang)
     @nospecialize limiter # reduce precompilation time
     (; global_limiter_tol, max_davis_yin_iterations, history_davis_yin_iterations) = limiter
 
