@@ -24,6 +24,20 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions")
 const IN_WORKER = haskey(ENV, "TRIXI_TEST_RUN_ITEMS")
 
+# Remove Trixi's output directory `out`, where examples write solution/restart/mesh
+# files. We do this once at the start of a run *and* register it to run again when
+# the process exits (`atexit`, so it also fires when a test set fails and throws),
+# leaving a clean working tree behind. Only the parent process handles this: workers
+# share the working directory and finish before the parent exits, so a single
+# cleanup here avoids races on `out`.
+function clean_outdir()
+    isdir("out") && rm("out", recursive = true, force = true)
+end
+if !IN_WORKER
+    clean_outdir()
+    atexit(clean_outdir)
+end
+
 target_tag(suite) = suite == "threaded_legacy" ? :threaded : Symbol(suite)
 
 # Special suites this (parent) invocation will dispatch into their own processes.
