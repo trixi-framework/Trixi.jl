@@ -9,7 +9,8 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Step function initial condition which is 1 on [-0.5, 0.5] and zero elsewhere
 function initial_condition_heaviside_step(x, t, equations::LinearScalarAdvectionEquation2D)
-    u = abs(x[1]) < 0.5 && abs(x[2]) < 0.5 ? 1.0 : 0.0
+    x1, x2 = x
+    u = abs(x1) < 0.5f0 && abs(x2) < 0.5f0 ? one(x1) : zero(x1)
     return SVector(u)
 end
 initial_condition = initial_condition_heaviside_step
@@ -17,10 +18,9 @@ initial_condition = initial_condition_heaviside_step
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
+# Create a uniformly refined mesh with periodic boundaries
 coordinates_min = (-1.0, -1.0) # minimum coordinate
 coordinates_max = (1.0, 1.0) # maximum coordinate
-
-# Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
                 periodicity = true)
@@ -33,7 +33,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
+# Create ODE problem with given time span
 ode = semidiscretize(semi, (0.0, 4.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -57,8 +57,15 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 ###############################################################################
 # run the simulation
 
+# The Zhang-Shu limiter does not work by itself. Using the Liu-Zhang limiter
+# resolves this by redistributing cell averages to satisfy positivity constraints.
+# Note the threshold is significantly larger than implied by the initial condition
+# to stress-test the limiter.
+# 
+# For scalar equations, the projection to the admissible set assumes that 
+# `variables = (first,)` for the Liu-Zhang limiter.
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-1,),
-                                                     variables = ((u, equations) -> u[1],))
+                                                     variables = (first,))
 global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
                                                       record_davis_yin_iterations = true)
 
@@ -66,5 +73,5 @@ sol = solve(ode,
             CarpenterKennedy2N54(; stage_limiter! = global_limiter!,
                                  step_limiter! = global_limiter!,
                                  williamson_condition = false);
-            adaptive = false, dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

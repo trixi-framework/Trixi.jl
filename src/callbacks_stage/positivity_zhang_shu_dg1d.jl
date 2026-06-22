@@ -25,10 +25,11 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         value_mean = variable(u_mean, equations)
         theta = (value_mean - threshold) / (value_mean - value_min)
 
-        # this avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
         # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
-        # which results in invalid theta values outside of [0, 1].
-        theta = max(0, min(1, theta))
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds. 
+        theta = max(0, theta)
 
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
