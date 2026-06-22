@@ -46,12 +46,24 @@ if "kernelabstractions" in SUITES_TO_DISPATCH
     import Trixi
 end
 
+# The GPU suites run their items only when the respective backend is `functional()`,
+# so requesting `CUDA`/`AMDGPU` on a machine without that GPU warns and runs nothing
+# instead of erroring.
+RUN_CUDA = false
+if !IN_WORKER && TRIXI_TEST in ("all", "CUDA")
+    import CUDA
+    RUN_CUDA = CUDA.functional()
+    RUN_CUDA || @warn "Unable to run CUDA tests on this machine"
+end
+RUN_AMDGPU = false
+if !IN_WORKER && TRIXI_TEST in ("all", "AMDGPU")
+    import AMDGPU
+    RUN_AMDGPU = AMDGPU.functional()
+    RUN_AMDGPU || @warn "Unable to run AMDGPU tests on this machine"
+end
+
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
 # re-enters this file with `TRIXI_TEST=<suite>` and `TRIXI_TEST_RUN_ITEMS=true`.
-# We use `addenv` (not `setenv`) so that we *merge* these variables into the
-# command's environment rather than replacing it: `MPI.mpiexec()` returns a `Cmd`
-# whose environment carries the library paths needed by the bundled `mpiexec`
-# (e.g. `libhwloc`), which `setenv` would wipe out.
 function run_worker(cmd, suite)
     run(addenv(cmd, "TRIXI_TEST_RUN_ITEMS" => "true", "TRIXI_TEST" => suite))
 end
@@ -110,6 +122,9 @@ else
         if CI_ON_WINDOWS && :mpi_skip_windows in ti.tags
             return false
         end
+        # GPU items run only when the respective backend is functional.
+        :CUDA in ti.tags && !RUN_CUDA && return false
+        :AMDGPU in ti.tags && !RUN_AMDGPU && return false
         return true
     end
 end
