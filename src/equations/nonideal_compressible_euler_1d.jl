@@ -86,7 +86,7 @@ equation of state routines are assumed to be evaluated in terms of `V` and `T`.
     V = inv(rho)
     v1 = rho_v1 * V
     e_internal = (rho_e_total - 0.5f0 * rho_v1 * v1) * V
-    T = temperature_given_Ve(V, e_internal, eos)
+    T = temperature(V, e_internal, eos)
 
     return SVector(V, v1, T)
 end

@@ -522,7 +522,7 @@ end
     v1 = rho_v1 * V
     v2 = rho_v2 * V
     e_internal = energy_internal(u, equations) * V
-    T = temperature_given_Ve(V, e_internal, eos)
+    T = temperature(V, e_internal, eos)
 
     return SVector(V, v1, v2, T)
 end
