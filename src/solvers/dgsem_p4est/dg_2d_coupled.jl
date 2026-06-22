@@ -276,7 +276,7 @@ function calc_coupled_mortar_flux!(surface_flux_values, mesh::P4estMeshView{2},
     @unpack local_neighbor_ids, local_neighbor_positions,
             node_indices = cache.coupled_mortars
     @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-            u_threaded = cache
+    u_threaded = cache
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     index_range = eachnode(dg)
 
