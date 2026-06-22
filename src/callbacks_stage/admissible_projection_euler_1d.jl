@@ -15,8 +15,8 @@
 end
 
 # for compressible Euler, we introduce a small tolerance close to 
-# machine precision to relax the strict inequalities enforced by the 
-# constraints. 
+# machine precision to relax constraints. This is intended to account 
+# for roundoff effects. 
 @inline function euler_arithmetic_tol(rho_floor, rho_e_floor)
     T = promote_type(typeof(rho_floor), typeof(rho_e_floor))
     return 10 * eps(T)
