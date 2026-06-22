@@ -131,5 +131,5 @@ end
 
 # Iterator for coupled mortars
 @inline eachcoupledmortar(dg,
-                          cache) = Base.OneTo(ncoupledmortars(cache.coupled_mortars))
+cache) = Base.OneTo(ncoupledmortars(cache.coupled_mortars))
 end # @muladd
