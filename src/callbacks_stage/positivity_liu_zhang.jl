@@ -98,7 +98,8 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     davis_yin_dual_vars = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
 
-    history_davis_yin_iterations = Vector{Int64}(undef)
+    # initialize empty length-0 history of Davis-Yin iterations 
+    history_davis_yin_iterations = Vector{Int}(undef, 0)
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_dual_vars, projected_cell_averages,
