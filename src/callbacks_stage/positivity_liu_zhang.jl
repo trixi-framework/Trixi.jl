@@ -56,7 +56,7 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    RealT <: Real}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
-    davis_yin_Z::DavisYinZ
+    davis_yin_dual_vars::DavisYinDualVars
     projected_cell_averages::ProjectedCellAverages
     sqrt_cell_volumes::SqrtCellVolumes
     total_volume::RealT
@@ -95,13 +95,13 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     # create resizable arrays
     T = SVector{nvariables(equations), uEltype}
     cell_averages = Vector{T}(undef, n_elements)
-    davis_yin_Z = Vector{T}(undef, n_elements)
+    davis_yin_dual_vars = Vector{T}(undef, n_elements)
     projected_cell_averages = Vector{T}(undef, n_elements)
 
     history_davis_yin_iterations = Vector{Int64}(undef)
 
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
-                                               davis_yin_Z, projected_cell_averages,
+                                               davis_yin_dual_vars, projected_cell_averages,
                                                sqrt_cell_volumes, total_volume,
                                                global_limiter_tol,
                                                max_davis_yin_iterations,
@@ -113,7 +113,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                                                 semi::AbstractSemidiscretization,
                                                                 t)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; local_limiter!, cell_averages, davis_yin_Z, projected_cell_averages,
+    (; local_limiter!, cell_averages, davis_yin_dual_vars, projected_cell_averages,
     sqrt_cell_volumes, total_volume, global_limiter_tol, max_davis_yin_iterations,
     record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
@@ -124,7 +124,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
         n_elements = nelements(dg, cache)
         if length(cell_averages) != n_elements
             resize!(cell_averages, n_elements)
-            resize!(davis_yin_Z, n_elements)
+            resize!(davis_yin_dual_vars, n_elements)
             resize!(projected_cell_averages, n_elements)
             resize!(sqrt_cell_volumes, n_elements)
         end
@@ -171,7 +171,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
 
             @trixi_timeit timer() "global cell-average limiter" begin
                 global_cell_average_limiter!(u, cell_averages,
-                                             davis_yin_Z, projected_cell_averages,
+                                             davis_yin_dual_vars, projected_cell_averages,
                                              sqrt_cell_volumes, total_volume,
                                              local_limiter!.thresholds,
                                              local_limiter!.variables,
@@ -208,7 +208,7 @@ To ensure that `variables` is consistent with this assumption, users must set
 end
 
 function global_cell_average_limiter!(u, cell_averages,
-                                      davis_yin_Z, projected_cell_averages,
+                                      davis_yin_dual_vars, projected_cell_averages,
                                       sqrt_cell_volumes, total_volume,
                                       lower_bound, variables,
                                       global_limiter_tol,
@@ -232,7 +232,7 @@ function global_cell_average_limiter!(u, cell_averages,
     # of the Davis-Yin iteration for non-uniform meshes. 
     # 
     # Davis-Yin splitting uses variables X (stored in `projected_cell_averages`), Y, and 
-    # Z (stored in `davis_yin_Z`), where 
+    # Z (stored in `davis_yin_dual_vars`), where 
     # - Z is the "dual variable" and solution that is returned by the iteration.
     # - X is the projection of Z onto the admissible set.
     # - Y is the primal variable, through which conservation and admissibility constraints are coupled.
@@ -255,13 +255,13 @@ function global_cell_average_limiter!(u, cell_averages,
     # 
     # Step 1-4 are repeated until ||X - X_{1/2}||_{L^2} is smaller than the tolerance.
     # 
-    # The implementation uses only two buffers: X (projected_cell_averages) and Z (davis_yin_Z).
+    # The implementation uses only two buffers: X (projected_cell_averages) and Z (davis_yin_dual_vars).
     # The vector Y is not stored explicitly, but is recalculated step 3.
 
     # Step 0: initialize dual variable Z = u_avg * sqrt(cell_volume)
     @threaded for element in eachelement(dg, cache)
         sqrt_cell_volume = sqrt_cell_volumes[element]
-        davis_yin_Z[element] = cell_averages[element] * sqrt_cell_volume
+        davis_yin_dual_vars[element] = cell_averages[element] * sqrt_cell_volume
     end
 
     num_davis_yin_iterations = 0
@@ -271,7 +271,7 @@ function global_cell_average_limiter!(u, cell_averages,
         # Step 1: projection to admissible set
         @threaded for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
-            unweighted_cell_average = davis_yin_Z[element] / sqrt_cell_volume
+            unweighted_cell_average = davis_yin_dual_vars[element] / sqrt_cell_volume
             unweighted_projected_cell_average = project_to_admissible_set(unweighted_cell_average,
                                                                           lower_bound,
                                                                           variables,
@@ -281,11 +281,11 @@ function global_cell_average_limiter!(u, cell_averages,
         end
 
         # Step 2: calculate primal variable Y and conservation residual
-        global_integral_Y = zero(first(davis_yin_Z))
+        global_integral_Y = zero(first(davis_yin_dual_vars))
         for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
-            Y = projected_cell_averages[element] - davis_yin_Z[element] +
+            Y = projected_cell_averages[element] - davis_yin_dual_vars[element] +
                 u_weighted_target
             global_integral_Y = global_integral_Y + sqrt_cell_volume * Y
         end
@@ -295,7 +295,7 @@ function global_cell_average_limiter!(u, cell_averages,
         residual_squared = zero(real(mesh))
         for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
-            Z_old = davis_yin_Z[element]
+            Z_old = davis_yin_dual_vars[element]
             P = projected_cell_averages[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
 
@@ -304,7 +304,7 @@ function global_cell_average_limiter!(u, cell_averages,
             X = Y + (sqrt_cell_volume / total_volume) * conservation_residual
 
             # update dual variable Z
-            davis_yin_Z[element] = Z_old + (X - P)
+            davis_yin_dual_vars[element] = Z_old + (X - P)
 
             # calculate residual
             residual_squared += sum(abs2, X - P)
@@ -329,7 +329,7 @@ function global_cell_average_limiter!(u, cell_averages,
     @threaded for element in eachelement(dg, cache)
         old_cell_average = cell_averages[element]
         sqrt_cell_volume = sqrt_cell_volumes[element]
-        new_cell_average = project_to_admissible_set(davis_yin_Z[element] /
+        new_cell_average = project_to_admissible_set(davis_yin_dual_vars[element] /
                                                      sqrt_cell_volume,
                                                      lower_bound, variables, equations)
         set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
