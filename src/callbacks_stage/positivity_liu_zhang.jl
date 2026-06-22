@@ -141,6 +141,8 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
         # and check if the cell average violates any of them
         cell_average_bounds_violated = false
         for element in eachelement(dg, cache)
+            # TODO: check if this loses type stability for tuples of functions
+            # since the types of the `variables` will be different for e.g., (pressure, density).
             for (index, variable) in enumerate(local_limiter!.variables)
                 if variable(cell_averages[element], equations) <
                    local_limiter!.thresholds[index]
