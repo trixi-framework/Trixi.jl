@@ -55,8 +55,7 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    AbstractVector{<:Real},
                                                    RealT <: Real,
                                                    ProjectionThresholds,
-                                                   ProjectionVariables,
-                                                   HistoryDavisYinIterations}
+                                                   ProjectionVariables}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
     davis_yin_dual_vars::DavisYinDualVars
