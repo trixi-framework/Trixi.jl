@@ -173,11 +173,11 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, FluxVolumeTurbo(flux_ranocha)" begin
+@timed_testset "StructuredMesh3D, FluxTurbo(flux_ranocha)" begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
-                  volume_flux = FluxVolumeTurbo(flux_ranocha),
+                  volume_flux = FluxTurbo(flux_ranocha),
                   surface_flux = flux_ranocha)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
@@ -189,7 +189,7 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version 
+        # Call the optimized version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -197,7 +197,7 @@ end
                                         semi.solver, semi.cache, true)
         du_specialized = copy(du[:, :, :, :, 1])
 
-        # Call the plain version 
+        # Call the plain version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -208,11 +208,11 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, FluxVolumeTurbo(flux_shima_etal)" begin
+@timed_testset "StructuredMesh3D, FluxTurbo(flux_shima_etal)" begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
-                  volume_flux = Trixi.FluxVolumeTurbo(flux_shima_etal),
+                  volume_flux = Trixi.FluxTurbo(flux_shima_etal),
                   surface_flux = flux_shima_etal)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
@@ -224,7 +224,7 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version 
+        # Call the optimized version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -232,7 +232,7 @@ end
                                         semi.solver, semi.cache, true)
         du_specialized = copy(du[:, :, :, :, 1])
 
-        # Call the plain version 
+        # Call the plain version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
