@@ -579,7 +579,6 @@ end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
 
-#TODO: Expand the docstring and explain what is required for this to work 
 """
     FluxTurbo(numerical_flux)
 
@@ -589,6 +588,14 @@ except that it may use specialized methods, e.g., when used with
 may enable better use of SIMD instructions to increase runtime efficiency
 on modern hardware, e.g., using 
 [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
+The following specialization works by default for all numerical fluxes,
+enabling SIMD instructions. However, for some systems, it is cheaper to precompute a set variables
+(e.g., primitive variables and or logarithm of certain variables) and then compute the numerical fluxes. 
+This optimization can be enabled by defining three ingredients: the number of precomputed variables `nturbovars`; 
+the transformation from conservative to precomputed variables `cons2turbo`; and the 
+`volume_turbo_flux(volume_flux::typeof(numercal_flux), ...)`, that computes the numerical flux
+in terms of the precomputed variables.
+See also [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
 """
 struct FluxTurbo{NumericalFlux}
     numerical_flux::NumericalFlux
