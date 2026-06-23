@@ -50,7 +50,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                                                        min)],
                                 # Default parameters are not sufficient to fulfill bounds properly.
                                 max_iterations_newton = 400,
-                                newton_tolerances = (1.0e-13, 1.0e-14))
+                                newton_tolerances = (1.0e-13, 1.0e-14),
+                                bar_states = false)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -107,7 +108,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true,
                            limiter! = positivity_limiter)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.5, bar_states = false)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
