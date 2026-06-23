@@ -230,7 +230,7 @@ end
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, :, 1]
+        du_specialized = copy(du[:, :, :, :, 1])
 
         # Call the plain version 
         du .= 0
