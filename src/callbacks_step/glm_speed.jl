@@ -87,8 +87,7 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-    c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver,
-                                            cache)
+    c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
 
     # c_h is proportional to its own time step divided by the complete MHD time step
     # We use @reset here since the equations are immutable (to work on GPUs etc.).
