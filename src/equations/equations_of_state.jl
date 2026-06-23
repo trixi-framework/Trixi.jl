@@ -75,7 +75,7 @@ eos_newton_maxiter(eos) = 20
                 maxiter = eos_newton_maxiter(eos))
 
 Calculates the temperature as a function of specific volume `V` and internal energy `e`
-by forwarding to [`temperature_given_Ve`](@ref).
+by forwarding to [`Trixi.temperature_given_Ve`](@ref).
 
 To compute the temperature from specific volume `V` and pressure `p`,
 use [`temperature_given_Vp`](@ref) instead.
