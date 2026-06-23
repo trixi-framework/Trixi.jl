@@ -131,8 +131,10 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         for old_element_id in 1:old_n_elements
             if needs_refinement[old_element_id]
                 # Refine element and store solution directly in new data structure
+                #TODO(Shahu)
                 refine_element!(u, element_id, old_u, old_element_id,
-                                adaptor, equations, dg)
+                                adaptor.forward_upper, adaptor.forward_lower,
+                                equations, dg)
 
                 if mesh isa P4estMesh
                     # Before `element_id` is incremented, divide by the new Jacobians on each
@@ -601,4 +603,22 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
     return nothing
 end
+
+
+function refine!(::Nothing, elements_to_refine, adaptor,
+                 mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                 equations, dg, cache, u_ode)
+    
+    return refine!(elements_to_refine, adaptor, mesh, equations, dg, cache, u_ode)
+end
+
+function coarsen!(::Nothing, elements_to_coarsen, adaptor,
+                  mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                  equations, dg, cache, u_ode)
+    
+    return coarsen!(elements_to_coarsen, adaptor, mesh, equations, dg, cache, u_ode)
+end
+
+
+
 end # @muladd
