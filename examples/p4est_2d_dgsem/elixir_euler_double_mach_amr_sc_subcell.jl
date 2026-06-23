@@ -263,7 +263,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 30,
+                                max_iterations_newton = 100,
                                 bar_states = false)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -300,6 +300,9 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
+
+save_restart = SaveRestartCallback(interval = 10000,
+                                   save_final_restart = true)
 
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
                                                      variables = (Trixi.density, pressure))

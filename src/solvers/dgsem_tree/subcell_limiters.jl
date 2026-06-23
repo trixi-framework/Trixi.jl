@@ -382,11 +382,11 @@ end
                                   variable, min_or_max)
     end
 
-    @trixi_timeit timer() "conservative variables" for var_index in positivity_variables_cons
+    @trixi_timeit timer() "positivity: conservative variables" for var_index in positivity_variables_cons
         limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
     end
 
-    @trixi_timeit timer() "nonlinear variables" for variable in positivity_variables_nonlinear
+    @trixi_timeit timer() "positivity: nonlinear variables" for variable in positivity_variables_nonlinear
         limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
     end
 
