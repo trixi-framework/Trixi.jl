@@ -586,16 +586,20 @@ Create a numerical flux equivalent to the given `numerical_flux`
 except that it may use specialized methods, e.g., when used with
 [`VolumeIntegralFluxDifferencing`](@ref). These specialized methods
 may enable better use of SIMD instructions to increase runtime efficiency
-on modern hardware, e.g., using 
+on modern hardware, e.g., using
 [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
+
 The following specialization works by default for all numerical fluxes,
-enabling SIMD instructions. However, for some systems, it is cheaper to precompute a set variables
-(e.g., primitive variables and or logarithm of certain variables) and then compute the numerical fluxes. 
-This optimization can be enabled by defining three ingredients: the number of precomputed variables `nturbovars`; 
-the transformation from conservative to precomputed variables `cons2turbo`; and the 
-`volume_turbo_flux(volume_flux::typeof(numercal_flux), ...)`, that computes the numerical flux
-in terms of the precomputed variables.
-See also [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
+enabling SIMD instructions. However, for some systems, it is even better
+to precompute some variables (e.g., primitive variables or logarithms of certain variables)
+and then compute the numerical fluxes.
+This optimization can be enabled by defining three ingredients:
+- the number of precomputed variables `nturbovars`;
+- the transformation from conservative to precomputed variables `cons2turbo`
+- and the  `volume_turbo_flux(volume_flux::typeof(numerical_flux), ...)`,
+  that computes the numerical flux in terms of the precomputed variables.
+
+See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
 """
 struct FluxTurbo{NumericalFlux}
     numerical_flux::NumericalFlux
@@ -628,7 +632,7 @@ end
     return volume_flux(u_ll, u_rr, normal_direction, equations)
 end
 
-# Allow LoopVectorization to use SIMD instructions on volume_flux_turbo and cons2turbo
+# Allow LoopVectorization.jl to use SIMD instructions on volume_flux_turbo and cons2turbo
 LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
 LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
 
