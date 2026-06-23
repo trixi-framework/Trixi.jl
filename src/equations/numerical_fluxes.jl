@@ -605,12 +605,21 @@ struct FluxTurbo{NumericalFlux}
     numerical_flux::NumericalFlux
 end
 
+# As a fallback method, the wrapped flux is called.
+@inline (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
+                       equations)
+    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
+
 # By default the turbo flux has the same number of precomputed variables
 # as the number of variables.
 @inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
 
 # Transform the conserved variables in precomputed auxiliary variables to speed up the computation
 # of the numerical flux. When no specialization is given, this gives cons2cons.
+# Note that the conserved variables are passed as scalars instead of a vector
+# to enable optimizations by LoopVectorization.jl. Thus, we use
+# `conserved_and_equations...` instead of `cons, equations`.
 @inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
 # Numerical volume flux that recalls the plain volume flux when no specialization is given.

@@ -74,7 +74,7 @@ using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices, AbstractSIMD
 else
-    using LoopVectorization: LoopVectorization, indices
+    using LoopVectorization: LoopVectorization, indices, AbstractSIMD
     include("auxiliary/mock_turbo.jl")
 end
 
