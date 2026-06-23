@@ -177,7 +177,7 @@ end
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
-                  volume_flux = Trixi.FluxVolumeTurbo(flux_ranocha),
+                  volume_flux = FluxVolumeTurbo(flux_ranocha),
                   surface_flux = flux_ranocha)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
@@ -195,7 +195,7 @@ end
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, :, 1]
+        du_specialized = copy(du[:, :, :, :, 1])
 
         # Call the plain version 
         du .= 0

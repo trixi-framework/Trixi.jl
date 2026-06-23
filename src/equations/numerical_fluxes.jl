@@ -580,9 +580,14 @@ end
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
 
 """
-    FluxVolumeTurbo(volume_flux)
+    FluxTurbo(numerical_flux)
 
-Specialize the volume flux to use the SIMD instructions via LoopVectorization.jl
+Create a numerical flux equivalent to the given `numerical_flux`
+except that it may use specialized methods, e.g., when used with
+[`VolumeIntegralFluxDifferencing`](@ref). These specialized methods
+may enable better use of SIMD instructions to increase runtime efficiency
+on modern hardware, e.g., using 
+[LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
 """
 struct FluxVolumeTurbo{VolumeFlux}
     volume_flux::VolumeFlux
