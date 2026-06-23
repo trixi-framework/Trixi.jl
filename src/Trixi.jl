@@ -328,7 +328,7 @@ export reconstruction_O2_inner, reconstruction_O2_full,
        koren, koren_flipped, koren_symmetric,
        central_slope
 
-export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback, LimitingAnalysisCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,

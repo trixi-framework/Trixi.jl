@@ -111,9 +111,12 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 stepsize_callback = StepsizeCallback(cfl = 0.5, bar_states = false)
 
+limiting_analysis = LimitingAnalysisCallback(interval = 100)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution, save_restart,
+                        limiting_analysis,
                         amr_callback,
                         stepsize_callback)
 

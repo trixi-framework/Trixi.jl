@@ -250,6 +250,7 @@ stepsize_callback = StepsizeCallback(cfl = cfl)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_restart, save_solution,
+                        LimitingAnalysisCallback(interval = 100),
                         amr_callback,
                         stepsize_callback)
 
