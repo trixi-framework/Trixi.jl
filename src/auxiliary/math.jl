@@ -1,4 +1,3 @@
-using LoopVectorization: AbstractSIMD
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -139,7 +138,7 @@ end
     @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
     @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
     @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
-    
+
     # This is required for performance specializations like `FluxTurbo`.
     # The LoopVectorization.jl ecosystem does not throw an error but
     # already creates `NaN`s.

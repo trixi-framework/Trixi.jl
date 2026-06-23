@@ -3,13 +3,13 @@
                                                                P4estMesh{3}}},
                                            have_nonconservative_terms::False,
                                            equations,
-                                           volume_flux_turbo::FluxVolumeTurbo, dg::DGSEM,
+                                           volume_flux::FluxTurbo, dg::DGSEM,
                                            cache, alpha)
-    @unpack volume_flux = volume_flux_turbo
+    @unpack numerical_flux = volume_flux
     flux_differencing_kernel_turbo!(_du, u_cons, element, MeshT, have_nonconservative_terms,
                                     equations,
-                                    volume_flux, dg, cache, alpha,
-                                    n_turbo_flux_aux_node_vars(volume_flux, equations),
+                                    numerical_flux, dg, cache, alpha,
+                                    nturbovars(numerical_flux, equations),
                                     Val(nvariables(equations)))
 end
 
@@ -34,10 +34,10 @@ end
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
     cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
-    cons2aux = Expr(:(=), Expr(:tuple, [Symbol(:aux_, v) for v in 1:NAUX]...),
-                    :(cons2fluxauxiliary(volume_flux, $(cons_reads...),
-                                         equations)))
-    cons2aux_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:aux_, v))) for v in 1:NAUX]
+    cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NAUX]...),
+                       :(cons2turbo(volume_flux, $(cons_reads...),
+                                    equations)))
+    cons2turbo_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:u_prim_, v))) for v in 1:NAUX]
 
     # Evaluate the two-point volume flux
     flux_call = Expr(:(=), Expr(:tuple, flux...),
@@ -107,8 +107,8 @@ end
 
         # Convert conserved to auxiliary variables and store them in `u_prim`.
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            $cons2aux
-            $(cons2aux_writes...)
+            $cons2turbo_
+            $(cons2turbo_writes...)
         end
 
         # x direction
@@ -259,16 +259,13 @@ end
     end
 end
 
-# Specialize the name of the turbo flux for flux_ranocha.
-@inline combined_turbo_flux(flux_conservative::typeof(flux_ranocha)) = flux_ranocha_turbo
-
 # Number of precomputed variables for the specialization flux_ranocha
-@inline n_turbo_flux_aux_node_vars(volume_flux::typeof(flux_ranocha_turbo), equations::CompressibleEulerEquations3D) = Val(7)
+@inline nturbovars(volume_flux::typeof(flux_ranocha), equations::CompressibleEulerEquations3D) = Val(7)
 
 # Transformation from conserved to precomputed variables for flux_ranocha
-@inline function cons2fluxauxiliary(volume_flux::typeof(flux_ranocha_turbo),
-                                    rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                    equations::CompressibleEulerEquations3D)
+@inline function cons2turbo(volume_flux::typeof(flux_ranocha),
+                            rho, rho_v1, rho_v2, rho_v3, rho_e,
+                            equations::CompressibleEulerEquations3D)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
@@ -278,7 +275,7 @@ end
 end
 
 # Computation of the numerical flux_ranocha with respect to precomputed variables
-@inline function volume_flux_turbo(volume_flux::typeof(flux_ranocha_turbo),
+@inline function volume_flux_turbo(volume_flux::typeof(flux_ranocha),
                                    rho_ll, v1_ll, v2_ll, v3_ll,
                                    p_ll, log_rho_ll, log_p_ll,
                                    rho_rr, v1_rr, v2_rr, v3_rr,
@@ -292,13 +289,10 @@ end
     v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2 +
                  v3_rr * normal_direction_3
 
-    # Compute required mean values.
-    # We inline the logarithmic mean to allow LoopVectorization.jl to optimize it
-    # efficiently: `log` is precomputed once per node in `cons2fluxauxiliary`
-    # (`log_rho`, `log_p`) and reused here for the "regular" branch, while the
-    # "special" branch uses the series expansion to avoid cancellation when x ≈ y.
-    # This is equivalent to
-    #   rho_mean = ln_mean(rho_ll, rho_rr)
+    # Compute required mean values
+    # We inline the logarithmic mean to allow LoopVectorization.jl to optimize
+    # it efficiently. This is equivalent to
+    # rho_mean = ln_mean(rho_ll, rho_rr)
     x1 = rho_ll
     log_x1 = log_rho_ll
     y1 = rho_rr

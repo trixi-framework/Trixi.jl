@@ -579,6 +579,7 @@ end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
 
+#TODO: Expand the docstring and explain what is required for this to work 
 """
     FluxTurbo(numerical_flux)
 
@@ -589,30 +590,25 @@ may enable better use of SIMD instructions to increase runtime efficiency
 on modern hardware, e.g., using 
 [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
 """
-struct FluxVolumeTurbo{VolumeFlux}
-    volume_flux::VolumeFlux
-    function FluxVolumeTurbo{VolumeFlux}(volume_flux) where {VolumeFlux}
-        return new{VolumeFlux}(volume_flux)
+struct FluxTurbo{NumericalFlux}
+    numerical_flux::NumericalFlux
+    function FluxTurbo{NumericalFlux}(numerical_flux) where {NumericalFlux}
+        return new{NumericalFlux}(numerical_flux)
     end
 end
 
 # Helper function for conservative systems.
-function FluxVolumeTurbo(volume_flux)
-    turbo_flux = combined_turbo_flux(volume_flux)
-    return FluxVolumeTurbo{typeof(turbo_flux)}(turbo_flux)
+function FluxTurbo(numerical_flux)
+    return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
 end
-
-# By default the turbo flux has no specialization and re-uses
-# the numerical flux in terms of conservative variables.
-@inline combined_turbo_flux(volume_flux) = volume_flux
 
 # By default the turbo flux has the same number of precomputed variables
 # as the number of variables.
-@inline n_turbo_flux_aux_node_vars(volume_flux, equations) = Val(nvariables(equations))
+@inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
 
 # Transform the conserved variables in precomputed auxiliary variables to speed up the computation
 # of the numerical flux. When no specialization is given, this gives cons2cons.
-@inline cons2fluxauxiliary(volume_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
+@inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
 # Numerical volume flux that recalls the plain volume flux when no specialization is given.
 @inline function volume_flux_turbo(volume_flux, aux_and_normals_and_equations...)
@@ -633,10 +629,9 @@ end
     return volume_flux(u_ll, u_rr, normal_direction, equations)
 end
 
-# Allow LoopVectorization to use SIMD instructions on volume_flux_turbo and cons2fluxauxiliary
+# Allow LoopVectorization to use SIMD instructions on volume_flux_turbo and cons2turbo
 LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
-LoopVectorization.can_turbo(::typeof(cons2fluxauxiliary), ::Val) = true
+LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
 
-Base.show(io::IO, f::FluxVolumeTurbo) = print(io, "FluxVolumeTurbo(", f.volume_flux,
-                                              ")")
+Base.show(io::IO, f::FluxTurbo) = print(io, "FluxTurbo(", f.numerical_flux, ")")
 end # @muladd
