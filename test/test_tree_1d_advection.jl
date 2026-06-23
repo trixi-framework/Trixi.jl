@@ -30,7 +30,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "elixir_advection_basic.jl (max_abs_speed)" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
+@testitem "elixir_advection_limiter_liu_zhang_amr.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_limiter_liu_zhang_amr.jl"),
                         l2=[0.08104042028981012], linf=[0.5248014378268002])
