@@ -714,7 +714,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl" begin
-    @trixi_test_set "local limiting" begin
+    @trixi_testset "local limiting" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl"),
                             l2=[
