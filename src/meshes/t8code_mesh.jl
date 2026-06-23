@@ -521,7 +521,8 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                                                                         trees_per_dimension))...)
 
     return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
-                                    mapping = mapping_)
+                                    mapping = mapping_,
+                                    partition_allow_for_coarsening = partition_allow_for_coarsening)
 end
 
 """
