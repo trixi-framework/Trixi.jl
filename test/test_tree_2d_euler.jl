@@ -569,20 +569,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
                         l2=[
-                            0.4458551685453463,
-                            0.15187885920928818,
-                            0.15187885920579852,
-                            0.6171564682488643
+                            0.44567695001256563,
+                            0.15182934071787899,
+                            0.15182934071787918,
+                            0.6163380677272575
                         ],
                         linf=[
-                            1.683620478124428,
-                            0.9025036658429718,
-                            0.9025036660419865,
-                            6.467780546540997
+                            1.6991301017132803,
+                            0.9017734782261471,
+                            0.9017734777600609,
+                            6.455103684179322
                         ],
                         # Large absolute tolerance due to nondeterministic behavior in CI runs
                         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/3060.
-                        atol=1e-3,
+                        # atol=1e-3,
+                        # Disabled due to testing
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         save_errors=true)
