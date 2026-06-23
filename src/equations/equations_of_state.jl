@@ -124,9 +124,10 @@ function temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
 end
 
 """
-    temperature_given_Vp(V, p, eos::AbstractEquationOfState;
-                        initial_T = one(p),
-                        tol = eos_newton_tol(eos), maxiter = eos_newton_maxiter(eos))
+    Trixi.temperature_given_Vp(V, p, eos::AbstractEquationOfState;
+                               initial_T = one(p),
+                               tol = eos_newton_tol(eos),
+                               maxiter = eos_newton_maxiter(eos))
 
 Calculates the temperature as a function of specific volume `V` and pressure `p`
 by using Newton's method to determine `T` such that `pressure(V, T, eos) = p`.
