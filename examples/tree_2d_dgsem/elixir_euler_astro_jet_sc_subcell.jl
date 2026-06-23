@@ -157,7 +157,8 @@ boundary_conditions = (x_neg = BoundaryConditionCharacteristic(initial_condition
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
 
-surface_flux = flux_lax_friedrichs
+# The calculation of the time step with bar states uses `max_abs_speed_naive`. Therefore, use it as the surface flux here.
+surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 volume_flux = flux_chandrashekar # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
