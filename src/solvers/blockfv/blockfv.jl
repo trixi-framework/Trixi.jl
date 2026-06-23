@@ -99,4 +99,6 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::BlockFV)
     summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     summary_footer(io)
 end
+
+@inline polydeg(dg::BlockFV) = polydeg(dg.basis)
 end # @muladd

@@ -185,268 +185,34 @@ function calc_error_norms(func, u, t, analyzer,
     l2_error = @. sqrt(l2_error / total_volume_)
     return l2_error, linf_error
 end
-end # @muladd
-
-
-
-function prolong2mortars!(cache, u,
-                          mesh::TreeMesh{2}, equations,
-                          mortar_l2::UniformFiniteVolumeBasis,
-                          dg::BlockFV)
-    @threaded for mortar in eachmortar(dg, cache)
-        large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
-
-        # Copy solution small to small
-        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
-            if cache.mortars.orientations[mortar] == 1
-                # L2 mortars in x-direction
-                for l in eachnode(dg)
-                    for v in eachvariable(equations)
-                        cache.mortars.u_upper[2, v, l, mortar] = u[v, 1, l,
-                                                                   upper_element]
-                        cache.mortars.u_lower[2, v, l, mortar] = u[v, 1, l,
-                                                                   lower_element]
-                    end
-                end
-            else
-                # L2 mortars in y-direction
-                for l in eachnode(dg)
-                    for v in eachvariable(equations)
-                        cache.mortars.u_upper[2, v, l, mortar] = u[v, l, 1,
-                                                                   upper_element]
-                        cache.mortars.u_lower[2, v, l, mortar] = u[v, l, 1,
-                                                                   lower_element]
-                    end
-                end
-            end
-        else # large_sides[mortar] == 2 -> small elements on left side
-            if cache.mortars.orientations[mortar] == 1
-                # L2 mortars in x-direction
-                for l in eachnode(dg)
-                    for v in eachvariable(equations)
-                        cache.mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l,
-                                                                   upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l,
-                                                                   lower_element]
-                    end
-                end
-            else
-                # L2 mortars in y-direction
-                for l in eachnode(dg)
-                    for v in eachvariable(equations)
-                        cache.mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg),
-                                                                   upper_element]
-                        cache.mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg),
-                                                                   lower_element]
-                    end
-                end
-            end
-        end
-
-        # Interpolate large element face data to small interface locations
-        if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
-            leftright = 1
-            if cache.mortars.orientations[mortar] == 1
-                # L2 mortars in x-direction
-                u_large = view(u, :, nnodes(dg), :, large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
-            else
-                # L2 mortars in y-direction
-                u_large = view(u, :, :, nnodes(dg), large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
-            end
-        else # large_sides[mortar] == 2 -> large element on right side
-            leftright = 2
-            if cache.mortars.orientations[mortar] == 1
-                # L2 mortars in x-direction
-                u_large = view(u, :, 1, :, large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
-            else
-                # L2 mortars in y-direction
-                u_large = view(u, :, :, 1, large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
-            end
-        end
-    end
-
-    return nothing
-end
-#element_solution_to_mortars! brauch man eigentlich nicht, da die Lösung auf den Mortars (wird nur kopiert) 
-#direkt in `prolong2mortars!` geschrieben werden kann, aber so ist es vielleicht 
-#etwas übersichtlicher, muss auch noch angepasst werden
 
 @inline function element_solutions_to_mortars!(mortars,
-                                               mortar_l2::UniformFiniteVolumeBasis,
-                                               leftright, mortar,
-                                               u_large::AbstractArray{<:Any, 2})
-    multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),
-                            mortar_l2.forward_upper, u_large)
-    multiply_dimensionwise!(view(mortars.u_lower, leftright, :, :, mortar),
-                            mortar_l2.forward_lower, u_large)
-    return nothing
-end
+                                                mortar_l2::UniformFiniteVolumeBasis,
+                                                leftright,
+                                                mortar,
+                                                u_large::AbstractArray{<:Any, 2})
 
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::TreeMesh{2},
-                           have_nonconservative_terms::False, equations,
-                           mortar_l2::BlockFVMortar,
-                           surface_integral, dg::BlockFV, cache)
-    @unpack surface_flux = surface_integral
-    @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
+    # Project the solution from the large element to the two small mortar sides
+    # by duplicating each large-element node
+    if size(u_large, 2) % 2 == 1
+        for i in 1:size(u_large, 2)
+            # Copy values to the upper small element
+            mortars.u_upper[leftright, :, i, mortar] = u_large[:, div(i + 1, 2)]
 
-    @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
-        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
-
-        # Calculate fluxes
-        orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-
-        # For non-conservative equations, we need two numerical fluxes
-        # (primary and secondary). To use the same implementation of
-        # `mortar_fluxes_to_elements!`, we pass the primary fluxes as
-        # secondary fluxes as well in the conservative case. This is
-        # possible since for conservative equations, numerical fluxes
-        # are unique at interfaces (instead of having two different
-        # fluxes/fluctuations for non-conservative equations).
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations, mortar_l2, dg, cache, mortar,
-                                   fstar_primary_upper, fstar_primary_lower,
-                                   fstar_primary_upper, fstar_primary_lower)
-    end
-
-    return nothing
-end
-
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::TreeMesh{2},
-                           have_nonconservative_terms::True, equations,
-                           mortar_l2::BlockFVMortar,
-                           surface_integral, dg::BlockFV, cache)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u_lower, u_upper, orientations, large_sides = cache.mortars
-    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
-
-    @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
-        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
-        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
-        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
-
-        # Calculate fluxes
-        orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-
-        # Add nonconservative fluxes.
-        # These need to be adapted on the geometry (left/right) since the order of
-        # the arguments matters, based on the global SBP operator interpretation.
-        # The same interpretation (global SBP operators coupled discontinuously via
-        # central fluxes/SATs) explains why we need the factor 0.5.
-        # Alternatively, you can also follow the argumentation of Bohm et al. 2018
-        # ("nonconservative diamond flux")
-        if large_sides[mortar] == 1 # -> small elements on right side
-            for i in eachnode(dg)
-                # Pull the left and right solutions
-                u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, equations, dg,
-                                                               i, mortar)
-                u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, equations, dg,
-                                                               i, mortar)
-                # Call pointwise nonconservative term
-                noncons_primary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
-                                                             orientation, equations)
-                noncons_primary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
-                                                             orientation, equations)
-                noncons_secondary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
-                                                               orientation, equations)
-                noncons_secondary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
-                                                               orientation, equations)
-                # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0,
-                                           noncons_primary_upper, equations,
-                                           dg, i)
-                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0,
-                                           noncons_primary_lower, equations,
-                                           dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0,
-                                           noncons_secondary_upper, equations,
-                                           dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0,
-                                           noncons_secondary_lower, equations,
-                                           dg, i)
-            end
-        else # large_sides[mortar] == 2 -> small elements on the left
-            for i in eachnode(dg)
-                # Pull the left and right solutions
-                u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, equations, dg,
-                                                               i, mortar)
-                u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, equations, dg,
-                                                               i, mortar)
-                # Call pointwise nonconservative term
-                noncons_primary_upper = nonconservative_flux(u_upper_rr, u_upper_ll,
-                                                             orientation, equations)
-                noncons_primary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
-                                                             orientation, equations)
-                noncons_secondary_upper = nonconservative_flux(u_upper_ll, u_upper_rr,
-                                                               orientation, equations)
-                noncons_secondary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
-                                                               orientation, equations)
-                # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0,
-                                           noncons_primary_upper, equations,
-                                           dg, i)
-                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0,
-                                           noncons_primary_lower, equations,
-                                           dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0,
-                                           noncons_secondary_upper, equations,
-                                           dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0,
-                                           noncons_secondary_lower, equations,
-                                           dg, i)
-            end
+            # Copy values to the lower small element
+            # (middle node is shared for odd numbers of nodes)
+            mortars.u_lower[leftright, :, i, mortar] =
+                u_large[:, div(i, 2) + 1 + div(size(u_large,2), 2)]
         end
+    else
+        for i in 1:size(u_large, 2)
+            # Copy values to the upper small element
+            mortars.u_upper[leftright, :, i, mortar] = u_large[:, div(i + 1, 2)]
 
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations, mortar_l2, dg, cache, mortar,
-                                   fstar_primary_upper, fstar_primary_lower,
-                                   fstar_secondary_upper, fstar_secondary_lower)
-    end
-
-    return nothing
-end
-
-
-
-@inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, equations,
-                             surface_flux, dg::BlockFV,
-                             u_interfaces, interface, orientation)
-    for i in eachnode(dg)
-        # Call pointwise two-point numerical flux function
-        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, interface)
-        flux = surface_flux(u_ll, u_rr, orientation, equations)
-
-        # Copy flux to left and right element storage
-        set_node_vars!(destination, flux, equations, dg, i)
+            # Copy values to the lower small element
+            mortars.u_lower[leftright, :, i, mortar] =
+                u_large[:, div(i + 1, 2) + div(size(u_large,2), 2)]
+        end
     end
 
     return nothing
@@ -454,9 +220,9 @@ end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::TreeMesh{2}, equations,
-                                            mortar:: BlockFVMortar,
+                                            mortar_l2:: UniformFiniteVolumeBasis,
                                             dg::BlockFV, cache,
-                                            mortar_l2, fstar_primary_upper,
+                                            mortar, fstar_primary_upper,
                                             fstar_primary_lower,
                                             fstar_secondary_upper,
                                             fstar_secondary_lower)
@@ -485,7 +251,7 @@ end
     surface_flux_values[:, :, direction, upper_element] .= fstar_primary_upper
     surface_flux_values[:, :, direction, lower_element] .= fstar_primary_lower
 
-    # Project small fluxes to large element: hier nur mittelwert der flüsse wegen FV
+    # Determine on which face of the large element the mortar is located and which direction it corresponds to:
     if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
         if cache.mortars.orientations[mortar] == 1
             # L2 mortars in x-direction
@@ -504,26 +270,42 @@ end
         end
     end
 
-    # TODO: Taal performance
-    # for v in eachvariable(equations)
-    #   # The code below is semantically equivalent to
-    #   # surface_flux_values[v, :, direction, large_element] .=
-    #   #   (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
-    #   # but faster and does not allocate.
-    #   # Note that `true * some_float == some_float` in Julia, i.e. `true` acts as
-    #   # a universal `one`. Hence, the second `mul!` means "add the matrix-vector
-    #   # product to the current value of the destination".
-    #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_upper, fstar_upper[v, :])
-    #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_lower, fstar_lower[v, :], true, true)
-    # end
-    # The code above could be replaced by the following code. However, the relative efficiency
-    # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
-    # Using StaticArrays for both makes the code above faster for common test cases.
-    multiply_dimensionwise!(view(surface_flux_values, :, :, direction, large_element),
-                            mortar_l2.reverse_upper, fstar_secondary_upper,
-                            mortar_l2.reverse_lower, fstar_secondary_lower)
-
+    #Project fluxes from the two small elements to the large element. 
+    #The fluxes on the small elements are already computed and stored in fstar_primary_upper and fstar_primary_lower. 
+    #The fluxes on the large element are computed by averaging the fluxes from the two small elements.
+    for v in eachvariable(equations)  
+        if nnodes(dg) % 2 == 1
+            #for an odd number of nodes, average the interface values at the center node
+            surface_flux_values[v, (nnodes(dg) + 1 ) ÷ 2, direction, large_element] =
+                0.5 * (fstar_primary_upper[v, end] + fstar_primary_lower[v, 1])
+            for i in eachnode(mortar_l2)
+                if i <= nnodes(dg) ÷ 2
+                    #average neighboring fluxes from the upper small element
+                    surface_flux_values[v, i, direction, large_element] =
+                    0.5 * (fstar_primary_upper[v, 2*i-1] + fstar_primary_upper[v, 2*i])
+                elseif i==(nnodes(dg) + 1 ) ÷ 2
+                    continue
+                    #center node already set above
+                else
+                    #average neighboring fluxes from the lower small element
+                    surface_flux_values[v, i, direction, large_element] =
+                    0.5 * (fstar_primary_lower[v, 2*i-1-nnodes(dg)] + fstar_primary_lower[v, 2*i- nnodes(dg)])
+                end
+            end
+        else
+            for i in eachnode(mortar_l2)
+                if i <= nnodes(dg) ÷ 2
+                    #average neighboring fluxes from the upper small element
+                    surface_flux_values[v, i, direction, large_element] =
+                    0.5 * (fstar_primary_upper[v, 2*i-1] + fstar_primary_upper[v, 2*i])
+                else
+                    #average neighboring fluxes from the lower small element
+                    surface_flux_values[v, i, direction, large_element] =
+                    0.5 * (fstar_primary_lower[v, 2*i-1-nnodes(dg)] + fstar_primary_lower[v, 2*i- nnodes(dg)])
+                end  
+            end
+        end
+    end
     return nothing
 end
+end # @muladd
