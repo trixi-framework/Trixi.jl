@@ -723,9 +723,6 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     # TODO GPU
     if backend !== nothing
-        # @reset cache.interfaces = trixi_adapt(storageT, elementT, interfaces)
-        # @reset cache.boundaries = trixi_adapt(storageT, elementT, boundaries)
-        # @reset cache.mortars = trixi_adapt(storageT, elementT, mortars)
         copyfields!(cache.interfaces, trixi_adapt(storageT, elementT, interfaces))
         copyfields!(cache.boundaries, trixi_adapt(storageT, elementT, boundaries))
         copyfields!(cache.mortars, trixi_adapt(storageT, elementT, mortars))
