@@ -29,7 +29,7 @@ trees_per_dimension = (19, 37)
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   periodicity = false,
-                  # Temporary workaroud for https://github.com/DLR-AMR/t8code/pull/2280
+                  # Temporary workaround for https://github.com/DLR-AMR/t8code/pull/2280
                   partition_allow_for_coarsening = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
