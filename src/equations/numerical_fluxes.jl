@@ -596,7 +596,7 @@ and then compute the numerical fluxes.
 This optimization can be enabled by defining three ingredients:
 - the number of precomputed variables `nturbovars`;
 - the transformation from conservative to precomputed variables `cons2turbo`
-- and the  `volume_turbo_flux(volume_flux::typeof(numerical_flux), ...)`,
+- and the  `volume_flux_turbo(volume_flux::typeof(numerical_flux), ...)`,
   that computes the numerical flux in terms of the precomputed variables.
 
 See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
