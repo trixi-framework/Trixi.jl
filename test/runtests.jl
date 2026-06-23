@@ -2,7 +2,8 @@ using TestItemRunner
 
 # We run subsets of the test suite in parallel CI jobs by setting the `TRIXI_TEST`
 # environment variable. Its value is matched against the `tags` attached to each
-# `@testitem`. By default (`TRIXI_TEST == "threaded"`) we run everything.
+# `@testitem`. By default (`TRIXI_TEST == "threaded"`) we run a
+# selection of meaningful tests that cover a broad part of the code.
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
 
 # Some GitHub CI runners may not have much RAM and just 3 virtual CPU cores.
