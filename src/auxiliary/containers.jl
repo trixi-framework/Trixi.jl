@@ -237,7 +237,6 @@ function copyfields!(target::Container, source::Container) where Container <: Ab
     return target
 end
 
-
 # Trixi storage types must implement these two Adapt.jl methods
 function Adapt.adapt_structure(to, c::AbstractContainer)
     error("Interface: Must implement Adapt.adapt_structure(to, ::$(typeof(c)))")
