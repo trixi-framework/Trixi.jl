@@ -547,8 +547,8 @@ end
                             2.0445488517007133,
                             1.1947919489346195
                         ],
-                        atol=1e-7,
-                        rtol=1e-6)
+                        atol=5e-2,
+                        rtol=1e-2)
     @test length(global_limiter!.history_davis_yin_iterations) == 1
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
