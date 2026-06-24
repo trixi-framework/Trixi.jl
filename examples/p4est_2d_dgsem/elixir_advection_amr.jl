@@ -72,7 +72,6 @@ callbacks = CallbackSet(summary_callback,
                         amr_callback,
                         stepsize_callback)
 
-
 ###############################################################################
 # run the simulation
 

@@ -32,7 +32,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 0.3)
-ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = CuArray)
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 
