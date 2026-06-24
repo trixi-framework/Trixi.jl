@@ -1,15 +1,3 @@
-# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate is closer to u
-# than the current best; otherwise return the inputs unchanged.
-@inline function update_best_candidate!(best_dist_squared, best_u, has_candidate,
-                                        u_candidate, u,
-                                        equations::CompressibleEulerEquations2D)
-    dist_squared = sum(abs2, u_candidate - u)
-    if !has_candidate || dist_squared < best_dist_squared
-        return dist_squared, u_candidate, true
-    end
-    return best_dist_squared, best_u, has_candidate
-end
-
 # Used in the mu > 0, lambda > 0 branch of Appendix B.2 of Liu, Milesis, Shu, Zhang (2026).
 @inline function cubic_momentum_root_satisfies_kkt(rho_v1, rho_v1_orig, rho_orig, a,
                                                    rho_floor, rho_e_floor)

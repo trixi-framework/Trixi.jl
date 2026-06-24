@@ -18,7 +18,8 @@ end
 @inline function update_best_candidate!(best_dist_squared, best_u,
                                         has_candidate,
                                         u_candidate, u,
-                                        equations::CompressibleEulerEquations1D)
+                                        equations::Union{CompressibleEulerEquations1D,
+                                                         CompressibleEulerEquations2D})
     dist_squared = sum(abs2, u_candidate - u)
 
     # if the new candidate is closer than the current best candidate (or if there is no 
