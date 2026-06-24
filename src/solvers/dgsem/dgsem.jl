@@ -76,7 +76,7 @@ end
 
 Base.summary(io::IO, dg::DGSEM) = print(io, "DGSEM(polydeg=$(polydeg(dg)))")
 
-include("compute_u_mean.jl")
+include("utils_u_mean.jl")
 
 include("containers.jl")
 
