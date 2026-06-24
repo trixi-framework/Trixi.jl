@@ -34,11 +34,6 @@ two authors who are on all of the other optimization-based limiter papers.
   An optimization based limiter for enforcing positivity in a semi-implicit discontinuous Galerkin scheme for compressible Navier-Stokes equations
   [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
 
-Currently, admissibility is enforced via projection onto lower bounds only for
-scalar equations (`nvariables(equations) == 1`). The local limiter must use
-`variables = (first,)` so that [`project_to_admissible_set`](@ref) dispatches to
-the scalar clipping projection.
-
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
 splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets 
 the maximum number of Davis-Yin iterations per global limiting step.
