@@ -110,10 +110,10 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     momentum_is_near_zero = abs(rho_v1) < arithmetic_tol
 
     # Case: mu = 0 and lambda > 0
-    energy_internal_threshold_at_rho_floor = 2 * rho_floor * rho_e_floor +
+    energy_internal_lower_bound_at_rho_floor = 2 * rho_floor * rho_e_floor +
                                              rho_v1 * rho_v1
     energy_internal_budget_at_rho_floor = 2 * rho_floor * rho_e_total
-    energy_internal_admissible_after_density_lift = energy_internal_threshold_at_rho_floor <=
+    energy_internal_admissible_after_density_lift = energy_internal_lower_bound_at_rho_floor <=
                                                     energy_internal_budget_at_rho_floor
 
     # mu = 0 and lambda > 0: internal-energy constraint is active.
