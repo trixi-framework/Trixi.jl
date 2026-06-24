@@ -408,7 +408,10 @@ end
                         ],
                         atol=1e-7,
                         rtol=1e-6)
-    @test length(global_limiter!.history_davis_yin_iterations) == 12
+
+    # check that the limiter is activated; the precise number of activations 
+    # can vary by 1-2 based on architecture. 
+    @test length(global_limiter!.history_davis_yin_iterations) > 10
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
