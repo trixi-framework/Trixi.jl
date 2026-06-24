@@ -1041,7 +1041,6 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
         if current_level < target_level
             controller_value[element] = 1 # refine!
         elseif current_level > target_level
-            #TODO(Shahu)
             controller_value[element] = -1 # coarsen!
         else
             controller_value[element] = 0 # we're good
@@ -1186,7 +1185,6 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
         if current_level < target_level
             controller_value[element] = 1 # refine!
         elseif current_level > target_level
-            #TODO(Shahu)
             controller_value[element] = -1 # coarsen!
         else
             controller_value[element] = 0 # we're good

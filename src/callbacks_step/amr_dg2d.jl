@@ -131,7 +131,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         for old_element_id in 1:old_n_elements
             if needs_refinement[old_element_id]
                 # Refine element and store solution directly in new data structure
-                #TODO(Shahu)
                 refine_element!(u, element_id, old_u, old_element_id,
                                 adaptor.forward_upper, adaptor.forward_lower,
                                 equations, dg)

@@ -200,21 +200,6 @@ function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-
-# @inline function Trixi.multiply_dimensionwise!(data_out::AnyCuArray{<:Any, 2}, matrix::AbstractMatrix,
-#                                                data_in::AnyCuArray{<:Any, 2}) 
-#     @inbounds for i in axes(data_out, 2), v in axes(data_out, 1)
-#         res = zero(eltype(data_out))
-#         for ii in axes(data_in, 2) 
-#             res += matrix[i, ii] * data_in[v, ii]
-#         end
-#         data_out[v, i] = res
-#     end
-
-#     return nothing
-# end
-
-
 @inline function prolong2mortars_per_mortar!(mortars_u, u, mortar,
                                              MeshT::Type{<:Union{Trixi.P4estMesh{2},
                                                                  Trixi.P4estMeshView{2},
@@ -227,8 +212,6 @@ end
                                              ::Val{N}, ::Val{NVARS}, ::Val{T}, ::Val{L}) where {N, NVARS, T, L}
 
     @inbounds begin
-        #N = length(index_range)
-        #T = eltype(u)
         small_indices    = node_indices[1, mortar]
         i_small_start, i_small_step = Trixi.index_to_start_step_2d(small_indices[1], index_range)
         j_small_start, j_small_step = Trixi.index_to_start_step_2d(small_indices[2], index_range)
@@ -246,7 +229,6 @@ end
             end
         end
 
-        #can use for loop for it and it is mutable 
         u_buffer = MArray{Tuple{NVARS, N}, T, 2, NVARS * N}(undef)
 
         large_indices    = node_indices[2, mortar]
@@ -264,18 +246,9 @@ end
             j_large += j_large_step
         end
 
-
-        #just trying
-        #val_lower = MMatrix{NVARS, N, T, NVARS * N}(undef)
-        #val_upper = MMatrix{NVARS, N, T, NVARS * N}(undef)
-        #val_lower = zero(T)
-        #val_upper = zero(T)
-
-        # 1. Allocate the MArrays using strictly static parameters
         val_lower = StaticArrays.MArray{Tuple{NVARS, N}, T, 2, L}(undef)
         val_upper = StaticArrays.MArray{Tuple{NVARS, N}, T, 2, L}(undef)
 
-        # Initialize them to zero manually to be safe
         for i in 1:N, v in Base.OneTo(NVARS)
             val_lower[v, i] = zero(T)
             val_upper[v, i] = zero(T)
@@ -335,10 +308,6 @@ function Trixi.prolong2mortars!(backend::KernelAbstractions.Backend, cache, u,
     NVARS = Trixi.nvariables(equations)
     L = N * NVARS
 
-    # Convert Matrix → SMatrix 
-    # forward_lower = SMatrix{N, N, T, N * N}(Array(mortar_l2.forward_lower))
-    # forward_upper = SMatrix{N, N, T, N * N}(Array(mortar_l2.forward_upper))
-
     kernel! = prolong2mortars_KAkernel!(backend)
     kernel!(mortars.u, u, typeof(mesh), equations,
             neighbor_ids, node_indices, index_range,
@@ -348,22 +317,6 @@ function Trixi.prolong2mortars!(backend::KernelAbstractions.Backend, cache, u,
 
     return nothing
 end
-
-# function Trixi.prolong2mortars!(cache, u::CuArray{<:Any, 4},
-#                                 mesh::Union{Trixi.P4estMesh{2}, Trixi.P4estMeshView{2}, Trixi.T8codeMesh{2}},
-#                                 equations,
-#                                 mortar_l2::Trixi.LobattoLegendreMortarL2,
-#                                 dg::Trixi.DGSEM{<:Trixi.LobattoLegendreBasis})
-                                
-#     backend = KernelAbstractions.get_backend(u)
-#     Trixi.prolong2mortars!(backend, cache, u, mesh, equations, mortar_l2, dg)
-#     return nothing
-# end
-
-
-
-#------------------------------------------------------------------------------------------------------------------#
-#calc mortar flux#
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             neighbor_ids, node_indices,
@@ -375,8 +328,6 @@ end
 
     small_indices = node_indices[1, mortar]
     small_direction = Trixi.indices2direction(small_indices)
-
-
 
     for position in 1:2
         element = neighbor_ids[position, mortar]
@@ -401,14 +352,12 @@ end
     if :i_backward in large_indices
         for i in 1:N
             for v in Base.OneTo(NVARS)
-            #for v in eachvariable(equations)
                 surface_flux_values[v, N + 1 - i, large_direction, large_element] = u_buffer[v, i]
             end
         end
     else
         for i in 1:N
             for v in Base.OneTo(NVARS)
-            #for v in eachvariable(equations)
                 surface_flux_values[v, i, large_direction, large_element] = u_buffer[v, i]
             end
         end
@@ -562,19 +511,4 @@ function Trixi.calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_fl
 
     return nothing
 end
-
-# function Trixi.calc_mortar_flux!(surface_flux_values::CuArray,
-#                                  mesh::Union{Trixi.P4estMesh{2}, Trixi.P4estMeshView{2}, Trixi.T8codeMesh{2}},
-#                                  have_nonconservative_terms, equations,
-#                                  mortar_l2::Trixi.LobattoLegendreMortarL2,
-#                                  surface_integral, dg::Trixi.DGSEM, cache)
-    
-#     backend = KernelAbstractions.get_backend(surface_flux_values)
-#     Trixi.calc_mortar_flux!(backend, surface_flux_values, mesh, have_nonconservative_terms,
-#                             equations, mortar_l2, surface_integral, dg, cache)
-#     return nothing
-# end
-
-
-
 end #muladd
