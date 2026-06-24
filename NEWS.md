@@ -25,6 +25,7 @@ temperature has been added.
 This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.
 The new function `temperature_given_Vp` computes temperature given the specific volume `V` and pressure `p` using Newton's method,
 analogous to the existing `temperature` function for `AbstractEquationOfState` which takes in `V` and specific internal energy `e_internal` ([#3093]).
+- Added support to apply the positivity-preserving limiter after coarsening and refinement steps in AMR via the keyword argument `limiter!` in `AMRCallback` ([#2396]).
 
 #### Changed
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
