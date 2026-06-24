@@ -27,7 +27,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     p0_inner = 3 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0^2)
 
     # slightly smaller initial pressure to trigger the Liu-Zhang limiter
-    p0_outer = convert(RealT, 1.0e-6) 
+    p0_outer = convert(RealT, 1.0e-6)
 
     # Calculate primitive variables
     rho = 1
