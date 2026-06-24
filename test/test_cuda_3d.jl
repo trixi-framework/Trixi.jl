@@ -142,9 +142,9 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl native" begin
+@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_mhd_alfven_wave_nonperiodic.jl"),
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         l2=[
                             0.00021050235921250785,
                             0.0006558863249658414,
@@ -170,7 +170,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -187,47 +187,37 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl Float32 / CUDA" begin
+@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / CUDA" begin
     # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using CUDA
     using Trixi
-    @inline function flux_volume_combined(u_ll, u_rr, normal_direction::AbstractVector,
-                                          equations::IdealGlmMhdEquations3D)
-        flux = flux_hindenlang_gassner(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_left = flux_nonconservative_powell(u_ll, u_rr, normal_direction,
-                                                        equations)
-        noncons_flux_right = flux_nonconservative_powell(u_rr, u_ll, normal_direction,
-                                                         equations)
-        flux_left = flux + 0.5f0 * noncons_flux_left
-        flux_right = flux + 0.5f0 * noncons_flux_right
-
-        return flux_left, flux_right
-    end
-    @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_volume_combined),
-    equations::IdealGlmMhdEquations3D) = Trixi.True()
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_mhd_alfven_wave_nonperiodic.jl"),
-                        l2=Float32[0.00021050235826592327, 0.0006558863204839041,
-                                   0.0002821364444400733, 0.000794748435433683,
-                                   0.0006839039307848098, 0.0006743445524692008,
-                                   0.000318156924452865, 0.0007885451771559438,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=Float32[0.00021050235826592327,
+                                   0.0006558863204839041,
+                                   0.0002821364444400733,
+                                   0.000794748435433683,
+                                   0.0006839039307848098,
+                                   0.0006743445524692008,
+                                   0.000318156924452865,
+                                   0.0007885451771559438,
                                    4.811726173404515e-5],
-                        linf=Float32[0.0012031070350810857, 0.004106999758487398,
-                                     0.001783097816025008, 0.004780625055122056,
-                                     0.005095902318184908, 0.003922455893839549,
-                                     0.002515549802432071, 0.004448527671538249,
+                        linf=Float32[0.0012031070350810857,
+                                     0.004106999758487398,
+                                     0.001783097816025008,
+                                     0.004780625055122056,
+                                     0.005095902318184908,
+                                     0.003922455893839549,
+                                     0.002515549802432071,
+                                     0.004448527671538249,
                                      0.00019839944646198146],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32,
-                        storage_type=CuArray,
-                        save_solution=nothing,
-                        analysis_callback=AnalysisCallback(semi, interval = 100,
-                                                           analysis_integrals = (entropy,)),
-                        volume_flux=flux_volume_combined)
+                        storage_type=CuArray)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32

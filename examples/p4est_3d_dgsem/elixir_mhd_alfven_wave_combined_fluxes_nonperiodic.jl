@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 using Trixi: @muladd
 ###############################################################################
@@ -238,7 +238,10 @@ ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     analysis_integrals = (entropy,))
+
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 save_solution = SaveSolutionCallback(interval = 100,
