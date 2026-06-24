@@ -5,14 +5,9 @@
 @muladd begin
 #! format: noindent
 
-@inline function state_is_admissible(u, thresholds,
-                                     equations::Union{CompressibleEulerEquations1D,
-                                                      CompressibleEulerEquations2D})
-    rho_floor, rho_e_floor = thresholds
-    density_satisfies_floor = u[1] >= rho_floor
-    satisfies_energy_internal_constraint = energy_internal(u, equations) >= rho_e_floor
-    return density_satisfies_floor && satisfies_energy_internal_constraint
-end
+# for compressible Euler, we introduce a small tolerance close to machine 
+# precision to relax constraints. This is intended to account for roundoff 
+# in intermediate calculations within project_to_admissible_set. 
 
 # for compressible Euler, we introduce a small tolerance close to 
 # machine precision to relax constraints. This is intended to account 
