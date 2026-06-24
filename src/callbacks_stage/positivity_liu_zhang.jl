@@ -107,7 +107,7 @@ end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
-                                             global_limiter_tol = 1e2 * eps(real(semi)),
+                                             global_limiter_tol = 1e3 * eps(real(semi)),
                                              max_davis_yin_iterations = 500,
                                              record_davis_yin_iterations = false)
     return PositivityPreservingLimiterLiuZhang(local_limiter!,
