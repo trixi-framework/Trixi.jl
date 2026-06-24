@@ -8,10 +8,6 @@
 # for compressible Euler, we introduce a small tolerance close to machine 
 # precision to relax constraints. This is intended to account for roundoff 
 # in intermediate calculations within project_to_admissible_set. 
-
-# for compressible Euler, we introduce a small tolerance close to 
-# machine precision to relax constraints. This is intended to account 
-# for roundoff effects. 
 @inline function euler_arithmetic_tol(rho_floor, rho_e_floor)
     T = promote_type(typeof(rho_floor), typeof(rho_e_floor))
     return 10 * eps(T)
@@ -49,7 +45,7 @@ end
 end
 
 # Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::SVector{3,T}).
-# Note that roots[n_roots+1:end] are aren't accessed. 
+# Note that roots[n_roots+1:end] are not accessed and are simply set to zero.
 function calc_depressed_cubic_roots(p, q)
     T = typeof(p)
     delta = 4 * p^3 + 27 * q^2
