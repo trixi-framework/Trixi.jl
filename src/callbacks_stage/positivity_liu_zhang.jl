@@ -157,13 +157,16 @@ end
 
 function Base.show(io::IO, limiter::PositivityPreservingLimiterLiuZhang)
     @nospecialize limiter # reduce precompilation time
-    (; global_limiter_tol, max_davis_yin_iterations, history_davis_yin_iterations) = limiter
+    (; global_limiter_tol, max_davis_yin_iterations, record_davis_yin_iterations,
+    history_davis_yin_iterations) = limiter
 
     print(io, "PositivityPreservingLimiterLiuZhang(local_limiter!=",
           Base.typename(typeof(limiter.local_limiter!)).name)
     print(io, ", global_limiter_tol=", global_limiter_tol)
     print(io, ", max_davis_yin_iterations=", max_davis_yin_iterations)
-    print(io, ", history_davis_yin_iterations=", history_davis_yin_iterations)
+    if record_davis_yin_iterations
+        print(io, ", history_davis_yin_iterations=", history_davis_yin_iterations)
+    end
     print(io, ")")
     return nothing
 end
@@ -171,7 +174,8 @@ end
 function Base.show(io::IO, ::MIME"text/plain",
                    limiter::PositivityPreservingLimiterLiuZhang)
     @nospecialize limiter # reduce precompilation time
-    (; global_limiter_tol, max_davis_yin_iterations, history_davis_yin_iterations) = limiter
+    (; global_limiter_tol, max_davis_yin_iterations, record_davis_yin_iterations,
+    history_davis_yin_iterations) = limiter
 
     if get(io, :compact, false)
         show(io, limiter)
@@ -179,7 +183,9 @@ function Base.show(io::IO, ::MIME"text/plain",
         setup = Pair{String, Any}["local_limiter!" => Base.typename(typeof(limiter.local_limiter!)).name,
                                   "global_limiter_tol" => global_limiter_tol,
                                   "max_davis_yin_iterations" => max_davis_yin_iterations]
-        push!(setup, "history_davis_yin_iterations" => history_davis_yin_iterations)
+        if record_davis_yin_iterations
+            push!(setup, "history_davis_yin_iterations" => history_davis_yin_iterations)
+        end
         summary_box(io, "PositivityPreservingLimiterLiuZhang", setup)
     end
 end
