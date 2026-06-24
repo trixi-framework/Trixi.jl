@@ -208,9 +208,9 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                         original_energy_internal_times_rho = rho_e_total *
                                                              rho_candidate *
                                                              (1 - arithmetic_tol)
-                        lambda_zero_energy_internal_sign_condition = candidate_energy_internal_times_rho >
-                                                                     original_energy_internal_times_rho
-                        if lambda_zero_energy_internal_sign_condition
+
+                        if candidate_energy_internal_times_rho >
+                           original_energy_internal_times_rho
                             rho_e_total_candidate = rho_e_floor +
                                                     0.5f0 * rho_v1_candidate *
                                                     rho_v1_candidate / rho_candidate
