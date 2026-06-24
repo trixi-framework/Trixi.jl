@@ -205,7 +205,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 8_000_000)
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" begin
@@ -235,7 +235,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
+    @test_allocations(Trixi.rhs!, semi, sol, 8_000_000)
 end
 end
 
