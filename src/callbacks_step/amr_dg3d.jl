@@ -37,15 +37,11 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         # Only if limiter was passed
         if limiter! !== nothing
             @trixi_timeit timer() "limiter!" begin
-                u_mean_refined_elements = Array{eltype(u_ode), 2}(undef,
-                                                                  nvariables(equations),
-                                                                  length(elements_to_refine))
-                for idx in eachindex(elements_to_refine)
-                    old_element_id = elements_to_refine[idx]
-                    u_mean = compute_u_mean(old_u, old_element_id,
-                                            mesh, equations, dg, cache)
-                    set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, idx)
-                end
+                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                          elements_to_refine,
+                                                                          mesh,
+                                                                          equations, dg,
+                                                                          cache)
             end
         end
 
