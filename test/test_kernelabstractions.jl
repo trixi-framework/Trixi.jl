@@ -2,7 +2,6 @@ module TestExamplesKernelAbstractions
 
 using Test
 using Trixi
-using KernelAbstractions
 
 include("test_trixi.jl")
 
