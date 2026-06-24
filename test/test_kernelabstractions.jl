@@ -16,7 +16,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
-@testset "Array 2D" begin
+@testset "KernelAbstractions CPU 2D" begin
 #! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
@@ -175,7 +175,7 @@ end
 end
 end
 
-@testset "Array 3D" begin
+@testset "KernelAbstractions CPU 3D" begin
 #! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
