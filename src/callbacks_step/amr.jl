@@ -953,14 +953,14 @@ function compute_new_ids_refined_coarsened_elements(difference, mesh::T8codeMesh
     return refined_element_ids_new, coarsened_element_ids_new
 end
 
-@inline function compute_u_mean_refined_elements(old_u, elements_to_refine, mesh,
+@inline function compute_u_mean_refined_elements(u, elements_to_refine, mesh,
                                                  equations, dg, cache)
-    u_mean_refined_elements = Array{eltype(old_u), 2}(undef,
-                                                      nvariables(equations),
-                                                      length(elements_to_refine))
+    u_mean_refined_elements = Array{eltype(u), 2}(undef,
+                                                  nvariables(equations),
+                                                  length(elements_to_refine))
     for idx in eachindex(elements_to_refine)
-        old_element_id = elements_to_refine[idx]
-        u_mean = compute_u_mean(old_u, old_element_id,
+        element_id = elements_to_refine[idx]
+        u_mean = compute_u_mean(u, element_id,
                                 mesh, equations, dg, cache)
         set_node_vars!(u_mean_refined_elements, u_mean, equations, dg, idx)
     end
