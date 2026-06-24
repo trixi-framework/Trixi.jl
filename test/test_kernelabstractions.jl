@@ -29,6 +29,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, ode.p, sol, 75_000)
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_advection_basic.jl Float32" begin
@@ -43,6 +57,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, ode.p, sol, 60_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms.jl native" begin
@@ -61,6 +89,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 100_000)
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms.jl Float32" begin
@@ -80,6 +122,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms.jl Flux Differencing Float32" begin
@@ -102,6 +158,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 end
 
@@ -118,6 +188,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 450_000)
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_advection_basic.jl Float32" begin
@@ -132,6 +216,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 370_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
@@ -152,6 +250,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 400_000)
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32" begin
@@ -174,6 +286,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
@@ -206,6 +332,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
+    @test real(semi.solver) == Float64
+    @test real(semi.solver.basis) == Float64
+    @test real(semi.solver.mortar) == Float64
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float64
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" begin
@@ -236,6 +376,20 @@ end
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+
+    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
 end
 end
 
