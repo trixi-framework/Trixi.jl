@@ -217,11 +217,10 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     u = cell_average
     rho, rho_v1, rho_v2, rho_e_total = u
     RealT = typeof(rho)
-    thresholds = (rho_floor, rho_e_floor)
     arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
-    @assert arithmetic_tol<minimum(thresholds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
+    @assert arithmetic_tol<minimum(lower_bounds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
-    if state_is_admissible(u, thresholds, equations)
+    if state_is_admissible(u, lower_bounds, variables, equations)
         return u
     end
 
@@ -234,10 +233,11 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     momentum_is_near_zero = abs(rho_v1) < arithmetic_tol && abs(rho_v2) < arithmetic_tol
 
     # Case: mu = 0 and lambda > 0
-    energy_internal_threshold_at_rho_floor = 2 * rho_floor * rho_e_floor + rho_v1 * rho_v1 +
-                                             rho_v2 * rho_v2
+    energy_internal_lower_bound_at_rho_floor = 2 * rho_floor * rho_e_floor +
+                                               rho_v1 * rho_v1 +
+                                               rho_v2 * rho_v2
     energy_internal_budget_at_rho_floor = 2 * rho_floor * rho_e_total
-    energy_internal_admissible_after_density_lift = energy_internal_threshold_at_rho_floor <=
+    energy_internal_admissible_after_density_lift = energy_internal_lower_bound_at_rho_floor <=
                                                     energy_internal_budget_at_rho_floor
     case_mu_is_zero_and_lambda_is_positive = density_below_floor &&
                                              energy_internal_admissible_after_density_lift
