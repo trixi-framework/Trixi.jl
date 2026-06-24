@@ -29,7 +29,7 @@ abstract type AbstractEquationOfState end
 
 A thermally perfect gas takes temperature effects on the material properties into account,
 most notably the specific heat capacities ``c_p = c_p(T)`` and ``c_v = c_v(T)``
-and in turn als the ratio of specific heats ``\gamma(T) = c_p(T) / c_v(T)``.
+and in turn also the ratio of specific heats ``\gamma(T) = c_p(T) / c_v(T)``.
 However, to relate pressure, density and temperature, the ideal gas law is still used, i.e.,
 ```math
 p = \frac{R}{M} \rho T
