@@ -253,30 +253,8 @@ function prolong2interfaces!(backend::Backend, cache, u,
                                mesh,
                                have_nonconservative_terms(equations), equations,
                                dg.surface_integral, dg, cache)
-    #=
-    @unpack interfaces = cache
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    index_range = eachnode(dg)
 
-    kernel! = prolong2interfaces_KAkernel!(backend)
-    kernel!(interfaces.u, u, typeof(mesh), equations, neighbor_ids, node_indices,
-        index_range,
-        ndrange = ninterfaces(interfaces))
-    =#
     return nothing
-end
-
-@kernel function prolong2interfaces_KAkernel!(interface_u, u,
-                                              MeshT::Type{<:Union{P4estMesh{3},
-                                                                  T8codeMesh{3}}},
-                                              equations,
-                                              neighbor_ids, node_indices, index_range)
-    interface = @index(Global)
-    prolong2interfaces_per_interface!(interface_u, u,
-                                      MeshT::Type{<:Union{P4estMesh{3},
-                                                          T8codeMesh{3}}},
-                                      equations, neighbor_ids,
-                                      node_indices, index_range, interface)
 end
 
 function calc_interface_flux_fused!(backend::Backend, surface_flux_values, u,
@@ -291,6 +269,7 @@ function calc_interface_flux_fused!(backend::Backend, surface_flux_values, u,
             surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
             index_range,
             ndrange = (nnodes(dg), nnodes(dg), ninterfaces(cache.interfaces)))
+
     return nothing
 end
 
@@ -312,14 +291,15 @@ end
     return start + ((i - 1) + (j - 1) * n) * step_i + (j - 1) * step_j
 end
 
-@inline function fused_interface_node_data(u, equations, dg, neighbor_ids,
-                                           node_indices, contravariant_vectors,
-                                           index_range, i, j, interface)
+@inline function fused_interface_node(u, equations, dg, neighbor_ids,
+                                      node_indices, contravariant_vectors,
+                                      index_range, i, j, interface)
     n = length(index_range)
 
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
+
     i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
                                                                                  index_range)
     j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
@@ -385,16 +365,16 @@ end
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node_data(u,
-                                                                                                 equations,
-                                                                                                 dg,
-                                                                                                 neighbor_ids,
-                                                                                                 node_indices,
-                                                                                                 contravariant_vectors,
-                                                                                                 index_range,
-                                                                                                 i,
-                                                                                                 j,
-                                                                                                 interface)
+    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node(u,
+                                                                                            equations,
+                                                                                            dg,
+                                                                                            neighbor_ids,
+                                                                                            node_indices,
+                                                                                            contravariant_vectors,
+                                                                                            index_range,
+                                                                                            i,
+                                                                                            j,
+                                                                                            interface)
 
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
     for v in eachvariable(equations)
@@ -427,47 +407,6 @@ end
                                                      MeshT::Type{<:Union{P4estMesh{3},
                                                                          T8codeMesh{3}}},
                                                      have_nonconservative_terms::True,
-                                                     combine_conservative_and_nonconservative_fluxes::False,
-                                                     equations, surface_integral, dg,
-                                                     neighbor_ids, node_indices,
-                                                     contravariant_vectors, index_range,
-                                                     i, j, interface)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
-
-    u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node_data(u,
-                                                                                                 equations,
-                                                                                                 dg,
-                                                                                                 neighbor_ids,
-                                                                                                 node_indices,
-                                                                                                 contravariant_vectors,
-                                                                                                 index_range,
-                                                                                                 i,
-                                                                                                 j,
-                                                                                                 interface)
-
-    flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
-
-    for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
-        surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v] +
-                                                                           0.5f0 *
-                                                                           noncons_primary[v]
-        surface_flux_values[v, i_secondary, j_secondary, secondary_direction,
-        secondary_element] = -(flux_[v] + 0.5f0 * noncons_secondary[v])
-    end
-    return nothing
-end
-
-@inline function calc_interface_flux_fused_per_node!(surface_flux_values, u,
-                                                     MeshT::Type{<:Union{P4estMesh{3},
-                                                                         T8codeMesh{3}}},
-                                                     have_nonconservative_terms::True,
                                                      combine_conservative_and_nonconservative_fluxes::True,
                                                      equations, surface_integral, dg,
                                                      neighbor_ids, node_indices,
@@ -476,16 +415,16 @@ end
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node_data(u,
-                                                                                                 equations,
-                                                                                                 dg,
-                                                                                                 neighbor_ids,
-                                                                                                 node_indices,
-                                                                                                 contravariant_vectors,
-                                                                                                 index_range,
-                                                                                                 i,
-                                                                                                 j,
-                                                                                                 interface)
+    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node(u,
+                                                                                            equations,
+                                                                                            dg,
+                                                                                            neighbor_ids,
+                                                                                            node_indices,
+                                                                                            contravariant_vectors,
+                                                                                            index_range,
+                                                                                            i,
+                                                                                            j,
+                                                                                            interface)
 
     flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
     for v in eachvariable(equations)
@@ -500,36 +439,11 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                               have_nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
-    #=
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    @unpack contravariant_vectors = cache.elements
-    index_range = eachnode(dg)
 
-    kernel! = calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms, equations,
-        surface_integral, typeof(dg), cache.interfaces.u,
-        neighbor_ids, node_indices, contravariant_vectors, index_range,
-        ndrange = ninterfaces(cache.interfaces))
-    =#
+    # The interface fluxes are computed in a fused kernel when calling
+    # prolong2interface!.
+
     return nothing
-end
-
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values,
-                                               MeshT::Type{<:Union{P4estMesh{3},
-                                                                   T8codeMesh{3}}},
-                                               have_nonconservative_terms, equations,
-                                               surface_integral, SolverT, u_interface,
-                                               neighbor_ids, node_indices,
-                                               contravariant_vectors, index_range)
-    interface = @index(Global)
-    calc_interface_flux_per_interface!(surface_flux_values,
-                                       MeshT,
-                                       have_nonconservative_terms,
-                                       equations, surface_integral, SolverT,
-                                       u_interface,
-                                       neighbor_ids, node_indices,
-                                       contravariant_vectors,
-                                       index_range, interface)
 end
 
 function prolong2boundaries!(backend::Backend, cache, u,
@@ -756,49 +670,6 @@ end
                                      MeshT::Type{<:Union{P4estMesh{3},
                                                          T8codeMesh{3}}},
                                      have_nonconservative_terms::True,
-                                     combine_conservative_and_nonconservative_fluxes::False,
-                                     equations,
-                                     surface_integral, dg::DG, cache, i_index, j_index,
-                                     k_index, i_node_index, j_node_index,
-                                     direction_index,
-                                     element_index, boundary_index, node_coordinates,
-                                     contravariant_vectors)
-    @unpack surface_flux = surface_integral
-
-    # Extract solution data from boundary container
-    u_inner = get_node_vars(u, equations, dg, i_node_index, j_node_index,
-                            boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, k_index, element_index)
-
-    # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg,
-                        i_index, j_index, k_index, element_index)
-
-    # Call pointwise numerical flux functions for the conservative and nonconservative part
-    # in the normal direction on the boundary
-    flux, noncons_flux = boundary_condition(u_inner, normal_direction, x, t,
-                                            surface_flux, equations)
-
-    # Copy flux to element storage in the correct orientation
-    for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
-        surface_flux_values[v, i_node_index, j_node_index,
-        direction_index, element_index] = flux[v] + 0.5f0 *
-                                                    noncons_flux[v]
-    end
-
-    return nothing
-end
-
-@inline function calc_boundary_flux!(u, surface_flux_values, t, boundary_condition,
-                                     MeshT::Type{<:Union{P4estMesh{3},
-                                                         T8codeMesh{3}}},
-                                     have_nonconservative_terms::True,
                                      combine_conservative_and_nonconservative_fluxes::True,
                                      equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
@@ -827,9 +698,6 @@ end
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        # Note the factor 0.5 necessary for the nonconservative fluxes based on
-        # the interpretation of global SBP operators coupled discontinuously via
-        # central fluxes/SATs
         surface_flux_values[v, i_node_index, j_node_index,
         direction_index, element_index] = flux[v]
     end
