@@ -193,7 +193,7 @@ end
     @test real(semi.solver.mortar) == Float64
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi.mesh) == Float64
-    @test typeof(semi.equations.gamma) == Float64
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float64}
 
     @test ode.u0 isa Array
     @test semi.solver.basis.derivative_matrix isa Array
@@ -221,7 +221,7 @@ end
     @test real(semi.solver.mortar) == Float32
     # TODO: `mesh` is currently not `adapt`ed correctly
     @test real(semi.mesh) == Float64
-    @test typeof(semi.equations.gamma) == Float32
+    @test typeof(semi.equations.advection_velocity) == SVector{3, Float32}
 
     @test ode.u0 isa Array
     @test semi.solver.basis.derivative_matrix isa Array
