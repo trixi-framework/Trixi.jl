@@ -606,8 +606,8 @@ struct FluxTurbo{NumericalFlux}
 end
 
 # As a fallback method, the wrapped flux is called.
-@inline (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
-                       equations)
+@inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
+                                equations)
     return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
@@ -623,21 +623,21 @@ end
 @inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
 # Numerical volume flux that recalls the plain volume flux when no specialization is given.
-@inline function volume_flux_turbo(volume_flux, aux_and_normals_and_equations...)
-    equations = last(aux_and_normals_and_equations)
+@inline function volume_flux_turbo(volume_flux, turbovars_and_normals_and_equations...)
+    equations = last(turbovars_and_normals_and_equations)
     volume_flux_turbo(volume_flux, have_nonconservative_terms(equations),
-                      aux_and_normals_and_equations...)
+                      turbovars_and_normals_and_equations...)
 end
 
 @inline function volume_flux_turbo(volume_flux, have_nonconservative_terms::False,
-                                   aux_and_normals_and_equations...)
-    equations = last(aux_and_normals_and_equations)
+                                   turbovars_and_normals_and_equations...)
+    equations = last(turbovars_and_normals_and_equations)
     n = nvariables(equations)
-    u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
-    u_rr = SVector(ntuple(v -> aux_and_normals_and_equations[n + v], Val(n)))
-    normal_direction = SVector(aux_and_normals_and_equations[end - 3],
-                               aux_and_normals_and_equations[end - 2],
-                               aux_and_normals_and_equations[end - 1])
+    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(n)))
+    normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
+                               turbovars_and_normals_and_equations[end - 2],
+                               turbovars_and_normals_and_equations[end - 1])
     return volume_flux(u_ll, u_rr, normal_direction, equations)
 end
 
