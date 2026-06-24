@@ -217,19 +217,12 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     has_candidate = false
 
     density_below_floor = rho < rho_floor
-    density_at_or_above_floor = rho >= rho_floor
     momentum_is_near_zero = abs(rho_v1) < arithmetic_tol && abs(rho_v2) < arithmetic_tol
 
     # Case: mu = 0 and lambda > 0
-    energy_internal_lower_bound_at_rho_floor = 2 * rho_floor * rho_e_floor +
-                                               rho_v1 * rho_v1 +
-                                               rho_v2 * rho_v2
-    energy_internal_budget_at_rho_floor = 2 * rho_floor * rho_e_total
-    energy_internal_admissible_after_density_lift = energy_internal_lower_bound_at_rho_floor <=
-                                                    energy_internal_budget_at_rho_floor
-    case_mu_is_zero_and_lambda_is_positive = density_below_floor &&
-                                             energy_internal_admissible_after_density_lift
-    if case_mu_is_zero_and_lambda_is_positive
+    if density_below_floor &&
+       (2 * rho_floor * rho_e_floor + rho_v1 * rho_v1 + rho_v2 * rho_v2) <=
+       2 * rho_floor * rho_e_total
         u_candidate = SVector(rho_floor, rho_v1, rho_v2, rho_e_total)
         best_dist_squared, best_u, has_candidate = update_best_candidate!(best_dist_squared,
                                                                           best_u,
@@ -241,10 +234,7 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
 
     # Case: mu > 0 and lambda > 0
     if momentum_is_near_zero
-        total_energy_internal_below_floor_at_zero_velocity = rho_e_total < rho_e_floor
-        case_mu_is_positive_and_lambda_is_positive_zero_momentum = density_below_floor &&
-                                                                   total_energy_internal_below_floor_at_zero_velocity
-        if case_mu_is_positive_and_lambda_is_positive_zero_momentum
+        if density_below_floor && rho_e_total < rho_e_floor
             u_candidate = SVector(rho_floor, zero(RealT), zero(RealT), rho_e_floor)
             best_dist_squared, best_u, has_candidate = update_best_candidate!(best_dist_squared,
                                                                               best_u,
@@ -261,17 +251,13 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                                u,
                                                                                rho_floor,
                                                                                rho_e_floor,
-                                                                               arithmetic_tol,
                                                                                use_v1_as_primary,
                                                                                equations)
     end
 
     # Case: mu > 0 and lambda = 0
     if momentum_is_near_zero
-        energy_internal_below_floor = rho_e_total < rho_e_floor
-        case_mu_is_positive_and_lambda_is_zero_zero_momentum = density_at_or_above_floor &&
-                                                               energy_internal_below_floor
-        if case_mu_is_positive_and_lambda_is_zero_zero_momentum
+        if !density_below_floor && rho_e_total < rho_e_floor
             u_candidate = SVector(rho, zero(RealT), zero(RealT), rho_e_floor)
             best_dist_squared, best_u, has_candidate = update_best_candidate!(best_dist_squared,
                                                                               best_u,
