@@ -17,7 +17,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
-@testset "KernelAbstractions CPU 2D" begin
+@testset "Trixi.KernelAbstractions.CPU 2D" begin
 #! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
@@ -37,13 +37,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float64
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_advection_basic.jl Float32" begin
@@ -65,13 +65,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float32
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms.jl native" begin
@@ -97,13 +97,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float64
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms.jl Float32" begin
@@ -130,13 +130,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float32
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms.jl Flux Differencing Float32" begin
@@ -166,17 +166,17 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float32
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 end
 
-@testset "KernelAbstractions CPU 3D" begin
+@testset "Trixi.KernelAbstractions.CPU 3D" begin
 #! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
@@ -196,13 +196,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float64
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_advection_basic.jl Float32" begin
@@ -224,13 +224,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float32
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
@@ -258,13 +258,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float64
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32" begin
@@ -294,13 +294,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float32
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
@@ -340,13 +340,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float64
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" begin
@@ -384,13 +384,13 @@ end
     @test real(semi.mesh) == Float64
     @test typeof(semi.equations.gamma) == Float32
 
-    @test ode.u0 isa KernelAbstractions.CPU
-    @test semi.solver.basis.derivative_matrix isa KernelAbstractions.CPU
+    @test ode.u0 isa Trixi.KernelAbstractions.CPU
+    @test semi.solver.basis.derivative_matrix isa Trixi.KernelAbstractions.CPU
 
-    @test Trixi.storage_type(semi.cache.elements) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.interfaces) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.boundaries) === KernelAbstractions.CPU
-    @test Trixi.storage_type(semi.cache.mortars) === KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.elements) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.interfaces) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.boundaries) === Trixi.KernelAbstractions.CPU
+    @test Trixi.storage_type(semi.cache.mortars) === Trixi.KernelAbstractions.CPU
 end
 end
 
