@@ -31,12 +31,12 @@ function project_euler_cubic_branch!(best_dist_squared, best_u, has_candidate, u
             rho_v_secondary_candidate = (rho_v_secondary / rho_v_primary) *
                                         rho_v_primary_candidate
             u_candidate = if use_v1_as_primary
-                              SVector(rho_floor, rho_v_primary_candidate,
-                                      rho_v_secondary_candidate, rho_e_total_candidate)
-                          else
-                              SVector(rho_floor, rho_v_secondary_candidate,
-                                      rho_v_primary_candidate, rho_e_total_candidate)
-                          end
+                SVector(rho_floor, rho_v_primary_candidate,
+                        rho_v_secondary_candidate, rho_e_total_candidate)
+            else
+                SVector(rho_floor, rho_v_secondary_candidate,
+                        rho_v_primary_candidate, rho_e_total_candidate)
+            end
             best_dist_squared, best_u, has_candidate = update_best_candidate!(best_dist_squared,
                                                                               best_u,
                                                                               has_candidate,
@@ -60,7 +60,8 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
     rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) : (rho_v2, rho_v1)
     a = 1 + (rho_v_secondary / rho_v_primary)^2
     discriminant_rho = rho * rho -
-                       (2 * rho * rho_v_primary * rho_v_primary * (rho_e_total - rho_e_floor) -
+                       (2 * rho * rho_v_primary * rho_v_primary *
+                        (rho_e_total - rho_e_floor) -
                         a * rho_v_primary^4) /
                        (2 * rho_v_primary * rho_v_primary +
                         (rho_e_floor + rho - rho_e_total)^2 / a)
@@ -81,11 +82,14 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                discriminant_rho_v_primary >= zero(discriminant_rho_v_primary)
                 sqrt_discriminant_rho_v_primary = sqrt(discriminant_rho_v_primary) / a
                 for rho_v_primary_candidate in (0.5 *
-                                                (rho_v_primary - sqrt_discriminant_rho_v_primary),
+                                                (rho_v_primary -
+                                                 sqrt_discriminant_rho_v_primary),
                                                 0.5 *
-                                                (rho_v_primary + sqrt_discriminant_rho_v_primary))
+                                                (rho_v_primary +
+                                                 sqrt_discriminant_rho_v_primary))
                     candidate_energy_internal_times_rho = rho_e_floor * rho_candidate +
-                                                          0.5f0 * a * rho_v_primary_candidate *
+                                                          0.5f0 * a *
+                                                          rho_v_primary_candidate *
                                                           rho_v_primary_candidate
                     original_energy_internal_times_rho = rho_e_total * rho_candidate *
                                                          (1 - arithmetic_tol)
@@ -97,14 +101,14 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                         rho_v_secondary_candidate = (rho_v_secondary / rho_v_primary) *
                                                     rho_v_primary_candidate
                         u_candidate = if use_v1_as_primary
-                                          SVector(rho_candidate, rho_v_primary_candidate,
-                                                  rho_v_secondary_candidate,
-                                                  rho_e_total_candidate)
-                                      else
-                                          SVector(rho_candidate, rho_v_secondary_candidate,
-                                                  rho_v_primary_candidate,
-                                                  rho_e_total_candidate)
-                                      end
+                            SVector(rho_candidate, rho_v_primary_candidate,
+                                    rho_v_secondary_candidate,
+                                    rho_e_total_candidate)
+                        else
+                            SVector(rho_candidate, rho_v_secondary_candidate,
+                                    rho_v_primary_candidate,
+                                    rho_e_total_candidate)
+                        end
                         best_dist_squared, best_u, has_candidate = update_best_candidate!(best_dist_squared,
                                                                                           best_u,
                                                                                           has_candidate,
