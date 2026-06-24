@@ -100,11 +100,6 @@ function convert_variables_and_thresholds(thresholds, variables,
     return (rho_floor, rho_e_floor), (Trixi.density, energy_internal)
 end
 
-# generic fallback: copy over the local limiter variables and thresholds as-is.
-function convert_variables_and_thresholds(thresholds, variables, equations)
-    return thresholds, variables
-end
-
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
                                              global_limiter_tol = 1e2 * eps(real(semi)),
