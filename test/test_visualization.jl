@@ -238,26 +238,6 @@ end
     pd2 = PlotData1D(sol, nvisnodes = 2)
     @test size(pd2.data) == (128, 3)
 
-    @testset "BlockFV 1D Visualization" begin
-        bfv_workspace = Module(:BlockFVWorkspace)
-        Core.eval(bfv_workspace, :(using Trixi))
-
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
-                                     "elixir_advection_basic.jl"), m=bfv_workspace,
-                            l2=nothing, linf=nothing)
-
-        u_fv = bfv_workspace.sol.u[end]
-        mesh_fv = bfv_workspace.semi.mesh
-        equations_fv = bfv_workspace.semi.equations
-        solver_fv = bfv_workspace.semi.solver
-        cache_fv = bfv_workspace.semi.cache
-
-        pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
-        @test pd_fv_explicit isa PlotData1D
-
-        pd_fv_wrapped = PlotData1D(bfv_workspace.sol)
-        @test pd_fv_wrapped isa PlotData1D
-    end
     @testset "1D plot recipes" begin
         pd = PlotData1D(sol)
 
@@ -291,6 +271,46 @@ end
         @trixi_test_nowarn Plots.plot(fake2d)
     end
 end
+
+#new thing
+
+@timed_testset "FV testsets" begin
+    @trixi_testset "BlockFV 1D Visualization" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
+                                     "elixir_advection_basic.jl"))
+
+        u_fv = sol.u[end]
+        mesh_fv = semi.mesh
+        equations_fv = semi.equations
+        solver_fv = semi.solver
+        cache_fv = semi.cache
+
+        pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
+        @test pd_fv_explicit isa PlotData1D
+
+        pd_fv_wrapped = PlotData1D(sol)
+        @test pd_fv_wrapped isa PlotData1D
+    end
+
+    @trixi_testset "Constant IC" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
+                                     "elixir_euler_source_term_nonperiodic"))
+
+        u_fv = sol.u[end]
+        mesh_fv = semi.mesh
+        equations_fv = semi.equations
+        solver_fv = semi.solver
+        cache_fv = semi.cache
+
+        pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
+        @test pd_fv_explicit isa PlotData1D
+
+        pd_fv_wrapped = PlotData1D(sol)
+        @test pd_fv_wrapped isa PlotData1D
+    end
+end
+
+#end new thing
 
 @timed_testset "1D plot from 2D solution" begin
     @trixi_testset "Create 1D plot along curve" begin
