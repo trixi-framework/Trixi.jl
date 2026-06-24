@@ -246,12 +246,14 @@ end
 # Test fallback method for mesh and type that are not supported
 @timed_testset "TreeMesh1D, fallback call FluxTurbo(flux_chandrashekar)" begin
     trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem", "elixir_euler_modified_sod.jl"),
+                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                           "elixir_euler_modified_sod.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(flux_chandrashekar))
     u_ode = copy(sol.u[end])
 
     trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem", "elixir_euler_modified_sod.jl"),
+                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                           "elixir_euler_modified_sod.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_chandrashekar)))
     u_ode_specialized = copy(sol.u[end])
 
