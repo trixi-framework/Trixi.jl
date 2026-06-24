@@ -248,13 +248,13 @@ end
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                            "elixir_euler_modified_sod.jl"),
-                  volume_integral = VolumeIntegralFluxDifferencing(flux_chandrashekar))
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_chandrashekar), RealT = BigFloat)
     u_ode = copy(sol.u[end])
 
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                            "elixir_euler_modified_sod.jl"),
-                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_chandrashekar)))
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_chandrashekar), RealT = BigFloat))
     u_ode_specialized = copy(sol.u[end])
 
     @test u_ode_specialized ≈ u_ode
