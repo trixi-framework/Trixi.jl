@@ -78,6 +78,9 @@ end
 
 @inline function initial_condition_mach6_flow(x, t,
                                               equations::NonIdealCompressibleEulerEquations2D)
+    RealT = eltype(x)
+    eos = equations.equation_of_state
+
     # Freestream conditions at 40 km altitude
     rho = 0.00385101 # [kg/m^3]
     V = inv(rho) # [m^3/kg]
@@ -85,21 +88,10 @@ end
     p = 277.522 # [Pa]
 
     # invert for temperature given p, V
-    T = 251.050 # [K]
-    tol = 100 * eps(Float64)
-    dp = pressure(V, T, eos()) - p
-    iter = 1
-    while abs(dp) / abs(p) > tol && iter < 100
-        dp = pressure(V, T, eos()) - p
-        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos()), T)
-        T = max(tol, T - dp / dpdT_V)
-        iter += 1
-    end
-    if iter == 100
-        @warn "Solver for temperature(V, p) did not converge"
-    end
+    T = temperature_given_Vp(V, p, eos; initial_T = 251.05, # [K]
+                             tol = 100 * eps(RealT), maxiter = 100)
 
-    a = Trixi.speed_of_sound(V, T, eos())
+    a = Trixi.speed_of_sound(V, T, eos)
     M = 6.0 # [1]
     v1 = M * a # [m/s]
     v2 = 0.0 # [m/s]
@@ -141,13 +133,11 @@ a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
 a_ = hcat(a_cold, a_hot)
 a = Trixi.SMatrix{9, 2}(a_)
 
-function eos()
-    ThermallyPerfectGas9PolyFit(R_specific = R_specific,
-                                temperature_bounds = temp_bounds,
-                                a = a)
-end
+eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                  temperature_bounds = temp_bounds,
+                                  a = a)
 
-equations = NonIdealCompressibleEulerEquations2D(eos())
+equations = NonIdealCompressibleEulerEquations2D(eos)
 
 # Reduce tolerance to speed things up (otherwise, `eos_newton_maxiter` would need to be increased)
 Trixi.eos_newton_tol(eos::ThermallyPerfectGas9PolyFit) = 1e-5
@@ -216,6 +206,8 @@ function Trixi.get_node_variable(::Val{:gamma}, u, mesh, equations, dg, cache)
                         n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
                         n_elements)
 
+    eos = equations.equation_of_state
+
     # We can accelerate the computation by thread-parallelizing the loop over elements
     # by using the `@threaded` macro.
     Trixi.@threaded for element in eachelement(dg, cache)
@@ -226,7 +218,7 @@ function Trixi.get_node_variable(::Val{:gamma}, u, mesh, equations, dg, cache)
             u_node_thermo = cons2thermo(u_node, equations)
             T = u_node_thermo[4]
 
-            gamma_array[i, j, element] = Trixi.gamma(T, eos())
+            gamma_array[i, j, element] = Trixi.gamma(T, eos)
         end
     end
 

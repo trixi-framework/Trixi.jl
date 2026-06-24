@@ -33,12 +33,11 @@ a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
 a_ = hcat(a_cold, a_hot)
 a = Trixi.SMatrix{9, 2}(a_)
 
-function eos()
-    ThermallyPerfectGas9PolyFit(R_specific = R_specific,
-                                temperature_bounds = temp_bounds,
-                                a = a)
-end
-equations = NonIdealCompressibleEulerEquations1D(eos())
+eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                  temperature_bounds = temp_bounds,
+                                  a = a)
+
+equations = NonIdealCompressibleEulerEquations1D(eos)
 
 # The default amplitude and frequency k are consistent with initial_condition_density_wave 
 # for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
@@ -56,19 +55,8 @@ function Trixi.initial_condition_density_wave(x, t,
     V = inv(rho)
 
     # invert for temperature given p, V
-    T = 300 # [K]
-    tol = 100 * eps(RealT)
-    dp = pressure(V, T, eos()) - p
-    iter = 1
-    while abs(dp) / abs(p) > tol && iter < 100
-        dp = pressure(V, T, eos()) - p
-        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos()), T)
-        T = max(tol, T - dp / dpdT_V)
-        iter += 1
-    end
-    if iter == 100
-        @warn "Solver for temperature(V, p) did not converge"
-    end
+    T = temperature_given_Vp(V, p, eos; initial_T = 300, # [K]
+                             tol = 100 * eps(RealT), maxiter = 100)
 
     return thermo2cons(SVector(V, v1, T), equations)
 end
