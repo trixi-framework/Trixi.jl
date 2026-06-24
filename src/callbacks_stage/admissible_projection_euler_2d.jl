@@ -23,17 +23,20 @@ function project_euler_cubic_branch!(best_dist_squared, best_u, has_candidate, u
                                      use_v1_as_primary,
                                      equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e_total = u
-    rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) : (rho_v2, rho_v1)
+    rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) :
+                                     (rho_v2, rho_v1)
     a = 1 + (rho_v_secondary / rho_v_primary)^2
     p = rho_floor * (4 * rho_e_floor - 2 * rho_e_total) / a
     q = -2 * rho_floor * rho_e_floor * rho_v_primary / a
     n_roots, roots = calc_depressed_cubic_roots(p, q)
     for i in 1:n_roots
         rho_v_primary_candidate = roots[i]
-        if cubic_momentum_root_satisfies_kkt(rho_v_primary_candidate, rho_v_primary, rho, a,
+        if cubic_momentum_root_satisfies_kkt(rho_v_primary_candidate, rho_v_primary,
+                                             rho, a,
                                              rho_floor, rho_e_floor)
             rho_e_total_candidate = rho_e_floor +
-                                    a * rho_v_primary_candidate * rho_v_primary_candidate /
+                                    a * rho_v_primary_candidate *
+                                    rho_v_primary_candidate /
                                     (2 * rho_floor)
             rho_v_secondary_candidate = (rho_v_secondary / rho_v_primary) *
                                         rho_v_primary_candidate
@@ -64,7 +67,8 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
     # and similar in magnitude; error in rho_candidate can then flip the
     # (1 - arithmetic_tol) comparison.
     rho, rho_v1, rho_v2, rho_e_total = u
-    rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) : (rho_v2, rho_v1)
+    rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) :
+                                     (rho_v2, rho_v1)
     a = 1 + (rho_v_secondary / rho_v_primary)^2
     discriminant_rho = rho * rho -
                        (2 * rho * rho_v_primary * rho_v_primary *
