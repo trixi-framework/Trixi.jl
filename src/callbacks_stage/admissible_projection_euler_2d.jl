@@ -184,7 +184,7 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
 end
 
 """
-    project_to_admissible_set(cell_average, lower_bound, variables,
+    project_to_admissible_set(cell_average, lower_bounds, variables,
                               equations::CompressibleEulerEquations2D)
 
 Implements Appendix B.2 of

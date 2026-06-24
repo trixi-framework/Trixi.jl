@@ -74,7 +74,7 @@ function calc_depressed_cubic_roots(p, q)
 end
 
 """
-    project_to_admissible_set(cell_average, lower_bound, variables,
+    project_to_admissible_set(cell_average, lower_bounds, variables,
                               equations::CompressibleEulerEquations1D)
 
 Implements Appendix B.2 of
