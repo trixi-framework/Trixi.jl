@@ -280,17 +280,17 @@ end
                                      "elixir_advection_basic.jl"), n_nodes=4,
                             initial_refinement_level=3)
 
-        u_fv = sol.u[end]
-        mesh_fv = semi.mesh
-        equations_fv = semi.equations
-        solver_fv = semi.solver
-        cache_fv = semi.cache
+        #u_fv = sol.u[end]
+        #mesh_fv = semi.mesh
+        #equations_fv = semi.equations
+        #solver_fv = semi.solver
+        #cache_fv = semi.cache
 
-        pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
-        @test pd_fv_explicit isa PlotData1D
+        #pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
+        #@test pd_fv_explicit isa PlotData1D
 
-        #pd_fv_wrapped = PlotData1D(sol)
-        #@test pd_fv_wrapped isa PlotData1D
+        pd_fv_wrapped = PlotData1D(sol)
+        @test pd_fv_wrapped isa PlotData1D
 
         #@test pd_fv_explicit.data ≈ pd_fv_wrapped.data
     end
@@ -316,17 +316,17 @@ end
                                      "elixir_euler_source_term_nonperiodic.jl"), n_nodes=4,
                             initial_refinement_level=3)
 
-        u_fv = sol.u[end]
-        mesh_fv = semi.mesh
-        equations_fv = semi.equations
-        solver_fv = semi.solver
-        cache_fv = semi.cache
+        #u_fv = sol.u[end]
+        #mesh_fv = semi.mesh
+        #equations_fv = semi.equations
+        #solver_fv = semi.solver
+        #cache_fv = semi.cache
 
-        pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
-        @test pd_fv_explicit isa PlotData1D
+        #pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
+        #@test pd_fv_explicit isa PlotData1D
 
-        #pd_fv_wrapped = PlotData1D(sol)
-        #@test pd_fv_wrapped isa PlotData1D
+        pd_fv_wrapped = PlotData1D(sol)
+        @test pd_fv_wrapped isa PlotData1D
 
         #@test pd_fv_explicit.data ≈ pd_fv_wrapped.data
     end
