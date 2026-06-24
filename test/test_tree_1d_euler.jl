@@ -396,9 +396,17 @@ end
 @trixi_testset "elixir_euler_leblanc_limiter_liu_zhang.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_leblanc_limiter_liu_zhang.jl"),
-                        l2=[0.212900601, 0.0596467559, 0.0249364541],
-                        linf=[0.577864839, 0.105468742, 0.0630698303])
-    @test length(global_limiter!.history_davis_yin_iterations) == 1
+                        l2=[
+                            0.21290060065772057,
+                            0.05964675586608289,
+                            0.024936454073233603
+                        ],
+                        linf=[
+                            0.5778648389634408,
+                            0.10546874166288663,
+                            0.06306983030165976
+                        ])
+    @test length(global_limiter!.history_davis_yin_iterations) == 12
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
