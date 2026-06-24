@@ -91,5 +91,5 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
 sol = solve(ode,
             RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
                           step_limiter! = global_limiter!);
-            adaptive = false, dt = 1.0, # overwritten by the stepsize_callback
+            adaptive = false, dt = 1, # overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
