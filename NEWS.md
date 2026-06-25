@@ -20,6 +20,11 @@ The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2
 - Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
 - Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
 - Added postprocessing for kinetic energy spectral analysis via `compute_kinetic_energy_spectrum` for `AbstractCompressibleEulerEquations` on `TreeMesh`/`DGSEM` and on `DGMultiMesh`/`DGMultiSBP` in 2D and 3D; the routine returns matching integer wavenumber shells and the isotropic 1D spectrum `E(k)`.
+- For the `NonIdealCompressibleEulerEquations` with a non-ideal equation of state a new Newton solver interface for the
+temperature has been added.
+This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.
+The new function `temperature_given_Vp` computes temperature given the specific volume `V` and pressure `p` using Newton's method,
+analogous to the existing `temperature` function for `AbstractEquationOfState` which takes in `V` and specific internal energy `e_internal` ([#3093]).
 
 #### Changed
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.

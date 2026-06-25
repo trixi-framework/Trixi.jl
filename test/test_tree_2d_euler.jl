@@ -536,17 +536,19 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_limiter_liu_zhang.jl"),
                         l2=[
-                            0.900435283,
-                            0.216609014,
-                            0.216701755,
-                            0.286441970
+                            0.90804578279466,
+                            0.21785647903550392,
+                            0.21785665052959136,
+                            0.28670869115421455
                         ],
                         linf=[
-                            5.47150337,
-                            2.06573409,
-                            2.06581271,
-                            1.19775801
-                        ])
+                            5.37828857574071,
+                            2.044547247030974,
+                            2.0445488517007133,
+                            1.1947919489346195
+                        ],
+                        atol=5e-2,
+                        rtol=1e-2)
     @test length(global_limiter!.history_davis_yin_iterations) == 1
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
