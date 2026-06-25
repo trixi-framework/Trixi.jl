@@ -1,11 +1,11 @@
 @doc raw"""
-    ThermallyPerfectGas9PolyFit{RealT <: Real, N} <: AbstractEquationOfState
+    ThermallyPerfectGas9PolyFit{R_specific, TemperatureBounds, A} <: AbstractThermallyPerfectGas
 
 Thermally perfect ideal gas equation of state with ideal gas pressure relation
 ```math
 p = \rho R_specific T = \frac{R_specific T}{V}
 ```
-and non-constant, only temperature-dependent heat capaciies represented by piecewise NASA 9-coefficient
+and non-constant, only temperature-dependent heat capacities represented by piecewise NASA 9-coefficient
 polynomials, see
 - McBride, Zehe, Gordon (2002).
   NASA Glenn Coefficients for Calculating Thermodynamic Properties of Individual Species.
@@ -27,7 +27,7 @@ Fields:
 struct ThermallyPerfectGas9PolyFit{R_specific <: Real,
                                    TemperatureBounds <: AbstractVector,
                                    A <: AbstractMatrix} <:
-       AbstractEquationOfState
+       AbstractThermallyPerfectGas
     R_specific::R_specific
     temperature_bounds::TemperatureBounds
     a::A
