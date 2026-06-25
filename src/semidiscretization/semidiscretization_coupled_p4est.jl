@@ -19,25 +19,31 @@ See also: [`SemidiscretizationCoupled`](@ref)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4est{Semis, Indices} <:
+mutable struct SemidiscretizationCoupledP4est{Semis, Indices, CF, RealT} <:
                AbstractSemidiscretization
     semis::Semis
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
     view_cell_ids::Vector{Int}
     mesh_ids::Vector{Int}
+    coupling_functions::CF # [i, j] converts system j variables to system i variable space
+    element_offset::Vector{Int} # 1-based offset into u_global for each system's data block
     # Precomputed lookup: boundary_parent_lookup[i][boundary_index] → parent cell ID
     # for each semidiscretization i. Avoids per-node linear scans at runtime.
     boundary_parent_lookup::Vector{Vector{Int}}
+    u_global::Vector{RealT} # preallocated buffer for the global solution across all views
 end
 
 """
-    SemidiscretizationCoupledP4est(semis...)
+    SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
 
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
+`coupling_functions[i, j]` is called as `f(x, u, equations_j, equations_i)` and should return
+the state vector of system `i` given a state vector `u` of system `j`.
 """
-function SemidiscretizationCoupledP4est(semis...)
+function SemidiscretizationCoupledP4est(semis...; coupling_functions = nothing)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
+    @assert all(semi -> nnodes(semi.solver) == nnodes(semis[1].solver), semis) "All semidiscretizations must use the same number of nodes per direction (i.e. the same polydeg)!"
 
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
@@ -54,7 +60,8 @@ function SemidiscretizationCoupledP4est(semis...)
     end
 
     # Create correspondence between parent mesh cell IDs and view cell IDs.
-    n_parent_cells = size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    # Use ncells to get the actual number of (possibly AMR-refined) elements.
+    n_parent_cells = ncells(semis[1].mesh.parent)
     view_cell_ids = zeros(Int, n_parent_cells)
     mesh_ids = zeros(Int, n_parent_cells)
     for i in eachindex(semis)
@@ -65,6 +72,17 @@ function SemidiscretizationCoupledP4est(semis...)
 
     performance_counter = PerformanceCounter()
 
+    # Precompute element offsets (1-based) into u_global for each system.
+    n_nodes = length(semis[1].mesh.parent.nodes)
+    NDIMS = ndims(semis[1])
+    element_offset = zeros(Int, length(semis))
+    element_offset[1] = 1
+    for i in 2:length(semis)
+        element_offset[i] = element_offset[i - 1] +
+                            n_nodes^NDIMS * nvariables(semis[i - 1].equations) *
+                            length(semis[i - 1].mesh.cell_ids)
+    end
+
     # Precompute boundary → parent cell ID lookup for each semidiscretization.
     # boundary_parent_lookup[i] is a vector indexed by boundary index.
     boundary_parent_lookup = Vector{Vector{Int}}(undef, length(semis))
@@ -72,12 +90,21 @@ function SemidiscretizationCoupledP4est(semis...)
         boundary_parent_lookup[i] = semis[i].cache.neighbor_ids_parent
     end
 
-    SemidiscretizationCoupledP4est{typeof(semis),
-                                   typeof(u_indices)}(semis, u_indices,
-                                                      performance_counter,
-                                                      view_cell_ids,
-                                                      mesh_ids,
-                                                      boundary_parent_lookup)
+    # Preallocate the global solution buffer used in rhs! for coupled mortar flux computation.
+    RealT = promote_type(real.(semis)...)
+    ndofs_nvars_global = sum(nvariables(s.equations) * length(s.mesh.cell_ids)
+                             for s in semis)
+    u_global = Vector{RealT}(undef, n_nodes^NDIMS * ndofs_nvars_global)
+
+    SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
+                                   typeof(coupling_functions), RealT}(semis, u_indices,
+                                                                      performance_counter,
+                                                                      view_cell_ids,
+                                                                      mesh_ids,
+                                                                      coupling_functions,
+                                                                      element_offset,
+                                                                      boundary_parent_lookup,
+                                                                      u_global)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
@@ -157,6 +184,10 @@ running in parallel with MPI.
     return sum(ndofsglobal, semi.semis)
 end
 
+@inline function mesh_equations_solver_cache(semi::SemidiscretizationCoupledP4est)
+    return mesh_equations_solver_cache(semi.semis[1])
+end
+
 function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
     @unpack u_indices = semi
 
@@ -164,7 +195,6 @@ function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
 
     # Distribute the partial solution vectors onto the global one.
     @threaded for i in eachsystem(semi)
-        # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
         u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
     end
 
@@ -175,25 +205,149 @@ end
     return @view u_ode[semi.u_indices[index]]
 end
 
+# Rebuild mesh_ids and view_cell_ids from the current state of each view's cell_ids.
+# Called from rhs! whenever the parent mesh cell count changes (e.g. after AMR).
+function update_mesh_lookup!(semi::SemidiscretizationCoupledP4est)
+    n_parent_cells = ncells(semi.semis[1].mesh.parent)
+    if length(semi.mesh_ids) != n_parent_cells
+        resize!(semi.mesh_ids, n_parent_cells)
+        resize!(semi.view_cell_ids, n_parent_cells)
+    end
+    fill!(semi.mesh_ids, 0)
+    fill!(semi.view_cell_ids, 0)
+    for i in eachindex(semi.semis)
+        cell_ids = semi.semis[i].mesh.cell_ids
+        semi.view_cell_ids[cell_ids] = parent_cell_id_to_view(cell_ids,
+                                                              semi.semis[i].mesh)
+        semi.mesh_ids[cell_ids] .= i
+    end
+    return nothing
+end
+
 # RHS call for the coupled system.
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    # For each semidiscretization, first prime its BoundaryConditionCoupledP4est
-    # instances with the current solution and index, then call rhs!.
-    # Priming and rhs! must be interleaved (not separated) because multiple semis
-    # may share the same BC objects, so self_index must be set immediately before use.
+    n_nodes = length(semi.semis[1].mesh.parent.nodes)
+    NDIMS = ndims(semi.semis[1])
+
+    # Update all AMR-dependent lookup tables when the parent cell count has changed.
+    if ncells(semi.semis[1].mesh.parent) != length(semi.mesh_ids)
+        update_mesh_lookup!(semi)
+    end
+
+    # Update element_offset for the current AMR state (cell counts may have changed).
+    semi.element_offset[1] = 1
+    for i in 2:nsystems(semi)
+        semi.element_offset[i] = semi.element_offset[i - 1] +
+                                 n_nodes^NDIMS *
+                                 nvariables(semi.semis[i - 1].equations) *
+                                 length(semi.semis[i - 1].mesh.cell_ids)
+    end
+
+    # Resize the global solution buffer if AMR changed element counts, then fill it.
+    ndofs_nvars_global = sum(nvariables(semi_.equations) * length(semi_.mesh.cell_ids)
+                             for semi_ in semi.semis)
+    n_global = n_nodes^NDIMS * ndofs_nvars_global
+    if length(semi.u_global) != n_global
+        resize!(semi.u_global, n_global)
+    end
+    u_global = semi.u_global
+
+    # Extract the global solution vector from the local solutions.
+    foreach_enumerate(semi.semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        n_vars = nvariables(semi_.equations)
+        n_cells = length(semi_.mesh.cell_ids)
+        u_loc_reshape = reshape(u_loc, (n_vars, n_nodes, n_nodes, n_cells))
+        for (local_element, _) in enumerate(semi_.mesh.cell_ids)
+            for j_node in 1:n_nodes, i_node in 1:n_nodes, var in 1:n_vars
+                u_global[semi.element_offset[i] +
+                (var - 1) +
+                n_vars * (i_node - 1) +
+                n_vars * n_nodes * (j_node - 1) +
+                n_vars * n_nodes^NDIMS * (local_element - 1)] = u_loc_reshape[var,
+                                                                              i_node,
+                                                                              j_node,
+                                                                              local_element]
+            end
+        end
+    end
+
+    # Zero stale coupled mortar flux values in surface_flux_values BEFORE the
+    # regular rhs! calls. This prevents calc_surface_integral! (inside rhs!)
+    # from picking up stale values from the previous time step.
+    foreach_enumerate(semi.semis) do (i, semi_)
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+        if isdefined(cache, :coupled_mortars) &&
+           ncoupledmortars(cache.coupled_mortars) > 0
+            zero_coupled_mortar_surface_flux!(cache.elements.surface_flux_values,
+                                              mesh, equations, solver, cache)
+        end
+    end
+
+    # Prime BCs and call rhs! for each semi in the same loop iteration.
+    # Priming and rhs! MUST be interleaved: if multiple semis share the same BC
+    # objects, a separate priming loop followed by a separate rhs! loop would
+    # leave all BCs with self_index from the last semi when the first rhs! runs.
     foreach_enumerate(semi.semis) do (i, semi_)
         for bc in semi_.boundary_conditions.boundary_condition_types
             if bc isa BoundaryConditionCoupledP4est
                 bc.semi_coupled = semi
                 bc.u_ode = u_ode
                 bc.self_index = i
+                bc.t = t
             end
         end
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        return rhs!(du_loc, u_loc, semi_, t)
+        rhs!(du_loc, u_loc, semi_, t)
+    end
+
+    # Handle coupled mortars (hanging nodes at mesh view boundaries)
+    foreach_enumerate(semi.semis) do (i, semi_)
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi_)
+
+        # Check if this mesh view has coupled mortars
+        if isdefined(cache, :coupled_mortars) &&
+           ncoupledmortars(cache.coupled_mortars) > 0
+            u_loc = get_system_u_ode(u_ode, i, semi)
+            du_loc = get_system_u_ode(du_ode, i, semi)
+
+            # Wrap to get correct array structure
+            u = wrap_array(u_loc, mesh, equations, solver, cache)
+            du = wrap_array(du_loc, mesh, equations, solver, cache)
+
+            # Prolong local elements to coupled mortars
+            @trixi_timeit timer() "prolong2coupledmortars" prolong2coupledmortars!(cache,
+                                                                                   u,
+                                                                                   mesh,
+                                                                                   equations,
+                                                                                   solver.mortar,
+                                                                                   solver)
+
+            # Compute and apply coupled mortar fluxes
+            @trixi_timeit timer() "coupled mortar flux" begin
+                calc_coupled_mortar_flux!(cache.elements.surface_flux_values,
+                                          mesh,
+                                          have_nonconservative_terms(equations),
+                                          equations,
+                                          solver.mortar,
+                                          solver.surface_integral,
+                                          solver,
+                                          cache,
+                                          u_global,
+                                          semi)
+            end
+
+            # Apply surface integral for coupled mortar contributions
+            # (the regular surface integral was already computed before coupled mortar fluxes)
+            @trixi_timeit timer() "coupled mortar surface integral" begin
+                calc_coupled_mortar_surface_integral!(du, u, mesh, equations,
+                                                      solver.surface_integral,
+                                                      solver, cache)
+            end
+        end
     end
 
     runtime = time_ns() - time_start
@@ -259,6 +413,7 @@ function initialize!(cb_coupled::DiscreteCallback{Condition, Affect!}, u_ode_cou
                 bc.semi_coupled = semi_coupled
                 bc.u_ode = u_ode_coupled
                 bc.self_index = i
+                bc.t = t
             end
         end
         cb = analysis_callback_coupled.callbacks[i]
@@ -292,6 +447,7 @@ function (analysis_callback_coupled::AnalysisCallbackCoupledP4est)(integrator)
                 bc.semi_coupled = semi_coupled
                 bc.u_ode = u_ode_coupled
                 bc.self_index = i
+                bc.t = integrator.t
             end
         end
         du_ode = get_system_u_ode(du_ode_coupled, i, semi_coupled)
@@ -422,30 +578,45 @@ end
 ################################################################################
 
 """
-    BoundaryConditionCoupledP4est(coupling_converter)
+    BoundaryConditionCoupledP4est(coupling_converter; fallback_bc = nothing)
 
-Boundary condition struct where the user can specify the coupling converter function.
+Boundary condition for coupling two [`P4estMeshView`](@ref) semidiscretizations.
+At each call the neighbor's solution is read from the other mesh view and a numerical
+flux is computed across the interface.
 
 # Arguments
-- `coupling_converter::CouplingConverter`: function to call for converting the solution
-                                           state of one system to the other system
+- `coupling_converter`: 2×2 array of functions `f(x, u, equations_other, equations_own)`
+  that convert the solution state of one system into the variable space of the other.
+- `fallback_bc`: optional boundary condition (e.g. [`BoundaryConditionDirichlet`](@ref))
+  applied at faces with no coupling neighbor (`neighbor_ids_parent == 0`).  This arises
+  for physical-domain boundaries in non-rectangular mesh-view splits, where the same face
+  name appears at both a view interface and a domain edge within the same view.
+  When `fallback_bc = nothing` (the default), encountering a zero neighbor triggers an
+  error, which is the safe default for axis-aligned rectangular splits.
 """
-mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
+mutable struct BoundaryConditionCoupledP4est{CouplingConverter, FallbackBC} <:
+               AbstractCoupledP4estBC
     const coupling_converter::CouplingConverter
     # Set before each rhs! call by SemidiscretizationCoupledP4est.rhs!
     semi_coupled::Union{Nothing, AbstractSemidiscretization}
     u_ode::Union{Nothing, AbstractVector}
     self_index::Int # index of the system this BC belongs to
+    t::Float64     # current time, set before each rhs!
+    # Optional fallback BC (e.g. BoundaryConditionDirichlet) called when
+    # neighbor_ids_parent == 0, i.e. for physical-domain boundaries in
+    # mixed-geometry splits where a face name appears at both the view
+    # interface and the physical domain edge.
+    const fallback_bc::FallbackBC # Nothing or a callable BC
 
-    function BoundaryConditionCoupledP4est(coupling_converter)
-        new{typeof(coupling_converter)}(coupling_converter, nothing, nothing, 0)
+    function BoundaryConditionCoupledP4est(coupling_converter; fallback_bc = nothing)
+        new{typeof(coupling_converter), typeof(fallback_bc)}(coupling_converter,
+                                                             nothing, nothing,
+                                                             0, 0.0, fallback_bc)
     end
 end
 
 """
-Extract the boundary values from the neighboring element.
-This requires values from other mesh views.
-This currently only works for Cartesian meshes.
+Extract the boundary values from the neighboring element in the coupled mesh view.
 """
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations,
                                                              cache,
@@ -467,6 +638,24 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                 boundary_index)
 end
 
+# Dispatch on have_nonconservative_terms so the fallback BC is invoked correctly.
+# For conservative equations the fallback returns a single flux; for non-conservative
+# equations (e.g. MHD) it returns (flux, noncons_flux) which we combine here to
+# match what _compute_boundary_flux returns on the coupled path.
+@inline function _invoke_fallback_bc(fallback, ::False,
+                                     u_inner, normal_direction, x, t,
+                                     surface_flux_function, equations)
+    return fallback(u_inner, normal_direction, x, t, surface_flux_function, equations)
+end
+
+@inline function _invoke_fallback_bc(fallback, ::True,
+                                     u_inner, normal_direction, x, t,
+                                     surface_flux_function, equations)
+    flux, noncons_flux = fallback(u_inner, normal_direction, x, t,
+                                  surface_flux_function, equations)
+    return flux + 0.5f0 * noncons_flux
+end
+
 @inline function _boundary_condition_coupled(boundary_condition, semi_coupled, u_ode,
                                              u_inner, mesh, equations, cache,
                                              i_index, j_index, element_index,
@@ -477,6 +666,24 @@ end
 
     # Look up the parent cell ID directly by boundary index.
     cell_index_parent = lookup[boundary_index]
+    if cell_index_parent == 0
+        fallback = boundary_condition.fallback_bc
+        if fallback === nothing
+            error("BoundaryConditionCoupledP4est: no neighbor found for boundary_index=$boundary_index " *
+                  "(semi $(boundary_condition.self_index)). " *
+                  "Check that the coupling interface boundary name matches the view_interface_names " *
+                  "used in build_view_bcs, and that extract_neighbor_ids_parent set the lookup correctly. " *
+                  "For mixed-geometry splits where the same face name appears at both view interfaces " *
+                  "and physical boundaries, pass fallback_bc = BoundaryConditionDirichlet(...) " *
+                  "to BoundaryConditionCoupledP4est.")
+        end
+        # Physical-domain boundary in a mixed-geometry split: delegate to the fallback BC.
+        x = SVector(cache.elements.node_coordinates[1, i_index, j_index, element_index],
+                    cache.elements.node_coordinates[2, i_index, j_index, element_index])
+        return _invoke_fallback_bc(fallback, have_nonconservative_terms(equations),
+                                   u_inner, normal_direction, x, boundary_condition.t,
+                                   surface_flux_function, equations)
+    end
 
     # Determine which direction the boundary faces to compute the neighbor node indices.
     if abs(normal_direction[1]) > abs(normal_direction[2])

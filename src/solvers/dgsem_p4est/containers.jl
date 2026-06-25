@@ -102,6 +102,57 @@ function Base.resize!(elements::P4estElementContainer, capacity)
     return nothing
 end
 
+# Allocate an uninitialized P4estElementContainer for `nelements` cells.
+# Geometry fields are left undefined; the caller is responsible for filling them.
+function _alloc_p4est_element_container(nelements,
+                                        ::Val{NDIMS},
+                                        ::Type{RealT},
+                                        ::Type{uEltype},
+                                        n_nodes,
+                                        n_vars) where {NDIMS, RealT <: Real,
+                                                       uEltype <: Real}
+    _node_coordinates = Vector{RealT}(undef, NDIMS * n_nodes^NDIMS * nelements)
+    node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+                                   (NDIMS, ntuple(_ -> n_nodes, NDIMS)..., nelements))
+
+    _jacobian_matrix = Vector{RealT}(undef, NDIMS^2 * n_nodes^NDIMS * nelements)
+    jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
+                                  (NDIMS, NDIMS, ntuple(_ -> n_nodes, NDIMS)...,
+                                   nelements))
+
+    _contravariant_vectors = similar(_jacobian_matrix)
+    contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
+                                        size(jacobian_matrix))
+
+    _inverse_jacobian = Vector{RealT}(undef, n_nodes^NDIMS * nelements)
+    inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
+                                   (ntuple(_ -> n_nodes, NDIMS)..., nelements))
+
+    _surface_flux_values = Vector{uEltype}(undef,
+                                           n_vars * n_nodes^(NDIMS - 1) * (NDIMS * 2) *
+                                           nelements)
+    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+                                      (n_vars, ntuple(_ -> n_nodes, NDIMS - 1)...,
+                                       NDIMS * 2, nelements))
+
+    return P4estElementContainer{NDIMS, RealT, uEltype,
+                                 NDIMS + 1, NDIMS + 2, NDIMS + 3,
+                                 Array{RealT, NDIMS + 1},
+                                 Array{RealT, NDIMS + 2},
+                                 Array{RealT, NDIMS + 3},
+                                 Vector{RealT},
+                                 Array{uEltype, NDIMS + 2}, Vector{uEltype}}(node_coordinates,
+                                                                             jacobian_matrix,
+                                                                             contravariant_vectors,
+                                                                             inverse_jacobian,
+                                                                             surface_flux_values,
+                                                                             _node_coordinates,
+                                                                             _jacobian_matrix,
+                                                                             _contravariant_vectors,
+                                                                             _inverse_jacobian,
+                                                                             _surface_flux_values)
+end
+
 # Create element container and initialize element data
 function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
                                    P4estMeshView{NDIMS, NDIMS, RealT},
@@ -109,52 +160,8 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
                        equations,
                        basis,
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
-    nelements = ncells(mesh)
-
-    _node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(basis)^NDIMS * nelements)
-    node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                   (NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
-                                    nelements))
-
-    _jacobian_matrix = Vector{RealT}(undef, NDIMS^2 * nnodes(basis)^NDIMS * nelements)
-    jacobian_matrix = unsafe_wrap(Array, pointer(_jacobian_matrix),
-                                  (NDIMS, NDIMS, ntuple(_ -> nnodes(basis), NDIMS)...,
-                                   nelements))
-
-    _contravariant_vectors = similar(_jacobian_matrix)
-    contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
-                                        size(jacobian_matrix))
-
-    _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
-    inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
-                                   (ntuple(_ -> nnodes(basis), NDIMS)..., nelements))
-
-    _surface_flux_values = Vector{uEltype}(undef,
-                                           nvariables(equations) *
-                                           nnodes(basis)^(NDIMS - 1) * (NDIMS * 2) *
-                                           nelements)
-    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                      (nvariables(equations),
-                                       ntuple(_ -> nnodes(basis), NDIMS - 1)...,
-                                       NDIMS * 2, nelements))
-
-    elements = P4estElementContainer{NDIMS, RealT, uEltype,
-                                     NDIMS + 1, NDIMS + 2, NDIMS + 3,
-                                     Array{RealT, NDIMS + 1},
-                                     Array{RealT, NDIMS + 2},
-                                     Array{RealT, NDIMS + 3},
-                                     Vector{RealT},
-                                     Array{uEltype, NDIMS + 2}, Vector{uEltype}}(node_coordinates,
-                                                                                 jacobian_matrix,
-                                                                                 contravariant_vectors,
-                                                                                 inverse_jacobian,
-                                                                                 surface_flux_values,
-                                                                                 _node_coordinates,
-                                                                                 _jacobian_matrix,
-                                                                                 _contravariant_vectors,
-                                                                                 _inverse_jacobian,
-                                                                                 _surface_flux_values)
-
+    elements = _alloc_p4est_element_container(ncells(mesh), Val(NDIMS), RealT, uEltype,
+                                              nnodes(basis), nvariables(equations))
     init_elements!(elements, mesh, basis)
     return elements
 end

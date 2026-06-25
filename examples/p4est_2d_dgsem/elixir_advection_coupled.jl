@@ -16,31 +16,51 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (8, 8)
 
-# Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements
-# Since we couple through the boundaries, the periodicity does not matter here,
-# but it is to trigger parts of the code for the test.
+# Create parent P4estMesh with 8 x 8 trees and 8 x 8 elements.
+# The mesh is periodic so that the outer faces of the ring view connect to the
+# opposite ring faces as regular internal interfaces, rather than appearing as
+# physical domain boundaries. This makes the combined coupled system truly
+# double-periodic: the solution travels across the center square into the ring
+# and wraps around.
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
                         coordinates_max = coordinates_max,
                         initial_refinement_level = 0,
-                        periodicity = false)
+                        periodicity = true)
 
-# Define the mesh views consisting of a small square in the center
-# and a square ring around it.
-cell_ids1 = vcat((1:18), (23:26), (31:34), (39:42), (47:64))
+# Split elements into a center square (|x|<0.5 and |y|<0.5) and an outer ring.
+# Use element center coordinates so the split works at any initial_refinement_level.
+semi_parent = SemidiscretizationHyperbolic(parent_mesh, equations,
+                                           initial_condition_convergence_test, solver,
+                                           boundary_conditions = (;))
+cache_parent = semi_parent.cache
+
+cell_ids1 = Int[]  # outer ring
+cell_ids2 = Int[]  # inner square
+for element in 1:Trixi.ncells(parent_mesh)
+    x_c = cache_parent.elements.node_coordinates[1, 2, 2, element]
+    y_c = cache_parent.elements.node_coordinates[2, 2, 2, element]
+    if abs(x_c) < 0.5 && abs(y_c) < 0.5
+        push!(cell_ids2, element)
+    else
+        push!(cell_ids1, element)
+    end
+end
+
 mesh1 = P4estMeshView(parent_mesh, cell_ids1)
-cell_ids2 = vcat((19:22), (27:30), (35:38), (43:46))
 mesh2 = P4estMeshView(parent_mesh, cell_ids2)
 
-# Define a trivial coupling function.
-coupling_function = (x, u, equations_other, equations_own) -> u
+# Define trivial coupling functions (identity, same equation on both sides).
+coupling_functions = Array{Function}(undef, 2, 2)
+coupling_functions[1, 1] = (x, u, equations_other, equations_own) -> u
+coupling_functions[1, 2] = (x, u, equations_other, equations_own) -> u
+coupling_functions[2, 1] = (x, u, equations_other, equations_own) -> u
+coupling_functions[2, 2] = (x, u, equations_other, equations_own) -> u
 
-# The mesh is coupled across the physical boundaries, which makes this setup
-# effectively double periodic.
-boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_function),
-                       y_neg = BoundaryConditionCoupledP4est(coupling_function),
-                       y_pos = BoundaryConditionCoupledP4est(coupling_function),
-                       x_pos = BoundaryConditionCoupledP4est(coupling_function))
+boundary_conditions = (; x_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                       y_neg = BoundaryConditionCoupledP4est(coupling_functions),
+                       y_pos = BoundaryConditionCoupledP4est(coupling_functions),
+                       x_pos = BoundaryConditionCoupledP4est(coupling_functions))
 
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
                                      solver,
@@ -50,7 +70,7 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
                                      boundary_conditions = boundary_conditions)
 
 # Create a semidiscretization that bundles semi1 and semi2
-semi = SemidiscretizationCoupledP4est(semi1, semi2)
+semi = SemidiscretizationCoupledP4est(semi1, semi2; coupling_functions = coupling_functions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

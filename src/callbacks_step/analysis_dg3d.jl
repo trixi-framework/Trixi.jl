@@ -161,7 +161,7 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
-function calc_error_norms(func, u, t, analyzer,
+function calc_error_norms(func, _u, t, analyzer,
                           mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
@@ -169,11 +169,15 @@ function calc_error_norms(func, u, t, analyzer,
     @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local, jacobian_tmp1, jacobian_tmp2 = cache_analysis
     @unpack node_coordinates, inverse_jacobian = cache.elements
 
-    # Calculate error norms on the CPU, to ensure the order of summation is the same.
-    if trixi_backend(u) !== nothing
-        node_coordinates = Array(node_coordinates)
-        inverse_jacobian = Array(inverse_jacobian)
-        u = Array(u)
+    # TODO GPU AnalysisCallback currently lives on CPU
+    backend = trixi_backend(_u)
+    if backend isa Nothing # TODO GPU KA CPU backend
+        @unpack node_coordinates, inverse_jacobian = cache.elements
+        u = _u
+    else
+        node_coordinates = Array(cache.elements.node_coordinates)
+        inverse_jacobian = Array(cache.elements.inverse_jacobian)
+        u = Array(_u)
     end
 
     # Set up data structures
@@ -386,12 +390,13 @@ function integrate_via_indices(func::Func, u,
     return integral
 end
 
-function integrate_via_indices(func::Func, u,
+function integrate_via_indices(func::Func, _u,
                                mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
-    return integrate_via_indices(func, trixi_backend(u), u, mesh, equations, dg, cache,
+    return integrate_via_indices(func, trixi_backend(_u), _u, mesh, equations, dg,
+                                 cache,
                                  args...; normalize = normalize)
 end
 

@@ -77,6 +77,14 @@ function analyze_convergence(errors, iterations, semi::AbstractSemidiscretizatio
     return analyze_convergence(errors, iterations, variablenames)
 end
 
+# For coupled P4est semidiscretizations, collect variable names from all subsystems.
+function analyze_convergence(errors, iterations, semi::SemidiscretizationCoupledP4est)
+    variablenames = Tuple(vcat([["$(v) (semi $i)"
+                                 for v in varnames(cons2cons, semi_.equations)]
+                                for (i, semi_) in enumerate(semi.semis)]...))
+    return analyze_convergence(errors, iterations, variablenames)
+end
+
 # This method is called with the collected error values to actually compute and print the EOC
 function analyze_convergence(errors, iterations,
                              variablenames::Union{Tuple, AbstractArray})
