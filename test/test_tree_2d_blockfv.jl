@@ -72,9 +72,9 @@ end # Linear scalar advection
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_isentropic_vortex.jl" begin
+@trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_isentropic_vortex.jl"),
+                                 "elixir_euler_vortex.jl"),
                         l2=[0.0009462760556996494,
                             0.034845346890640956,
                             0.0349234255730328,
