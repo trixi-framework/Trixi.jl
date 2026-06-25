@@ -27,7 +27,7 @@ Fields:
 struct ThermallyPerfectGas9PolyFit{R_specific <: Real,
                                    TemperatureBounds <: AbstractVector,
                                    A <: AbstractMatrix} <:
-       AbstractEquationOfState
+       AbstractThermallyPerfectGas
     R_specific::R_specific
     temperature_bounds::TemperatureBounds
     a::A
