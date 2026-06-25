@@ -105,7 +105,27 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end # Compressible Euler equations
+
+@trixi_testset "elixir_euler_source_term_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_term_nonperiodic.jl"),
+                        l2=[
+                            0.0013980788738505803,
+                            0.0027151896203078626,
+                            0.0027151896203078817,
+                            0.008307485477336464
+                        ],
+                        linf=[
+                            0.0028249606444796793,
+                            0.005820266937670571,
+                            0.005820266937670571,
+                            0.016196092853339117
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_euler_vortex_mortar.jl with blockfv vs with dgsem with polydeg=0" begin
     # Compute with blockfv solver.
@@ -133,6 +153,8 @@ end # Compressible Euler equations
     @test res1.l2 ≈ res2.l2
     @test res1.linf ≈ res2.linf
 end
+end # Compressible Euler equations
+
 end # BlockFV 2D
 
 end # module
