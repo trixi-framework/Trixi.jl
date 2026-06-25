@@ -22,7 +22,8 @@ Fields:
 - `R_specific`: specific gas constant, i.e, ``R_\text{universal} / M`` where ``M`` is the molar mass of the gas.
   The molar mass is usually provided with the NASA polynomial data.
 - `temperature_bounds`: interval boundaries with length `N + 1`
-- `coefficients`: 9 NASA coefficients per interval, stored column-wise
+- `coefficients`: 9 NASA coefficients per interval, stored column-wise, i.e.,
+the dimensions of `coefficients` are `(9, N)` where `N` is the number of temperature intervals.
 """
 struct ThermallyPerfectGas9PolyFit{R_specific <: Real,
                                    TemperatureBounds <: AbstractVector,
@@ -48,9 +49,9 @@ function coefficients_air_9polyfit(temperature_bounds)
     a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
              7.065227840e-08; -1.071483490e-11; 6.577800150e-16; 6.462263190e+03;
              -8.147411905e+00]
-    a_ = hcat(a_cold, a_hot)
+    a = hcat(a_cold, a_hot)
 
-    return a = SMatrix{9, 2}(a_)
+    return SMatrix{9, 2}(a)
 end
 
 """
