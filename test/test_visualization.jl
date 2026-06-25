@@ -275,7 +275,8 @@ end
 @timed_testset "FV testsets" begin
     @trixi_testset "BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
-                                     "elixir_advection_basic.jl"), n_nodes=4,
+                                     "elixir_advection_basic.jl"),
+                            n_nodes=4,
                             initial_refinement_level=3)
 
         pd_fv_wrapped = @test_nowarn PlotData1D(sol)
@@ -284,13 +285,15 @@ end
 
     @trixi_testset "DGSEM vs BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
-                                     "elixir_advection_finite_volume.jl"), polydeg=0,
+                                     "elixir_advection_finite_volume.jl"),
+                            polydeg=0,
                             initial_refinement_level=5)
 
         pd_dgsem_polydeg0 = @test_nowarn PlotData1D(sol)
 
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
-                                     "elixir_advection_basic.jl"), n_nodes=4,
+                                     "elixir_advection_basic.jl"),
+                            n_nodes=4,
                             initial_refinement_level=3)
 
         pd_blockfv = @test_nowarn PlotData1D(sol)
@@ -302,10 +305,20 @@ end
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
                                      "elixir_euler_source_term_nonperiodic.jl"),
                             n_nodes=4,
-                            initial_refinement_level=3)
+                            initial_refinement_level=3,
+                            initial_condition=initial_condition_constant,
+                            tspan=(0.0, 0.0))
 
-        pd_fv_constant_ic = @test_nowarn PlotData1D(sol)
-        @test pd_fv_constant_ic isa PlotData1D
+        pd = @test_nowarn PlotData1D(sol)
+        @test pd isa PlotData1D
+
+        ref_cons = initial_condition_constant(SVector(0.0), 0.0,
+                                              semi.equations)
+        ref_prim = cons2prim(ref_cons, semi.equations)
+
+        @test all(x -> isapprox(x, ref_prim[1]), pd.data[:, 1]) # rho
+        @test all(x -> isapprox(x, ref_prim[2]), pd.data[:, 2]) # v1
+        @test all(x -> isapprox(x, ref_prim[3]), pd.data[:, 3]) # p
     end
 end
 
@@ -1134,7 +1147,7 @@ end
     pd = @inferred PlotData2D(sol)
     @trixi_test_nowarn Makie.plot(pd["rho"])
     @trixi_test_nowarn Makie.plot(pd["rho"], colormap = :blues)
-    # plot_mesh = true 
+    # plot_mesh = true
     @trixi_test_nowarn Makie.plot(pd["rho"], plot_mesh = true)
 
     # explicit PlotMesh overlay (works for all PlotData2DTriangulated meshes)
