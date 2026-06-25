@@ -5,7 +5,7 @@ Thermally perfect ideal gas equation of state with ideal gas pressure relation
 ```math
 p = \rho R_specific T = \frac{R_specific T}{V}
 ```
-and non-constant, only temperature-dependent heat capaciies represented by piecewise NASA 9-coefficient
+and non-constant, only temperature-dependent heat capacities represented by piecewise NASA 9-coefficient
 polynomials, see
 - McBride, Zehe, Gordon (2002).
   NASA Glenn Coefficients for Calculating Thermodynamic Properties of Individual Species.
