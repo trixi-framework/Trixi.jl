@@ -3,7 +3,10 @@
 end
 
 # Coverage test for all initial conditions
-@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_sin" setup=[Setup, TreeMesh1DMisc] tags=[:tree_part1] begin
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_sin" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[0.00017373554109980247],
                         linf=[0.0006021275678165239],
@@ -12,7 +15,10 @@ end
                         visualization=TrivialCallback())
 end
 
-@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_constant" setup=[Setup, TreeMesh1DMisc] tags=[:tree_part1] begin
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[2.441369287653687e-16],
                         linf=[4.440892098500626e-16],
@@ -21,7 +27,10 @@ end
                         visualization=TrivialCallback())
 end
 
-@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_linear_x" setup=[Setup, TreeMesh1DMisc] tags=[:tree_part1] begin
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_linear_x" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[1.9882464973192864e-16],
                         linf=[1.4432899320127035e-15],
@@ -32,7 +41,10 @@ end
                         visualization=TrivialCallback())
 end
 
-@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_convergence_test" setup=[Setup, TreeMesh1DMisc] tags=[:tree_part1] begin
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_convergence_test" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[6.1803596620800215e-6],
                         linf=[2.4858560899509996e-5],

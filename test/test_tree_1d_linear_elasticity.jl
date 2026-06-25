@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 end
 
-@testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_convergence.jl" setup=[Setup, TreeMesh1DLinearElasticity] tags=[:tree_part1] begin
+@testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_convergence.jl" setup=[
+    Setup,
+    TreeMesh1DLinearElasticity
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearelasticity_convergence.jl"),
                         analysis_callback=AnalysisCallback(semi,
@@ -19,7 +22,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_impact.jl" setup=[Setup, TreeMesh1DLinearElasticity] tags=[:tree_part1] begin
+@testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_impact.jl" setup=[
+    Setup,
+    TreeMesh1DLinearElasticity
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearelasticity_impact.jl"),
                         l2=[0.004334150310828556, 368790.1916121487],
                         linf=[0.01070558926301203, 999999.9958777003])

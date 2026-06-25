@@ -11,7 +11,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D Burgers: elixir_burgers_linear_stability.jl" setup=[Setup, TreeMesh1DBurgers] tags=[:tree_part1] begin
+@testitem "TreeMesh1D Burgers: elixir_burgers_linear_stability.jl" setup=[
+    Setup,
+    TreeMesh1DBurgers
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_linear_stability.jl"),
                         l2=[0.5660569881106876],
                         linf=[1.9352238038313998])
@@ -29,7 +32,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D Burgers: elixir_burgers_rarefaction.jl" setup=[Setup, TreeMesh1DBurgers] tags=[:tree_part1] begin
+@testitem "TreeMesh1D Burgers: elixir_burgers_rarefaction.jl" setup=[
+    Setup,
+    TreeMesh1DBurgers
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_rarefaction.jl"),
                         l2=[0.4038224690923722],
                         linf=[1.0049201454652736])

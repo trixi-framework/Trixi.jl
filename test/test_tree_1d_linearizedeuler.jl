@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 end
 
-@testitem "TreeMesh1D LinearizedEuler: elixir_linearizedeuler_convergence.jl" setup=[Setup, TreeMesh1DLinearizedEuler] tags=[:tree_part1] begin
+@testitem "TreeMesh1D LinearizedEuler: elixir_linearizedeuler_convergence.jl" setup=[
+    Setup,
+    TreeMesh1DLinearizedEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_convergence.jl"),
                         l2=[
                             0.00010894927270421941,
@@ -19,7 +22,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D LinearizedEuler: elixir_linearizedeuler_gauss_wall.jl" setup=[Setup, TreeMesh1DLinearizedEuler] tags=[:tree_part1] begin
+@testitem "TreeMesh1D LinearizedEuler: elixir_linearizedeuler_gauss_wall.jl" setup=[
+    Setup,
+    TreeMesh1DLinearizedEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gauss_wall.jl"),
                         l2=[0.650082087850354, 0.2913911415488769, 0.650082087850354],
                         linf=[

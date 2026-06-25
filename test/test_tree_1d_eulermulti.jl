@@ -22,7 +22,10 @@ end
     @test entropy2cons(w, equations) ≈ u
 end
 
-@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_ec.jl" setup=[Setup, TreeMesh1DEulerMulti] tags=[:tree_part1] begin
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_ec.jl" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                         l2=[0.15330089521538684, 0.4417674632047301,
                             0.016888510510282385, 0.03377702102056477,
@@ -35,7 +38,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_es.jl" setup=[Setup, TreeMesh1DEulerMulti] tags=[:tree_part1] begin
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_es.jl" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_es.jl"),
                         l2=[
                             0.1522380497572071,
@@ -54,7 +60,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_convergence_ec.jl" setup=[Setup, TreeMesh1DEulerMulti] tags=[:tree_part1] begin
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_convergence_ec.jl" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
                         l2=[
                             8.575236038539227e-5,
@@ -73,7 +82,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_convergence_es.jl" setup=[Setup, TreeMesh1DEulerMulti] tags=[:tree_part1] begin
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_convergence_es.jl" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
                         l2=[1.8983933794407234e-5, 6.207744299844731e-5,
                             1.5466205761868047e-6, 3.0932411523736094e-6,
@@ -86,7 +98,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_convergence_es.jl with flux_chandrashekar" setup=[Setup, TreeMesh1DEulerMulti] tags=[:tree_part1] begin
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_convergence_es.jl with flux_chandrashekar" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
                         l2=[1.888450477353845e-5, 5.4910600482795386e-5,
                             9.426737161533622e-7, 1.8853474323067245e-6,
@@ -100,7 +115,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_two_interacting_blast_waves.jl" setup=[Setup, TreeMesh1DEulerMulti] tags=[:tree_part1] begin
+@testitem "TreeMesh1D EulerMulti: elixir_eulermulti_two_interacting_blast_waves.jl" setup=[
+    Setup,
+    TreeMesh1DEulerMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulermulti_two_interacting_blast_waves.jl"),
                         l2=[1.288867611915533, 82.71335258388848, 0.00350680272313187,

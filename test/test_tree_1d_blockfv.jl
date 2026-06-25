@@ -12,7 +12,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "BlockFV 1D: elixir_advection_basic.jl with less n_nodes and higher refinement" setup=[Setup, TreeMesh1DBlockFV] tags=[:tree_part1] begin
+@testitem "BlockFV 1D: elixir_advection_basic.jl with less n_nodes and higher refinement" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
     # Compute with more volumes per macro cell.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         n_nodes=8,
@@ -37,7 +40,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "BlockFV 1D: elixir_advection_basic.jl with same number of DOFs as tree_1d_dgsem/elixir_advection_finite_volume.jl" setup=[Setup, TreeMesh1DBlockFV] tags=[:tree_part1] begin
+@testitem "BlockFV 1D: elixir_advection_basic.jl with same number of DOFs as tree_1d_dgsem/elixir_advection_finite_volume.jl" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
     # Compute with more volumes per macro cell.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         n_nodes=4,
@@ -63,7 +69,10 @@ end
     @test res1.linf ≈ res2.linf
 end
 
-@testitem "BlockFV 1D: elixir_euler_source_term_nonperiodic.jl" setup=[Setup, TreeMesh1DBlockFV] tags=[:tree_part1] begin
+@testitem "BlockFV 1D: elixir_euler_source_term_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_term_nonperiodic.jl"),
                         l2=[

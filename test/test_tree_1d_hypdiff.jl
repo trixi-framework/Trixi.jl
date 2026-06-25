@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 end
 
-@testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic.jl" setup=[Setup, TreeMesh1DHypDiff] tags=[:tree_part1] begin
+@testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh1DHypDiff
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[1.3655114953278825e-7, 1.0200345026471077e-6],
                         linf=[7.173285075379177e-7, 4.507116828644797e-6])
@@ -11,7 +14,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic_perk4.jl" setup=[Setup, TreeMesh1DHypDiff] tags=[:tree_part1] begin
+@testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic_perk4.jl" setup=[
+    Setup,
+    TreeMesh1DHypDiff
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic_perk4.jl"),
                         l2=[1.3655114994521285e-7, 1.0200345014751413e-6],
                         linf=[7.173289867656862e-7, 4.507115296537023e-6],
@@ -25,7 +31,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
-@testitem "TreeMesh1D HypDiff: elixir_hypdiff_harmonic_nonperiodic.jl" setup=[Setup, TreeMesh1DHypDiff] tags=[:tree_part1] begin
+@testitem "TreeMesh1D HypDiff: elixir_hypdiff_harmonic_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh1DHypDiff
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_hypdiff_harmonic_nonperiodic.jl"),
                         l2=[3.0130941075207524e-12, 2.6240829677090014e-12],

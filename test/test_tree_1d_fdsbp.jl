@@ -13,7 +13,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D FDSBP: elixir_advection_upwind_periodic.jl" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
+@testitem "TreeMesh1D FDSBP: elixir_advection_upwind_periodic.jl" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_upwind_periodic.jl"),
                         l2=[1.1672962783692568e-5],
                         linf=[1.650514414558435e-5])
@@ -36,7 +39,10 @@ end
 
 # same tolerances as above since the methods should be identical (up to
 # machine precision)
-@testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl with SurfaceIntegralStrongForm and FluxUpwind" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
+@testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl with SurfaceIntegralStrongForm and FluxUpwind" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
     # Run the elixir once to bring its `D_upw`/`flux_splitting` into scope, then
     # re-run with a custom DG solver built from them.
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
@@ -50,7 +56,10 @@ end
                                   VolumeIntegralUpwind(flux_splitting)))
 end
 
-@testitem "TreeMesh1D FDSBP: elixir_burgers_linear_stability.jl" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
+@testitem "TreeMesh1D FDSBP: elixir_burgers_linear_stability.jl" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_linear_stability.jl"),
                         l2=[0.9999995642691271],
                         linf=[1.824702804788453],
@@ -80,7 +89,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with splitting_vanleer_haenel" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with splitting_vanleer_haenel" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
                             3.4137906030996366e-6,
@@ -100,7 +112,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with VolumeIntegralStrongForm" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with VolumeIntegralStrongForm" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
     # Run the elixir once to bring its `D_upw` into scope, then re-run with a
     # custom strong-form DG solver built from it.
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
