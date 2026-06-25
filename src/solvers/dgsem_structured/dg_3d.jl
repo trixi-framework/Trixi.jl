@@ -44,7 +44,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     @unpack derivative_hat = dg.basis
     @unpack contravariant_vectors = cache.elements
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         flux1 = flux(u_node, 1, equations)
@@ -103,7 +103,7 @@ end
     @unpack contravariant_vectors = cache.elements
 
     # Calculate volume integral in one element
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
@@ -205,7 +205,7 @@ end
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
@@ -291,7 +291,7 @@ end
     @unpack contravariant_vectors = cache.elements
 
     # Calculate volume integral in one element
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction

@@ -200,7 +200,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     @unpack derivative_hat = dg.basis
 
     # Calculate volume terms in one element
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         flux1 = flux(u_node, 1, equations)
@@ -227,7 +227,7 @@ end
     @unpack derivative_split = dg.basis
 
     # Calculate volume integral in one element
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -270,7 +270,7 @@ end
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         # The diagonal terms are zero since the diagonal of `derivative_split`
@@ -523,13 +523,13 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equa
 
         if orientations[interface] == 1
             # interface in x-direction
-            for j in eachnode(dg), v in eachvariable(equations)
+            @inbounds for j in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, j, interface] = u[v, nnodes(dg), j, left_element]
                 interfaces_u[2, v, j, interface] = u[v, 1, j, right_element]
             end
         else # if orientations[interface] == 2
             # interface in y-direction
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
                 interfaces_u[2, v, i, interface] = u[v, i, 1, right_element]
             end
@@ -552,7 +552,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equa
 
         if orientations[interface] == 1
             # interface in x-direction
-            for j in eachnode(dg)
+            @inbounds for j in eachnode(dg)
                 for v in eachvariable(equations)
                     # Interpolate to the interfaces using a local variable for
                     # the accumulation of values (to reduce global memory operations).
@@ -574,7 +574,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equa
             end
         else # if orientations[interface] == 2
             # interface in y-direction
-            for i in eachnode(dg)
+            @inbounds for i in eachnode(dg)
                 for v in eachvariable(equations)
                     interface_u_1 = zero(eltype(interfaces_u))
                     interface_u_2 = zero(eltype(interfaces_u))
@@ -614,7 +614,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         left_direction = 2 * orientations[interface]
         right_direction = 2 * orientations[interface] - 1
 
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
             flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
@@ -648,7 +648,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         left_direction = 2 * orientations[interface]
         right_direction = 2 * orientations[interface] - 1
 
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             # Call pointwise Riemann solver
             orientation = orientations[interface]
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
@@ -688,11 +688,11 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations)
+                @inbounds for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
                 end
             else # Element in +x direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations)
+                @inbounds for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, l, boundary] = u[v, 1, l, element]
                 end
             end
@@ -700,12 +700,12 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in y-direction
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations)
+                @inbounds for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
                 end
             else
                 # element in +y direction of boundary
-                for l in eachnode(dg), v in eachvariable(equations)
+                @inbounds for l in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, l, boundary] = u[v, l, 1, element]
                 end
             end
@@ -1255,7 +1255,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-        for l in eachnode(dg)
+        @inbounds for l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] -
@@ -1298,7 +1298,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)
-        for l in eachnode(dg)
+        @inbounds for l in eachnode(dg)
             for v in eachvariable(equations)
                 # Aliases for repeatedly accessed variables
                 surface_flux_minus = surface_flux_values[v, l, 1, element]
@@ -1349,7 +1349,7 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{2},
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
                 du[v, i, j, element] *= factor
             end

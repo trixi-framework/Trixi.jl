@@ -138,7 +138,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         flux1 = flux(u_node, 1, equations)
@@ -171,7 +171,7 @@ end
     @unpack derivative_split = dg.basis
 
     # Calculate volume integral in one element
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -226,7 +226,7 @@ end
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # The diagonal terms are zero since the diagonal of `derivative_split`
@@ -539,7 +539,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
 
         if orientations[interface] == 1
             # interface in x-direction
-            for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+            @inbounds for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
                                                         left_element]
                 interfaces_u[2, v, j, k, interface] = u[v, 1, j, k,
@@ -547,7 +547,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
             end
         elseif orientations[interface] == 2
             # interface in y-direction
-            for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
                                                         left_element]
                 interfaces_u[2, v, i, k, interface] = u[v, i, 1, k,
@@ -555,7 +555,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
             end
         else # if orientations[interface] == 3
             # interface in z-direction
-            for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, j, interface] = u[v, i, j, nnodes(dg),
                                                         left_element]
                 interfaces_u[2, v, i, j, interface] = u[v, i, j, 1, right_element]
@@ -585,7 +585,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         left_direction = 2 * orientations[interface]
         right_direction = 2 * orientations[interface] - 1
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
             flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
@@ -620,7 +620,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
         left_direction = 2 * orientations[interface]
         right_direction = 2 * orientations[interface] - 1
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Call pointwise Riemann solver
             orientation = orientations[interface]
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
@@ -660,11 +660,11 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
-                for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[1, v, j, k, boundary] = u[v, nnodes(dg), j, k, element]
                 end
             else # Element in +x direction of boundary
-                for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, j, k, boundary] = u[v, 1, j, k, element]
                 end
             end
@@ -672,12 +672,12 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in y-direction
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
-                for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[1, v, i, k, boundary] = u[v, i, nnodes(dg), k, element]
                 end
             else
                 # element in +y direction of boundary
-                for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, i, k, boundary] = u[v, i, 1, k, element]
                 end
             end
@@ -685,12 +685,12 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in z-direction
             if neighbor_sides[boundary] == 1
                 # element in -z direction of boundary
-                for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[1, v, i, j, boundary] = u[v, i, j, nnodes(dg), element]
                 end
             else
                 # element in +z direction of boundary
-                for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                     boundaries.u[2, v, i, j, boundary] = u[v, i, j, 1, element]
                 end
             end
@@ -1349,7 +1349,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # turn these into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-        for m in eachnode(dg), l in eachnode(dg)
+        @inbounds for m in eachnode(dg), l in eachnode(dg)
             for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, m, element] = (du[v, 1, l, m, element] -
@@ -1403,7 +1403,7 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor
             end

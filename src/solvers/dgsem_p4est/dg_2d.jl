@@ -102,7 +102,7 @@ end
 
     i_primary = i_primary_start
     j_primary = j_primary_start
-    for i in index_range
+    @inbounds for i in index_range
         for v in eachvariable(equations)
             interfaces_u[1, v, i, interface] = u[v, i_primary, j_primary,
                                                  primary_element]
@@ -123,7 +123,7 @@ end
 
     i_secondary = i_secondary_start
     j_secondary = j_secondary_start
-    for i in index_range
+    @inbounds for i in index_range
         for v in eachvariable(equations)
             interfaces_u[2, v, i, interface] = u[v, i_secondary, j_secondary,
                                                  secondary_element]
@@ -329,7 +329,7 @@ end
         node_secondary_step = 1
     end
 
-    for node in index_range
+    @inbounds for node in index_range
         # Get the normal direction on the primary element.
         # Contravariant vectors at interfaces in negative coordinate direction
         # are pointing inwards. This is handled by `get_normal_direction`.
@@ -1108,7 +1108,7 @@ end
     #
     # factor = inverse_weights[1]
     # For LGL basis: Identical to weighted boundary interpolation at x = ±1
-    for l in eachnode(dg)
+    @inbounds for l in eachnode(dg)
         for v in eachvariable(equations)
             # surface at -x
             du[v, 1, l, element] = (du[v, 1, l, element] +
