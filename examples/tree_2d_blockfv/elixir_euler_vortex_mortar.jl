@@ -15,7 +15,8 @@ The classical isentropic vortex test case of
   Schemes for Hyperbolic Conservation Laws
   [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
 """
-function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
+
+const initial_condition_isentropic_vortex = (x, t, equations::CompressibleEulerEquations2D) -> begin
     # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
     # for error convergence: make sure that the end time is such that the vortex is back at the initial state!!
     # for the current velocity and domain size: t_end should be a multiple of 20s
@@ -48,6 +49,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     prim = SVector(rho, v1, v2, p)
     return prim2cons(prim, equations)
 end
+
 initial_condition = initial_condition_isentropic_vortex
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
@@ -65,7 +67,7 @@ refinement_patches = ((type = "box", coordinates_min = (0.0, -10.0),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
-                n_cells_max = 10_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)

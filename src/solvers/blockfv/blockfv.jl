@@ -86,7 +86,7 @@ function BlockFV(; n_nodes::Integer,
     basis = UniformFiniteVolumeBasis(RealT, n_nodes)
     volume_integral = VolumeIntegralFiniteVolume(surface_flux)
     surface_integral = SurfaceIntegralWeakForm(surface_flux)
-    
+    #basis is passed as mortar method
     return DG(basis, basis, surface_integral, volume_integral)
 end
 

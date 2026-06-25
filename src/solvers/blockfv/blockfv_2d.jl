@@ -197,21 +197,21 @@ end
     if size(u_large, 2) % 2 == 1
         for i in 1:size(u_large, 2)
             # Copy values to the upper small element
-            mortars.u_upper[leftright, :, i, mortar] = u_large[:, div(i + 1, 2)]
+            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :, div(i + 1, 2))
 
             # Copy values to the lower small element
             # (middle node is shared for odd numbers of nodes)
             mortars.u_lower[leftright, :, i, mortar] =
-                u_large[:, div(i, 2) + 1 + div(size(u_large,2), 2)]
+                view(u_large, :, div(i, 2) + 1 + div(size(u_large,2), 2))
         end
     else
         for i in 1:size(u_large, 2)
             # Copy values to the upper small element
-            mortars.u_upper[leftright, :, i, mortar] = u_large[:, div(i + 1, 2)]
+            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :, div(i + 1, 2))
 
             # Copy values to the lower small element
             mortars.u_lower[leftright, :, i, mortar] =
-                u_large[:, div(i + 1, 2) + div(size(u_large,2), 2)]
+                view(u_large, :, div(i + 1, 2) + div(size(u_large,2), 2))
         end
     end
 
@@ -277,19 +277,19 @@ end
         if nnodes(dg) % 2 == 1
             #for an odd number of nodes, average the interface values at the center node
             surface_flux_values[v, (nnodes(dg) + 1 ) ÷ 2, direction, large_element] =
-                0.5 * (fstar_primary_upper[v, end] + fstar_primary_lower[v, 1])
+                0.5f0 * (fstar_primary_upper[v, end] + fstar_primary_lower[v, 1])
             for i in eachnode(mortar_l2)
                 if i <= nnodes(dg) ÷ 2
                     #average neighboring fluxes from the upper small element
                     surface_flux_values[v, i, direction, large_element] =
-                    0.5 * (fstar_primary_upper[v, 2*i-1] + fstar_primary_upper[v, 2*i])
+                    0.5f0 * (fstar_primary_upper[v, 2*i-1] + fstar_primary_upper[v, 2*i])
                 elseif i==(nnodes(dg) + 1 ) ÷ 2
                     continue
                     #center node already set above
                 else
                     #average neighboring fluxes from the lower small element
                     surface_flux_values[v, i, direction, large_element] =
-                    0.5 * (fstar_primary_lower[v, 2*i-1-nnodes(dg)] + fstar_primary_lower[v, 2*i- nnodes(dg)])
+                    0.5f0 * (fstar_primary_lower[v, 2*i-1-nnodes(dg)] + fstar_primary_lower[v, 2*i- nnodes(dg)])
                 end
             end
         else
@@ -297,11 +297,11 @@ end
                 if i <= nnodes(dg) ÷ 2
                     #average neighboring fluxes from the upper small element
                     surface_flux_values[v, i, direction, large_element] =
-                    0.5 * (fstar_primary_upper[v, 2*i-1] + fstar_primary_upper[v, 2*i])
+                    0.5f0 * (fstar_primary_upper[v, 2*i-1] + fstar_primary_upper[v, 2*i])
                 else
                     #average neighboring fluxes from the lower small element
                     surface_flux_values[v, i, direction, large_element] =
-                    0.5 * (fstar_primary_lower[v, 2*i-1-nnodes(dg)] + fstar_primary_lower[v, 2*i- nnodes(dg)])
+                    0.5f0 * (fstar_primary_lower[v, 2*i-1-nnodes(dg)] + fstar_primary_lower[v, 2*i- nnodes(dg)])
                 end  
             end
         end

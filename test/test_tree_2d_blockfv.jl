@@ -106,6 +106,33 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 end # Compressible Euler equations
+
+@trixi_testset "elixir_euler_vortex_mortar.jl with blockfv vs with dgsem with polydeg=0" begin
+    # Compute with blockfv solver.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+                        n_nodes=4,
+                        initial_refinement_level=5,
+                        tspan=(0.0, 0.5))
+    res1 = @inferred analysis_callback(sol)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+                        solver=DGSEM(polydeg=0, surface_flux=FluxLaxFriedrichs(max_abs_speed_naive)),
+                        initial_refinement_level=7,
+                        tspan=(0.0, 0.5))
+    res2 = @inferred analysis_callback(sol)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Both setups have exactly the same degrees of freedom.
+    # Thus, they should return the same errors (up to floating-point precision).
+    @test res1.l2 ≈ res2.l2
+    @test res1.linf ≈ res2.linf
+end
 end # BlockFV 2D
 
 end # module
