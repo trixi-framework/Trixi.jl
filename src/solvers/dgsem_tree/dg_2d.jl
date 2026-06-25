@@ -408,6 +408,7 @@ end
 
 @inline function fv_kernel!(du, u,
                             MeshT::Type{<:Union{TreeMesh{2}, StructuredMesh{2},
+                                                StructuredMeshView{2},
                                                 UnstructuredMesh2D, P4estMesh{2},
                                                 T8codeMesh{2}}},
                             have_nonconservative_terms, equations,

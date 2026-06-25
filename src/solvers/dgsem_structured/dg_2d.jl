@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+function create_cache(mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                  UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}}, equations,
                       volume_integral::AbstractVolumeIntegralSubcell,
                       dg::DG, cache_containers, uEltype)
