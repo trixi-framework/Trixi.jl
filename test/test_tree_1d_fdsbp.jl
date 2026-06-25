@@ -43,10 +43,6 @@ end
     Setup,
     TreeMesh1DFDSBP
 ] tags=[:tree_part1] begin
-    # Run the elixir once to bring its `D_upw`/`flux_splitting` into scope, then
-    # re-run with a custom DG solver built from them.
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
-                  tspan = (0.0, 0.0))
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_basic.jl"),
                         l2=[8.316190308678742e-7],
                         linf=[7.1087263324720595e-6],
@@ -116,10 +112,6 @@ end
     Setup,
     TreeMesh1DFDSBP
 ] tags=[:tree_part1] begin
-    # Run the elixir once to bring its `D_upw` into scope, then re-run with a
-    # custom strong-form DG solver built from it.
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
-                  tspan = (0.0, 0.0))
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
                             8.612676636826464e-6,

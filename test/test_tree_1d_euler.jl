@@ -303,7 +303,6 @@ end
     Setup,
     TreeMesh1DEuler
 ] tags=[:tree_part1] begin
-    using OrdinaryDiffEqSSPRK: SSPRK43
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
                         volume_integral=VolumeIntegralWeakForm(),
                         ode_alg=SSPRK43(stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,
@@ -861,12 +860,6 @@ end
     Setup,
     TreeMesh1DEuler
 ] tags=[:tree_part1] begin
-    # Run the elixir once to bring its `equations`/`basis` into scope, then re-run
-    # with a custom indicator built from them.
-    trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR,
-                           "elixir_euler_modified_sod_entropy_correction_amr.jl"),
-                  tspan = (0.0, 0.0))
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         indicator=IndicatorEntropyCorrection(equations, basis),
@@ -907,11 +900,6 @@ end
     Setup,
     TreeMesh1DEuler
 ] tags=[:tree_part1] begin
-    # Run the elixir once to bring its `equations` into scope, then re-run with a
-    # custom adaptive solver built from it.
-    trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
-                  tspan = (0.0, 0.0))
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3), flux_lax_friedrichs,
