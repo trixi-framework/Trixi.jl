@@ -692,13 +692,11 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
                     reinterpolate = default_reinterpolate(solver),
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
                     variable_names = nothing) where {Basis <: UniformFiniteVolumeBasis}
-    friendly_slice = (slice === :xy) ? :x : slice
-
-    solution_variables_ = Trixi.digest_solution_variables(equations, solution_variables)
-    variable_names_ = Trixi.digest_variable_names(solution_variables_, equations,
-                                                  variable_names)
-    unstructured_data = Trixi.get_unstructured_data(u, solution_variables_, mesh,
-                                                    equations, solver, cache)
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
+    unstructured_data = get_unstructured_data(u, solution_variables_, mesh,
+                                              equations, solver, cache)
 
     n_nodes = size(unstructured_data, 1)  # number of subcells per cell
     n_elements = nelements(solver, cache) # number of cells
@@ -710,7 +708,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
 
     left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2
 
-    if ndims(mesh) == 1 && curve == nothing && friendly_slice == :x
+    if ndims(mesh) === 1
         orientation_x = 1
 
         for i in 1:n_elements #the loop over the cells
@@ -736,7 +734,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
         mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
 
     else
-        error("BlockFV is not yet supported for 2D, 3D, curves.")
+        error("BlockFV is not yet supported for 2D and 3D.")
     end
     return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x)
 end

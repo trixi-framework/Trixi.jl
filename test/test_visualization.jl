@@ -272,27 +272,14 @@ end
     end
 end
 
-#new thing
-
 @timed_testset "FV testsets" begin
     @trixi_testset "BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
                                      "elixir_advection_basic.jl"), n_nodes=4,
                             initial_refinement_level=3)
 
-        #u_fv = sol.u[end]
-        #mesh_fv = semi.mesh
-        #equations_fv = semi.equations
-        #solver_fv = semi.solver
-        #cache_fv = semi.cache
-
-        #pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
-        #@test pd_fv_explicit isa PlotData1D
-
-        pd_fv_wrapped = PlotData1D(sol)
+        pd_fv_wrapped = @test_nowarn PlotData1D(sol)
         @test pd_fv_wrapped isa PlotData1D
-
-        #@test pd_fv_explicit.data ≈ pd_fv_wrapped.data
     end
 
     @trixi_testset "DGSEM vs BlockFV 1D Visualization" begin
@@ -300,13 +287,13 @@ end
                                      "elixir_advection_finite_volume.jl"), polydeg=0,
                             initial_refinement_level=5)
 
-        pd_dgsem_polydeg0 = PlotData1D(sol)
+        pd_dgsem_polydeg0 = @test_nowarn PlotData1D(sol)
 
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
                                      "elixir_advection_basic.jl"), n_nodes=4,
                             initial_refinement_level=3)
 
-        pd_blockfv = PlotData1D(sol)
+        pd_blockfv = @test_nowarn PlotData1D(sol)
 
         @test pd_blockfv.data ≈ pd_dgsem_polydeg0.data
     end
@@ -317,23 +304,10 @@ end
                             n_nodes=4,
                             initial_refinement_level=3)
 
-        #u_fv = sol.u[end]
-        #mesh_fv = semi.mesh
-        #equations_fv = semi.equations
-        #solver_fv = semi.solver
-        #cache_fv = semi.cache
-
-        #pd_fv_explicit = PlotData1D(u_fv, mesh_fv, equations_fv, solver_fv, cache_fv)
-        #@test pd_fv_explicit isa PlotData1D
-
-        pd_fv_wrapped = PlotData1D(sol)
-        @test pd_fv_wrapped isa PlotData1D
-
-        #@test pd_fv_explicit.data ≈ pd_fv_wrapped.data
+        pd_fv_constant_ic = @test_nowarn PlotData1D(sol)
+        @test pd_fv_constant_ic isa PlotData1D
     end
 end
-
-#end new thing
 
 @timed_testset "1D plot from 2D solution" begin
     @trixi_testset "Create 1D plot along curve" begin
