@@ -313,7 +313,8 @@ end
 
     @trixi_testset "Constant IC" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
-                                     "elixir_euler_source_term_nonperiodic.jl"), n_nodes=4,
+                                     "elixir_euler_source_term_nonperiodic.jl"),
+                            n_nodes=4,
                             initial_refinement_level=3)
 
         u_fv = sol.u[end]
