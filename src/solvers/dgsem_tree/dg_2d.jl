@@ -88,7 +88,8 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_l2::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis}, uEltype)
+                      mortar_l2::Union{LobattoLegendreMortarL2,
+                                       UniformFiniteVolumeBasis}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -897,7 +898,8 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_l2::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis},
+                          mortar_l2::Union{LobattoLegendreMortarL2,
+                                           UniformFiniteVolumeBasis},
                           dg::Union{DGSEM, BlockFV})
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -998,7 +1000,8 @@ end
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            have_nonconservative_terms::False, equations,
-                           mortar_l2::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis},
+                           mortar_l2::Union{LobattoLegendreMortarL2,
+                                            UniformFiniteVolumeBasis},
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars

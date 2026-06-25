@@ -80,9 +80,9 @@ end
                             0.0349234255730328,
                             0.09387847561186147],
                         linf=[0.01522697023057773,
-                              0.40428197961893275,
-                              0.39638850053862995,
-                              1.628539546658537],
+                            0.40428197961893275,
+                            0.39638850053862995,
+                            1.628539546658537],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -140,7 +140,8 @@ end
 
     # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-                        solver=DGSEM(polydeg=0, surface_flux=FluxLaxFriedrichs(max_abs_speed_naive)),
+                        solver=DGSEM(polydeg = 0,
+                                     surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)),
                         initial_refinement_level=7,
                         tspan=(0.0, 0.5))
     res2 = @inferred analysis_callback(sol)
@@ -154,7 +155,6 @@ end
     @test res1.linf ≈ res2.linf
 end
 end # Compressible Euler equations
-
 end # BlockFV 2D
 
 end # module
