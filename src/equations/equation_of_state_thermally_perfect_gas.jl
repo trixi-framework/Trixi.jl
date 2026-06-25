@@ -88,6 +88,8 @@ end
     return clamp(searchsortedlast(eos.temperature_bounds, T), 1, N)
 end
 
+# Returns c_p(T)/R_universal.
+# See e.g. https://cantera.org/3.2/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization
 @inline function cp_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -105,6 +107,8 @@ end
            a[6, idx] * T3 + a[7, idx] * T4
 end
 
+# Returns h(T)/(T * R_universal).
+# See e.g. https://cantera.org/3.2/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization
 @inline function h_molar_over_TR_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -122,6 +126,8 @@ end
            (a[6, idx] / 4) * T3 + (a[7, idx] / 5) * T4 + a[8, idx] * Tinv
 end
 
+# Returns s(T, V)/(R_universal).
+# See e.g. https://cantera.org/3.2/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization
 @inline function s_molar_over_R_universal(T, V, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -151,10 +157,6 @@ end
     return eos.R_specific * cp_molar_over_R_universal(T, eos)
 end
 
-@inline function heat_capacity_constant_pressure(V, T, eos::ThermallyPerfectGas9PolyFit)
-    return heat_capacity_constant_pressure(T, eos)
-end
-
 @inline function heat_capacity_constant_volume(V, T, eos::ThermallyPerfectGas9PolyFit)
     # cv = cp - R_specific
     return heat_capacity_constant_pressure(V, T, eos) - eos.R_specific
@@ -165,6 +167,7 @@ end
 end
 
 @inline function entropy_specific(V, T, eos::ThermallyPerfectGas9PolyFit)
+    # By multiplying with R_specific = R_universal / M, we convert the molar entropy to specific entropy.
     return eos.R_specific * s_molar_over_R_universal(T, V, eos)
 end
 

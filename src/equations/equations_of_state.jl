@@ -61,6 +61,11 @@ Temperature-dependent ratio of specific heats `c_p(T) / c_v(T)`.
     return cp / cv
 end
 
+# For thermally perfect gas, c_p and c_v do not depend on V
+@inline function heat_capacity_constant_pressure(V, T, eos::AbstractThermallyPerfectGas)
+    return heat_capacity_constant_pressure(T, eos)
+end
+
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_thermally_perfect_gas.jl")
 
