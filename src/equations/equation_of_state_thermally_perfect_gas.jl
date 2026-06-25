@@ -1,5 +1,5 @@
 @doc raw"""
-    ThermallyPerfectGas9PolyFit{R_specific, TemperatureBounds, A} <: AbstractThermallyPerfectGas
+    ThermallyPerfectGas9PolyFit{R_specific, TemperatureBounds, Coefficients} <: AbstractThermallyPerfectGas
 
 Thermally perfect ideal gas equation of state with ideal gas pressure relation
 ```math
@@ -26,28 +26,58 @@ Fields:
 """
 struct ThermallyPerfectGas9PolyFit{R_specific <: Real,
                                    TemperatureBounds <: AbstractVector,
-                                   A <: AbstractMatrix} <:
+                                   Coefficients <: AbstractMatrix} <:
        AbstractThermallyPerfectGas
     R_specific::R_specific
     temperature_bounds::TemperatureBounds
-    a::A
+    coefficients::Coefficients
 end
 
 """
-    ThermallyPerfectGas9PolyFit(; R_specific, temperature_bounds, a)
+    coefficients_air_9polyfit(temperature_bounds)
+
+NASA 9-coefficient polynomial data for air values correspond to air, see
+https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf page 276/284
+"""
+function coefficients_air_9polyfit(temperature_bounds)
+    @assert temperature_bounds==SVector(200.0, 1000.0, 6000.0) "Expected temperature bounds are [200.0, 1000.0, 6000.0]"
+
+    a_cold = [1.009950160e+04; -1.968275610e+02; 5.009155110e+00; -5.761013730e-03;
+              1.066859930e-05; -7.940297970e-09; 2.185231910e-12; -1.767967310e+02;
+              -3.921504225e+00]
+    a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
+             7.065227840e-08; -1.071483490e-11; 6.577800150e-16; 6.462263190e+03;
+             -8.147411905e+00]
+    a_ = hcat(a_cold, a_hot)
+
+    return a = SMatrix{9, 2}(a_)
+end
+
+"""
+    ThermallyPerfectGas9PolyFit(;
+    R_specific = 287.0509010514002,
+    temperature_bounds = SVector(200.0, 1000.0, 6000.0),
+    coefficients = coefficients_air_9polyfit(temperature_bounds))
 
 Construct a [`ThermallyPerfectGas9PolyFit`](@ref) equation of state with NASA 9-coefficient polynomial data.
+The default values correspond to air, see
+https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf page 276/284
 """
-function ThermallyPerfectGas9PolyFit(; R_specific, temperature_bounds, a)
-    @assert size(a, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
+function ThermallyPerfectGas9PolyFit(;
+                                     R_specific = 287.0509010514002,
+                                     temperature_bounds = SVector(200.0, 1000.0, 6000.0),
+                                     coefficients = coefficients_air_9polyfit(temperature_bounds))
+    @assert size(coefficients, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
 
-    n_intervals = size(a, 2)
+    n_intervals = size(coefficients, 2)
     @assert length(temperature_bounds)==n_intervals + 1 "Temperature bounds do not match the polynomial coefficients"
     @assert issorted(temperature_bounds)
 
     return ThermallyPerfectGas9PolyFit{typeof(R_specific),
                                        typeof(temperature_bounds),
-                                       typeof(a)}(R_specific, temperature_bounds, a)
+                                       typeof(coefficients)}(R_specific,
+                                                             temperature_bounds,
+                                                             coefficients)
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas9PolyFit)
@@ -59,7 +89,7 @@ end
 end
 
 @inline function cp_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
-    @unpack a = eos
+    a = eos.coefficients
 
     idx = temperature_interval(T, eos)
 
@@ -76,7 +106,7 @@ end
 end
 
 @inline function h_molar_over_TR_universal(T, eos::ThermallyPerfectGas9PolyFit)
-    @unpack a = eos
+    a = eos.coefficients
 
     idx = temperature_interval(T, eos)
 
@@ -93,7 +123,7 @@ end
 end
 
 @inline function s_molar_over_R_universal(T, V, eos::ThermallyPerfectGas9PolyFit)
-    @unpack a = eos
+    a = eos.coefficients
 
     idx = temperature_interval(T, eos)
 
