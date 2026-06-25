@@ -45,6 +45,22 @@ function Adapt.adapt_structure(::TrixiAdaptor{<:Any, NewRealT},
     return similar(eos, NewRealT)
 end
 
+@inline function speed_of_sound(V, T, eos::AbstractThermallyPerfectGas)
+    gamma_ = gamma(T, eos)
+    return sqrt(gamma_ * pressure(V, T, eos) * V)
+end
+
+"""
+    gamma(T, eos::AbstractThermallyPerfectGas)
+
+Temperature-dependent ratio of specific heats `c_p(T) / c_v(T)`.
+"""
+@inline function gamma(T, eos::AbstractThermallyPerfectGas)
+    cp = heat_capacity_constant_pressure(T, eos)
+    cv = cp - eos.R_specific
+    return cp / cv
+end
+
 include("equation_of_state_ideal_gas.jl")
 include("equation_of_state_thermally_perfect_gas.jl")
 

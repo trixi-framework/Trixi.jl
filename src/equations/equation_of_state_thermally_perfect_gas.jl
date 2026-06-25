@@ -138,22 +138,6 @@ end
     return eos.R_specific * s_molar_over_R_universal(T, V, eos)
 end
 
-@inline function speed_of_sound(V, T, eos::ThermallyPerfectGas9PolyFit)
-    gamma_ = gamma(T, eos)
-    return sqrt(gamma_ * pressure(V, T, eos) * V)
-end
-
-"""
-    gamma(T, eos::ThermallyPerfectGas9PolyFit)
-
-Temperature-dependent ratio of specific heats `c_p(T) / c_v(T)`.
-"""
-@inline function gamma(T, eos::ThermallyPerfectGas9PolyFit)
-    cp = heat_capacity_constant_pressure(T, eos)
-    cv = cp - eos.R_specific
-    return cp / cv
-end
-
 # Used in `drho_e_internal_drho_at_const_p` which in turn is used in
 # `flux_terashima_etal` and `flux_terashima_etal_central`
 @inline function calc_pressure_derivatives(V, T, eos::ThermallyPerfectGas9PolyFit)
