@@ -1,5 +1,5 @@
 @doc raw"""
-    ThermallyPerfectGas9PolyFit{RealT <: Real, N} <: AbstractEquationOfState
+    ThermallyPerfectGas9PolyFit{R_specific, TemperatureBounds, A} <: AbstractThermallyPerfectGas
 
 Thermally perfect ideal gas equation of state with ideal gas pressure relation
 ```math
