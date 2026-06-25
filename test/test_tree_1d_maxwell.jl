@@ -1,16 +1,8 @@
-module TestExamples1DMaxwell
+@testsnippet TreeMesh1DMaxwell begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "Maxwell" begin
-#! format: noindent
-
-@trixi_testset "elixir_maxwell_convergence.jl" begin
+@testitem "TreeMesh1D Maxwell: elixir_maxwell_convergence.jl" setup=[Setup, TreeMesh1DMaxwell] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_maxwell_convergence.jl"),
                         l2=[8933.196486422636, 2.979793603210305e-5],
@@ -20,7 +12,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_maxwell_E_excitation.jl" begin
+@testitem "TreeMesh1D Maxwell: elixir_maxwell_E_excitation.jl" setup=[Setup, TreeMesh1DMaxwell] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_maxwell_E_excitation.jl"),
                         l2=[1.8181768208894413e6, 0.09221738723979069],
@@ -29,6 +21,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module

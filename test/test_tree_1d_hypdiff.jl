@@ -1,16 +1,8 @@
-module TestExamples1DHypDiff
+@testsnippet TreeMesh1DHypDiff begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "Hyperbolic diffusion" begin
-#! format: noindent
-
-@trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
+@testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic.jl" setup=[Setup, TreeMesh1DHypDiff] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[1.3655114953278825e-7, 1.0200345026471077e-6],
                         linf=[7.173285075379177e-7, 4.507116828644797e-6])
@@ -19,21 +11,21 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_hypdiff_nonperiodic_perk4.jl" begin
+@testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic_perk4.jl" setup=[Setup, TreeMesh1DHypDiff] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic_perk4.jl"),
                         l2=[1.3655114994521285e-7, 1.0200345014751413e-6],
                         linf=[7.173289867656862e-7, 4.507115296537023e-6],
                         atol=2.5e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom 
-    # integrator which are not *recorded* for the methods from 
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
-@trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
+@testitem "TreeMesh1D HypDiff: elixir_hypdiff_harmonic_nonperiodic.jl" setup=[Setup, TreeMesh1DHypDiff] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_hypdiff_harmonic_nonperiodic.jl"),
                         l2=[3.0130941075207524e-12, 2.6240829677090014e-12],
@@ -47,6 +39,3 @@ end
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 10000)
 end
-end
-
-end # module

@@ -1,16 +1,8 @@
-module TestExamples1DMHD
+@testsnippet TreeMesh1DMHD begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "MHD" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhd_alfven_wave.jl with initial_condition_constant" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_alfven_wave.jl with initial_condition_constant" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             1.440611823425164e-15,
@@ -39,7 +31,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_alfven_wave.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             1.0375628983659061e-5,
@@ -66,7 +58,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with flux_derigs_etal" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_alfven_wave.jl with flux_derigs_etal" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             1.4396053943470756e-5,
@@ -94,7 +86,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with flux_hllc" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_alfven_wave.jl with flux_hllc" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             1.036850596986597e-5, 1.965192583650368e-6,
@@ -114,7 +106,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_ec.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[
                             0.05815183849746399,
@@ -141,7 +133,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_briowu_shock_tube.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_briowu_shock_tube.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_briowu_shock_tube.jl"),
                         l2=[
                             0.17477712356961989,
@@ -167,7 +159,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_briowu_shock_tube_mod_positivity.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_briowu_shock_tube_mod_positivity.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_briowu_shock_tube_mod_positivity.jl"),
                         l2=[
@@ -195,7 +187,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_torrilhon_shock_tube.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_torrilhon_shock_tube.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_torrilhon_shock_tube.jl"),
                         l2=[
                             0.45700904847931145,
@@ -222,7 +214,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_torrilhon_shock_tube.jl (HLLC)" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_torrilhon_shock_tube.jl (HLLC)" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_torrilhon_shock_tube.jl"),
                         surface_flux=flux_hllc,
                         l2=[
@@ -242,7 +234,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ryujones_shock_tube.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_ryujones_shock_tube.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ryujones_shock_tube.jl"),
                         l2=[
                             0.23469781891518154,
@@ -270,7 +262,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_shu_osher_shock_tube.jl" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_shu_osher_shock_tube.jl" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"),
                         l2=[
                             1.01126210e+00,
@@ -298,7 +290,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_shu_osher_shock_tube.jl with flipped shock direction" begin
+@testitem "TreeMesh1D MHD: elixir_mhd_shu_osher_shock_tube.jl with flipped shock direction" setup=[Setup, TreeMesh1DMHD] tags=[:tree_part1] begin
     # Include this elixir to make `initial_condition_shu_osher_shock_tube_flipped` available, which is used below
     trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"),
                   tspan = (0.0, 0.0))
@@ -330,6 +322,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module
