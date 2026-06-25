@@ -233,8 +233,3 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-end
-end # module

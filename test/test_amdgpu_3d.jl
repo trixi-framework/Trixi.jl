@@ -236,8 +236,3 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-end
-end # module
