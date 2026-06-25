@@ -75,14 +75,14 @@ end
 @trixi_testset "elixir_euler_isentropic_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_isentropic_vortex.jl"),
-                        l2=[0.0013855544942691467,
-                            0.07912269951431652,
-                            0.07917097691649295,
-                            0.14533624890962035],
-                        linf=[0.021277289728345194,
-                            0.8434393417500995,
-                            0.8127969969547908,
-                            2.271903270249524],
+                        l2=[0.0009462760556996494,
+                            0.034845346890640956,
+                            0.0349234255730328,
+                            0.09387847561186147],
+                        linf=[0.01522697023057773,
+                              0.40428197961893275,
+                              0.39638850053862995,
+                              1.628539546658537],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
