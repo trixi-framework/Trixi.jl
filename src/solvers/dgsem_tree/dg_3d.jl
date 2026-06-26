@@ -362,7 +362,6 @@ end
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
         flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
@@ -397,7 +396,6 @@ end
     volume_flux, nonconservative_flux = volume_flux_fv
 
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -463,7 +461,6 @@ end
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
                                 cons2recon, recon2cons)
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
                           equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k, element),
@@ -542,7 +539,9 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
 
         if orientations[interface] == 1
             # interface in x-direction
-            @inbounds for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+            @inbounds for k in eachnode(dg), j in eachnode(dg),
+                          v in eachvariable(equations)
+
                 interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
                                                         left_element]
                 interfaces_u[2, v, j, k, interface] = u[v, 1, j, k,
@@ -550,7 +549,9 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
             end
         elseif orientations[interface] == 2
             # interface in y-direction
-            @inbounds for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for k in eachnode(dg), i in eachnode(dg),
+                          v in eachvariable(equations)
+
                 interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
                                                         left_element]
                 interfaces_u[2, v, i, k, interface] = u[v, i, 1, k,
@@ -558,7 +559,9 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
             end
         else # if orientations[interface] == 3
             # interface in z-direction
-            @inbounds for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for j in eachnode(dg), i in eachnode(dg),
+                          v in eachvariable(equations)
+
                 interfaces_u[1, v, i, j, interface] = u[v, i, j, nnodes(dg),
                                                         left_element]
                 interfaces_u[2, v, i, j, interface] = u[v, i, j, 1, right_element]
@@ -663,11 +666,15 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
-                @inbounds for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), j in eachnode(dg),
+                              v in eachvariable(equations)
+
                     boundaries.u[1, v, j, k, boundary] = u[v, nnodes(dg), j, k, element]
                 end
             else # Element in +x direction of boundary
-                @inbounds for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), j in eachnode(dg),
+                              v in eachvariable(equations)
+
                     boundaries.u[2, v, j, k, boundary] = u[v, 1, j, k, element]
                 end
             end
@@ -675,12 +682,16 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in y-direction
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
-                @inbounds for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), i in eachnode(dg),
+                              v in eachvariable(equations)
+
                     boundaries.u[1, v, i, k, boundary] = u[v, i, nnodes(dg), k, element]
                 end
             else
                 # element in +y direction of boundary
-                @inbounds for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), i in eachnode(dg),
+                              v in eachvariable(equations)
+
                     boundaries.u[2, v, i, k, boundary] = u[v, i, 1, k, element]
                 end
             end
@@ -688,12 +699,16 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             # boundary in z-direction
             if neighbor_sides[boundary] == 1
                 # element in -z direction of boundary
-                @inbounds for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for j in eachnode(dg), i in eachnode(dg),
+                              v in eachvariable(equations)
+
                     boundaries.u[1, v, i, j, boundary] = u[v, i, j, nnodes(dg), element]
                 end
             else
                 # element in +z direction of boundary
-                @inbounds for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                @inbounds for j in eachnode(dg), i in eachnode(dg),
+                              v in eachvariable(equations)
+
                     boundaries.u[2, v, i, j, boundary] = u[v, i, j, 1, element]
                 end
             end

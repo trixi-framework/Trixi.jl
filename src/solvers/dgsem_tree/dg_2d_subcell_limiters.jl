@@ -158,7 +158,6 @@ end
 
     # FV-form flux `fhat` in x direction
     @inbounds for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
-
         @inbounds for v in eachvariable(equations)
             fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
             fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
@@ -277,7 +276,6 @@ end
     @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
         @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 1, equations,
                                                NonConservativeLocal(), noncons),
@@ -346,7 +344,6 @@ end
     @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
         @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 2, equations,
                                                NonConservativeLocal(), noncons),
@@ -463,7 +460,6 @@ end
     @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
         @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 1, equations,
                                                NonConservativeLocal(), noncons),
@@ -498,10 +494,8 @@ end
     @inbounds for j in eachnode(dg)
         u_0 = get_node_vars(u, equations, dg, 1, j, element)
         @inbounds for i in 2:(nnodes(dg) - 1)
-
             u_i = get_node_vars(u, equations, dg, i, j, element)
             @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
                 phi_jump = volume_flux_noncons(u_0, u_i, 1, equations,
                                                NonConservativeJump(), noncons)
 
@@ -514,7 +508,6 @@ end
         end
         u_N = get_node_vars(u, equations, dg, nnodes(dg), j, element)
         @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
             phi_jump = volume_flux_noncons(u_0, u_N, 1, equations,
                                            NonConservativeJump(), noncons)
 
@@ -568,7 +561,6 @@ end
     @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
         @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 2, equations,
                                                NonConservativeLocal(), noncons),
@@ -602,10 +594,8 @@ end
     @inbounds for i in eachnode(dg)
         u_0 = get_node_vars(u, equations, dg, i, 1, element)
         @inbounds for j in 2:(nnodes(dg) - 1)
-
             u_j = get_node_vars(u, equations, dg, i, j, element)
             @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
                 phi_jump = volume_flux_noncons(u_0, u_j, 2, equations,
                                                NonConservativeJump(), noncons)
 
@@ -618,7 +608,6 @@ end
         end
         u_N = get_node_vars(u, equations, dg, i, nnodes(dg), element)
         @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
-
             phi_jump = volume_flux_noncons(u_0, u_N, 2, equations,
                                            NonConservativeJump(), noncons)
 
@@ -651,7 +640,6 @@ end
     # `antidiffusive_flux1_R` and analogously for the second direction.
 
     @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
-
         @inbounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
                                                       fstar1_L[v, i, j]
@@ -681,7 +669,6 @@ end
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
     @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
-
         @inbounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
                                                       fstar1_L[v, i, j]

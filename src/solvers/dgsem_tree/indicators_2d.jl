@@ -51,13 +51,11 @@ end
     # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     @inbounds for j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
-
         total_energy_clip2 += modal[i, j]^2
     end
 
     total_energy_clip1 = copy(total_energy_clip2)
     @inbounds for i in 1:(nnodes(dg) - 1)
-
         total_energy_clip1 += modal[i, nnodes(dg) - 1]^2
     end
     for j in 1:(nnodes(dg) - 2) # stop at N-2 to avoid adding the (N-1, N-1) mode twice
@@ -66,7 +64,6 @@ end
 
     total_energy = copy(total_energy_clip1)
     @inbounds for i in 1:nnodes(dg)
-
         total_energy += modal[i, nnodes(dg)]^2
     end
     for j in 1:(nnodes(dg) - 1) # stop at N-1 to avoid adding the (N, N) mode twice

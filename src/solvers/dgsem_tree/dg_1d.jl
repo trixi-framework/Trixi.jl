@@ -277,7 +277,6 @@ end
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     @inbounds for i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
         flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
@@ -294,7 +293,6 @@ end
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
     @inbounds for i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
 

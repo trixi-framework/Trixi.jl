@@ -669,7 +669,6 @@ function prolong2mortars!(cache, u,
                                                                                index_range)
 
         @inbounds for position in 1:4
-
             i_small = i_small_start
             j_small = j_small_start
             k_small = k_small_start
@@ -781,7 +780,6 @@ function calc_mortar_flux!(surface_flux_values,
                                                                                index_range)
 
         @inbounds for position in 1:4
-
             i_small = i_small_start
             j_small = j_small_start
             k_small = k_small_start
@@ -902,7 +900,6 @@ end
     small_direction = indices2direction(small_indices)
 
     @inbounds for position in 1:4
-
         element = neighbor_ids[position, mortar]
         @inbounds for j in eachnode(dg), i in eachnode(dg)
             @inbounds for v in eachvariable(equations)

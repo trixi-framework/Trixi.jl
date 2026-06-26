@@ -385,7 +385,6 @@ end
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -449,7 +448,6 @@ end
     volume_flux, nonconservative_flux = volume_flux_fv
 
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -544,7 +542,6 @@ end
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
                                         element), equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k,

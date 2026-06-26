@@ -310,7 +310,6 @@ end
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
     @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
@@ -438,7 +437,6 @@ end
 
     # Fluxes in x-direction
     @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
-
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 

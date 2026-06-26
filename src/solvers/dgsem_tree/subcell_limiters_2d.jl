@@ -31,7 +31,6 @@
 
         # Apply values in x direction
         @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
-
             var = u[variable, i - 1, j, element]
             var_min[i, j, element] = min(var_min[i, j, element], var)
             var_max[i, j, element] = max(var_max[i, j, element], var)

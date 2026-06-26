@@ -60,7 +60,8 @@ end
 
     # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
-    @inbounds for k in 1:(nnodes(dg) - 2), j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
+    @inbounds for k in 1:(nnodes(dg) - 2), j in 1:(nnodes(dg) - 2),
+                  i in 1:(nnodes(dg) - 2)
 
         total_energy_clip2 += modal[i, j, k]^2
     end
@@ -68,34 +69,28 @@ end
     total_energy_clip1 = copy(total_energy_clip2)
     # Add k = N-1 face: i, j in 1:(N-1)
     @inbounds for j in 1:(nnodes(dg) - 1), i in 1:(nnodes(dg) - 1)
-
         total_energy_clip1 += modal[i, j, nnodes(dg) - 1]^2
     end
     # Add j = N-1 face: i in 1:(N-1), k in 1:(N-2)  (k=N-1 already added above)
     @inbounds for k in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 1)
-
         total_energy_clip1 += modal[i, nnodes(dg) - 1, k]^2
     end
     # Add i = N-1 face: j, k in 1:(N-2)  (j=N-1 and k=N-1 already added above)
     @inbounds for k in 1:(nnodes(dg) - 2), j in 1:(nnodes(dg) - 2)
-
         total_energy_clip1 += modal[nnodes(dg) - 1, j, k]^2
     end
 
     total_energy = copy(total_energy_clip1)
     # Add k = N face: i, j in 1:N
     @inbounds for j in 1:nnodes(dg), i in 1:nnodes(dg)
-
         total_energy += modal[i, j, nnodes(dg)]^2
     end
     # Add j = N face: i in 1:N, k in 1:(N-1)  (k=N already added above)
     @inbounds for k in 1:(nnodes(dg) - 1), i in 1:nnodes(dg)
-
         total_energy += modal[i, nnodes(dg), k]^2
     end
     # Add i = N face: j, k in 1:(N-1)  (j=N and k=N already added above)
     @inbounds for k in 1:(nnodes(dg) - 1), j in 1:(nnodes(dg) - 1)
-
         total_energy += modal[nnodes(dg), j, k]^2
     end
 

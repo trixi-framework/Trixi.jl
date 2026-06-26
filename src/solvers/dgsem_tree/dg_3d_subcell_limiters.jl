@@ -161,7 +161,6 @@ end
 
     # FV-form flux `fhat` in x direction
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1)
-
         @inbounds for v in eachvariable(equations)
             fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
                                       weights[i] * flux_temp[v, i, j, k]
@@ -241,7 +240,6 @@ end
     # `antidiffusive_flux1_R` and analogously for the other two directions.
 
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         @inbounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
                                                          fstar1_L[v, i, j, k]
@@ -293,7 +291,6 @@ end
     # `antidiffusive_flux1_R` and analogously for the other two directions.
 
     @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-
         @inbounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
                                                          fstar1_L[v, i, j, k]
