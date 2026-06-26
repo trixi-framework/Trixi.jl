@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 end
 
-@testitem "TreeMesh2D Acoustics: elixir_acoustics_convergence.jl" setup=[Setup, TreeMesh2DAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_convergence.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_convergence.jl"),
                         l2=[
                             0.0019921138796370834,
@@ -27,7 +30,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss.jl" setup=[Setup, TreeMesh2DAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss.jl"),
                         l2=[
                             0.08005276517890283,
@@ -52,7 +58,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Acoustics: elixir_acoustics_gaussian_source.jl" setup=[Setup, TreeMesh2DAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gaussian_source.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gaussian_source.jl"),
                         l2=[
                             0.004296394903650806,
@@ -77,7 +86,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss_wall.jl" setup=[Setup, TreeMesh2DAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss_wall.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
                         l2=[
                             0.019419398248465843,
@@ -100,7 +112,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss_wall.jl (Gauss Legendre)" setup=[Setup, TreeMesh2DAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_gauss_wall.jl (Gauss Legendre)" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall.jl"),
                         solver=DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
                                      basis_type = GaussLegendreBasis),
@@ -128,7 +143,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Acoustics: elixir_acoustics_monopole.jl" setup=[Setup, TreeMesh2DAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Acoustics: elixir_acoustics_monopole.jl" setup=[
+    Setup,
+    TreeMesh2DAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_monopole.jl"),
                         l2=[0.006816790293009947, 0.0065068948357351625,
                             0.008724512056168938,

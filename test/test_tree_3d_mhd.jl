@@ -1,16 +1,8 @@
-module TestExamples3DMHD
+@testsnippet TreeMesh3DMHD begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
-
-@testset "MHD" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhd_ec.jl" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_ec.jl" setup=[Setup, TreeMesh3DMHD] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[
                             0.017590099293094203,
@@ -39,7 +31,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec.jl with initial_condition=initial_condition_constant" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_ec.jl with initial_condition=initial_condition_constant" setup=[
+    Setup,
+    TreeMesh3DMHD
+] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[
                             4.270231310667203e-16,
@@ -70,7 +65,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_alfven_wave.jl" setup=[Setup, TreeMesh3DMHD] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             0.0032217291057246157,
@@ -99,7 +94,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with flux_derigs_etal" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_alfven_wave.jl with flux_derigs_etal" setup=[
+    Setup,
+    TreeMesh3DMHD
+] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             0.003755235939722358,
@@ -129,7 +127,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_mortar.jl" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_alfven_wave_mortar.jl" setup=[Setup, TreeMesh3DMHD] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
                         l2=[
                             0.002117092205724962,
@@ -159,7 +157,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hlle" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hlle" setup=[
+    Setup,
+    TreeMesh3DMHD
+] tags=[:tree_part6] begin
     using Trixi: prim2cons, flux_hlle, flux_nonconservative_powell, flux_central,
                  SVector
     # OBS! This setup does not make much sense and is only used to exercise all components of the
@@ -221,7 +222,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_convergence.jl" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_convergence.jl" setup=[Setup, TreeMesh3DMHD] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_convergence.jl"),
                         l2=[
                             0.009193403522877426,
@@ -250,7 +251,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
+@testitem "TreeMesh3D MHD: elixir_mhd_ec_shockcapturing.jl" setup=[Setup, TreeMesh3DMHD] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
                         l2=[
                             0.0186712969755079,
@@ -278,6 +279,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module

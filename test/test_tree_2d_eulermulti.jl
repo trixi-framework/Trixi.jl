@@ -29,7 +29,10 @@ end
 #       simulations are set up with dimensional states. For example, the reference pressure in SI
 #       units is 101325 Pa, i.e., pressure has values of O(10^5)
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble.jl"),
                         l2=[
                             73.78467629094177,
@@ -51,7 +54,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl"),
@@ -85,7 +91,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl"),
                         l2=[
@@ -113,7 +122,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                         l2=[
                             0.050182236154087095,
@@ -132,7 +144,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_es.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_es.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_es.jl"),
                         l2=[
                             0.0496546258404055,
@@ -157,7 +172,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_ec.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_ec.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_ec.jl"),
                         l2=[
                             0.00012290225488326508,
@@ -178,7 +196,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_es.jl" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_es.jl" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
                         l2=[
                             2.2661773867001696e-6,
@@ -199,7 +220,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_es.jl with flux_chandrashekar" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_es.jl with flux_chandrashekar" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_convergence_es.jl"),
                         l2=[
                             1.8621737639352465e-6,
@@ -221,7 +245,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl with boundary_condition_slip_wall" setup=[Setup, TreeMesh2DEulerMulti] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl with boundary_condition_slip_wall" setup=[
+    Setup,
+    TreeMesh2DEulerMulti
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                         l2=[
                             0.005884923780995506,

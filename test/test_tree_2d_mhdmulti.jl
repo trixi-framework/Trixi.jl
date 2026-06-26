@@ -1,16 +1,8 @@
-module TestExamples2DEulerMulticomponent
+@testsnippet TreeMesh2DMHDMulti begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "MHD Multicomponent" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhdmulti_ec.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_ec.jl" setup=[Setup, TreeMesh2DMHDMulti] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
                         l2=[0.04300299195675897, 0.042987505670835945,
                             0.025747180552589767, 0.1621856170457937,
@@ -27,7 +19,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_ec.jl with flux_derigs_etal" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_ec.jl with flux_derigs_etal" setup=[
+    Setup,
+    TreeMesh2DMHDMulti
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
                         l2=[0.04301155595653799, 0.04299735787276207,
                             0.025745530869947714,
@@ -50,7 +45,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_es.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_es.jl" setup=[Setup, TreeMesh2DMHDMulti] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_es.jl"),
                         l2=[0.042511527162267, 0.04250603277530184, 0.02385422747993974,
                             0.11555081362726903,
@@ -67,7 +62,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_convergence.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_convergence.jl" setup=[
+    Setup,
+    TreeMesh2DMHDMulti
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_convergence.jl"),
                         l2=[0.0003808877028249613, 0.0003808877028249593,
                             0.0005155994511260122, 0.000570394227652563,
@@ -86,7 +84,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_rotor.jl" begin
+@testitem "TreeMesh2D MHDMulti: elixir_mhdmulti_rotor.jl" setup=[Setup, TreeMesh2DMHDMulti] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_rotor.jl"),
                         l2=[0.6574459522153201, 0.6620356383023878, 0.0,
                             0.6888912144519942,
@@ -103,6 +101,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module

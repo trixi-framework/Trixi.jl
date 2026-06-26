@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 end
 
-@testitem "TreeMesh2D Passive Tracers: elixir_euler_density_wave_tracers.jl" setup=[Setup, TreeMesh2DPassiveTracers] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Passive Tracers: elixir_euler_density_wave_tracers.jl" setup=[
+    Setup,
+    TreeMesh2DPassiveTracers
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_tracers.jl"),
                         l2=[
                             0.0012704690524147188,

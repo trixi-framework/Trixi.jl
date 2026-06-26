@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 end
 
-@testitem "TreeMesh2D Polytropic Euler: elixir_eulerpolytropic_convergence.jl" setup=[Setup, TreeMesh2DEulerPolytropic] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Polytropic Euler: elixir_eulerpolytropic_convergence.jl" setup=[
+    Setup,
+    TreeMesh2DEulerPolytropic
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulerpolytropic_convergence.jl"),
                         l2=[

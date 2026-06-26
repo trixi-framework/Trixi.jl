@@ -2,7 +2,10 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 end
 
-@testitem "TreeMesh2D EulerAcoustics: elixir_euleracoustics_co-rotating_vortex_pair.jl" setup=[Setup, TreeMesh2DEulerAcoustics] tags=[:tree_part2] begin
+@testitem "TreeMesh2D EulerAcoustics: elixir_euleracoustics_co-rotating_vortex_pair.jl" setup=[
+    Setup,
+    TreeMesh2DEulerAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euleracoustics_co-rotating_vortex_pair.jl"),
                         initial_refinement_level=5,
