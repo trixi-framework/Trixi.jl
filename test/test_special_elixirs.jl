@@ -414,6 +414,9 @@ end
 end
 
 @testitem "Special elixirs: AD using ForwardDiff" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
+    # These testsets build the semidiscretizations by hand (no `trixi_include`), so we
+    # need to import the time integration algorithms and `solve` explicitly.
+    using OrdinaryDiffEqLowStorageRK: CarpenterKennedy2N54, solve
     @timed_testset "Euler equations 1D" begin
         function entropy_at_final_time(k) # k is the wave number of the initial condition
             equations = CompressibleEulerEquations1D(1.4)

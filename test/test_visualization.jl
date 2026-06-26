@@ -988,6 +988,7 @@ end
     @trixi_test_nowarn Plots.plot(sol)
 end
 @testitem "Visualization: VisualizationCallback" setup=[Setup, Visualization] tags=[:misc_part1] begin
+    outdir = "out"
 
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
