@@ -133,11 +133,11 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
 
-    for i in eachnode(dg)
+    @inbounds for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
 
         flux1 = flux(u_node, 1, equations)
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, element)
         end
@@ -156,7 +156,7 @@ end
     @unpack derivative_split = dg.basis
 
     # Calculate volume integral in one element
-    for i in eachnode(dg)
+    @inbounds for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -191,7 +191,7 @@ end
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
-    for i in eachnode(dg)
+    @inbounds for i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, element)
 
         # The diagonal terms are zero since the diagonal of `derivative_split`
@@ -199,7 +199,7 @@ end
 
         # x direction
         integral_contribution = zero(u_node)
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, element)
             noncons_flux1 = nonconservative_flux(u_node, u_node_ii, 1, equations)
             integral_contribution = integral_contribution +
@@ -227,8 +227,8 @@ end
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
-    for i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             du[v, i, element] += (alpha *
                                   (inverse_weights[i] *
                                    (fstar1_L[v, i + 1] - fstar1_R[v, i])))
@@ -257,8 +257,8 @@ end
                    cons2recon, recon2cons)
 
     # Calculate FV volume integral contribution
-    for i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             du[v, i, element] += (alpha *
                                   (inverse_weights[i] *
                                    (fstar1_L[v, i + 1] - fstar1_R[v, i])))
@@ -276,7 +276,8 @@ end
                               ::Type{<:Union{TreeMesh{1}, StructuredMesh{1}}},
                               have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
-    for i in 2:nnodes(dg)
+    @inbounds for i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
         flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
@@ -292,7 +293,8 @@ end
                               have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
-    for i in 2:nnodes(dg)
+    @inbounds for i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, element)
 
@@ -324,7 +326,8 @@ end
                                 equations, volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
                                 cons2recon, recon2cons)
-    for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
+    @inbounds for i in 2:nnodes(dg) # We compute FV02 fluxes at the (nnodes(dg) - 1) subcell boundaries
+
         #             Reference element:
         #  -1 ------------------0------------------ 1 -> x
         # Gauss-Lobatto-Legendre nodes (schematic for k = 3):
@@ -397,7 +400,7 @@ function prolong2interfaces!(cache, u_or_flux_parabolic,
         right_element = neighbor_ids[2, interface]
 
         # interface in x-direction
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             interfaces_u[1, v, interface] = u_or_flux_parabolic[v, nnodes(dg),
                                                                 left_element]
             interfaces_u[2, v, interface] = u_or_flux_parabolic[v, 1, right_element]
@@ -420,12 +423,12 @@ function prolong2interfaces!(cache, u_or_flux_parabolic,
         right_element = neighbor_ids[2, interface]
 
         # interface in x-direction
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             # Interpolate to the interfaces using a local variable for
             # the accumulation of values (to reduce global memory operations).
             interface_u_1 = zero(eltype(interfaces_u))
             interface_u_2 = zero(eltype(interfaces_u))
-            for ii in eachnode(dg)
+            @inbounds for ii in eachnode(dg)
                 # Not += to allow `@muladd` to turn these into FMAs
                 # (see comment at the top of the file)
                 # Need `boundary_interpolation` at right (+1) node for left element
@@ -467,7 +470,7 @@ function calc_interface_flux!(surface_flux_values,
         flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
         # Copy flux to left and right element storage
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             surface_flux_values[v, left_direction, left_id] = flux[v]
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end
@@ -504,7 +507,7 @@ function calc_interface_flux!(surface_flux_values,
         noncons_right = nonconservative_flux(u_rr, u_ll, orientation, equations)
 
         # Copy flux to left and right element storage
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             # Note the factor 0.5 necessary for the nonconservative fluxes based on
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
@@ -531,12 +534,12 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
         # boundary in x-direction
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 boundaries.u[1, v, boundary] = u_or_flux_parabolic[v, nnodes(dg),
                                                                    element]
             end
         else # Element in +x direction of boundary
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 boundaries.u[2, v, boundary] = u_or_flux_parabolic[v, 1, element]
             end
         end
@@ -558,11 +561,11 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
         # boundary in x-direction
         if neighbor_sides[boundary] == 1
             # element in -x direction of boundary => need to evaluate at right boundary node (+1)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 # Interpolate to the boundaries using a local variable for
                 # the accumulation of values (to reduce global memory operations).
                 boundary_u_1 = zero(eltype(boundaries.u))
-                for ii in eachnode(dg)
+                @inbounds for ii in eachnode(dg)
                     # Not += to allow `@muladd` to turn these into FMAs
                     # (see comment at the top of the file)
                     boundary_u_1 = (boundary_u_1 +
@@ -572,9 +575,9 @@ function prolong2boundaries!(backend::Nothing, cache, u_or_flux_parabolic,
                 boundaries.u[1, v, boundary] = boundary_u_1
             end
         else # Element in +x direction of boundary => need to evaluate at left boundary node (-1)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 boundary_u_2 = zero(eltype(boundaries.u))
-                for ii in eachnode(dg)
+                @inbounds for ii in eachnode(dg)
                     boundary_u_2 = (boundary_u_2 +
                                     u_or_flux_parabolic[v, ii, element] *
                                     boundary_interpolation[ii, 1])
@@ -635,7 +638,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                   surface_flux, equations)
 
         # Copy flux to left and right element storage
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             surface_flux_values[v, direction, neighbor] = flux[v]
         end
     end
@@ -670,7 +673,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                                 equations)
 
         # Copy flux to left and right element storage
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             surface_flux_values[v, direction, neighbor] = flux[v] +
                                                           0.5f0 * noncons_flux[v]
         end
@@ -694,7 +697,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             # surface at -x
             du[v, 1, element] = (du[v, 1, element] -
                                  surface_flux_values[v, 1, element] *
@@ -724,11 +727,11 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             # Aliases for repeatedly accessed variables
             surface_flux_minus = surface_flux_values[v, 1, element]
             surface_flux_plus = surface_flux_values[v, 2, element]
-            for ii in eachnode(dg)
+            @inbounds for ii in eachnode(dg)
                 # surface at -x
                 du[v, ii, element] = (du[v, ii, element] -
                                       surface_flux_minus *
@@ -755,8 +758,8 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{1},
         # the comment in `calc_surface_integral!`.
         factor = -inverse_jacobian[element]
 
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
+        @inbounds for i in eachnode(dg)
+            @inbounds for v in eachvariable(equations)
                 du[v, i, element] *= factor
             end
         end
@@ -776,7 +779,7 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, element)

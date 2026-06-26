@@ -56,7 +56,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
                                                     i, j, k, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
                                        contravariant_flux1, equations, dg,
                                        ii, j, k, element)
@@ -67,7 +67,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
                                                     i, j, k, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
-        for jj in eachnode(dg)
+        @inbounds for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
                                        contravariant_flux2, equations, dg,
                                        i, jj, k, element)
@@ -78,7 +78,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
                                                     i, j, k, element)
         contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
-        for kk in eachnode(dg)
+        @inbounds for kk in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k],
                                        contravariant_flux3, equations, dg,
                                        i, j, kk, element)
@@ -221,7 +221,7 @@ end
 
         # x direction
         integral_contribution = zero(u_node)
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
@@ -238,7 +238,7 @@ end
         end
 
         # y direction
-        for jj in eachnode(dg)
+        @inbounds for jj in eachnode(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
@@ -255,7 +255,7 @@ end
         end
 
         # z direction
-        for kk in eachnode(dg)
+        @inbounds for kk in eachnode(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
@@ -384,7 +384,8 @@ end
     @unpack weights, derivative_matrix = dg.basis
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -400,7 +401,7 @@ end
         set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -416,7 +417,7 @@ end
         set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
     end
 
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -447,7 +448,8 @@ end
 
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -474,7 +476,7 @@ end
         set_node_vars!(fstar1_R, ftilde_R, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -501,7 +503,7 @@ end
         set_node_vars!(fstar2_R, ftilde_R, equations, dg, i, j, k)
     end
 
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -541,7 +543,8 @@ end
                                 cons2recon, recon2cons)
     @unpack normal_vectors_1, normal_vectors_2, normal_vectors_3 = cache.normal_vectors
 
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k,
                                         element), equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k,
@@ -565,7 +568,7 @@ end
         set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), k,
                                         element), equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, k,
@@ -589,7 +592,7 @@ end
         set_node_vars!(fstar2_R, contravariant_flux, equations, dg, i, j, k)
     end
 
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = cons2recon(get_node_vars(u, equations, dg, i, j, max(1, k - 2),
                                         element), equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i, j, k - 1,
@@ -620,32 +623,32 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{3}, equations, dg::D
     @unpack interfaces_u = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Negative x-direction (direction 1, left/negative x face)
             # Face nodes (i, j) correspond to (y, z) directions
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, j, 1, element] = u[v, 1, i, j, element]
             end
             # Positive x-direction (direction 2, right/positive x face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, j, 2, element] = u[v, nnodes(dg), i, j, element]
             end
             # Negative y-direction (direction 3, bottom/negative y face)
             # Face nodes (i, j) correspond to (x, z) directions
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, j, 3, element] = u[v, i, 1, j, element]
             end
             # Positive y-direction (direction 4, top/positive y face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, j, 4, element] = u[v, i, nnodes(dg), j, element]
             end
             # Negative z-direction (direction 5, back/negative z face)
             # Face nodes (i, j) correspond to (x, y) directions
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, j, 5, element] = u[v, i, j, 1, element]
             end
             # Positive z-direction (direction 6, front/positive z face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, j, 6, element] = u[v, i, j, nnodes(dg), element]
             end
         end
@@ -704,7 +707,7 @@ end
     right_direction = 2 * orientation
     left_direction = right_direction - 1
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(interfaces_u, equations, dg, i, j, right_direction,
                              left_element)
         u_rr = get_node_vars(interfaces_u, equations, dg, i, j, left_direction,
@@ -743,7 +746,7 @@ end
         # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
         flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             surface_flux_values[v, i, j, right_direction, left_element] = flux[v]
             surface_flux_values[v, i, j, left_direction, right_element] = flux[v]
         end
@@ -768,7 +771,7 @@ end
     right_direction = 2 * orientation
     left_direction = right_direction - 1
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(interfaces_u, equations, dg, i, j, right_direction,
                              left_element)
         u_rr = get_node_vars(interfaces_u, equations, dg, i, j, left_direction,
@@ -815,7 +818,7 @@ end
         noncons_right = sign_jacobian *
                         nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             # Note the factor 0.5 necessary for the nonconservative fluxes based on
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
@@ -843,7 +846,7 @@ function calc_boundary_flux!(cache, t,
         direction = 1
         element = linear_indices[begin, cell_y, cell_z]
 
-        for k in eachnode(dg), j in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
                                              boundary_conditions[direction],
                                              mesh,
@@ -857,7 +860,7 @@ function calc_boundary_flux!(cache, t,
         direction = 2
         element = linear_indices[end, cell_y, cell_z]
 
-        for k in eachnode(dg), j in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
                                              boundary_conditions[direction],
                                              mesh,
@@ -874,7 +877,7 @@ function calc_boundary_flux!(cache, t,
         direction = 3
         element = linear_indices[cell_x, begin, cell_z]
 
-        for k in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
                                              boundary_conditions[direction],
                                              mesh,
@@ -888,7 +891,7 @@ function calc_boundary_flux!(cache, t,
         direction = 4
         element = linear_indices[cell_x, end, cell_z]
 
-        for k in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
                                              boundary_conditions[direction],
                                              mesh,
@@ -905,7 +908,7 @@ function calc_boundary_flux!(cache, t,
         direction = 5
         element = linear_indices[cell_x, cell_y, begin]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 3,
                                              boundary_conditions[direction],
                                              mesh,
@@ -919,7 +922,7 @@ function calc_boundary_flux!(cache, t,
         direction = 6
         element = linear_indices[cell_x, cell_y, end]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 3,
                                              boundary_conditions[direction],
                                              mesh,
@@ -940,7 +943,7 @@ function apply_jacobian!(backend::Nothing, du,
     @unpack inverse_jacobian = cache.elements
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg,
                                                 inverse_jacobian, i, j, k,
                                                 element)
@@ -958,9 +961,9 @@ end
     # Negative sign included to account for the negated surface and volume terms,
     # see e.g. the computation of `derivative_hat` in the basis setup and 
     # the comment in `calc_surface_integral!`.
-    factor = -inverse_jacobian[i, j, k, element]
+    @inbounds factor = -inverse_jacobian[i, j, k, element]
 
-    for v in eachvariable(equations)
+    @inbounds for v in eachvariable(equations)
         du[v, i, j, k, element] *= factor
     end
     return nothing

@@ -142,19 +142,19 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         flux1 = flux(u_node, 1, equations)
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i], flux1,
                                        equations, dg, ii, j, k, element)
         end
 
         flux2 = flux(u_node, 2, equations)
-        for jj in eachnode(dg)
+        @inbounds for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j], flux2,
                                        equations, dg, i, jj, k, element)
         end
 
         flux3 = flux(u_node, 3, equations)
-        for kk in eachnode(dg)
+        @inbounds for kk in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[kk, k], flux3,
                                        equations, dg, i, j, kk, element)
         end
@@ -234,7 +234,7 @@ end
 
         # x direction
         integral_contribution = zero(u_node)
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
             noncons_flux1 = nonconservative_flux(u_node, u_node_ii, 1, equations)
             integral_contribution = integral_contribution +
@@ -242,7 +242,7 @@ end
         end
 
         # y direction
-        for jj in eachnode(dg)
+        @inbounds for jj in eachnode(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
             noncons_flux2 = nonconservative_flux(u_node, u_node_jj, 2, equations)
             integral_contribution = integral_contribution +
@@ -250,7 +250,7 @@ end
         end
 
         # z direction
-        for kk in eachnode(dg)
+        @inbounds for kk in eachnode(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
             noncons_flux3 = nonconservative_flux(u_node, u_node_kk, 3, equations)
             integral_contribution = integral_contribution +
@@ -287,8 +287,8 @@ end
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             du[v, i, j, k, element] += (alpha *
                                         (inverse_weights[i] *
                                          (fstar1_L[v, i + 1, j, k] -
@@ -334,8 +334,8 @@ end
                    cons2recon, recon2cons)
 
     # Calculate FV volume integral contribution
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             du[v, i, j, k, element] += (alpha *
                                         (inverse_weights[i] *
                                          (fstar1_L[v, i + 1, j, k] -
@@ -361,7 +361,8 @@ end
                               ::Type{<:TreeMesh{3}}, have_nonconservative_terms::False,
                               equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
         flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
@@ -369,7 +370,7 @@ end
         set_node_vars!(fstar1_R, flux, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
         flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
@@ -377,7 +378,7 @@ end
         set_node_vars!(fstar2_R, flux, equations, dg, i, j, k)
     end
 
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
         flux = volume_flux_fv(u_ll, u_rr, 3, equations) # orientation 3: z direction
@@ -395,7 +396,8 @@ end
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -413,7 +415,7 @@ end
         set_node_vars!(fstar1_R, flux_R, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -431,7 +433,7 @@ end
         set_node_vars!(fstar2_R, flux_R, equations, dg, i, j, k)
     end
 
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -460,7 +462,8 @@ end
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
                                 cons2recon, recon2cons)
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), j, k, element),
                           equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, j, k, element),
@@ -482,7 +485,7 @@ end
         set_node_vars!(fstar1_R, flux, equations, dg, i, j, k)
     end
 
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), k, element),
                           equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, k, element),
@@ -503,7 +506,7 @@ end
         set_node_vars!(fstar2_R, flux, equations, dg, i, j, k)
     end
 
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+    @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
         u_ll = cons2recon(get_node_vars(u, equations, dg, i, j, max(1, k - 2), element),
                           equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i, j, k - 1, element),
@@ -591,7 +594,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
             flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
             end
@@ -631,7 +634,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
             noncons_right = nonconservative_flux(u_rr, u_ll, orientation, equations)
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 # Note the factor 0.5 necessary for the nonconservative fluxes based on
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
@@ -745,7 +748,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
         # Get neighboring element
         neighbor = neighbor_ids[boundary]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Get boundary flux
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, boundary)
             if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
@@ -758,7 +761,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                       surface_flux, equations)
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 surface_flux_values[v, i, j, direction, neighbor] = flux[v]
             end
         end
@@ -787,8 +790,8 @@ function prolong2mortars!(cache, u,
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if cache.mortars.orientations[mortar] == 1
                 # L2 mortars in x-direction
-                for k in eachnode(dg), j in eachnode(dg)
-                    for v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), j in eachnode(dg)
+                    @inbounds for v in eachvariable(equations)
                         cache.mortars.u_upper_left[2, v, j, k, mortar] = u[v, 1, j, k,
                                                                            upper_left_element]
                         cache.mortars.u_upper_right[2, v, j, k, mortar] = u[v, 1, j, k,
@@ -801,8 +804,8 @@ function prolong2mortars!(cache, u,
                 end
             elseif cache.mortars.orientations[mortar] == 2
                 # L2 mortars in y-direction
-                for k in eachnode(dg), i in eachnode(dg)
-                    for v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), i in eachnode(dg)
+                    @inbounds for v in eachvariable(equations)
                         cache.mortars.u_upper_left[2, v, i, k, mortar] = u[v, i, 1, k,
                                                                            upper_left_element]
                         cache.mortars.u_upper_right[2, v, i, k, mortar] = u[v, i, 1, k,
@@ -815,8 +818,8 @@ function prolong2mortars!(cache, u,
                 end
             else # orientations[mortar] == 3
                 # L2 mortars in z-direction
-                for j in eachnode(dg), i in eachnode(dg)
-                    for v in eachvariable(equations)
+                @inbounds for j in eachnode(dg), i in eachnode(dg)
+                    @inbounds for v in eachvariable(equations)
                         cache.mortars.u_upper_left[2, v, i, j, mortar] = u[v, i, j, 1,
                                                                            upper_left_element]
                         cache.mortars.u_upper_right[2, v, i, j, mortar] = u[v, i, j, 1,
@@ -831,8 +834,8 @@ function prolong2mortars!(cache, u,
         else # large_sides[mortar] == 2 -> small elements on left side
             if cache.mortars.orientations[mortar] == 1
                 # L2 mortars in x-direction
-                for k in eachnode(dg), j in eachnode(dg)
-                    for v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), j in eachnode(dg)
+                    @inbounds for v in eachvariable(equations)
                         cache.mortars.u_upper_left[1, v, j, k, mortar] = u[v,
                                                                            nnodes(dg),
                                                                            j, k,
@@ -853,8 +856,8 @@ function prolong2mortars!(cache, u,
                 end
             elseif cache.mortars.orientations[mortar] == 2
                 # L2 mortars in y-direction
-                for k in eachnode(dg), i in eachnode(dg)
-                    for v in eachvariable(equations)
+                @inbounds for k in eachnode(dg), i in eachnode(dg)
+                    @inbounds for v in eachvariable(equations)
                         cache.mortars.u_upper_left[1, v, i, k, mortar] = u[v, i,
                                                                            nnodes(dg),
                                                                            k,
@@ -875,8 +878,8 @@ function prolong2mortars!(cache, u,
                 end
             else # if cache.mortars.orientations[mortar] == 3
                 # L2 mortars in z-direction
-                for j in eachnode(dg), i in eachnode(dg)
-                    for v in eachvariable(equations)
+                @inbounds for j in eachnode(dg), i in eachnode(dg)
+                    @inbounds for v in eachvariable(equations)
                         cache.mortars.u_upper_left[1, v, i, j, mortar] = u[v, i, j,
                                                                            nnodes(dg),
                                                                            upper_left_element]
@@ -1058,7 +1061,7 @@ function calc_mortar_flux!(surface_flux_values,
         # Alternatively, you can also follow the argumentation of Bohm et al. 2018
         # ("nonconservative diamond flux")
         if large_sides[mortar] == 1 # -> small elements on right side
-            for j in eachnode(dg), i in eachnode(dg)
+            @inbounds for j in eachnode(dg), i in eachnode(dg)
                 # Pull the left and right solutions
                 u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
                                                                          equations, dg,
@@ -1134,7 +1137,7 @@ function calc_mortar_flux!(surface_flux_values,
                                            equations, dg, i, j)
             end
         else # large_sides[mortar] == 2 -> small elements on the left
-            for j in eachnode(dg), i in eachnode(dg)
+            @inbounds for j in eachnode(dg), i in eachnode(dg)
                 # Pull the left and right solutions
                 u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
                                                                          equations, dg,
@@ -1228,7 +1231,7 @@ end
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 3}, equations,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation)
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, j, interface)
         flux = surface_flux(u_ll, u_rr, orientation, equations)
@@ -1350,7 +1353,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
         @inbounds for m in eachnode(dg), l in eachnode(dg)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, m, element] = (du[v, 1, l, m, element] -
                                            surface_flux_values[v, l, m, 1,
@@ -1404,7 +1407,7 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
         factor = -inverse_jacobian[element]
 
         @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor
             end
         end
@@ -1424,7 +1427,7 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, k, element)

@@ -50,44 +50,44 @@ function prolong2interfaces!(cache, u, mesh::UnstructuredMesh2D, equations, dg::
         secondary_side = element_side_ids[2, interface]
 
         if primary_side == 1
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, i, 1,
                                                      primary_element]
             end
         elseif primary_side == 2
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, nnodes(dg), i,
                                                      primary_element]
             end
         elseif primary_side == 3
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg),
                                                      primary_element]
             end
         else # primary_side == 4
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, 1, i,
                                                      primary_element]
             end
         end
 
         if secondary_side == 1
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[2, v, i, interface] = u[v, i, 1,
                                                      secondary_element]
             end
         elseif secondary_side == 2
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[2, v, i, interface] = u[v, nnodes(dg), i,
                                                      secondary_element]
             end
         elseif secondary_side == 3
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[2, v, i, interface] = u[v, i, nnodes(dg),
                                                      secondary_element]
             end
         else # secondary_side == 4
-            for i in eachnode(dg), v in eachvariable(equations)
+            @inbounds for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[2, v, i, interface] = u[v, 1, i,
                                                      secondary_element]
             end
@@ -120,7 +120,7 @@ function calc_interface_flux!(surface_flux_values,
         secondary_index = start_index[interface]
 
         # loop through the primary element coordinate system and compute the interface coupling
-        for primary_index in eachnode(dg)
+        @inbounds for primary_index in eachnode(dg)
             # pull the primary and secondary states from the boundary u values
             u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index,
                                                    interface)
@@ -138,7 +138,7 @@ function calc_interface_flux!(surface_flux_values,
 
             # Copy flux back to primary/secondary element storage
             # Note the sign change for the normal flux in the secondary element!
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 surface_flux_values[v, primary_index, primary_side, primary_element] = flux[v]
                 surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -flux[v]
             end
@@ -173,7 +173,7 @@ function calc_interface_flux!(surface_flux_values,
         secondary_index_increment = index_increment[interface]
 
         secondary_index = start_index[interface]
-        for primary_index in eachnode(dg)
+        @inbounds for primary_index in eachnode(dg)
             # pull the primary and secondary states from the boundary u values
             u_ll = get_one_sided_surface_node_vars(u, equations, dg, 1, primary_index,
                                                    interface)
@@ -199,7 +199,7 @@ function calc_interface_flux!(surface_flux_values,
 
             # Copy flux to primary and secondary element storage
             # Note the sign change for the components in the secondary element!
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 # Note the factor 0.5 necessary for the nonconservative fluxes based on
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
@@ -232,19 +232,19 @@ function prolong2boundaries!(backend::Nothing, cache, u,
         side = element_side_id[boundary]
 
         if side == 1
-            for l in eachnode(dg), v in eachvariable(equations)
+            @inbounds for l in eachnode(dg), v in eachvariable(equations)
                 boundaries_u[v, l, boundary] = u[v, l, 1, element]
             end
         elseif side == 2
-            for l in eachnode(dg), v in eachvariable(equations)
+            @inbounds for l in eachnode(dg), v in eachvariable(equations)
                 boundaries_u[v, l, boundary] = u[v, nnodes(dg), l, element]
             end
         elseif side == 3
-            for l in eachnode(dg), v in eachvariable(equations)
+            @inbounds for l in eachnode(dg), v in eachvariable(equations)
                 boundaries_u[v, l, boundary] = u[v, l, nnodes(dg), element]
             end
         else # side == 4
-            for l in eachnode(dg), v in eachvariable(equations)
+            @inbounds for l in eachnode(dg), v in eachvariable(equations)
                 boundaries_u[v, l, boundary] = u[v, 1, l, element]
             end
         end
@@ -326,7 +326,7 @@ function calc_boundary_flux!(backend, cache, t, boundary_condition::BC,
         side = element_side_id[boundary]
 
         # calc boundary flux on the current boundary interface
-        for node in eachnode(dg)
+        @inbounds for node in eachnode(dg)
             calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                 mesh, have_nonconservative_terms(equations),
                                 equations, surface_integral, dg, cache,
@@ -362,7 +362,7 @@ end
     # Call pointwise numerical flux function in the normal direction on the boundary
     flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
 
-    for v in eachvariable(equations)
+    @inbounds for v in eachvariable(equations)
         surface_flux_values[v, node_index, side_index, element_index] = flux[v]
     end
 
@@ -399,7 +399,7 @@ end
     flux, noncons_flux = boundary_condition(u_inner, outward_direction, x, t,
                                             surface_integral.surface_flux, equations)
 
-    for v in eachvariable(equations)
+    @inbounds for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
@@ -439,7 +439,7 @@ function calc_surface_integral!(backend, du, u, mesh::UnstructuredMesh2D,
     # turn these into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-        for l in eachnode(dg), v in eachvariable(equations)
+        @inbounds for l in eachnode(dg), v in eachvariable(equations)
             # surface contribution along local sides 2 and 4 (fixed x and y varies)
             du[v, 1, l, element] = du[v, 1, l, element] +
                                    surface_flux_values[v, l, 4, element] *

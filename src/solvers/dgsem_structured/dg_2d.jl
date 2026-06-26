@@ -54,7 +54,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         # first contravariant vector Ja^1 and the flux vector
         Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[ii, i],
                                        contravariant_flux1, equations, dg,
                                        ii, j, element)
@@ -64,7 +64,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         # second contravariant vector Ja^2 and the flux vector
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
-        for jj in eachnode(dg)
+        @inbounds for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_hat[jj, j],
                                        contravariant_flux2, equations, dg,
                                        i, jj, element)
@@ -174,7 +174,7 @@ end
                               dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         # pull the contravariant vectors in each coordinate direction
@@ -189,7 +189,7 @@ end
 
         # x direction
         integral_contribution = zero(u_node)
-        for ii in eachnode(dg)
+        @inbounds for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
@@ -205,7 +205,7 @@ end
         end
 
         # y direction
-        for jj in eachnode(dg)
+        @inbounds for jj in eachnode(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
@@ -309,7 +309,8 @@ end
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack normal_vectors_1, normal_vectors_2 = cache.normal_vectors
 
-    for j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
@@ -324,7 +325,7 @@ end
         set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
     end
 
-    for j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
@@ -358,7 +359,8 @@ end
 
     # The left subcell node values are labelled `_ll` (left-left) and `_lr` (left-right), while
     # the right subcell node values are labelled `_rl` (right-left) and `_rr` (right-right).
-    for j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
+
         ## Obtain unlimited values in reconstruction variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
@@ -396,7 +398,7 @@ end
         set_node_vars!(fstar1_R, contravariant_flux, equations, dg, i, j)
     end
 
-    for j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = cons2recon(get_node_vars(u, equations, dg, i, max(1, j - 2), element),
                           equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i, j - 1, element),
@@ -435,7 +437,8 @@ end
     volume_flux, nonconservative_flux = volume_flux_fv
 
     # Fluxes in x-direction
-    for j in eachnode(dg), i in 2:nnodes(dg)
+    @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
+
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
@@ -462,7 +465,7 @@ end
     end
 
     # Fluxes in y-direction
-    for j in 2:nnodes(dg), i in eachnode(dg)
+    @inbounds for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
 
@@ -497,21 +500,21 @@ function prolong2interfaces!(cache, u,
     @unpack interfaces_u = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             # Negative x-direction (direction 1, left/negative x face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, 1, element] = u[v, 1, i, element]
             end
             # Positive x-direction (direction 2, right/positive x face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, 2, element] = u[v, nnodes(dg), i, element]
             end
             # Negative y-direction (direction 3, bottom/negative y face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, 3, element] = u[v, i, 1, element]
             end
             # Positive y-direction (direction 4, top/positive y face)
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 interfaces_u[v, i, 4, element] = u[v, i, nnodes(dg), element]
             end
         end
@@ -565,7 +568,7 @@ end
     right_direction = 2 * orientation
     left_direction = right_direction - 1
 
-    for i in eachnode(dg)
+    @inbounds for i in eachnode(dg)
         u_ll = get_node_vars(interfaces_u, equations, dg, i, right_direction,
                              left_element)
         u_rr = get_node_vars(interfaces_u, equations, dg, i, left_direction,
@@ -596,7 +599,7 @@ end
         # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
         flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             surface_flux_values[v, i, right_direction, left_element] = flux[v]
             surface_flux_values[v, i, left_direction, right_element] = flux[v]
         end
@@ -622,7 +625,7 @@ end
     right_direction = 2 * orientation
     left_direction = right_direction - 1
 
-    for i in eachnode(dg)
+    @inbounds for i in eachnode(dg)
         u_ll = get_node_vars(interfaces_u, equations, dg, i, right_direction,
                              left_element)
         u_rr = get_node_vars(interfaces_u, equations, dg, i, left_direction,
@@ -661,7 +664,7 @@ end
         noncons_right = sign_jacobian *
                         nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             # Note the factor 0.5 necessary for the nonconservative fluxes based on
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
@@ -690,7 +693,7 @@ function calc_boundary_flux!(cache, t,
         direction = 1
         element = linear_indices[begin, cell_y]
 
-        for j in eachnode(dg)
+        @inbounds for j in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
                                              boundary_conditions[direction],
                                              mesh,
@@ -704,7 +707,7 @@ function calc_boundary_flux!(cache, t,
         direction = 2
         element = linear_indices[end, cell_y]
 
-        for j in eachnode(dg)
+        @inbounds for j in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
                                              boundary_conditions[direction],
                                              mesh,
@@ -720,7 +723,7 @@ function calc_boundary_flux!(cache, t,
         direction = 3
         element = linear_indices[cell_x, begin]
 
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
                                              boundary_conditions[direction],
                                              mesh,
@@ -734,7 +737,7 @@ function calc_boundary_flux!(cache, t,
         direction = 4
         element = linear_indices[cell_x, end]
 
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
                                              boundary_conditions[direction],
                                              mesh,
@@ -756,7 +759,7 @@ function apply_jacobian!(backend::Nothing, du,
     @unpack inverse_jacobian = cache.elements
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg,
                                                 inverse_jacobian,
                                                 i, j, element)
@@ -777,9 +780,9 @@ end
     # Negative sign included to account for the negated surface and volume terms,
     # see e.g. the computation of `derivative_hat` in the basis setup and 
     # the comment in `calc_surface_integral!`.
-    factor = -inverse_jacobian[i, j, element]
+    @inbounds factor = -inverse_jacobian[i, j, element]
 
-    for v in eachvariable(equations)
+    @inbounds for v in eachvariable(equations)
         du[v, i, j, element] *= factor
     end
     return nothing

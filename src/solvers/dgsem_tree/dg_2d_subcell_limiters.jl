@@ -101,8 +101,8 @@ end
                             element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
-    for j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             du[v, i, j, element] += inverse_weights[i] *
                                     (fstar1_L[v, i + 1, j] - fstar1_R[v, i, j]) +
                                     inverse_weights[j] *
@@ -139,7 +139,7 @@ end
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -157,8 +157,9 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
-        for v in eachvariable(equations)
+    @inbounds for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+
+        @inbounds for v in eachvariable(equations)
             fhat1_L[v, i + 1, j] = fhat1_L[v, i, j] + weights[i] * flux_temp[v, i, j]
             fhat1_R[v, i + 1, j] = fhat1_L[v, i + 1, j]
         end
@@ -167,7 +168,7 @@ end
     # Split form volume flux in orientation 2: y direction
     flux_temp .= zero(eltype(flux_temp))
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
@@ -180,8 +181,8 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             fhat2_L[v, i, j + 1] = fhat2_L[v, i, j] + weights[j] * flux_temp[v, i, j]
             fhat2_R[v, i, j + 1] = fhat2_L[v, i, j + 1]
         end
@@ -237,7 +238,7 @@ end
     flux_temp .= zero(eltype(flux_temp))
     flux_noncons_temp .= zero(eltype(flux_noncons_temp))
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -251,7 +252,8 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
                                        equations, dg, ii, j)
-            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+            @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
@@ -272,9 +274,10 @@ end
     fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
 
     # Compute local contribution to non-conservative flux
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+        @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 1, equations,
                                                NonConservativeLocal(), noncons),
@@ -282,9 +285,10 @@ end
         end
     end
 
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+    @inbounds for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+
         # Conservative part
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             value = fhat_temp[v, i, j] + weights[i] * flux_temp[v, i, j]
             fhat_temp[v, i + 1, j] = value
             fhat1_L[v, i + 1, j] = value
@@ -308,7 +312,7 @@ end
     flux_temp .= zero(eltype(flux_temp))
     flux_noncons_temp .= zero(eltype(flux_noncons_temp))
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
@@ -317,7 +321,8 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
                                        equations, dg, i, jj)
-            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+            @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeSymmetric(), noncons)
@@ -338,9 +343,10 @@ end
     fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 
     # Compute local contribution to non-conservative flux
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+        @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 2, equations,
                                                NonConservativeLocal(), noncons),
@@ -348,9 +354,9 @@ end
         end
     end
 
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+    @inbounds for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
         # Conservative part
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             value = fhat_temp[v, i, j] + weights[j] * flux_temp[v, i, j]
             fhat_temp[v, i, j + 1] = value
             fhat2_L[v, i, j + 1] = value
@@ -416,7 +422,7 @@ end
     flux_temp .= zero(eltype(flux_temp))
     flux_noncons_temp .= zero(eltype(flux_noncons_temp))
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -430,7 +436,8 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
                                        equations, dg, ii, j)
-            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+            @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeJump(),
@@ -453,9 +460,10 @@ end
     fhat_noncons_temp[:, :, 1, :] .= zero(eltype(fhat1_L))
 
     # Compute local contribution to non-conservative flux
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+        @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 1, equations,
                                                NonConservativeLocal(), noncons),
@@ -463,9 +471,10 @@ end
         end
     end
 
-    for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+    @inbounds for j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+
         # Conservative part
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             value = fhat_temp[v, i, j] + weights[i] * flux_temp[v, i, j]
             fhat_temp[v, i + 1, j] = value
             fhat1_L[v, i + 1, j] = value
@@ -486,15 +495,17 @@ end
     end
 
     # Apply correction term to the flux-differencing formula for nonconservative local * jump fluxes.
-    for j in eachnode(dg)
+    @inbounds for j in eachnode(dg)
         u_0 = get_node_vars(u, equations, dg, 1, j, element)
-        for i in 2:(nnodes(dg) - 1)
+        @inbounds for i in 2:(nnodes(dg) - 1)
+
             u_i = get_node_vars(u, equations, dg, i, j, element)
-            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+            @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
                 phi_jump = volume_flux_noncons(u_0, u_i, 1, equations,
                                                NonConservativeJump(), noncons)
 
-                for v in eachvariable(equations)
+                @inbounds for v in eachvariable(equations)
                     # The factor of 2 is missing on each term because Trixi multiplies all the non-cons terms with 0.5
                     fhat1_R[v, i, j] -= phi[v, noncons, i, j] * phi_jump[v]
                     fhat1_L[v, i + 1, j] -= phi[v, noncons, i, j] * phi_jump[v]
@@ -502,11 +513,12 @@ end
             end
         end
         u_N = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+        @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
             phi_jump = volume_flux_noncons(u_0, u_N, 1, equations,
                                            NonConservativeJump(), noncons)
 
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 # The factor of 2 is missing because Trixi multiplies all the non-cons terms with 0.5
                 fhat1_R[v, nnodes(dg), j] -= phi[v, noncons, nnodes(dg), j] *
                                              phi_jump[v]
@@ -520,7 +532,7 @@ end
     flux_temp .= zero(eltype(flux_temp))
     flux_noncons_temp .= zero(eltype(flux_noncons_temp))
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
@@ -529,7 +541,8 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
                                        equations, dg, i, jj)
-            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+            @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeJump(),
@@ -552,9 +565,10 @@ end
     fhat_noncons_temp[:, :, :, 1] .= zero(eltype(fhat1_L))
 
     # Compute local contribution to non-conservative flux
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+        @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 2, equations,
                                                NonConservativeLocal(), noncons),
@@ -562,9 +576,9 @@ end
         end
     end
 
-    for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+    @inbounds for j in 1:(nnodes(dg) - 1), i in eachnode(dg)
         # Conservative part
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             value = fhat_temp[v, i, j] + weights[j] * flux_temp[v, i, j]
             fhat_temp[v, i, j + 1] = value
             fhat2_L[v, i, j + 1] = value
@@ -585,15 +599,17 @@ end
     end
 
     # Apply correction term to the flux-differencing formula for nonconservative local * jump fluxes.
-    for i in eachnode(dg)
+    @inbounds for i in eachnode(dg)
         u_0 = get_node_vars(u, equations, dg, i, 1, element)
-        for j in 2:(nnodes(dg) - 1)
+        @inbounds for j in 2:(nnodes(dg) - 1)
+
             u_j = get_node_vars(u, equations, dg, i, j, element)
-            for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+            @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
                 phi_jump = volume_flux_noncons(u_0, u_j, 2, equations,
                                                NonConservativeJump(), noncons)
 
-                for v in eachvariable(equations)
+                @inbounds for v in eachvariable(equations)
                     # The factor of 2 is missing on each term because Trixi multiplies all the non-cons terms with 0.5
                     fhat2_R[v, i, j] -= phi[v, noncons, i, j] * phi_jump[v]
                     fhat2_L[v, i, j + 1] -= phi[v, noncons, i, j] * phi_jump[v]
@@ -601,11 +617,12 @@ end
             end
         end
         u_N = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-        for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+        @inbounds for noncons in 1:n_nonconservative_terms(volume_flux_noncons)
+
             phi_jump = volume_flux_noncons(u_0, u_N, 2, equations,
                                            NonConservativeJump(), noncons)
 
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
                 fhat2_R[v, i, nnodes(dg)] -= phi[v, noncons, i, nnodes(dg)] *
                                              phi_jump[v]
@@ -633,16 +650,17 @@ end
     # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
     # `antidiffusive_flux1_R` and analogously for the second direction.
 
-    for j in eachnode(dg), i in 2:nnodes(dg)
-        for v in eachvariable(equations)
+    @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
+
+        @inbounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
                                                       fstar1_L[v, i, j]
             antidiffusive_flux1_R[v, i, j, element] = antidiffusive_flux1_L[v, i, j,
                                                                             element]
         end
     end
-    for j in 2:nnodes(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for j in 2:nnodes(dg), i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             antidiffusive_flux2_L[v, i, j, element] = fhat2_L[v, i, j] -
                                                       fstar2_L[v, i, j]
             antidiffusive_flux2_R[v, i, j, element] = antidiffusive_flux2_L[v, i, j,
@@ -662,16 +680,17 @@ end
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
-    for j in eachnode(dg), i in 2:nnodes(dg)
-        for v in eachvariable(equations)
+    @inbounds for j in eachnode(dg), i in 2:nnodes(dg)
+
+        @inbounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, element] = fhat1_L[v, i, j] -
                                                       fstar1_L[v, i, j]
             antidiffusive_flux1_R[v, i, j, element] = fhat1_R[v, i, j] -
                                                       fstar1_R[v, i, j]
         end
     end
-    for j in 2:nnodes(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @inbounds for j in 2:nnodes(dg), i in eachnode(dg)
+        @inbounds for v in eachvariable(equations)
             antidiffusive_flux2_L[v, i, j, element] = fhat2_L[v, i, j] -
                                                       fstar2_L[v, i, j]
             antidiffusive_flux2_R[v, i, j, element] = fhat2_R[v, i, j] -
