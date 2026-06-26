@@ -514,7 +514,10 @@ end
     @test endswith(default_example(), "elixir_advection_basic.jl")
 end
 
-@testitem "Unit: HLL flux with vanishing wave speed estimates (#502)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: HLL flux with vanishing wave speed estimates (#502)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.0, 0.0, 0.0)
     @test !any(isnan, flux_hll(u, u, 1, equations))
@@ -645,7 +648,10 @@ end
           ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
-@testitem "Unit: Euler conversion between conservative/entropy variables" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Euler conversion between conservative/entropy variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
     let equations = CompressibleEulerEquations1D(1.4)
@@ -714,7 +720,10 @@ end
     end
 end
 
-@testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     rho, v1, v2, v3, p = 1.0, 0.1, -0.2, 0.3, 2.0
 
     for (equations_parabolic, prim, dw) in ((LaplaceDiffusionEntropyVariables1D(0.01,
@@ -843,7 +852,10 @@ end
     end
 end
 
-@testitem "Unit: Helmholtz ideal gas equation of state (AD vs analytical)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Helmholtz ideal gas equation of state (AD vs analytical)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     # Closed forms for ideal gas from Klein et al., Appendix E (E.1), in (V, T) variables
     function ideal_gas_analytical_helmholtz(V, T, eos::HelmholtzIdealGas)
         alpha = inv(eos.gamma - 1)
@@ -931,7 +943,10 @@ end
     end
 end
 
-@testitem "Unit: Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
     @test Trixi.get_name(equations) ==
@@ -972,7 +987,10 @@ end
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 end
 
-@testitem "Unit: Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations2D(eos)
     q = SVector(2.0, 0.1, 0.2, 10.0)
@@ -1236,7 +1254,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     # Set up equations and dummy conservative variables state
@@ -1286,7 +1307,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: Polytropic CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: Polytropic CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     gamma = 1.4
@@ -1310,7 +1334,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for Winters flux: Polytropic CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for Winters flux: Polytropic CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     for gamma in [1.4, 1.0, 5 / 3]
         kappa = 0.5     # Scaling factor for the pressure.
         equations = PolytropicEulerEquations2D(gamma, kappa)
@@ -1334,7 +1361,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for Lax-Friedrich flux: Polytropic CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for Lax-Friedrich flux: Polytropic CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     for gamma in [1.4, 1.0, 5 / 3]
         kappa = 0.5     # Scaling factor for the pressure.
         equations = PolytropicEulerEquations2D(gamma, kappa)
@@ -1358,7 +1388,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: LEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: LEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     equations = LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
@@ -1380,7 +1413,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: MHD" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: MHD" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     equations = IdealGlmMhdEquations1D(1.4)
@@ -1692,7 +1728,10 @@ end
     end
 end
 
-@testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     rho = 7800.0 # kg/m³
     lambda = 9.3288e10
     mu = lambda
@@ -1711,7 +1750,10 @@ end
           flux(u, orientation, equations)
 end
 
-@testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     # Set up conservative variables, equations
     u = [
         0.5011914484393387,
@@ -1968,7 +2010,10 @@ end
     end
 end
 
-@testitem "Unit: DissipationMatrixWintersEtal entropy dissipation and consistency tests" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: DissipationMatrixWintersEtal entropy dissipation and consistency tests" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     equations = CompressibleEulerEquations1D(1.4)
     dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
 
@@ -2140,7 +2185,10 @@ end
     end
 end
 
-@testitem "Unit: Equivalent Wave Speed Estimates: max_abs_speed(naive)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Equivalent Wave Speed Estimates: max_abs_speed(naive)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     @timed_testset "AcousticPerturbationEquations2D" begin
         equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
                                                     c_mean_global = 2.0,
@@ -3268,7 +3316,10 @@ end
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 end
 
-@testitem "Unit: TreeMesh and StructuredMesh boundary condition argument checks" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: TreeMesh and StructuredMesh boundary condition argument checks" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     solver = DGSEM(polydeg = 1)
     ic = initial_condition_convergence_test
     bc = boundary_condition_periodic
@@ -3602,7 +3653,10 @@ end
     end
 end
 
-@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     gamma = 1004 / 717
     equations = CompressibleEulerEquations2D(gamma)
 
@@ -3639,7 +3693,10 @@ end
     @test Trixi.ndims(semi) == 2
 end
 
-@testitem "Unit: Unified mesh constructor signatures (StructuredMesh)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Unified mesh constructor signatures (StructuredMesh)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     # 1D: keyword interface (2^2 = 4 cells per dimension)
     mesh_1d_ref = StructuredMesh((4,), (-1.0,), (1.0,))
     mesh_1d_kw = StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),

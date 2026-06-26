@@ -10,162 +10,165 @@ end
 
 @testitem "Visualization: PlotData2D, PlotDataSeries, PlotMesh" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-# Run 2D tests with elixirs for different mesh and solver types
-test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
-                                       "elixir_euler_blast_wave_amr.jl"),
-                        "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
-                                               "elixir_euler_convergence.jl"),
-                        "StructuredMesh" => ("structured_2d_dgsem",
-                                             "elixir_euler_source_terms_waving_flag.jl"),
-                        "UnstructuredMesh" => ("unstructured_2d_dgsem",
-                                               "elixir_euler_basic.jl"),
-                        "P4estMesh" => ("p4est_2d_dgsem",
-                                        "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
-                        "DGMulti (FDSBP)" => ("dgmulti_2d",
-                                              "elixir_euler_cgsbp_periodic.jl"))
+    # Run 2D tests with elixirs for different mesh and solver types
+    test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
+                                           "elixir_euler_blast_wave_amr.jl"),
+                            "TreeMesh (FDSBP)" => ("tree_2d_fdsbp",
+                                                   "elixir_euler_convergence.jl"),
+                            "StructuredMesh" => ("structured_2d_dgsem",
+                                                 "elixir_euler_source_terms_waving_flag.jl"),
+                            "UnstructuredMesh" => ("unstructured_2d_dgsem",
+                                                   "elixir_euler_basic.jl"),
+                            "P4estMesh" => ("p4est_2d_dgsem",
+                                            "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+                            "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"),
+                            "DGMulti (FDSBP)" => ("dgmulti_2d",
+                                                  "elixir_euler_cgsbp_periodic.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
-    # Run Trixi.jl
-    directory, elixir = test_examples_2d[mesh]
-    @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
-                        tspan=(0, 0.1))
+    @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+        # Run Trixi.jl
+        directory, elixir = test_examples_2d[mesh]
+        @test_trixi_include(joinpath(EXAMPLES_DIR, directory, elixir),
+                            tspan=(0, 0.1))
 
-    # Constructor tests
-    if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)"
-        @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
-        @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
-                         solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
-        if semi.solver isa DGSEM
-            @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+        # Constructor tests
+        if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)"
+            @test PlotData2D(sol) isa Trixi.PlotData2DCartesian
+            @test PlotData2D(sol; nvisnodes = 0, grid_lines = false,
+                             solution_variables = cons2cons) isa Trixi.PlotData2DCartesian
+            if semi.solver isa DGSEM
+                @test Trixi.PlotData2DTriangulated(sol) isa Trixi.PlotData2DTriangulated
+            end
+        else
+            @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
+            @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
+                  Trixi.PlotData2DTriangulated
         end
-    else
-        @test PlotData2D(sol) isa Trixi.PlotData2DTriangulated
-        @test PlotData2D(sol; nvisnodes = 0, solution_variables = cons2cons) isa
-              Trixi.PlotData2DTriangulated
-    end
-    pd = PlotData2D(sol)
-
-    # show
-    @trixi_test_nowarn show(stdout, pd)
-    println(stdout)
-
-    # getindex
-    @test pd["rho"] == Trixi.PlotDataSeries(pd, 1)
-    @test pd["v1"] == Trixi.PlotDataSeries(pd, 2)
-    @test pd["v2"] == Trixi.PlotDataSeries(pd, 3)
-    @test pd["p"] == Trixi.PlotDataSeries(pd, 4)
-    @test_throws KeyError pd["does not exist"]
-
-    # convenience methods for mimicking a dictionary
-    @test pd[begin] == Trixi.PlotDataSeries(pd, 1)
-    @test pd[end] == Trixi.PlotDataSeries(pd, 4)
-    @test length(pd) == 4
-    @test size(pd) == (4,)
-    @test keys(pd) == ("rho", "v1", "v2", "p")
-    @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
-    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
-        "v1" => Trixi.PlotDataSeries(pd, 2),
-        "v2" => Trixi.PlotDataSeries(pd, 3),
-        "p" => Trixi.PlotDataSeries(pd, 4)]
-
-    # PlotDataSeries
-    pds = pd["p"]
-    @test pds.plot_data == pd
-    @test pds.variable_id == 4
-    @trixi_test_nowarn show(stdout, pds)
-    println(stdout)
-
-    # getmesh/PlotMesh
-    @test getmesh(pd) == Trixi.PlotMesh(pd)
-    @test getmesh(pd).plot_data == pd
-    @trixi_test_nowarn show(stdout, getmesh(pd))
-    println(stdout)
-
-    @testset "2D plot recipes" begin
         pd = PlotData2D(sol)
 
-        @trixi_test_nowarn Plots.plot(sol)
-        @trixi_test_nowarn Plots.plot(pd)
-        @trixi_test_nowarn Plots.plot(pd["p"])
-        @trixi_test_nowarn Plots.plot(getmesh(pd))
+        # show
+        @trixi_test_nowarn show(stdout, pd)
+        println(stdout)
 
-        semi = sol.prob.p
-        if mesh == "DGMulti"
-            if sol.u[end] isa Trixi.VectorOfArray
-                u = parent(sol.u[end])
-            else
-                u = sol.u[end]
-            end
-            scalar_data = StructArrays.component(u, 1)
-        else
-            # There are some issues with `PtrArray`s returned by default
-            # by `Trixi.wrap_array`, see
-            # https://github.com/trixi-framework/Trixi.jl/issues/2797
-            u = Trixi.wrap_array_native(sol.u[end], semi)
-            scalar_data = u[1, :, :, :]
-        end
+        # getindex
+        @test pd["rho"] == Trixi.PlotDataSeries(pd, 1)
+        @test pd["v1"] == Trixi.PlotDataSeries(pd, 2)
+        @test pd["v2"] == Trixi.PlotDataSeries(pd, 3)
+        @test pd["p"] == Trixi.PlotDataSeries(pd, 4)
+        @test_throws KeyError pd["does not exist"]
 
-        if mesh != "DGMulti (FDSBP)"
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
-            @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
-                                                           sol.u[end], semi))
-        end
+        # convenience methods for mimicking a dictionary
+        @test pd[begin] == Trixi.PlotDataSeries(pd, 1)
+        @test pd[end] == Trixi.PlotDataSeries(pd, 4)
+        @test length(pd) == 4
+        @test size(pd) == (4,)
+        @test keys(pd) == ("rho", "v1", "v2", "p")
+        @test eltype(pd) <: Pair{String, <:Trixi.PlotDataSeries}
+        @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries(pd, 1),
+            "v1" => Trixi.PlotDataSeries(pd, 2),
+            "v2" => Trixi.PlotDataSeries(pd, 3),
+            "p" => Trixi.PlotDataSeries(pd, 4)]
 
-        # test for consistency between the two ScalarPlotData2D constructions
-        if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
-            spd_no_function = ScalarPlotData2D(scalar_data, semi)
-            spd_function = ScalarPlotData2D((u, equations) -> u[1],
-                                            sol.u[end], semi)
-            @test typeof(spd_no_function) == typeof(spd_function)
-            for property in propertynames(spd_function)
-                if property == :data
-                    @test spd_no_function.data.data ≈ spd_function.data.data
-                elseif property == :variable_names
-                    @test getproperty(spd_no_function, property) ==
-                          getproperty(spd_function, property)
+        # PlotDataSeries
+        pds = pd["p"]
+        @test pds.plot_data == pd
+        @test pds.variable_id == 4
+        @trixi_test_nowarn show(stdout, pds)
+        println(stdout)
+
+        # getmesh/PlotMesh
+        @test getmesh(pd) == Trixi.PlotMesh(pd)
+        @test getmesh(pd).plot_data == pd
+        @trixi_test_nowarn show(stdout, getmesh(pd))
+        println(stdout)
+
+        @testset "2D plot recipes" begin
+            pd = PlotData2D(sol)
+
+            @trixi_test_nowarn Plots.plot(sol)
+            @trixi_test_nowarn Plots.plot(pd)
+            @trixi_test_nowarn Plots.plot(pd["p"])
+            @trixi_test_nowarn Plots.plot(getmesh(pd))
+
+            semi = sol.prob.p
+            if mesh == "DGMulti"
+                if sol.u[end] isa Trixi.VectorOfArray
+                    u = parent(sol.u[end])
                 else
-                    @test getproperty(spd_no_function, property) ≈
-                          getproperty(spd_function, property)
+                    u = sol.u[end]
                 end
+                scalar_data = StructArrays.component(u, 1)
+            else
+                # There are some issues with `PtrArray`s returned by default
+                # by `Trixi.wrap_array`, see
+                # https://github.com/trixi-framework/Trixi.jl/issues/2797
+                u = Trixi.wrap_array_native(sol.u[end], semi)
+                scalar_data = u[1, :, :, :]
+            end
+
+            if mesh != "DGMulti (FDSBP)"
+                @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
+                @trixi_test_nowarn Plots.plot(ScalarPlotData2D((u, equations) -> u[1],
+                                                               sol.u[end], semi))
+            end
+
+            # test for consistency between the two ScalarPlotData2D constructions
+            if mesh == "TreeMesh" || mesh == "TreeMesh (FDSBP)" || mesh == "DGMulti"
+                spd_no_function = ScalarPlotData2D(scalar_data, semi)
+                spd_function = ScalarPlotData2D((u, equations) -> u[1],
+                                                sol.u[end], semi)
+                @test typeof(spd_no_function) == typeof(spd_function)
+                for property in propertynames(spd_function)
+                    if property == :data
+                        @test spd_no_function.data.data ≈ spd_function.data.data
+                    elseif property == :variable_names
+                        @test getproperty(spd_no_function, property) ==
+                              getproperty(spd_function, property)
+                    else
+                        @test getproperty(spd_no_function, property) ≈
+                              getproperty(spd_function, property)
+                    end
+                end
+            end
+
+            # test that non-upwinded FDSBP functionality is consistent with upwinded FDSBP solver behavior
+            if mesh == "TreeMesh (FDSBP)"
+                (; volume_integral, surface_integral) = semi.solver
+                solver_fdsbp = FDSBP(semi.solver.basis.central; surface_integral,
+                                     volume_integral)
+                @test all(Trixi.reference_node_coordinates_2d(semi.solver) .≈
+                          Trixi.reference_node_coordinates_2d(solver_fdsbp))
             end
         end
 
-        # test that non-upwinded FDSBP functionality is consistent with upwinded FDSBP solver behavior
-        if mesh == "TreeMesh (FDSBP)"
-            (; volume_integral, surface_integral) = semi.solver
-            solver_fdsbp = FDSBP(semi.solver.basis.central; surface_integral,
-                                 volume_integral)
-            @test all(Trixi.reference_node_coordinates_2d(semi.solver) .≈
-                      Trixi.reference_node_coordinates_2d(solver_fdsbp))
-        end
-    end
-
-    @testset "1D plot from 2D solution" begin
-        if mesh != "DGMulti" && mesh != "DGMulti (FDSBP)"
-            @testset "Create 1D plot as slice" begin
-                @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
-                                   PlotData1D
-                @trixi_test_nowarn PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
-                                   PlotData1D
-                pd1D = PlotData1D(sol, slice = :y, point = (0.5, 0.0))
-                @trixi_test_nowarn Plots.plot(pd1D)
-
-                @testset "Create 1D plot along curve" begin
-                    curve = zeros(2, 10)
-                    curve[1, :] = range(-1, 1, length = 10)
-                    @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
-                    pd1D = PlotData1D(sol, curve = curve)
+        @testset "1D plot from 2D solution" begin
+            if mesh != "DGMulti" && mesh != "DGMulti (FDSBP)"
+                @testset "Create 1D plot as slice" begin
+                    @trixi_test_nowarn PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
+                                       PlotData1D
+                    @trixi_test_nowarn PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
+                                       PlotData1D
+                    pd1D = PlotData1D(sol, slice = :y, point = (0.5, 0.0))
                     @trixi_test_nowarn Plots.plot(pd1D)
+
+                    @testset "Create 1D plot along curve" begin
+                        curve = zeros(2, 10)
+                        curve[1, :] = range(-1, 1, length = 10)
+                        @trixi_test_nowarn PlotData1D(sol, curve = curve) isa PlotData1D
+                        pd1D = PlotData1D(sol, curve = curve)
+                        @trixi_test_nowarn Plots.plot(pd1D)
+                    end
                 end
             end
         end
     end
 end
-end
-@testitem "Visualization: ScalarPlotData2D with DGMulti Quad elements" setup=[Setup, Visualization] tags=[:misc_part1] begin
+@testitem "Visualization: ScalarPlotData2D with DGMulti Quad elements" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
 
-# check that ScalarPlotData2D works for Quad elements
+    # check that ScalarPlotData2D works for Quad elements
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_euler_weakform.jl"),
                         tspan=(0.0, 0.0),
@@ -262,7 +265,6 @@ end
     end
 end
 @testitem "Visualization: FV testsets" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @trixi_testset "BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
                                      "elixir_advection_basic.jl"),
@@ -312,7 +314,6 @@ end
     end
 end
 @testitem "Visualization: 1D plot from 2D solution" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @trixi_testset "Create 1D plot along curve" begin
         using OrdinaryDiffEqSSPRK
         using Trixi
@@ -499,7 +500,6 @@ end
     end
 end
 @testitem "Visualization: PlotData2D Regression Tests" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     using Trixi
     equations = CompressibleEulerEquations2D(1.4)
     solver = DGSEM(polydeg = 3,
@@ -701,7 +701,6 @@ end
     @trixi_test_nowarn Plots.plot(pd["rho"])
 end
 @testitem "Visualization: 1D plot recipes (StructuredMesh)" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_1d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         tspan=(0.0, 0.0))
@@ -716,7 +715,6 @@ end
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
 @testitem "Visualization: plot time series" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_acoustics_gaussian_source.jl"),
                         tspan=(0, 0.05))
@@ -725,7 +723,6 @@ end
     @test PlotData1D(time_series, 1) isa PlotData1D
 end
 @testitem "Visualization: adapt_to_mesh_level" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         analysis_callback=Trixi.TrivialCallback())
@@ -739,7 +736,6 @@ end
     @test isapprox(sol.u[end], u_ode_level5, atol = 1e-13)
 end
 @testitem "Visualization: plot 3D" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         analysis_callback=Trixi.TrivialCallback(),
@@ -985,7 +981,6 @@ end
     end
 end
 @testitem "Visualization: plotting TimeIntegratorSolution" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_hypdiff_lax_friedrichs.jl"),
                         maxiters=1, analysis_callback=Trixi.TrivialCallback(),
@@ -1034,7 +1029,6 @@ end
     end
 end
 @testitem "Visualization: Makie visualization tests for 1D" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_basic.jl"))
     pd = PlotData1D(sol)
@@ -1074,8 +1068,10 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
 end
-@testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
+@testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
     using CairoMakie
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"))
@@ -1112,8 +1108,10 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
 end
-@testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
+@testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                  "elixir_euler_wall_bc.jl"))
 
@@ -1161,8 +1159,10 @@ end
     end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
-@testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[Setup, Visualization] tags=[:misc_part1] begin
-
+@testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_euler_curved.jl"))
 
