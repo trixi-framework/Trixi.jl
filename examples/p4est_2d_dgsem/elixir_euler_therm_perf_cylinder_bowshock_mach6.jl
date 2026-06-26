@@ -1,6 +1,5 @@
 using Trixi
 using OrdinaryDiffEqSSPRK
-using ForwardDiff
 
 ###############################################################################
 # Geometry & boundary conditions
@@ -117,25 +116,9 @@ boundary_conditions = (; x_neg = boundary_condition_supersonic_inflow, # Superso
 ###############################################################################
 # Equations, mesh and solver
 
-# Data taken from https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf page 276/284
-M = 0.0289651159 # [kg/mol]
-R_universal = 8.31446261815324 # [J/(mol K)]
-R_specific = R_universal / M # [J/(kg K)]
-
-temp_bounds = SVector(200.0, 1000.0, 6000.0) # [K]
-
-a_cold = [1.009950160e+04; -1.968275610e+02; 5.009155110e+00; -5.761013730e-03;
-          1.066859930e-05; -7.940297970e-09; 2.185231910e-12; -1.767967310e+02;
-          -3.921504225e+00]
-a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
-         7.065227840e-08; -1.071483490e-11; 6.577800150e-16; 6.462263190e+03;
-         -8.147411905e+00]
-a_ = hcat(a_cold, a_hot)
-a = Trixi.SMatrix{9, 2}(a_)
-
-eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
-                                  temperature_bounds = temp_bounds,
-                                  a = a)
+# The default values correspond to air with temperature bounds/intervals [200.0, 1000.0, 6000.0], see
+# https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf
+eos = ThermallyPerfectGas9PolyFit()
 
 equations = NonIdealCompressibleEulerEquations2D(eos)
 

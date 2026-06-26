@@ -951,6 +951,50 @@ end
     end
 end
 
+@timed_testset "Reproducing ideal gas with ThermallyPerfectGas9PolyFit" begin
+    R_specific = 287.0509010514002 # [J/(kg*K)]
+    p_ref = 100000.0 # [Pa]
+    T_ref = 298.15 # [K]
+
+    gamma_target = 1.4
+    cp_over_R = gamma_target / (gamma_target - 1)
+
+    temp_bounds = SVector(eps(Float64), typemax(Float64))  # single wide interval, avoid eps/typemax edge cases
+    a = Trixi.SMatrix{9, 1}([0.0, 0.0, cp_over_R, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                      temperature_bounds = temp_bounds,
+                                      coefficients = a,
+                                      p_ref = p_ref,
+                                      T_ref = T_ref)
+
+    rho = 1.255 # [kg/m^3]
+    V = 1 / rho
+
+    # 1. cp, cv, gamma match the ideal-gas properties
+    cp = Trixi.heat_capacity_constant_pressure(T_ref, eos)
+    cv = Trixi.heat_capacity_constant_volume(V, T_ref, eos)
+    @test cp ≈ gamma_target / (gamma_target - 1) * R_specific
+    @test cv ≈ 1 / (gamma_target - 1) * R_specific
+    @test cp / cv ≈ gamma_target
+
+    # 2. pressure matches ideal gas law
+    @test pressure(V, T_ref, eos) ≈ rho * R_specific * T_ref
+
+    # 3. internal energy matches u = cv * T (calorically perfect gas, up to a reference offset)
+    T_test = 400.0
+    e_internal1 = Trixi.energy_internal_specific(V, T_ref, eos)
+    e_internal2 = Trixi.energy_internal_specific(V, T_test, eos)
+    @test (e_internal2 - e_internal1) ≈ cv * (T_test - T_ref)
+
+    # 4. entropy difference matches ideal-gas relation
+    #    Δs = cp*ln(T2/T1) - R_specific*ln(p2/p1)
+    p1 = pressure(V, T_ref, eos)
+    p2 = pressure(V, T_test, eos)  # same V, different T -> different p
+    s1 = Trixi.entropy_specific(V, T_ref, eos)
+    s2 = Trixi.entropy_specific(V, T_test, eos)
+    @test (s2 - s1) ≈ cp * log(T_test / T_ref) - R_specific * log(p2 / p1)
+end
+
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
@@ -990,6 +1034,26 @@ end
     @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+
+    eos = ThermallyPerfectGas9PolyFit()
+
+    equations = NonIdealCompressibleEulerEquations1D(eos)
+
+    # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
+    rho = 2.22e-8 # [kg/m^3]
+    V = inv(rho) # [m^3/kg]
+
+    a = 380.4 # [m/s]
+    v1 = 26 * a # [m/s]
+    T = 360 # [K]
+    q = SVector(V, v1, T)
+    u = thermo2cons(q, equations)
+
+    @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 end
 
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" begin
@@ -1064,6 +1128,35 @@ end
     @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+
+    eos = ThermallyPerfectGas9PolyFit()
+
+    equations = NonIdealCompressibleEulerEquations2D(eos)
+
+    # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
+    rho = 2.22e-8 # [kg/m^3]
+    V = inv(rho) # [m^3/kg]
+
+    a = 380.4 # [m/s]
+
+    aoa = deg2rad(40.0) # angle of attack
+
+    v1 = 26 * a * cos(aoa) # [m/s]
+    v2 = 26 * a * sin(aoa) # [m/s]
+    T = 360 # [K]
+    q = SVector(V, v1, v2, T)
+    u = thermo2cons(q, equations)
+
+    for orientation in (1, 2)
+        @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+
+        @test flux_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_central_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
 end
 
 @timed_testset "StepsizeCallback" begin

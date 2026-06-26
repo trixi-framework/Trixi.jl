@@ -1,6 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using Trixi: ForwardDiff
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -33,9 +32,15 @@ a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
 a_ = hcat(a_cold, a_hot)
 a = Trixi.SMatrix{9, 2}(a_)
 
+temp_bounds = SVector(1e-9, 1e9)
+a = Trixi.SMatrix{9, 1}([0.0, 0.0, 1.4/0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
 eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
                                   temperature_bounds = temp_bounds,
-                                  a = a)
+                                  coefficients = a)
+
+println(Trixi.gamma(300, eos)) # [dimensionless] should be ~1.4
+println(Trixi.speed_of_sound(1/1.225, 300, eos)) # [m/s] should be ~347
 
 equations = NonIdealCompressibleEulerEquations1D(eos)
 

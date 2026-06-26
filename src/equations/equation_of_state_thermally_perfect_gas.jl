@@ -13,7 +13,7 @@ polynomials, see
 
 For each temperature interval, the dimensionless heat capacity at constant pressure is
 ```math
-\frac{c_p(T)}{R_specific} = a_0 T^{-2} + a_1 T^{-1} + a_2 + a_3 T + a_4 T^2 + a_5 T^3 + a_6 T^4.
+\frac{c_p(T)}{R_specific} = a_1 T^{-2} + a_2 T^{-1} + a_3 + a_4 T + a_5 T^2 + a_6 T^3 + a_7 T^4.
 ```
 The corresponding enthalpy and entropy are obtained by integrating `c_p(T)` and
 `c_v(T) = c_p(T) - R_specific`.
@@ -27,11 +27,14 @@ the dimensions of `coefficients` are `(9, N)` where `N` is the number of tempera
 """
 struct ThermallyPerfectGas9PolyFit{R_specific <: Real,
                                    TemperatureBounds <: AbstractVector,
-                                   Coefficients <: AbstractMatrix} <:
+                                   Coefficients <: AbstractMatrix,
+                                   P_Ref <: Real, T_Ref <: Real} <:
        AbstractThermallyPerfectGas
     R_specific::R_specific
     temperature_bounds::TemperatureBounds
     coefficients::Coefficients
+    p_ref::P_Ref
+    T_ref::T_Ref
 end
 
 """
@@ -58,16 +61,21 @@ end
     ThermallyPerfectGas9PolyFit(;
     R_specific = 287.0509010514002,
     temperature_bounds = SVector(200.0, 1000.0, 6000.0),
-    coefficients = coefficients_air_9polyfit(temperature_bounds))
+    coefficients = coefficients_air_9polyfit(temperature_bounds),
+    p_ref = 100000.0,
+    T_ref = 298.15)
 
 Construct a [`ThermallyPerfectGas9PolyFit`](@ref) equation of state with NASA 9-coefficient polynomial data.
 The default values correspond to air, see
 https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf page 276/284
+for the coefficient data and 
+page 2/10 for the reference temperature (298.15 K) and pressure (1 bar = 100000 Pa).
 """
 function ThermallyPerfectGas9PolyFit(;
                                      R_specific = 287.0509010514002,
                                      temperature_bounds = SVector(200.0, 1000.0, 6000.0),
-                                     coefficients = coefficients_air_9polyfit(temperature_bounds))
+                                     coefficients = coefficients_air_9polyfit(temperature_bounds),
+                                     p_ref = 100000.0, T_ref = 298.15)
     @assert size(coefficients, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
 
     n_intervals = size(coefficients, 2)
@@ -76,9 +84,11 @@ function ThermallyPerfectGas9PolyFit(;
 
     return ThermallyPerfectGas9PolyFit{typeof(R_specific),
                                        typeof(temperature_bounds),
-                                       typeof(coefficients)}(R_specific,
-                                                             temperature_bounds,
-                                                             coefficients)
+                                       typeof(coefficients),
+                                       typeof(p_ref), typeof(T_ref)}(R_specific,
+                                                                     temperature_bounds,
+                                                                     coefficients,
+                                                                     p_ref, T_ref)
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas9PolyFit)
@@ -90,7 +100,7 @@ end
 end
 
 # Returns c_p(T)/R_universal.
-# See e.g. https://cantera.org/3.2/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization
+# See e.g. https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf eq. (1)
 @inline function cp_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -102,14 +112,13 @@ end
     T3 = T2 * T
     T4 = T3 * T
 
-    # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
     return a[1, idx] * Tinv2 + a[2, idx] * Tinv + a[3, idx] +
            a[4, idx] * T + a[5, idx] * T2 +
            a[6, idx] * T3 + a[7, idx] * T4
 end
 
 # Returns h(T)/(T * R_universal).
-# See e.g. https://cantera.org/3.2/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization
+# See e.g. https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf eq (2)
 @inline function h_molar_over_TR_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -121,15 +130,14 @@ end
     T3 = T2 * T
     T4 = T3 * T
 
-    # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
     return -a[1, idx] * Tinv2 + a[2, idx] * log(T) * Tinv + a[3, idx] +
            0.5f0 * a[4, idx] * T + (a[5, idx] / 3) * T2 +
            (a[6, idx] / 4) * T3 + (a[7, idx] / 5) * T4 + a[8, idx] * Tinv
 end
 
 # Returns s(T, V)/(R_universal).
-# See e.g. https://cantera.org/3.2/reference/thermo/species-thermo.html#the-nasa-9-coefficient-polynomial-parameterization
-@inline function s_molar_over_R_universal(T, V, eos::ThermallyPerfectGas9PolyFit)
+# See e.g. https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf eq (3)
+@inline function s_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
     idx = temperature_interval(T, eos)
@@ -140,7 +148,6 @@ end
     T3 = T2 * T
     T4 = T3 * T
 
-    # Note that Julia uses 1-based indexing, but the classic NASA polynomial coefficients are labeled starting from 0.
     return -0.5f0 * a[1, idx] * Tinv2 - a[2, idx] * Tinv + a[3, idx] * log(T) +
            a[4, idx] * T + 0.5f0 * a[5, idx] * T2 +
            (a[6, idx] / 3) * T3 + 0.25f0 * a[7, idx] * T4 + a[9, idx]
@@ -168,8 +175,13 @@ end
 end
 
 @inline function entropy_specific(V, T, eos::ThermallyPerfectGas9PolyFit)
+    @unpack R_specific, p_ref = eos
+
     # By multiplying with R_specific = R_universal / M, we convert the molar entropy to specific entropy.
-    return eos.R_specific * s_molar_over_R_universal(T, V, eos)
+    s_ref = R_specific * s_molar_over_R_universal(T, eos) # entropy at reference pressure
+
+    p = pressure(V, T, eos)
+    return s_ref + R_specific * log(p_ref / p)
 end
 
 # Used in `drho_e_internal_drho_at_const_p` which in turn is used in
@@ -181,4 +193,5 @@ end
 end
 
 eos_newton_tol(eos::ThermallyPerfectGas9PolyFit) = 1e-8
-eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas9PolyFit) = 300 # [K]
+
+eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas9PolyFit) = eos.T_ref # [K]
