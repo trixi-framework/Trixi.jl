@@ -676,25 +676,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_supersonic_cylinder.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_supersonic_cylinder.jl"),
-                            l2=[
-                                0.02676082999794676,
-                                0.05110830068968181,
-                                0.03205164257040607,
-                                0.1965981012724311
-                            ],
-                            linf=[
-                                3.6830683476364476,
-                                4.284442685012427,
-                                6.857777546171545,
-                                31.749285097390576
-                            ],
-                            tspan=(0.0, 0.001))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_supersonic_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_supersonic_cylinder.jl"),
+                        l2=[
+                            0.02676082999794676,
+                            0.05110830068968181,
+                            0.03205164257040607,
+                            0.1965981012724311
+                        ],
+                        linf=[
+                            3.6830683476364476,
+                            4.284442685012427,
+                            6.857777546171545,
+                            31.749285097390576
+                        ],
+                        tspan=(0.0, 0.001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_euler_supersonic_cylinder_scO2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
