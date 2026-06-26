@@ -1355,7 +1355,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; bar_states1, bar_states2) = limiter.cache.container_bar_states
 
-    small_stencil = true
+    (; small_stencil) = limiter
 
     # Local two-sided limiting for conservative variables
     if limiter.local_twosided

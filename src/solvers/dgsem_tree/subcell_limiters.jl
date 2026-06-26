@@ -80,6 +80,7 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     local_onesided::Bool
     local_onesided_variables_nonlinear::LimitingOnesidedVariablesNonlinear # Local one-sided limiting for nonlinear variables
     bar_states::Bool
+    small_stencil::Bool                     # Use small stencil for computation of bar state bounds
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
@@ -94,6 +95,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_correction_factor = 0.1,
                            local_onesided_variables_nonlinear = [],
                            bar_states = false,
+                           small_stencil = true,
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14),
                            gamma_constant_newton = 2 * ndims(equations))
@@ -159,7 +161,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                             positivity_correction_factor,
                                             local_onesided,
                                             local_onesided_variables_nonlinear_,
-                                            bar_states, cache,
+                                            bar_states, small_stencil,
+                                            cache,
                                             max_iterations_newton,
                                             newton_tolerances,
                                             gamma_constant_newton)
@@ -227,6 +230,9 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
             push!(setup,
                   "Local bounds with" => (limiter.bar_states ? "Bar States" :
                                           "FV solution"))
+            if !(limiter.small_stencil)
+                push!(setup, "" => "Large stencil for bar state bounds")
+            end
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
@@ -411,8 +417,8 @@ end
 
 @inline function calc_mortar_limiting_factor!(u, semi, t, dt)
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
-    (; local_twosided_variables_cons, positivity_variables_cons,
-    positivity_variables_nonlinear, local_onesided_variables_nonlinear) = solver.mortar.limiter
+    (; limiter) = solver.mortar
+    (; local_twosided_variables_cons, positivity_variables_cons, positivity_variables_nonlinear, local_onesided_variables_nonlinear) = limiter
 
     (; limiting_factor) = cache.mortars
     @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
