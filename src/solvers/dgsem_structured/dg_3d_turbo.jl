@@ -41,11 +41,11 @@ end
 
     # Evaluate the two-point volume flux
     flux_call = Expr(:(=), Expr(:tuple, flux...),
-                     :(volume_flux_turbo(volume_flux,
-                                         $(u_prim_ll...), $(u_prim_rr...),
-                                         normal_direction_1, normal_direction_2,
-                                         normal_direction_3,
-                                         equations)))
+                     :(flux_turbo(volume_flux,
+                                  $(u_prim_ll...), $(u_prim_rr...),
+                                  normal_direction_1, normal_direction_2,
+                                  normal_direction_3,
+                                  equations)))
 
     # Build the inner `@turbo` loop body. For the x direction `loads` gives
     #   rho_ll = u_prim_permuted[jk, i, 1]   # left node, and so on
@@ -260,10 +260,10 @@ end
 end
 
 # Number of precomputed variables for the specialization flux_ranocha
-@inline nturbovars(volume_flux::typeof(flux_ranocha), equations::CompressibleEulerEquations3D) = Val(7)
+@inline nturbovars(flux_turbo::typeof(flux_ranocha), equations::CompressibleEulerEquations3D) = Val(7)
 
 # Transformation from conserved to precomputed variables for flux_ranocha
-@inline function cons2turbo(volume_flux::typeof(flux_ranocha),
+@inline function cons2turbo(flux_turbo::typeof(flux_ranocha),
                             rho, rho_v1, rho_v2, rho_v3, rho_e,
                             equations::CompressibleEulerEquations3D)
     v1 = rho_v1 / rho
@@ -275,15 +275,15 @@ end
 end
 
 # Computation of the numerical flux_ranocha with respect to precomputed variables
-@inline function volume_flux_turbo(volume_flux::typeof(flux_ranocha),
-                                   rho_ll, v1_ll, v2_ll, v3_ll,
-                                   p_ll, log_rho_ll, log_p_ll,
-                                   rho_rr, v1_rr, v2_rr, v3_rr,
-                                   p_rr, log_rho_rr, log_p_rr,
-                                   normal_direction_1,
-                                   normal_direction_2,
-                                   normal_direction_3,
-                                   equations::CompressibleEulerEquations3D)
+@inline function flux_turbo(flux_turbo::typeof(flux_ranocha),
+                            rho_ll, v1_ll, v2_ll, v3_ll,
+                            p_ll, log_rho_ll, log_p_ll,
+                            rho_rr, v1_rr, v2_rr, v3_rr,
+                            p_rr, log_rho_rr, log_p_rr,
+                            normal_direction_1,
+                            normal_direction_2,
+                            normal_direction_3,
+                            equations::CompressibleEulerEquations3D)
     v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2 +
                  v3_ll * normal_direction_3
     v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2 +

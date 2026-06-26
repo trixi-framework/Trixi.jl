@@ -596,7 +596,7 @@ and then compute the numerical fluxes.
 This optimization can be enabled by defining three ingredients:
 - the number of precomputed variables `nturbovars`;
 - the transformation from conservative to precomputed variables `cons2turbo`
-- and the  `volume_flux_turbo(volume_flux::typeof(numerical_flux), ...)`,
+- and the  `flux_turbo(flux_turbo::typeof(numerical_flux), ...)`,
   that computes the numerical flux in terms of the precomputed variables.
 
 See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
@@ -623,14 +623,14 @@ end
 @inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
 
 # Numerical volume flux that recalls the plain volume flux when no specialization is given.
-@inline function volume_flux_turbo(volume_flux, turbovars_and_normals_and_equations...)
+@inline function flux_turbo(numerical_flux, turbovars_and_normals_and_equations...)
     equations = last(turbovars_and_normals_and_equations)
-    volume_flux_turbo(volume_flux, have_nonconservative_terms(equations),
-                      turbovars_and_normals_and_equations...)
+    flux_turbo(numerical_flux, have_nonconservative_terms(equations),
+               turbovars_and_normals_and_equations...)
 end
 
-@inline function volume_flux_turbo(volume_flux, have_nonconservative_terms::False,
-                                   turbovars_and_normals_and_equations...)
+@inline function flux_turbo(numerical_flux, have_nonconservative_terms::False,
+                            turbovars_and_normals_and_equations...)
     equations = last(turbovars_and_normals_and_equations)
     n = nvariables(equations)
     u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
@@ -638,11 +638,11 @@ end
     normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
                                turbovars_and_normals_and_equations[end - 2],
                                turbovars_and_normals_and_equations[end - 1])
-    return volume_flux(u_ll, u_rr, normal_direction, equations)
+    return numerical_flux(u_ll, u_rr, normal_direction, equations)
 end
 
 # Allow LoopVectorization.jl to use SIMD instructions on volume_flux_turbo and cons2turbo
-LoopVectorization.can_turbo(::typeof(volume_flux_turbo), ::Val) = true
+LoopVectorization.can_turbo(::typeof(flux_turbo), ::Val) = true
 LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
 
 Base.show(io::IO, f::FluxTurbo) = print(io, "FluxTurbo(", f.numerical_flux, ")")
