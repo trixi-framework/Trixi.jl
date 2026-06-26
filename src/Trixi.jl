@@ -290,7 +290,8 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2thermo, thermo2cons
-export density, pressure, density_pressure, velocity, temperature,
+export density, pressure, density_pressure, velocity,
+       temperature, temperature_given_Vp,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
@@ -371,7 +372,8 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
-export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterLiuZhang,
+       EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
@@ -390,7 +392,8 @@ export ParabolicFormulationBassiRebay1, ParabolicFormulationLocalDG
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
-       iplot, iplot!
+       iplot, iplot!,
+       trixiheatmap, trixiheatmap!
 
 function __init__()
     # Skip MPI/library initialization during precompilation of subsequent packages.

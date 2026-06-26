@@ -1157,6 +1157,8 @@ include("fdsbp_unstructured/fdsbp.jl")
 
 # Block-structured finite volume methods
 include("blockfv/blockfv.jl")
+include("blockfv/containers_1d.jl")
+include("blockfv/containers_2d.jl")
 include("blockfv/blockfv_1d.jl")
 include("blockfv/blockfv_2d.jl")
 

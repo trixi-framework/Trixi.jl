@@ -288,6 +288,33 @@ end
                                           interface_j_node_index, local_side,
                                           surface_i_node_index, surface_j_node_index,
                                           local_direction_index, local_element_index)
+    calc_mpi_interface_flux!(surface_flux_values,
+                             mesh,
+                             have_nonconservative_terms,
+                             combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                             equations),
+                             equations,
+                             surface_integral, dg, cache,
+                             interface_index, normal_direction,
+                             interface_i_node_index,
+                             interface_j_node_index, local_side,
+                             surface_i_node_index, surface_j_node_index,
+                             local_direction_index, local_element_index)
+    return nothing
+end
+
+@inline function calc_mpi_interface_flux!(surface_flux_values,
+                                          mesh::Union{P4estMeshParallel{3},
+                                                      T8codeMeshParallel{3}},
+                                          have_nonconservative_terms::True,
+                                          combine_conservative_and_nonconservative_fluxes::False,
+                                          equations,
+                                          surface_integral, dg::DG, cache,
+                                          interface_index, normal_direction,
+                                          interface_i_node_index,
+                                          interface_j_node_index, local_side,
+                                          surface_i_node_index, surface_j_node_index,
+                                          local_direction_index, local_element_index)
     @unpack u = cache.mpi_interfaces
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
@@ -308,6 +335,42 @@ end
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
         local_direction_index, local_element_index] = flux_[v] +
                                                       0.5f0 * noncons_flux_[v]
+    end
+
+    return nothing
+end
+
+@inline function calc_mpi_interface_flux!(surface_flux_values,
+                                          mesh::Union{P4estMeshParallel{3},
+                                                      T8codeMeshParallel{3}},
+                                          have_nonconservative_terms::True,
+                                          combine_conservative_and_nonconservative_fluxes::True,
+                                          equations,
+                                          surface_integral, dg::DG, cache,
+                                          interface_index, normal_direction,
+                                          interface_i_node_index,
+                                          interface_j_node_index, local_side,
+                                          surface_i_node_index, surface_j_node_index,
+                                          local_direction_index, local_element_index)
+    @unpack u = cache.mpi_interfaces
+    surface_flux = surface_integral.surface_flux
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg,
+                                       interface_i_node_index, interface_j_node_index,
+                                       interface_index)
+
+    # Compute flux and non-conservative term for this side of the interface
+    if local_side == 1
+        flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+        flux_ = flux_left
+    else # local_side == 2
+        flux_left, flux_right = surface_flux(u_ll, u_rr, -normal_direction, equations)
+        flux_ = -flux_right
+    end
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, surface_i_node_index, surface_j_node_index,
+        local_direction_index, local_element_index] = flux_[v]
     end
 
     return nothing

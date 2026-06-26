@@ -375,6 +375,15 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
                                   variable_names)
 end
 
+# One can also call the `PlotData2DTriangulated` constructor directly for `DGMulti`
+function PlotData2DTriangulated(u, mesh, equations, dg::DGMulti, cache;
+                                solution_variables = nothing,
+                                nvisnodes = 2 * nnodes(dg))
+    return PlotData2D(u, mesh, equations, dg, cache;
+                      solution_variables = solution_variables,
+                      nvisnodes = nvisnodes)
+end
+
 # specializes the PlotData2D constructor to return an PlotData2DTriangulated for any type of mesh.
 function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
                                 solution_variables = nothing,
@@ -449,7 +458,7 @@ end
 Returns a `PlotData2DTriangulated` object which is used to visualize a single scalar field.
 `u` should be an array whose entries correspond to values of the scalar field at nodal points.
 
-The optional argument `function_to_visualize(u, equations)` should be a function which takes 
+The optional argument `function_to_visualize(u, equations)` should be a function which takes
 in the conservative variables and equations as input and outputs a scalar variable to be visualized,
 e.g., [`pressure`](@ref) or [`density`](@ref) for the compressible Euler equations.
 """
@@ -471,8 +480,8 @@ end
 
 function evaluate_scalar_function_at_nodes(function_to_visualize, u, mesh, equations,
                                            dg::DGMulti, cache)
-    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so 
-    # broadcasting `func_to_visualize` over the solution array will work. 
+    # for DGMulti solvers, eltype(u) should be SVector{nvariables(equations)}, so
+    # broadcasting `func_to_visualize` over the solution array will work.
     return function_to_visualize.(u, equations)
 end
 
@@ -676,6 +685,58 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
 
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,
                       orientation_x)
+end
+
+function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
+                    solution_variables = nothing, nvisnodes = nothing,
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
+                    variable_names = nothing) where {Basis <: UniformFiniteVolumeBasis}
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
+    unstructured_data = get_unstructured_data(u, solution_variables_, mesh,
+                                              equations, solver, cache)
+
+    n_nodes = size(unstructured_data, 1)  # number of subcells per cell
+    n_elements = nelements(solver, cache) # number of cells
+    total_plot_points = 2 * n_nodes * n_elements # The total array size we need
+
+    x = Vector{Float64}(undef, total_plot_points)
+    data = Array{Float64}(undef, total_plot_points, length(variable_names_))
+    mesh_vertices_x = Vector{Float64}(undef, n_elements + 1)
+
+    left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2
+
+    if ndims(mesh) === 1
+        orientation_x = 1
+
+        for i in 1:n_elements #the loop over the cells
+            element_width = 2.0 / cache.elements.inverse_jacobian[i]
+            sub_cell_width = element_width / n_nodes
+
+            for j in 1:n_nodes #the loop over the subscells
+                idx_left = (i - 1) * (2 * n_nodes) + 2 * j - 1 #slot number in the list x for the left side of this subcell
+                idx_right = (i - 1) * (2 * n_nodes) + 2 * j #slot number in the list x for the right side of this subcell
+
+                x[idx_left] = left_boundary + (j - 1) * sub_cell_width #coordinate for the left edge of the subcell
+                x[idx_right] = left_boundary + j * sub_cell_width #coordinate for the right edge of the subcell
+
+                for v in 1:length(variable_names_) #loop over the values
+                    data[idx_left, v] = unstructured_data[j, i, v] #value for quantity v at left edge of subcell
+                    data[idx_right, v] = unstructured_data[j, i, v] #value for quantity v at right edge of subcell
+                end
+            end
+
+            mesh_vertices_x[i] = left_boundary #write left boundary of the cell under consideration into the i'th entry of mesh_vertices_x 
+            left_boundary += element_width #go to the left boundary of the next cell
+        end
+        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
+
+    else
+        error("BlockFV is not yet supported for 2D and 3D.")
+    end
+    return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x)
 end
 
 # unwrap u if it is VectorOfArray
