@@ -1,32 +1,8 @@
-module TestExamplesTreeMesh2DPart1
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "TreeMesh2D Part 1" begin
-#! format: noindent
-
-# Run basic tests
-@testset "Examples 2D" begin
-    # Linear advection
-    include("test_tree_2d_advection.jl")
-
-    # Hyperbolic diffusion
-    include("test_tree_2d_hypdiff.jl")
-
-    # Block-structured finite volume methods on TreeMesh
-    include("test_tree_2d_blockfv.jl")
+@testsnippet TreeMesh2DMisc begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 end
 
-@testset "Displaying components 2D" begin
+@testitem "TreeMesh2D: Displaying components 2D" setup=[Setup, TreeMesh2DMisc] tags=[:tree_part1] begin
     @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
     # test both short and long printing formats
@@ -97,9 +73,3 @@ end
 
     @test_nowarn println(callbacks)
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-end # TreeMesh2D Part 1
-
-end #module
