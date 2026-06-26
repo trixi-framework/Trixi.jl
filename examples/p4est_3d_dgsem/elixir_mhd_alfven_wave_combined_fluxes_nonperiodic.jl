@@ -233,12 +233,15 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
+                                     analysis_integrals = (entropy,))
+
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 save_solution = SaveSolutionCallback(interval = 100,

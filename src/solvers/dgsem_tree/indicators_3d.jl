@@ -258,7 +258,7 @@ function (indicator_max::IndicatorMax)(backend::Nothing, u::AbstractArray{<:Any,
     return alpha
 end
 
-function (indicator_max::Trixi.IndicatorMax)(backend::Backend, u::AbstractArray{<:Any, 5},
+function (indicator_max::IndicatorMax)(backend::Backend, u::AbstractArray{<:Any, 5},
                                        mesh, equations, dg::DGSEM, cache;
                                        kwargs...)
     @unpack alpha = indicator_max.cache

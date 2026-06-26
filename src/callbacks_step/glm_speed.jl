@@ -59,7 +59,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
+function GlmSpeedCallback(; glm_scale = 0.5f0, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
     cfl_function = isa(cfl, Real) ? Returns(cfl) : cfl
@@ -86,7 +86,6 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
     @unpack glm_scale, cfl = glm_speed_callback
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-
     # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
     c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
 

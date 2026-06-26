@@ -376,10 +376,11 @@ function coarsen!(backend::Nothing, u_ode::AbstractVector, adaptor,
                 # If an element is to be removed, sanity check if the following elements
                 # are also marked - otherwise there would be an error in the way the
                 # cells/elements are sorted
-                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+                @assert all(to_be_removed[old_element_id:(old_element_id + 2 ^ ndims(mesh) - 1)]) "bad cell/element order"
 
                 # Coarsen elements and store solution directly in new data structure
-                coarsen_elements!(u, element_id, old_u, old_element_id, adaptor.reverse_upper,
+                coarsen_elements!(u, element_id, old_u, old_element_id,
+                                  adaptor.reverse_upper,
                                   adaptor.reverse_lower, u_tmp1, u_tmp2)
 
                 if mesh isa P4estMesh
@@ -426,9 +427,9 @@ end
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
 @inline function coarsen_elements!(u, element_id,
-                           old_u, old_element_id,
-                           reverse_upper, reverse_lower,
-                           u_tmp1, u_tmp2)
+                                   old_u, old_element_id,
+                                   reverse_upper, reverse_lower,
+                                   u_tmp1, u_tmp2)
 
     # Store old element ids
     bottom_lower_left_id = old_element_id
@@ -520,10 +521,6 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
         return
     end
 
-    # Determine for each old element whether it needs to be removed
-    #to_be_removed = falses(nelements(dg, cache))
-    #to_be_removed[elements_to_remove] .= true
-
     # Retain current solution data and Jacobians
     old_n_elements = nelements(dg, cache)
 
@@ -549,20 +546,21 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
         end
 
         #for element 1 from 1-8 that needs coarsening
-        if remove_index <= length(elements_to_remove) && elements_to_remove[remove_index] == i
+        if remove_index <= length(elements_to_remove) &&
+           elements_to_remove[remove_index] == i
             offsets[i] = new_element_id
             to_be_removed[i] = true
             is_lead[i] = true
             skip = 7
-            new_element_id +=1
-            remove_index +=1
-        
-        #for the element that just need copying
+            new_element_id += 1
+            remove_index += 1
+
+            #for the element that just need copying
         else
             offsets[i] = new_element_id
             to_be_removed[i] = false
             is_lead[i] = true
-            new_element_id +=1
+            new_element_id += 1
         end
     end
 
@@ -576,26 +574,11 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
     to_be_removed = trixi_adapt(storageT, Bool, to_be_removed)
     is_lead = trixi_adapt(storageT, Bool, is_lead)
 
-
-
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
     # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
-
-        # can we do this in kernel! for coarsened elements
-        # if mesh isa P4estMesh
-        #     # Loop over all elements in old container and scale the old solution by the Jacobian
-        #     # prior to projection
-        #     for old_element_id in 1:old_n_elements
-        #         for v in eachvariable(equations)
-        #             old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
-        #                                              old_inverse_jacobian[..,
-        #                                                                   old_element_id])
-        #         end
-        #     end
-        # end
 
         @trixi_timeit timer() "reinitialize data structures" begin
             reinitialize_containers!(mesh, equations, dg, cache)
@@ -618,10 +601,14 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
 end
 
 @kernel function prolong2coarsenedElements_KAkernel!(u, old_u, offsets, to_be_removed,
-                                                    is_lead, reverse_upper, reverse_lower,
-                                                    old_inverse_jacobian, inverse_jacobian,
-                                                   ::Val{_ndims}, ::Val{_nvariables}, ::Val{_nnodes}) where {_ndims, _nvariables, _nnodes}
-    
+                                                     is_lead, reverse_upper,
+                                                     reverse_lower,
+                                                     old_inverse_jacobian,
+                                                     inverse_jacobian,
+                                                     ::Val{_ndims}, ::Val{_nvariables},
+                                                     ::Val{_nnodes}) where {_ndims,
+                                                                            _nvariables,
+                                                                            _nnodes}
     old_element_id = @index(Global)
 
     u_tmp1 = MArray{Tuple{_nvariables, _nnodes, _nnodes, _nnodes}, eltype(u)}(undef)
@@ -631,31 +618,34 @@ end
         new_element_id = offsets[old_element_id]
 
         if to_be_removed[old_element_id]
-           for m in 0:7
+            for m in 0:7
                 for v in 1:_nvariables, k in 1:_nnodes, j in 1:_nnodes, i in 1:_nnodes
-                    old_u[v, i, j, k, old_element_id + m] = old_u[v, i, j, k, old_element_id + m] / 
-                                                            old_inverse_jacobian[i, j, k, old_element_id + m]
+                    old_u[v, i, j, k, old_element_id + m] = old_u[v, i, j, k,
+                                                                  old_element_id + m] /
+                                                            old_inverse_jacobian[i, j,
+                                                                                 k,
+                                                                                 old_element_id + m]
                 end
             end
 
-            coarsen_elements!(u, new_element_id, 
+            coarsen_elements!(u, new_element_id,
                               old_u, old_element_id,
                               reverse_upper, reverse_lower,
                               u_tmp1, u_tmp2)
 
             for v in 1:_nvariables, k in 1:_nnodes, j in 1:_nnodes, i in 1:_nnodes
-                u[v, i, j, k, new_element_id] = u[v, i, j, k, new_element_id] * 8 * inverse_jacobian[i, j, k, new_element_id]
+                u[v, i, j, k, new_element_id] = u[v, i, j, k, new_element_id] * 8 *
+                                                inverse_jacobian[i, j, k,
+                                                                 new_element_id]
             end
-        
+
         else
             for v in 1:_nvariables, k in 1:_nnodes, j in 1:_nnodes, i in 1:_nnodes
                 u[v, i, j, k, new_element_id] = old_u[v, i, j, k, old_element_id]
             end
         end
     end
-end 
-
-
+end
 
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
