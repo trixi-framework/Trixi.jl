@@ -365,6 +365,50 @@ end
 # IDP mortar limiting
 ###############################################################################
 
+@inline function average_mortar_limiting_factor(limiting_factor, mesh::TreeMesh2D,
+                                                dg, cache)
+    (; neighbor_ids, large_sides, orientations) = cache.mortars
+    (; node_coordinates) = cache.elements
+
+    avg_type = promote_type(eltype(limiting_factor), eltype(node_coordinates))
+    weighted_sum = zero(avg_type)
+    total_weight = zero(avg_type)
+    n_nodes = nnodes(dg)
+
+    for mortar in eachindex(limiting_factor)
+        large_element = neighbor_ids[3, mortar]
+
+        if large_sides[mortar] == 1 # small elements on right side
+            if orientations[mortar] == 1
+                start_indices = (n_nodes, 1)
+                end_indices = (n_nodes, n_nodes)
+            else
+                start_indices = (1, n_nodes)
+                end_indices = (n_nodes, n_nodes)
+            end
+        else # large_sides[mortar] == 2, small elements on left side
+            if orientations[mortar] == 1
+                start_indices = (1, 1)
+                end_indices = (1, n_nodes)
+            else
+                start_indices = (1, 1)
+                end_indices = (n_nodes, 1)
+            end
+        end
+
+        dx = (node_coordinates[1, end_indices..., large_element] -
+              node_coordinates[1, start_indices..., large_element])
+        dy = (node_coordinates[2, end_indices..., large_element] -
+              node_coordinates[2, start_indices..., large_element])
+        mortar_size = sqrt(dx^2 + dy^2)
+
+        weighted_sum += limiting_factor[mortar] * mortar_size
+        total_weight += mortar_size
+    end
+
+    return weighted_sum / total_weight
+end
+
 @inline function calc_mortar_limiting_factor!(u, semi, t, dt)
     mesh, _, solver, cache = mesh_equations_solver_cache(semi)
     (; local_twosided_variables_cons, positivity_variables_cons,
