@@ -1,18 +1,8 @@
-module TestType
+@testsnippet TypeStability begin
+    using ForwardDiff
+end
 
-using Test
-using ForwardDiff
-using Trixi
-
-include("test_trixi.jl")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-# Run unit tests for various equations
-@testset "Test Type Stability" begin
-    @timed_testset "mean values" begin
+@testitem "Type stability: mean values" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT1 in (Float32, Float64), RealT2 in (Float32, Float64)
             RealT = promote_type(RealT1, RealT2)
             @test typeof(@inferred Trixi.ln_mean(RealT1(1), RealT2(2))) == RealT
@@ -26,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "TreeMesh & SerialTree type consistence" begin
+@testitem "Type stability: TreeMesh & SerialTree type consistence" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             coordinates_min = -convert(RealT, 1)
             coordinates_max = convert(RealT, 1)
@@ -62,7 +52,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Acoustic Perturbation 2D" begin
+@testitem "Type stability: Acoustic Perturbation 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             v_mean_global = (zero(RealT), zero(RealT))
             c_mean_global = one(RealT)
@@ -136,7 +126,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Euler 1D" begin
+@testitem "Type stability: Compressible Euler 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
             equations = @inferred CompressibleEulerEquations1D(RealT(2))
@@ -223,7 +213,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "NonIdeal Compressible Euler 1D" begin
+@testitem "Type stability: NonIdeal Compressible Euler 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations_ideal_gas = @inferred NonIdealCompressibleEulerEquations1D(IdealGas(RealT(2)))
             a, b, gamma, R = RealT.((0.0, 0.0, 1.4, 287))
@@ -301,7 +291,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "NonIdeal Compressible Euler 2D" begin
+@testitem "Type stability: NonIdeal Compressible Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations_ideal_gas = @inferred NonIdealCompressibleEulerEquations2D(IdealGas(RealT(2)))
             a, b, gamma, R = RealT.((0.0, 0.0, 1.4, 287))
@@ -352,7 +342,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Euler 2D" begin
+@testitem "Type stability: Compressible Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
             equations = @inferred CompressibleEulerEquations2D(RealT(2))
@@ -511,7 +501,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Euler 3D" begin
+@testitem "Type stability: Compressible Euler 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
             equations = @inferred CompressibleEulerEquations3D(RealT(2))
@@ -630,7 +620,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Euler Multicomponent 1D" begin
+@testitem "Type stability: Compressible Euler Multicomponent 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             gammas = (RealT(1.4), RealT(1.4))
             gas_constants = (RealT(0.4), RealT(0.4))
@@ -677,7 +667,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Euler Multicomponent 2D" begin
+@testitem "Type stability: Compressible Euler Multicomponent 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             gammas = (RealT(1.4), RealT(1.4))
             gas_constants = (RealT(0.4), RealT(0.4))
@@ -736,7 +726,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Euler Quasi 1D" begin
+@testitem "Type stability: Compressible Euler Quasi 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquationsQuasi1D(RealT(1.4))
 
@@ -782,7 +772,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Navier Stokes Diffusion 1D" begin
+@testitem "Type stability: Compressible Navier Stokes Diffusion 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
             prandtl_number = RealT(0.72)
@@ -901,7 +891,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Navier Stokes Diffusion 2D" begin
+@testitem "Type stability: Compressible Navier Stokes Diffusion 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
             prandtl_number = RealT(0.72)
@@ -1030,7 +1020,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Compressible Navier Stokes Diffusion 3D" begin
+@testitem "Type stability: Compressible Navier Stokes Diffusion 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
             prandtl_number = RealT(0.72)
@@ -1165,7 +1155,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Testing Trixi.entropy2velocity_temperature for CompressibleNavierStokesDiffusion" begin
+@testitem "Type stability: Testing Trixi.entropy2velocity_temperature for CompressibleNavierStokesDiffusion" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             prandtl_number = RealT(0.72)
             mu = RealT(0.01)
@@ -1210,7 +1200,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Hyperbolic Diffusion 1D" begin
+@testitem "Type stability: Hyperbolic Diffusion 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             nu = one(RealT)
             Lr = RealT(inv(2pi))
@@ -1262,7 +1252,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Hyperbolic Diffusion 2D" begin
+@testitem "Type stability: Hyperbolic Diffusion 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             nu = one(RealT)
             Lr = RealT(inv(2pi))
@@ -1329,7 +1319,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Hyperbolic Diffusion 3D" begin
+@testitem "Type stability: Hyperbolic Diffusion 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             nu = one(RealT)
             Lr = RealT(inv(2pi))
@@ -1389,7 +1379,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd 1D" begin
+@testitem "Type stability: Ideal Glm Mhd 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred IdealGlmMhdEquations1D(RealT(1.4))
 
@@ -1459,7 +1449,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd 2D" begin
+@testitem "Type stability: Ideal Glm Mhd 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred IdealGlmMhdEquations2D(RealT(1.4))
 
@@ -1584,7 +1574,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd 3D" begin
+@testitem "Type stability: Ideal Glm Mhd 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred IdealGlmMhdEquations3D(RealT(1.4))
 
@@ -1684,7 +1674,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd Multicomponent 1D" begin
+@testitem "Type stability: Ideal Glm Mhd Multicomponent 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             gammas = (RealT(2), RealT(2))
             gas_constants = (RealT(2), RealT(2))
@@ -1736,7 +1726,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd Multicomponent 2D" begin
+@testitem "Type stability: Ideal Glm Mhd Multicomponent 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             gammas = (RealT(2), RealT(2))
             gas_constants = (RealT(2), RealT(2))
@@ -1797,7 +1787,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd MultiIon 2D" begin
+@testitem "Type stability: Ideal Glm Mhd MultiIon 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             gammas = (RealT(2), RealT(2))
             charge_to_mass = (RealT(2), RealT(2))
@@ -1897,7 +1887,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Ideal Glm Mhd MultiIon 3D" begin
+@testitem "Type stability: Ideal Glm Mhd MultiIon 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             gammas = (RealT(2), RealT(2))
             charge_to_mass = (RealT(2), RealT(2))
@@ -1968,7 +1958,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Inviscid Burgers 1D" begin
+@testitem "Type stability: Inviscid Burgers 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred InviscidBurgersEquation1D()
 
@@ -2010,7 +2000,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion 1D" begin
+@testitem "Type stability: Laplace Diffusion 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearScalarAdvectionEquation1D(RealT(1))
             equations_parabolic = @inferred LaplaceDiffusion1D(RealT(0.1), equations)
@@ -2072,7 +2062,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linear Diffusion Equation" begin
+@testitem "Type stability: Linear Diffusion Equation" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             u = SVector(one(RealT))
 
@@ -2093,7 +2083,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion Entropy Variables 1D" begin
+@testitem "Type stability: Laplace Diffusion Entropy Variables 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables1D(RealT(0.01),
@@ -2108,7 +2098,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion Entropy Variables 2D" begin
+@testitem "Type stability: Laplace Diffusion Entropy Variables 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.01),
@@ -2126,7 +2116,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion Entropy Variables 3D" begin
+@testitem "Type stability: Laplace Diffusion Entropy Variables 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.01),
@@ -2144,7 +2134,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion 2D" begin
+@testitem "Type stability: Laplace Diffusion 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = LinearScalarAdvectionEquation2D(RealT(1), RealT(1))
             equations_parabolic = LaplaceDiffusion2D(RealT(0.1), equations)
@@ -2171,7 +2161,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion 3D" begin
+@testitem "Type stability: Laplace Diffusion 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = LinearScalarAdvectionEquation3D(RealT(1), RealT(1), RealT(1))
             equations_parabolic = LaplaceDiffusion3D(RealT(0.1), equations)
@@ -2199,7 +2189,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion Entropy Variables 1D" begin
+@testitem "Type stability: Laplace Diffusion Entropy Variables 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables1D(RealT(0.1),
@@ -2218,7 +2208,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion Entropy Variables 2D" begin
+@testitem "Type stability: Laplace Diffusion Entropy Variables 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables2D(RealT(0.1),
@@ -2240,7 +2230,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion Entropy Variables 3D" begin
+@testitem "Type stability: Laplace Diffusion Entropy Variables 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
             equations_parabolic = @inferred LaplaceDiffusionEntropyVariables3D(RealT(0.1),
@@ -2263,7 +2253,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Lattice Boltzmann 2D" begin
+@testitem "Type stability: Lattice Boltzmann 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LatticeBoltzmannEquations2D(Ma = RealT(0.1), Re = 1000)
 
@@ -2317,7 +2307,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Lattice Boltzmann 3D" begin
+@testitem "Type stability: Lattice Boltzmann 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LatticeBoltzmannEquations3D(Ma = RealT(0.1), Re = 1000)
 
@@ -2368,7 +2358,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linear Scalar Advection 1D" begin
+@testitem "Type stability: Linear Scalar Advection 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearScalarAdvectionEquation1D(RealT(1))
 
@@ -2422,7 +2412,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linear Scalar Advection 2D" begin
+@testitem "Type stability: Linear Scalar Advection 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearScalarAdvectionEquation2D(RealT(1), RealT(1))
 
@@ -2509,7 +2499,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linear Scalar Advection 3D" begin
+@testitem "Type stability: Linear Scalar Advection 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearScalarAdvectionEquation3D(RealT(1), RealT(1),
                                                                   RealT(1))
@@ -2572,7 +2562,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Maxwell 1D" begin
+@testitem "Type stability: Maxwell 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             c = RealT(299_792_458)
             equations = @inferred MaxwellEquations1D(c)
@@ -2604,7 +2594,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linearized Euler 1D" begin
+@testitem "Type stability: Linearized Euler 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearizedEulerEquations1D(v_mean_global = RealT(0),
                                                              c_mean_global = RealT(1),
@@ -2649,7 +2639,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linearized Euler 2D" begin
+@testitem "Type stability: Linearized Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearizedEulerEquations2D(v_mean_global = (RealT(0),
                                                                               RealT(0)),
@@ -2714,7 +2704,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linearized Euler 3D" begin
+@testitem "Type stability: Linearized Euler 3D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearizedEulerEquations3D(v_mean_global = (RealT(0),
                                                                               RealT(0),
@@ -2773,7 +2763,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Polytropic Euler 2D" begin
+@testitem "Type stability: Polytropic Euler 2D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations1 = @inferred PolytropicEulerEquations2D(RealT(1),
                                                               RealT(1)) # equations.gamma == 1
@@ -2839,7 +2829,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Traffic Flow LWR 1D" begin
+@testitem "Type stability: Traffic Flow LWR 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             equations = @inferred TrafficFlowLWREquations1D(RealT(1))
 
@@ -2876,7 +2866,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Passive tracer equations" begin
+@testitem "Type stability: Passive tracer equations" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
             flow_equations = @inferred CompressibleEulerEquations1D(RealT(2))
@@ -2921,7 +2911,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Linear Elasticity 1D" begin
+@testitem "Type stability: Linear Elasticity 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
         for RealT in (Float32, Float64)
             rho = RealT(42)
             mu = RealT(1)
@@ -2964,6 +2954,3 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(adapted.E) == Float32
         end
     end
-end
-
-end # module

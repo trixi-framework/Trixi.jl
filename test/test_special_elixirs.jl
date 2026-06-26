@@ -1,25 +1,13 @@
-module TestElixirs
+@testsnippet SpecialElixirs begin
+    using LinearAlgebra
+    using SparseArrays
+    using OrdinaryDiffEqSSPRK: SSPRK43
+    import ForwardDiff
 
-using LinearAlgebra
-using SparseArrays
-using Test
-using Trixi
-using OrdinaryDiffEqSSPRK: SSPRK43
+    EXAMPLES_DIR = examples_dir()
+end
 
-import ForwardDiff
-
-include("test_trixi.jl")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-EXAMPLES_DIR = examples_dir()
-
-@testset "Special elixirs" begin
-#! format: noindent
-
-@testset "Convergence test" begin
+@testitem "Special elixirs: Convergence test" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     @timed_testset "tree_2d_dgsem" begin
         eocs, _ = convergence_test(@__MODULE__,
                                    joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
@@ -96,7 +84,7 @@ EXAMPLES_DIR = examples_dir()
     end
 end
 
-@timed_testset "Test linear structure (2D)" begin
+@testitem "Special elixirs: Test linear structure (2D)" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                            "elixir_advection_extended.jl"),
@@ -120,7 +108,7 @@ end
     @test A * x ≈ Ax
 end
 
-@testset "Test Jacobian of DG (1D)" begin
+@testitem "Special elixirs: Test Jacobian of DG (1D)" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     @timed_testset "TreeMesh: Linear advection" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_1d_fdsbp",
@@ -166,7 +154,7 @@ end
     end
 end
 
-@testset "Test Jacobian of DG (2D)" begin
+@testitem "Special elixirs: Test Jacobian of DG (2D)" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     @timed_testset "TreeMesh: Linear advection" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
@@ -366,7 +354,7 @@ end
     end
 end
 
-@timed_testset "Test linear structure (3D)" begin
+@testitem "Special elixirs: Test linear structure (3D)" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                            "elixir_advection_extended.jl"),
@@ -376,7 +364,7 @@ end
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 end
 
-@timed_testset "Test Jacobian of DG (3D)" begin
+@testitem "Special elixirs: Test Jacobian of DG (3D)" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     @timed_testset "TreeMesh: Advection" begin
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
@@ -425,7 +413,7 @@ end
     end
 end
 
-@testset "AD using ForwardDiff" begin
+@testitem "Special elixirs: AD using ForwardDiff" setup=[Setup, SpecialElixirs] tags=[:misc_part2] begin
     @timed_testset "Euler equations 1D" begin
         function entropy_at_final_time(k) # k is the wave number of the initial condition
             equations = CompressibleEulerEquations1D(1.4)
@@ -494,9 +482,3 @@ end
                                      "elixir_euler_ad.jl"))
     end
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end #module

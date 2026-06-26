@@ -1,25 +1,14 @@
-module TestVisualization
+@testsnippet Visualization begin
+    using Plots
+    # We use CairoMakie to avoid some CI-related issues with GLMakie. CairoMakie does not support
+    # interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
+    # Makie-based visualization.
+    using CairoMakie
 
-using Test
-using Trixi
-using Plots
+    EXAMPLES_DIR = examples_dir()
+end
 
-# We use CairoMakie to avoid some CI-related issues with GLMakie. CairoMakie does not support
-# interactive visualization through `iplot`, but it can be used as a testing backend for Trixi's
-# Makie-based visualization.
-using CairoMakie
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-# Run various visualization tests
-@testset "Visualization tests" begin
-#! format: noindent
+@testitem "Visualization: PlotData2D, PlotDataSeries, PlotMesh" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
 # Run 2D tests with elixirs for different mesh and solver types
 test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
@@ -173,9 +162,10 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         end
     end
 end
+end
+@testitem "Visualization: ScalarPlotData2D with DGMulti Quad elements" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
 # check that ScalarPlotData2D works for Quad elements
-@timed_testset "ScalarPlotData2D with DGMulti Quad elements" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_euler_weakform.jl"),
                         tspan=(0.0, 0.0),
@@ -186,8 +176,8 @@ end
     scalar_data = StructArrays.component(u, 1)
     @trixi_test_nowarn Plots.plot(ScalarPlotData2D(scalar_data, semi))
 end
+@testitem "Visualization: PlotData1D, PlotDataSeries, PlotMesh" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_euler_blast_wave.jl"),
@@ -271,8 +261,8 @@ end
         @trixi_test_nowarn Plots.plot(fake2d)
     end
 end
+@testitem "Visualization: FV testsets" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "FV testsets" begin
     @trixi_testset "BlockFV 1D Visualization" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_blockfv",
                                      "elixir_advection_basic.jl"),
@@ -321,8 +311,8 @@ end
         @test all(x -> isapprox(x, ref_prim[3]), pd.data[:, 3]) # p
     end
 end
+@testitem "Visualization: 1D plot from 2D solution" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "1D plot from 2D solution" begin
     @trixi_testset "Create 1D plot along curve" begin
         using OrdinaryDiffEqSSPRK
         using Trixi
@@ -508,8 +498,8 @@ end
         end
     end
 end
+@testitem "Visualization: PlotData2D Regression Tests" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@testset "PlotData2D Regression Tests" begin
     using Trixi
     equations = CompressibleEulerEquations2D(1.4)
     solver = DGSEM(polydeg = 3,
@@ -671,8 +661,8 @@ end
         end
     end
 end
+@testitem "Visualization: PlotData1D (DGMulti)" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "PlotData1D (DGMulti)" begin
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`
     # - array of structures for `SBP()`
@@ -693,8 +683,8 @@ end
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
+@testitem "Visualization: PlotData2D (DGMulti Tri SBP)" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "PlotData2D (DGMulti Tri SBP)" begin
     # Regression test for plotting with SBP on triangular elements (reference triangulation of rstp).
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_euler_weakform.jl"),
@@ -710,8 +700,8 @@ end
     @trixi_test_nowarn Plots.plot(pd)
     @trixi_test_nowarn Plots.plot(pd["rho"])
 end
+@testitem "Visualization: 1D plot recipes (StructuredMesh)" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "1D plot recipes (StructuredMesh)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_1d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         tspan=(0.0, 0.0))
@@ -725,8 +715,8 @@ end
     @trixi_test_nowarn Plots.plot(initial_condition_t_end, semi)
     @trixi_test_nowarn Plots.plot((x, equations) -> x, semi)
 end
+@testitem "Visualization: plot time series" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "plot time series" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_acoustics_gaussian_source.jl"),
                         tspan=(0, 0.05))
@@ -734,8 +724,8 @@ end
     @trixi_test_nowarn Plots.plot(time_series, 1)
     @test PlotData1D(time_series, 1) isa PlotData1D
 end
+@testitem "Visualization: adapt_to_mesh_level" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "adapt_to_mesh_level" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         analysis_callback=Trixi.TrivialCallback())
@@ -748,8 +738,8 @@ end
     @test adapt_to_mesh_level!(sol, 5) isa Tuple
     @test isapprox(sol.u[end], u_ode_level5, atol = 1e-13)
 end
+@testitem "Visualization: plot 3D" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "plot 3D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         analysis_callback=Trixi.TrivialCallback(),
@@ -994,16 +984,16 @@ end
         end
     end
 end
+@testitem "Visualization: plotting TimeIntegratorSolution" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "plotting TimeIntegratorSolution" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_hypdiff_lax_friedrichs.jl"),
                         maxiters=1, analysis_callback=Trixi.TrivialCallback(),
                         initial_refinement_level=1)
     @trixi_test_nowarn Plots.plot(sol)
 end
+@testitem "Visualization: VisualizationCallback" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "VisualizationCallback" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
     # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
@@ -1043,8 +1033,8 @@ end
         end
     end
 end
+@testitem "Visualization: Makie visualization tests for 1D" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "Makie visualization tests for 1D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_advection_basic.jl"))
     pd = PlotData1D(sol)
@@ -1084,8 +1074,8 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
 end
+@testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@trixi_testset "Makie visualization tests for TreeMesh2D" begin
     using CairoMakie
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"))
@@ -1122,8 +1112,8 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
 end
+@testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "unstructured_2d_dgsem",
                                  "elixir_euler_wall_bc.jl"))
 
@@ -1171,13 +1161,10 @@ end
     end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
+@testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[Setup, Visualization] tags=[:misc_part1] begin
 
-@timed_testset "Makie iplot for DGMulti with VectorOfArray solution" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_euler_curved.jl"))
 
     @trixi_test_nowarn Trixi.iplot(sol)
 end
-end
-
-end #module
