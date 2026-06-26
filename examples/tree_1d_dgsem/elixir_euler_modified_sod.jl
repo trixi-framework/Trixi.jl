@@ -26,7 +26,7 @@ function initial_condition_modified_sod(x, t, ::CompressibleEulerEquations1D)
     if x[1] < RealT(0.3)
         return prim2cons(SVector(one(RealT), 0.75f0, one(RealT)), equations)
     else
-        return prim2cons(SVector(0.125f0, zero(eltype(x)), RealT(0.1)), equations)
+        return prim2cons(SVector(0.125f0, zero(RealT), RealT(0.1)), equations)
     end
 end
 initial_condition = initial_condition_modified_sod
