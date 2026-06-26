@@ -32,15 +32,10 @@ a_hot = [2.415214430e+05; -1.257874600e+03; 5.144558670e+00; -2.138541790e-04;
 a_ = hcat(a_cold, a_hot)
 a = Trixi.SMatrix{9, 2}(a_)
 
-temp_bounds = SVector(1e-9, 1e9)
-a = Trixi.SMatrix{9, 1}([0.0, 0.0, 1.4/0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
 eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
                                   temperature_bounds = temp_bounds,
-                                  coefficients = a)
-
-println(Trixi.gamma(300, eos)) # [dimensionless] should be ~1.4
-println(Trixi.speed_of_sound(1/1.225, 300, eos)) # [m/s] should be ~347
+                                  coefficients = a,
+                                  p_ref = 100000.0, T_ref = 298.15)
 
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
@@ -60,7 +55,7 @@ function Trixi.initial_condition_density_wave(x, t,
     V = inv(rho)
 
     # invert for temperature given p, V
-    T = temperature_given_Vp(V, p, eos; initial_T = 300, # [K]
+    T = temperature_given_Vp(V, p, eos; initial_T = 298.15, # [K]
                              tol = 100 * eps(RealT), maxiter = 100)
 
     return thermo2cons(SVector(V, v1, T), equations)
