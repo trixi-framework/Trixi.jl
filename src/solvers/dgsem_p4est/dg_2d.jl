@@ -828,7 +828,7 @@ end
 # Function barrier for type stability.
 # BoundaryConditionCoupledP4est reads the coupled solution from its stored fields,
 # so no extra u_parent argument is needed.
-function calc_boundary_flux!(cache, t, boundary_conditions,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_conditions,
                              mesh::P4estMeshView,
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
