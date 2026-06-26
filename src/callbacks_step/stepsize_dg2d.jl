@@ -6,7 +6,7 @@
 #! format: noindent
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::False, have_aux_node_vars::False,
+                have_constant_speed::False, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -31,7 +31,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::False, have_aux_node_vars::True,
+                have_constant_speed::False, have_aux_node_vars::True,
                 equations, dg::DG, cache)
     @unpack aux_node_vars = cache.aux_vars
     # to avoid a division by zero if the speed vanishes everywhere,
@@ -81,7 +81,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::True, have_aux_node_vars::False,
+                have_constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
@@ -100,7 +100,7 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 function max_dt(u, t, mesh::TreeMeshParallel{2},
-                constant_speed::False, have_aux_node_vars::False,
+                have_constant_speed::False, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -108,9 +108,9 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), TreeMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, False(), equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -119,7 +119,7 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
 end
 
 function max_dt(u, t, mesh::TreeMeshParallel{2},
-                constant_speed::False, have_aux_node_vars::True,
+                have_constant_speed::False, have_aux_node_vars::True,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -127,9 +127,9 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), TreeMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, True(), equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -138,7 +138,7 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
 end
 
 function max_dt(u, t, mesh::TreeMeshParallel{2},
-                constant_speed::True, have_aux_node_vars::False,
+                have_constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -146,9 +146,9 @@ function max_dt(u, t, mesh::TreeMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), TreeMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, False(), equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -163,10 +163,10 @@ end
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                             P4estMeshView{2}, T8codeMesh{2}, StructuredMeshView{2}},
-                constant_speed, have_aux_node_vars, equations, dg::DG, cache)
+                have_constant_speed, have_aux_node_vars, equations, dg::DG, cache)
     backend = trixi_backend(u)
 
-    max_lambda = calc_max_scaled_speed(backend, u, mesh, constant_speed,
+    max_lambda = calc_max_scaled_speed(backend, u, mesh, have_constant_speed,
                                        have_aux_node_vars,
                                        equations, dg, cache)
 
@@ -183,7 +183,7 @@ end
                                                              P4estMesh{2},
                                                              T8codeMesh{2},
                                                              StructuredMeshView{2}}},
-                                              constant_speed::False,
+                                              have_constant_speed::False,
                                               have_aux_node_vars::False, equations,
                                               dg::DG,
                                               contravariant_vectors, inverse_jacobian,
@@ -295,7 +295,7 @@ end
                                                              P4estMeshView{2},
                                                              T8codeMesh{2},
                                                              StructuredMeshView{2}}},
-                                              constant_speed::True,
+                                              have_constant_speed::True,
                                               have_aux_node_vars::False, equations,
                                               dg::DG,
                                               contravariant_vectors, inverse_jacobian,
@@ -367,7 +367,7 @@ function max_dt(u, t,
 end
 
 function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_speed::False, have_aux_node_vars::False,
+                have_constant_speed::False, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -375,9 +375,9 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), P4estMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_aux_node_vars, equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -405,7 +405,7 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
 end
 
 function max_dt(u, t, mesh::P4estMeshParallel{2},
-                constant_speed::True, have_aux_node_vars::False,
+                have_constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -413,9 +413,9 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), P4estMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_aux_node_vars, equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -424,7 +424,7 @@ function max_dt(u, t, mesh::P4estMeshParallel{2},
 end
 
 function max_dt(u, t, mesh::T8codeMeshParallel{2},
-                constant_speed::False, have_aux_node_vars::False,
+                have_constant_speed::False, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -432,9 +432,9 @@ function max_dt(u, t, mesh::T8codeMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), T8codeMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_aux_node_vars, equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
@@ -443,7 +443,7 @@ function max_dt(u, t, mesh::T8codeMeshParallel{2},
 end
 
 function max_dt(u, t, mesh::T8codeMeshParallel{2},
-                constant_speed::True, have_aux_node_vars::False,
+                have_constant_speed::True, have_aux_node_vars::False,
                 equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{2}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
@@ -451,9 +451,9 @@ function max_dt(u, t, mesh::T8codeMeshParallel{2},
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), T8codeMesh{2},
-                      typeof(constant_speed), typeof(have_aux_node_vars),
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_aux_node_vars, equations, dg,
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
                 cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]

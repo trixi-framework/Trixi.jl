@@ -20,6 +20,21 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_limiter_liu_zhang.jl"),
+                        l2=[0.204437455578503], linf=[0.8175130986098857],
+                        record_davis_yin_iterations=true)
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-1,) up to a tolerance
+    @test minimum(u) > 1e-1 - 10 * eps()
+
+    # check that the limiter was activated
+    @test length(global_limiter!.history_davis_yin_iterations) > 0
+
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_extended.jl with polydeg=1" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[0.02134571266411136],
@@ -59,6 +74,7 @@ end
 end
 
 @trixi_testset "elixir_advection_restart.jl" begin
+    # Perform a standard simulation
     using OrdinaryDiffEqSSPRK: SSPRK43
     println("═"^100)
     println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
@@ -68,14 +84,17 @@ end
                   alg = SSPRK43(), tspan = (0.0, 10.0))
     l2_expected, linf_expected = analysis_callback(sol)
 
+    # Perform a simulation restarting from an intermediate state
     println("═"^100)
     println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
-    # Errors are exactly the same as in the elixir_advection_extended.jl
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                   alg = SSPRK43(),
                   base_elixir = "elixir_advection_timeintegration_adaptive.jl")
     l2_actual, linf_actual = analysis_callback(sol)
 
+    # Check whether the errors are exactly the same as in the uninterrupted run
+    # using the same SSPRK method with error-based step size control.
     @test l2_actual == l2_expected
     @test linf_actual == linf_expected
 end
@@ -238,6 +257,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"),
                         l2=[8.311947673061856e-6],
                         linf=[6.627000273229378e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_variable_swirling_flow.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_variable_swirling_flow.jl"),
+                        l2=[2.90963554e-01],
+                        linf=[1.31858729e+00])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

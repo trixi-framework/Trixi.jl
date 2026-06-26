@@ -202,14 +202,14 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     end
 end
 
-function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed,
+function calc_max_scaled_speed(backend::Nothing, u, mesh, have_constant_speed,
                                have_aux_node_vars, equations, dg, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     aux = get_aux_node_vars_vector(have_aux_node_vars, cache)
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda = max_scaled_speed_per_element(u, aux, typeof(mesh), constant_speed,
+        max_lambda = max_scaled_speed_per_element(u, aux, typeof(mesh), have_constant_speed,
                                                   have_aux_node_vars, equations, dg,
                                                   contravariant_vectors,
                                                   inverse_jacobian,
@@ -221,7 +221,7 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed,
     return max_scaled_speed
 end
 
-function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed,
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, have_constant_speed,
                                have_aux_node_vars, equations, dg, cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     aux = get_aux_node_vars_vector(have_aux_node_vars, cache)
@@ -232,7 +232,7 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed,
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
     max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
                                                     init, neutral) do element
-        max_scaled_speed_per_element(u, aux, MeshT, constant_speed, have_aux_node_vars,
+        max_scaled_speed_per_element(u, aux, MeshT, have_constant_speed, have_aux_node_vars,
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,

@@ -97,6 +97,19 @@ end
     return RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
+    return CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP,
+                                                      NewRealT}(SVector{NCOMP,
+                                                                        NewRealT}(eqs.gammas),
+                                                                SVector{NCOMP,
+                                                                        NewRealT}(eqs.gas_constants))
+end
+
 function varnames(::typeof(cons2cons),
                   equations::CompressibleEulerMulticomponentEquations1D)
     cons = ("rho_v1", "rho_e_total")

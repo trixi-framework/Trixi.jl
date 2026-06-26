@@ -50,6 +50,12 @@ struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
     equation_of_state::EoS
 end
 
+function Base.similar(equations::NonIdealCompressibleEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return NonIdealCompressibleEulerEquations2D(similar(equations.equation_of_state,
+                                                        NewRealT))
+end
+
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
@@ -65,6 +71,11 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations2D) = ("rho",
                                                                          "v1",
                                                                          "v2",
                                                                          "p")
+
+varnames(::typeof(cons2thermo), ::NonIdealCompressibleEulerEquations2D) = ("V",
+                                                                           "v1",
+                                                                           "v2",
+                                                                           "T")
 
 # Calculate flux for a single point
 @inline function flux(u, orientation::Integer,

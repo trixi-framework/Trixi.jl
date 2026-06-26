@@ -87,7 +87,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
     linf_error = copy(l2_error)
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
@@ -196,16 +196,17 @@ function integrate_via_indices(func::Func, u,
                                mesh::StructuredMesh{1}, equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
     @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, equations, dg, args...))
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for i in eachnode(dg)
-            jacobian_volume = abs(inv(cache.elements.inverse_jacobian[i, element]))
+            jacobian_volume = abs(inv(inverse_jacobian[i, element]))
             integral += jacobian_volume * weights[i] *
                         func(u, i, element, equations, dg, args...)
             total_volume += jacobian_volume * weights[i]
@@ -231,8 +232,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                 have_aux_node_vars::False, equations, dg::Union{DGSEM, FDSBP}, cache)
+                 mesh::Union{TreeMesh{1}, StructuredMesh{1}}, equations,
+                 dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, element, equations, dg, du
@@ -243,8 +244,8 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{1}, have_aux_node_vars::False,
-                 equations::IdealGlmMhdEquations1D, dg::DGSEM, cache)
+                 mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
+                 dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache,
                           dg.basis.derivative_matrix) do u, i, element, equations, dg,
                                                          derivative_matrix
@@ -258,8 +259,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{1}, have_aux_node_vars::False,
-                 equations::IdealGlmMhdEquations1D, dg::DGSEM, cache)
+                 mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
+                 dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors

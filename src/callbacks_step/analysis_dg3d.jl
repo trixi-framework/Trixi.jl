@@ -179,7 +179,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
     linf_error = copy(l2_error)
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
@@ -405,7 +405,7 @@ function integrate_via_indices(func::Func, ::Nothing, u,
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
@@ -444,7 +444,8 @@ function integrate_via_indices(func::Func, backend::Backend, u,
     integral0 = zero(Base.promote_op(func, typeof(u), Int, Int, Int, Int,
                                      typeof(equations), typeof(dg),
                                      map(typeof, args)...))
-    init = neutral = (integral0, zero(real(mesh)))
+    volume0 = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    init = neutral = (integral0, volume0)
 
     # Use quadrature to numerically integrate over entire domain
     num_elements = nelements(dg, cache)
@@ -505,7 +506,7 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
-                 have_aux_node_vars::False, equations, dg::Union{DGSEM, FDSBP}, cache)
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
@@ -531,7 +532,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{3}, have_aux_node_vars::False, equations,
+                 mesh::TreeMesh{3}, equations,
                  dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, k, element, equations,
@@ -557,7 +558,7 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                 have_aux_node_vars::False, equations,
+                 equations,
                  dg::DGSEM, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
@@ -594,7 +595,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{3}, have_aux_node_vars::False, equations,
+                 mesh::TreeMesh{3}, equations,
                  dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
@@ -631,7 +632,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                 have_aux_node_vars::False, equations,
+                 equations,
                  dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors, inverse_jacobian = cache.elements

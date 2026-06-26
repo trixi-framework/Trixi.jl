@@ -225,7 +225,8 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), False(), equations,
+    flux_differencing_kernel!(du, u, element, MeshT, False(), have_aux_node_vars,
+                              equations,
                               symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
@@ -649,7 +650,7 @@ function calc_interface_flux_inner!(surface_flux_values, u,
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::TreeMesh{3}, equations, dg::DG)
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides = boundaries
@@ -701,7 +702,8 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(backend::Nothing, cache, t,
+                             boundary_conditions::NamedTuple,
                              mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
     @unpack surface_flux_values = cache.elements
     @unpack n_boundaries_per_direction = cache.boundaries
@@ -967,8 +969,6 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
     @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
     fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
-    fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
-    fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
     fstar_tmp1_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -977,10 +977,6 @@ function calc_mortar_flux!(surface_flux_values,
         fstar_primary_upper_right = fstar_primary_upper_right_threaded[Threads.threadid()]
         fstar_primary_lower_left = fstar_primary_lower_left_threaded[Threads.threadid()]
         fstar_primary_lower_right = fstar_primary_lower_right_threaded[Threads.threadid()]
-        fstar_secondary_upper_left = fstar_secondary_upper_left_threaded[Threads.threadid()]
-        fstar_secondary_upper_right = fstar_secondary_upper_right_threaded[Threads.threadid()]
-        fstar_secondary_lower_left = fstar_secondary_lower_left_threaded[Threads.threadid()]
-        fstar_secondary_lower_right = fstar_secondary_lower_right_threaded[Threads.threadid()]
         fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
         # Calculate fluxes
@@ -993,23 +989,20 @@ function calc_mortar_flux!(surface_flux_values,
                     u_lower_left, mortar, orientation)
         calc_fstar!(fstar_primary_lower_right, equations, surface_flux, dg,
                     u_lower_right, mortar, orientation)
-        calc_fstar!(fstar_secondary_upper_left, equations, surface_flux, dg,
-                    u_upper_left, mortar, orientation)
-        calc_fstar!(fstar_secondary_upper_right, equations, surface_flux, dg,
-                    u_upper_right, mortar, orientation)
-        calc_fstar!(fstar_secondary_lower_left, equations, surface_flux, dg,
-                    u_lower_left, mortar, orientation)
-        calc_fstar!(fstar_secondary_lower_right, equations, surface_flux, dg,
-                    u_lower_right, mortar, orientation)
 
+        # For non-conservative equations, we need two numerical fluxes
+        # (primary and secondary). To use the same implementation of
+        # `mortar_fluxes_to_elements!`, we pass the primary fluxes as
+        # secondary fluxes as well in the conservative case. This is
+        # possible since for conservative equations, numerical fluxes
+        # are unique at interfaces (instead of having two different
+        # fluxes/fluctuations for non-conservative equations).
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache, mortar,
                                    fstar_primary_upper_left, fstar_primary_upper_right,
                                    fstar_primary_lower_left, fstar_primary_lower_right,
-                                   fstar_secondary_upper_left,
-                                   fstar_secondary_upper_right,
-                                   fstar_secondary_lower_left,
-                                   fstar_secondary_lower_right,
+                                   fstar_primary_upper_left, fstar_primary_upper_right,
+                                   fstar_primary_lower_left, fstar_primary_lower_right,
                                    fstar_tmp1)
     end
 
@@ -1426,18 +1419,21 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 # TODO: Taal dimension agnostic
-function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::False,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
+                       have_aux_node_vars::False, equations::AbstractEquations{3},
+                       dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::True,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+function calc_sources!(backend::Backend, u, t, source_terms::Nothing,
+                       have_aux_node_vars::True, equations::AbstractEquations{3},
+                       dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_aux_node_vars::False,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       have_aux_node_vars::False, equations::AbstractEquations{3},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)

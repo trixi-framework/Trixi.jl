@@ -63,6 +63,17 @@ function LinearElasticityEquations1D(; rho::Real, mu::Real, lambda::Real)
     return LinearElasticityEquations1D(rho, sqrt(c1_squared), E)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearElasticityEquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearElasticityEquations1D(convert(NewRealT, equations.rho),
+                                       convert(NewRealT, equations.c1),
+                                       convert(NewRealT, equations.E))
+end
+
 function varnames(::typeof(cons2cons), ::LinearElasticityEquations1D)
     return ("v1", "sigma11")
 end

@@ -291,6 +291,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     #        release, just delete this analysis quantity from the callback.
     # Source: https://github.com/JuliaLang/julia/blob/b540315cb4bd91e6f3a3e4ab8129a58556947628/base/timing.jl#L86-L97
     memory_use = Base.gc_live_bytes() / 2^20 # bytes -> MiB
+    device_memory_use = trixi_device_memory_use(trixi_backend(u_ode))
+    if device_memory_use !== nothing
+        device_memory_use /= 2^20 # bytes -> MiB
+    else
+        device_memory_use = 0.0
+    end
 
     @trixi_timeit timer() "analyze solution" begin
         # General information
@@ -316,7 +322,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
-                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
+                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)) *
+                    "               " *
+                    " device memory:  " * @sprintf("%14.3f MiB", device_memory_use))
 
         # Level information (only for AMR and/or non-uniform `TreeMesh`es)
         print_level_information(integrator.opts.callback, mesh, solver, cache)
@@ -618,10 +626,9 @@ end
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    return analyze(quantity, du, u, t, mesh, have_aux_node_vars(equations), equations,
-                   solver, cache)
+    return analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
-function analyze(quantity, du, u, t, mesh, have_aux_node_vars, equations, solver, cache)
+function analyze(quantity, du, u, t, mesh, equations, solver, cache)
     return integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
 end
 pretty_form_utf(quantity) = get_name(quantity)
@@ -684,7 +691,9 @@ end # @muladd
 
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
+include("analysis_blockfv_1d.jl")
 include("analysis_dg2d.jl")
+include("analysis_blockfv_2d.jl")
 include("analysis_surface_integral.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")

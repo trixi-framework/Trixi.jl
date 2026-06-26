@@ -48,6 +48,15 @@ struct CompressibleEulerEquations2D{RealT <: Real} <:
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::CompressibleEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return CompressibleEulerEquations2D(convert(NewRealT, equations.gamma))
+end
+
 function varnames(::typeof(cons2cons), ::CompressibleEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2", "rho_e_total")
 end
@@ -2095,6 +2104,46 @@ end
     rho_e_total = p * equations.inv_gamma_minus_one +
                   0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
     return SVector(rho, rho_v1, rho_v2, rho_e_total)
+end
+
+@doc raw"""
+    apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations2D)
+
+Calculate the Jacobian for the mapping from entropy variables to conservative 
+variables at the entropy variable state `w` and apply it to the vector `dw`.
+
+The explicit Jacobian formula can be found in Barth (1999), p. 205.
+- Barth (1999)
+  Numerical methods for gasdynamic systems on unstructured meshes.
+  [DOI: 10.1007/978-3-642-58535-7_5](https://doi.org/10.1007/978-3-642-58535-7_5)
+"""
+@inline function apply_jacobian_entropy2cons(dw, w,
+                                             equations::CompressibleEulerEquations2D)
+    @unpack inv_gamma_minus_one = equations
+    u = entropy2cons(w, equations)
+    rho, rho_v1, rho_v2, rho_e_total = u
+    _, v1, v2, p = cons2prim(u, equations)
+
+    # total enthalpy terms from Barth
+    a_squared = equations.gamma * p / rho
+    H = a_squared * inv_gamma_minus_one + 0.5f0 * (v1^2 + v2^2)
+    rho_h_v1 = rho_v1 * H
+    rho_h_v2 = rho_v2 * H
+    h44 = rho * H^2 - a_squared * p * inv_gamma_minus_one
+
+    # Apply the Jacobian
+    # [rho          rho_v1          rho_v2          rho_e_total
+    #  rho_v1       rho_v1 * v1 + p rho_v1 * v2    rho_h_v1
+    #  rho_v2       rho_v1 * v2     rho_v2 * v2 + p rho_h_v2
+    #  rho_e_total  rho_h_v1        rho_h_v2        h44]
+    # to the vector dw.
+    return SVector(rho * dw[1] + rho_v1 * dw[2] + rho_v2 * dw[3] + rho_e_total * dw[4],
+                   rho_v1 * dw[1] + (rho_v1 * v1 + p) * dw[2] + rho_v1 * v2 * dw[3] +
+                   rho_h_v1 * dw[4],
+                   rho_v2 * dw[1] + rho_v1 * v2 * dw[2] + (rho_v2 * v2 + p) * dw[3] +
+                   rho_h_v2 * dw[4],
+                   rho_e_total * dw[1] + rho_h_v1 * dw[2] + rho_h_v2 * dw[3] +
+                   h44 * dw[4])
 end
 
 @inline function density(u, equations::CompressibleEulerEquations2D)

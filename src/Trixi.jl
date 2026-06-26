@@ -65,6 +65,7 @@ using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
+using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
@@ -87,6 +88,31 @@ using T8code
 using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
 using Static: Static, One, True, False
+
+@doc """
+    Trixi.Threaded()
+
+Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
+[`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference. Both OrdinaryDiffEq.jl and
+Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend, 
+(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms, 
+since we have observed negative interactions between Polyester.jl and the Julia native shared memory parallelism.
+""" Threaded
+
+@static if _PREFERENCE_THREADING === "polyester"
+    @static if isdefined(DiffEqBase, :Threaded)
+        Threaded() = DiffEqBase.Threaded()
+    else
+        Threaded() = True()
+    end
+else
+    @static if isdefined(DiffEqBase, :Threaded)
+        Threaded() = DiffEqBase.Serial()
+    else
+        Threaded() = False()
+    end
+end
+
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -166,6 +192,9 @@ include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
 # Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
+
+# Postprocessing utilities
+include("postprocessing/spectral_analysis.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
@@ -261,7 +290,8 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2thermo, thermo2cons
-export density, pressure, density_pressure, velocity, temperature,
+export density, pressure, density_pressure, velocity,
+       temperature, temperature_given_Vp,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
@@ -280,6 +310,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
 export DG,
        DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
+       BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
@@ -341,7 +372,8 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
-export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterLiuZhang,
+       EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
@@ -349,6 +381,7 @@ export trixi_include, examples_dir, get_examples, default_example,
 export ode_norm, ode_unstable_check
 
 export convergence_test,
+       compute_kinetic_energy_spectrum,
        jacobian_fd, jacobian_ad_forward, jacobian_ad_forward_parabolic,
        linear_structure, linear_structure_parabolic
 
@@ -359,7 +392,8 @@ export ParabolicFormulationBassiRebay1, ParabolicFormulationLocalDG
 # Visualization-related exports
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
-       iplot, iplot!
+       iplot, iplot!,
+       trixiheatmap, trixiheatmap!
 
 function __init__()
     # Skip MPI/library initialization during precompilation of subsequent packages.

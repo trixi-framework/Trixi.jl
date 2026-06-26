@@ -68,6 +68,16 @@ function IdealGlmMhdEquations3D(gamma, inv_gamma_minus_one, c_h)
     return IdealGlmMhdEquations3D(gamma, c_h)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::IdealGlmMhdEquations3D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return IdealGlmMhdEquations3D(convert(NewRealT, equations.gamma),
+                                  convert(NewRealT, equations.c_h))
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = True()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D)
     return ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e_total", "B1", "B2", "B3", "psi")

@@ -81,7 +81,7 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
                          "variable " * string(variable),
                          varnames(cons2cons, equations)[variable])
         end
-        if have_aux_node_vars(equations) == Trixi.True()
+        if have_aux_node_vars(equations) == True()
             summary_line(io, "#auxiliary variables", n_aux_node_vars(equations))
             for variable in eachauxvariable(equations)
                 summary_line(increment_indent(io),
@@ -184,6 +184,27 @@ end
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
                                      equations)
+    end
+
+    return flux
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+    # So far, there are no separate auxiliary variables on boundaries
+
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, aux_inner, aux_inner,
+                                     orientation_or_normal, equations)
     end
 
     return flux
@@ -400,8 +421,10 @@ have_constant_speed(::AbstractEquations) = False()
 
 """
     have_aux_node_vars(equations)
-Trait function determining whether `equations` need to access additional auxiliary
-variables.
+Trait function determining whether auxiliary variables should be stored at each node 
+alongside the solution variables and used to compute the flux for `equations`. When 
+`True()`, the signature of [`flux`](@ref) becomes the following:
+
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_aux_node_vars(::AbstractEquations) = False()
@@ -668,6 +691,8 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("linear_variable_scalar_advection_2d.jl")
+
 include("linear_variable_scalar_advection_2d.jl")
 
 # Inviscid Burgers

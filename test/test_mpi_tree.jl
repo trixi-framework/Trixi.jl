@@ -24,6 +24,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     end
 
     @trixi_testset "elixir_advection_restart.jl" begin
+        # Perform a standard simulation
         using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
         mpi_isroot() && println("═"^100)
         mpi_isroot() &&
@@ -35,16 +36,18 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                       alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
+        # Perform a simulation restarting from an intermediate state
         mpi_isroot() && println("═"^100)
         mpi_isroot() &&
             println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
-        # Errors are exactly the same as in the elixir_advection_extended.jl
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                       alg = RDPK3SpFSAL49(),
                       base_elixir = "elixir_advection_timeintegration_adaptive.jl")
         l2_actual, linf_actual = analysis_callback(sol)
 
+        # Check whether the errors are exactly the same as in the uninterrupted run
+        # using the same low-storage RK method with error-based step size control.
         mpi_isroot() && @test l2_actual == l2_expected
         mpi_isroot() && @test linf_actual == linf_expected
     end
@@ -74,7 +77,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     @trixi_testset "elixir_advection_restart_amr.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_restart_amr.jl"),
-                            l2=[8.018497923389368e-5],
+                            l2=[8.018498574373939e-5],
                             linf=[0.0007307237754662355])
     end
 
@@ -101,6 +104,13 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                      "elixir_advection_amr_coarsen_twice.jl"),
                             l2=[0.0014321062757891826],
                             linf=[0.0253454486893413])
+    end
+
+    @trixi_testset "elixir_advection_variable_swirling_flow.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_variable_swirling_flow.jl"),
+                            l2=[2.90963554e-01],
+                            linf=[1.31858729e+00])
     end
 
     @trixi_testset "elixir_acoustics_gauss_wall_amr_auxvars.jl" begin

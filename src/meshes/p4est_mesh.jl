@@ -245,6 +245,56 @@ function P4estMesh(trees_per_dimension; polydeg,
                             p4est_partition_allow_for_coarsening)
 end
 
+"""
+    P4estMesh(; coordinates_min, coordinates_max, refinement_level,
+                polydeg = 1, RealT = Float64, periodicity = false,
+                unsaved_changes = true,
+                p4est_partition_allow_for_coarsening = true)
+
+Create a rectangular `P4estMesh` using keyword arguments only, for easy mesh-type swapping
+with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), and [`T8codeMesh`](@ref).
+
+A single tree per dimension is created and uniformly refined `refinement_level` times,
+yielding `2^refinement_level` cells per dimension.
+
+# Arguments
+- `coordinates_min`: vector or tuple of the coordinates of the corner in the negative direction of each dimension
+                     to create a rectangular mesh.
+- `coordinates_max`: vector or tuple of the coordinates of the corner in the positive direction of each dimension
+                     to create a rectangular mesh. Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh. Default: `1`.
+- `RealT::Type`: the type that should be used for coordinates. Default: `Float64`.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
+                 deciding for each dimension if the boundaries in this dimension are periodic. Default: `false`.
+- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file. Default: `true`.
+- `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
+                                                independent of domain partitioning. Should be `false` for static meshes
+                                                to permit more fine-grained partitioning. Default: `true`.
+"""
+function P4estMesh(; coordinates_min,
+                   coordinates_max,
+                   refinement_level,
+                   polydeg = 1,
+                   RealT = Float64,
+                   periodicity = false,
+                   unsaved_changes = true,
+                   p4est_partition_allow_for_coarsening = true)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    NDIMS = length(coordinates_min)
+    return P4estMesh(ntuple(_ -> 1, NDIMS);
+                     polydeg = polydeg,
+                     coordinates_min = coordinates_min,
+                     coordinates_max = coordinates_max,
+                     RealT = RealT,
+                     initial_refinement_level = refinement_level,
+                     periodicity = periodicity,
+                     unsaved_changes = unsaved_changes,
+                     p4est_partition_allow_for_coarsening = p4est_partition_allow_for_coarsening)
+end
+
 # 2D version
 function structured_boundary_names!(boundary_names, trees_per_dimension::NTuple{2},
                                     periodicity)
