@@ -390,17 +390,6 @@ end
         limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
     end
 
-    # Provisional analysis of limiting factor (TODO)
-    if nmortars(cache.mortars) > 0
-        (; output_directory) = solver.mortar
-        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
-            print(f, t, ", ")
-            print(f, maximum(limiting_factor),
-                  ", ", sum(limiting_factor) / length(limiting_factor))
-            println(f)
-        end
-    end
-
     return nothing
 end
 

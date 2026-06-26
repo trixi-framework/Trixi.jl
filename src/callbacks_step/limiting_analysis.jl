@@ -120,11 +120,25 @@ end
                                                                         time, iter)
     @unpack output_directory = limiting_analysis_callback
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
+    @unpack limiting_factor = cache.mortars
 
     alpha_avg = analyze_coefficient(mesh, equations, dg, cache, limiter)
 
     open("$output_directory/alphas.txt", "a") do f
         println(f, iter, ", ", time, ", ", maximum(alpha), ", ", alpha_avg)
+    end
+
+    # Provisional analysis of limiting factor
+    if nmortars(cache.mortars) > 0
+        (; output_directory) = dg.mortar
+        limiting_factor_avg = average_mortar_limiting_factor(limiting_factor, mesh,
+                                                             dg, cache)
+
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
+            print(f, time, ", ")
+            print(f, maximum(limiting_factor), ", ", limiting_factor_avg)
+            println(f)
+        end
     end
 end
 end # @muladd
