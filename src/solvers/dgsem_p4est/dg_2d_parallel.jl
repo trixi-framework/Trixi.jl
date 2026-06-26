@@ -5,41 +5,63 @@
 @muladd begin
 #! format: noindent
 
-function prolong2mpiinterfaces!(cache, u,
+function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                 mesh::Union{P4estMeshParallel{2},
                                             T8codeMeshParallel{2}},
                                 equations, surface_integral, dg::DG)
-    @unpack mpi_interfaces = cache
+    @unpack local_sides, local_neighbor_ids, node_indices = cache.mpi_interfaces
     index_range = eachnode(dg)
+    variables_range = eachvariable(equations)
 
     @threaded for interface in eachmpiinterface(dg, cache)
-        # Copy solution data from the local element using "delayed indexing" with
-        # a start value and a step size to get the correct face and orientation.
-        # Note that in the current implementation, the interface will be
-        # "aligned at the primary element", i.e., the index of the primary side
-        # will always run forwards.
-        local_side = mpi_interfaces.local_sides[interface]
-        local_element = mpi_interfaces.local_neighbor_ids[interface]
-        local_indices = mpi_interfaces.node_indices[interface]
-
-        i_element_start, i_element_step = index_to_start_step_2d(local_indices[1],
-                                                                 index_range)
-        j_element_start, j_element_step = index_to_start_step_2d(local_indices[2],
-                                                                 index_range)
-
-        i_element = i_element_start
-        j_element = j_element_start
-        for i in eachnode(dg)
-            for v in eachvariable(equations)
-                mpi_interfaces.u[local_side, v, i, interface] = u[v, i_element,
-                                                                  j_element,
-                                                                  local_element]
-            end
-            i_element += i_element_step
-            j_element += j_element_step
-        end
+        prolong2mpiinterfaces_per_interface!(cache.mpi_interfaces.u, interface, local_sides, local_neighbor_ids, node_indices, index_range, variables_range, u)
     end
 
+    return nothing
+end
+
+function prolong2mpiinterfaces!(backend::Backend, cache, u,
+                                mesh::Union{P4estMeshParallel{2},
+                                            T8codeMeshParallel{2}},
+                                equations, surface_integral, dg::DG)
+    nmpiinterfaces(dg, cache) == 0 && return nothing
+    @unpack local_sides, local_neighbor_ids, node_indices = cache.mpi_interfaces
+    index_range = eachnode(dg)
+    variables_range = eachvariable(equations)
+
+    kernel! = prolong2mpiinterfaces_kernel!(backend)
+    kernel!(cache.mpi_interfaces.u, local_sides, local_neighbor_ids, node_indices, index_range, variables_range, u,
+            ndrange = nmpiinterfaces(dg, cache))
+    return nothing
+end
+
+@kernel function prolong2mpiinterfaces_kernel!(mpi_interfaces_u, local_sides, local_neighbor_ids, node_indices, index_range, variables_range, u)
+    interface = @index(Global)
+    prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface, local_sides, local_neighbor_ids, node_indices, index_range, variables_range, u)
+end
+
+@inline function prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface, local_sides, local_neighbor_ids, node_indices, index_range, variables_range, u)
+    # Copy solution data from the local element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    # Note that in the current implementation, the interface will be
+    # "aligned at the primary element", i.e., the index of the primary side
+    # will always run forwards.
+    local_side = local_sides[interface]
+    local_element = local_neighbor_ids[interface]
+    local_indices = node_indices[interface]
+
+    i_element_start, i_element_step = index_to_start_step_2d(local_indices[1], index_range)
+    j_element_start, j_element_step = index_to_start_step_2d(local_indices[2], index_range)
+
+    i_element = i_element_start
+    j_element = j_element_start
+    for i in index_range
+        for v in variables_range
+            mpi_interfaces_u[local_side, v, i, interface] = u[v, i_element, j_element, local_element]
+        end
+        i_element += i_element_step
+        j_element += j_element_step
+    end
     return nothing
 end
 
