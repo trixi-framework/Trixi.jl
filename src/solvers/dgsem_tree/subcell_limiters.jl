@@ -68,8 +68,12 @@ More features will follow soon.
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
+@inline bar_states_as_static(bar_states::Bool) = bar_states ? True() : False()
+@inline bar_states_as_static(bar_states::True) = bar_states
+@inline bar_states_as_static(bar_states::False) = bar_states
+
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
-                         LimitingOnesidedVariablesNonlinear, Cache} <:
+                         LimitingOnesidedVariablesNonlinear, BarStates, Cache} <:
        AbstractSubcellLimiter
     local_twosided::Bool
     local_twosided_variables_cons::Vector{Int}                 # Local two-sided limiting for conservative variables
@@ -79,7 +83,7 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     positivity_correction_factor::RealT
     local_onesided::Bool
     local_onesided_variables_nonlinear::LimitingOnesidedVariablesNonlinear # Local one-sided limiting for nonlinear variables
-    bar_states::Bool
+    bar_states::BarStates
     small_stencil::Bool                     # Use small stencil for computation of bar state bounds
     cache::Cache
     max_iterations_newton::Int
@@ -149,11 +153,13 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
+    bar_states = bar_states_as_static(bar_states)
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
                              typeof(local_onesided_variables_nonlinear_),
+                             typeof(bar_states),
                              typeof(cache)}(local_twosided,
                                             local_twosided_variables_cons_,
                                             positivity, positivity_variables_cons_,
@@ -190,7 +196,7 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
         print(io, "Limiter=($features), ")
     end
     print(io,
-          "Local bounds with $(limiter.bar_states ? "Bar States" : "FV solution")")
+          "Local bounds with $(limiter.bar_states == true ? "Bar States" : "FV solution")")
     print(io, ")")
     return nothing
 end
@@ -228,7 +234,7 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                 end
             end
             push!(setup,
-                  "Local bounds with" => (limiter.bar_states ? "Bar States" :
+                  "Local bounds with" => (limiter.bar_states == true ? "Bar States" :
                                           "FV solution"))
             if !(limiter.small_stencil)
                 push!(setup, "" => "Large stencil for bar state bounds")
@@ -238,26 +244,15 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
     end
 end
 
-# this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys, bar_states) where {NDIMS}
+                      basis::LobattoLegendreBasis, bound_keys,
+                      ::False) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
-
-    cache = (;)
-    if bar_states
-        if NDIMS != 2
-            error("Bar states are only implemented for 2D problems.")
-        end
-        container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
-                                                                       nvariables(equations),
-                                                                       nnodes(basis))
-        cache = (; cache..., container_bar_states)
-    end
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -269,14 +264,30 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
-    return (; cache..., subcell_limiter_coefficients, idp_bounds_delta_local,
+    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
             idp_bounds_delta_global)
+end
+
+function create_cache(limiter::Type{SubcellLimiterIDP},
+                      equations::AbstractEquations{NDIMS},
+                      basis::LobattoLegendreBasis, bound_keys,
+                      ::True) where {NDIMS}
+    if NDIMS != 2
+        error("Bar states are only implemented for 2D problems.")
+    end
+
+    cache = create_cache(limiter, equations, basis, bound_keys, False())
+    container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                   nvariables(equations),
+                                                                   nnodes(basis))
+
+    return (; container_bar_states, cache...)
 end
 
 function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
-    if limiter.bar_states
+    if limiter.bar_states == true
         resize!(limiter.cache.container_bar_states, new_size)
     end
 

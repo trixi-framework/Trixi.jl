@@ -28,11 +28,11 @@ parabolic CFL number, or a function of time `t` returning a `Real` number.
 By default, the timestep will be adjusted at every step.
 For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
-struct StepsizeCallback{CflHyperbolicType, CflParabolicType}
+struct StepsizeCallback{CflHyperbolicType, CflParabolicType, BarStates}
     cfl_hyperbolic::CflHyperbolicType
     cfl_parabolic::CflParabolicType
     interval::Int
-    bar_states::Bool
+    bar_states::BarStates
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
@@ -44,7 +44,7 @@ function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
           "cfl_hyperbolic=", cfl_hyperbolic, ", ",
           "cfl_parabolic=", cfl_parabolic, ", ",
           "interval=", interval, ", ",
-          "bar_states=", bar_states, ")")
+          "bar_states=", bar_states == true, ")")
     return nothing
 end
 
@@ -61,7 +61,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "CFL Hyperbolic" => stepsize_callback.cfl_hyperbolic,
             "CFL Parabolic" => stepsize_callback.cfl_parabolic,
             "Interval" => stepsize_callback.interval,
-            "Bar States" => stepsize_callback.bar_states
+            "Bar States" => stepsize_callback.bar_states == true
         ]
         summary_box(io, "StepsizeCallback", setup)
     end
@@ -72,10 +72,10 @@ function StepsizeCallback(; cfl = 1.0, cfl_parabolic = 0.0,
     # Convert plain real numbers to functions for unified treatment
     cfl_hyp = isa(cfl, Real) ? Returns(cfl) : cfl
     cfl_para = isa(cfl_parabolic, Real) ? Returns(cfl_parabolic) : cfl_parabolic
-    stepsize_callback = StepsizeCallback{typeof(cfl_hyp), typeof(cfl_para)}(cfl_hyp,
-                                                                            cfl_para,
-                                                                            interval,
-                                                                            bar_states)
+    bar_states = bar_states_as_static(bar_states)
+    stepsize_callback = StepsizeCallback{typeof(cfl_hyp), typeof(cfl_para),
+                                         typeof(bar_states)}(cfl_hyp, cfl_para,
+                                                             interval, bar_states)
 
     return DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
                             save_positions = (false, false),
@@ -85,7 +85,8 @@ end
 # Compatibility constructor used in `EulerAcousticsCouplingCallback`
 function StepsizeCallback(cfl_hyperbolic)
     RealT = typeof(cfl_hyperbolic)
-    return StepsizeCallback{RealT, RealT}(cfl_hyperbolic, zero(RealT), 1, false)
+    return StepsizeCallback{RealT, RealT, False}(cfl_hyperbolic, zero(RealT), 1,
+                                                 False())
 end
 
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
@@ -181,7 +182,7 @@ end
 
 function max_dt(u, t, mesh, constant_speed, semi, equations, solver, cache,
                 volume_integral::AbstractVolumeIntegral, bar_states)
-    if volume_integral isa VolumeIntegralAdaptive && bar_states
+    if volume_integral isa VolumeIntegralAdaptive && bar_states == true
         error("`bar_states=true` is currently not supported in combination with the adaptive volume integral.")
     end
     max_dt(u, t, mesh, constant_speed, equations, solver, cache)
@@ -192,10 +193,10 @@ end
                         volume_integral::VolumeIntegralSubcellLimiting,
                         bar_states)
     @unpack limiter = volume_integral
-    if bar_states && limiter.bar_states
+    if bar_states == true && limiter.bar_states == true
         return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
                       limiter)
-    elseif bar_states && !limiter.bar_states
+    elseif bar_states == true && limiter.bar_states != true
         error("The `StepsizeCallback` was configured with `bar_states = true`, but the `VolumeIntegralSubcellLimiting` in the solver is configured with `bar_states = false`. The time step size will be computed without considering the subcell limiting, which may lead to instabilities. To fix this, either set `bar_states = false` in the `StepsizeCallback` or set `bar_states = true` in the `VolumeIntegralSubcellLimiting`.")
     else
         return max_dt(u, t, mesh, constant_speed, equations, solver, cache)

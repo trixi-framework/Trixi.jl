@@ -532,7 +532,7 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    if !limiter.bar_states
+    if limiter.bar_states == false
         calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
     end
 
@@ -596,7 +596,7 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
-    if !limiter.bar_states
+    if limiter.bar_states == false
         calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
     end
 

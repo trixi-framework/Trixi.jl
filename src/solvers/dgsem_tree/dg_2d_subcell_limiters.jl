@@ -970,7 +970,7 @@ end
                                           have_nonconservative_terms, equations,
                                           limiter, dg, cache, boundary_conditions;
                                           calc_bar_states = true)
-    if !limiter.bar_states
+    if limiter.bar_states == false
         return nothing
     end
     (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
@@ -1349,7 +1349,7 @@ end
 
 @inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations,
                                        limiter::SubcellLimiterIDP, dg, cache)
-    if !limiter.bar_states
+    if limiter.bar_states == false
         return nothing
     end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients

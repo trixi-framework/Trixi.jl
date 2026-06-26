@@ -45,7 +45,7 @@ end
     (; contravariant_vectors) = cache.elements
     (; lambda1, lambda2, bar_states1, bar_states2) = limiter.cache.container_bar_states
 
-    if !limiter.bar_states
+    if limiter.bar_states == false
         return nothing
     end
 

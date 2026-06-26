@@ -438,7 +438,7 @@ end
                                           have_nonconservative_terms, equations,
                                           limiter, dg, cache, boundary_conditions;
                                           calc_bar_states = true)
-    if !limiter.bar_states
+    if limiter.bar_states == false
         return nothing
     end
 
