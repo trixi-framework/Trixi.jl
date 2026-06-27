@@ -267,6 +267,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
 
+    #begin new thing
+
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
     length_level_0 = mesh.tree.length_level_0
@@ -331,6 +333,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                mesh_vertices_y,
                                orientation_x, orientation_y)
 end
+
+#end new thing
 
 """
     PlotData2D(sol; kwargs...)

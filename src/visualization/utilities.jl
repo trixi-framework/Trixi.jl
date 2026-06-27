@@ -1406,6 +1406,8 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
+    #begin new thing
+
     # Bypasses polynomial interpolation. Projects cell areas from continuous space to matrix slices.
     if n_nodes_in == 1
         res_x = Int(resolution[1])
@@ -1472,6 +1474,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
         return structured
     end
+    #end new thing
 
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
