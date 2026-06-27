@@ -542,8 +542,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, element)
+            isone(alpha[i, j, element]) && continue # Skip if alpha is already 1 (no limiting needed)
+
             var = u[variable, i, j, element]
             # Real Zalesak type limiter
             #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -570,6 +570,8 @@ end
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
 
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
@@ -607,6 +609,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for j in eachnode(dg), i in eachnode(dg)
+            isone(alpha[i, j, element]) && continue # Skip if alpha is already 1 (no limiting needed)
+
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
             u_local = get_node_vars(u, equations, dg, i, j, element)
@@ -641,8 +645,6 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, element)
             var = u[variable, i, j, element]
             if var < 0
                 error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
@@ -657,6 +659,8 @@ end
                 continue
             end
             var_min[i, j, element] = positivity_correction_factor * var
+
+            isone(alpha[i, j, element]) && continue # Skip if alpha is already 1 (no limiting needed)
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -678,6 +682,9 @@ end
 
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
             Pm = inverse_jacobian * Pm
 
             # Compute blending coefficient avoiding division by zero
@@ -747,6 +754,7 @@ end
     (; gamma_constant_newton) = limiter
 
     indices = (i, j, element)
+    isone(alpha[indices...]) && return # Skip if alpha is already 1 (no limiting needed)
 
     # negative xi direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
@@ -857,6 +865,8 @@ end
     var_max = variable_bounds[Symbol(variable_string, "_max")]
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
@@ -1078,6 +1088,8 @@ end
     (; gamma_constant_newton) = limiter
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
@@ -1246,6 +1258,8 @@ end
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
@@ -1434,6 +1448,8 @@ end
     (; gamma_constant_newton) = limiter
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
