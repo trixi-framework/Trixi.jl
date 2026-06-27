@@ -1449,23 +1449,23 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
             y_max_cont = cy + cell_width / 2
 
             # Map physical space linearly into the pixel resolution bounds
-            ix_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) +
+            i_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) +
                        1
-            ix_end = ceil(Int, (x_max_cont - x_min_domain) / domain_width * res_x)
+            i_end = ceil(Int, (x_max_cont - x_min_domain) / domain_width * res_x)
 
-            iy_start = floor(Int, (y_min_cont - y_min_domain) / domain_height * res_y) +
+            j_start = floor(Int, (y_min_cont - y_min_domain) / domain_height * res_y) +
                        1
-            iy_end = ceil(Int, (y_max_cont - y_min_domain) / domain_height * res_y)
+            j_end = ceil(Int, (y_max_cont - y_min_domain) / domain_height * res_y)
 
             # Clamp bounds to protect against edge precision errors
-            ix_start = clamp(ix_start, 1, res_x)
-            ix_end = clamp(ix_end, 1, res_x)
-            iy_start = clamp(iy_start, 1, res_y)
-            iy_end = clamp(iy_end, 1, res_y)
+            i_start = clamp(i_start, 1, res_x)
+            i_end = clamp(i_end, 1, res_x)
+            j_start = clamp(j_start, 1, res_y)
+            j_end = clamp(j_end, 1, res_y)
 
-            # Slice row index first (iy) and column index second (ix)
+            # Slice row index first (j) and column index second (i)
             for v in 1:n_variables
-                structured[v][iy_start:iy_end, ix_start:ix_end] .= unstructured_data[1,
+                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1,
                                                                                      1,
                                                                                      element_id,
                                                                                      v]
