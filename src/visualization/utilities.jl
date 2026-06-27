@@ -284,9 +284,8 @@ function digest_solution_variables(equations, solution_variables::Nothing)
 end
 
 digest_variable_names(solution_variables_, equations, variable_names) = variable_names
-digest_variable_names(solution_variables_, equations,
-                      ::Nothing) = SVector(varnames(solution_variables_,
-                                                    equations))
+digest_variable_names(solution_variables_, equations, ::Nothing) = SVector(varnames(solution_variables_,
+                                                                                    equations))
 
 """
     adapt_to_mesh_level!(u_ode, semi, level)
@@ -378,10 +377,10 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
 
     if ndims == 3
         (unstructured_data, coordinates, levels,
-         center_level_0) = unstructured_3d_to_2d(unstructured_data,
-                                                 coordinates, levels, length_level_0,
-                                                 center_level_0, slice,
-                                                 point)
+        center_level_0) = unstructured_3d_to_2d(unstructured_data,
+                                                coordinates, levels, length_level_0,
+                                                center_level_0, slice,
+                                                point)
     end
 
     # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
@@ -778,10 +777,10 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes,
         # Interpolate to each node of new 1D element.
         for v in 1:n_variables
             for node in 1:n_nodes_in
-                new_unstructured_data[node, new_id,
-                                      v] = (vandermonde * unstructured_data[node, :,
-                                                                            element_id,
-                                                                            v])[1]
+                new_unstructured_data[node, new_id, v] = (vandermonde * unstructured_data[node,
+                                                                                          :,
+                                                                                          element_id,
+                                                                                          v])[1]
             end
         end
 
@@ -1371,18 +1370,16 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes,
         for v in 1:n_variables
             for i in 1:n_nodes_in
                 for ii in 1:n_nodes_in
-                    temp_unstructured_data[i, ii, new_id,
-                                           v] = (vandermonde_ii * unstructured_data[ii,
-                                                                                    :,
-                                                                                    i,
-                                                                                    element_id,
-                                                                                    v])[1]
+                    temp_unstructured_data[i, ii, new_id, v] = (vandermonde_ii * unstructured_data[ii,
+                                                                                                   :,
+                                                                                                   i,
+                                                                                                   element_id,
+                                                                                                   v])[1]
                 end
-                new_unstructured_data[i, new_id,
-                                      v] = (vandermonde_i * temp_unstructured_data[i,
-                                                                                   :,
-                                                                                   new_id,
-                                                                                   v])[1]
+                new_unstructured_data[i, new_id, v] = (vandermonde_i * temp_unstructured_data[i,
+                                                                                              :,
+                                                                                              new_id,
+                                                                                              v])[1]
             end
         end
 
@@ -1471,7 +1468,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
         return structured
     end
-    #end new thing
+    #end new Thing
 
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
@@ -1492,8 +1489,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
                                      nvisnodes_per_level)
 
     # Create output data structure
-    structured = [Matrix{Float64}(undef, resolution[1], resolution[2])
-                  for _ in 1:n_variables]
+    structured = [Matrix{Float64}(undef, resolution, resolution) for _ in 1:n_variables]
 
     # For each variable, interpolate element data and store to global data structure
     for v in 1:n_variables
@@ -1512,13 +1508,13 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
             # Interpolate data
             vandermonde = vandermonde_per_level[level + 1]
-            structured[v][first[1]:last[1],
-                          first[2]:last[2]] .= (reshape(multiply_dimensionwise(vandermonde,
-                                                                               reshaped_data[:,
-                                                                                             :,
-                                                                                             :,
-                                                                                             element_id]),
-                                                        n_nodes_out, n_nodes_out))
+            structured[v][first[1]:last[1], first[2]:last[2]] .= (reshape(multiply_dimensionwise(vandermonde,
+                                                                                                 reshaped_data[:,
+                                                                                                               :,
+                                                                                                               :,
+                                                                                                               element_id]),
+                                                                          n_nodes_out,
+                                                                          n_nodes_out))
         end
     end
 
