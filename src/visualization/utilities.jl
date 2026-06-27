@@ -779,8 +779,7 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes,
         for v in 1:n_variables
             for node in 1:n_nodes_in
                 new_unstructured_data[node, new_id,
-                                      v] = (vandermonde * unstructured_data[node,
-                                                                            :,
+                                      v] = (vandermonde * unstructured_data[node, :,
                                                                             element_id,
                                                                             v])[1]
             end
@@ -1519,8 +1518,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
                                                                                              :,
                                                                                              :,
                                                                                              element_id]),
-                                                        n_nodes_out,
-                                                        n_nodes_out))
+                                                        n_nodes_out, n_nodes_out))
         end
     end
 
