@@ -1,21 +1,9 @@
-module TestExamplesDGMulti3D
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_3d")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "DGMulti 3D" begin
-#! format: noindent
+@testsnippet DGMulti3D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_3d")
+end
 
 # 3d tet/hex tests
-@trixi_testset "elixir_euler_weakform.jl" begin
+@testitem "DGMulti3D: elixir_euler_weakform.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         l2=[
                             0.000354593110864001, 0.00041301573702385284,
@@ -32,7 +20,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (EC)" begin
+@testitem "DGMulti3D: elixir_euler_weakform.jl (EC)" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         surface_integral=SurfaceIntegralWeakForm(flux_ranocha),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -56,7 +44,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (Hexahedral elements)" begin
+@testitem "DGMulti3D: elixir_euler_weakform.jl (Hexahedral elements)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         element_type=Hex(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
@@ -80,7 +71,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" begin
+@testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         l2=[
                             0.0019393929700612259,
@@ -101,7 +95,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" begin
+@testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         approximation_type=GaussSBP(),
                         l2=[
@@ -119,7 +116,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         l2=[
                             0.00036475807571383924, 0.00043404536371780537,
@@ -136,7 +133,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (Hexahedral elements)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         element_type=Hex(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
@@ -160,7 +160,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (Hexahedral elements, SBP, EC)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (Hexahedral elements, SBP, EC)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         element_type=Hex(),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -186,7 +189,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_taylor_green_vortex.jl" begin
+@testitem "DGMulti3D: elixir_euler_taylor_green_vortex.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
                         polydeg=3, tspan=(0.0, 1.0), cells_per_dimension=(2, 2, 2),
                         l2=[
@@ -208,7 +211,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_taylor_green_vortex.jl (GaussSBP)" begin
+@testitem "DGMulti3D: elixir_euler_taylor_green_vortex.jl (GaussSBP)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
                         polydeg=3, approximation_type=GaussSBP(), tspan=(0.0, 1.0),
                         cells_per_dimension=(2, 2, 2),
@@ -231,7 +237,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (FD SBP)" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
@@ -261,7 +267,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl (FD SBP, EC)" begin
+@testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (FD SBP, EC)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
@@ -293,7 +302,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+@testitem "DGMulti3D: elixir_euler_fdsbp_periodic.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         N=8,
                         l2=[
@@ -326,7 +335,7 @@ end
     ] rtol=1.0e-12
 end
 
-@trixi_testset "elixir_advection_tensor_wedge.jl" begin
+@testitem "DGMulti3D: elixir_advection_tensor_wedge.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
                         l2=[0.00023048791012406786],
                         linf=[0.0006317952824828055])
@@ -340,7 +349,10 @@ end
                                          RealT = Float64)
 end
 
-@trixi_testset "elixir_advection_tensor_wedge.jl (scalar polydeg)" begin
+@testitem "DGMulti3D: elixir_advection_tensor_wedge.jl (scalar polydeg)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
                         polydeg=3,
                         l2=[0.0002332063232167919],
@@ -356,7 +368,10 @@ end
                                          RealT = Float64)
 end
 
-@trixi_testset "elixir_euler_shockcapturing.jl (Hex, GaussSBP)" begin
+@testitem "DGMulti3D: elixir_euler_shockcapturing.jl (Hex, GaussSBP)" setup=[
+    Setup,
+    DGMulti3D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
                         l2=[1.33894396e-02, 7.62751979e-03, 7.62751979e-03,
@@ -367,9 +382,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-
-end # module

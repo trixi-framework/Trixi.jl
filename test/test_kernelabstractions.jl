@@ -312,7 +312,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -358,7 +361,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
