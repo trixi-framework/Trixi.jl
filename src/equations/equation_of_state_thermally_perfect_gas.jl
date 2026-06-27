@@ -92,15 +92,29 @@ function ThermallyPerfectGas9PolyFit(;
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas9PolyFit)
-    N = length(eos.temperature_bounds) - 1
     # Fetch temperature interval index for a given temperature to select the correct polynomial coefficients.
-    # `clamp` ensures that even for temperatures outside the provided bounds,
-    # a valid index is returned to prevent a bounds error.
-    return clamp(searchsortedlast(eos.temperature_bounds, T), 1, N)
+    temp_index = searchsortedlast(eos.temperature_bounds, T)
+    n_intervals = length(eos.temperature_bounds) - 1
+
+    if temp_index == 0
+        # T is below the lowest temperature bound, use the first interval
+        @warn "Temperature $T is below the lowest temperature bound $(eos.temperature_bounds[1]). Using the first interval."
+        return 1
+    elseif temp_index > n_intervals
+        # T is above the highest temperature bound, use the last interval
+        @warn "Temperature $T is above the highest temperature bound $(eos.temperature_bounds[end]). Using the last interval."
+        return n_intervals
+    else
+        return temp_index
+    end
 end
 
-# Returns c_p(T)/R_universal.
-# See e.g. https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf eq. (1)
+@doc raw"""
+    cp_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
+
+Returns `` \frac{c_p(T)}{R_\text{universal}} \: .``
+See eq. (1) in https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf
+"""
 @inline function cp_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -117,8 +131,12 @@ end
            a[6, idx] * T3 + a[7, idx] * T4
 end
 
-# Returns h(T)/(T * R_universal).
-# See e.g. https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf eq (2)
+@doc raw"""
+    h_molar_over_TR_universal(T, eos::ThermallyPerfectGas9PolyFit)
+
+Returns ``\frac{h^\circ(T)}{T \cdot R_\text{universal}} \: .``
+See eq. (2) in https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf
+"""
 @inline function h_molar_over_TR_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -135,8 +153,12 @@ end
            (a[6, idx] / 4) * T3 + (a[7, idx] / 5) * T4 + a[8, idx] * Tinv
 end
 
-# Returns s(T, V)/(R_universal).
-# See e.g. https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf eq (3)
+@doc raw"""
+    s_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
+
+Returns ``\frac{s^\circ(T)}{R_\text{universal}} \: .``
+See eq. (3) in https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf
+"""
 @inline function s_molar_over_R_universal(T, eos::ThermallyPerfectGas9PolyFit)
     a = eos.coefficients
 
@@ -153,6 +175,15 @@ end
            (a[6, idx] / 3) * T3 + 0.25f0 * a[7, idx] * T4 + a[9, idx]
 end
 
+@doc raw"""
+    pressure(V, T, eos::ThermallyPerfectGas9PolyFit)
+
+Compute the pressure for a thermally perfect gas with NASA 9-coefficient polynomial data
+from the ideal gas relation
+```math
+p = R_\text{specific} \frac{T}{V}
+```
+"""
 @inline function pressure(V, T, eos::ThermallyPerfectGas9PolyFit)
     # Ideal gas relation
     return eos.R_specific * T / V
@@ -170,7 +201,17 @@ end
     return heat_capacity_constant_pressure(V, T, eos) - eos.R_specific
 end
 
+@doc raw"""
+    energy_internal_specific(V, T, eos::ThermallyPerfectGas9PolyFit)
+
+Computes specific internal energy for a thermally perfect gas with NASA 9-coefficient polynomial data
+using the ideal gas relation
+``e_{\text{internal}} = h(T) - R_{\text{specific}} T``.
+"""
 @inline function energy_internal_specific(V, T, eos::ThermallyPerfectGas9PolyFit)
+    # Note that h is molar, so to convert to mass-specific we need to divide by the molar mass M.
+    # This is achieved by multiplying with R_specific = R_universal / M, since
+    # h_molar_over_TR_universal(T, eos) returns h_molar / (T * R_universal).
     return eos.R_specific * T * (h_molar_over_TR_universal(T, eos) - 1)
 end
 
