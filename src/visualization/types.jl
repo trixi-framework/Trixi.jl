@@ -267,8 +267,6 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
 
-    #begin new thing
-
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
     length_level_0 = mesh.tree.length_level_0
@@ -311,20 +309,20 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
         mesh_vertices_x = Float64[]
         mesh_vertices_y = Float64[]
+    
     else
-        x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
-                                                                   length_level_0,
-                                                                   leaf_cell_ids,
-                                                                   coordinates, levels,
-                                                                   ndims(mesh),
-                                                                   unstructured_data,
-                                                                   nnodes(solver),
-                                                                   grid_lines,
-                                                                   max_supported_level,
-                                                                   nvisnodes,
-                                                                   slice, point)
-    end
 
+    x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
+                                                               length_level_0,
+                                                               leaf_cell_ids,
+                                                               coordinates, levels,
+                                                               ndims(mesh),
+                                                               unstructured_data,
+                                                               nnodes(solver),
+                                                               grid_lines,
+                                                               max_supported_level,
+                                                               nvisnodes,
+                                                               slice, point)
     variable_names = SVector(varnames(solution_variables_, equations))
 
     orientation_x, orientation_y = _get_orientations(mesh, slice)
@@ -333,8 +331,6 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                mesh_vertices_y,
                                orientation_x, orientation_y)
 end
-
-#end new thing
 
 """
     PlotData2D(sol; kwargs...)
@@ -728,20 +724,18 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
 end
 
 # unwrap u if it is VectorOfArray
-PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache;
-           kwargs...) = PlotData1D(parent(u),
-                                   mesh,
-                                   equations,
-                                   dg,
-                                   cache;
-                                   kwargs...)
-PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache;
-           kwargs...) = PlotData2D(parent(u),
-                                   mesh,
-                                   equations,
-                                   dg,
-                                   cache;
-                                   kwargs...)
+PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             cache;
+                                                                                             kwargs...)
+PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) = PlotData2D(parent(u),
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             cache;
+                                                                                             kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
