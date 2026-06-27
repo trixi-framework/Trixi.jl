@@ -391,8 +391,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, k, element)
+            isone(alpha[i, j, k, element]) && continue # Skip if alpha is already 1 (no limiting needed)
+
             var = u[variable, i, j, k, element]
             # Real Zalesak type limiter
             #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -415,16 +415,18 @@ end
                                   antidiffusive_flux2_L[variable, i, j + 1, k, element]
             val_flux3_local = inverse_weights[k] *
                               antidiffusive_flux3_R[variable, i, j, k, element]
-            val_flux3_local_jp1 = -inverse_weights[k] *
+            val_flux3_local_kp1 = -inverse_weights[k] *
                                   antidiffusive_flux3_L[variable, i, j, k + 1, element]
 
             Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
                  max(0, val_flux2_local) + max(0, val_flux2_local_jp1) +
-                 max(0, val_flux3_local) + max(0, val_flux3_local_jp1)
+                 max(0, val_flux3_local) + max(0, val_flux3_local_kp1)
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1) +
-                 min(0, val_flux3_local) + min(0, val_flux3_local_jp1)
+                 min(0, val_flux3_local) + min(0, val_flux3_local_kp1)
 
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, k, element)
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
@@ -461,6 +463,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            isone(alpha[i, j, k, element]) && continue # Skip if alpha is already 1 (no limiting needed)
+
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -496,8 +500,6 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, k, element)
             var = u[variable, i, j, k, element]
             if var < 0
                 error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
@@ -512,6 +514,8 @@ end
                 continue
             end
             var_min[i, j, k, element] = positivity_correction_factor * var
+
+            isone(alpha[i, j, k, element]) && continue # Skip if alpha is already 1 (no limiting needed)
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -538,6 +542,9 @@ end
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1) +
                  min(0, val_flux3_local) + min(0, val_flux3_local_jp1)
+
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, k, element)
             Pm = inverse_jacobian * Pm
 
             # Compute blending coefficient avoiding division by zero
@@ -609,6 +616,7 @@ end
     (; gamma_constant_newton) = limiter
 
     indices = (i, j, k, element)
+    isone(alpha[indices...]) && return # Skip if alpha is already 1 (no limiting needed)
 
     # negative xi direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
