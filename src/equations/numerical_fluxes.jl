@@ -626,6 +626,7 @@ end
 # By default the turbo flux has the same number of precomputed variables
 # as the number of variables.
 @inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
+@inline nturbovars(conservative_flux, nonconservative_flux, equations) = Val(nvariables(equations))
 
 # Transform the conserved variables in precomputed auxiliary variables to speed up the computation
 # of the numerical flux. When no specialization is given, this gives cons2cons.
