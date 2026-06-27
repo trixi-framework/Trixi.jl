@@ -140,20 +140,12 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 8000)
 end
 
-# TODO (TestItems.jl migration): This test uses typed reference values
-# (`l2 = Double64[...]`). `TrixiTest`'s `@test_trixi_include_base` splices the
-# `l2`/`linf` reference values into its comparison loop *unescaped*, so the bare
-# `Double64` is resolved in the `TrixiTest` module instead of this test item and
-# errors with `UndefVarError: Double64 not defined in TrixiTest`. The legacy
-# `@trixi_testset` masked this because it imported `Double64` into the same
-# temporary module that evaluated the comparison. Re-enable once `TrixiTest`
-# escapes those reference values (or another fix is agreed upon).
-# @testitem "elixir_advection_doublefloat.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
-#     using DoubleFloats: Double64
-#     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_doublefloat.jl"),
-#                         l2=Double64[6.80895929885700039832943251427357703e-11],
-#                         linf=Double64[5.82834770064525291688100323411704252e-10])
-#     # Ensure that we do not have excessive memory allocations
-#     # (e.g., from type instabilities)
-#     @test_allocations(Trixi.rhs!, semi, sol, 1000)
-# end
+@testitem "elixir_advection_doublefloat.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
+    using DoubleFloats: Double64
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_doublefloat.jl"),
+                        l2=Double64[6.80895929885700039832943251427357703e-11],
+                        linf=Double64[5.82834770064525291688100323411704252e-10])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
