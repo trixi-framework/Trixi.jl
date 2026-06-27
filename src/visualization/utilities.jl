@@ -1449,12 +1449,10 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
             y_max_cont = cy + cell_width / 2
 
             # Map physical space linearly into the pixel resolution bounds
-            i_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) +
-                      1
+            i_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) + 1
             i_end = ceil(Int, (x_max_cont - x_min_domain) / domain_width * res_x)
 
-            j_start = floor(Int, (y_min_cont - y_min_domain) / domain_height * res_y) +
-                      1
+            j_start = floor(Int, (y_min_cont - y_min_domain) / domain_height * res_y) + 1
             j_end = ceil(Int, (y_max_cont - y_min_domain) / domain_height * res_y)
 
             # Clamp bounds to protect against edge precision errors
@@ -1465,10 +1463,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
             # Slice row index first (j) and column index second (i)
             for v in 1:n_variables
-                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1,
-                                                                                 1,
-                                                                                 element_id,
-                                                                                 v]
+                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1, 1, element_id, v]
             end
         end
 
