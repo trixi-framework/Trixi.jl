@@ -39,7 +39,8 @@ if !IN_WORKER
     atexit(clean_outdir)
 end
 
-target_tag(suite) = suite == "threaded_legacy" ? :threaded : Symbol(suite)
+# `threaded_legacy` and `downgrade` both reuse the `:threaded` items.
+target_tag(suite) = suite in ("threaded_legacy", "downgrade") ? :threaded : Symbol(suite)
 
 # Special suites this (parent) invocation will dispatch into their own processes.
 const SUITES_TO_DISPATCH = if IN_WORKER
