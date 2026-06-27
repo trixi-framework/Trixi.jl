@@ -10,6 +10,33 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
+    # Check in reinterpolation is specified - for cases like first order Finite Volume, this is not desired.
+    reinterpolate = hasproperty(plot_data, :reinterpolate) && plot_data.reinterpolate
+
+    # Convert centers to edges to prevent heatmap from clipping boundary cells.
+    if !reinterpolate
+        dx = (x[end] - x[begin]) / (length(x) - 1)
+        dy = (y[end] - y[begin]) / (length(y) - 1)
+
+        y_edges = collect(range(y[begin] - dy / 2, y[end] + dy / 2,
+                                length = length(y) + 1))
+        x_edges = collect(range(x[begin] - dx / 2, x[end] + dx / 2,
+                                length = length(x) + 1))
+
+        xlims --> (x_edges[begin], x_edges[end])
+        ylims --> (y_edges[begin], y_edges[end])
+        aspect_ratio --> :equal
+
+        legend --> :none
+        title --> variable_names[variable_id]
+        colorbar --> :true
+        xguide --> _get_guide(orientation_x)
+        yguide --> _get_guide(orientation_y)
+        seriestype --> :heatmap
+
+        return x_edges, y_edges, data[variable_id]
+    end
+
     # Set geometric properties
     xlims --> (x[begin], x[end])
     ylims --> (y[begin], y[end])
