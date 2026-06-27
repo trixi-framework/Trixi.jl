@@ -136,10 +136,14 @@ end
     See also [`Trixi.set_log_type!`](@ref).
     """
     @inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
-    @inline log(x::AbstractSIMD) = ifelse(x < zero(x), oftype(x, NaN), Base.log(x))
     @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
     @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
     @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
+
+    # This is required for performance specializations like `FluxTurbo`.
+    # The LoopVectorization.jl ecosystem does not throw an error but
+    # already creates `NaN`s.
+    @inline log(x::AbstractSIMD) = Base.log(x)
 end
 
 """
@@ -206,6 +210,7 @@ Given ε = 1.0e-4, we use the following algorithm.
     end
 end
 
+# This is required for performance specializations like `FluxTurbo`.
 @inline function ln_mean(x::AbstractSIMD, y::AbstractSIMD)
     RealT = eltype(x)
     epsilon_f2 = convert(RealT, 1.0e-4)
@@ -245,6 +250,7 @@ multiplication.
     end
 end
 
+# This is required for performance specializations like `FluxTurbo`.
 @inline function inv_ln_mean(x::AbstractSIMD, y::AbstractSIMD)
     RealT = eltype(x)
     epsilon_f2 = convert(RealT, 1.0e-4)

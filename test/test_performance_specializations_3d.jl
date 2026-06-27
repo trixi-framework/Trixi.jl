@@ -173,11 +173,11 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, FluxVolumeTurbo(flux_ranocha)" begin
+@timed_testset "StructuredMesh3D, FluxTurbo(flux_ranocha)" begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
-                  volume_flux = Trixi.FluxVolumeTurbo(flux_ranocha),
+                  volume_flux = FluxTurbo(flux_ranocha),
                   surface_flux = flux_ranocha)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
@@ -189,15 +189,15 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version 
+        # Call the optimized version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, :, 1]
+        du_specialized = copy(du[:, :, :, :, 1])
 
-        # Call the plain version 
+        # Call the plain version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -208,11 +208,11 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, FluxVolumeTurbo(flux_shima_etal)" begin
+@timed_testset "StructuredMesh3D, FluxTurbo(flux_shima_etal)" begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
-                  volume_flux = Trixi.FluxVolumeTurbo(flux_shima_etal),
+                  volume_flux = FluxTurbo(flux_shima_etal),
                   surface_flux = flux_shima_etal)
     u_ode = copy(sol.u[end])
     du_ode = zero(u_ode)
@@ -224,15 +224,15 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version 
+        # Call the optimized version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
-        du_specialized = du[:, :, :, :, 1]
+        du_specialized = copy(du[:, :, :, :, 1])
 
-        # Call the plain version 
+        # Call the plain version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -241,6 +241,25 @@ end
 
         @test du_specialized ≈ du_baseline
     end
+end
+
+# Test fallback method for mesh and type that are not supported
+@timed_testset "TreeMesh1D, fallback call FluxTurbo(flux_chandrashekar)" begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                           "elixir_euler_modified_sod.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_chandrashekar),
+                  RealT = BigFloat)
+    u_ode = copy(sol.u[end])
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                           "elixir_euler_modified_sod.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_chandrashekar)),
+                  RealT = BigFloat)
+    u_ode_specialized = copy(sol.u[end])
+
+    @test u_ode_specialized ≈ u_ode
 end
 
 @timed_testset "P4estMesh3D, combine_conservative_and_nonconservative_fluxes" begin
