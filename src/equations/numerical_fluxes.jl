@@ -603,6 +603,18 @@ See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi
 """
 struct FluxTurbo{NumericalFlux}
     numerical_flux::NumericalFlux
+    function FluxTurbo{NumericalFlux}(numerical_flux) where {NumericalFlux}
+        return new{NumericalFlux}(numerical_flux)
+    end
+end
+
+function FluxTurbo(numerical_flux)
+    return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
+end
+
+function FluxTurbo(flux_conservative, flux_nonconservative)
+    numerical_flux = (flux_conservative, flux_nonconservative)
+    return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
 end
 
 # As a fallback method, the wrapped flux is called.
@@ -639,6 +651,24 @@ end
                                turbovars_and_normals_and_equations[end - 2],
                                turbovars_and_normals_and_equations[end - 1])
     return numerical_flux(u_ll, u_rr, normal_direction, equations)
+end
+
+@inline function flux_turbo(numerical_flux, have_nonconservative_terms::True,
+                            aux_and_normals_and_equations...)
+    @unpack flux_conservative, flux_nonconservative = numerical_flux
+    equations = last(aux_and_normals_and_equations)
+    n = nvariables(equations)
+    u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> aux_and_normals_and_equations[n + v], Val(n)))
+    normal_direction = SVector(aux_and_normals_and_equations[end - 3],
+                               aux_and_normals_and_equations[end - 2],
+                               aux_and_normals_and_equations[end - 1])
+    flux = flux_conservative(u_ll, u_rr, normal_direction, equations)
+    noncons_left = flux_nonconservative(u_ll, u_rr, normal_direction, equations)
+    noncons_right = flux_nonconservative(u_rr, u_ll, normal_direction, equations)
+    flux_left = flux + 0.5f0 * noncons_left
+    flux_right = flux + 0.5f0 * noncons_right
+    return flux_left, flux_right
 end
 
 # Allow LoopVectorization.jl to use SIMD instructions on volume_flux_turbo and cons2turbo
