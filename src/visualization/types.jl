@@ -276,8 +276,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
-    
-    # For 1 node per cell, we use a finite volume method and want to visualize
+
+                                              # For 1 node per cell, we use a finite volume method and want to visualize
     # cell mean values as piecewise constant solution instead of point values.
     # Thus, we map unstructured data directly to a uniform structured matrix matching the max mesh level.
     if nnodes(solver) == 1 && ndims(mesh) == 2
