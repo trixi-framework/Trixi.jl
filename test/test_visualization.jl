@@ -1129,24 +1129,41 @@ end
     @trixi_test_nowarn Trixi.iplot(sol)
 end
 
-@timed_testset "PlotData2D Finite Volume (polydeg = 0)" begin
-    mesh = TreeMesh(coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
-                    initial_refinement_level = 2, n_cells_max = 100)
-    equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
+@timed_testset "PlotData2D Finite Volume (polydeg = 0) Examples" begin
+    @testset "FV with AMR" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                     "elixir_advection_amr.jl"),
+                            polydeg=0)
+        pd_amr = PlotData2DCartesian(sol)
+        @test pd_amr isa Trixi.PlotData2DCartesian
+        @test_nowarn Plots.plot(pd_amr)
+    end
 
-    solver = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
+    @testset "DG with no AMR" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                     "elixir_advection_basic.jl"),
+                            initial_refinement_level=1)
+        pd_basic = PlotData2DCartesian(sol)
+        @test pd_basic isa Trixi.PlotData2DCartesian
+        @test_nowarn Plots.plot(pd_basic)
+    end
 
-    initial_condition = (x, t, eq) -> StaticArrays.SVector(0.0)
+    @testset "FV with no AMR" begin
+        equations_fv = LinearScalarAdvectionEquation2D(1.0, 1.0)
+        ic_fv = (x, t, eq) -> StaticArrays.SVector(sinpi(x[1]) * sinpi(x[2]))
+        solver_fv = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
+        mesh_fv = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max = 10000,
+                           initial_refinement_level = 2, periodicity = true)
 
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
-    ode = semidiscretize(semi, (0.0, 0.1))
+        semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, ic_fv, solver_fv)
 
-    pd = PlotData2DCartesian(ode.u0, semi)
+        pd_fv = PlotData2DCartesian(semi_fv.ode_values.u0, semi_fv)
+        @test pd_fv isa Trixi.PlotData2DCartesian
+        @test_nowarn Plots.plot(pd_fv)
 
-    @test pd isa Trixi.PlotData2DCartesian
-    @test length(pd.x) == 2^2
-
-    @test_nowarn Plots.plot(pd)
+        @test size(pd_fv.data[1]) == (4, 4)
+        @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
+    end
 end
 end
 
