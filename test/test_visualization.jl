@@ -1134,7 +1134,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_amr.jl"),
                         polydeg=0)
-    pd_amr = PlotData2DCartesian(sol)
+    pd_amr = Trixi.PlotData2DCartesian(sol)
     @test pd_amr isa Trixi.PlotData2DCartesian
     @test !isempty(pd_amr.data)
 
@@ -1142,7 +1142,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         initial_refinement_level=1)
-    pd_basic = PlotData2DCartesian(sol)
+    pd_basic = Trixi.PlotData2DCartesian(sol)
     @test pd_basic isa Trixi.PlotData2DCartesian
     @test !isempty(pd_basic.data)
 
@@ -1156,7 +1156,7 @@ end
     semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, ic_fv, solver_fv)
     ode_fv = semidiscretize(semi_fv, (0.0, 0.1))
 
-    pd_fv = PlotData2DCartesian(ode_fv.u0, semi_fv)
+    pd_fv = Trixi.PlotData2DCartesian(ode_fv.u0, semi_fv)
     @test pd_fv isa Trixi.PlotData2DCartesian
     @test size(pd_fv.data[1]) == (4, 4)
     @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
