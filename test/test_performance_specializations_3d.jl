@@ -301,6 +301,23 @@ end
     end
 end
 
+# Test nonconservative system fallback method for mesh and type that are not supported
+@timed_testset "TreeMesh2D, fallback call FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" begin
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                           "elixir_mhd_ec.jl"))
+    u_ode = copy(sol.u[end])
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                           "elixir_mhd_ec.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_hindenlang_gassner,
+                                                                             flux_nonconservative_powell)))
+    u_ode_specialized = copy(sol.u[end])
+
+    @test u_ode_specialized ≈ u_ode
+end
+
 @timed_testset "P4estMesh3D, combine_conservative_and_nonconservative_fluxes" begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",

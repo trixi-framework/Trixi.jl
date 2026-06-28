@@ -636,7 +636,7 @@ end
 @inline function flux_fallback_turbo(numerical_flux, u_ll, u_rr,
                                      orientation_or_normal_direction,
                                      equations, have_nonconservative_terms::True)
-    @unpack flux_conservative, flux_nonconservative = numerical_flux
+    flux_conservative, flux_nonconservative = numerical_flux
     flux = flux_conservative(u_ll, u_rr, normal_direction, equations)
     noncons_left = flux_nonconservative(u_ll, u_rr, normal_direction, equations)
     noncons_right = flux_nonconservative(u_rr, u_ll, normal_direction, equations)
@@ -678,7 +678,7 @@ end
 
 @inline function flux_turbo(numerical_flux, have_nonconservative_terms::True,
                             aux_and_normals_and_equations...)
-    @unpack flux_conservative, flux_nonconservative = numerical_flux
+    flux_conservative, flux_nonconservative = numerical_flux
     equations = last(aux_and_normals_and_equations)
     n = nvariables(equations)
     u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
