@@ -1130,41 +1130,36 @@ end
 end
 
 @timed_testset "PlotData2D Finite Volume (polydeg = 0) Examples" begin
-    @testset "FV with AMR" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                     "elixir_advection_amr.jl"),
-                            polydeg=0)
-        pd_amr = PlotData2DCartesian(sol)
-        #@test pd_amr isa Trixi.PlotData2DCartesian
-        @test !isempty(pd_amr.data)
-    end
+    # FV with AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_amr.jl"),
+                        polydeg=0)
+    pd_amr = PlotData2DCartesian(sol)
+    @test pd_amr isa Trixi.PlotData2DCartesian
+    @test !isempty(pd_amr.data)
 
-    @testset "DG with no AMR" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
-                                     "elixir_advection_basic.jl"),
-                            initial_refinement_level=1)
-        pd_basic = PlotData2DCartesian(sol)
-        #@test pd_basic isa Trixi.PlotData2DCartesian
-        @test !isempty(pd_basic.data)
-    end
+    # DG with no AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"),
+                        initial_refinement_level=1)
+    pd_basic = PlotData2DCartesian(sol)
+    @test pd_basic isa Trixi.PlotData2DCartesian
+    @test !isempty(pd_basic.data)
 
-    @testset "FV with no AMR" begin
-        equations_fv = LinearScalarAdvectionEquation2D(1.0, 1.0)
-        ic_fv = (x, t, eq) -> StaticArrays.SVector(sinpi(x[1]) * sinpi(x[2]))
-        solver_fv = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
-        mesh_fv = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max = 10000,
-                           initial_refinement_level = 2, periodicity = true)
+    # FV with no AMR
+    equations_fv = LinearScalarAdvectionEquation2D(1.0, 1.0)
+    ic_fv = (x, t, eq) -> StaticArrays.SVector(sinpi(x[1]) * sinpi(x[2]))
+    solver_fv = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
+    mesh_fv = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max = 10000,
+                       initial_refinement_level = 2, periodicity = true)
 
-        semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, ic_fv, solver_fv)
-        ode_fv = semidiscretize(semi_fv, (0.0, 0.1))
+    semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, ic_fv, solver_fv)
+    ode_fv = semidiscretize(semi_fv, (0.0, 0.1))
 
-        pd_fv = PlotData2DCartesian(ode_fv.u0, semi_fv)
-        #@test pd_fv isa Trixi.PlotData2DCartesian
-
-        #@test size(pd_fv.data[1]) == (4, 4)
-        @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
-    end
+    pd_fv = PlotData2DCartesian(ode_fv.u0, semi_fv)
+    @test pd_fv isa Trixi.PlotData2DCartesian
+    @test size(pd_fv.data[1]) == (4, 4)
+    @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
 end
+
 end
 
 end #module
