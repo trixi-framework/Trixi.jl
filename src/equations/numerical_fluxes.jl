@@ -603,13 +603,6 @@ See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi
 """
 struct FluxTurbo{NumericalFlux}
     numerical_flux::NumericalFlux
-    function FluxTurbo{NumericalFlux}(numerical_flux) where {NumericalFlux}
-        return new{NumericalFlux}(numerical_flux)
-    end
-end
-
-function FluxTurbo(numerical_flux)
-    return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
 end
 
 function FluxTurbo(flux_conservative, flux_nonconservative)
