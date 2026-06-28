@@ -613,8 +613,7 @@ end
 # As a fallback method, the wrapped flux is called.
 @inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
                                 equations)
-    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction,
-                            equations)
+    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 # By default the turbo flux has the same number of precomputed variables
