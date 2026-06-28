@@ -610,32 +610,13 @@ function FluxTurbo(flux_conservative, flux_nonconservative)
     return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
 end
 
-@inline combine_conservative_and_nonconservative_fluxes(::FluxTurbo, equations) = Trixi.True()
+#@inline combine_conservative_and_nonconservative_fluxes(::FluxTurbo, equations) = Trixi.True()
 
 # As a fallback method, the wrapped flux is called.
 @inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
                                 equations)
-    flux_fallback_turbo(f, u_ll, u_rr, orientation_or_normal_direction, equations,
-                        have_nonconservative_terms(equations))
-end
-
-@inline function flux_fallback_turbo(numerical_flux, u_ll, u_rr,
-                                     orientation_or_normal_direction,
-                                     equations, have_nonconservative_terms::False)
     return numerical_flux.numerical_flux(u_ll, u_rr, orientation_or_normal_direction,
                                          equations)
-end
-
-@inline function flux_fallback_turbo(numerical_flux, u_ll, u_rr,
-                                     orientation_or_normal_direction,
-                                     equations, have_nonconservative_terms::True)
-    flux_conservative, flux_nonconservative = numerical_flux
-    flux = flux_conservative(u_ll, u_rr, normal_direction, equations)
-    noncons_left = flux_nonconservative(u_ll, u_rr, normal_direction, equations)
-    noncons_right = flux_nonconservative(u_rr, u_ll, normal_direction, equations)
-    flux_left = flux + 0.5f0 * noncons_left
-    flux_right = flux + 0.5f0 * noncons_right
-    return flux_left, flux_right
 end
 
 # By default the turbo flux has the same number of precomputed variables
