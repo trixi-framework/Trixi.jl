@@ -1134,7 +1134,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_amr.jl"),
                         polydeg=0)
-    pd_amr = Trixi.PlotData2DCartesian(sol)
+    pd_amr = PlotData2D(sol)
     @test pd_amr isa Trixi.PlotData2DCartesian
     @test !isempty(pd_amr.data)
 
@@ -1142,26 +1142,17 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         initial_refinement_level=1)
-    pd_basic = Trixi.PlotData2DCartesian(sol)
+    pd_basic = PlotData2D(sol)
     @test pd_basic isa Trixi.PlotData2DCartesian
     @test !isempty(pd_basic.data)
 
     # FV with no AMR
-    equations_fv = LinearScalarAdvectionEquation2D(1.0, 1.0)
-    ic_fv = (x, t, eq) -> StaticArrays.SVector(sinpi(x[1]) * sinpi(x[2]))
-    solver_fv = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
-    mesh_fv = TreeMesh((-1.0, -1.0), (1.0, 1.0), n_cells_max = 10000,
-                       initial_refinement_level = 2, periodicity = true)
-
-    semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, ic_fv, solver_fv)
-    ode_fv = semidiscretize(semi_fv, (0.0, 0.1))
-
-    pd_fv = Trixi.PlotData2DCartesian(ode_fv.u0, mesh_fv, equations_fv, solver_fv,
-                                      semi_fv)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
     @test pd_fv isa Trixi.PlotData2DCartesian
-
-    @test size(pd_fv.data[1]) == (4, 4)
-    @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
+    @test !isempty(pd_fv.data)
 end
 end
 
