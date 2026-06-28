@@ -620,7 +620,6 @@ end
 # By default the turbo flux has the same number of precomputed variables
 # as the number of variables.
 @inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
-@inline nturbovars(conservative_flux, nonconservative_flux, equations) = Val(nvariables(equations))
 
 # Transform the conserved variables in precomputed auxiliary variables to speed up the computation
 # of the numerical flux. When no specialization is given, this gives cons2cons.
@@ -649,15 +648,15 @@ end
 end
 
 @inline function flux_turbo(numerical_flux, have_nonconservative_terms::True,
-                            aux_and_normals_and_equations...)
+                            turbovars_and_normals_and_equations...)
     flux_conservative, flux_nonconservative = numerical_flux
-    equations = last(aux_and_normals_and_equations)
+    equations = last(turbovars_and_normals_and_equations)
     n = nvariables(equations)
-    u_ll = SVector(ntuple(v -> aux_and_normals_and_equations[v], Val(n)))
-    u_rr = SVector(ntuple(v -> aux_and_normals_and_equations[n + v], Val(n)))
-    normal_direction = SVector(aux_and_normals_and_equations[end - 3],
-                               aux_and_normals_and_equations[end - 2],
-                               aux_and_normals_and_equations[end - 1])
+    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(n)))
+    normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
+                               turbovars_and_normals_and_equations[end - 2],
+                               turbovars_and_normals_and_equations[end - 1])
     flux = flux_conservative(u_ll, u_rr, normal_direction, equations)
     noncons_left = flux_nonconservative(u_ll, u_rr, normal_direction, equations)
     noncons_right = flux_nonconservative(u_rr, u_ll, normal_direction, equations)

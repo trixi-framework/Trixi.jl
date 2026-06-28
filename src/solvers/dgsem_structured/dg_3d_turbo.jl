@@ -269,8 +269,8 @@ end
     @unpack numerical_flux = volume_flux
     flux_differencing_kernel_turbo!(_du, u_cons, element, MeshT, have_nonconservative_terms,
                                     equations,
-                                    volume_flux, dg, cache, alpha,
-                                    nturbovars(numerical_flux..., equations),
+                                    numerical_flux, dg, cache, alpha,
+                                    nturbovars(numerical_flux, equations),
                                     Val(nvariables(equations)))
 end
 
@@ -280,7 +280,7 @@ end
                                                                         P4estMesh{3}}},
                                                     have_nonconservative_terms::True,
                                                     equations,
-                                                    volume_flux,
+                                                    numerical_flux,
                                                     dg, cache, alpha, ::Val{NAUX},
                                                     ::Val{NVARS}) where {NAUX, NVARS}
     # Per-node scalars used inside the `@turbo` loops, e.g. `u_prim_ll_1 = rho_ll`,
@@ -295,14 +295,14 @@ end
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
     cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
     cons2turbo_ = Expr(:(=), Expr(:tuple, [Symbol(:u_prim_, v) for v in 1:NAUX]...),
-                       :(cons2turbo(volume_flux, $(cons_reads...),
+                       :(cons2turbo(numerical_flux, $(cons_reads...),
                                     equations)))
     cons2turbo_writes = [:(u_prim[i, j, k, $v] = $(Symbol(:u_prim_, v))) for v in 1:NAUX]
 
     # Evaluate the two-point volume flux
     flux_call = Expr(:(=),
                      Expr(:tuple, Expr(:tuple, flux_left...), Expr(:tuple, flux_right...)),
-                     :(flux_turbo(volume_flux,
+                     :(flux_turbo(numerical_flux,
                                   $(u_prim_ll...),
                                   $(u_prim_rr...),
                                   normal_direction_1, normal_direction_2,
