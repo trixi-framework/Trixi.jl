@@ -316,7 +316,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     else
     
-    #end new thing
+        #end new thing
     
         x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
                                                                    length_level_0,
