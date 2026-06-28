@@ -278,9 +278,9 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                               solver, cache)
 
     #begin new thing
-    
+
     variable_names = SVector(varnames(solution_variables_, equations))
-    
+
     # For 1 node per cell, we use a finite volume method and want to visualize
     # cell mean values as piecewise constant solution instead of point values.
     # Thus, we map unstructured data directly to a uniform structured matrix matching the max mesh level.
@@ -315,9 +315,9 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
         mesh_vertices_y = Float64[]
 
     else
-    
+
         #end new thing
-    
+
         x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
                                                                    length_level_0,
                                                                    leaf_cell_ids,
@@ -330,7 +330,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                                                    nvisnodes,
                                                                    slice, point)
 
-    #begin new thing
+        #begin new thing
     end
     #end new thing
     orientation_x, orientation_y = _get_orientations(mesh, slice)
