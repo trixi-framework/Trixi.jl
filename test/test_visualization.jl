@@ -1156,8 +1156,10 @@ end
     semi_fv = SemidiscretizationHyperbolic(mesh_fv, equations_fv, ic_fv, solver_fv)
     ode_fv = semidiscretize(semi_fv, (0.0, 0.1))
 
-    pd_fv = Trixi.PlotData2DCartesian(ode_fv.u0, semi_fv)
+    pd_fv = Trixi.PlotData2DCartesian(ode_fv.u0, mesh_fv, equations_fv, solver_fv,
+                                      semi_fv)
     @test pd_fv isa Trixi.PlotData2DCartesian
+
     @test size(pd_fv.data[1]) == (4, 4)
     @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
 end
