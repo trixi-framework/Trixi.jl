@@ -1147,6 +1147,7 @@ end
         @test length(pd.x) == 2^2
         
         @test_nowarn Plots.plot(pd)
-    end
+end
+end
 
 end #module
