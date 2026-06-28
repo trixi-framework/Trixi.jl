@@ -1136,7 +1136,9 @@ end
         
         solver = DGSEM(polydeg=0, surface_flux=flux_lax_friedrichs)
         
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+        initial_condition = (x, t, eq) -> StaticArrays.SVector(0.0)
+        
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
         ode = semidiscretize(semi, (0.0, 0.1))
         
         pd = PlotData2DCartesian(ode.u0, semi)
@@ -1144,9 +1146,7 @@ end
         @test pd isa Trixi.PlotData2DCartesian
         @test length(pd.x) == 2^2
         
-        @test_nowarn plot(pd)
+        @test_nowarn Plots.plot(pd)
     end
-
-end
 
 end #module
