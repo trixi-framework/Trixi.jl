@@ -610,8 +610,6 @@ function FluxTurbo(flux_conservative, flux_nonconservative)
     return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
 end
 
-#@inline combine_conservative_and_nonconservative_fluxes(::FluxTurbo, equations) = Trixi.True()
-
 # As a fallback method, the wrapped flux is called.
 @inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
                                 equations)
