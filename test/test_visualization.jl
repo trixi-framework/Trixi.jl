@@ -1130,11 +1130,11 @@ end
 end
 
 @timed_testset "PlotData2D Finite Volume (polydeg = 0)" begin
-    mesh = TreeMesh(coordinates_min=(-1.0, -1.0), coordinates_max=(1.0, 1.0),
-                    initial_refinement_level=2, n_cells_max=100)
+    mesh = TreeMesh(coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                    initial_refinement_level = 2, n_cells_max = 100)
     equations = LinearScalarAdvectionEquation2D(1.0, 1.0)
 
-    solver = DGSEM(polydeg=0, surface_flux=flux_lax_friedrichs)
+    solver = DGSEM(polydeg = 0, surface_flux = flux_lax_friedrichs)
 
     initial_condition = (x, t, eq) -> StaticArrays.SVector(0.0)
 
