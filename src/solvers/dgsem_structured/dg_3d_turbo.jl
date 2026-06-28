@@ -368,8 +368,8 @@ end
 
         # Convert conserved to auxiliary variables and store them in `u_prim`.
         @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            $cons2aux
-            $(cons2aux_writes...)
+            $cons2turbo_
+            $(cons2turbo_writes...)
         end
 
         # x direction
