@@ -1131,14 +1131,16 @@ end
 
 @timed_testset "PlotData2D Finite Volume (polydeg = 0) Examples" begin
     # FV with AMR
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_amr.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_amr.jl"),
                         polydeg=0)
     pd_amr = PlotData2DCartesian(sol)
     @test pd_amr isa Trixi.PlotData2DCartesian
     @test !isempty(pd_amr.data)
 
     # DG with no AMR
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_advection_basic.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
                         initial_refinement_level=1)
     pd_basic = PlotData2DCartesian(sol)
     @test pd_basic isa Trixi.PlotData2DCartesian
@@ -1159,7 +1161,6 @@ end
     @test size(pd_fv.data[1]) == (4, 4)
     @test pd_fv.data[1][1, 1] ≈ -0.5 * sinpi(0.25)
 end
-
 end
 
 end #module
