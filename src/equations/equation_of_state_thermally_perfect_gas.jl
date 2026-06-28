@@ -1,12 +1,15 @@
 @doc raw"""
-    ThermallyPerfectGas9PolyFit{R_specific, TemperatureBounds, Coefficients} <: AbstractThermallyPerfectGas
+    ThermallyPerfectGas9PolyFit{R_specific,
+    TemperatureBounds,
+    Coefficients,
+    P_Ref, T_Ref} <: AbstractThermallyPerfectGas
 
-Thermally perfect ideal gas equation of state with ideal gas pressure relation
+Thermally perfect gas with ideal gas relation
 ```math
 p = \rho R_specific T = \frac{R_specific T}{V}
 ```
-and non-constant, only temperature-dependent heat capacities represented by piecewise NASA 9-coefficient
-polynomials, see
+and non-constant, but only temperature-dependent heat capacities ``c_p(T), c_v(T)``
+represented by piecewise NASA 9-coefficient polynomials, see
 - McBride, Zehe, Gordon (2002).
   NASA Glenn Coefficients for Calculating Thermodynamic Properties of Individual Species.
   [URL](https://ntrs.nasa.gov/citations/20020085330) [PDF](https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf)
@@ -24,6 +27,9 @@ Fields:
 - `temperature_bounds`: interval boundaries with length `N + 1`
 - `coefficients`: 9 NASA coefficients per interval, stored column-wise, i.e.,
 the dimensions of `coefficients` are `(9, N)` where `N` is the number of temperature intervals.
+- `p_ref`: Reference pressure for the entropy calculation, usually 1 bar = 100000 Pa.
+- `T_ref`: Reference temperature for the entropy calculation, usually 298.15 K.
+Also used as `eos_initial_temperature` for the Newton iteration to find the temperature.
 """
 struct ThermallyPerfectGas9PolyFit{R_specific <: Real,
                                    TemperatureBounds <: AbstractVector,
@@ -59,11 +65,11 @@ end
 
 """
     ThermallyPerfectGas9PolyFit(;
-    R_specific = 287.0509010514002,
-    temperature_bounds = SVector(200.0, 1000.0, 6000.0),
-    coefficients = coefficients_air_9polyfit(temperature_bounds),
-    p_ref = 100000.0,
-    T_ref = 298.15)
+                                R_specific = 287.0509010514002,
+                                temperature_bounds = SVector(200.0, 1000.0, 6000.0),
+                                coefficients = coefficients_air_9polyfit(temperature_bounds),
+                                p_ref = 100000.0,
+                                T_ref = 298.15)
 
 Construct a [`ThermallyPerfectGas9PolyFit`](@ref) equation of state with NASA 9-coefficient polynomial data.
 The default values correspond to air, see
@@ -89,6 +95,27 @@ function ThermallyPerfectGas9PolyFit(;
                                                                      temperature_bounds,
                                                                      coefficients,
                                                                      p_ref, T_ref)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eos::ThermallyPerfectGas9PolyFit, ::Type{NewRealT}) where {NewRealT}
+    R_specific_conv = convert(NewRealT, eos.R_specific)
+    temperature_bounds_conv = convert.(NewRealT, eos.temperature_bounds)
+    coefficients_conv = convert.(NewRealT, eos.coefficients)
+    p_ref_conv = convert(NewRealT, eos.p_ref)
+    T_ref_conv = convert(NewRealT, eos.T_ref)
+
+    return ThermallyPerfectGas9PolyFit{NewRealT,
+                                       typeof(temperature_bounds_conv),
+                                       typeof(coefficients_conv),
+                                       NewRealT, NewRealT}(R_specific_conv,
+                                                           temperature_bounds_conv,
+                                                           coefficients_conv,
+                                                           p_ref_conv,
+                                                           T_ref_conv)
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas9PolyFit)
