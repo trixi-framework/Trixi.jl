@@ -87,13 +87,6 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-# For Gauss-Lobatto-Legendre (GLL) nodes, interface normals are computed on-the-fly
-# during flux evaluation and do not need dedicated storage in the interface container.
-function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
-                                 basis::LobattoLegendreBasis, elements)
-    return nothing
-end
-
 # For Gauss-Legendre (GL) nodes, the interface normals are
 # computed from interpolation of the volume node normals to the surface nodes.
 function init_normal_directions!(interfaces::P4estInterfaceContainer{2},
@@ -222,6 +215,69 @@ end
     end
 
     return boundaries
+end
+
+function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer{2},
+                                         basis::GaussLegendreBasis, elements)
+    @unpack boundary_interpolation = basis
+    @unpack node_coordinates = elements
+    index_range = eachnode(basis)
+
+    for boundary in eachindex(boundaries.neighbor_ids)
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        if i_node_step == 0
+            # i is the normal direction (constant), j varies along the surface
+            # => Interpolate in first/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[1])
+            # Loop over face/surface/boundary nodes
+            for i in eachnode(basis)
+                for orientation in 1:2
+                    x_boundary = zero(eltype(boundaries.node_coordinates))
+                    # Interpolation loop
+                    for ii in eachnode(basis)
+                        x_boundary = (x_boundary +
+                                      node_coordinates[orientation, ii, j_node,
+                                                       element] *
+                                      boundary_interpolation[ii, side])
+                    end
+                    boundaries.node_coordinates[orientation, i, boundary] = x_boundary
+                end
+                # incrementing j_node suffices (i_node_step = 0)
+                j_node += j_node_step
+            end
+        else # j_node_step == 0
+            # j is the normal direction (constant), i varies along the surface
+            # => Interpolate in second/normal direction
+            # Interpolation side is governed by element orientation
+            side = interpolation_side(node_indices[2])
+            # Loop over face/surface/boundary nodes
+            for i in eachnode(basis)
+                for orientation in 1:2
+                    x_boundary = zero(eltype(boundaries.node_coordinates))
+                    # Interpolation loop
+                    for jj in eachnode(basis)
+                        x_boundary = (x_boundary +
+                                      node_coordinates[orientation, i_node, jj,
+                                                       element] *
+                                      boundary_interpolation[jj, side])
+                    end
+                    boundaries.node_coordinates[orientation, i, boundary] = x_boundary
+                end
+                # incrementing i_node suffices (j_node_step = 0)
+                i_node += i_node_step
+            end
+        end
+    end
+
+    return nothing
 end
 
 # Initialize node_indices of mortar container
