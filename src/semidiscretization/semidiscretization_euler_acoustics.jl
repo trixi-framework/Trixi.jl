@@ -176,10 +176,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
 
     time_start = time_ns()
 
-    backend = trixi_backend(u_ode)
-
-    @trixi_timeit timer() "acoustics rhs!" rhs!(backend, du_ode, u_ode, semi_acoustics,
-                                                t)
+    @trixi_timeit timer() "acoustics rhs!" rhs!(du_ode, u_ode, semi_acoustics, t)
 
     @trixi_timeit timer() "add acoustic source terms" begin
         add_acoustic_source_terms!(du_acoustics, acoustic_source_terms,
