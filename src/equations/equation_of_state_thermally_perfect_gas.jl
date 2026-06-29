@@ -24,7 +24,8 @@ The corresponding enthalpy and entropy are obtained by integrating `c_p(T)` and
 Fields:
 - `R_specific`: specific gas constant, i.e, ``R_\text{universal} / M`` where ``M`` is the molar mass of the gas.
   The molar mass is usually provided with the NASA polynomial data.
-- `temperature_bounds`: interval boundaries with length `N + 1`
+- `temperature_bounds`: interval boundaries with length `N + 1`.
+  In case the supplied temperature is outside the bounds, the closest interval is used.
 - `coefficients`: 9 NASA coefficients per interval, stored column-wise, i.e.,
 the dimensions of `coefficients` are `(9, N)` where `N` is the number of temperature intervals.
 - `p_ref`: Reference pressure for the entropy calculation, usually 1 bar = 100000 Pa.
@@ -121,19 +122,8 @@ end
 @inline function temperature_interval(T, eos::ThermallyPerfectGas9PolyFit)
     # Fetch temperature interval index for a given temperature to select the correct polynomial coefficients.
     temp_index = searchsortedlast(eos.temperature_bounds, T)
-    n_intervals = length(eos.temperature_bounds) - 1
-
-    if temp_index == 0
-        # T is below the lowest temperature bound, use the first interval
-        @warn "Temperature $T is below the lowest temperature bound $(eos.temperature_bounds[1]). Using the first interval."
-        return 1
-    elseif temp_index > n_intervals
-        # T is above the highest temperature bound, use the last interval
-        @warn "Temperature $T is above the highest temperature bound $(eos.temperature_bounds[end]). Using the last interval."
-        return n_intervals
-    else
-        return temp_index
-    end
+    # If temperature outside bounds: Use the closest interval, i.e., the first or last interval.
+    return clamp(temp_index, 1, length(eos.temperature_bounds) - 1)
 end
 
 @doc raw"""
