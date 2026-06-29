@@ -25,7 +25,8 @@ Fields:
 - `R_specific`: specific gas constant, i.e, ``R_\text{universal} / M`` where ``M`` is the molar mass of the gas.
   The molar mass is usually provided with the NASA polynomial data.
 - `temperature_bounds`: interval boundaries with length `N + 1`.
-  In case the supplied temperature is outside the bounds, the closest interval is used.
+!!! note
+    In case the supplied temperature is outside the bounds, the closest interval is used.
 - `coefficients`: 9 NASA coefficients per interval, stored column-wise, i.e.,
 the dimensions of `coefficients` are `(9, N)` where `N` is the number of temperature intervals.
 - `p_ref`: Reference pressure for the entropy calculation, usually 1 bar = 100000 Pa.
