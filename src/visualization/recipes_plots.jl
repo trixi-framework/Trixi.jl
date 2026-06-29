@@ -13,11 +13,11 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
     # Check in reinterpolation is specified - for cases like first order Finite Volume, this is not desired.
-    #reinterpolate = hasproperty(plot_data, :reinterpolate) && plot_data.reinterpolate
-    reinterpolate = getproperty(plot_data, :reinterpolate, true) #this is true when plot_data has an argument :reinterpolate which is true. And its true by default for old stuff that doensnt have an argument :reintterpolate. Its false when :reinterpolate is false
+    reinterpolate = hasproperty(plot_data, :reinterpolate) && plot_data.reinterpolate
+    #reinterpolate = getproperty(plot_data, :reinterpolate, true) #this is true when plot_data has an argument :reinterpolate which is true. And its true by default for old stuff that doensnt have an argument :reintterpolate. Its false when :reinterpolate is false
 
     # Convert centers to edges to prevent heatmap from clipping boundary cells.
-    if !reinterpolate # since reinterpolate is false for new stuff where :reinterpolate is false, only that case enters the if loop 
+    if !reinterpolate # outdated explanation for reinterpolate = getproperty(plot_data, :reinterpolate, true) "since reinterpolate is false for new stuff where :reinterpolate is false, only that case enters the if loop" 
         dx = (x[end] - x[begin]) / (length(x) - 1)
         dy = (y[end] - y[begin]) / (length(y) - 1)
 
