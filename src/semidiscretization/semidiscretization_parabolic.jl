@@ -220,7 +220,8 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     backend = trixi_backend(u)
 
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(backend, du, u, t, mesh,
+    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(backend, du, u, t,
+                                                                      mesh,
                                                                       equations,
                                                                       boundary_conditions,
                                                                       source_terms,

@@ -507,7 +507,8 @@ function calc_surface_integral_gradient!(gradients,
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(backend::Nothing, gradients, u_transformed, t, mesh::TreeMesh{1},
+function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
+                        mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
 

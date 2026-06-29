@@ -47,7 +47,6 @@ function rhs!(backend::Backend, du, u, t,
                             dg.surface_integral, dg)
     end
 
-
     # Calculate surface integrals
     @trixi_timeit_ext backend timer() "surface integral" begin
         calc_surface_integral!(backend, du, u, mesh, equations,
