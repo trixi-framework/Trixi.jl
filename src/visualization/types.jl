@@ -277,7 +277,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
 
-    #begin new thing
+    #WIP Plot fv 2d for issue #2998 (Magalie) begin
 
     variable_names = SVector(varnames(solution_variables_, equations))
 
@@ -316,7 +316,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     else
 
-        #end new thing
+        #WIP Plot fv 2d for issue #2998 (Magalie) end
 
         x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
                                                                    length_level_0,
@@ -330,9 +330,9 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                                                    nvisnodes,
                                                                    slice, point)
 
-        #begin new thing
+        #WIP Plot fv 2d for issue #2998 (Magalie) begin
     end
-    #end new thing
+    #WIP Plot fv 2d for issue #2998 (Magalie) end
     orientation_x, orientation_y = _get_orientations(mesh, slice)
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,

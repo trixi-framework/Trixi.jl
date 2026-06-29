@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-#begin new thing
+#WIP Plot fv 2d for issue #2998 (Magalie) begin
 
 # Visualize a single variable in a 2D plot (default: heatmap)
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
@@ -59,7 +59,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     return x, y, data[variable_id]
 end
 
-#end new thing
+#WIP Plot fv 2d for issue #2998 (Magalie) end
 
 # Visualize the mesh in a 2D plot
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
