@@ -196,7 +196,8 @@ function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! stiff" rhs!(du, u, t, mesh, equations_stiff,
+    backend = trixi_backend(u)
+    @trixi_timeit timer() "rhs! stiff" rhs!(backend, du, u, t, mesh, equations_stiff,
                                             boundary_conditions_stiff,
                                             source_terms_stiff,
                                             solver_stiff,
@@ -216,7 +217,8 @@ function rhs_nonstiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! nonstiff" rhs!(du, u, t, mesh, equations_nonstiff,
+    backend = trixi_backend(u)
+    @trixi_timeit timer() "rhs! nonstiff" rhs!(backend, du, u, t, mesh, equations_nonstiff,
                                                boundary_conditions_nonstiff,
                                                source_terms_nonstiff,
                                                solver_nonstiff,

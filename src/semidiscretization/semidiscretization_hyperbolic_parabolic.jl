@@ -373,7 +373,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "rhs!" rhs!(du, u, t, mesh, equations,
+    @trixi_timeit_ext backend timer() "rhs!" rhs!(backend, du, u, t, mesh, equations,
                                                   boundary_conditions, source_terms,
                                                   solver, cache)
     runtime = time_ns() - time_start
@@ -391,7 +391,7 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
+    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(backend, du, u, t, mesh,
                                                                       equations_parabolic,
                                                                       boundary_conditions_parabolic,
                                                                       source_terms_parabolic,

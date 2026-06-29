@@ -4,14 +4,13 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent    
-function rhs_parabolic!(du, u, t,
+function rhs_parabolic!(backend::Nothing, du, u, t,
                         mesh::P4estMeshParallel{2},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
-    backend = trixi_backend(u_transformed)
 
     # Start gradient MPI receive
     @trixi_timeit timer() "start MPI receive gradient" begin
@@ -45,7 +44,7 @@ function rhs_parabolic!(du, u, t,
 
     # Local gradient computation
     @trixi_timeit timer() "calculate gradient local" begin
-        calc_gradient_local!(gradients, u_transformed, t, mesh,
+        calc_gradient_local!(backend, gradients, u_transformed, t, mesh,
                              equations_parabolic, boundary_conditions_parabolic,
                              dg, parabolic_scheme, cache)
     end
@@ -226,11 +225,10 @@ function calc_mortars_local!(cache, flux_parabolic,
     return nothing
 end
 
-function calc_gradient_local!(gradients, u_transformed, t,
+function calc_gradient_local!(backend::Nothing, gradients, u_transformed, t,
                               mesh::P4estMeshParallel{2},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
-    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin

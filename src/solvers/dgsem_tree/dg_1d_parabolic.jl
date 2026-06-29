@@ -28,13 +28,12 @@ end
 #               2. compute f(u, grad(u))
 #               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
+function rhs_parabolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
-    backend = trixi_backend(u_transformed)
 
     # Convert conservative variables to a form more suitable for parabolic flux calculations
     @trixi_timeit timer() "transform variables" begin
@@ -44,7 +43,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
+        calc_gradient!(backend, gradients, u_transformed, t, mesh, equations_parabolic,
                        boundary_conditions_parabolic, dg,
                        parabolic_scheme, cache)
     end
@@ -508,10 +507,9 @@ function calc_surface_integral_gradient!(gradients,
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
+function calc_gradient!(backend::Nothing, gradients, u_transformed, t, mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
-    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
