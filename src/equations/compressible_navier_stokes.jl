@@ -168,88 +168,62 @@ if the diffusion term is linear in the variables/constant.
 
 """
     RadiativeEquilibrium
- 
-Marker type analogous to `Trixi.Isothermal` / `Trixi.Adiabatic`, to be used as
-the temperature-BC slot of `BoundaryConditionNavierStokesWall`:
- 
-    BoundaryConditionNavierStokesWall(NoSlip(velocity_fn),
-                                       RadiativeEquilibrium(eps, sigma, dist_fn))
- 
-    # with a nonzero far-field/background temperature:
-    BoundaryConditionNavierStokesWall(NoSlip(velocity_fn),
-                                       RadiativeEquilibrium(eps, sigma, dist_fn;
-                                                             T_far_field = 300.0))
- 
-`emissivity`, `stefan_boltzmann`, and `T_far_field` may each be `Real` or
-callables `(x, t, equations) -> Real`, to allow spatially/temporally varying
-values. The radiative balance solved is
- 
-    k(T_w) * (T_inner - T_w) / delta  =  eps * sigma * (T_w^4 - T_far_field^4)
- 
-`T_far_field = 0` recovers the "neglect far-field" case.
 """
-struct RadiativeEquilibrium{Emissivity <: Real,
-                            TempWall <: Real,
-                            TempFarfield <: Real,
-                            StefanBoltzmannConst <: Real}
-    emissivity::Emissivity
-    temp_wall::TempWall
+struct RadiativeEquilibrium{TempFarfield <: Real,
+                            EpsTimesSigma <: Real}
     temp_farfield::TempFarfield
-    stefan_boltzmann_const::StefanBoltzmannConst
+    eps_times_sigma::EpsTimesSigma
 end
 
 """
     RadiativeEquilibrium(;
                          emissivity = 1.0,
                          T_far_field = 0.0f0,
-                         T_wall = 0.0f0,
                          stefan_boltzmann = 5.670374419f-8)
 """
 function RadiativeEquilibrium(;
                               emissivity = 1.0,
-                              T_far_field = 0.0f0, T_wall = 0.0f0,
+                              T_far_field = 0.0f0,
                               stefan_boltzmann = 5.670374419f-8)
-    return RadiativeEquilibrium{typeof(emissivity),
-                                typeof(T_far_field), typeof(T_wall),
-                                typeof(stefan_boltzmann)}(emissivity,
-                                                          T_far_field, T_wall,
-                                                          stefan_boltzmann)
+    eps_times_sigma = emissivity * stefan_boltzmann
+
+    return RadiativeEquilibrium{typeof(T_far_field),
+                                typeof(eps_times_sigma)}(T_far_field,
+                                eps_times_sigma)
 end
 
 @inline function solve_radiative_equilibrium_temperature(T_inner, normal_heat_flux,
-                                                         rad_bc)
+                                                         rad_eq_bc, equations)
+    @unpack eps_times_sigma = rad_eq_bc
+    @unpack kappa = equations
+    T_far4 = rad_eq_bc.temp_farfield^4
 
-    # TODO: Reconstruct h on-the fly from flux_inner?
-    #h = rad_bc.conv_heat_transfer_coefficient
-    # This approach uses the old wall temperature to compute the convective heat transfer coefficient
-    T_wall = rad_bc.temp_wall
-    h = normal_heat_flux / (T_wall - T_inner)
+    # Initialize wall temperature from `normal_heat_flux`
+    T_wall = (normal_heat_flux / eps_times_sigma + T_far4)^(1/4)
 
-    eps = rad_bc.emissivity
-    sigma = rad_bc.stefan_boltzmann_const
+    #=
     rel_tol = 1e-8 # TODO: Make field of BC
-
-    T_far4 = rad_bc.temp_farfield^4
-
     for _ in 1:max_iter
         T_wall_3 = T_wall^3
 
-        q_cond = h * (T_inner - T_wall)
-        q_rad = eps * sigma * (T_wall_3 * T_wall - T_far4)
+        # TODO: Need dx for temperature gradient and conductive heat flux
+        q_cond = kappa * (T_inner - T_wall)
+        q_rad = eps_times_sigma * (T_wall_3 * T_wall - T_far4)
         q_diff = q_cond - q_rad
 
-        dq_cond_dT = -h
-        dq_rad_dT = 4 * eps * sigma * T_wall_3
+        dq_cond_dT = -kappa
+        dq_rad_dT = 4 * eps_times_sigma * T_wall_3
         dq_diff_dT = dq_cond_dT - dq_rad_dT
 
         dT = -q_diff / dq_diff_dT
-        rad_bc.temp_wall += dT
+        rad_eq_bc.temp_wall += dT
         T_wall = max(T_wall, 1)
 
         if abs(dT) < rel_tol * max(T_wall, 1)
             break
         end
     end
+    =#
 
     return T_wall
 end
