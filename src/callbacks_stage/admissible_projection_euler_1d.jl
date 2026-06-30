@@ -1,3 +1,30 @@
+# The main algorithm in this file is `project_to_admissible_set`, which is based on the 
+# algorithm in Appendix B.2 of Liu, Milesis, Shu, Zhang (2026). `project_to_admissible_set`
+# takes an arbitrary state and returns the closest state in the admissible set (e.g., which 
+# satisfies rho >= rho_floor and rho_e >= rho_e_floor). If a state is admissible, the 
+# projection just returns the state itself. 
+#
+# The projection is done by minimizing the ℓ² distance to the input state subject to admissibility 
+# constraints. The minimizer is unique and can be determined by forming the Lagrangian and using 
+# the KKT conditions. The algorithm itself enumerates all possible candidate states that satisfy 
+# the KKT conditions and returns the one that has the smallest ℓ² distance to the input state. 
+# 
+# The candidate states correspond to mu = 0 or mu > 0, and lambda = 0 or lambda > 0, where 
+# mu and lambda are Lagrange multipliers corresponding to the two admissibility constraints. 
+# This results in 4 cases, each generating 1 or more candidate states:
+#   • μ = 0, λ = 0 — no candidate; return u if admissible
+#   • μ = 0, λ > 0  — up to 1 candidate (ρ pinned to ρ_floor)
+#   • μ > 0, λ > 0  — up to 1 (momentum ≈ 0) or ≤ 3 (cubic in momentum) candidates
+#   • μ > 0, λ = 0  — up to 1 (momentum ≈ 0) or ≤ 4 (ρ/momentum root pairs) candidates
+# Branches are separate `if` blocks and may all contribute candidates. The current best candidate 
+# is updated by `update_best_candidate!`, and after all cases are considered, a candidate 
+# is returned if one was found.
+#
+# If no candidate was found, we throw an error. In the examples tested, this has typically 
+# corresponded to either NaN input values or extreme catastrophic cancellation (e.g., if 
+# internal energy is extremely small but kinetic and total energy are very large), and has 
+# been due to issues independent of the projection algorithm.  
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
