@@ -1,4 +1,4 @@
-module TestExamplesThreads
+module TestExamplesBaseThreads
 
 using Test
 using Trixi
@@ -51,7 +51,6 @@ end
     # Threads.@threads :static has more overhead than Polyester's @batch
     @test_allocations(Trixi.rhs!, semi, sol, 50_000)
 end
-
 end # testset
 
 # Clean up afterwards: delete Trixi.jl output directory

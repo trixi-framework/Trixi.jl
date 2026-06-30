@@ -163,7 +163,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         previous_backend = Trixi._PREFERENCE_THREADING
         Trixi.set_threading_backend!(:static)
         try
-            run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes $(abspath("test_threads.jl"))`)
+            run(`$(Base.julia_cmd()) --threads=$TRIXI_NTHREADS --check-bounds=yes $(abspath("test_base_threads.jl"))`)
         finally
             Trixi.set_threading_backend!(Symbol(previous_backend))
         end
