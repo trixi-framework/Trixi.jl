@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations3D(5 / 3)
 
 initial_condition = initial_condition_weak_blast_wave
 
-boundary_conditions = Dict(:all => boundary_condition_slip_wall)
+boundary_conditions = (; all = boundary_condition_slip_wall)
 
 # Get the DG approximation space
 
@@ -52,7 +52,7 @@ mesh = P4estMesh{3}(mesh_file, polydeg = 5,
 
 # create the semidiscretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -84,5 +84,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

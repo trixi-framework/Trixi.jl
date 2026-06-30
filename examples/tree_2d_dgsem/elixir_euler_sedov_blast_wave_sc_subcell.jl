@@ -21,11 +21,9 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 
     # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
     r0 = 0.21875f0 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    # r0 = 0.5 # = more reasonable setup
     E = 1
     p0_inner = 3 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0^2)
     p0_outer = convert(RealT, 1.0e-5) # = true Sedov setup
-    # p0_outer = 1.0e-3 # = more reasonable setup
 
     # Calculate primitive variables
     rho = 1
@@ -58,15 +56,17 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -101,5 +101,5 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
 # `interval` is used when calling this elixir in the tests with `save_errors=true`.
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

@@ -186,6 +186,16 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        7.770967315541477e-35,
+        8.808347042794627e-33,
+        0.12307995980341144,
+        0.001913513967052981,
+        1.424996168880913e-5,
+        3.8935136212048387e-7
+    ] rtol=1.0e-12
 end
 
 @trixi_testset "elixir_euler_shockcapturing.jl" begin
@@ -474,6 +484,95 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_sedov_blast_weak_form_sc.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_weak_form_sc.jl"),
+                        l2=[
+                            0.006050851473525136,
+                            0.017742478887918647,
+                            0.017742478887918682,
+                            0.01774247888791881,
+                            0.21366241418560217
+                        ],
+                        linf=[
+                            0.5104160120781451,
+                            1.9379474897743383,
+                            1.9379474897743383,
+                            1.9379474897743383,
+                            12.67096713137104
+                        ],
+                        tspan=(0.0, 0.01))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        l2=[
+                            0.24806841083939926,
+                            0.07001337223874464,
+                            0.07001337223806398,
+                            0.0700133722383429,
+                            0.3620366037665587
+                        ],
+                        linf=[
+                            0.9384071822566761,
+                            0.573009568617271,
+                            0.5730095685845291,
+                            0.5730095686063774,
+                            4.861205850307592
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (Adaptive Vol Int.)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        # Adaptive volume integral selects based on the heuristic (!) a priori `indicator`
+                        # if the stabilized volume integral should be employed or if the default one is deemed sufficient.
+                        volume_integral=VolumeIntegralAdaptive(indicator = IndicatorHennemannGassner(equations,
+                                                                                                     basis,
+                                                                                                     alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
+                                                                                                     alpha_min = 0.001, # governs when subcell limiting is considered
+                                                                                                     alpha_smooth = true,
+                                                                                                     variable = density_pressure),
+                                                               volume_integral_default = VolumeIntegralWeakForm(),
+                                                               volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                                                                                          volume_flux_dg = volume_flux,
+                                                                                                                          volume_flux_fv = surface_flux)),
+                        l2=[
+                            0.24806841083830014,
+                            0.07001337223848285,
+                            0.0700133722385661,
+                            0.07001337223834266,
+                            0.362036603766589
+                        ],
+                        linf=[
+                            0.9384071822788941,
+                            0.5730095686470306,
+                            0.5730095679841436,
+                            0.5730095679943239,
+                            4.861205850307726
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 end
 

@@ -27,6 +27,15 @@ function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
     return LinearScalarAdvectionEquation2D(SVector(a1, a2))
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearScalarAdvectionEquation2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearScalarAdvectionEquation2D(SVector{2, NewRealT}(equations.advection_velocity))
+end
+
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar",)
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar",)
 

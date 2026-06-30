@@ -33,7 +33,8 @@ function initial_condition_colliding_flow_astro(x, t,
 end
 initial_condition = initial_condition_colliding_flow_astro
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_colliding_flow_astro),
+boundary_conditions = (;
+                       x_neg = BoundaryConditionDirichlet(initial_condition_colliding_flow_astro),
                        x_pos = BoundaryConditionDirichlet(initial_condition_colliding_flow_astro),
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -43,7 +44,7 @@ boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_coll
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive) # HLLC needs more shock capturing (alpha_max)
 volume_flux = flux_ranocha # works with Chandrashekar flux as well
@@ -68,7 +69,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 periodicity = (false, true),
                 n_cells_max = 100_000)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -118,5 +119,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(; stage_limiter!);
             ode_default_options()..., callback = callbacks);

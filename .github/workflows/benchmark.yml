@@ -21,7 +21,7 @@ jobs:
       - run: |
           git fetch --tags
           git branch --create-reflog main origin/main
-      - uses: julia-actions/setup-julia@v2
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -45,7 +45,7 @@ jobs:
         run: julia --project=benchmark/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Run benchmarks
         run: julia --project=benchmark/ --color=yes benchmark/run_benchmarks.jl
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: my-artifact
           path: benchmark/results*.md

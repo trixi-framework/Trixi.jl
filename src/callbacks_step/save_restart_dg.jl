@@ -6,9 +6,9 @@
 #! format: noindent
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh,
-                                       SerialT8codeMesh},
+                           mesh::Union{TreeMeshSerial, StructuredMesh,
+                                       UnstructuredMesh2D, P4estMeshSerial,
+                                       T8codeMeshSerial},
                            equations, dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback
@@ -47,9 +47,9 @@ function save_restart_file(u, time, dt, timestep,
     return filename
 end
 
-function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh,
-                                       SerialT8codeMesh},
+function load_restart_file(mesh::Union{TreeMeshSerial, StructuredMesh,
+                                       UnstructuredMesh2D, P4estMeshSerial,
+                                       T8codeMeshSerial},
                            equations, dg::DG, cache, restart_file)
 
     # allocate memory
@@ -89,8 +89,8 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
 end
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                       ParallelT8codeMesh}, equations,
+                           mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                       T8codeMeshParallel}, equations,
                            dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback
@@ -107,8 +107,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 function save_restart_file_parallel(u, time, dt, timestep,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                ParallelT8codeMesh},
+                                    mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                T8codeMeshParallel},
                                     equations, dg::DG, cache,
                                     filename)
 
@@ -154,8 +154,8 @@ function save_restart_file_parallel(u, time, dt, timestep,
 end
 
 function save_restart_file_on_root(u, time, dt, timestep,
-                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                               ParallelT8codeMesh},
+                                   mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                               T8codeMeshParallel},
                                    equations, dg::DG, cache,
                                    filename)
 
@@ -208,8 +208,8 @@ function save_restart_file_on_root(u, time, dt, timestep,
     return filename
 end
 
-function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                       ParallelT8codeMesh}, equations,
+function load_restart_file(mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                       T8codeMeshParallel}, equations,
                            dg::DG, cache, restart_file)
     if HDF5.has_parallel()
         load_restart_file_parallel(mesh, equations, dg, cache, restart_file)
@@ -218,8 +218,8 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
     end
 end
 
-function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                                ParallelT8codeMesh},
+function load_restart_file_parallel(mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                                T8codeMeshParallel},
                                     equations, dg::DG, cache, restart_file)
 
     # Calculate element and node counts by MPI rank
@@ -270,8 +270,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
     return u_ode
 end
 
-function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                               ParallelT8codeMesh},
+function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParallel,
+                                               T8codeMeshParallel},
                                    equations, dg::DG, cache, restart_file)
 
     # Calculate element and node counts by MPI rank
@@ -336,8 +336,7 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
 end
 
 # Store controller values for an adaptive time stepping scheme
-function save_adaptive_time_integrator(integrator,
-                                       controller, restart_callback)
+function save_adaptive_time_integrator(integrator, restart_callback)
     # Save only on root
     if mpi_isroot()
         @unpack output_directory = restart_callback
@@ -348,13 +347,8 @@ function save_adaptive_time_integrator(integrator,
 
         # Open file (preserve existing content)
         h5open(filename, "r+") do file
-            # Add context information as attributes both for PIController and PIDController
-            attributes(file)["time_integrator_qold"] = integrator.qold
             attributes(file)["time_integrator_dtpropose"] = integrator.dtpropose
-            # For PIDController is necessary to save additional parameters
-            if hasproperty(controller, :err) # Distinguish PIDController from PIController
-                attributes(file)["time_integrator_controller_err"] = controller.err
-            end
+            store_controller!(file, integrator)
         end
     end
 end

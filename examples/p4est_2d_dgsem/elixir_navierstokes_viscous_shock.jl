@@ -123,8 +123,8 @@ function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x
     return flux(u_inner, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
-                           :x_pos => boundary_condition_outflow)
+boundary_conditions = (; x_neg = boundary_condition_inflow,
+                       x_pos = boundary_condition_outflow)
 
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
@@ -140,8 +140,8 @@ end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
 
-boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_parabolic,
-                                     :x_pos => boundary_condition_parabolic)
+boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
+                                 x_pos = boundary_condition_parabolic)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;

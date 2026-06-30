@@ -52,7 +52,7 @@ dg = DGMulti(basis,
              volume_integral = volume_integral)
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :entire_boundary => boundary_condition)
+boundary_conditions = (; entire_boundary = boundary_condition)
 
 ###############################################################################
 #  setup the 1D mesh
@@ -66,7 +66,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 #  setup the semidiscretization and ODE problem
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                    dg, boundary_conditions = boundary_conditions)
+                                    dg; boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
@@ -90,7 +90,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # ###############################################################################
 # # run the simulation
 
-# We use a fixed time step here, as the wave speed estimate 
+# We use a fixed time step here, as the wave speed estimate
 # (which aims to bound the largest eigenvalues from above)
 # in the stepsize callback produced sometimes unphysical values
 sol = solve(ode, SSPRK43(), adaptive = false;

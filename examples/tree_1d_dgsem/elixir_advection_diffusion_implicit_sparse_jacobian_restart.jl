@@ -25,5 +25,4 @@ ode = semidiscretize(semi, tspan,
 sol = solve(ode, SBDF2(; autodiff = AutoFiniteDiff());
             ode_default_options()...,
             dt = dt_restart,
-            abstol = 1e-9, reltol = 1e-9,
             callback = callbacks);

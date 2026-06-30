@@ -17,7 +17,7 @@ We make a few simplifying assumptions about supported meshes:
 
 `StartUpDG.jl` includes both simple uniform meshes via `uniform_mesh`, as well as support for triangular
 meshes constructed using [Triangulate.jl](https://github.com/JuliaGeometry/Triangulate.jl), a wrapper
-around Jonathan Shewchuk's [Triangle](https://www.cs.cmu.edu/~quake/triangle.html) package.
+around Jonathan Shewchuk's [Triangle](https://www.cs.cmu.edu/~quake/triangle.html) package, and support for reading triangular `.msh` file types from [Gmsh](https://gmsh.info/). 
 
 ## The `DGMulti` solver type
 

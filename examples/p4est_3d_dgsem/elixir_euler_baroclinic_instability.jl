@@ -217,8 +217,8 @@ end
 
 initial_condition = initial_condition_baroclinic_instability
 
-boundary_conditions = Dict(:inside => boundary_condition_slip_wall,
-                           :outside => boundary_condition_slip_wall)
+boundary_conditions = (; inside = boundary_condition_slip_wall,
+                       outside = boundary_condition_slip_wall)
 
 # This is a good estimate for the speed of sound in this example.
 # Other values between 300 and 400 should work as well.
@@ -294,6 +294,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
             abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

@@ -1,5 +1,6 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
+using Accessors: @reset
 
 ###############################################################################
 # create a restart file
@@ -18,7 +19,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 restart_filename = joinpath("out", restart_file)
 mesh = load_mesh(restart_filename)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 tspan = (load_time(restart_filename), 2.0)
@@ -26,7 +27,7 @@ dt = load_dt(restart_filename)
 ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
-save_solution.condition.save_initial_solution = false
+@reset save_solution.condition.save_initial_solution = false
 
 # Add AMR callback
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),

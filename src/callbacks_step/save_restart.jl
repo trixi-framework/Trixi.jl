@@ -96,18 +96,22 @@ function (restart_callback::SaveRestartCallback)(integrator)
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
-            save_adaptive_time_integrator(integrator, integrator.opts.controller,
-                                          restart_callback)
+            save_adaptive_time_integrator(integrator, restart_callback)
         end
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 
 @inline function save_restart_file(u_ode, t, dt, iter,
                                    semi::AbstractSemidiscretization, restart_callback)
+    # TODO GPU currently on CPU
+    backend = trixi_backend(u_ode)
+    if backend !== nothing
+        u_ode = Array(u_ode)
+    end
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array_native(u_ode, mesh, equations, solver, cache)
     return save_restart_file(u, t, dt, iter, mesh, equations, solver, cache,
@@ -170,28 +174,36 @@ Load the context information for time integrators with error-based step size con
 saved in a `restart_file`.
 """
 function load_adaptive_time_integrator!(integrator, restart_file::AbstractString)
-    controller = integrator.opts.controller
     # Read context information for controller
     h5open(restart_file, "r") do file
         # Ensure that the necessary information was saved
-        if !("time_integrator_qold" in keys(attributes(file))) ||
-           !("time_integrator_dtpropose" in keys(attributes(file))) ||
-           (hasproperty(controller, :err) &&
-            !("time_integrator_controller_err" in keys(attributes(file))))
+        if !("time_integrator_dtpropose" in keys(attributes(file)))
             error("Missing data in restart file: check the consistency of adaptive time controller with initial setup!")
         end
-        # Load data that is required both for PIController and PIDController
-        integrator.qold = read(attributes(file)["time_integrator_qold"])
         integrator.dtpropose = read(attributes(file)["time_integrator_dtpropose"])
         # Accept step to use dtpropose already in the first step
         integrator.accept_step = true
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
-        # Load additional parameters for PIDController
-        if hasproperty(controller, :err) # Distinguish PIDController from PIController
-            controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
-        end
+
+        load_controller!(integrator, file)
     end
+end
+
+function load_controller!(integrator, file)
+    return load_controller!(integrator, get_controller_cache(integrator), file)
+end
+
+function load_controller!(integrator, controller, file)
+    return error("Loading of controller $(typeof(controller)) not implemented.")
+end
+
+function store_controller!(file, integrator)
+    return store_controller!(file, get_controller_cache(integrator), integrator)
+end
+
+function store_controller!(file, controller, integrator)
+    return error("Storing of controller $(typeof(controller)) not implemented.")
 end
 
 include("save_restart_dg.jl")

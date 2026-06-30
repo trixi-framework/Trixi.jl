@@ -24,6 +24,19 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
+                                     surface_flux = flux_godunov),
+                        cfl=0.8,
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[2.515203865524688e-6],
+                        linf=[8.660338936650191e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
                         l2=[5.641921365468918e-5],
@@ -188,6 +201,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic.jl"),
+                        solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
+                                     surface_flux = flux_lax_friedrichs),
+                        # Identical errors as for the `TreeMesh` version of this example
+                        l2=[
+                            6.179119971404758e-7,
+                            6.831335637140733e-7,
+                            1.8153512648336213e-6
+                        ],
+                        linf=[
+                            2.3035825069683824e-6,
+                            2.7398314812465685e-6,
+                            7.132056524916663e-6
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
@@ -261,7 +295,7 @@ end
     using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_1d_dgsem"),
                                  "elixir_euler_convergence_pure_fv.jl"),
-                        mesh=StructuredMesh(16, (0.0,), (2.0,)),
+                        mesh=StructuredMesh(16, (0.0,), (2.0,), periodicity = true),
                         l2=[
                             0.019355699748523896,
                             0.022326984561234497,

@@ -6,7 +6,7 @@
 #! format: noindent
 
 summary_callback(u, t, integrator) = false # when used as condition; never call the summary callback during the simulation
-summary_callback(integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
+summary_callback(integrator) = derivative_discontinuity!(integrator, false) # the summary callback does nothing when called accidentally
 
 """
     SummaryCallback()
@@ -114,7 +114,7 @@ function summary_header(io, heading; total_width = 100, indentation_level = 0)
     return nothing
 end
 
-function summary_line(io, key, value; key_width = 30, total_width = 100,
+function summary_line(io, key, value; key_width = 35, total_width = 100,
                       indentation_level = 0)
     # Printing is not performance-critical, so we can use `@nospecialize` to reduce latency
     @nospecialize value # reduce precompilation time
@@ -172,7 +172,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
     io = stdout
     io_context = IOContext(io,
                            :compact => false,
-                           :key_width => 30,
+                           :key_width => 35,
                            :total_width => 100,
                            :indentation_level => 0)
 
@@ -208,7 +208,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "abstol" => integrator.opts.abstol,
               "reltol" => integrator.opts.reltol,
-              "controller" => integrator.opts.controller)
+              "controller" => get_controller(integrator))
     end
     summary_box(io, "Time integration", setup)
     println()
@@ -223,6 +223,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "#MPI ranks" => mpi_nranks())
     end
+    trixi_backend_info!(setup, trixi_backend(u))
     summary_box(io, "Environment information", setup)
     println()
 

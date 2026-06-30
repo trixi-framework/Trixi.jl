@@ -21,10 +21,12 @@ coordinates_max = (one(RealT),)
 cells_per_dimension = (1,)
 
 # `StructuredMesh` infers datatype from coordinates
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                      periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -52,5 +54,5 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, Feagin14();
             # Turn off adaptivity to avoid setting very small tolerances
             adaptive = false,
-            dt = 42, # `dt` does not need to be in higher precision
+            dt = 1, # `dt` does not need to be in higher precision
             ode_default_options()..., callback = callbacks);

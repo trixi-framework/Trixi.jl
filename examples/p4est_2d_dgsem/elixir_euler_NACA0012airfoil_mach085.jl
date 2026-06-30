@@ -32,7 +32,7 @@ volume_flux = flux_ranocha_turbo
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
 
@@ -67,14 +67,14 @@ mesh = P4estMesh{2}(mesh_file)
     return flux_hll(u_inner, u_boundary, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:Left => boundary_condition_subsonic_constant,
-                           :Right => boundary_condition_subsonic_constant,
-                           :Top => boundary_condition_subsonic_constant,
-                           :Bottom => boundary_condition_subsonic_constant,
-                           :AirfoilBottom => boundary_condition_slip_wall,
-                           :AirfoilTop => boundary_condition_slip_wall)
+boundary_conditions = (; Left = boundary_condition_subsonic_constant,
+                       Right = boundary_condition_subsonic_constant,
+                       Top = boundary_condition_subsonic_constant,
+                       Bottom = boundary_condition_subsonic_constant,
+                       AirfoilBottom = boundary_condition_slip_wall,
+                       AirfoilTop = boundary_condition_slip_wall)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -140,6 +140,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK54(thread = Trixi.True());
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, SSPRK54(thread = Trixi.Threaded());
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

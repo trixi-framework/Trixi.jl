@@ -54,7 +54,7 @@ end
 
 # Abstract base type used for dispatch of `analyze` for quantities
 # requiring gradients of the velocity field.
-abstract type VariableViscous end
+abstract type VariableParabolic end
 
 struct LiftCoefficientPressure{RealT <: Real, NDIMS}
     force_state::ForceState{RealT, NDIMS}
@@ -64,11 +64,11 @@ struct DragCoefficientPressure{RealT <: Real, NDIMS}
     force_state::ForceState{RealT, NDIMS}
 end
 
-struct LiftCoefficientShearStress{RealT <: Real, NDIMS} <: VariableViscous
+struct LiftCoefficientShearStress{RealT <: Real, NDIMS} <: VariableParabolic
     force_state::ForceState{RealT, NDIMS}
 end
 
-struct DragCoefficientShearStress{RealT <: Real, NDIMS} <: VariableViscous
+struct DragCoefficientShearStress{RealT <: Real, NDIMS} <: VariableParabolic
     force_state::ForceState{RealT, NDIMS}
 end
 

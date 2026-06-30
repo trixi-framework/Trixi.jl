@@ -43,12 +43,15 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -68,6 +71,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     rho, rho_v1, _, _ = u
     return rho_v1 / rho
 end
+# This setup is identical to the one for the `P4estMesh`, allowing for error comparison.
 amr_indicator = IndicatorLöhner(semi, variable = v1)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 3,
@@ -90,5 +94,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -79,10 +79,10 @@ function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
     return nothing
 end
 
-const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
-const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
-@inline mpi_parallel(mesh::SerialT8codeMesh) = False()
-@inline mpi_parallel(mesh::ParallelT8codeMesh) = True()
+const T8codeMeshSerial{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
+const T8codeMeshParallel{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
+@inline mpi_parallel(mesh::T8codeMeshSerial) = False()
+@inline mpi_parallel(mesh::T8codeMeshParallel) = True()
 
 @inline Base.ndims(::T8codeMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
@@ -391,7 +391,7 @@ end
 
 """
     T8codeMesh(trees_per_dimension; polydeg, mapping=identity,
-               RealT=Float64, initial_refinement_level=0, periodicity=true)
+               RealT=Float64, initial_refinement_level=0, periodicity=false)
 
 Create a structured potentially curved 'T8codeMesh' of the specified size.
 
@@ -422,14 +422,14 @@ Non-periodic boundaries will be called ':x_neg', ':x_pos', ':y_neg', ':y_pos', '
                      Use only one of `mapping`, `faces` and `coordinates_min`/`coordinates_max`.
 - 'RealT::Type': the type that should be used for coordinates.
 - 'initial_refinement_level::Integer': refine the mesh uniformly to this level before the simulation starts.
-- 'periodicity': either a 'Bool' deciding if all of the boundaries are periodic or an 'NTuple{NDIMS, Bool}'
+- 'periodicity': either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
 """
 function T8codeMesh(trees_per_dimension; polydeg = 1,
                     mapping = nothing, faces = nothing, coordinates_min = nothing,
                     coordinates_max = nothing,
                     RealT = Float64, initial_refinement_level = 0,
-                    periodicity = true)
+                    periodicity = false)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
     coordinates_min_max_check(coordinates_min, coordinates_max)
@@ -503,6 +503,46 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 
     return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
                                     mapping = mapping_)
+end
+
+"""
+    T8codeMesh(; coordinates_min, coordinates_max, refinement_level,
+                 polydeg = 1, RealT = Float64, periodicity = false)
+
+Create a rectangular `T8codeMesh` using keyword arguments only, for easy mesh-type swapping
+with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), and [`P4estMesh`](@ref).
+
+A single tree per dimension is created and uniformly refined `refinement_level` times,
+yielding `2^refinement_level` cells per dimension.
+
+# Arguments
+- `coordinates_min`: vector or tuple of the coordinates of the corner in the negative direction of each dimension
+                     to create a rectangular mesh. Must have the same length as `coordinates_max`.
+- `coordinates_max`: vector or tuple of the coordinates of the corner in the positive direction of each dimension
+                     to create a rectangular mesh. Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh. Default: `1`.
+- `RealT::Type`: the type that should be used for coordinates. Default: `Float64`.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
+                 deciding for each dimension if the boundaries in this dimension are periodic. Default: `false`.
+"""
+function T8codeMesh(; coordinates_min,
+                    coordinates_max,
+                    refinement_level,
+                    polydeg = 1,
+                    RealT = Float64,
+                    periodicity = false)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    NDIMS = length(coordinates_min)
+    return T8codeMesh(ntuple(_ -> 1, NDIMS);
+                      polydeg = polydeg,
+                      coordinates_min = coordinates_min,
+                      coordinates_max = coordinates_max,
+                      RealT = RealT,
+                      initial_refinement_level = refinement_level,
+                      periodicity = periodicity)
 end
 
 """

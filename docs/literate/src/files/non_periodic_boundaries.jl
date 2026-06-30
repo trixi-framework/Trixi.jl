@@ -2,9 +2,9 @@
 
 # # Dirichlet boundary condition
 # First, let's look at the Dirichlet boundary condition [`BoundaryConditionDirichlet`](@ref).
-# ```julia
+# ````julia
 # BoundaryConditionDirichlet(boundary_value_function)
-# ```
+# ````
 # In Trixi.jl, this creates a Dirichlet boundary condition where the function `boundary_value_function`
 # is used to set the values at the boundary. It can be used to create a boundary condition that sets
 # exact boundary values by passing the exact solution of the equation.
@@ -21,9 +21,9 @@
 
 # The passed boundary value function is called with the same arguments as an initial condition
 # function, i.e.
-# ```julia
+# ````julia
 # boundary_value_function(x, t, equations)
-# ```
+# ````
 # where `x` specifies the spatial coordinates, `t` is the current time, and `equations` is the
 # corresponding system of equations.
 

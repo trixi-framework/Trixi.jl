@@ -117,8 +117,8 @@ mesh = P4estMesh(trees_per_dimension, polydeg = 1,
     return flux(u_surface, normal_direction, equations)
 end
 
-boundary_conditions = Dict(:y_neg => boundary_condition_subsonic,
-                           :y_pos => BoundaryConditionDirichlet(initial_condition_rayleigh_taylor_instability))
+boundary_conditions = (; y_neg = boundary_condition_subsonic,
+                       y_pos = BoundaryConditionDirichlet(initial_condition_rayleigh_taylor_instability))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_rayleigh_taylor_instability,
@@ -159,7 +159,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 time_int_tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
             abstol = time_int_tol, reltol = time_int_tol,
             adaptive = true, dt = 1e-3, # needed only for tests/CI
             ode_default_options()..., callback = callbacks);

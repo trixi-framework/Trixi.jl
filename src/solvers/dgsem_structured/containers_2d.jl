@@ -60,7 +60,7 @@ end
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element,
                                node_coordinates::AbstractArray{<:Any, 4},
-                               basis::LobattoLegendreBasis)
+                               basis::AbstractBasisSBP)
     @unpack derivative_matrix = basis
 
     # The code below is equivalent to the following matrix multiplications, which
@@ -322,6 +322,24 @@ function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh
     return NormalVectorContainer2D{RealT}(n_nodes,
                                           normal_vectors_1, normal_vectors_2,
                                           _normal_vectors_1, _normal_vectors_2)
+end
+
+# For `TreeMesh`, no subcell normal vectors need to be computed
+resize_normal_vectors!(cache, mesh::TreeMesh, capacity) = nothing
+# It suffices to specialize on the non-Cartesian mesh types with AMR only
+function resize_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, capacity)
+    resize!(cache.normal_vectors, capacity)
+
+    return nothing
+end
+
+# For `TreeMesh`, no subcell normal vectors need to be computed
+reinit_normal_vectors!(cache, mesh::TreeMesh, dg) = nothing
+# It suffices to specialize on the non-Cartesian mesh types with AMR only
+function reinit_normal_vectors!(cache, mesh::Union{P4estMesh, T8codeMesh}, dg)
+    init_normal_vectors!(cache.normal_vectors, mesh, dg, cache)
+
+    return nothing
 end
 
 # Required only for adaptive meshes (`P4estMesh` or `T8codeMesh`)

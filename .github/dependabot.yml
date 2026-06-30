@@ -10,6 +10,16 @@ updates:
       all-github-actions:
         patterns:
           - "*"
-    ignore:
-      - dependency-name: "julia-actions/julia-downgrade-compat"
-        versions: [ ">=2.0.0" ]
+  - package-ecosystem: "julia"
+    directories: # Location of Julia projects
+      - "/"
+      - "/benchmark"
+      - "/docs"
+      - "/test"
+    schedule:
+      interval: "daily"
+    groups:
+      # Group all Julia package updates into a single PR:
+      all-julia-dependencies:
+        patterns:
+          - "*"

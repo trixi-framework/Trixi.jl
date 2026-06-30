@@ -19,6 +19,7 @@ cells_per_dimension = (8,)
 mesh = DGMultiMesh(dg, cells_per_dimension,
                    coordinates_min = (-1.0,), coordinates_max = (1.0,), periodicity = true)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    boundary_conditions = boundary_condition_periodic,
                                     source_terms = source_terms_convergence_test)
 
 ###############################################################################
@@ -47,5 +48,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

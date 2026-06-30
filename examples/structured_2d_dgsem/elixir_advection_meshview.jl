@@ -41,7 +41,8 @@ coordinates_max = (1.0, 1.0)
 cells_per_dimension = (16, 16)
 
 # Create parent mesh with 16 x 16 elements
-parent_mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+parent_mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
+                             periodicity = true)
 
 # Create the two mesh views, each of which takes half of the parent mesh.
 mesh1 = StructuredMeshView(parent_mesh; indices_min = (1, 1), indices_max = (8, 16))
@@ -72,11 +73,9 @@ boundary_conditions2 = (
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions1)
+                                     solver; boundary_conditions = boundary_conditions1)
 semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions2)
+                                     solver; boundary_conditions = boundary_conditions2)
 semi = SemidiscretizationCoupled(semi1, semi2)
 
 ###############################################################################
@@ -115,5 +114,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

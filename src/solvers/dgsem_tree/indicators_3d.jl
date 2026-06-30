@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Type{IndicatorHennemannGassner},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -36,8 +37,7 @@ end
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
 # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
-                                                   u,
-                                                   element, mesh::AbstractMesh{3},
+                                                   u, element, mesh::AbstractMesh{3},
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -58,18 +58,38 @@ end
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
                                    indicator, modal_tmp1, modal_tmp2)
 
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        total_energy += modal[i, j, k]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for k in 1:(nnodes(dg) - 1), j in 1:(nnodes(dg) - 1), i in 1:(nnodes(dg) - 1)
-        total_energy_clip1 += modal[i, j, k]^2
-    end
+    # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     for k in 1:(nnodes(dg) - 2), j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
         total_energy_clip2 += modal[i, j, k]^2
+    end
+
+    total_energy_clip1 = copy(total_energy_clip2)
+    # Add k = N-1 face: i, j in 1:(N-1)
+    for j in 1:(nnodes(dg) - 1), i in 1:(nnodes(dg) - 1)
+        total_energy_clip1 += modal[i, j, nnodes(dg) - 1]^2
+    end
+    # Add j = N-1 face: i in 1:(N-1), k in 1:(N-2)  (k=N-1 already added above)
+    for k in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 1)
+        total_energy_clip1 += modal[i, nnodes(dg) - 1, k]^2
+    end
+    # Add i = N-1 face: j, k in 1:(N-2)  (j=N-1 and k=N-1 already added above)
+    for k in 1:(nnodes(dg) - 2), j in 1:(nnodes(dg) - 2)
+        total_energy_clip1 += modal[nnodes(dg) - 1, j, k]^2
+    end
+
+    total_energy = copy(total_energy_clip1)
+    # Add k = N face: i, j in 1:N
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+        total_energy += modal[i, j, nnodes(dg)]^2
+    end
+    # Add j = N face: i in 1:N, k in 1:(N-1)  (k=N already added above)
+    for k in 1:(nnodes(dg) - 1), i in 1:nnodes(dg)
+        total_energy += modal[i, nnodes(dg), k]^2
+    end
+    # Add i = N face: j, k in 1:(N-1)  (j=N and k=N already added above)
+    for k in 1:(nnodes(dg) - 1), j in 1:(nnodes(dg) - 1)
+        total_energy += modal[nnodes(dg), j, k]^2
     end
 
     # Calculate energy in higher modes
@@ -153,7 +173,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
     return nothing
 end
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
+# this method is directly used when the indicator is constructed as for shock-capturing volume integrals
+# and by the dimension-independent method called for AMR
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
                       equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
     uEltype = real(basis)
@@ -234,6 +255,29 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
         alpha[element] = maximum(indicator)
     end
 
+    return alpha
+end
+
+function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 5},
+                                             mesh, equations, dg::DGSEM, cache;
+                                             t, kwargs...)
+    node_coordinates = cache.elements.node_coordinates
+    @unpack alpha = indicator.cache
+    resize!(alpha, nelements(dg, cache))
+    # Extract function to local variable to avoid capturing `indicator` in the threaded loop
+    indicator_function = indicator.indicator_function
+
+    @threaded for element in eachelement(dg, cache)
+        estimate = typemin(eltype(alpha))
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_nodal = get_node_vars(u, equations, dg, i, j, k, element)
+            x_nodal = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, k, element)
+            estimate = max(estimate,
+                           indicator_function(u_nodal, x_nodal, t))
+        end
+        alpha[element] = estimate
+    end
     return alpha
 end
 end # @muladd

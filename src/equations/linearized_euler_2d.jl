@@ -57,6 +57,17 @@ function LinearizedEulerEquations2D(; v_mean_global::NTuple{2, <:Real},
                                       rho_mean_global)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearizedEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearizedEulerEquations2D(SVector{2, NewRealT}(equations.v_mean_global),
+                                      convert(NewRealT, equations.c_mean_global),
+                                      convert(NewRealT, equations.rho_mean_global))
+end
+
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations2D)
     return ("rho_prime", "v1_prime", "v2_prime", "p_prime")
 end

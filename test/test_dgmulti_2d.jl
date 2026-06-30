@@ -262,9 +262,10 @@ end
 
 @trixi_testset "elixir_euler_weakform.jl (convergence)" begin
     using Trixi: convergence_test
-    mean_convergence = convergence_test(@__MODULE__,
-                                        joinpath(EXAMPLES_DIR,
-                                                 "elixir_euler_weakform.jl"), 2)
+    eocs, _ = convergence_test(@__MODULE__,
+                               joinpath(EXAMPLES_DIR,
+                                        "elixir_euler_weakform.jl"), 2)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
     @test isapprox(mean_convergence[:l2],
                    [
                        4.243843382379403,
@@ -302,6 +303,55 @@ end
                         linf=[
                             2.509979394305084e-5, 2.2683711321080935e-5,
                             2.6180377720841363e-5, 5.575278031910713e-5
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+    # @test_trixi_include errors due to an @info call by StartUpDG.jl during 
+    # Gmsh file parsing. To avoid this, we directly call trixi_include. 
+    # We pass @__MODULE__ to ensure that variables defined during the test 
+    # are visible inside the @trixi_testset block. 
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
+                  polydeg = 2, adaptive = false, tspan = (0.0, 1e-3))
+    l2, linf = analysis_callback(sol)
+    @test isapprox(l2,
+                   [0.00045155999383061246,
+                       0.0007997114439550152,
+                       2.370224947246212e-6,
+                       0.002037206524508959
+                   ])
+    @test isapprox(linf,
+                   [
+                       0.07544209921557377,
+                       0.17673745170823008,
+                       0.0009825284037637686,
+                       0.3386662161532019
+                   ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+    # Note: these test values were generated using Julia v1.10.11~x64. Running this on v1.12 
+    # using an M-series MacBook Pro resulted in test values with an O(1e-7) difference. 
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
+                        h=0.1, tspan=(0.0, 0.1),
+                        l2=[
+                            0.14885535871013134,
+                            0.2644911888198318,
+                            0.17695450167569188,
+                            0.6616829855205953
+                        ],
+                        linf=[
+                            0.9552906049227992,
+                            1.313125417849597,
+                            1.1049630606394683,
+                            3.6468143028339775
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -353,6 +403,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
+                        maximum_entropy_increase=0.0,
+                        tspan=(0.0, 0.2),
+                        l2=[
+                            0.05570371489805444,
+                            0.03299286402646503,
+                            0.05224508023471742,
+                            0.08011545946002244
+                        ],
+                        linf=[
+                            0.24323216643032874,
+                            0.1685158282708948,
+                            0.12357902305982191,
+                            0.26981068435988087
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
@@ -398,16 +470,37 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            0.05685180852320552,
-                            0.04308097439005265,
-                            0.04308097439005263,
-                            0.21098250258804
+                            0.04459267863712344,
+                            0.04466070180923881,
+                            0.044660701809239055,
+                            0.16853101962882136
                         ],
                         linf=[
-                            0.2360805191601203,
-                            0.16684117462697776,
-                            0.16684117462697767,
-                            0.8573034682049414
+                            0.18547384414190626,
+                            0.20141544103810083,
+                            0.20141544103810224,
+                            0.6954971316946836
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_shockcapturing.jl (SBP)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
+                        cells_per_dimension=4, tspan=(0.0, 0.1),
+                        basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
+                        l2=[
+                            0.03901629442791245,
+                            0.03830525262399631,
+                            0.03830525262399637,
+                            0.14746814850975215
+                        ],
+                        linf=[
+                            0.16680108480009226,
+                            0.21077037377694813,
+                            0.2107703737769464,
+                            0.6400748796169138
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -508,6 +601,30 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Test Spectral Analysis Post Processing
+    _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
+    @test energy_spectrum[1:6]≈[
+        1.9993746355056,
+        0.0006253399291566656,
+        2.6902140946235064e-32,
+        2.4561773100445993e-8,
+        3.952257929835444e-12,
+        9.766774928701462e-32
+    ] rtol=1.0e-12
+end
+
+@trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cgsbp_periodic.jl"),
+                        l2=[
+                            1.2713306233672395e-4, 1.5304132439425007e-4,
+                            1.5304132439424308e-4, 3.192754742776865e-4
+                        ],
+                        linf=[
+                            3.6081264672516156e-4, 3.4235010781946684e-4,
+                            3.423501078176905e-4, 9.824814197632037e-4
+                        ])
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 

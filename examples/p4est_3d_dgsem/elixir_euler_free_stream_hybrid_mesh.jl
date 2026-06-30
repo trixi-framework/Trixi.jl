@@ -20,8 +20,8 @@ mesh_file = target_mesh_file
 # Refine the given mesh twice
 mesh = P4estMesh{3}(mesh_file, initial_refinement_level = 2)
 
-boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition))
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+boundary_conditions = (; all = BoundaryConditionDirichlet(initial_condition))
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -52,5 +52,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

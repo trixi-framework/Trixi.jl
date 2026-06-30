@@ -7,6 +7,9 @@
 
 abstract type AbstractTree{NDIMS} <: AbstractContainer end
 
+# Concrete tree types must implement this to physically grow or shrink storage.
+function resize_storage! end
+
 # Type traits to obtain dimension
 @inline Base.ndims(::AbstractTree{NDIMS}) where {NDIMS} = NDIMS
 
@@ -677,6 +680,51 @@ end
 invalidate!(t::AbstractTree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::AbstractTree) = invalidate!(t, 1, length(t))
 
+# Double capacity (amortized O(1) growth, same strategy as Julia's Vector append).
+function grow_capacity!(t::AbstractTree, min_capacity)
+    new_capacity = max(min_capacity, 2 * capacity(t))
+    resize_storage!(t, new_capacity)
+    return nothing
+end
+
+# Override resize! to auto-grow storage when new_length > capacity.
+function Base.resize!(t::AbstractTree, new_length)
+    if new_length > capacity(t)
+        grow_capacity!(t, new_length)
+    end
+    @assert new_length >= 0
+    if new_length > length(t)
+        invalidate!(t, length(t) + 1, new_length)
+        t.length = new_length
+    elseif new_length < length(t)
+        remove_shift!(t, new_length + 1, length(t))
+    end
+    return t
+end
+
+# Override insert! to auto-grow storage before the capacity assertion.
+function insert!(t::AbstractTree, position::Int, count::Int)
+    @assert 1<=position<=length(t)+1 "Insert position out of range"
+    @assert count>=0 "Count must be non-negative"
+
+    if count + length(t) > capacity(t)
+        grow_capacity!(t, count + length(t))
+    end
+
+    if count == 0
+        return t
+    end
+    if position == length(t) + 1
+        resize!(t, length(t) + count)
+        return t
+    end
+    t.length += count
+    if position <= length(t) - count
+        move!(t, position, length(t) - count, position + count)
+    end
+    return t
+end
+
 # Delete connectivity with parents/children/neighbors before cells are erased
 function delete_connectivity!(t::AbstractTree, first::Int, last::Int)
     @assert first > 0
@@ -699,7 +747,7 @@ function delete_connectivity!(t::AbstractTree, first::Int, last::Int)
         # Delete connectivity from child cells
         for child in 1:n_children_per_cell(t)
             if has_child(t, cell_id, child)
-                t.parent_ids[t._child_ids[child, cell_id]] = 0
+                t.parent_ids[t.child_ids[child, cell_id]] = 0
             end
         end
 

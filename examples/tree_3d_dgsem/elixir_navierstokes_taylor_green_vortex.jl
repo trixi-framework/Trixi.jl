@@ -9,7 +9,8 @@ mu = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
-                                                          Prandtl = prandtl_number())
+                                                          Prandtl = prandtl_number(),
+                                                          gradient_variables = GradientVariablesPrimitive())
 
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations3D)
@@ -47,10 +48,12 @@ coordinates_min = (-1.0, -1.0, -1.0) .* pi
 coordinates_max = (1.0, 1.0, 1.0) .* pi
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 100_000)
+                n_cells_max = 100_000, periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.

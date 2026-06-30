@@ -124,6 +124,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
     integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,
@@ -131,10 +132,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
                                      false, true, false)
-
-    # resize container
-    resize!(integrator.p, integrator.p.solver.volume_integral,
-            nelements(integrator.p.solver, integrator.p.cache))
 
     # Standard callbacks
     initialize_callbacks!(callback, integrator)
@@ -217,7 +214,7 @@ end
 get_tmp_cache(integrator::SimpleIntegratorSSP) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # stop the time integration
 function terminate!(integrator::SimpleIntegratorSSP)
@@ -257,11 +254,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
-
-    # Resize container
-    # new_size = n_variables * n_nodes^n_dims * n_elements
-    n_elements = nelements(integrator.p.solver, integrator.p.cache)
-    resize!(integrator.p, integrator.p.solver.volume_integral, n_elements)
 
     return nothing
 end

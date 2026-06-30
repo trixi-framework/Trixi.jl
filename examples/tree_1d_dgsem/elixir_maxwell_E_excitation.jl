@@ -14,7 +14,8 @@ coordinates_max = 1.0
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+                n_cells_max = 30_000, # set maximum capacity of tree data structure
+                periodicity = true)
 
 # Excite the electric field which causes a standing wave.
 # The solution is an undamped exchange between electric and magnetic energy.
@@ -28,7 +29,8 @@ function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
 end
 
 initial_condition = initial_condition_E_excitation
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -52,5 +54,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

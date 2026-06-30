@@ -1,0 +1,52 @@
+using OrdinaryDiffEqLowStorageRK
+using Trixi
+
+###############################################################################
+# semidiscretization of the compressible Euler equations
+
+equations = CompressibleEulerEquations3D(1.4)
+
+initial_condition = initial_condition_weak_blast_wave
+surface_flux = flux_lax_friedrichs
+volume_flux = flux_ranocha
+
+polydeg = 3
+basis = DGMultiBasis(Hex(), polydeg, approximation_type = GaussSBP())
+
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max = 0.5,
+                                         alpha_min = 0.001,
+                                         alpha_smooth = true,
+                                         variable = density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg = volume_flux,
+                                                 volume_flux_fv = surface_flux)
+dg = DGMulti(basis,
+             surface_integral = SurfaceIntegralWeakForm(surface_flux),
+             volume_integral = volume_integral)
+
+cells_per_dimension = (4, 4, 4)
+mesh = DGMultiMesh(dg, cells_per_dimension;
+                   coordinates_min = (-2.0, -2.0, -2.0),
+                   coordinates_max = (2.0, 2.0, 2.0),
+                   periodicity = true)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
+                                    boundary_conditions = boundary_condition_periodic)
+
+tspan = (0.0, 0.4)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+alive_callback = AliveCallback(alive_interval = 10)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
+
+###############################################################################
+# run the simulation
+
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+            ode_default_options()..., callback = callbacks);

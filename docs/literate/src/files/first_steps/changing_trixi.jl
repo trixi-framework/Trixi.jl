@@ -37,10 +37,10 @@
 #   julia --project=.
 #   ```
 # - Now run the following commands to install all relevant packages:
-#   ```julia
+#   ````julia
 #   using Pkg; Pkg.develop(PackageSpec(path="..")) # Tell Julia to use the local Trixi.jl clone
 #   Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots"]) # Install additional packages
-#   ```
+#   ````
 
 # Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl
 # this way, you always have to start Julia with the `--project` flag set to your `run` directory,

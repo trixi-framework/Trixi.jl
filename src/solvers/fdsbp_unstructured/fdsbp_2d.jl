@@ -29,7 +29,7 @@ end
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
 # OBS! This is the standard (not de-aliased) form of the volume integral.
 # So it is not provably stable for variable coefficients due to the the metric terms.
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
@@ -92,7 +92,7 @@ end
 # the finite difference stencils. Thus, the D^- operator acts on the positive
 # part of the flux splitting f^+ and the D^+ operator acts on the negative part
 # of the flux splitting f^-.
-function calc_volume_integral!(du, u,
+function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
@@ -186,7 +186,7 @@ end
 # Therefore, we require a different surface integral routine here despite their similar structure.
 # Also, the normal directions are already outward pointing for `UnstructuredMesh2D` so all the
 # surface contributions are added.
-function calc_surface_integral!(du, u, mesh::UnstructuredMesh2D,
+function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
                                 dg::DG, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
@@ -242,16 +242,17 @@ function integrate_via_indices(func::Func, u,
                                dg::FDSBP, cache, args...; normalize = true) where {Func}
     # TODO: FD. This is rather inefficient right now and allocates...
     weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *
                         func(u, i, j, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j]
@@ -276,7 +277,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
     linf_error = copy(l2_error)
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)

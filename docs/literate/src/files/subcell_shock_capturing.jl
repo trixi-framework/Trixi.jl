@@ -179,9 +179,11 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000)
+                n_cells_max = 10_000,
+                periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
@@ -196,7 +198,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient,))
 
 stepsize_callback = StepsizeCallback(cfl = 0.3)
 
@@ -214,7 +217,7 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 # SSPRK time integration methods with passed stage callbacks and a Trixi-intern `Trixi.solve(...)`
 # routine.
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
 
 # ## Visualization
@@ -224,7 +227,8 @@ using Plots
 plot(sol)
 
 # To get an additional look at the amount of limiting that is used, you can use the visualization
-# approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
+# approach using the [`SaveSolutionCallback`](@ref) by passing `(:limiting_coefficient,)` as
+# `extra_node_variables`, [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
 # and [ParaView](https://www.paraview.org/download/). More details about this procedure
 # can be found in the [visualization documentation](@ref visualization).
 #-

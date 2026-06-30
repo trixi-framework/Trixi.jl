@@ -37,7 +37,7 @@ end
 initial_condition = initial_condition_sedov_blast_wave
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (x_neg = boundary_condition,
+boundary_conditions = (; x_neg = boundary_condition,
                        x_pos = boundary_condition,
                        y_neg = boundary_condition,
                        y_pos = boundary_condition)
@@ -83,7 +83,7 @@ end
 cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -118,5 +118,5 @@ callbacks = CallbackSet(summary_callback,
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

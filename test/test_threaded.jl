@@ -40,11 +40,45 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_allocations(Trixi.rhs!, semi, sol, 5000)
     end
 
+    # This test covers some of the code paths for the old controller interface in OrdinaryDiffEqCore < v4,
+    # which is still supported for backward compatibility.
+    @trixi_testset "elixir_advection_restart.jl with adaptive time integration" begin
+        # Perform a standard simulation
+        using OrdinaryDiffEqSSPRK: SSPRK43
+        using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
+        mod = @__MODULE__
+        # SSPRK43 uses PIController, RDPK3SpFSAL49 uses PIDController
+        for alg in (SSPRK43(), RDPK3SpFSAL49())
+            println("═"^100)
+            base_elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                   "elixir_advection_timeintegration_adaptive.jl")
+            println(base_elixir)
+            trixi_include(mod,
+                          base_elixir, alg = alg, tspan = (0.0, 10.0))
+            l2_expected, linf_expected = @invokelatest mod.analysis_callback(@invokelatest mod.sol)
+
+            # Perform a simulation restarting from an intermediate state
+            println("═"^100)
+            elixir = joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                              "elixir_advection_restart.jl")
+            println(elixir)
+            trixi_include(mod,
+                          elixir, alg = alg,
+                          base_elixir = base_elixir)
+            l2_actual, linf_actual = @invokelatest mod.analysis_callback(@invokelatest mod.sol)
+
+            # Check whether the errors are exactly the same as in the uninterrupted run
+            # using the default SSPRK or low-storage RK method with error-based step size control.
+            @test l2_actual == l2_expected
+            @test linf_actual == linf_expected
+        end
+    end
+
     @trixi_testset "elixir_advection_restart.jl with threaded time integration" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_restart.jl"),
                             alg=CarpenterKennedy2N54(williamson_condition = false,
-                                                     thread = Trixi.True()),
+                                                     thread = Trixi.Threaded()),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[8.005068880114254e-6],
                             linf=[6.39093577996519e-5])
@@ -148,7 +182,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                      "elixir_advection_diffusion.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
-                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.Threaded()),
                             l2=[4.0915532997994255e-6],
                             linf=[2.3040850347877395e-5])
 
@@ -363,7 +397,7 @@ end
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                      "elixir_euler_curved.jl"),
-                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.Threaded()),
                             l2=[
                                 1.720916434676505e-5,
                                 1.5928649356300228e-5,

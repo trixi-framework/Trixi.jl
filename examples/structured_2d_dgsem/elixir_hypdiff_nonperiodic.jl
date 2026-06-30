@@ -9,7 +9,7 @@ initial_condition = initial_condition_poisson_nonperiodic
 
 solver = DGSEM(polydeg = 6, surface_flux = flux_lax_friedrichs)
 
-boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
+boundary_conditions = (; x_neg = boundary_condition_poisson_nonperiodic,
                        x_pos = boundary_condition_poisson_nonperiodic,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -73,5 +73,5 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 # run the simulation
 
 sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52();
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

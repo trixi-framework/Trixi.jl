@@ -172,7 +172,7 @@ end
                                      volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
                                                                                            volume_flux_fv = flux_hll,
                                                                                            reconstruction_mode = reconstruction_O2_inner,
-                                                                                           slope_limiter = vanLeer)),
+                                                                                           slope_limiter = vanleer)),
                         l2=[
                             0.01872951597687948,
                             0.01146844899089883,
@@ -313,6 +313,20 @@ end
     @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
     @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+end
+
+@testset "Unified mesh constructor signatures (T8codeMesh)" begin
+    using Trixi: T8codeMesh
+    # polydeg = 1 at default for T8codeMesh
+    mesh_ref = T8codeMesh((4, 4);
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0))
+    mesh_kw = T8codeMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                         refinement_level = 2)
+    @test mesh_kw isa T8codeMesh{2}
+    @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1
+    @test_throws ArgumentError T8codeMesh(; coordinates_min = (-1.0, -1.0),
+                                          coordinates_max = (1.0, 1.0, 1.0),
+                                          refinement_level = 2)
 end
 end
 

@@ -19,14 +19,14 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs(max_abs_speed_naive)),
              volume_integral = VolumeIntegralWeakForm())
 
 top_bottom(x, tol = 50 * eps()) = abs(abs(x[2]) - 1) < tol
-is_on_boundary = Dict(:top_bottom => top_bottom)
+is_on_boundary = (; top_bottom = top_bottom)
 
 function mapping(xi, eta, zeta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
@@ -68,10 +68,10 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
 end
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
@@ -156,8 +156,8 @@ end
     E_y = p_y * inv_gamma_minus_one + 1.5 * rho_y * v1^2 + 3.0 * rho * v1 * v1_y
     E_z = p_z * inv_gamma_minus_one + 1.5 * rho_z * v1^2 + 3.0 * rho * v1 * v1_z
 
-    # Divergence of Fick's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
-    kappa = equations.gamma * inv_gamma_minus_one / Pr
+    # Divergence of Fourier's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
+    kappa = gamma * inv_gamma_minus_one / Pr
     q_xx = kappa * rho_xx # kappa T_xx
     q_yy = kappa * rho_yy # kappa T_yy
     q_zz = kappa * rho_zz # kappa T_zz
@@ -247,10 +247,10 @@ boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_to
                                                                   heat_bc_top_bottom)
 
 # define inviscid boundary conditions
-boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
+boundary_conditions = (; top_bottom = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
-boundary_conditions_parabolic = (; :top_bottom => boundary_condition_top_bottom)
+# define parabolic boundary conditions
+boundary_conditions_parabolic = (; top_bottom = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, dg;

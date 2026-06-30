@@ -12,17 +12,17 @@ Multicomponent version of the compressible Euler equations
 ```math
 \frac{\partial}{\partial t}
 \begin{pmatrix}
-\rho v_1 \\ \rho v_2 \\ \rho e \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
+\rho v_1 \\ \rho v_2 \\ \rho e_{\text{total}} \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
 \end{pmatrix}
 +
 \frac{\partial}{\partial x}
 \begin{pmatrix}
-\rho v_1^2 + p \\ \rho v_1 v_2 \\ ( \rho e +p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
+\rho v_1^2 + p \\ \rho v_1 v_2 \\ ( \rho e_{\text{total}} +p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
 \end{pmatrix}
 +
 \frac{\partial}{\partial y}
 \begin{pmatrix}
-\rho v_1 v_2 \\ \rho v_2^2 + p \\ ( \rho e +p) v_2 \\ \rho_1 v_2 \\ \rho_2 v_2 \\ \vdots \\ \rho_{n} v_2
+\rho v_1 v_2 \\ \rho v_2^2 + p \\ ( \rho e_{\text{total}} +p) v_2 \\ \rho_1 v_2 \\ \rho_2 v_2 \\ \vdots \\ \rho_{n} v_2
 \end{pmatrix}
 =
 \begin{pmatrix}
@@ -31,7 +31,7 @@ Multicomponent version of the compressible Euler equations
 ```
 for calorically perfect gas in two space dimensions.
 Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
-``v_1``, ``v_2`` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
+``v_1``, ``v_2`` the velocities, ``e_{\text{total}}`` the specific total energy, and
 ```math
 p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
 ```
@@ -101,9 +101,22 @@ end
     return RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
+    return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP,
+                                                      NewRealT}(SVector{NCOMP,
+                                                                        NewRealT}(eqs.gammas),
+                                                                SVector{NCOMP,
+                                                                        NewRealT}(eqs.gas_constants))
+end
+
 function varnames(::typeof(cons2cons),
                   equations::CompressibleEulerMulticomponentEquations2D)
-    cons = ("rho_v1", "rho_v2", "rho_e")
+    cons = ("rho_v1", "rho_v2", "rho_e_total")
     rhos = ntuple(n -> "rho" * string(n), Val(ncomponents(equations)))
     return (cons..., rhos...)
 end
@@ -361,25 +374,25 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
 
     if orientation == 1
         f_rho = densities(u, v1, equations)
         f1 = rho_v1 * v1 + p
         f2 = rho_v2 * v1
-        f3 = (rho_e + p) * v1
+        f3 = (rho_e_total + p) * v1
     else
         f_rho = densities(u, v2, equations)
         f1 = rho_v1 * v2
         f2 = rho_v2 * v2 + p
-        f3 = (rho_e + p) * v2
+        f3 = (rho_e_total + p) * v2
     end
 
     f_other = SVector(f1, f2, f3)
@@ -390,7 +403,7 @@ end
 # Calculate 1D flux for a single point
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
 
@@ -398,12 +411,12 @@ end
     v2 = rho_v2 / rho
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
 
     f_rho = densities(u, v_normal, equations)
     f1 = rho_v1 * v_normal + p * normal_direction[1]
     f2 = rho_v2 * v_normal + p * normal_direction[2]
-    f3 = (rho_e + p) * v_normal
+    f3 = (rho_e_total + p) * v_normal
 
     f_other = SVector(f1, f2, f3)
 
@@ -422,8 +435,8 @@ Adaption of the entropy conserving two-point flux by
                                     equations::CompressibleEulerMulticomponentEquations2D)
     # Unpack left and right state
     @unpack gammas, gas_constants, cv = equations
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
                                                                  for i in eachcomponent(equations))
@@ -457,8 +470,8 @@ Adaption of the entropy conserving two-point flux by
         help1_rr += u_rr[i + 3] * cv[i]
     end
 
-    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
-    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
     T = 0.5f0 * (1 / T_ll + 1 / T_rr)
     T_log = ln_mean(1 / T_ll, 1 / T_rr)
 
@@ -512,8 +525,8 @@ See also
                               equations::CompressibleEulerMulticomponentEquations2D)
     # Unpack left and right state
     @unpack gammas, gas_constants, cv = equations
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
                                                                  for i in eachcomponent(equations))
@@ -552,8 +565,8 @@ See also
     end
 
     # temperature and pressure
-    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
-    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
     p_ll = T_ll * enth_ll
     p_rr = T_rr * enth_rr
     p_avg = 0.5f0 * (p_ll + p_rr)
@@ -592,8 +605,8 @@ end
                               equations::CompressibleEulerMulticomponentEquations2D)
     # Unpack left and right state
     @unpack gammas, gas_constants, cv = equations
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
                                                                  for i in eachcomponent(equations))
@@ -634,8 +647,8 @@ end
     end
 
     # temperature and pressure
-    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
-    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
     p_ll = T_ll * enth_ll
     p_rr = T_rr * enth_rr
     p_avg = 0.5f0 * (p_ll + p_rr)
@@ -662,8 +675,8 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
 
     # Get the density and gas gamma
     rho_ll = density(u_ll, equations)
@@ -681,9 +694,11 @@ end
     end
 
     # Compute the sound speeds on the left and right
-    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    p_ll = (gamma_ll - 1) *
+           (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    p_rr = (gamma_rr - 1) *
+           (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
@@ -698,8 +713,8 @@ end
                                                                                                    AbstractFloat
                                                                                                    }
     # Unpack conservative variables
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
 
     # Get densities and gammas
     rho_ll = T(density(u_ll, equations))
@@ -716,8 +731,10 @@ end
     v_rr = dot(v_rr_vec, normal_direction)
 
     # Compute pressures
-    p_ll = (gamma_ll - one(T)) * (rho_e_ll - T(0.5) * dot(v_ll_vec, v_ll_vec) * rho_ll)
-    p_rr = (gamma_rr - one(T)) * (rho_e_rr - T(0.5) * dot(v_rr_vec, v_rr_vec) * rho_rr)
+    p_ll = (gamma_ll - one(T)) *
+           (rho_e_total_ll - 0.5f0 * dot(v_ll_vec, v_ll_vec) * rho_ll)
+    p_rr = (gamma_rr - one(T)) *
+           (rho_e_total_rr - 0.5f0 * dot(v_rr_vec, v_rr_vec) * rho_rr)
 
     # Sound speeds
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
@@ -729,8 +746,8 @@ end
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
 
     # Get the density and gas gamma
     rho_ll = density(u_ll, equations)
@@ -748,9 +765,11 @@ end
     end
 
     # Compute the sound speeds on the left and right
-    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    p_ll = (gamma_ll - 1) *
+           (rho_e_total_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    p_rr = (gamma_rr - 1) *
+           (rho_e_total_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
@@ -758,14 +777,14 @@ end
 
 @inline function max_abs_speeds(u,
                                 equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
 
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
     c = sqrt(gamma * p / rho)
 
     return (abs(v1) + c, abs(v2) + c)
@@ -817,7 +836,7 @@ end
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(u[i + 3]
                                                                 for i in eachcomponent(equations))
@@ -826,7 +845,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
     prim_other = SVector(v1, v2, p)
 
     return vcat(prim_other, prim_rho)
@@ -835,7 +854,7 @@ end
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
     @unpack cv, gammas, gas_constants = equations
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
 
@@ -853,10 +872,10 @@ end
     v_square = v1^2 + v2^2
     gamma = totalgamma(u, equations)
 
-    p = (gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * v_square)
     s = log(p) - gamma * log(rho) - log(gas_constant)
     rho_p = rho / p
-    T = (rho_e - 0.5f0 * rho * v_square) / (help1)
+    T = (rho_e_total - 0.5f0 * rho * v_square) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
                                                                    (1 - log(T)) +
@@ -921,9 +940,9 @@ end
 
     rho_v1 = rho * v1
     rho_v2 = rho * v2
-    rho_e = p / (gamma - 1) + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
+    rho_e_total = p / (gamma - 1) + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
 
-    cons_other = SVector(rho_v1, rho_v2, rho_e)
+    cons_other = SVector(rho_v1, rho_v2, rho_e_total)
 
     return vcat(cons_other, cons_rho)
 end
@@ -945,7 +964,7 @@ end
 @inline function temperature(u, equations::CompressibleEulerMulticomponentEquations2D)
     @unpack cv, gammas, gas_constants = equations
 
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
     RealT = eltype(u)
@@ -958,7 +977,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v_square = v1^2 + v2^2
-    T = (rho_e - 0.5f0 * rho * v_square) / help1
+    T = (rho_e_total - 0.5f0 * rho * v_square) / help1
 
     return T
 end
@@ -985,23 +1004,23 @@ partial density fractions as well as the partial specific heats at constant volu
 end
 
 @inline function pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
 
-    p = (gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
 
     return p
 end
 
 @inline function density_pressure(u,
                                   equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
+    rho_v1, rho_v2, rho_e_total = u
 
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    rho_times_p = (gamma - 1) * (rho * rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2))
+    rho_times_p = (gamma - 1) * (rho * rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2))
 
     return rho_times_p
 end

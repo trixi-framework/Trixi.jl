@@ -18,7 +18,8 @@ coordinates_max = convert(Float64, pi)
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure)
+                n_cells_max = 30_000, # set maximum capacity of tree data structure
+                periodicity = true)
 
 function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
     x_normalized = x .- center
@@ -45,7 +46,9 @@ end
 initial_condition = initial_condition_diffusive_convergence_test
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_condition_periodic,
+                                                                    boundary_condition_periodic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -60,10 +63,10 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 alive_callback = AliveCallback(analysis_interval = 100)
 
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
-# For coarser grids, linear stability is governed by the advective CFL condition,
+# For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 1.6,
-                                     cfl_diffusive = 0.3)
+                                     cfl_parabolic = 0.3)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
@@ -72,5 +75,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

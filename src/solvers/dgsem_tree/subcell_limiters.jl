@@ -229,6 +229,8 @@ end
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+    # The number of elements is not yet known here. So, we initialize the container with 0 elements
+    # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
@@ -247,14 +249,30 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global)
 end
 
+function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    return nothing
+end
+
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
 # called here to get up-to-date values for IO, this is not easily possible in this case
 # because the calculation is very integrated into the method.
 # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
 # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
 # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralAdaptive)
+    return get_node_variable(Val(:limiting_coefficient),
+                             volume_integral.volume_integral_stabilized)
+end
+
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
-    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+    return get_node_variable(Val(:limiting_coefficient), dg.volume_integral)
 end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
@@ -265,8 +283,7 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
                                       t, dt;
                                       kwargs...)
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
-    @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
+    @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
 
     if limiter.local_twosided
         @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
@@ -445,5 +462,36 @@ end
 # final check for nonnegativity limiting
 @inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
     return (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
+end
+
+###############################################################################
+# Auxiliary routine `get_boundary_outer_state` for non-periodic domains
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::BoundaryConditionDirichlet,
+                             orientation_or_normal, direction,
+                             mesh, equations, dg, cache, indices...)
+For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
+outer state. This function returns the boundary value  for [`BoundaryConditionDirichlet`](@ref) at
+time `t` and for node with spatial indices `indices` at the boundary with `orientation_or_normal`
+and `direction`.
+
+Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionDirichlet,
+                                          orientation_or_normal, direction,
+                                          mesh::Union{TreeMesh, StructuredMesh},
+                                          equations, dg, cache, indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+    u_outer = boundary_condition.boundary_value_function(x, t, equations)
+
+    return u_outer
 end
 end # @muladd

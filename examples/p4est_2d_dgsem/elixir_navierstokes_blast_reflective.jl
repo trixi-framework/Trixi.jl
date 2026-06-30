@@ -50,10 +50,10 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
 # Realize reflective walls via slip walls which permit only tangential velocity
-boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
-                           :y_neg => boundary_condition_slip_wall,
-                           :y_pos => boundary_condition_slip_wall,
-                           :x_pos => boundary_condition_slip_wall)
+boundary_conditions = (; x_neg = boundary_condition_slip_wall,
+                       y_neg = boundary_condition_slip_wall,
+                       y_pos = boundary_condition_slip_wall,
+                       x_pos = boundary_condition_slip_wall)
 
 # The "Slip" boundary condition rotates all velocities into tangential direction
 # and thus acts as a reflective wall here.
@@ -61,10 +61,10 @@ velocity_bc = Slip()
 heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_conditions_visc = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
 
-boundary_conditions_parabolic = Dict(:x_neg => boundary_conditions_visc,
-                                     :x_pos => boundary_conditions_visc,
-                                     :y_neg => boundary_conditions_visc,
-                                     :y_pos => boundary_conditions_visc)
+boundary_conditions_parabolic = (; x_neg = boundary_conditions_visc,
+                                 x_pos = boundary_conditions_visc,
+                                 y_neg = boundary_conditions_visc,
+                                 y_pos = boundary_conditions_visc)
 
 ###############################################################################
 

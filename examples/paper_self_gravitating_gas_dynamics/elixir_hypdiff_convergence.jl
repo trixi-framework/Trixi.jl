@@ -8,7 +8,7 @@ equations = HyperbolicDiffusionEquations2D()
 
 initial_condition = initial_condition_poisson_nonperiodic
 # 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
-boundary_conditions = (x_neg = boundary_condition_poisson_nonperiodic,
+boundary_conditions = (; x_neg = boundary_condition_poisson_nonperiodic,
                        x_pos = boundary_condition_poisson_nonperiodic,
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -59,5 +59,5 @@ callbacks = CallbackSet(summary_callback, steady_state_callback, stepsize_callba
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

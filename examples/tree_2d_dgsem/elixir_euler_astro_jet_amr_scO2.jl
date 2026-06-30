@@ -31,7 +31,7 @@ function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations
 end
 initial_condition = initial_condition_astro_jet
 
-boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
+boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        x_pos = BoundaryConditionDirichlet(initial_condition_astro_jet),
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
@@ -61,7 +61,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 8,
                 periodicity = (false, true),
                 n_cells_max = 100_000)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 ###############################################################################
@@ -106,6 +106,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # run the simulation
 
 # use adaptive time stepping based on error estimates
-sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
+sol = solve(ode, SSPRK43(; stage_limiter! = stage_limiter!, thread = Trixi.Threaded());
             controller = PIDController(0.55, -0.27, 0.05),
             ode_default_options()..., callback = callbacks);
