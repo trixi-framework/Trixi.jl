@@ -232,9 +232,9 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
 
     if !has_candidate
         error("Failed to find projection onto Euler admissible set for state ", u,
-        " with rho = ", rho, " and rho_e = ",
-        rho_e_total - 0.5f0 * (rho_v1 * rho_v1 + rho_v2 * rho_v2) / rho,
-        " and rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
+              " with rho = ", rho, " and rho_e = ",
+              rho_e_total - 0.5f0 * (rho_v1 * rho_v1 + rho_v2 * rho_v2) / rho,
+              " and rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
     end
 
     return best_u
