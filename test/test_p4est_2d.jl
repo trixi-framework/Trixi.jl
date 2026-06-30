@@ -733,6 +733,39 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
+@trixi_testset "elixir_eulermulti_shock.jl (Adaptive Volume Integral)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
+                        # Adaptive volume integral selects based on the heuristic (!) a priori `indicator`
+                        # if the stabilized volume integral should be employed or if the default one is deemed sufficient.
+                        volume_integral=VolumeIntegralAdaptive(indicator = IndicatorHennemannGassner(equations,
+                                                                                                     basis,
+                                                                                                     alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
+                                                                                                     alpha_min = 0.001, # governs when subcell limiting is considered
+                                                                                                     alpha_smooth = true,
+                                                                                                     variable = density_pressure),
+                                                               volume_integral_default = VolumeIntegralWeakForm(),
+                                                               volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                                                                                          volume_flux_dg = volume_flux,
+                                                                                                                          volume_flux_fv = surface_flux)),
+                        l2=[
+                            0.09238280758225394,
+                            0.0006429890035879993,
+                            0.2274163507175861,
+                            0.09129656055607674,
+                            0.2714793222279367
+                        ],
+                        linf=[
+                            0.694955625123971,
+                            0.027123012309229432,
+                            1.7445076256977075,
+                            1.1616282896223118,
+                            4.34014006372623
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
