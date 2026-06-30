@@ -258,6 +258,16 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
+# Decide whether to visualize point values (default) or cell values,
+# e.g., for finite volume methods.
+visualize_point_values(mesh, solver) = true
+function visualize_point_values(mesh, solver::DGSEM)
+    # We interpret DG methods with polynomial degree 0 as
+    # first-order finite volume methods, which should be
+    # visualized as cell (mean) values.
+    return polydeg(solver) > 0
+end
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -267,6 +277,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
 
+    point_values = visualize_point_values(mesh, solver)
+    
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
     length_level_0 = mesh.tree.length_level_0
