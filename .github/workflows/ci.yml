@@ -86,6 +86,8 @@ jobs:
           - mpi
           - threaded
           - kernelabstractions
+          - serial
+          - base_threads
         include:
           - version: '1.11'
             os: ubuntu-latest
