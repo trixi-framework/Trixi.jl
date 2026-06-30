@@ -100,5 +100,6 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::BlockFV)
     summary_footer(io)
 end
 
+# This hack is currently required for the SaveSolutionCallback. 
 @inline polydeg(dg::BlockFV) = polydeg(dg.basis)
 end # @muladd

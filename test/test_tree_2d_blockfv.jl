@@ -140,8 +140,7 @@ end
 
     # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-                        solver=DGSEM(polydeg = 0,
-                                     surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)),
+                        solver=DGSEM(polydeg = 0, surface_flux = flux_hllc),
                         initial_refinement_level=7,
                         tspan=(0.0, 0.5))
     res2 = @inferred analysis_callback(sol)
