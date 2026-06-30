@@ -8,6 +8,18 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
+- Experimental support for auxiliary variables ([#2348]).
+  An additional container `aux_vars` in `cache` is made available in central functions like
+  flux computations. Possible applications are steady background states, variable velocity
+  fields, geometrical information, or any other pointwise, passive (constant in time)
+  quantity that is required in addition to the unknows in the governing equations. The
+  auxiliary variables are set up by supplying a function to the
+  `SemidiscretizationHyperbolic` constructor via the keyword argument `aux_field`.
+  The current `equations` need to set `have_aux_node_vars to `True()` and `n_aux_node_vars`
+  to the number of auxiliary variables per node.
+  So far, a simplifying continuity assumption is made for the auxiliary variables, which
+  e.g. allows to directly compute values at neighboring (mortar) interfaces instead of
+  MPI-communicating their values.
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).

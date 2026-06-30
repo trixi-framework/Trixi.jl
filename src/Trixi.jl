@@ -201,7 +201,7 @@ include("visualization/visualization.jl")
 
 # export types/functions that define the public API of Trixi.jl
 
-export AcousticPerturbationEquations2D,
+export AcousticPerturbationEquations2D, AcousticPerturbationEquations2DAuxVars,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D,
        CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D,
@@ -214,6 +214,7 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
+       LinearVariableScalarAdvectionEquation2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,

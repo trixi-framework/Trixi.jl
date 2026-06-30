@@ -34,7 +34,7 @@ end
 function calc_interface_flux!(backend::Backend, surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                           T8codeMesh{2}},
-                              have_nonconservative_terms,
+                              have_nonconservative_terms, have_aux_node_vars,
                               equations, surface_integral,
                               dg::DGSEM{<:LobattoLegendreBasis}, cache)
     ninterfaces(cache.interfaces) == 0 && return nothing

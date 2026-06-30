@@ -6,7 +6,8 @@
 #! format: noindent
 
 function max_dt(u, t, mesh::TreeMesh{3},
-                constant_speed::False, equations, dg::DG, cache)
+                have_constant_speed::False, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
@@ -57,7 +58,8 @@ function max_dt(u, t, mesh::TreeMesh{3},
 end
 
 function max_dt(u, t, mesh::TreeMesh{3},
-                constant_speed::True, equations, dg::DG, cache)
+                have_constant_speed::True, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
@@ -78,11 +80,13 @@ end
 
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                constant_speed, equations, dg::DG, cache)
+                have_constant_speed, have_aux_node_vars::False, equations, dg::DG,
+                cache)
     backend = trixi_backend(u)
 
-    max_lambda = calc_max_scaled_speed(backend, u, mesh, constant_speed, equations, dg,
-                                       cache)
+    max_lambda = calc_max_scaled_speed(backend, u, mesh, have_constant_speed,
+                                       have_aux_node_vars,
+                                       equations, dg, cache)
 
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -95,7 +99,8 @@ end
                                               ::Type{<:Union{StructuredMesh{3},
                                                              P4estMesh{3},
                                                              T8codeMesh{3}}},
-                                              constant_speed::False, equations, dg,
+                                              have_constant_speed::False,
+                                              have_aux_node_vars::False, equations, dg,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
     max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
@@ -178,7 +183,9 @@ end
                                               ::Type{<:Union{StructuredMesh{3},
                                                              P4estMesh{3},
                                                              T8codeMesh{3}}},
-                                              constant_speed::True, equations, dg::DG,
+                                              have_constant_speed::True,
+                                              have_aux_node_vars::False, equations,
+                                              dg::DG,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
     max_scaled_speed = zero(eltype(u))
@@ -262,16 +269,18 @@ function max_dt(u, t,
 end
 
 function max_dt(u, t, mesh::P4estMeshParallel{3},
-                constant_speed::False, equations, dg::DG, cache)
+                have_constant_speed::False, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), P4estMesh{3},
-                      typeof(constant_speed), typeof(equations), typeof(dg),
-                      typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
+                      typeof(equations), typeof(dg), typeof(cache)},
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -279,16 +288,18 @@ function max_dt(u, t, mesh::P4estMeshParallel{3},
 end
 
 function max_dt(u, t, mesh::P4estMeshParallel{3},
-                constant_speed::True, equations, dg::DG, cache)
+                have_constant_speed::True, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # call the method accepting a general `mesh::P4estMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), P4estMesh{3},
-                      typeof(constant_speed), typeof(equations), typeof(dg),
-                      typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
+                      typeof(equations), typeof(dg), typeof(cache)},
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -296,16 +307,18 @@ function max_dt(u, t, mesh::P4estMeshParallel{3},
 end
 
 function max_dt(u, t, mesh::T8codeMeshParallel{3},
-                constant_speed::False, equations, dg::DG, cache)
+                have_constant_speed::False, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), T8codeMesh{3},
-                      typeof(constant_speed), typeof(equations), typeof(dg),
-                      typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
+                      typeof(equations), typeof(dg), typeof(cache)},
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -313,16 +326,18 @@ function max_dt(u, t, mesh::T8codeMeshParallel{3},
 end
 
 function max_dt(u, t, mesh::T8codeMeshParallel{3},
-                constant_speed::True, equations, dg::DG, cache)
+                have_constant_speed::True, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # call the method accepting a general `mesh::T8codeMesh{3}`
     # TODO: MPI, we should improve this; maybe we should dispatch on `u`
     #       and create some MPI array type, overloading broadcasting and mapreduce etc.
     #       Then, this specific array type should also work well with DiffEq etc.
     dt = invoke(max_dt,
                 Tuple{typeof(u), typeof(t), T8codeMesh{3},
-                      typeof(constant_speed), typeof(equations), typeof(dg),
-                      typeof(cache)},
-                u, t, mesh, constant_speed, equations, dg, cache)
+                      typeof(have_constant_speed), typeof(have_aux_node_vars),
+                      typeof(equations), typeof(dg), typeof(cache)},
+                u, t, mesh, have_constant_speed, have_aux_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 

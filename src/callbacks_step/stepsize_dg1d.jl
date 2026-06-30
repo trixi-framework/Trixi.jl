@@ -6,8 +6,8 @@
 #! format: noindent
 
 function max_dt(u, t, mesh::TreeMesh{1},
-                constant_speed::False, equations,
-                dg::DG, cache)
+                have_constant_speed::False, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
@@ -54,7 +54,8 @@ function max_dt(u, t, mesh::TreeMesh{1},
 end
 
 function max_dt(u, t, mesh::TreeMesh{1},
-                constant_speed::True, equations,
+                have_constant_speed::True,
+                have_aux_node_vars::False, equations,
                 dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
@@ -96,8 +97,8 @@ function max_dt(u, t, mesh::TreeMesh, # for all dimensions
 end
 
 function max_dt(u, t, mesh::StructuredMesh{1},
-                constant_speed::False, equations,
-                dg::DG, cache)
+                have_constant_speed::False, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere
     max_scaled_speed = nextfloat(zero(t))
 
@@ -123,8 +124,8 @@ function max_dt(u, t, mesh::StructuredMesh{1},
 end
 
 function max_dt(u, t, mesh::StructuredMesh{1},
-                constant_speed::True, equations,
-                dg::DG, cache)
+                have_constant_speed::True, have_aux_node_vars::False,
+                equations, dg::DG, cache)
     # Avoid division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
