@@ -98,6 +98,9 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                                                 0.5f0 *
                                                 (rho_v_primary +
                                                  sqrt_discriminant_rho_v_primary))
+                    # μ > 0 sign check (λ = 0 branch); ρ_candidate cancellation can flip the
+                    # (1 - arithmetic_tol) comparison — see the inner-loop comment in
+                    # admissible_projection_euler_1d.jl.
                     candidate_energy_internal_times_rho = rho_e_floor * rho_candidate +
                                                           0.5f0 * a *
                                                           rho_v_primary_candidate *
