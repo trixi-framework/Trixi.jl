@@ -20,11 +20,12 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(1.4)
+Ma = 1.1
 
 @inline function initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     rho_freestream = 1.4
-    v1 = 3.0
+    v1 = Ma
     v2 = 0.0
     p_freestream = 1.0
 
@@ -34,16 +35,7 @@ end
 
 initial_condition = initial_condition_mach3_flow
 
-# Supersonic inflow boundary condition.
-# Calculate the boundary flux entirely from the external solution state, i.e., set
-# external solution state values for everything entering the domain.
-@inline function boundary_condition_supersonic_inflow(u_inner,
-                                                      normal_direction::AbstractVector,
-                                                      x, t, surface_flux_function,
-                                                      equations::CompressibleEulerEquations2D)
-    u_boundary = initial_condition_mach3_flow(x, t, equations)
-    return flux(u_boundary, normal_direction, equations)
-end
+boundary_condition_supersonic_inflow = BoundaryConditionDirichlet(initial_condition)
 
 # Supersonic outflow boundary condition.
 # Calculate the boundary flux entirely from the internal solution state. Analogous to supersonic inflow
@@ -83,11 +75,9 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-# Get the unstructured quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
-                           joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
+mesh_file = joinpath(@__DIR__, "CylinderSuperSonicMa" * string(Ma) * ".inp")
 
-mesh = P4estMesh{2}(mesh_file)
+mesh = P4estMesh{2}(mesh_file, initial_refinement_level=3)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
@@ -114,20 +104,10 @@ save_solution = SaveSolutionCallback(interval = 1000,
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 0,
-                                      med_level = 3, med_threshold = 0.05,
-                                      max_level = 5, max_threshold = 0.1)
-
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 1,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
-                        amr_callback)
+                        save_solution)
 
 # positivity limiter necessary for this example with strong shocks. Very sensitive
 # to the order of the limiter variables, pressure must come first.
@@ -136,5 +116,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(; stage_limiter!);
+sol = solve(ode, SSPRK43(; stage_limiter!); saveat=0.01,
             ode_default_options()..., callback = callbacks);

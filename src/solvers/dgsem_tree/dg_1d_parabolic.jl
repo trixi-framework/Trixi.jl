@@ -70,6 +70,51 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
+    @trixi_timeit timer() "calc divergence" calc_divergence!(du, flux_parabolic, u,
+                                                             mesh,
+                                                             equations_parabolic,
+                                                             boundary_conditions_parabolic,
+                                                             dg, parabolic_scheme,
+                                                             cache, t)
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit timer() "Jacobian" begin
+        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
+    end
+
+    # Calculate source terms
+    @trixi_timeit timer() "source terms parabolic" begin
+        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
+                                equations_parabolic, dg, cache)
+    end
+
+    return nothing
+end
+
+function calc_volume_entropy_residual(du, u, element, mesh::TreeMesh{1}, equations, dg,
+                                      cache)
+    # calculate volume integral
+    volume_integral_du_entropy = zero(real(dg))
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, element)
+        du_node = get_node_vars(du, equations, dg, i, element)
+        volume_integral_du_entropy = volume_integral_du_entropy +
+                                     dot(cons2entropy(u_node, equations), du_node) *
+                                     dg.basis.weights[i]
+    end
+
+    # calculate surface integral
+    u_left = get_node_vars(u, equations, dg, 1, element)
+    u_right = get_node_vars(u, equations, dg, nnodes(dg), element)
+    surface_integral_entropy_potential = entropy_potential(u_right, SVector(1.0),
+                                                           equations) +
+                                         entropy_potential(u_left, SVector(-1.0),
+                                                           equations)
+    return volume_integral_du_entropy + surface_integral_entropy_potential
+end
+
+function calc_divergence!(du, flux_parabolic, u, mesh::TreeMesh{1}, equations_parabolic,
+                          boundary_conditions_parabolic, dg, parabolic_scheme, cache, t)
     # Calculate volume integral
     # This calls the specialized version for the parabolic flux.
     @trixi_timeit timer() "volume integral" begin
@@ -111,17 +156,6 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms parabolic" begin
-        calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
-                                equations_parabolic, dg, cache)
     end
 
     return nothing
@@ -230,7 +264,8 @@ function calc_parabolic_fluxes!(flux_parabolic, gradients, u_transformed,
 end
 
 function calc_boundary_flux_gradient!(cache, t,
-                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                      boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                           BoundaryConditionDoNothing},
                                       mesh::TreeMesh{1},
                                       equations_parabolic::AbstractEquationsParabolic,
                                       surface_integral, dg::DG)
@@ -238,7 +273,8 @@ function calc_boundary_flux_gradient!(cache, t,
 end
 
 function calc_boundary_flux_divergence!(cache, t,
-                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
+                                        boundary_conditions_parabolic::Union{BoundaryConditionPeriodic,
+                                                                             BoundaryConditionDoNothing},
                                         mesh::TreeMesh{1},
                                         equations_parabolic::AbstractEquationsParabolic,
                                         surface_integral, dg::DG)

@@ -204,7 +204,8 @@ function flux(u, gradients, orientation::Integer,
     # more complex functions like Sutherland's law are possible.
     # `dynamic_viscosity` is a helper function that handles both cases
     # by dispatching on the type of `equations.mu`.
-    mu = dynamic_viscosity(u, equations)
+    u_org = entropy2cons(u, equations)
+    mu = dynamic_viscosity(u_org, equations)
 
     if orientation == 1
         # parabolic flux components in the x-direction
@@ -410,6 +411,38 @@ In 3D, ``\boldsymbol{\omega}`` is a full three-component vector.
 
     omega = vorticity(u, gradients, equations)
     return 0.5f0 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
+end
+
+@inline function solenodial_dissipation(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+    omega = vorticity(u, gradients, equations)
+    mu = dynamic_viscosity(u, equations)
+    return mu * (omega[1]^2 + omega[2]^2 + omega[3]^2)
+end
+
+@inline function dilatational_dissipation(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+    mu = dynamic_viscosity(u, equations)
+    return mu * divergence_velocity(u, gradients, equations)^2
+end
+
+@inline function divergence_velocity(u, gradients, 
+    equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
+    # Need to convert to entropy variables first for `convert_derivative_to_primitive` to work correctly.
+    w = cons2entropy(u, equations)
+
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, dv1dx, _, _, _ = convert_derivative_to_primitive(w, gradients[1], equations)
+    _, _, dv2dy, _, _ = convert_derivative_to_primitive(w, gradients[2], equations)
+    _, _, _, dv3dz, _ = convert_derivative_to_primitive(w, gradients[3], equations)
+
+    return dv1dx + dv2dy + dv3dz
+end
+
+@inline function divergence_velocity(u, gradients, 
+    equations::CompressibleNavierStokesDiffusion3D)
+    _, dv1dx, _, _, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, _, dv2dy, _, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    _, _, _, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3], equations)
+    return dv1dx + dv2dy + dv3dz
 end
 
 @doc raw"""

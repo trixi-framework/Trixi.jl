@@ -60,6 +60,19 @@ function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
                                                                  equations_hyperbolic)
 end
 
+# TODO: specialize with explicit formulas
+function jacobian_entropy2cons(w, equations::CompressibleEulerEquations1D)
+    return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
+end
+
+function jacobian_entropy2cons(w, equations::CompressibleEulerEquations2D)
+    return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
+end
+
+function jacobian_entropy2cons(w, equations::CompressibleEulerEquations3D)
+    return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
+end
+
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
 # Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any 
 # spatial dimension. 

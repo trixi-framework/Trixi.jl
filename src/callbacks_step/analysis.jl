@@ -646,6 +646,58 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
                    cache, cache_parabolic)
 end
+function analyze(quantity::typeof(solenodial_dissipation), du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    # We do not apply `enstrophy` directly here because we might later have different `quantity`s
+    # that we wish to integrate, which can share this routine.
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache, cache_parabolic)
+end
+function analyze(quantity::typeof(dilatational_dissipation), du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    # We do not apply `enstrophy` directly here because we might later have different `quantity`s
+    # that we wish to integrate, which can share this routine.
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache, cache_parabolic)
+end
+
+function analyze(quantity::typeof(enstrophy), du, u, t,
+                 semi::SemidiscretizationArtificialViscosity)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    # We do not apply `enstrophy` directly here because we might later have different `quantity`s
+    # that we wish to integrate, which can share this routine.
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache, cache_parabolic)
+end
+function analyze(quantity::typeof(solenodial_dissipation), du, u, t,
+                 semi::SemidiscretizationArtificialViscosity)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache, cache_parabolic)
+end
+
+function analyze(quantity::typeof(dilatational_dissipation), du, u, t,
+                 semi::SemidiscretizationArtificialViscosity)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+
+    return analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                   cache, cache_parabolic)
+end
+
+
 function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
                  cache, cache_parabolic)
     return integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
@@ -678,6 +730,16 @@ pretty_form_ascii(::typeof(cross_helicity)) = "v_dot_B"
 
 pretty_form_utf(::typeof(enstrophy)) = "∑enstrophy"
 pretty_form_ascii(::typeof(enstrophy)) = "enstrophy"
+
+function kinetic_energy_dissipation end
+pretty_form_utf(::typeof(kinetic_energy_dissipation)) = "∑ke_dissipation"
+pretty_form_ascii(::typeof(kinetic_energy_dissipation)) = "ke_dissipation"
+
+pretty_form_utf(::typeof(solenodial_dissipation)) = "sole_dissipation"
+pretty_form_ascii(::typeof(solenodial_dissipation)) = "sole_dissipation"
+
+pretty_form_utf(::typeof(dilatational_dissipation)) = "dila_dissipation"
+pretty_form_ascii(::typeof(dilatational_dissipation)) = "dila_dissipation"
 
 pretty_form_utf(::Val{:l2_divb}) = "L2 ∇⋅B"
 pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"

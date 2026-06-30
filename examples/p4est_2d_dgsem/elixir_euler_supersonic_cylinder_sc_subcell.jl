@@ -23,7 +23,7 @@ equations = CompressibleEulerEquations2D(1.4)
 @inline function initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
     # set the freestream flow parameters
     rho_freestream = 1.4
-    v1 = 3.0
+    v1 = 1.5
     v2 = 0.0
     p_freestream = 1.0
 
@@ -160,3 +160,5 @@ stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
+using Plots
+plot(sol)

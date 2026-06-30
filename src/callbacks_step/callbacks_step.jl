@@ -66,6 +66,7 @@ end
 include("summary.jl")
 include("steady_state.jl")
 include("analysis.jl")
+include("ecav_coefficient.jl")
 include("alive.jl")
 include("save_restart.jl")
 include("save_solution.jl")

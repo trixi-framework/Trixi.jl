@@ -503,6 +503,22 @@ function integrate(func::Func, u,
     end
 end
 
+function analyze(::typeof(kinetic_energy_dissipation), du, u, t,
+                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                             T8codeMesh{3}},
+                 equations, dg::Union{DGSEM, FDSBP}, cache;
+                   normalize = true) where {Func}
+    integrate_via_indices(u, mesh, equations, dg, cache;
+                          normalize = normalize) do u, i, j, k, element, equations, dg
+        u_local = get_node_vars(u, equations, dg, i, j, k, element)
+        du_local = get_node_vars(du, equations, dg, i, j, k, element)
+        u1, u2, u3 = velocity(u_local, equations)
+        n_vel = u1 * u1 + u2 * u2 + u3 * u3
+        return -(u1 * du_local[2] + u2 * du_local[3] + u3 * du_local[4]) + 0.5 * (n_vel) * du_local[1]
+        #return func(u_local, du_local, equations)
+    end
+end
+
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},

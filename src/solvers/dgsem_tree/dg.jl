@@ -44,16 +44,19 @@ include("subcell_finite_volume_O2.jl")
 
 # 1D DG implementation
 include("dg_1d.jl")
+include("dg_1d_artificial_viscosity.jl")
 include("dg_1d_parabolic.jl")
 
 # 2D DG implementation
 include("dg_2d.jl")
+include("dg_2d_artificial_viscosity.jl")
 include("dg_2d_parallel.jl")
 include("dg_2d_parabolic.jl")
 
 # 3D DG implementation
 include("dg_3d.jl")
 include("dg_3d_parabolic.jl")
+include("dg_3d_artificial_viscosity.jl")
 
 # Auxiliary functions that are specialized on this solver
 # as well as specialized implementations used to improve performance

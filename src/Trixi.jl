@@ -175,6 +175,14 @@ include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
 include("equations/equations.jl")
+
+abstract type AbstractArtificialViscosity end
+
+struct EntropyCorrectionArtificialViscosity{EquationsArtificialViscosity} <:
+       AbstractArtificialViscosity
+    equations_artificial_viscosity::EquationsArtificialViscosity
+end
+
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
 include("equations/equations_parabolic.jl") # these depend on parabolic solver types
@@ -182,6 +190,7 @@ include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_parabolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
+include("semidiscretization/semidiscretization_artificial_viscosity.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
 include("semidiscretization/semidiscretization_split.jl")
@@ -298,7 +307,8 @@ export entropy, entropy_thermodynamic, entropy_math, entropy_guermond_etal,
        entropy_potential,
        energy_total, energy_kinetic, energy_internal, energy_internal_specific,
        energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
-       enstrophy, vorticity
+       enstrophy, vorticity, kinetic_energy_dissipation, solenodial_dissipation,
+        dilatational_dissipation
 export lake_at_rest_error
 export ncomponents, eachcomponent
 export have_constant_speed
@@ -343,6 +353,7 @@ export SemidiscretizationParabolic
 export SemidiscretizationHyperbolicParabolic
 export have_constant_diffusivity, max_diffusivity
 
+export SemidiscretizationArtificialViscosity, EntropyCorrectionArtificialViscosity
 export SemidiscretizationHyperbolicSplit
 
 export SemidiscretizationEulerAcoustics
@@ -355,7 +366,8 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
 
 export SemidiscretizationCoupled, SemidiscretizationCoupledP4est
 
-export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
+export SummaryCallback, SteadyStateCallback, AnalysisCallback, ECAVCoefficientCallback,
+       AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,

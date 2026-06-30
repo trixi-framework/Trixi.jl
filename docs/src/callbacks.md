@@ -38,6 +38,13 @@ the percentage indicates.
 In [Performance metrics of the `AnalysisCallback`](@ref performance-metrics) you can find a detailed
 description of the different performance metrics the `AnalysisCallback` computes.
 
+### Entropy-correction artificial viscosity (ECAV) coefficient
+For [`SemidiscretizationArtificialViscosity`](@ref), the [`ECAVCoefficientCallback`](@ref) appends the
+maximum element-wise ECAV coefficient (from `semi.cache.artificial_viscosity.coefficients`) to a text
+file on the same cadence as the `AnalysisCallback` (every `interval` accepted steps and at the final
+time). See
+[`examples/tree_1d_dgsem/elixir_ecav_1d_callback.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_1d_dgsem/elixir_ecav_1d_callback.jl).
+
 ### I/O
 
 #### Solution and restart files
