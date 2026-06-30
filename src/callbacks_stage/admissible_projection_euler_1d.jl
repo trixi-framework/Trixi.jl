@@ -71,7 +71,7 @@ function calc_depressed_cubic_roots(p, q)
         s, c = sincos(theta / 3)
         
         root_1 = -2 * sqrt_mp_3 * c
-        root_2 = sqrt_mp_3 * c + sqrt(3) * s)
+        root_2 = sqrt_mp_3 * (c + sqrt(3) * s)
         root_3 = sqrt_mp_3 * (c - sqrt(3) * s)
     end
     return n_roots, SVector(root_1, root_2, root_3)
