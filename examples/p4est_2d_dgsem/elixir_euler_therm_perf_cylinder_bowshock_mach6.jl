@@ -158,8 +158,6 @@ mesh = P4estMesh(trees_per_dimension,
                  mapping = cylinder_mapping,
                  periodicity = false)
 
-solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach6_flow, solver;
                                     boundary_conditions = boundary_conditions)
