@@ -276,8 +276,8 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     num_elements_per_tree = zeros(t8_gloidx_t, num_global_trees)
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
     for local_tree_id in 0:(num_local_trees - 1)
-        num_local_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest,
-                                                                     local_tree_id)
+        num_local_elements_in_tree = t8_forest_get_tree_num_leaf_elements(mesh.forest,
+                                                                          local_tree_id)
         global_tree_id = t8_forest_global_tree_id(mesh.forest, local_tree_id)
         num_elements_per_tree[global_tree_id + 1] = num_local_elements_in_tree
     end
@@ -313,6 +313,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         file["orientations"] = orientations
         file["levels"] = levels
         file["num_elements_per_tree"] = num_elements_per_tree
+        file["partition_allow_for_coarsening"] = mesh.partition_allow_for_coarsening
         return nothing
     end
 
@@ -526,7 +527,8 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     elseif mesh_type == "T8codeMesh"
         ndims, ntrees, nelements, tree_node_coordinates,
         nodes, boundary_names_, treeIDs, neighIDs, faces, duals, orientations,
-        levels, num_elements_per_tree = h5open(mesh_file, "r") do file
+        levels, num_elements_per_tree,
+        partition_allow_for_coarsening = h5open(mesh_file, "r") do file
             return read(attributes(file)["ndims"]),
                    read(attributes(file)["ntrees"]),
                    read(attributes(file)["nelements"]),
@@ -539,14 +541,16 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                    read(file["duals"]),
                    read(file["orientations"]),
                    read(file["levels"]),
-                   read(file["num_elements_per_tree"])
+                   read(file["num_elements_per_tree"]),
+                   read(file["partition_allow_for_coarsening"])
         end
 
         boundary_names = boundary_names_ .|> Symbol
 
         mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates,
                           nodes, boundary_names, treeIDs, neighIDs, faces,
-                          duals, orientations, levels, num_elements_per_tree)
+                          duals, orientations, levels, num_elements_per_tree,
+                          partition_allow_for_coarsening)
 
     elseif mesh_type == "DGMultiMesh"
         ndims, nelements, etype_str, EToV = h5open(mesh_file, "r") do file
@@ -705,7 +709,8 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
         if mpi_isroot()
             ndims, ntrees, nelements, tree_node_coordinates, nodes,
             boundary_names_, treeIDs, neighIDs, faces, duals, orientations, levels,
-            num_elements_per_tree = h5open(mesh_file, "r") do file
+            num_elements_per_tree,
+            partition_allow_for_coarsening = h5open(mesh_file, "r") do file
                 return read(attributes(file)["ndims"]),
                        read(attributes(file)["ntrees"]),
                        read(attributes(file)["nelements"]),
@@ -718,25 +723,28 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
                        read(file["duals"]),
                        read(file["orientations"]),
                        read(file["levels"]),
-                       read(file["num_elements_per_tree"])
+                       read(file["num_elements_per_tree"]),
+                       read(file["partition_allow_for_coarsening"])
             end
 
             boundary_names = boundary_names_ .|> Symbol
 
             data = (ndims, ntrees, nelements, tree_node_coordinates, nodes,
                     boundary_names, treeIDs, neighIDs, faces, duals,
-                    orientations, levels, num_elements_per_tree)
+                    orientations, levels, num_elements_per_tree,
+                    partition_allow_for_coarsening)
             MPI.bcast(data, mpi_root(), mpi_comm())
         else
             data = MPI.bcast(nothing, mpi_root(), mpi_comm())
             ndims, ntrees, nelements, tree_node_coordinates, nodes,
             boundary_names, treeIDs, neighIDs, faces, duals, orientations, levels,
-            num_elements_per_tree = data
+            num_elements_per_tree, partition_allow_for_coarsening = data
         end
 
         mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates,
                           nodes, boundary_names, treeIDs, neighIDs, faces,
-                          duals, orientations, levels, num_elements_per_tree)
+                          duals, orientations, levels, num_elements_per_tree,
+                          partition_allow_for_coarsening)
     else
         error("Unknown mesh type!")
     end

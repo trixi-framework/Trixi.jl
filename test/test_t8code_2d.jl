@@ -25,15 +25,7 @@ mkdir(outdir)
 end
 
 @trixi_testset "test check_for_negative_volumes" begin
-    # This test actually checks if a "negative volume" error is thrown.
-    # Since t8code currently applies a correction on-the-fly this test
-    # is kinda broken. The correction feature in t8code, however, is planned
-    # to be removed in near to midterm future. Thus, this test is kept. It will
-    # fail once the internal correction is removed and can then be restored
-    # to its original form.
-
-    # @test_throws "Discovered negative volumes" begin
-    @test begin
+    @test_throws "Discovered negative volumes" begin
         using Trixi: Trixi, T8codeMesh
         # Unstructured mesh with six cells which have left-handed node ordering.
         mesh_file = Trixi.download("https://gist.githubusercontent.com/jmark/bfe0d45f8e369298d6cc637733819013/raw/cecf86edecc736e8b3e06e354c494b2052d41f7a/rectangle_with_negative_volumes.msh",
@@ -42,7 +34,6 @@ end
 
         # This call should throw a warning about negative volumes detected.
         mesh = T8codeMesh(mesh_file, 2)
-        true
     end
 end
 

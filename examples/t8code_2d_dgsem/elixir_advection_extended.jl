@@ -28,7 +28,9 @@ trees_per_dimension = (19, 37)
 # Create curved mesh with 19 x 37 elements
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  periodicity = false)
+                  periodicity = false,
+                  # Temporary workaround for https://github.com/DLR-AMR/t8code/pull/2280
+                  partition_allow_for_coarsening = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
