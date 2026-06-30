@@ -406,7 +406,7 @@ end
                             0.10546874166288663,
                             0.06306983030165976
                         ],
-                        atol=1e-7,
+                        atol=1e-7, # limiters are not smooth, so we need bigger tolerances
                         rtol=1e-6)
 
     # check that the limiter is activated; the precise number of activations 

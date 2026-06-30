@@ -547,7 +547,7 @@ end
                             2.0445488517007133,
                             1.1947919489346195
                         ],
-                        atol=5e-2,
+                        atol=5e-2, # limiters are not smooth, so we need bigger tolerances
                         rtol=1e-2)
     @test length(global_limiter!.history_davis_yin_iterations) == 1
     @test_allocations(Trixi.rhs!, semi, sol, 1000)

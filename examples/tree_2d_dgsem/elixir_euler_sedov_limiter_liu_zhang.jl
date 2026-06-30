@@ -21,7 +21,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
     r = sqrt(x_norm^2 + y_norm^2)
 
     # Setup based on example 35.1.4 in https://flash.rochester.edu/site/flashcode/user_support/flash4_ug_4p8.pdf
-    r0 = 0.5
+    r0 = 0.5f0
     E = 1
     p0_inner = 3 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0^2)
 

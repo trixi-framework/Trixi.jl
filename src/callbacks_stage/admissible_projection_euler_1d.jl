@@ -48,27 +48,31 @@ end
 # Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::SVector{3,T}).
 # Note that roots[n_roots+1:end] are not accessed and are simply set to zero.
 function calc_depressed_cubic_roots(p, q)
-    T = typeof(p)
     delta = 4 * p^3 + 27 * q^2
+    T = typeof(delta)
     n_roots = 0
-    if delta > zero(delta)
-        Y1 = 1.5 * (9 * q + sqrt(3 * delta))
-        Y2 = 1.5 * (9 * q - sqrt(3 * delta))
+    if delta > zero(T)
+        Y1 = 1.5f0 * (9 * q + sqrt(3 * delta))
+        Y2 = 1.5f0 * (9 * q - sqrt(3 * delta))
         n_roots = 1
-        root_1 = -(sign(Y1) * abs(Y1)^(1 / 3) + sign(Y2) * abs(Y2)^(1 / 3)) / 3
+        root_1 = -(cbrt(Y1) + cbrt(Y2)) / 3
         root_2 = zero(T) # not used
         root_3 = zero(T) # not used
     elseif iszero(delta) && (!iszero(p) || !iszero(q))
         n_roots = 2
         root_1 = 3 * q / p
-        root_2 = -1.5 * q / p
+        root_2 = -1.5f0 * q / p
         root_3 = zero(T) # not used
-    elseif delta < zero(delta)
-        theta = acos(-1.5 * sqrt(-3 / p) * q / p)
+    elseif delta < zero(T)
         n_roots = 3
-        root_1 = -2 * sqrt(-p / 3) * cos(theta / 3)
-        root_2 = sqrt(-p / 3) * (cos(theta / 3) + sqrt(3) * sin(theta / 3))
-        root_3 = sqrt(-p / 3) * (cos(theta / 3) - sqrt(3) * sin(theta / 3))
+        sqrt_3 = sqrt(3)
+        sqrt_mp_3 = sqrt(-p / 3)
+        theta = acos(-1.5f0 * sqrt_mp_3 * q / p)
+        s, c = sincos(theta / 3)
+        
+        root_1 = -2 * sqrt_mp_3 * c
+        root_2 = sqrt_mp_3 * c + sqrt(3) * s)
+        root_3 = sqrt_mp_3 * (c - sqrt(3) * s)
     end
     return n_roots, SVector(root_1, root_2, root_3)
 end
@@ -94,8 +98,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     rho_floor, rho_e_floor = lower_bounds
     u = cell_average
     rho, rho_v1, rho_e_total = u
-    RealT = typeof(rho)
     arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
+    RealT = typeof(arithmetic_tol)
     @assert arithmetic_tol<minimum(lower_bounds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
     if state_is_admissible(u, lower_bounds, variables, equations)
@@ -174,8 +178,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
         has_real_rho_candidates = discriminant_rho >= zero(discriminant_rho)
         if has_real_rho_candidates
             sqrt_discriminant_rho = sqrt(discriminant_rho)
-            for rho_candidate in (0.5 * (rho - sqrt_discriminant_rho),
-                                  0.5 * (rho + sqrt_discriminant_rho))
+            for rho_candidate in (0.5f0 * (rho - sqrt_discriminant_rho),
+                                  0.5f0 * (rho + sqrt_discriminant_rho))
                 discriminant_momentum = -8 * rho_candidate * rho_candidate +
                                         8 * rho * rho_candidate + rho_v1 * rho_v1
                 # Roundoff can make discriminant_momentum slightly negative at the real-root
@@ -190,9 +194,9 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                zero(discriminant_momentum)
                 if candidate_density_satisfies_floor && has_real_momentum_candidates
                     sqrt_discriminant_momentum = sqrt(discriminant_momentum)
-                    for rho_v1_candidate in (0.5 *
+                    for rho_v1_candidate in (0.5f0 *
                                              (rho_v1 - sqrt_discriminant_momentum),
-                                             0.5 *
+                                             0.5f0 *
                                              (rho_v1 + sqrt_discriminant_momentum))
                         # μ > 0 sign check (λ = 0 branch): candidate internal energy must
                         # exceed the original. ρ_candidate = ½(ρ ± √Δ_ρ) can suffer
