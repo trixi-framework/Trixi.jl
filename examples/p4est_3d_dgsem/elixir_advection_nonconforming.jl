@@ -52,7 +52,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = CuArray)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
