@@ -22,6 +22,7 @@ f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
 trees_per_dimension = (3, 2)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  faces = (f1, f2, f3, f4),
+                 periodicity = true,
                  initial_refinement_level = 1)
 
 # Refine bottom left quadrant of each tree to level 4
@@ -45,7 +46,8 @@ Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver;
+                                    boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -76,5 +78,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
