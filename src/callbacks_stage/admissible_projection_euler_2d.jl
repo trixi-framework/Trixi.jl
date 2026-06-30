@@ -78,8 +78,8 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                         (rho_e_floor + rho - rho_e_total)^2 / a)
     if discriminant_rho >= zero(discriminant_rho)
         sqrt_discriminant_rho = sqrt(discriminant_rho)
-        for rho_candidate in (0.5 * (rho - sqrt_discriminant_rho),
-                              0.5 * (rho + sqrt_discriminant_rho))
+        for rho_candidate in (0.5f0 * (rho - sqrt_discriminant_rho),
+                              0.5f0 * (rho + sqrt_discriminant_rho))
             discriminant_rho_v_primary = -8 * a * rho_candidate * rho_candidate +
                                          8 * a * rho * rho_candidate +
                                          (a * rho_v_primary)^2
@@ -92,10 +92,10 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
             if rho_candidate >= rho_floor - arithmetic_tol &&
                discriminant_rho_v_primary >= zero(discriminant_rho_v_primary)
                 sqrt_discriminant_rho_v_primary = sqrt(discriminant_rho_v_primary) / a
-                for rho_v_primary_candidate in (0.5 *
+                for rho_v_primary_candidate in (0.5f0 *
                                                 (rho_v_primary -
                                                  sqrt_discriminant_rho_v_primary),
-                                                0.5 *
+                                                0.5f0 *
                                                 (rho_v_primary +
                                                  sqrt_discriminant_rho_v_primary))
                     candidate_energy_internal_times_rho = rho_e_floor * rho_candidate +
