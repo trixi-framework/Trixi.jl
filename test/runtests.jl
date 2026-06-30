@@ -159,7 +159,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         end
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "threads"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "base_threads"
         previous_backend = Trixi._PREFERENCE_THREADING
         Trixi.set_threading_backend!(:static)
         try

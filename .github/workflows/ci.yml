@@ -87,7 +87,7 @@ jobs:
           - threaded
           - kernelabstractions
           - serial
-          - threads
+          - base_threads
         include:
           - version: '1.11'
             os: ubuntu-latest
