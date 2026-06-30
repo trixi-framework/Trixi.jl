@@ -155,8 +155,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     rho_floor, rho_e_floor = lower_bounds
     u = cell_average
     rho, rho_v1, rho_v2, rho_e_total = u
-    RealT = typeof(rho)
     arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
+    RealT = typeof(arithmetic_tol)
     @assert arithmetic_tol<minimum(lower_bounds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
     if state_is_admissible(u, lower_bounds, variables, equations)
