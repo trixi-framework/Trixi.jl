@@ -62,7 +62,7 @@ end
 
 function create_cache(::Type{SemidiscretizationEulerAcoustics}, source_region, weights,
                       mesh, equations::AcousticPerturbationEquations2D,
-                      dg::Union{DGSEM, BlockFV},
+                      dg::DGSEM,
                       cache)
     coupled_element_ids = get_coupled_element_ids(source_region, equations, dg, cache)
 
