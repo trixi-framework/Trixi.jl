@@ -34,42 +34,4 @@ Should be used together with [`P4estMesh`](@ref).
 
     return u_outer
 end
-
-@inline function average_mortar_limiting_factor(limiting_factor, mesh::P4estMesh{2},
-                                                dg, cache)
-    (; weights) = dg.basis
-    (; jacobian_matrix) = cache.elements
-    (; neighbor_ids, node_indices) = cache.mortars
-
-    avg_type = promote_type(eltype(limiting_factor), eltype(jacobian_matrix))
-    weighted_sum = zero(avg_type)
-    total_weight = zero(avg_type)
-    index_range = eachnode(dg)
-
-    for mortar in eachmortar(dg, cache)
-        large_element = neighbor_ids[3, mortar]
-        large_indices = node_indices[2, mortar]
-
-        i_large, i_large_step = index_to_start_step_2d(large_indices[1], index_range)
-        j_large, j_large_step = index_to_start_step_2d(large_indices[2], index_range)
-        tangent_direction = iszero(i_large_step) ? 2 : 1
-
-        mortar_size = zero(avg_type)
-        for node in eachnode(dg)
-            tangent_x = jacobian_matrix[1, tangent_direction, i_large, j_large,
-                                        large_element]
-            tangent_y = jacobian_matrix[2, tangent_direction, i_large, j_large,
-                                        large_element]
-            mortar_size += weights[node] * sqrt(tangent_x^2 + tangent_y^2)
-
-            i_large += i_large_step
-            j_large += j_large_step
-        end
-
-        weighted_sum += limiting_factor[mortar] * mortar_size
-        total_weight += mortar_size
-    end
-
-    return weighted_sum / total_weight
-end
 end # @muladd
