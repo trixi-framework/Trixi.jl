@@ -799,14 +799,14 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     return nothing
 end
 
-function prolong2mortars!(cache, u,
-                          mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                          equations,
-                          mortar_l2::LobattoLegendreMortarL2,
-                          dg::DGSEM)
-    backend = trixi_backend(u)
-    prolong2mortars!(backend, cache, u, mesh, equations, mortar_l2, dg)
-end
+# function prolong2mortars!(cache, u,
+#                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+#                           equations,
+#                           mortar_l2::LobattoLegendreMortarL2,
+#                           dg::DGSEM)
+#     backend = trixi_backend(u)
+#     prolong2mortars!(backend, cache, u, mesh, equations, mortar_l2, dg)
+# end
 
 function prolong2mortars!(backend::Nothing, cache, u,
                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
@@ -876,15 +876,15 @@ function prolong2mortars!(backend::Nothing, cache, u,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                           have_nonconservative_terms, equations,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache)
-    backend = trixi_backend(surface_flux_values)
-    calc_mortar_flux!(backend, surface_flux_values, mesh, have_nonconservative_terms, 
-                      equations, mortar_l2, surface_integral, dg, cache)
-end
+# function calc_mortar_flux!(surface_flux_values,
+#                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+#                            have_nonconservative_terms, equations,
+#                            mortar_l2::LobattoLegendreMortarL2,
+#                            surface_integral, dg::DG, cache)
+#     backend = trixi_backend(surface_flux_values)
+#     calc_mortar_flux!(backend, surface_flux_values, mesh, have_nonconservative_terms, 
+#                       equations, mortar_l2, surface_integral, dg, cache)
+# end
 
 function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
@@ -1251,7 +1251,7 @@ function rhs!(du, u, t, u_parent, semis,
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
+        prolong2mortars!(backend, cache, u, mesh, equations,
                          dg.mortar, dg)
     end
 

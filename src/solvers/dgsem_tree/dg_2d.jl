@@ -154,13 +154,13 @@ function rhs!(du, u, t,
 
     # Prolong solution to mortars
     @trixi_timeit_ext backend timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
+        prolong2mortars!(backend, cache, u, mesh, equations,
                          dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
     @trixi_timeit_ext backend timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
@@ -895,7 +895,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function prolong2mortars!(cache, u,
+function prolong2mortars!(backend,cache, u,
                           mesh::TreeMesh{2}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
@@ -995,7 +995,7 @@ end
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::TreeMesh{2},
                            have_nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -1032,7 +1032,7 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::TreeMesh{2},
                            have_nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -1139,7 +1139,7 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 # For Gauss-Legendre DGSEM mortars are not yet implemented
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::TreeMesh{2},
                            have_nonconservative_terms, equations,
                            mortar::Nothing, surface_integral,
