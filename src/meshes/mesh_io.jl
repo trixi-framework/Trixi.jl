@@ -393,9 +393,13 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
 end
 
 """
-    load_mesh(restart_file::AbstractString; n_cells_max)
+    load_mesh(restart_file::AbstractString;
+              n_cells_max = 0, RealT = Float64)
 
 Load the mesh from the `restart_file`.
+`n_cells_max` sets the initial capacity of the `TreeMesh`;
+if `0` (default), the saved capacity is used.
+`RealT` sets the floating-point type of the mesh coordinates.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max = 0, RealT = Float64)
     if mpi_isparallel()
@@ -414,11 +418,18 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     if mesh_type == "TreeMesh"
+        if !(n_cells_max === nothing || (n_cells_max isa Integer && n_cells_max >= 0))
+            throw(ArgumentError("`n_cells_max` must be a non-negative integer or `nothing` (provided `n_cells_max = $n_cells_max`)"))
+        end
         capacity = h5open(mesh_file, "r") do file
             return read(attributes(file)["capacity"])
         end
-        mesh = TreeMesh(SerialTree{ndims, RealT}, max(n_cells_max, capacity),
-                        RealT = RealT)
+        if n_cells_max === nothing
+            initial_capacity = capacity
+        else
+            initial_capacity = max(n_cells_max, capacity)
+        end
+        mesh = TreeMesh(SerialTree{ndims, RealT}, initial_capacity, RealT = RealT)
         load_mesh!(mesh, mesh_file)
     elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
         size_, periodicity, mapping_as_string = h5open(mesh_file, "r") do file
@@ -639,6 +650,9 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     if mesh_type == "TreeMesh"
+        if !(n_cells_max === nothing || (n_cells_max isa Integer && n_cells_max >= 0))
+            throw(ArgumentError("`n_cells_max` must be a non-negative integer or `nothing` (provided `n_cells_max = $n_cells_max`)"))
+        end
         if mpi_isroot()
             n_cells, capacity = h5open(mesh_file, "r") do file
                 return read(attributes(file)["n_cells"]),
@@ -651,9 +665,12 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
             capacity = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
 
-        mesh = TreeMesh(ParallelTree{ndims_, RealT},
-                        max(n_cells, n_cells_max, capacity),
-                        RealT = RealT)
+        if n_cells_max === nothing
+            initial_capacity = capacity
+        else
+            initial_capacity = max(n_cells_max, capacity)
+        end
+        mesh = TreeMesh(ParallelTree{ndims_, RealT}, initial_capacity, RealT = RealT)
         load_mesh!(mesh, mesh_file)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()

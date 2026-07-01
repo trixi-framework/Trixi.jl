@@ -298,6 +298,36 @@ function trixi_backend(x::VectorOfArray)
     return get_backend(u[1])
 end
 
+"""
+    trixi_backend_info!(setup, backend)
+
+Add information about the computational backend to `setup`, which is a vector of key-value pairs.
+Used by Trixi.jl's summary callback to print information about the simulation setup.
+"""
+function trixi_backend_info!(_, ::Nothing)
+    return nothing
+end
+
+function trixi_backend_info!(setup, ::KernelAbstractions.CPU)
+    push!(setup, "Backend" => "KernelAbstractions CPU")
+    return nothing
+end
+
+function trixi_backend_info!(setup, ::KernelAbstractions.Backend)
+    push!(setup, "Backend" => "Unknown KernelAbstractions backend")
+    return nothing
+end
+
+"""
+    trixi_device_memory_use(backend)
+
+Return the device memory use in bytes for the given `backend`, or `nothing`.
+Reports the current active device and memory pool.
+"""
+function trixi_device_memory_use(backend::Union{Nothing, KernelAbstractions.Backend})
+    return nothing
+end
+
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
 # null pointers which can cause `unsafe_wrap` to fail when calling
 # Adapt.adapt (ArgumentError, see
@@ -358,7 +388,13 @@ function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
     return adapt(Storage, x)
 end
 
-# 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
+# 3. Equations and equations of state: delegate to Base.similar
+function Adapt.adapt_structure(::TrixiAdaptor{<:Any, NewRealT},
+                               equations::AbstractEquations) where {NewRealT}
+    return similar(equations, NewRealT)
+end
+
+# 4. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
 
 function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
     return unsafe_wrap_or_alloc(Storage, vec, size)

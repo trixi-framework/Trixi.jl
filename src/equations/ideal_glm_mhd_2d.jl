@@ -68,6 +68,16 @@ function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
     return IdealGlmMhdEquations2D(gamma, c_h)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::IdealGlmMhdEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return IdealGlmMhdEquations2D(convert(NewRealT, equations.gamma),
+                                  convert(NewRealT, equations.c_h))
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)

@@ -88,7 +88,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
@@ -234,4 +234,5 @@ include("dg_2d_subcell_limiters.jl")
 # Specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
 include("dg_3d_compressible_euler.jl")
+include("dg_3d_turbo.jl")
 end # @muladd

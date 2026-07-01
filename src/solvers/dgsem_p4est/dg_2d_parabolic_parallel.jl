@@ -11,6 +11,12 @@ function rhs_parabolic!(du, u, t,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
+    backend = trixi_backend(u_transformed)
+
+    # Start gradient MPI receive
+    @trixi_timeit timer() "start MPI receive gradient" begin
+        start_mpi_receive!(cache.mpi_cache)
+    end
 
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
@@ -18,11 +24,7 @@ function rhs_parabolic!(du, u, t,
     end
 
     ### Gradient computation ###
-
-    # Start gradient MPI receive
-    @trixi_timeit timer() "start MPI receive gradient" begin
-        start_mpi_receive!(cache.mpi_cache)
-    end
+    # Note that the first step (start MPI receive) was already done earlier.
 
     # Prolong transformed variables to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars gradient" begin
@@ -67,13 +69,13 @@ function rhs_parabolic!(du, u, t,
                                        dg, parabolic_scheme, cache)
     end
 
-    # Calculate surface integrals
+    # Calculate gradient surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral_gradient!(gradients, mesh, equations_parabolic,
                                         dg, cache)
     end
 
-    # Apply Jacobian from mapping to reference element
+    # Apply Jacobian to gradients from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
                                   cache)
@@ -123,39 +125,15 @@ function rhs_parabolic!(du, u, t,
         start_mpi_send!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
 
-    # Local interface fluxes
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
-    end
+    # Local, i.e., non-MPI interface/boundary/mortar fluxes
+    calc_interfaces_local!(cache, flux_parabolic, mesh, equations_parabolic,
+                           dg, parabolic_scheme)
 
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, parabolic_scheme, cache)
-    end
+    calc_boundaries_local!(cache, flux_parabolic, t, mesh, equations_parabolic,
+                           boundary_conditions_parabolic, dg)
 
-    # Local boundary fluxes
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
-    end
-
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
-                                       boundary_conditions_parabolic, mesh,
-                                       equations_parabolic,
-                                       dg.surface_integral, dg)
-    end
-
-    # Local mortar fluxes
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars_divergence!(cache, flux_parabolic, mesh, equations_parabolic,
-                                    dg.mortar, dg)
-    end
-
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux_divergence!(cache.elements.surface_flux_values,
-                                     mesh, equations_parabolic, dg.mortar,
-                                     dg, parabolic_scheme, cache)
-    end
+    calc_mortars_local!(cache, flux_parabolic, mesh, equations_parabolic,
+                        dg, parabolic_scheme)
 
     # Finish divergence MPI receive
     @trixi_timeit timer() "finish MPI receive divergence" begin
@@ -181,8 +159,9 @@ function rhs_parabolic!(du, u, t,
         finish_mpi_send!(cache.mpi_cache)
     end
 
+    # Re-use `calc_surface_integral!` for the purely hyperbolic case
     @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(nothing, du, u, mesh, equations_parabolic,
+        calc_surface_integral!(backend, du, u, mesh, equations_parabolic,
                                dg.surface_integral, dg, cache)
     end
 
@@ -198,10 +177,61 @@ function rhs_parabolic!(du, u, t,
     return nothing
 end
 
+function calc_interfaces_local!(cache, flux_parabolic,
+                                mesh::P4estMeshParallel, equations_parabolic,
+                                dg::DG, parabolic_scheme)
+    @trixi_timeit timer() "prolong2interfaces" begin
+        prolong2interfaces!(cache, flux_parabolic, mesh, equations_parabolic, dg)
+    end
+
+    @trixi_timeit timer() "interface flux" begin
+        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
+                             equations_parabolic, dg, parabolic_scheme, cache)
+    end
+
+    return nothing
+end
+
+function calc_boundaries_local!(cache, flux_parabolic, t,
+                                mesh::P4estMeshParallel, equations_parabolic,
+                                boundary_conditions_parabolic, dg::DG)
+    @trixi_timeit timer() "prolong2boundaries" begin
+        prolong2boundaries!(cache, flux_parabolic, mesh, equations_parabolic, dg)
+    end
+
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux_divergence!(cache, t,
+                                       boundary_conditions_parabolic, mesh,
+                                       equations_parabolic,
+                                       dg.surface_integral, dg)
+    end
+
+    return nothing
+end
+
+function calc_mortars_local!(cache, flux_parabolic,
+                             mesh::P4estMeshParallel, equations_parabolic,
+                             dg::DG, parabolic_scheme)
+    @trixi_timeit timer() "prolong2mortars" begin
+        prolong2mortars_divergence!(cache, flux_parabolic, mesh, equations_parabolic,
+                                    dg.mortar, dg)
+    end
+
+    @trixi_timeit timer() "mortar flux" begin
+        calc_mortar_flux_divergence!(cache.elements.surface_flux_values,
+                                     mesh, equations_parabolic, dg.mortar,
+                                     dg, parabolic_scheme, cache)
+    end
+
+    return nothing
+end
+
 function calc_gradient_local!(gradients, u_transformed, t,
                               mesh::P4estMeshParallel{2},
                               equations_parabolic, boundary_conditions_parabolic,
                               dg::DG, parabolic_scheme, cache)
+    backend = trixi_backend(u_transformed)
+
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_gradients!(gradients, dg, cache)
@@ -216,7 +246,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
     # Prolong solution to interfaces.
     # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(nothing, cache, u_transformed, mesh,
+        prolong2interfaces!(backend, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 
@@ -230,7 +260,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh,
+        prolong2boundaries!(backend, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 

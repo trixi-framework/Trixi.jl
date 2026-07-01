@@ -2,11 +2,44 @@
 
 Support for heterogeneous computing is currently being worked on.
 
-## The use of Adapt.jl
+
+## User-facing interface
+
+GPU support in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) is controlled via two keyword arguments to [`semidiscretize`](@ref):
+
+- `storage_type`: the array type used for all internal data structures.
+  Set to `CuArray` (from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)) for NVIDIA GPUs
+  or `ROCArray` (from [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)) for AMD GPUs.
+  Defaults to `nothing`, which keeps the standard CPU `Array`.
+- `real_type`: the floating-point element type. GPU workflows typically benefit from
+  setting this to `Float32`. Defaults to `nothing`, which retains the type used when
+  building the semidiscretization (usually `Float64`).
+
+Both arguments can be used independently. A typical GPU setup looks like:
+
+```julia
+using CUDA   # or using AMDGPU
+ode = semidiscretize(semi, tspan; real_type = Float32, storage_type = CuArray)
+```
+
+The rest of the elixir (callbacks, ODE solver call) remains unchanged. See, e.g.,
+`examples/p4est_2d_dgsem/elixir_euler_source_terms.jl` for a concrete example.
+
+!!! note "Single-precision computations using `Float32`"
+    To use `Float32` consistently, make sure to write all equations, initial conditions,
+    boundary conditions, and source terms in a type-stable manner — avoid hard-coded
+    `Float64` literals and instead use, e.g., the `f0` suffix (`0.5f0`) for exact values
+    or `convert(RealT, ...)` for non-exact ones, where `RealT = eltype(u)`.
+    When using a [`StepsizeCallback`](@ref) for CFL-based step size control, also pass
+    `dt = 1` (an integer) rather than `dt = 1.0` to `solve`.
+    See [Numeric types and type stability](@ref numeric-types) for detailed guidelines.
+
+
+## Internal use of Adapt.jl
 
 [Adapt.jl](https://github.com/JuliaGPU/Adapt.jl) is a package in the
 [JuliaGPU](https://github.com/JuliaGPU) family that allows for
-the translation of nested data structures. The primary goal is to allow the substitution of `Array` 
+the translation of nested data structures. The primary goal is to allow the substitution of `Array`
 at the storage level with a GPU array like `CuArray` from [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl).
 
 To facilitate this, data structures must be parameterized, so instead of:
@@ -29,7 +62,7 @@ end
 ```
 
 furthermore, we need to define a function that allows for the conversion of storage
-of our types: 
+of our types:
 
 ```jldoctest adapt; output = false
 using Adapt
@@ -156,7 +189,7 @@ end
                ndrange = nelements(solver, cache))
        return nothing
    end
-   
+
    @kernel function rhs_fct_kernel!(unpacked_args, args)
        element = @index(Global)
        rhs_fct_per_element(element, unpacked_args, args)

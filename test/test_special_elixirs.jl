@@ -454,7 +454,7 @@ end
             sol = solve(ode, SSPRK43(), callback = callbacks)
             return Trixi.integrate(entropy, sol.u[end], semi)
         end
-        ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
+        @test ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
     end
 
     @timed_testset "Linear advection 2D" begin
@@ -482,11 +482,11 @@ end
                                     alive_callback,
                                     stepsize_callback)
             sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-                        ode_default_options()..., adaptive = false, dt = 1.0,
+                        ode_default_options()..., adaptive = false, dt = 1,
                         callback = callbacks)
             return Trixi.integrate(energy_total, sol.u[end], semi)
         end
-        ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
+        @test ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.1418127193865701e-5
     end
 
     @timed_testset "elixir_euler_ad.jl" begin

@@ -14,7 +14,8 @@ coordinates_max = 1.0
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, periodicity = true) # set maximum capacity of tree data structure
+                n_cells_max = 30_000, # set maximum capacity of tree data structure
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver;
@@ -42,5 +43,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

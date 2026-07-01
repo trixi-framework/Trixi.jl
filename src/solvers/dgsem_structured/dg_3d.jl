@@ -831,7 +831,8 @@ end
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
+function calc_boundary_flux!(cache, t,
+                             boundary_conditions::NamedTuple,
                              mesh::StructuredMesh{3}, equations, surface_integral,
                              dg::DG)
     @unpack surface_flux_values = cache.elements
@@ -937,44 +938,30 @@ function apply_jacobian!(backend::Nothing, du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
+    MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        apply_jacobian_per_element!(du, typeof(mesh), equations, dg, inverse_jacobian,
-                                    element)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg,
+                                                inverse_jacobian, i, j, k,
+                                                element)
+        end
     end
     return nothing
 end
 
-function apply_jacobian!(backend::Backend, du,
-                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                         equations, dg::DG, cache)
-    @unpack inverse_jacobian = cache.elements
+@inline function apply_jacobian_per_quadrature_node!(du,
+                                                     ::Type{<:Union{StructuredMesh{3},
+                                                                    P4estMesh{3},
+                                                                    T8codeMesh{3}}},
+                                                     equations, dg, inverse_jacobian,
+                                                     i, j, k, element)
+    # Negative sign included to account for the negated surface and volume terms,
+    # see e.g. the computation of `derivative_hat` in the basis setup and 
+    # the comment in `calc_surface_integral!`.
+    factor = -inverse_jacobian[i, j, k, element]
 
-    kernel! = apply_jacobian_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
-            ndrange = nelements(cache.elements))
-    return nothing
-end
-
-@kernel function apply_jacobian_KAkernel!(du, MeshT, equations, dg::DG,
-                                          inverse_jacobian)
-    element = @index(Global)
-    apply_jacobian_per_element!(du, MeshT, equations, dg, inverse_jacobian, element)
-end
-
-@inline function apply_jacobian_per_element!(du,
-                                             ::Type{<:Union{StructuredMesh{3},
-                                                            P4estMesh{3},
-                                                            T8codeMesh{3}}},
-                                             equations, dg, inverse_jacobian, element)
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        # Negative sign included to account for the negated surface and volume terms,
-        # see e.g. the computation of `derivative_hat` in the basis setup and 
-        # the comment in `calc_surface_integral!`.
-        factor = -inverse_jacobian[i, j, k, element]
-
-        for v in eachvariable(equations)
-            du[v, i, j, k, element] *= factor
-        end
+    for v in eachvariable(equations)
+        du[v, i, j, k, element] *= factor
     end
     return nothing
 end

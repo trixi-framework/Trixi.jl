@@ -5,7 +5,8 @@ steps:
     matrix:
       setup:
         version:
-          - "1.10"
+          - "1.10" # LTS
+          - "1.12"
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
@@ -13,8 +14,7 @@ steps:
     env:
       TRIXI_TEST: "CUDA"
     agents:
-      queue: "juliagpu"
-      cuda: "*"
+      queue: "cuda"
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:
@@ -23,7 +23,8 @@ steps:
     matrix:
       setup:
         version:
-          - "1.10"
+          - "1.10" # LTS
+          - "1.12"
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
@@ -31,9 +32,7 @@ steps:
     env:
       TRIXI_TEST: "AMDGPU"
     agents:
-      queue: "juliagpu"
-      rocm: "*"
-      rocmgpu: "gfx1100" # see https://github.com/trixi-framework/Trixi.jl/pull/2939
+      queue: "rocm"
     if: build.message !~ /\[skip ci\]/
     timeout_in_minutes: 60
     soft_fail:

@@ -240,6 +240,24 @@ function _precompile_manual_()
                                                  Tuple{Int, Int}}, Type{TreeMesh},
                                       Tuple{RealT, RealT, RealT},
                                       Tuple{RealT, RealT, RealT}})
+        # New: n_cells_max omitted (uses default nothing)
+        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
+                                      NamedTuple{(:initial_refinement_level,),
+                                                 Tuple{Int}}, Type{TreeMesh},
+                                      RealT, RealT})
+        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
+                                      NamedTuple{(:initial_refinement_level,),
+                                                 Tuple{Int}}, Type{TreeMesh},
+                                      Tuple{RealT}, Tuple{RealT}})
+        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
+                                      NamedTuple{(:initial_refinement_level,),
+                                                 Tuple{Int}}, Type{TreeMesh},
+                                      Tuple{RealT, RealT}, Tuple{RealT, RealT}})
+        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
+                                      NamedTuple{(:initial_refinement_level,),
+                                                 Tuple{Int}}, Type{TreeMesh},
+                                      Tuple{RealT, RealT, RealT},
+                                      Tuple{RealT, RealT, RealT}})
     end
     for TreeType in (SerialTree, ParallelTree), NDIMS in 1:3
         @assert Base.precompile(Tuple{typeof(Trixi.initialize!),

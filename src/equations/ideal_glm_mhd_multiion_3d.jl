@@ -88,6 +88,19 @@ function IdealGlmMhdMultiIonEquations3D(gammas, charge_to_mass, electron_pressur
                                           initial_c_h = c_h)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT, EP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, RealT, EP, NewRealT}
+    return IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, NewRealT,
+                                          EP}(SVector{NCOMP, NewRealT}(eqs.gammas),
+                                              SVector{NCOMP, NewRealT}(eqs.charge_to_mass),
+                                              eqs.electron_pressure,
+                                              convert(NewRealT, eqs.c_h))
+end
+
 @inline function Base.real(::IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT}) where {
                                                                                          NVARS,
                                                                                          NCOMP,

@@ -116,6 +116,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     iter = 0
     integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
                                     (prob = ode,), ode.f, alg,

@@ -506,6 +506,46 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 end
 
 """
+    T8codeMesh(; coordinates_min, coordinates_max, refinement_level,
+                 polydeg = 1, RealT = Float64, periodicity = false)
+
+Create a rectangular `T8codeMesh` using keyword arguments only, for easy mesh-type swapping
+with [`TreeMesh`](@ref), [`StructuredMesh`](@ref), and [`P4estMesh`](@ref).
+
+A single tree per dimension is created and uniformly refined `refinement_level` times,
+yielding `2^refinement_level` cells per dimension.
+
+# Arguments
+- `coordinates_min`: vector or tuple of the coordinates of the corner in the negative direction of each dimension
+                     to create a rectangular mesh. Must have the same length as `coordinates_max`.
+- `coordinates_max`: vector or tuple of the coordinates of the corner in the positive direction of each dimension
+                     to create a rectangular mesh. Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh. Default: `1`.
+- `RealT::Type`: the type that should be used for coordinates. Default: `Float64`.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
+                 deciding for each dimension if the boundaries in this dimension are periodic. Default: `false`.
+"""
+function T8codeMesh(; coordinates_min,
+                    coordinates_max,
+                    refinement_level,
+                    polydeg = 1,
+                    RealT = Float64,
+                    periodicity = false)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    NDIMS = length(coordinates_min)
+    return T8codeMesh(ntuple(_ -> 1, NDIMS);
+                      polydeg = polydeg,
+                      coordinates_min = coordinates_min,
+                      coordinates_max = coordinates_max,
+                      RealT = RealT,
+                      initial_refinement_level = refinement_level,
+                      periodicity = periodicity)
+end
+
+"""
     T8codeMesh(cmesh::Ptr{t8_cmesh},
                mapping=nothing, polydeg=1, RealT=Float64,
                initial_refinement_level=0)

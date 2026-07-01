@@ -144,6 +144,8 @@ function calc_gradient!(gradients, u_transformed, t,
                         mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
+    backend = trixi_backend(u_transformed)
+
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
         reset_gradients!(gradients, dg, cache)
@@ -158,7 +160,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Prolong solution to interfaces.
     # This reuses `prolong2interfaces` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(nothing, cache, u_transformed, mesh,
+        prolong2interfaces!(backend, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 
@@ -172,7 +174,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Prolong solution to boundaries.
     # This reuses `prolong2boundaries` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u_transformed, mesh,
+        prolong2boundaries!(backend, cache, u_transformed, mesh,
                             equations_parabolic, dg)
     end
 

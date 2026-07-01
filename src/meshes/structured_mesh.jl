@@ -118,6 +118,20 @@ function StructuredMesh(cells_per_dimension, faces::Tuple;
                           mapping_as_string = mapping_as_string)
 end
 
+# Format a coordinate tuple as a plain Julia float-literal tuple string.
+# Uses `string(x)` (no type wrapper) so the result is always eval-able without
+# external imports.  Appends ".0" when `string(x)` produces an integer-like
+# token (e.g. Quadmath v1's `string(Float128(-1.0))` returns "-1").
+function coords_to_str(x::Real)
+    s = string(x)
+    return any(c -> c in ".eEfFinNaA", s) ? s : s * ".0"
+end
+
+function coords_to_str(coords::NTuple{N}) where {N}
+    strs = map(coords_to_str, coords)
+    return N == 1 ? "($(only(strs)),)" : "($(join(strs, ", ")))"
+end
+
 """
     StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                    periodicity = false)
@@ -139,10 +153,42 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
 
-    mapping_as_string = """coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
+    mapping_as_string = """coordinates_min = $(coords_to_str(coordinates_min));coordinates_max = $(coords_to_str(coordinates_max));mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
+end
+
+"""
+    StructuredMesh(; coordinates_min, coordinates_max, refinement_level, periodicity=false)
+
+Create a rectangular `StructuredMesh` using keyword arguments only, for easy mesh-type swapping
+with [`TreeMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
+
+The number of cells per dimension is `2^refinement_level`.
+
+Note that `StructuredMesh` does not support adaptive mesh refinement;
+`refinement_level` only sets the initial uniform resolution.
+
+# Arguments
+- `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
+- `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
+  Must have the same length as `coordinates_min`.
+- `refinement_level::Integer`: the number of cells in each dimension is set to `2^refinement_level`.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
+"""
+function StructuredMesh(; coordinates_min,
+                        coordinates_max,
+                        refinement_level,
+                        periodicity = false)
+    if length(coordinates_min) != length(coordinates_max)
+        throw(ArgumentError("coordinates_min and coordinates_max must have the same length"))
+    end
+    NDIMS = length(coordinates_min)
+    cells_per_dimension = ntuple(_ -> 2^refinement_level, NDIMS)
+    return StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                          periodicity = periodicity)
 end
 
 # Extract a string of the code that defines the mapping function
@@ -373,6 +419,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
+            # TODO: `@eval` is evil
             coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
             coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
             dims = length(coordinates_max)

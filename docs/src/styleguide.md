@@ -56,7 +56,7 @@ PRs that verify that running JuliaFormatter.jl again will not change the source 
 To format your contributions before created a PR (or, at least, before requesting a review
 of your PR), you need to install JuliaFormatter.jl first by running
 ```shell
-julia -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.60"))'
+julia -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.60")); Pkg.pin("JuliaFormatter")'
 ```
 You can then recursively format the core Julia files in the Trixi.jl repo by executing
 ```shell
