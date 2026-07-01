@@ -128,21 +128,33 @@ end
 end
 
 @trixi_testset "elixir_euler_vortex_mortar.jl with blockfv vs with dgsem with polydeg=0" begin
-    # Compute with blockfv solver.
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-                        n_nodes=4,
-                        initial_refinement_level=5,
-                        tspan=(0.0, 0.5))
+    # We explicitly pass a time step size `dt` and set the `stepsize_callback` to `nothing`
+    # to avoid subtle differences coming from different time step size evaluations in the
+    # two runs: The `DGSEM` solver computes the wave speeds in all directions and takes the
+    # maximum over all cells, while the `BlockFV` solver first takes a maximum of the wave speeds
+    # separately in each macro-cell before combining them, leading to slightly different results.
+
+    # Compute with BlockFV solver.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+                  n_nodes=4,
+                  initial_refinement_level=5,
+                  tspan=(0.0, 0.5),
+                  dt=2.0e-3,
+                  stepsize_callback=nothing)
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
     # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-                        solver=DGSEM(polydeg = 0, surface_flux = flux_hllc),
-                        initial_refinement_level=7,
-                        tspan=(0.0, 0.5))
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+                  solver=DGSEM(polydeg = 0, surface_flux = flux_hllc),
+                  initial_refinement_level=7,
+                  tspan=(0.0, 0.5),
+                  dt=2.0e-3,
+                  stepsize_callback=nothing)
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
