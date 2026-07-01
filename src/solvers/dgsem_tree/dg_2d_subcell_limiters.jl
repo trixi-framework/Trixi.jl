@@ -1347,8 +1347,8 @@ end
     return nothing
 end
 
-@inline function calc_variable_bounds!(u, mesh, nonconservative_terms, equations,
-                                       limiter::SubcellLimiterIDP, dg, cache)
+@inline function calc_variable_bounds!(u, mesh::AbstractMesh{2}, nonconservative_terms,
+                                       equations, limiter::SubcellLimiterIDP, dg, cache)
     if limiter.bar_states == false
         return nothing
     end
