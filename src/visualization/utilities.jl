@@ -1402,6 +1402,74 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
+    #WIP Plot fv 2d for issue #2998 (Magalie) begin
+
+    # Bypasses polynomial interpolation. Projects cell areas from continuous space to matrix slices.
+    if n_nodes_in == 1
+        res_x = Int(resolution[1])
+        res_y = Int(resolution[2])
+
+        structured = [zeros(Float64, res_y, res_x) for _ in 1:n_variables]
+
+        # For a level-0 cell, its length equals the absolute width of the bounding box.
+        # find the global bounding box size using the coordinates and levels.
+        global_domain_length = 0.0
+        for element_id in 1:n_elements
+            level = levels[element_id]
+            global_domain_length = max(global_domain_length, 2^level * (2.0 / 2^level))
+        end
+
+        # read the maximum coordinate boundary from the mesh elements to find the exact span
+        x_coords = normalized_coordinates[1, :]
+        y_coords = normalized_coordinates[2, :]
+        x_min_domain = minimum(x_coords) - (1.0 / (2^minimum(levels)))
+        x_max_domain = maximum(x_coords) + (1.0 / (2^minimum(levels)))
+        y_min_domain = minimum(y_coords) - (1.0 / (2^minimum(levels)))
+        y_max_domain = maximum(y_coords) + (1.0 / (2^minimum(levels)))
+
+        domain_width = x_max_domain - x_min_domain
+        domain_height = y_max_domain - y_min_domain
+
+        for element_id in 1:n_elements
+            cx, cy = normalized_coordinates[:, element_id]
+            level = levels[element_id]
+
+            # Continuous physical width/height of a cell at this specific refinement level
+            # For tree-mesh domains of length L, a level-k cell has length L / (2^k)
+            cell_width = domain_width / (2^level)
+
+            # Physical continuous boundaries of the current cell element
+            x_min_cont = cx - cell_width / 2
+            x_max_cont = cx + cell_width / 2
+            y_min_cont = cy - cell_width / 2
+            y_max_cont = cy + cell_width / 2
+
+            # Map physical space linearly into the pixel resolution bounds
+            i_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) + 1
+            i_end = ceil(Int, (x_max_cont - x_min_domain) / domain_width * res_x)
+
+            j_start = floor(Int, (y_min_cont - y_min_domain) / domain_height * res_y) +
+                      1
+            j_end = ceil(Int, (y_max_cont - y_min_domain) / domain_height * res_y)
+
+            # Clamp bounds to protect against edge precision errors
+            i_start = clamp(i_start, 1, res_x)
+            i_end = clamp(i_end, 1, res_x)
+            j_start = clamp(j_start, 1, res_y)
+            j_end = clamp(j_end, 1, res_y)
+
+            # Slice row index first (j) and column index second (i)
+            for v in 1:n_variables
+                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1, 1,
+                                                                                 element_id,
+                                                                                 v]
+            end
+        end
+
+        return structured
+    end
+    #WIP Plot fv 2d for issue #2998 (Magalie) end
+
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
 

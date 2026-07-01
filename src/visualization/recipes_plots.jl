@@ -5,10 +5,40 @@
 @muladd begin
 #! format: noindent
 
+#WIP Plot fv 2d for issue #2998 (Magalie) begin
+
 # Visualize a single variable in a 2D plot (default: heatmap)
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
+
+    # Check in reinterpolation is specified - for cases like first order Finite Volume, this is not desired.
+    reinterpolate = hasproperty(plot_data, :reinterpolate) && plot_data.reinterpolate
+    #reinterpolate = getproperty(plot_data, :reinterpolate, true) #this is true when plot_data has an argument :reinterpolate which is true. And its true by default for old stuff that doensnt have an argument :reintterpolate. Its false when :reinterpolate is false
+
+    # Convert centers to edges to prevent heatmap from clipping boundary cells.
+    if !reinterpolate # outdated explanation for reinterpolate = getproperty(plot_data, :reinterpolate, true) "since reinterpolate is false for new stuff where :reinterpolate is false, only that case enters the if loop" 
+        dx = (x[end] - x[begin]) / (length(x) - 1)
+        dy = (y[end] - y[begin]) / (length(y) - 1)
+
+        y_edges = collect(range(y[begin] - dy / 2, y[end] + dy / 2,
+                                length = length(y) + 1))
+        x_edges = collect(range(x[begin] - dx / 2, x[end] + dx / 2,
+                                length = length(x) + 1))
+
+        xlims --> (x_edges[begin], x_edges[end])
+        ylims --> (y_edges[begin], y_edges[end])
+        aspect_ratio --> :equal
+
+        legend --> :none
+        title --> variable_names[variable_id]
+        colorbar --> :true
+        xguide --> _get_guide(orientation_x)
+        yguide --> _get_guide(orientation_y)
+        seriestype --> :heatmap
+
+        return x_edges, y_edges, data[variable_id]
+    end
 
     # Set geometric properties
     xlims --> (x[begin], x[end])
@@ -28,6 +58,8 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     # Return data for plotting
     return x, y, data[variable_id]
 end
+
+#WIP Plot fv 2d for issue #2998 (Magalie) end
 
 # Visualize the mesh in a 2D plot
 RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
