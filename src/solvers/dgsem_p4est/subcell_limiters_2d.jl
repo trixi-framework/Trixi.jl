@@ -510,11 +510,7 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; limiter) = dg.volume_integral
-    if !(var_index in limiter.local_twosided_variables_cons)
-        error("Conservative variable $var_index is not included in local_twosided_variables_cons in the volume integral. So, the bounds are not computed before.")
-    end
-    (; variable_bounds, n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
     variable_string = string(var_index)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
@@ -827,12 +823,7 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; limiter) = dg.volume_integral
-    if !(var_index in limiter.local_twosided_variables_cons ||
-         var_index in limiter.positivity_variables_cons)
-        error("Conservative variable $var_index is not included to the limiting in the volume integral. So, the bounds are not computed before.")
-    end
-    (; variable_bounds, n_mortars_per_node) = limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     index_range = eachnode(dg)
