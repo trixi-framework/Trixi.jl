@@ -1,3 +1,6 @@
+# See the comment at the top of admissible_projection_euler_1d.jl for a
+# high-level description of the algorithm.
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -7,13 +10,14 @@
 
 # Used in the mu > 0, lambda > 0 branch of Appendix B.2 of Liu, Milesis, Shu, Zhang (2026).
 @inline function cubic_momentum_root_satisfies_kkt(rho_v1, rho_v1_orig, rho_orig, a,
-                                                   rho_floor, rho_e_floor)
+                                                   rho_floor)
     momentum_sign_complementarity = (rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
                                     (rho_v1 < zero(rho_v1) && rho_v1_orig < rho_v1)
+
     satisfies_energy_internal_constraint_at_rho_floor = 2 * rho_floor * rho_orig +
                                                         a * rho_v1 *
                                                         (rho_v1_orig - rho_v1) <
-                                                        2 * rho_floor * rho_e_floor
+                                                        2 * rho_floor * rho_floor
     return momentum_sign_complementarity &&
            satisfies_energy_internal_constraint_at_rho_floor
 end
@@ -26,14 +30,15 @@ function project_euler_cubic_branch!(best_dist_squared, best_u, has_candidate, u
     rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) :
                                      (rho_v2, rho_v1)
     a = 1 + (rho_v_secondary / rho_v_primary)^2
-    p = rho_floor * (4 * rho_e_floor - 2 * rho_e_total) / a
-    q = -2 * rho_floor * rho_e_floor * rho_v_primary / a
+    # eps = rho_floor and beta = 2*(rho_e_floor - rho_floor).
+    p = 2 * rho_floor * (rho_floor + rho_e_floor - rho_e_total) / a
+    q = -2 * rho_floor * rho_floor * rho_v_primary / a
     n_roots, roots = calc_depressed_cubic_roots(p, q)
     for i in 1:n_roots
         rho_v_primary_candidate = roots[i]
         if cubic_momentum_root_satisfies_kkt(rho_v_primary_candidate, rho_v_primary,
                                              rho, a,
-                                             rho_floor, rho_e_floor)
+                                             rho_floor)
             rho_e_total_candidate = rho_e_floor +
                                     a * rho_v_primary_candidate *
                                     rho_v_primary_candidate /
@@ -78,8 +83,8 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                         (rho_e_floor + rho - rho_e_total)^2 / a)
     if discriminant_rho >= zero(discriminant_rho)
         sqrt_discriminant_rho = sqrt(discriminant_rho)
-        for rho_candidate in (0.5 * (rho - sqrt_discriminant_rho),
-                              0.5 * (rho + sqrt_discriminant_rho))
+        for rho_candidate in (0.5f0 * (rho - sqrt_discriminant_rho),
+                              0.5f0 * (rho + sqrt_discriminant_rho))
             discriminant_rho_v_primary = -8 * a * rho_candidate * rho_candidate +
                                          8 * a * rho * rho_candidate +
                                          (a * rho_v_primary)^2
@@ -92,12 +97,15 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
             if rho_candidate >= rho_floor - arithmetic_tol &&
                discriminant_rho_v_primary >= zero(discriminant_rho_v_primary)
                 sqrt_discriminant_rho_v_primary = sqrt(discriminant_rho_v_primary) / a
-                for rho_v_primary_candidate in (0.5 *
+                for rho_v_primary_candidate in (0.5f0 *
                                                 (rho_v_primary -
                                                  sqrt_discriminant_rho_v_primary),
-                                                0.5 *
+                                                0.5f0 *
                                                 (rho_v_primary +
                                                  sqrt_discriminant_rho_v_primary))
+                    # μ > 0 sign check (λ = 0 branch); ρ_candidate cancellation can flip the
+                    # (1 - arithmetic_tol) comparison — see the inner-loop comment in
+                    # admissible_projection_euler_1d.jl.
                     candidate_energy_internal_times_rho = rho_e_floor * rho_candidate +
                                                           0.5f0 * a *
                                                           rho_v_primary_candidate *
@@ -155,8 +163,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
     rho_floor, rho_e_floor = lower_bounds
     u = cell_average
     rho, rho_v1, rho_v2, rho_e_total = u
-    RealT = typeof(rho)
     arithmetic_tol = euler_arithmetic_tol(rho_floor, rho_e_floor)
+    RealT = typeof(arithmetic_tol)
     @assert arithmetic_tol<minimum(lower_bounds) "arithmetic_tol must be smaller than the tolerance of the numerical admissible set"
 
     if state_is_admissible(u, lower_bounds, variables, equations)
@@ -232,7 +240,9 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
 
     if !has_candidate
         error("Failed to find projection onto Euler admissible set for state ", u,
-              " with rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
+              " with rho = ", rho, " and rho_e = ",
+              rho_e_total - 0.5f0 * (rho_v1 * rho_v1 + rho_v2 * rho_v2) / rho,
+              " and rho_floor = ", rho_floor, " and rho_e_floor = ", rho_e_floor, ".")
     end
 
     return best_u

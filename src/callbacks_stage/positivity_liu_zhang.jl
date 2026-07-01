@@ -7,7 +7,7 @@
 
 """
     PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
-                                        global_limiter_tol = 1e2 * eps(real(semi)),
+                                        global_limiter_tol = 100 * eps(real(semi)),
                                         max_davis_yin_iterations = 500,
                                         record_davis_yin_iterations = false)
 
@@ -77,14 +77,14 @@ function convert_variables_and_thresholds(thresholds, variables,
     rho_floor = nothing
     rho_e_floor = nothing
     for (threshold, variable) in zip(thresholds, variables)
-        if variable === Trixi.density
+        if variable === density
             rho_floor = threshold
         elseif variable === energy_internal
             rho_e_floor = threshold
         elseif variable === pressure
             # convert pressure floor to internal energy floor; 
             # for ideal gas, p / (gamma - 1) = rho_e
-            rho_e_floor = threshold / (equations.gamma - 1)
+            rho_e_floor = equations.inv_gamma_minus_one * threshold
         else
             error("PositivityPreservingLimiterLiuZhang for compressible Euler requires ",
                   "variables = (density, energy_internal) or (density, pressure) ",
@@ -97,7 +97,7 @@ function convert_variables_and_thresholds(thresholds, variables,
     end
 
     # return sorted thresholds and variables
-    return (rho_floor, rho_e_floor), (Trixi.density, energy_internal)
+    return (rho_floor, rho_e_floor), (density, energy_internal)
 end
 
 # generic fallback: copy over the local limiter variables and thresholds as-is.
@@ -107,7 +107,7 @@ end
 
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
-                                             global_limiter_tol = 1e2 * eps(real(semi)),
+                                             global_limiter_tol = 100 * eps(real(semi)),
                                              max_davis_yin_iterations = 500,
                                              record_davis_yin_iterations = false)
     return PositivityPreservingLimiterLiuZhang(local_limiter!,
