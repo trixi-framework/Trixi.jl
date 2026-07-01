@@ -594,8 +594,8 @@ enabling SIMD instructions. However, for some systems, it is even better
 to precompute some variables (e.g., primitive variables or logarithms of certain variables)
 and then compute the numerical fluxes.
 This optimization can be enabled by defining three ingredients:
-- the number of precomputed variables `nturbovars`;
-- the transformation from conservative to precomputed variables `cons2turbo`
+- the number of precomputed variables `Trixi.nturbovars`;
+- the transformation from conservative to precomputed variables `Trixi.cons2turbo`
 - and the  `flux_turbo(flux_turbo::typeof(numerical_flux), ...)`,
   that computes the numerical flux in terms of the precomputed variables.
 

@@ -25,12 +25,12 @@ end
                                                     dg, cache, alpha, ::Val{NAUX},
                                                     ::Val{NVARS}) where {NAUX, NVARS}
     # Per-node scalars used inside the `@turbo` loops, e.g. `u_prim_ll_1 = rho_ll`,
-    # `flux_1 = f1`, etc.  
+    # `flux_1 = f1`, etc.
     u_prim_ll = [Symbol(:u_prim_ll_, v) for v in 1:NAUX]
     u_prim_rr = [Symbol(:u_prim_rr_, v) for v in 1:NAUX]
     flux = [Symbol(:flux_, v) for v in 1:NVARS]
 
-    # Convert conserved to auxiliary variables node-wise, e.g. 
+    # Convert conserved to auxiliary variables node-wise, e.g.
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
     cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
@@ -284,13 +284,13 @@ end
                                                     dg, cache, alpha, ::Val{NAUX},
                                                     ::Val{NVARS}) where {NAUX, NVARS}
     # Per-node scalars used inside the `@turbo` loops, e.g. `u_prim_ll_1 = rho_ll`,
-    # `flux_1 = f1, etc.  
+    # `flux_1 = f1, etc.
     u_prim_ll = [Symbol(:u_prim_ll_, v) for v in 1:NAUX]
     u_prim_rr = [Symbol(:u_prim_rr_, v) for v in 1:NAUX]
     flux_left = [Symbol(:flux_left_, v) for v in 1:NVARS]
     flux_right = [Symbol(:flux_right_, v) for v in 1:NVARS]
 
-    # Convert conserved to auxiliary variables node-wise, e.g. 
+    # Convert conserved to auxiliary variables node-wise, e.g.
     #   rho, v1, v2, v3, p = cons2prim(u_cons[:, i, j, k, element], equations)
     #   u_prim[i, j, k, 1] = rho   # and so on for v2, v3, p, ...
     cons_reads = [:(u_cons[$v, i, j, k, element]) for v in 1:NVARS]
