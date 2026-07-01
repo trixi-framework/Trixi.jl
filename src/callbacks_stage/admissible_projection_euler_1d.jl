@@ -72,7 +72,7 @@ end
            satisfies_energy_internal_constraint_at_rho_floor
 end
 
-# Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::SVector{3,T}).
+# Real roots of m^3 + p*m + q = 0. Returns (n_roots, roots::NTuple{3,T}).
 # Note that roots[n_roots+1:end] are not accessed and are simply set to zero.
 function calc_depressed_cubic_roots(p, q)
     delta = 4 * p^3 + 27 * q^2

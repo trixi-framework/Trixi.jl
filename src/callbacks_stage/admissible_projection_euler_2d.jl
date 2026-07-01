@@ -1,3 +1,6 @@
+# See the comment at the top of admissible_projection_euler_1d.jl for a
+# high-level description of the algorithm.
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
