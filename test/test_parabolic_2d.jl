@@ -702,6 +702,45 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh2D: elixir_mhd_diffusive_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_mhd_diffusive_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        l2=[
+                            0.017447653571448337,
+                            0.05437402290758454,
+                            0.05437402290758447,
+                            0.0,
+                            0.17140952349519153,
+                            0.03694354027024257,
+                            0.03694354027024267,
+                            0.0,
+                            0.021427609655284667
+                        ],
+                        linf=[
+                            0.11192644994296286,
+                            0.2357666533066436,
+                            0.2357666533066436,
+                            0.0,
+                            0.7854578016354044,
+                            0.11203078172243108,
+                            0.11203078172243286,
+                            0.0,
+                            0.0894588995494936
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Check specialised methods on ViscoResistiveMhd2D for coverage
+    equations_parabolic = semi.equations_parabolic
+    @test Trixi.gradient_variable_transformation(equations_parabolic) ===
+          Trixi.cons2prim
+    u_node = initial_condition(SVector(0.0, 0.0), 0.0, semi.equations)
+    @test Trixi.max_diffusivity(u_node, equations_parabolic) isa Real
+    @test Trixi.energy_magnetic_mhd(u_node, equations_parabolic) isa Real
+end
+
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
