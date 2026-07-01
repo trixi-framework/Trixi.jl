@@ -86,16 +86,20 @@ function BlockFV(; n_nodes::Integer,
     basis = UniformFiniteVolumeBasis(RealT, n_nodes)
     volume_integral = VolumeIntegralFiniteVolume(surface_flux)
     surface_integral = SurfaceIntegralWeakForm(surface_flux)
-    # `nothing` is passed as placeholder for the mortar method
-    return DG(basis, nothing, surface_integral, volume_integral)
+    #basis is passed as mortar method
+    return DG(basis, basis, surface_integral, volume_integral)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", dg::BlockFV)
     @nospecialize dg
     summary_header(io, "BlockFV")
     summary_line(io, "basis", dg.basis)
+    summary_line(io, "mortar method", dg.mortar)
     summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
     summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     summary_footer(io)
 end
+
+# This hack is currently required for the SaveSolutionCallback.
+@inline polydeg(dg::BlockFV) = polydeg(dg.basis)
 end # @muladd

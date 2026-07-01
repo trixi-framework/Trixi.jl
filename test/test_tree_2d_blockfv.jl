@@ -72,17 +72,17 @@ end # Linear scalar advection
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_isentropic_vortex.jl" begin
+@trixi_testset "elixir_euler_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_isentropic_vortex.jl"),
-                        l2=[0.0013855544942691467,
-                            0.07912269951431652,
-                            0.07917097691649295,
-                            0.14533624890962035],
-                        linf=[0.021277289728345194,
-                            0.8434393417500995,
-                            0.8127969969547908,
-                            2.271903270249524],
+                                 "elixir_euler_vortex.jl"),
+                        l2=[0.0009462760556996494,
+                            0.034845346890640956,
+                            0.0349234255730328,
+                            0.09387847561186147],
+                        linf=[0.01522697023057773,
+                            0.40428197961893275,
+                            0.39638850053862995,
+                            1.628539546658537],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -105,7 +105,6 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end # Compressible Euler equations
 
 @trixi_testset "elixir_euler_source_term_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -127,6 +126,46 @@ end # Compressible Euler equations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_vortex_mortar.jl with blockfv vs with dgsem with polydeg=0" begin
+    # We explicitly pass a time step size `dt` and set the `stepsize_callback` to `nothing`
+    # to avoid subtle differences coming from different time step size evaluations in the
+    # two runs: The `DGSEM` solver computes the wave speeds in all directions and takes the
+    # maximum over all cells, while the `BlockFV` solver first takes a maximum of the wave speeds
+    # separately in each macro-cell before combining them, leading to slightly different results.
+
+    # Compute with BlockFV solver.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+                  n_nodes = 4,
+                  initial_refinement_level = 5,
+                  tspan = (0.0, 0.5),
+                  dt = 2.0e-3,
+                  stepsize_callback = nothing)
+    res1 = @inferred analysis_callback(sol)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+                  solver = DGSEM(polydeg = 0, surface_flux = flux_hllc),
+                  initial_refinement_level = 7,
+                  tspan = (0.0, 0.5),
+                  dt = 2.0e-3,
+                  stepsize_callback = nothing)
+    res2 = @inferred analysis_callback(sol)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Both setups have exactly the same degrees of freedom.
+    # Thus, they should return the same errors (up to floating-point precision).
+    @test res1.l2 ≈ res2.l2
+    @test res1.linf ≈ res2.linf
+end
+end # Compressible Euler equations
 end # BlockFV 2D
 
 end # module
