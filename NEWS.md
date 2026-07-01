@@ -8,7 +8,7 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm. When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D`. 
+- Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D`. 
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
