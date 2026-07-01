@@ -443,6 +443,35 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
 end
 
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:DoNothing,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      orientation::Integer,
+                                                                                      direction,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    return u_inner
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:DoNothing,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      orientation::Integer,
+                                                                                      direction,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Divergence,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
+                                                                                                           t,
+                                                                                                           equations)
+    _, tau_1n, tau_2n = flux_inner # extract fluxes for 2nd and 3rd equations
+    normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
+    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
+end
+
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
