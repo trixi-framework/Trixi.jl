@@ -1,14 +1,14 @@
 @doc raw"""
     ThermallyPerfectGas9PolyFit{R_specific,
-    TemperatureBounds,
-    Coefficients,
-    P_Ref, T_Ref} <: AbstractThermallyPerfectGas
+                                TemperatureBounds,
+                                Coefficients,
+                                P_Ref, T_Ref} <: AbstractThermallyPerfectGas
 
 Thermally perfect gas with ideal gas relation
 ```math
 p = \rho R_specific T = \frac{R_specific T}{V}
 ```
-and non-constant, but only temperature-dependent heat capacities ``c_p(T), c_v(T)``
+and calorically imperfect (i.e., non-constant), temperature-dependent heat capacities ``c_p(T), c_v(T)``
 represented by piecewise NASA 9-coefficient polynomials, see
 - McBride, Zehe, Gordon (2002).
   NASA Glenn Coefficients for Calculating Thermodynamic Properties of Individual Species.
@@ -70,8 +70,7 @@ end
                                 R_specific = 287.0509010514002,
                                 temperature_bounds = SVector(200.0, 1000.0, 6000.0),
                                 coefficients = coefficients_air_9polyfit(temperature_bounds),
-                                p_ref = 100000.0,
-                                T_ref = 298.15)
+                                p_ref = 100000.0, T_ref = 298.15)
 
 Construct a [`ThermallyPerfectGas9PolyFit`](@ref) equation of state with NASA 9-coefficient polynomial data.
 The default values correspond to air, see
@@ -116,8 +115,7 @@ function Base.similar(eos::ThermallyPerfectGas9PolyFit, ::Type{NewRealT}) where 
                                        NewRealT, NewRealT}(R_specific_conv,
                                                            temperature_bounds_conv,
                                                            coefficients_conv,
-                                                           p_ref_conv,
-                                                           T_ref_conv)
+                                                           p_ref_conv, T_ref_conv)
 end
 
 @inline function temperature_interval(T, eos::ThermallyPerfectGas9PolyFit)

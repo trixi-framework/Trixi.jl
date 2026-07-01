@@ -28,13 +28,13 @@ abstract type AbstractEquationOfState end
     AbstractThermallyPerfectGas <: AbstractEquationOfState
 
 A thermally perfect gas takes temperature effects on the material properties into account,
-most notably the specific heat capacities ``c_p = c_p(T)`` and ``c_v = c_v(T)``
-and in turn also the ratio of specific heats ``\gamma(T) = c_p(T) / c_v(T)``.
-However, to relate pressure, density and temperature, the ideal gas law is still used, i.e.,
+i.e., it is calorically imperfect, but still obeys the ideal gas law to relate pressure, density and temperature:
 ```math
 p = \frac{R}{M} \rho T
 ```
 where ``R`` is the universal gas constant and ``M`` is the molar mass of the gas.
+Most notably, the specific heat capacities ``c_p = c_p(T)`` and ``c_v = c_v(T)``
+and in turn also the ratio of specific heats ``\gamma(T) = c_p(T) / c_v(T)`` are temperature-dependent.
 
 The typical use case for a thermally perfect gas are high-speed and high-temperature flows at low to moderate pressures.
 """
