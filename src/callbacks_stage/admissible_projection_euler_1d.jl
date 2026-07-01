@@ -78,28 +78,28 @@ function calc_depressed_cubic_roots(p, q)
     delta = 4 * p^3 + 27 * q^2
     T = typeof(delta)
     n_roots = 0
+    root_1 = zero(T)
+    root_2 = zero(T)
+    root_3 = zero(T)
     if delta > zero(T)
-        Y1 = 1.5f0 * (9 * q + sqrt(3 * delta))
-        Y2 = 1.5f0 * (9 * q - sqrt(3 * delta))
+        Y1 = T(3) / 2 * (9 * q + sqrt(T(3) * delta))
+        Y2 = T(3) / 2 * (9 * q - sqrt(T(3) * delta))
         n_roots = 1
         root_1 = -(cbrt(Y1) + cbrt(Y2)) / 3
-        root_2 = zero(T) # not used
-        root_3 = zero(T) # not used
     elseif iszero(delta) && (!iszero(p) || !iszero(q))
         n_roots = 2
         root_1 = 3 * q / p
-        root_2 = -1.5f0 * q / p
-        root_3 = zero(T) # not used
+        root_2 = -T(3) / 2 * q / p
     elseif delta < zero(T)
         n_roots = 3
-        sqrt_3 = sqrt(3)
+        sqrt_3 = sqrt(T(3))
         sqrt_mp_3 = sqrt(-p / 3)
-        theta = acos(-1.5f0 * sqrt_mp_3 * q / p)
+        theta = acos(-T(3) / 2 * sqrt_mp_3 * q / p)
         s, c = sincos(theta / 3)
 
         root_1 = -2 * sqrt_mp_3 * c
-        root_2 = sqrt_mp_3 * (c + sqrt(3) * s)
-        root_3 = sqrt_mp_3 * (c - sqrt(3) * s)
+        root_2 = sqrt_mp_3 * (c + sqrt_3 * s)
+        root_3 = sqrt_mp_3 * (c - sqrt_3 * s)
     end
     return n_roots, (root_1, root_2, root_3)
 end
