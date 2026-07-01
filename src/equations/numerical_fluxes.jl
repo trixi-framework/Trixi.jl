@@ -616,6 +616,18 @@ end
     return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
+# When the `fluxTurbo` wraps a tuple of fluxes for nonconservative systems,
+# we need to be able to extract the conservative and nonconservative fluxes
+# like in `symmetric_flux, nonconservative_flux = volume_flux::FluxTurbo`.
+# Thus, we specialize `iterate` (forward it to the wrapped tuple).
+@inline function Base.iterate(volume_flux::FluxTurbo{<:NTuple{2, Any}})
+    return iterate(volume_flux.numerical_flux)
+end
+@inline function Base.iterate(volume_flux::FluxTurbo{<:NTuple{2, Any}}, state)
+    return iterate(volume_flux.numerical_flux, state)
+end
+Base.length(::FluxTurbo{<:NTuple{2, Any}}) = 2
+
 # By default the turbo flux has the same number of precomputed variables
 # as the number of variables.
 @inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
