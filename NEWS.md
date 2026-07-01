@@ -10,6 +10,7 @@ for human readability.
 #### Added
 - Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D`. 
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
+- The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
@@ -21,6 +22,7 @@ The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2
 - Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
 - Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
 - Added postprocessing for kinetic energy spectral analysis via `compute_kinetic_energy_spectrum` for `AbstractCompressibleEulerEquations` on `TreeMesh`/`DGSEM` and on `DGMultiMesh`/`DGMultiSBP` in 2D and 3D; the routine returns matching integer wavenumber shells and the isotropic 1D spectrum `E(k)`.
+- Added the wrapper `FluxTurbo` that enables SIMD optimized implementations for conservative systems. Precomputation of primitive variables or other more efficient sets of variables can be enabled by specifying the number of precomputed variables, `nturbovars`; the transformation from conservative to precomputed variables, `cons2turbo`; and the `volume_flux_turbo`, which computes the numerical flux in terms of the precomputed variables. ([#3090])
 - For the `NonIdealCompressibleEulerEquations` with a non-ideal equation of state a new Newton solver interface for the
 temperature has been added.
 This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.

@@ -607,8 +607,6 @@ end
 
     v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2] +
                   v3_avg * normal_direction[3]
-    p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_total_ll / rho_ll + rho_e_total_rr / rho_rr)
 
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
