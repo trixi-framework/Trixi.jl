@@ -137,11 +137,11 @@ end
     # Compute with BlockFV solver.
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-                  n_nodes=4,
-                  initial_refinement_level=5,
-                  tspan=(0.0, 0.5),
-                  dt=2.0e-3,
-                  stepsize_callback=nothing)
+                  n_nodes = 4,
+                  initial_refinement_level = 5,
+                  tspan = (0.0, 0.5),
+                  dt = 2.0e-3,
+                  stepsize_callback = nothing)
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -150,11 +150,11 @@ end
     # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-                  solver=DGSEM(polydeg = 0, surface_flux = flux_hllc),
-                  initial_refinement_level=7,
-                  tspan=(0.0, 0.5),
-                  dt=2.0e-3,
-                  stepsize_callback=nothing)
+                  solver = DGSEM(polydeg = 0, surface_flux = flux_hllc),
+                  initial_refinement_level = 7,
+                  tspan = (0.0, 0.5),
+                  dt = 2.0e-3,
+                  stepsize_callback = nothing)
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
