@@ -67,7 +67,7 @@ end
     satisfies_energy_internal_constraint_at_rho_floor = 2 * rho_floor * rho_orig +
                                                         rho_v1 *
                                                         (rho_v1_orig - rho_v1) <
-                                                        2 * rho_floor * rho_e_floor
+                                                        2 * rho_floor^2
     return momentum_sign_complementarity &&
            satisfies_energy_internal_constraint_at_rho_floor
 end
@@ -164,13 +164,13 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                                               equations)
         end
     else
-        p = 2 * rho_floor * (2 * rho_e_floor - rho_e_total)
+        p = 2 * rho_floor * (rho_floor + rho_e_floor - rho_e_total)
         q = -2 * rho_floor * rho_floor * rho_v1
         n_roots, roots = calc_depressed_cubic_roots(p, q)
         for i in 1:n_roots
             rho_v1_candidate = roots[i]
             if cubic_momentum_root_satisfies_kkt(rho_v1_candidate, rho_v1, rho,
-                                                 rho_floor, rho_e_floor)
+                                                 rho_floor)
                 rho_e_total_candidate = rho_e_floor +
                                         rho_v1_candidate * rho_v1_candidate /
                                         (2 * rho_floor)
