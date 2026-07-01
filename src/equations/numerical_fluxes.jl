@@ -616,7 +616,7 @@ end
     return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
-# When the `fluxTurbo` wraps a tuple of fluxes for nonconservative systems,
+# When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
 # we need to be able to extract the conservative and nonconservative fluxes
 # like in `symmetric_flux, nonconservative_flux = volume_flux::FluxTurbo`.
 # Thus, we specialize `iterate` (forward it to the wrapped tuple).
