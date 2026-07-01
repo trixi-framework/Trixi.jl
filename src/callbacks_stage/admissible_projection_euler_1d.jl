@@ -118,7 +118,7 @@ This is possible by noting that there are only a finite number of possible candi
 that satisfy the KKT conditions. This implementation enumerates all candidates and returns 
 the one that is closest to the input state. 
 
-This code was translated from code written by Prof. Chen Liu using AI tools. 
+This code was translated in part using AI tools from private code shared by Prof. Chen Liu. 
 """
 function project_to_admissible_set(cell_average, lower_bounds, variables,
                                    equations::CompressibleEulerEquations1D)
