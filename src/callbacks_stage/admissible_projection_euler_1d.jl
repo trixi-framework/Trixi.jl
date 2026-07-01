@@ -60,7 +60,7 @@ end
 # Used in the μ > 0, λ > 0 branch of Appendix B.2 of Liu, Milesis, Shu, Zhang (2026).
 # Here, rho_v1 comes from the solution of a cubic equation. 
 @inline function cubic_momentum_root_satisfies_kkt(rho_v1, rho_v1_orig, rho_orig,
-                                                   rho_floor, rho_e_floor)
+                                                   rho_floor)
     momentum_sign_complementarity = (rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
                                     (rho_v1 < zero(rho_v1) && rho_v1_orig < rho_v1)
     # Internal energy admissibility at ρ = ρ_floor (density pinned to floor in this branch).
