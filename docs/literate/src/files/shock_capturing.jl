@@ -268,7 +268,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 callbacks = CallbackSet(analysis_callback, amr_callback, stepsize_callback);
 
 sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
-            dt = 1.0,
+            dt = 1,
             ode_default_options()..., callback = callbacks);
 
 pd = PlotData2D(sol);

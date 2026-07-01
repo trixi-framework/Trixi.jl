@@ -28,7 +28,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # This avoids the issue when `value_mean` is slightly smaller than `threshold`
         # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
         # which results in invalid theta values smaller than 0. Note that min(1, theta)
-        # is not necessary since we are only enforcing lower bounds. 
+        # is not necessary since we are only enforcing lower bounds.
         theta = max(0, theta)
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -79,6 +79,12 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
 
         theta < 1 || continue # Check if limiting action is necessary
 
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
+
         # Iterate again over the children to apply joint shifting
         for new_element_id in element_ids_new[idx]:(element_ids_new[idx] + 2^ndims(mesh) - 1)
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -98,9 +104,6 @@ end
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
                             element_ids_new)
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-
     # Apply limiter to coarsened elements
     @threaded for element in element_ids_new
         # determine minimum value
@@ -117,6 +120,13 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
         value_mean = variable(u_mean, equations)
         theta = (value_mean - threshold) / (value_mean - value_min)
+
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
+
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
