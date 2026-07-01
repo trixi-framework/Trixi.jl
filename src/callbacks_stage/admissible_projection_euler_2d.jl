@@ -13,10 +13,11 @@
                                                    rho_floor, rho_e_floor)
     momentum_sign_complementarity = (rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
                                     (rho_v1 < zero(rho_v1) && rho_v1_orig < rho_v1)
+
     satisfies_energy_internal_constraint_at_rho_floor = 2 * rho_floor * rho_orig +
                                                         a * rho_v1 *
                                                         (rho_v1_orig - rho_v1) <
-                                                        2 * rho_floor * rho_e_floor
+                                                        2 * rho_floor * rho_floor
     return momentum_sign_complementarity &&
            satisfies_energy_internal_constraint_at_rho_floor
 end
@@ -29,8 +30,9 @@ function project_euler_cubic_branch!(best_dist_squared, best_u, has_candidate, u
     rho_v_primary, rho_v_secondary = use_v1_as_primary ? (rho_v1, rho_v2) :
                                      (rho_v2, rho_v1)
     a = 1 + (rho_v_secondary / rho_v_primary)^2
-    p = rho_floor * (4 * rho_e_floor - 2 * rho_e_total) / a
-    q = -2 * rho_floor * rho_e_floor * rho_v_primary / a
+    # eps = rho_floor and beta = 2*(rho_e_floor - rho_floor).
+    p = 2 * rho_floor * (rho_floor + rho_e_floor - rho_e_total) / a
+    q = -2 * rho_floor * rho_floor * rho_v_primary / a
     n_roots, roots = calc_depressed_cubic_roots(p, q)
     for i in 1:n_roots
         rho_v_primary_candidate = roots[i]
