@@ -358,10 +358,10 @@ function Trixi.limiter_zhang_shu!(u, threshold, variable, mesh,
         value_mean = variable(u_mean, equations)
         theta = (value_mean - threshold) / (value_mean - value_min)
 
-        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
-        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
-        # which results in invalid theta values smaller than 0. Note that min(1, theta)
-        # is not necessary since we are only enforcing lower bounds.
+        ## This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        ## (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        ## which results in invalid theta values smaller than 0. Note that min(1, theta)
+        ## is not necessary since we are only enforcing lower bounds.
         theta = max(0, theta)
 
         for i in eachnode(dg)
