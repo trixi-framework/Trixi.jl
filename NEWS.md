@@ -29,6 +29,7 @@ for human readability.
   This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.
   The new function `temperature_given_Vp` computes temperature given the specific volume `V` and pressure `p` using Newton's method,
   analogous to the existing `temperature` function for `AbstractEquationOfState` which takes in `V` and specific internal energy `e_internal` ([#3093]).
+- Added support to apply the positivity-preserving limiter after coarsening and refinement steps in AMR via the keyword argument `limiter!` in `AMRCallback` ([#2396]).
 - To model a calorically imperfect but thermally perfect gas, a new equation of state `ThermallyPerfectGas9PolyFit` has been added.
   This is a concrete implementation for `AbstractThermallyPerfectGas` that uses a 9th order polynomial fit to the NASA polynomials for specific heat capacities, as described in the corresponding [NASA Technical Publication](https://ntrs.nasa.gov/citations/20020085330).
   This EOS allows for temperature-dependent specific heat capacities (`c_p(T)`, `c_v(T)`) and ratio of specific heats (`\gamma(T)`), while obeying the ideal gas law to relate pressure, density, and temperature ([#3079]).
