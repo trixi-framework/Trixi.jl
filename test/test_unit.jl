@@ -993,9 +993,10 @@ end
     s1 = Trixi.entropy_specific(V, T_ref, eos)
     s2 = Trixi.entropy_specific(V, T_test, eos)
     @test (s2 - s1) ≈ cp * log(T_test / T_ref) - R_specific * log(p2 / p1)
-    
+
     # 5. check speed of sound
-    @test speed_of_sound(V, T_ref, eos) ≈ sqrt(gamma_target * pressure(V, T_ref, eos) * V)
+    @test speed_of_sound(V, T_ref, eos) ≈
+          sqrt(gamma_target * pressure(V, T_ref, eos) * V)
 end
 
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin

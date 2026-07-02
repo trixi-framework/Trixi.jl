@@ -158,7 +158,6 @@ mesh = P4estMesh(trees_per_dimension,
                  mapping = cylinder_mapping,
                  periodicity = false)
 
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_mach6_flow, solver;
                                     boundary_conditions = boundary_conditions)
 
