@@ -274,7 +274,7 @@ function calc_gradient_local!(gradients, u_transformed, t,
     # Prolong solution to mortars.
     # This reuses `prolong2mortars` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
+        prolong2mortars!(backend, cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg)
     end
 

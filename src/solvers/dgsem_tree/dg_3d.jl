@@ -767,7 +767,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     return nothing
 end
 
-function prolong2mortars!(cache, u,
+function prolong2mortars!(backend::Nothing, cache, u,
                           mesh::TreeMesh{3}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
@@ -957,7 +957,7 @@ end
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::TreeMesh{3},
                            have_nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -1006,7 +1006,7 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::TreeMesh{3},
                            have_nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
