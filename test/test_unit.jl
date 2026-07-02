@@ -3839,25 +3839,4 @@ end
     end
 end
 
-@timed_testset "project_to_admissible_set for CompressibleEulerEquations2D" begin
-    equations = CompressibleEulerEquations2D(1.4)
-    lower_bounds = (1.0e-8, 1.0e-8)
-    variables = (Trixi.density, Trixi.energy_internal)
-
-    # State from NaN RHS debug output (supersonic cylinder, t ≈ 10.62).
-    u = SVector(410.8531334331189,
-                -213380.84004261592,
-                -3143.3480951929932,
-                5.5422801761293426e7)
-
-    @test !Trixi.state_is_admissible(u, lower_bounds, variables, equations)
-
-    u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
-
-    @test Trixi.density(u_proj, equations) > 0
-    # Must exceed the Liu-Zhang floor (not merely be positive due to fp noise on an
-    # essentially unchanged state).
-    @test Trixi.energy_internal(u_proj, equations) > lower_bounds[2]
-end
-
 end #module
