@@ -5,11 +5,10 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
+function rhs!(backend::Nothing, du, u, t,
               mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
 
     # Start to receive MPI data
     @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
