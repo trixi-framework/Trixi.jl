@@ -2798,4 +2798,30 @@ function collect_new_cells(mesh::P4estMesh)
 
     return new_cells
 end
+
+@inline function get_cell_volume(element, mesh::P4estMesh{2}, equations, dg, cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, element)))
+        total_volume += weights[i] * weights[j] * volume_jacobian
+    end
+    return total_volume
+end
+
+@inline function get_cell_volume(element, mesh::P4estMesh{3}, equations, dg, cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, k, element)))
+        total_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
+    end
+    return total_volume
+end
 end # @muladd
