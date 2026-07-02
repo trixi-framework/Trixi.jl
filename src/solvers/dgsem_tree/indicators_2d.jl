@@ -39,7 +39,7 @@ end
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
+    @inbounds for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
         indicator[i, j] = indicator_hg.variable(u_local, equations)
     end
@@ -50,12 +50,12 @@ end
 
     # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
-    for j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
+    @inbounds for j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
         total_energy_clip2 += modal[i, j]^2
     end
 
     total_energy_clip1 = copy(total_energy_clip2)
-    for i in 1:(nnodes(dg) - 1)
+    @inbounds for i in 1:(nnodes(dg) - 1)
         total_energy_clip1 += modal[i, nnodes(dg) - 1]^2
     end
     for j in 1:(nnodes(dg) - 2) # stop at N-2 to avoid adding the (N-1, N-1) mode twice
@@ -63,7 +63,7 @@ end
     end
 
     total_energy = copy(total_energy_clip1)
-    for i in 1:nnodes(dg)
+    @inbounds for i in 1:nnodes(dg)
         total_energy += modal[i, nnodes(dg)]^2
     end
     for j in 1:(nnodes(dg) - 1) # stop at N-1 to avoid adding the (N, N) mode twice
@@ -162,13 +162,14 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
         indicator = indicator_threaded[Threads.threadid()]
 
         # Calculate indicator variables at Gauss-Lobatto nodes
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
             indicator[i, j] = variable(u_local, equations)
         end
 
         estimate = zero(real(dg))
-        for j in eachnode(dg), i in 2:(nnodes(dg) - 1)
+        @inbounds for j in eachnode(dg), i in 2:(nnodes(dg) - 1)
+
             # x direction
             u0 = indicator[i, j]
             up = indicator[i + 1, j]
@@ -176,7 +177,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
             estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner))
         end
 
-        for j in 2:(nnodes(dg) - 1), i in eachnode(dg)
+        @inbounds for j in 2:(nnodes(dg) - 1), i in eachnode(dg)
             # y direction
             u0 = indicator[i, j]
             up = indicator[i, j + 1]
@@ -202,7 +203,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
         indicator = indicator_threaded[Threads.threadid()]
 
         # Calculate indicator variables at Gauss-Lobatto nodes
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
             indicator[i, j] = indicator_variable(u_local, equations)
         end
@@ -224,7 +225,7 @@ function (indicator::IndicatorNodalFunction)(u::AbstractArray{<:Any, 4},
 
     @threaded for element in eachelement(dg, cache)
         estimate = typemin(eltype(alpha))
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             u_nodal = get_node_vars(u, equations, dg, i, j, element)
             x_nodal = get_node_coords(node_coordinates, equations, dg,
                                       i, j, element)

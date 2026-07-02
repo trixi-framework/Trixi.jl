@@ -10,11 +10,11 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations, dg::D
 
     @threaded for element in eachelement(dg, cache)
         # Negative side (direction 1, left/negative x face)
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             interfaces_u[v, 1, element] = u[v, 1, element]
         end
         # Positive side (direction 2, right/positive x face)
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             interfaces_u[v, 2, element] = u[v, nnodes(dg), element]
         end
     end
@@ -28,10 +28,10 @@ function prolong2interfaces!(cache, u, mesh::StructuredMesh{1}, equations,
     @unpack boundary_interpolation = dg.basis
 
     @threaded for element in eachelement(dg, cache)
-        for v in eachvariable(equations)
+        @inbounds for v in eachvariable(equations)
             interface_u_1 = zero(eltype(interfaces_u))
             interface_u_2 = zero(eltype(interfaces_u))
-            for i in eachnode(dg)
+            @inbounds for i in eachnode(dg)
                 # Left/negative x face
                 interface_u_1 = interface_u_1 +
                                 u[v, i, element] * boundary_interpolation[i, 1]
@@ -64,7 +64,7 @@ function calc_interface_flux!(surface_flux_values, mesh::StructuredMesh{1},
 
             f1 = surface_flux(u_ll, u_rr, 1, equations)
 
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 surface_flux_values[v, 2, left_element] = f1[v]
                 surface_flux_values[v, 1, element] = f1[v]
             end
@@ -94,7 +94,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                           surface_flux, equations)
 
     # Only flux contribution for left element, left face is the boundary flux
-    for v in eachvariable(equations)
+    @inbounds for v in eachvariable(equations)
         surface_flux_values[v, direction, 1] = flux[v]
     end
 
@@ -108,7 +108,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
                                           surface_flux, equations)
 
     # Only flux contribution for right element, right face is the boundary flux
-    for v in eachvariable(equations)
+    @inbounds for v in eachvariable(equations)
         surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
     end
 
@@ -120,13 +120,13 @@ function apply_jacobian!(backend::Nothing, du, mesh::StructuredMesh{1},
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
+        @inbounds for i in eachnode(dg)
             # Negative sign included to account for the negated surface and volume terms,
             # see e.g. the computation of `derivative_hat` in the basis setup and 
             # the comment in `calc_surface_integral!`.
             factor = -inverse_jacobian[i, element]
 
-            for v in eachvariable(equations)
+            @inbounds for v in eachvariable(equations)
                 du[v, i, element] *= factor
             end
         end

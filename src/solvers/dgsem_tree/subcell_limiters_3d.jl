@@ -24,14 +24,14 @@
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         # Calculate bounds at Gauss-Lobatto nodes
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k, element]
             var_min[i, j, k, element] = var
             var_max[i, j, k, element] = var
         end
 
         # Apply values in x direction
-        for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
             var = u[variable, i - 1, j, k, element]
             var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
             var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
@@ -42,7 +42,7 @@
         end
 
         # Apply values in y direction
-        for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
             var = u[variable, i, j - 1, k, element]
             var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
             var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
@@ -53,7 +53,7 @@
         end
 
         # Apply values in z direction
-        for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, k - 1, element]
             var_min[i, j, k, element] = min(var_min[i, j, k, element], var)
             var_max[i, j, k, element] = max(var_max[i, j, k, element], var)
@@ -95,7 +95,7 @@ end
 
         orientation = cache.interfaces.orientations[interface]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Define node indices for left and right element based on the interface orientation
             if orientation == 1
                 # interface in x-direction
@@ -149,7 +149,7 @@ end
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Define node indices and boundary index based on the orientation and neighbor_side
             if neighbor_side == 2 # Element is on the right, boundary on the left
                 if orientation == 1 # boundary in x-direction
@@ -207,7 +207,7 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         # Reset bounds
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             if min_or_max === max
                 var_minmax[i, j, k, element] = typemin(eltype(var_minmax))
             else
@@ -216,7 +216,7 @@ end
         end
 
         # Calculate bounds at Gauss-Lobatto nodes
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             var = variable(get_node_vars(u, equations, dg, i, j, k, element), equations)
             var_minmax[i, j, k, element] = min_or_max(var_minmax[i, j, k, element], var)
 
@@ -279,7 +279,7 @@ end
 
         orientation = cache.interfaces.orientations[interface]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Define node indices for left and right element based on the interface orientation
             if orientation == 1
                 # interface in x-direction
@@ -328,7 +328,7 @@ end
         orientation = cache.boundaries.orientations[boundary]
         neighbor_side = cache.boundaries.neighbor_sides[boundary]
 
-        for j in eachnode(dg), i in eachnode(dg)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
             # Define node indices and boundary index based on the orientation and neighbor_side
             if neighbor_side == 2 # Element is on the right, boundary on the left
                 if orientation == 1 # boundary in x-direction
@@ -390,7 +390,7 @@ end
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
             var = u[variable, i, j, k, element]
@@ -460,7 +460,7 @@ end
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -495,7 +495,7 @@ end
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
             var = u[variable, i, j, k, element]
@@ -569,7 +569,7 @@ end
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @inbounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
 
