@@ -648,17 +648,6 @@ end
     return nothing
 end
 
-# function prolong2mortars!(cache, u,
-#                           mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
-#                           mortar_l2::LobattoLegendreMortarL2,
-#                           dg::DGSEM)
-#     backend = trixi_backend(u)
-#     prolong2mortars!(backend, cache, u,
-#                           mesh, equations,
-#                           mortar_l2,
-#                           dg)
-# end
-
 function prolong2mortars!(backend::Nothing, cache, u,
                           mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
