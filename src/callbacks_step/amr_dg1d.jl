@@ -7,7 +7,7 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
-                 equations, dg::DGSEM, cache, elements_to_refine)
+                 equations, dg::DGSEM, cache, elements_to_refine, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         return
@@ -22,6 +22,18 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     old_u_ode = copy(u_ode)
     GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        # Compute mean values for the elements to be refined
+        # Only if limiter was passed
+        if limiter! !== nothing
+            @trixi_timeit timer() "limiter!" begin
+                u_mean_refined_elements = compute_u_mean_refined_elements(old_u,
+                                                                          elements_to_refine,
+                                                                          mesh,
+                                                                          equations, dg,
+                                                                          cache)
+            end
+        end
 
         @trixi_timeit timer() "reinitialize data structures" begin
             reinitialize_containers!(mesh, equations, dg, cache)
@@ -59,15 +71,25 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after refinement
+        element_ids_new = compute_new_ids_refined_elements(elements_to_refine, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new,
+                                                  u_mean_refined_elements)
+    end
+
     return nothing
 end
 
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                  equations, dg::DGSEM, cache, cache_parabolic,
-                 elements_to_refine)
+                 elements_to_refine, limiter!)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the refined cells
-    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
+    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine, limiter!)
 
     # Resize parabolic helper variables
     @unpack parabolic_container = cache_parabolic
@@ -123,7 +145,7 @@ end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
-                  equations, dg::DGSEM, cache, elements_to_remove)
+                  equations, dg::DGSEM, cache, elements_to_remove, limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         return
@@ -184,15 +206,24 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert ninterfaces(cache.interfaces)==1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
     end
 
+    # Apply the positivity limiter to the solution
+    if limiter! !== nothing
+        # Precompute list with new element ids after coarsening
+        element_ids_new = compute_new_ids_coarsened_elements(elements_to_remove, mesh)
+
+        @trixi_timeit timer() "limiter!" limiter!(u, mesh, equations, dg, cache,
+                                                  element_ids_new)
+    end
+
     return nothing
 end
 
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                   equations, dg::DGSEM, cache, cache_parabolic,
-                  elements_to_remove)
+                  elements_to_remove, limiter!)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the coarsened cells
-    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
+    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove, limiter!)
 
     # Resize parabolic helper variables
     @unpack parabolic_container = cache_parabolic
