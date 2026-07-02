@@ -532,6 +532,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_sedov_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_limiter_liu_zhang.jl"),
+                        l2=[
+                            0.90804578279466,
+                            0.21785647903550392,
+                            0.21785665052959136,
+                            0.28670869115421455
+                        ],
+                        linf=[
+                            5.37828857574071,
+                            2.044547247030974,
+                            2.0445488517007133,
+                            1.1947919489346195
+                        ],
+                        atol=5e-2, # limiters are not smooth, so we need bigger tolerances
+                        rtol=1e-2)
+    @test length(global_limiter!.history_davis_yin_iterations) == 1
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
