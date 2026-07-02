@@ -132,7 +132,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
             if needs_refinement[old_element_id]
                 # Refine element and store solution directly in new data structure
                 refine_element!(u, element_id, old_u, old_element_id,
-                                adaptor, equations, dg)
+                                adaptor.forward_upper, adaptor.forward_lower,
+                                equations, dg)
 
                 if mesh isa P4estMesh
                     # Before `element_id` is incremented, divide by the new Jacobians on each
@@ -181,6 +182,46 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     return nothing
 end
 
+# TODO GPU
+# highly inefficient to branch based on needs_refinement in kernel
+@kernel function prolong2refinedElements_KAkernel!(u, old_u, offsets, needs_refinement,
+                                                   forward_upper, forward_lower,
+                                                   old_inverse_jacobian,
+                                                   inverse_jacobian,
+                                                   equations, dg,
+                                                   ::Val{2},
+                                                   ::Val{_nvariables},
+                                                   ::Val{_nnodes}) where {_nvariables,
+                                                                          _nnodes}
+    old_element_id = @index(Global)
+    new_element_id = offsets[old_element_id]
+
+    if needs_refinement[old_element_id]
+        for v in 1:_nvariables, j in 1:_nnodes, i in 1:_nnodes
+            old_u[v, i, j, old_element_id] = old_u[v, i, j, old_element_id] /
+                                             old_inverse_jacobian[i, j, old_element_id]
+        end
+
+        # Refine element and store solution directly in new data structure
+        refine_element!(u, offsets[old_element_id], old_u, old_element_id,
+                        forward_upper, forward_lower, equations, dg)
+
+        # Before `element_id` is incremented, divide by the new Jacobians on each
+        # child element and save the result
+        for m in 0:3 # loop over the children
+            for v in _nvariables, j in 1:_nnodes, i in 1:_nnodes
+                u[v, i, j, new_element_id + m] *= 0.25f0 *
+                                                  inverse_jacobian[i, j,
+                                                                   new_element_id + m]
+            end
+        end
+    else
+        for v in 1:_nvariables, j in 1:_nnodes, i in 1:_nnodes
+            u[v, i, j, new_element_id] = old_u[v, i, j, old_element_id]
+        end
+    end
+end
+
 function refine!(u_ode::AbstractVector, adaptor,
                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
                  equations, dg::DGSEM, cache, cache_parabolic,
@@ -200,28 +241,27 @@ end
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
                          old_u, old_element_id,
-                         adaptor::LobattoLegendreAdaptorL2, equations, dg)
-    @unpack forward_upper, forward_lower = adaptor
+                         forward_upper, forward_lower, equations, dg)
 
     # Store new element ids
     lower_left_id = element_id
     lower_right_id = element_id + 1
     upper_left_id = element_id + 2
     upper_right_id = element_id + 3
-
-    @boundscheck begin
-        @assert old_element_id >= 1
-        @assert size(old_u, 1) == nvariables(equations)
-        @assert size(old_u, 2) == nnodes(dg)
-        @assert size(old_u, 3) == nnodes(dg)
-        @assert size(old_u, 4) >= old_element_id
-        @assert element_id >= 1
-        @assert size(u, 1) == nvariables(equations)
-        @assert size(u, 2) == nnodes(dg)
-        @assert size(u, 3) == nnodes(dg)
-        @assert size(u, 4) >= element_id + 3
-    end
-
+    #=
+        @boundscheck begin
+            @assert old_element_id >= 1
+            @assert size(old_u, 1) == nvariables(equations)
+            @assert size(old_u, 2) == nnodes(dg)
+            @assert size(old_u, 3) == nnodes(dg)
+            @assert size(old_u, 4) >= old_element_id
+            @assert element_id >= 1
+            @assert size(u, 1) == nvariables(equations)
+            @assert size(u, 2) == nnodes(dg)
+            @assert size(u, 3) == nnodes(dg)
+            @assert size(u, 4) >= element_id + 3
+        end
+    =#
     # Interpolate to lower left element
     for j in eachnode(dg), i in eachnode(dg)
         acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
@@ -562,4 +602,22 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
     return nothing
 end
+
+
+function refine!(::Nothing, elements_to_refine, adaptor,
+                 mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                 equations, dg, cache, u_ode)
+    
+    return refine!(elements_to_refine, adaptor, mesh, equations, dg, cache, u_ode)
+end
+
+function coarsen!(::Nothing, elements_to_coarsen, adaptor,
+                  mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                  equations, dg, cache, u_ode)
+    
+    return coarsen!(elements_to_coarsen, adaptor, mesh, equations, dg, cache, u_ode)
+end
+
+
+
 end # @muladd

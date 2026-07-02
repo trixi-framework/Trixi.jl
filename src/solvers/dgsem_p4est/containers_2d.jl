@@ -5,26 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# Initialize data structures in element container
-function init_elements!(elements,
-                        mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                        basis::AbstractBasisSBP)
-    @unpack node_coordinates, jacobian_matrix,
-    contravariant_vectors, inverse_jacobian = elements
-
-    calc_node_coordinates!(node_coordinates, mesh, basis)
-
-    for element in 1:ncells(mesh)
-        calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
-
-        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
-
-        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
-    end
-
-    return nothing
-end
-
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
                                 mesh::Union{P4estMesh{2}, P4estMeshView{2},

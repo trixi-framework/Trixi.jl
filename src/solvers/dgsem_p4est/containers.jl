@@ -695,21 +695,38 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
 
     required = count_required_surfaces(mesh)
 
+    @unpack interfaces, boundaries, mortars = cache
+
+    backend = trixi_backend(interfaces.u)
+    storageT = storage_type(interfaces.u)
+    elementT = eltype(interfaces.u)
+    # TODO GPU
+    # mesh lives on the CPU -> move data arrays to CPU
+    if backend !== nothing
+        interfaces = trixi_adapt(Array, elementT, interfaces)
+        boundaries = trixi_adapt(Array, elementT, boundaries)
+        mortars = trixi_adapt(Array, elementT, mortars)
+    end
+
     # resize interfaces container
-    @unpack interfaces = cache
     resize!(interfaces, required.interfaces)
 
     # resize boundaries container
-    @unpack boundaries = cache
     resize!(boundaries, required.boundaries)
 
     # re-initialize mortars container
-    @unpack mortars = cache
     resize!(mortars, required.mortars)
 
     # re-initialize containers together to reduce
     # the number of iterations over the mesh in `p4est`
     init_surfaces!(interfaces, mortars, boundaries, mesh)
+
+    # TODO GPU
+    if backend !== nothing
+        copyfields!(cache.interfaces, trixi_adapt(storageT, elementT, interfaces))
+        copyfields!(cache.boundaries, trixi_adapt(storageT, elementT, boundaries))
+        copyfields!(cache.mortars, trixi_adapt(storageT, elementT, mortars))
+    end
 
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)

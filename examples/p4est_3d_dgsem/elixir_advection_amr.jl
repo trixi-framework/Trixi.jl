@@ -32,7 +32,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 0.3)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 summary_callback = SummaryCallback()
 
@@ -61,7 +61,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.2)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
-                        save_solution,
+                        #save_solution,
                         amr_callback,
                         stepsize_callback)
 

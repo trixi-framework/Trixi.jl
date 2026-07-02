@@ -331,6 +331,17 @@ struct LobattoLegendreAdaptorL2{RealT <: Real, NNODES,
     reverse_lower::ReverseMatrix
 end
 
+function Adapt.adapt_structure(to, adaptor::LobattoLegendreAdaptorL2)
+    forward_upper = adapt(to, adaptor.forward_upper)
+    forward_lower = adapt(to, adaptor.forward_lower)
+    reverse_upper = adapt(to, adaptor.reverse_upper)
+    reverse_lower = adapt(to, adaptor.reverse_lower)
+    return LobattoLegendreAdaptorL2{eltype(forward_upper), nnodes(adaptor),
+                                    typeof(forward_upper),
+                                    typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                           reverse_upper, reverse_lower)
+end
+
 function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     nnodes_ = nnodes(basis)
 

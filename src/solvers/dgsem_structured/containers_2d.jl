@@ -58,10 +58,10 @@ function calc_node_coordinates!(node_coordinates, element,
 end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
-function calc_jacobian_matrix!(jacobian_matrix, element,
-                               node_coordinates::AbstractArray{<:Any, 4},
-                               basis::AbstractBasisSBP)
-    @unpack derivative_matrix = basis
+@inline function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any, 5},
+                                       element,
+                                       node_coordinates, derivative_matrix,
+                                       ::Val{_nnodes}) where {_nnodes}
 
     # The code below is equivalent to the following matrix multiplications, which
     # seem to end up calling generic linear algebra code from Julia. Thus, the
@@ -72,12 +72,10 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
     # jacobian_matrix[2, 2, :, :, element] = node_coordinates[2, :, :, element] * derivative_matrix' # y_η
 
     # x_ξ, y_ξ
-    @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
-        for j in indices((jacobian_matrix, node_coordinates), (4, 3)),
-            i in indices((jacobian_matrix, derivative_matrix), (3, 1))
-
+    for xy in 1:2
+        for j in 1:_nnodes, i in 1:_nnodes
             result = zero(eltype(jacobian_matrix))
-            for ii in indices((node_coordinates, derivative_matrix), (2, 2))
+            for ii in 1:_nnodes
                 result += derivative_matrix[i, ii] *
                           node_coordinates[xy, ii, j, element]
             end
@@ -86,12 +84,10 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
     end
 
     # x_η, y_η
-    @turbo for xy in indices((jacobian_matrix, node_coordinates), (1, 1))
-        for j in indices((jacobian_matrix, derivative_matrix), (4, 1)),
-            i in indices((jacobian_matrix, node_coordinates), (3, 2))
-
+    for xy in 1:2
+        for j in 1:_nnodes, i in 1:_nnodes
             result = zero(eltype(jacobian_matrix))
-            for jj in indices((node_coordinates, derivative_matrix), (3, 2))
+            for jj in 1:_nnodes
                 result += derivative_matrix[j, jj] *
                           node_coordinates[xy, i, jj, element]
             end
@@ -99,13 +95,17 @@ function calc_jacobian_matrix!(jacobian_matrix, element,
         end
     end
 
-    return jacobian_matrix
+    return nothing
 end
 
 # Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
 # Those are called Ja^i in Kopriva's blue book.
-function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any, 5},
-                                     element, jacobian_matrix)
+@inline function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
+                                                                                  5},
+                                             element,
+                                             jacobian_matrix, node_coordinates,
+                                             derivative_matrix,
+                                             ::Val{_nnodes}) where {_nnodes}
     # The code below is equivalent to the following using broadcasting but much faster.
     # # First contravariant vector Ja^1
     # contravariant_vectors[1, 1, :, :, element] =  jacobian_matrix[2, 2, :, :, element]
@@ -114,8 +114,7 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
     # contravariant_vectors[1, 2, :, :, element] = -jacobian_matrix[2, 1, :, :, element]
     # contravariant_vectors[2, 2, :, :, element] =  jacobian_matrix[1, 1, :, :, element]
 
-    @turbo for j in indices((contravariant_vectors, jacobian_matrix), (4, 4)),
-               i in indices((contravariant_vectors, jacobian_matrix), (3, 3))
+    for j in 1:_nnodes, i in 1:_nnodes
         # First contravariant vector Ja^1
         contravariant_vectors[1, 1, i, j, element] = jacobian_matrix[2, 2, i, j,
                                                                      element]
@@ -129,25 +128,24 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
                                                                      element]
     end
 
-    return contravariant_vectors
+    return nothing
 end
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, element,
-                                jacobian_matrix)
+@inline function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3},
+                                        element,
+                                        jacobian_matrix, ::Val{_nnodes}) where {_nnodes}
     # The code below is equivalent to the following high-level code but much faster.
     # inverse_jacobian[i, j, element] = inv(det(jacobian_matrix[:, :, i, j, element])
 
-    @turbo for j in indices((inverse_jacobian, jacobian_matrix), (2, 4)),
-               i in indices((inverse_jacobian, jacobian_matrix), (1, 3))
-
+    for j in 1:_nnodes, i in 1:_nnodes
         inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j, element] *
                                               jacobian_matrix[2, 2, i, j, element] -
                                               jacobian_matrix[1, 2, i, j, element] *
                                               jacobian_matrix[2, 1, i, j, element])
     end
 
-    return inverse_jacobian
+    return nothing
 end
 
 # Save id of left neighbor of every element

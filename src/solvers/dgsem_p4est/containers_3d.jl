@@ -6,23 +6,82 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                        basis::LobattoLegendreBasis)
-    @unpack node_coordinates, jacobian_matrix,
-    contravariant_vectors, inverse_jacobian = elements
+function init_elements!(elements,
+                        mesh::Union{P4estMesh{3}, T8codeMesh{3}, P4estMesh{2},
+                                    P4estMeshView{2}, T8codeMesh{2}},
+                        basis::AbstractBasisSBP)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+
+    # TODO GPU
+    # mesh lives on the CPU -> move node_coordinates to CPU before recomputing coordinates
+    # this creates a local copy shadowing unpacked node_coordinates!
+    backend = trixi_backend(node_coordinates)
+    storageT = storage_type(node_coordinates)
+    if backend !== nothing
+        node_coordinates = trixi_adapt(Array, eltype(node_coordinates),
+                                       node_coordinates)
+    end
 
     calc_node_coordinates!(node_coordinates, mesh, basis)
 
-    for element in 1:ncells(mesh)
-        calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
-
-        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
-                                    node_coordinates, basis)
-
-        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
+    # TODO GPU
+    # copy back to elements struct on GPU
+    if backend !== nothing
+        elements.node_coordinates = trixi_adapt(storageT, eltype(node_coordinates),
+                                                node_coordinates)
     end
 
+    # TODO GPU
+    # - introduced backend to launch kernels for element-wise computation of remaining struct 
+    #   members. 
+    # - @turbo temporily removed in inner loops
+    init_element_structs!(backend, elements, ncells(mesh), basis)
+
     return nothing
+end
+
+function init_element_structs!(backend::Nothing, elements, n_elements,
+                               basis::AbstractBasisSBP)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+    @unpack derivative_matrix = basis
+
+    for element in 1:n_elements
+        calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates,
+                              derivative_matrix, Val(nnodes(basis)))
+
+        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+                                    node_coordinates, derivative_matrix,
+                                    Val(nnodes(basis)))
+
+        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix,
+                               Val(nnodes(basis)))
+    end
+end
+
+function init_element_structs!(backend::Backend, elements, n_elements,
+                               basis::LobattoLegendreBasis)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+    @unpack derivative_matrix = basis
+
+    kernel! = init_element_structs_KAkernel!(backend)
+    kernel!(node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian,
+            derivative_matrix, Val(nnodes(basis)),
+            ndrange = n_elements)
+    return nothing
+end
+
+@kernel function init_element_structs_KAkernel!(node_coordinates, jacobian_matrix,
+                                                contravariant_vectors, inverse_jacobian,
+                                                derivative_matrix, val_nnodes)
+    element = @index(Global)
+
+    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, derivative_matrix,
+                          val_nnodes)
+
+    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+                                node_coordinates, derivative_matrix, val_nnodes)
+
+    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, val_nnodes)
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis

@@ -669,6 +669,14 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
                                      passive_args = ())
     @unpack controller, adaptor = amr_callback
 
+    # TODO GPU
+    backend = trixi_backend(u_ode)
+    storageT = storage_type(u_ode)
+    elementT = eltype(u_ode)
+    if backend !== nothing
+        adaptor = trixi_adapt(storageT, elementT, adaptor)
+    end
+
     u = wrap_array(u_ode, mesh, equations, dg, cache)
     lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                           t = t, iter = iter)
@@ -689,9 +697,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         refined_original_cells = @trixi_timeit timer() "mesh" refine!(mesh)
 
         # Refine solver
-        @trixi_timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg,
-                                               cache,
-                                               refined_original_cells)
+        @trixi_timeit timer() "solver" refine!(backend, u_ode, adaptor, mesh, equations,
+                                               dg,
+                                               cache, refined_original_cells)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
             @trixi_timeit timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh,
                                                            p_equations,
@@ -708,7 +716,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh)
 
         # coarsen solver
-        @trixi_timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg,
+        @trixi_timeit timer() "solver" coarsen!(backend, u_ode, adaptor, mesh, equations, dg,
                                                 cache,
                                                 coarsened_original_cells)
         for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
@@ -1000,8 +1008,17 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
     @unpack controller_value = controller.cache
     resize!(controller_value, nelements(dg, cache))
 
-    alpha = controller.indicator(u, mesh, equations, dg, cache; kwargs...)
+    backend = trixi_backend(u)
+
+    alpha = controller.indicator(backend, u, mesh, equations, dg, cache; kwargs...)
     current_levels = current_element_levels(mesh, dg, cache)
+
+    # TODO GPU
+    # mesh lives on the CPU -> current_levels lives on the CPU
+    # alpha lives on the GPU, so we move it here
+    if backend !== nothing
+        alpha = trixi_adapt(Array, eltype(alpha), alpha)
+    end
 
     @threaded for element in eachelement(dg, cache)
         current_level = current_levels[element]
