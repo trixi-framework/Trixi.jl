@@ -1299,6 +1299,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        gradient_variables=GradientVariablesEntropy(),
+                        l2=[
+                            4.37868326434923e-15,
+                            7.002449644031901e-16,
+                            1.0986677074164136e-14,
+                            1.213800745067394e-14
+                        ],
+                        linf=[
+                            2.531308496145357e-14,
+                            3.8367543336926215e-15,
+                            4.9960036108132044e-14,
+                            6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_navierstokes_freestream_ldg.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_ldg.jl"),

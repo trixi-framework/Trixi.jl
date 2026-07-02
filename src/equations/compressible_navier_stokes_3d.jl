@@ -461,6 +461,7 @@ end
     return SVector(u_inner[1], v1, v2, v3, u_inner[5])
 end
 
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
@@ -468,7 +469,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+                                                                                      equations::CompressibleNavierStokesDiffusion3D)
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -497,6 +498,7 @@ end
     return SVector(u_inner[1], v1, v2, v3, T)
 end
 
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
@@ -504,11 +506,11 @@ end
                                                                                        x,
                                                                                        t,
                                                                                        operator_type::Divergence,
-                                                                                       equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+                                                                                       equations::CompressibleNavierStokesDiffusion3D)
     return flux_inner
 end
 
-# specialized BC impositions for GradientVariablesEntropy.
+# specialized BC impositions for GradientVariablesEntropy (Gradient operator only).
 
 # This should return a SVector containing the boundary values of entropy variables.
 # Here, `w_inner` are the transformed variables (e.g., entropy variables).
@@ -532,27 +534,6 @@ end
                    -v3 * negative_rho_inv_p, negative_rho_inv_p)
 end
 
-# this is actually identical to the specialization for GradientVariablesPrimitive, but included for completeness.
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
-                                                                        <:Adiabatic})(flux_inner,
-                                                                                      w_inner,
-                                                                                      normal::AbstractVector,
-                                                                                      x,
-                                                                                      t,
-                                                                                      operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
-    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
-                                                                                                           t,
-                                                                                                           equations)
-    v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                        t,
-                                                                                        equations)
-    _, tau_1n, tau_2n, tau_3n, _ = flux_inner # extract fluxes for 2nd, 3rd, and 4th equations
-    normal_energy_flux = v1 * tau_1n + v2 * tau_2n + v3 * tau_3n + normal_heat_flux
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
-                   normal_energy_flux)
-end
-
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
@@ -570,18 +551,6 @@ end
     # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w5. Similarly for w3 and w4
     w5 = -1 / T
     return SVector(w_inner[1], -v1 * w5, -v2 * w5, -v3 * w5, w5)
-end
-
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
-                                                                        <:Isothermal})(flux_inner,
-                                                                                       w_inner,
-                                                                                       normal::AbstractVector,
-                                                                                       x,
-                                                                                       t,
-                                                                                       operator_type::Divergence,
-                                                                                       equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
-                   flux_inner[5])
 end
 
 # Computes the mirror velocity across a symmetry plane which enforces
@@ -620,6 +589,7 @@ end
 end
 
 # Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
@@ -627,7 +597,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+                                                                                      equations::CompressibleNavierStokesDiffusion3D)
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -637,6 +607,25 @@ end
     #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
     # DOI: 10.1016/j.jcp.2021.110723
     return SVector(flux_inner[1], 0, 0, 0, normal_heat_flux)
+end
+
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      w_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
+    negative_rho_inv_p = w_inner[5] # w_5 = -rho / p
+    v1 = -w_inner[2] / negative_rho_inv_p
+    v2 = -w_inner[3] / negative_rho_inv_p
+    v3 = -w_inner[4] / negative_rho_inv_p
+    v1_outer, v2_outer, v3_outer = velocity_symmetry_plane(normal, v1, v2, v3)
+
+    return SVector(w_inner[1], -v1_outer * negative_rho_inv_p, -v2_outer * negative_rho_inv_p,
+                   -v3_outer * negative_rho_inv_p, negative_rho_inv_p)
 end
 
 # Dirichlet Boundary Condition for e.g. P4est mesh
@@ -653,12 +642,13 @@ end
     return cons2prim(u_boundary, equations)
 end
 
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
-                                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+                                                                  equations::CompressibleNavierStokesDiffusion3D)
     # for Dirichlet boundary conditions, we do not impose any conditions on the parabolic fluxes
     return flux_inner
 end
