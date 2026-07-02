@@ -578,4 +578,107 @@ end
 end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")
+
+"""
+    FluxTurbo(numerical_flux)
+
+Create a numerical flux equivalent to the given `numerical_flux`
+except that it may use specialized methods, e.g., when used with
+[`VolumeIntegralFluxDifferencing`](@ref). These specialized methods
+may enable better use of SIMD instructions to increase runtime efficiency
+on modern hardware, e.g., using
+[LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
+
+The following specialization works by default for all numerical fluxes,
+enabling SIMD instructions. However, for some systems, it is even better
+to precompute some variables (e.g., primitive variables or logarithms of certain variables)
+and then compute the numerical fluxes.
+This optimization can be enabled by defining three ingredients:
+- the number of precomputed variables `Trixi.nturbovars`;
+- the transformation from conservative to precomputed variables `Trixi.cons2turbo`
+- and the  `flux_turbo(flux_turbo::typeof(numerical_flux), ...)`,
+  that computes the numerical flux in terms of the precomputed variables.
+
+See the implementation of [DGSEM Turbo](https://github.com/trixi-framework/Trixi.jl/blob/main/src/solvers/dgsem_structured/dg_3d_turbo.jl)
+"""
+struct FluxTurbo{NumericalFlux}
+    numerical_flux::NumericalFlux
+end
+
+function FluxTurbo(flux_conservative, flux_nonconservative)
+    numerical_flux = (flux_conservative, flux_nonconservative)
+    return FluxTurbo{typeof(numerical_flux)}(numerical_flux)
+end
+
+# As a fallback method, the wrapped flux is called.
+@inline function (f::FluxTurbo)(u_ll, u_rr, orientation_or_normal_direction,
+                                equations)
+    return f.numerical_flux(u_ll, u_rr, orientation_or_normal_direction, equations)
+end
+
+# When the `FluxTurbo` wraps a tuple of fluxes for nonconservative systems,
+# we need to be able to extract the conservative and nonconservative fluxes
+# like in `symmetric_flux, nonconservative_flux = volume_flux::FluxTurbo`.
+# Thus, we specialize `iterate` (forward it to the wrapped tuple).
+@inline function Base.iterate(volume_flux::FluxTurbo{<:NTuple{2, Any}})
+    return iterate(volume_flux.numerical_flux)
+end
+@inline function Base.iterate(volume_flux::FluxTurbo{<:NTuple{2, Any}}, state)
+    return iterate(volume_flux.numerical_flux, state)
+end
+Base.length(::FluxTurbo{<:NTuple{2, Any}}) = 2
+
+# By default the turbo flux has the same number of precomputed variables
+# as the number of variables.
+@inline nturbovars(numerical_flux, equations) = Val(nvariables(equations))
+
+# Transform the conserved variables in precomputed auxiliary variables to speed up the computation
+# of the numerical flux. When no specialization is given, this gives cons2cons.
+# Note that the conserved variables are passed as scalars instead of a vector
+# to enable optimizations by LoopVectorization.jl. Thus, we use
+# `conserved_and_equations...` instead of `cons, equations`.
+@inline cons2turbo(numerical_flux, conserved_and_equations...) = Base.front(conserved_and_equations)
+
+# Numerical volume flux that recalls the plain volume flux when no specialization is given.
+@inline function flux_turbo(numerical_flux, turbovars_and_normals_and_equations...)
+    equations = last(turbovars_and_normals_and_equations)
+    flux_turbo(numerical_flux, have_nonconservative_terms(equations),
+               turbovars_and_normals_and_equations...)
+end
+
+@inline function flux_turbo(numerical_flux, have_nonconservative_terms::False,
+                            turbovars_and_normals_and_equations...)
+    equations = last(turbovars_and_normals_and_equations)
+    n = nvariables(equations)
+    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(n)))
+    normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
+                               turbovars_and_normals_and_equations[end - 2],
+                               turbovars_and_normals_and_equations[end - 1])
+    return numerical_flux(u_ll, u_rr, normal_direction, equations)
+end
+
+@inline function flux_turbo(numerical_flux, have_nonconservative_terms::True,
+                            turbovars_and_normals_and_equations...)
+    flux_conservative, flux_nonconservative = numerical_flux
+    equations = last(turbovars_and_normals_and_equations)
+    n = nvariables(equations)
+    u_ll = SVector(ntuple(v -> turbovars_and_normals_and_equations[v], Val(n)))
+    u_rr = SVector(ntuple(v -> turbovars_and_normals_and_equations[n + v], Val(n)))
+    normal_direction = SVector(turbovars_and_normals_and_equations[end - 3],
+                               turbovars_and_normals_and_equations[end - 2],
+                               turbovars_and_normals_and_equations[end - 1])
+    flux = flux_conservative(u_ll, u_rr, normal_direction, equations)
+    noncons_left = flux_nonconservative(u_ll, u_rr, normal_direction, equations)
+    noncons_right = flux_nonconservative(u_rr, u_ll, normal_direction, equations)
+    flux_left = flux + 0.5f0 * noncons_left
+    flux_right = flux + 0.5f0 * noncons_right
+    return flux_left, flux_right
+end
+
+# Allow LoopVectorization.jl to use SIMD instructions on volume_flux_turbo and cons2turbo
+LoopVectorization.can_turbo(::typeof(flux_turbo), ::Val) = true
+LoopVectorization.can_turbo(::typeof(cons2turbo), ::Val) = true
+
+Base.show(io::IO, f::FluxTurbo) = print(io, "FluxTurbo(", f.numerical_flux, ")")
 end # @muladd

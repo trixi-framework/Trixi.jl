@@ -691,7 +691,7 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
                     solution_variables = nothing, nvisnodes = nothing,
                     reinterpolate = default_reinterpolate(solver),
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
-                    variable_names = nothing) where {Basis <: UniformFiniteVolumeBasis}
+                    variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names_ = digest_variable_names(solution_variables_, equations,
                                             variable_names)
