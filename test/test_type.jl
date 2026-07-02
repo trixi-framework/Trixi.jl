@@ -2866,6 +2866,96 @@ end
         @test typeof(adapted1.gamma) == Float32
         @test typeof(adapted1.kappa) == Float32
     end
+
+    @timed_testset "Liu-Zhang positivity limiter" begin
+        for RealT in (Float32, Float64)
+            # ensure euler_arithmetic_tol < minimum(lower_bounds) in projection code
+            rho_floor = RealT(1000) * eps(RealT)
+            rho_e_floor = RealT(1000) * eps(RealT)
+            lower_bounds = (rho_floor, rho_e_floor)
+            variables = (density, energy_internal)
+
+            # 1D compressible Euler
+            equations_1d = CompressibleEulerEquations1D(RealT(5 / 3))
+
+            converted_thresholds, converted_variables = @inferred Trixi.convert_variables_and_thresholds(lower_bounds,
+                                                                                                         variables,
+                                                                                                         equations_1d)
+            @test eltype(converted_thresholds) == RealT
+            @test converted_variables == (density, energy_internal)
+
+            u_admissible = prim2cons(SVector(RealT(1), zero(RealT), RealT(1)), equations_1d)
+            u_violation = SVector(rho_floor / 100, zero(RealT), RealT(1)) # violate density lower bound
+            @test typeof(@inferred Trixi.state_is_admissible(u_admissible, lower_bounds,
+                                                             variables, equations_1d)) ==
+                  Bool
+            @test typeof(@inferred Trixi.state_is_admissible(u_violation, lower_bounds,
+                                                             variables, equations_1d)) ==
+                  Bool
+
+            @test eltype(@inferred Trixi.project_to_admissible_set(u_admissible,
+                                                                   lower_bounds,
+                                                                   variables, equations_1d)) ==
+                  RealT
+            @test eltype(@inferred Trixi.project_to_admissible_set(u_violation,
+                                                                   lower_bounds,
+                                                                   variables, equations_1d)) ==
+                  RealT
+
+            # 2D compressible Euler
+            equations_2d = CompressibleEulerEquations2D(RealT(5 / 3))
+
+            # no test for convert_variables_and_thresholds in 2D since it is the same as in 1D
+
+            u_admissible = prim2cons(SVector(RealT(1), zero(RealT), zero(RealT), RealT(1)),
+                                     equations_2d)
+            u_violation = SVector(rho_floor / 100, zero(RealT), zero(RealT), RealT(1)) # violate density lower bound
+            @test typeof(@inferred Trixi.state_is_admissible(u_admissible, lower_bounds,
+                                                             variables, equations_2d)) ==
+                  Bool
+            @test typeof(@inferred Trixi.state_is_admissible(u_violation, lower_bounds,
+                                                             variables, equations_2d)) ==
+                  Bool
+
+            @test eltype(@inferred Trixi.project_to_admissible_set(u_admissible,
+                                                                   lower_bounds,
+                                                                   variables, equations_2d)) ==
+                  RealT
+            @test eltype(@inferred Trixi.project_to_admissible_set(u_violation,
+                                                                   lower_bounds,
+                                                                   variables, equations_2d)) ==
+                  RealT
+
+            # check type of constructor and fields
+            solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs, RealT = RealT)
+            for (coordinates_min, coordinates_max, equations) in ((RealT(-1), RealT(1),
+                                                                   equations_1d),
+                                                                  ((RealT(-1), RealT(-1)),
+                                                                   (RealT(1), RealT(1)),
+                                                                   equations_2d))
+                mesh = TreeMesh(coordinates_min, coordinates_max,
+                                initial_refinement_level = 2, periodicity = true,
+                                RealT = RealT)
+                semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                    initial_condition_constant, solver;
+                                                    boundary_conditions = boundary_condition_periodic)
+                local_limiter! = PositivityPreservingLimiterZhangShu(;
+                                                                     thresholds = lower_bounds,
+                                                                     variables)
+                global_limiter! = @inferred PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                                                semi)
+
+                nvars = nvariables(equations)
+                SVectorT = SVector{nvars, RealT}
+                for field in (:cell_averages, :davis_yin_dual_vars,
+                              :projected_cell_averages)
+                    @test eltype(getfield(global_limiter!, field)) == SVectorT
+                end
+                @test eltype(global_limiter!.sqrt_cell_volumes) == RealT
+                @test typeof(global_limiter!.global_limiter_tol) == RealT
+            end
+        end
+    end
 end
 
 @testitem "Type stability: Traffic Flow LWR 1D" setup=[Setup, TypeStability] tags=[:misc_part1] begin
