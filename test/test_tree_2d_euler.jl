@@ -578,7 +578,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Euler: elixir_euler_sedov_limiter_liu_zhang.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_limiter_liu_zhang.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_limiter_liu_zhang.jl"),
                         l2=[

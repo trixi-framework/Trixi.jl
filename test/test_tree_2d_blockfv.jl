@@ -159,7 +159,3 @@ end
     @test res1.l2 ≈ res2.l2
     @test res1.linf ≈ res2.linf
 end
-end # Compressible Euler equations
-end # BlockFV 2D
-
-end # module
