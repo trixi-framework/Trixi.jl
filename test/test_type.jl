@@ -232,8 +232,20 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                        gamma,
                                                                                        R))
             equations_helmholtz_ideal_gas = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzIdealGas(RealT(2)))
+
+            R_specific = convert(RealT, 287.0509010514002)
+            temperature_bounds = convert.(RealT, SVector(200.0, 1000.0, 6000.0))
+            a = convert.(RealT, Trixi.coefficients_air_9polyfit(temperature_bounds))
+            p_ref = convert(RealT, 100000.0)
+            T_ref = convert(RealT, 298.15)
+
+            equations_thermally_perf_gas = @inferred NonIdealCompressibleEulerEquations1D(ThermallyPerfectGas9PolyFit(R_specific,
+                                                                                                                      temperature_bounds,
+                                                                                                                      a,
+                                                                                                                      p_ref,
+                                                                                                                      T_ref))
             for equations in (equations_ideal_gas, equations_vdw,
-                              equations_helmholtz_ideal_gas)
+                              equations_helmholtz_ideal_gas, equations_thermally_perf_gas)
                 x = SVector(zero(RealT))
                 t = zero(RealT)
                 u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
