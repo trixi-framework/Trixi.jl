@@ -19,3 +19,23 @@ include("laplace_diffusion_entropy_variables.jl")
 include("linear_diffusion_equation.jl")
 
 include("compressible_navier_stokes.jl")
+
+@inline function (boundary_condition::BoundaryConditionDoNothing)(flux_inner,
+                                                                  u_inner,
+                                                                  orientation::Integer,
+                                                                  direction,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::AbstractEquationsParabolic)
+    return u_inner
+end
+
+@inline function (boundary_condition::BoundaryConditionDoNothing)(flux_inner,
+                                                                  u_inner,
+                                                                  orientation::Integer,
+                                                                  direction,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::AbstractEquationsParabolic)
+    return flux_inner
+end

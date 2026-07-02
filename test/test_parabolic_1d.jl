@@ -377,6 +377,28 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl (boundary_condition_do_nothing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        boundary_conditions_parabolic=(;
+                                                       x_neg = boundary_condition_parabolic,
+                                                       x_pos = boundary_condition_do_nothing),
+                        l2=[
+                            0.00027945595319833104,
+                            0.00027552386931121406,
+                            0.0005302742561529139
+                        ],
+                        linf=[
+                            0.0016733632873879856,
+                            0.001078100012167113,
+                            0.0028010908633919196
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock_imex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock_imex.jl"),

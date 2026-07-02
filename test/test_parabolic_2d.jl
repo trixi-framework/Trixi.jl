@@ -1065,6 +1065,30 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl (boundary_condition_do_nothing)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        boundary_conditions_parabolic=(;
+                                                       x_neg = boundary_condition_parabolic,
+                                                       x_pos = boundary_condition_do_nothing),
+                        l2=[
+                            0.0002794565402113706,
+                            0.00027552504911070345,
+                            3.968443509704103e-16,
+                            0.0005302753211545681
+                        ],
+                        linf=[
+                            0.001673364743408845,
+                            0.0010781000885169978,
+                            3.639381241716835e-15,
+                            0.002801091447666215
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
