@@ -79,7 +79,7 @@ if !IN_WORKER && TRIXI_TEST in ("all", "AMDGPU")
 end
 
 # Relaunch Julia/`mpiexec` for a suite that needs a special process. The worker
-# re-enters this file with `TRIXI_TEST=<suite>` and `TRIXI_TEST_RUN_ITEMS=true`.
+# re-enters this file with `TRIXI_TEST_RUN_ITEMS=true` and `TRIXI_TEST=<suite>`.
 function run_worker(cmd, suite)
     run(addenv(cmd, "TRIXI_TEST_RUN_ITEMS" => "true", "TRIXI_TEST" => suite))
 end
@@ -106,6 +106,8 @@ function dispatch_special_suite(suite)
         finally
             Trixi.set_threading_backend!(Symbol(previous_backend))
         end
+    else
+        error("We should not reach this branch; something is wrong.")
     end
 end
 
