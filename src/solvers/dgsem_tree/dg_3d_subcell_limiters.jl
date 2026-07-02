@@ -331,4 +331,13 @@ end
 
     return nothing
 end
+
+@inline function calc_variable_bounds!(u, mesh::AbstractMesh{3}, nonconservative_terms,
+                                       equations, limiter::SubcellLimiterIDP, dg, cache)
+    if limiter.bar_states == false
+        return nothing
+    end
+
+    error("Bar states are only implemented for 2D problems.")
+end
 end # @muladd
