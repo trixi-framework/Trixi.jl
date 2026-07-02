@@ -256,8 +256,8 @@ end
             val_upper[v, i] = zero(T)
         end
 
-        Trixi.multiply_dimensionwise!(val_lower, forward_lower, u_buffer)
-        Trixi.multiply_dimensionwise!(val_upper, forward_upper, u_buffer)
+        gpu_multiply_dimensionwise!(val_lower, forward_lower, u_buffer)
+        gpu_multiply_dimensionwise!(val_upper, forward_upper, u_buffer)
 
         for i in 1:N
             for v in Base.OneTo(NVARS)
@@ -339,7 +339,7 @@ end
         end
     end
 
-    multiply_dimensionwise!(u_buffer,
+    gpu_multiply_dimensionwise!(u_buffer,
                             reverse_upper, fstar_s_upper,
                             reverse_lower, fstar_s_lower)
 

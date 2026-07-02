@@ -805,7 +805,7 @@ end
         end
 
         # Interpolate large element face data from buffer to small face locations
-        multiply_dimensionwise!(val_out,
+        gpu_multiply_dimensionwise!(val_out,
                                 forward_lower,
                                 forward_lower,
                                 u_buffer,
@@ -815,7 +815,7 @@ end
             mortars_u[2, v, 1, i, j, mortar] = val_out[v, i, j]
         end
 
-        multiply_dimensionwise!(val_out,
+        gpu_multiply_dimensionwise!(val_out,
                                 forward_upper,
                                 forward_lower,
                                 u_buffer,
@@ -825,7 +825,7 @@ end
             mortars_u[2, v, 2, i, j, mortar] = val_out[v, i, j]
         end
 
-        multiply_dimensionwise!(val_out,
+        gpu_multiply_dimensionwise!(val_out,
                                 forward_lower,
                                 forward_upper,
                                 u_buffer,
@@ -834,7 +834,7 @@ end
             mortars_u[2, v, 3, i, j, mortar] = val_out[v, i, j]
         end
 
-        multiply_dimensionwise!(val_out,
+        gpu_multiply_dimensionwise!(val_out,
                                 forward_upper,
                                 forward_upper,
                                 u_buffer,
@@ -1087,19 +1087,19 @@ end
     end
 
     # Project small fluxes to large element.
-    multiply_dimensionwise!(u_buffer,
+    gpu_multiply_dimensionwise!(u_buffer,
                             reverse_lower, reverse_lower,
                             fstar_s_1,
                             fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
+    gpu_add_multiply_dimensionwise!(u_buffer,
                                 reverse_upper, reverse_lower,
                                 fstar_s_2,
                                 fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
+    gpu_add_multiply_dimensionwise!(u_buffer,
                                 reverse_lower, reverse_upper,
                                 fstar_s_3,
                                 fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
+    gpu_add_multiply_dimensionwise!(u_buffer,
                                 reverse_upper, reverse_upper,
                                 fstar_s_4,
                                 fstar_tmp)
