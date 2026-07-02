@@ -278,7 +278,7 @@ end
         du = Trixi.wrap_array(du_ode, semi)
         have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
-        # Call the optimized version 
+        # Call the optimized version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, typeof(semi.mesh),
                                         have_nonconservative_terms, semi.equations,
@@ -286,7 +286,7 @@ end
                                         semi.solver, semi.cache, true)
         du_specialized = copy(du[:, :, :, :, 1])
 
-        # Call the plain version 
+        # Call the plain version
         du .= 0
         symmetric_flux = flux_hindenlang_gassner
         nonconservative_flux = flux_nonconservative_powell
