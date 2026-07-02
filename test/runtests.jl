@@ -126,7 +126,7 @@ else
     # tagged items), or this is an ordinary partition / `all` (in which case we
     # exclude the special suites, which must run in their own processes).
     CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", "false") == "true") && Sys.iswindows()
-    special_tags = (:mpi, :threaded, :kernelabstractions)
+    special_tags = Symbol.(SPECIAL_PROCESS_SUITES)
     tag = target_tag(TRIXI_TEST)
 
     @run_package_tests filter = ti -> begin
