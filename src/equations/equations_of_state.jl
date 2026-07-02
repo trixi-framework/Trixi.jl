@@ -24,12 +24,51 @@ efficiency.
 """
 abstract type AbstractEquationOfState end
 
+@doc raw"""
+    AbstractThermallyPerfectGas <: AbstractEquationOfState
+
+A thermally perfect gas takes temperature effects on the material properties into account,
+i.e., it is calorically imperfect, but still obeys the ideal gas law to relate pressure, density and temperature:
+```math
+p = \frac{R}{M} \rho T
+```
+where ``R`` is the universal gas constant and ``M`` is the molar mass of the gas.
+Most notably, the specific heat capacities ``c_p = c_p(T)`` and ``c_v = c_v(T)``
+and in turn also the ratio of specific heats ``\gamma(T) = c_p(T) / c_v(T)`` are temperature-dependent.
+
+The typical use case for a thermally perfect gas are high-speed and high-temperature flows at low to moderate pressures.
+"""
+abstract type AbstractThermallyPerfectGas <: AbstractEquationOfState end
+
 function Adapt.adapt_structure(::TrixiAdaptor{<:Any, NewRealT},
                                eos::AbstractEquationOfState) where {NewRealT}
     return similar(eos, NewRealT)
 end
 
+@inline function speed_of_sound(V, T, eos::AbstractThermallyPerfectGas)
+    gamma_ = gamma(T, eos)
+    return sqrt(gamma_ * pressure(V, T, eos) * V)
+end
+
+"""
+    gamma(T, eos::AbstractThermallyPerfectGas)
+
+Temperature-dependent ratio of specific heats `c_p(T) / c_v(T)`.
+"""
+@inline function gamma(T, eos::AbstractThermallyPerfectGas)
+    cp = heat_capacity_constant_pressure(T, eos)
+    cv = cp - eos.R_specific
+    return cp / cv
+end
+
+# For thermally perfect gas, c_p and c_v do not depend on V
+@inline function heat_capacity_constant_pressure(V, T, eos::AbstractThermallyPerfectGas)
+    return heat_capacity_constant_pressure(T, eos)
+end
+
 include("equation_of_state_ideal_gas.jl")
+include("equation_of_state_thermally_perfect_gas.jl")
+
 include("equation_of_state_vdw.jl")
 include("equation_of_state_peng_robinson.jl")
 
