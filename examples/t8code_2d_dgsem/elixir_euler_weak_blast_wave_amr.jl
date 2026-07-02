@@ -97,7 +97,11 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,
+                                                                                        5.0e-6),
+                                                                          variables = (Trixi.density,
+                                                                                       pressure)))
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
