@@ -1,53 +1,8 @@
-module TestExamplesTreeMesh3DPart2
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "TreeMesh3D Part 2" begin
-#! format: noindent
-
-# Run basic tests
-@testset "Examples 3D" begin
-    # Linear scalar advection
-    include("test_tree_3d_advection.jl")
-
-    # Hyperbolic diffusion
-    include("test_tree_3d_hypdiff.jl")
-
-    # Compressible Euler with self-gravity
-    include("test_tree_3d_eulergravity.jl")
-
-    # Linearized Euler
-    include("test_tree_3d_linearizedeuler.jl")
+@testsnippet TreeMesh2DMisc begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 end
 
-@trixi_testset "Additional tests in 3D" begin
-    @trixi_testset "compressible Euler" begin
-        using Trixi: CompressibleEulerEquations3D, energy_total, energy_kinetic,
-                     energy_internal
-        eqn = CompressibleEulerEquations3D(1.4)
-
-        @test isapprox(energy_total([1.0, 2.0, 3.0, 4.0, 20.0], eqn), 20.0)
-        @test isapprox(energy_kinetic([1.0, 2.0, 3.0, 4.0, 20], eqn), 14.5)
-        @test isapprox(energy_internal([1.0, 2.0, 3.0, 4.0, 20], eqn), 5.5)
-    end
-
-    @trixi_testset "hyperbolic diffusion" begin
-        using Trixi: HyperbolicDiffusionEquations3D
-        @test_nowarn HyperbolicDiffusionEquations3D(nu = 1.0)
-        eqn = HyperbolicDiffusionEquations3D(nu = 1.0)
-    end
-end
-
-@trixi_testset "Displaying components 3D" begin
+@testitem "TreeMesh2D: Displaying components 2D" setup=[Setup, TreeMesh2DMisc] tags=[:tree_part1] begin
     @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
     # test both short and long printing formats
@@ -118,9 +73,3 @@ end
 
     @test_nowarn println(callbacks)
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-end # TreeMesh3D Part 2
-
-end #module

@@ -1,21 +1,14 @@
-module TestPerformanceSpecializations2D
+@testsnippet PerfSpec2D begin
+    EXAMPLES_DIR = examples_dir()
+    using Trixi: @muladd
+end
 
-using Test
-using Trixi
 using Trixi: @muladd
 
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "Performance specializations 2D" begin
-#! format: noindent
-
-@timed_testset "TreeMesh2D, flux_shima_etal_turbo" begin
+@testitem "Performance specializations 2D: TreeMesh2D, flux_shima_etal_turbo" setup=[
+    Setup,
+    PerfSpec2D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
@@ -55,7 +48,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
-@timed_testset "TreeMesh2D, flux_ranocha_turbo" begin
+@testitem "Performance specializations 2D: TreeMesh2D, flux_ranocha_turbo" setup=[
+    Setup,
+    PerfSpec2D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_2d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
@@ -94,7 +90,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh2D, flux_shima_etal_turbo" begin
+@testitem "Performance specializations 2D: StructuredMesh2D, flux_shima_etal_turbo" setup=[
+    Setup,
+    PerfSpec2D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -134,7 +133,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh2D, flux_ranocha_turbo" begin
+@testitem "Performance specializations 2D: StructuredMesh2D, flux_ranocha_turbo" setup=[
+    Setup,
+    PerfSpec2D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_2d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -173,7 +175,10 @@ end
     end
 end
 
-@timed_testset "P4estMesh2D, combine_conservative_and_nonconservative_fluxes" begin
+@testitem "Performance specializations 2D: P4estMesh2D, combine_conservative_and_nonconservative_fluxes" setup=[
+    Setup,
+    PerfSpec2D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_mhd_rotor.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing((flux_hindenlang_gassner,
@@ -362,9 +367,3 @@ end
     u_ode_specialized = copy(sol.u[end])
     @test u_ode_specialized ≈ u_ode
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end #module

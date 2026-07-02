@@ -1,16 +1,8 @@
-module TestExamples1DEuler
+@testsnippet TreeMesh1DEuler begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "Compressible Euler" begin
-#! format: noindent
-
-@trixi_testset "elixir_euler_source_terms.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_source_terms.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         l2=[
                             2.2527950196212703e-8,
@@ -25,7 +17,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     # Extra test to make sure the "TimeSeriesCallback" made correct data.
-    # Extracts data at all points from the first step of the time series and compares it to the 
+    # Extracts data at all points from the first step of the time series and compares it to the
     # exact solution and an interpolated reference solution
     point_data = [getindex(time_series.affect!.point_data[i], 1:3) for i in 1:3]
     exact_data = [initial_condition_convergence_test(time_series.affect!.point_coordinates[i],
@@ -38,7 +30,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test point_data ≈ ref_data
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_convergence_pure_fv.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
                         l2=[
                             0.019355699748523896,
@@ -55,7 +50,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
                         volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
                                                                             volume_flux_fv = flux_hllc,
@@ -76,7 +74,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
                             0.0011482554820217855,
@@ -93,7 +91,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave.jl with initial_condition_constant" begin
+@testitem "TreeMesh1D Euler: elixir_euler_density_wave.jl with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
                             7.71293052584723e-16,
@@ -111,7 +112,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_density_wave_adaptive_vol_int.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_density_wave_adaptive_vol_int.jl"),
                         l2=[
@@ -129,7 +133,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_source_terms_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[
@@ -147,7 +154,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
@@ -167,7 +177,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_ec.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.11821957357197649,
@@ -184,7 +194,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
+@testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_kennedy_gruber" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.07803455838661963,
@@ -204,7 +217,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_shima_etal" begin
+@testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_shima_etal" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.07800654460172655,
@@ -224,7 +240,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_chandrashekar" begin
+@testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_chandrashekar" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.07801923089205756,
@@ -244,7 +263,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_hll" begin
+@testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_hll" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[0.07855251823583848, 0.10213903748267686, 0.293985892532479],
                         linf=[
@@ -260,7 +282,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_modified_sod.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_modified_sod.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
                         l2=[
                             0.26349506781509047,
@@ -277,7 +299,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_modified_sod.jl (Weak Form + Positivity Preserving Limiter)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_modified_sod.jl (Weak Form + Positivity Preserving Limiter)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_modified_sod.jl"),
                         volume_integral=VolumeIntegralWeakForm(),
                         ode_alg=SSPRK43(stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,
@@ -299,7 +324,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_shockcapturing.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         l2=[
                             0.11606096465319675,
@@ -316,7 +341,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[1.250005061244617, 0.06878411345533507, 0.9264328311018613],
                         linf=[
@@ -329,7 +357,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl (HLLE)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[0.6442208390304879, 0.508817280068289, 0.9482809853033687],
                         linf=[3.007059066482486, 2.4678899558345506, 2.3952311739389787],
@@ -340,7 +371,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_pure_fv.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave_pure_fv.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_pure_fv.jl"),
                         l2=[1.0735456065491455, 0.07131078703089379, 0.9205739468590453],
@@ -354,7 +388,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave.jl with pressure" begin
+@testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl with pressure" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[1.297525985166995, 0.07964929522694145, 0.9269991156246368],
                         linf=[
@@ -369,7 +406,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave.jl with density" begin
+@testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl with density" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[1.2798798835860528, 0.07103461242058921, 0.9273792517187003],
                         linf=[
@@ -384,7 +424,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_positivity.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_positivity.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[1.6493820253458906, 0.19793887460986834, 0.9783506076125921],
                         linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844])
@@ -393,7 +433,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_leblanc_limiter_liu_zhang.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_leblanc_limiter_liu_zhang.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_leblanc_limiter_liu_zhang.jl"),
                         l2=[
@@ -415,7 +458,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blast_wave.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_blast_wave.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[0.21934822867340323, 0.28131919126002686, 0.554361702716662],
                         linf=[
@@ -429,7 +472,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shu_osher.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_shu_osher.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shu_osher.jl"),
                         abstol=1e-11, reltol=1e-11,
                         l2=[0.5003722074045994, 1.7969921454130888, 6.505994574859934],
@@ -446,7 +489,10 @@ end
                       volume_integral)
 end
 
-@trixi_testset "elixir_euler_blast_wave_entropy_bounded.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_blast_wave_entropy_bounded.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_entropy_bounded.jl"),
                         l2=[0.9689207881108007, 0.1617708899929322, 1.3847895715669456],
@@ -456,7 +502,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "test_quasi_1D_entropy" begin
+@testitem "TreeMesh1D Euler: test_quasi_1D_entropy" setup=[Setup] tags=[:tree_part1] begin
     using Trixi: CompressibleEulerEquationsQuasi1D, CompressibleEulerEquations1D,
                  entropy, SVector
     a = 0.9
@@ -466,7 +512,10 @@ end
           a * entropy(u_1D, CompressibleEulerEquations1D(1.4))
 end
 
-@trixi_testset "elixir_euler_quasi_1d_source_terms.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_source_terms.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d_source_terms.jl"),
                         l2=[
                             3.876288369618363e-7,
@@ -486,7 +535,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_source_terms_dirichlet.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
                         l2=[
@@ -506,7 +558,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl with LLF-dissipation" begin
+@testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_source_terms_dirichlet.jl with LLF-dissipation" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
                         l2=[
@@ -529,7 +584,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_quasi_1d_discontinuous.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_discontinuous.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_quasi_1d_discontinuous.jl"),
                         l2=[
@@ -549,7 +607,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_quasi_1d_ec.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_ec.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d_ec.jl"),
                         l2=[
                             0.08889113985713998,
@@ -568,7 +626,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_convergence_pure_fvO2.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
                         l2=[
                             0.0004651066144227485,
@@ -585,7 +646,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_laplace_diffusion.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_laplace_diffusion.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
                         l2=[0.10954500481114468,
                             0.1417583694046777,
@@ -600,7 +664,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         tspan=(0.0, 0.1),
@@ -620,7 +687,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl with FluxHLL(min_max_speed_davis)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with FluxHLL(min_max_speed_davis)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         surface_flux=FluxHLL(min_max_speed_davis), tspan=(0.0, 0.1),
@@ -640,7 +710,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave_FVO2.jl" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave_FVO2.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave_FVO2.jl"),
                         l2=[
@@ -659,7 +732,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl with ideal gas" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with ideal gas" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         eos=IdealGas(1.4), surface_flux=FluxHLL(min_max_speed_naive),
@@ -675,12 +751,12 @@ end
                             1.1673654647381682e-5
                         ])
 
-    # check that the IdealGas EOS recovers the same solution as 
+    # check that the IdealGas EOS recovers the same solution as
     # CompressibleEulerEquations1D
     sol_nonideal = deepcopy(sol)
 
-    # we pass @__MODULE__ to ensure that variables defined during the test 
-    # are visible inside the @trixi_testset block    
+    # we pass @__MODULE__ to ensure that variables defined during the test
+    # are visible inside the @testitem block
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_euler_nonideal_density_wave.jl"),
@@ -697,11 +773,14 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     using Trixi: IdealGas, HelmholtzIdealGas, FluxHLL, min_max_speed_naive
 
-    # we pass @__MODULE__ to ensure that variables defined during the test 
-    # are visible inside the @trixi_testset block 
+    # we pass @__MODULE__ to ensure that variables defined during the test
+    # are visible inside the @testitem block
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_euler_nonideal_density_wave.jl"),
@@ -710,8 +789,8 @@ end
 
     sol_ideal = deepcopy(sol)
 
-    # we pass @__MODULE__ to ensure that variables defined during the test 
-    # are visible inside the @trixi_testset block    
+    # we pass @__MODULE__ to ensure that variables defined during the test
+    # are visible inside the @testitem block
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_euler_nonideal_density_wave.jl"),
@@ -719,13 +798,16 @@ end
                   surface_flux = FluxHLL(min_max_speed_naive),
                   tspan = (0.0, 0.1))
 
-    # check that the IdealGas EOS recovers the same solution as 
+    # check that the IdealGas EOS recovers the same solution as
     # HelmholtzIdealGas EOS
     using LinearAlgebra: norm
     @test norm(sol.u[end] - sol_ideal.u[end]) < 10 * eps() * length(sol.u[end])
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(polydeg = 3,
@@ -748,7 +830,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl with flux_terashima_etal_central" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with flux_terashima_etal_central" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(polydeg = 3,
@@ -771,7 +856,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         tspan=(0.0, 0.1),
@@ -793,7 +881,10 @@ end
                       indicator)
 end
 
-@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         indicator=IndicatorEntropyCorrection(equations, basis),
@@ -810,7 +901,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_transcritical_wave.jl"),
                         tspan=(0.0, 0.001),
@@ -827,7 +921,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl with entropy correction" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with entropy correction" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3), flux_lax_friedrichs,
@@ -851,7 +948,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_transcritical_shock.jl with Peng Robinson" begin
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_transcritical_shock.jl with Peng Robinson" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_transcritical_shock.jl"),
                         initial_condition=initial_condition_transcritical_shock,
@@ -864,5 +964,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end # testset 
-end # module

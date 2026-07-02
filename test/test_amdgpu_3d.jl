@@ -1,20 +1,8 @@
-module TestAMDGPU3D
+@testsnippet AMDGPU3DExamples begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "AMDGPU 3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl native" begin
+@testitem "AMDGPU 3D: elixir_advection_basic.jl native" setup=[Setup, AMDGPU3DExamples] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
@@ -39,8 +27,11 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32 / AMDGPU" begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+@testitem "AMDGPU 3D: elixir_advection_basic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -69,7 +60,10 @@ end
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl native" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[0.0014517629881062517,
@@ -103,8 +97,11 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32 / AMDGPU" begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
@@ -142,7 +139,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         l2=[
@@ -187,7 +187,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" begin
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
     using Trixi
@@ -233,8 +236,3 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-end
-end # module

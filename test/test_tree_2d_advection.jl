@@ -1,16 +1,11 @@
-module TestExamples2DAdvection
+@testsnippet TreeMesh2DAdvection begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Linear scalar advection" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_basic.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[8.311947673061856e-6],
@@ -20,7 +15,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_limiter_liu_zhang.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_limiter_liu_zhang.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_limiter_liu_zhang.jl"),
                         l2=[0.204437455578503], linf=[0.8175130986098857],
@@ -35,7 +33,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_extended.jl with polydeg=1" begin
+@testitem "TreeMesh2D Advection: elixir_advection_extended.jl with polydeg=1" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[0.02134571266411136],
                         linf=[0.04347734797775926],
@@ -45,7 +46,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_implicit_sparse_jacobian.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_implicit_sparse_jacobian.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_implicit_sparse_jacobian.jl"),
                         l2=[0.003003253325111022], linf=[0.004256250998163846])
@@ -54,7 +58,10 @@ end
     @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_implicit_sparse_jacobian_restart.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_implicit_sparse_jacobian_restart.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_implicit_sparse_jacobian_restart.jl"),
                         l2=[0.00972948620504335], linf=[0.013761951552254348])
@@ -63,7 +70,10 @@ end
     @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_implicit_sparse_jacobian_restart.jl (no colorvec)" begin
+@testitem "TreeMesh2D Advection: elixir_advection_implicit_sparse_jacobian_restart.jl (no colorvec)" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_implicit_sparse_jacobian_restart.jl"),
                         colorvec=nothing,
@@ -73,7 +83,10 @@ end
     @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_restart.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_restart.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     # Perform a standard simulation
     using OrdinaryDiffEqSSPRK: SSPRK43
     println("═"^100)
@@ -99,7 +112,10 @@ end
     @test linf_actual == linf_expected
 end
 
-@trixi_testset "elixir_advection_mortar.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_mortar.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[0.0015188466707237375],
@@ -110,7 +126,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_amr.jl" setup=[Setup, TreeMesh2DAdvection] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[4.913300828257469e-5],
@@ -120,7 +136,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_amr_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[3.2207388565869075e-5],
@@ -130,7 +149,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_amr_solution_independent.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_solution_independent.jl"),
                         l2=[4.949660644033807e-5],
@@ -140,7 +162,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_visualization.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_amr_visualization.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
     # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
@@ -163,7 +188,10 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_timeintegration.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_timeintegration.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
                         l2=[2.4976030518356626e-5],
                         linf=[0.0005531580316338533])
@@ -175,9 +203,11 @@ end
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
-end
 
-@trixi_testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
+@testitem "TreeMesh2D Advection: elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
                         l2=[2.5314747030031457e-5],
                         linf=[0.0005437136621948904],
@@ -192,7 +222,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43 with maxiters=1" begin
+@testitem "TreeMesh2D Advection: elixir_advection_timeintegration.jl with carpenter_kennedy_erk43 with maxiters=1" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
                         l2=[1.2135350502911197e-5],
                         linf=[9.999985420537649e-5],
@@ -208,7 +241,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
+@testitem "TreeMesh2D Advection: elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
                         l2=[2.4976673477385313e-5],
                         linf=[0.0005534166916640881],
@@ -222,7 +258,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
+@testitem "TreeMesh2D Advection: elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
                         l2=[3.667894656471403e-5],
                         linf=[0.0005799465470165757],
@@ -237,7 +276,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32 with maxiters=1" begin
+@testitem "TreeMesh2D Advection: elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32 with maxiters=1" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
                         l2=[1.2198725469737875e-5],
                         linf=[9.977247740793407e-5],
@@ -253,7 +295,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_advection_callbacks.jl" begin
+@testitem "TreeMesh2D Advection: elixir_advection_callbacks.jl" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"),
                         l2=[8.311947673061856e-6],
                         linf=[6.627000273229378e-5])
@@ -263,68 +308,78 @@ end
 end
 
 # Coverage test for all initial conditions
-@testset "Linear scalar advection: Tests for initial conditions" begin
-    # Linear scalar advection
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_sin_sin" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[0.0001420618061089383],
-                            linf=[0.0007140570281718439],
-                            maxiters=1,
-                            initial_condition=Trixi.initial_condition_sin_sin)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[3.8302867746057483e-16],
-                            linf=[1.3322676295501878e-15],
-                            maxiters=1,
-                            initial_condition=initial_condition_constant)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x_y" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[2.7276160570381226e-16],
-                            linf=[5.10702591327572e-15],
-                            maxiters=1,
-                            initial_condition=Trixi.initial_condition_linear_x_y,
-                            boundary_conditions=Trixi.boundary_condition_linear_x_y,
-                            periodicity=false)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[1.5121648229368207e-16],
-                            linf=[1.3322676295501878e-15],
-                            maxiters=1,
-                            initial_condition=Trixi.initial_condition_linear_x,
-                            boundary_conditions=Trixi.boundary_condition_linear_x,
-                            periodicity=false)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_y" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[1.714292614252588e-16],
-                            linf=[2.220446049250313e-15],
-                            maxiters=1,
-                            initial_condition=Trixi.initial_condition_linear_y,
-                            boundary_conditions=Trixi.boundary_condition_linear_y,
-                            periodicity=false)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_sin_sin" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[0.0001420618061089383],
+                        linf=[0.0007140570281718439],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_sin_sin)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-end # module
+@testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[3.8302867746057483e-16],
+                        linf=[1.3322676295501878e-15],
+                        maxiters=1,
+                        initial_condition=initial_condition_constant)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_linear_x_y" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[2.7276160570381226e-16],
+                        linf=[5.10702591327572e-15],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_linear_x_y,
+                        boundary_conditions=Trixi.boundary_condition_linear_x_y,
+                        periodicity=false)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_linear_x" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[1.5121648229368207e-16],
+                        linf=[1.3322676295501878e-15],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_linear_x,
+                        boundary_conditions=Trixi.boundary_condition_linear_x,
+                        periodicity=false)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_linear_y" setup=[
+    Setup,
+    TreeMesh2DAdvection
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[1.714292614252588e-16],
+                        linf=[2.220446049250313e-15],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_linear_y,
+                        boundary_conditions=Trixi.boundary_condition_linear_y,
+                        periodicity=false)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end

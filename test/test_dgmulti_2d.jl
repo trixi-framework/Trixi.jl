@@ -1,20 +1,8 @@
-module TestExamplesDGMulti2D
+@testsnippet DGMulti2D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_2d")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "DGMulti 2D" begin
-#! format: noindent
-
-@trixi_testset "elixir_euler_weakform.jl" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
@@ -41,7 +29,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                          RealT = Float64)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (SBP)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         approximation_type=SBP(),
@@ -64,7 +52,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (Quadrilateral elements)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (Quadrilateral elements)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         element_type=Quad(),
@@ -87,7 +78,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (EC) " begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (EC) " setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -110,7 +101,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (SBP, EC)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (SBP, EC)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -134,7 +125,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (Quadrilateral elements, SBP, EC)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (Quadrilateral elements, SBP, EC)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         element_type=Quad(),
@@ -159,7 +153,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
+@testitem "DGMulti2D: elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
                         l2=[
                             1.0267413589968656e-5,
@@ -178,7 +175,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
+@testitem "DGMulti2D: elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         l2=[
                             1.7209164346836478e-5,
@@ -197,7 +197,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
+@testitem "DGMulti2D: elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         approximation_type=GaussSBP(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
@@ -219,7 +222,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" begin
+@testitem "DGMulti2D: elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         element_type=Tri(), approximation_type=Polynomial(),
                         volume_integral=VolumeIntegralWeakForm(),
@@ -241,7 +247,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" begin
+@testitem "DGMulti2D: elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hohqmesh.jl"),
                         l2=[
                             0.0008153911341539523,
@@ -260,7 +269,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (convergence)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (convergence)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     using Trixi: convergence_test
     eocs, _ = convergence_test(@__MODULE__,
                                joinpath(EXAMPLES_DIR,
@@ -278,7 +287,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform_periodic.jl" begin
+@testitem "DGMulti2D: elixir_euler_weakform_periodic.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
@@ -294,7 +303,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
+@testitem "DGMulti2D: elixir_euler_triangulate_pkg_mesh.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_pkg_mesh.jl"),
                         l2=[
                             2.344076909832665e-6, 1.8610002398709756e-6,
@@ -309,7 +318,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_gmsh_square_cylinder.jl" begin
+@testitem "DGMulti2D: elixir_euler_gmsh_square_cylinder.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     # @test_trixi_include errors due to an @info call by StartUpDG.jl during 
     # Gmsh file parsing. To avoid this, we directly call trixi_include. 
     # We pass @__MODULE__ to ensure that variables defined during the test 
@@ -336,7 +345,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_triangulate_scramjet.jl" begin
+@testitem "DGMulti2D: elixir_euler_triangulate_scramjet.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     # Note: these test values were generated using Julia v1.10.11~x64. Running this on v1.12 
     # using an M-series MacBook Pro resulted in test values with an O(1e-7) difference. 
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
@@ -358,7 +367,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
+@testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
                         cells_per_dimension=(32, 32), tspan=(0.0, 0.2),
@@ -380,7 +389,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (Quadrilateral elements, GaussSBP)" begin
+@testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl (Quadrilateral elements, GaussSBP)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
                         cells_per_dimension=(32, 32), element_type=Quad(),
@@ -403,7 +415,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+@testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
                         maximum_entropy_increase=0.0,
@@ -425,7 +440,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
+@testitem "DGMulti2D: elixir_euler_rayleigh_taylor_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
                         cells_per_dimension=(8, 8), tspan=(0.0, 0.2),
@@ -446,7 +461,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_brown_minion_vortex.jl" begin
+@testitem "DGMulti2D: elixir_euler_brown_minion_vortex.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_brown_minion_vortex.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
@@ -466,7 +481,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing.jl" begin
+@testitem "DGMulti2D: elixir_euler_shockcapturing.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
@@ -486,7 +501,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing.jl (SBP)" begin
+@testitem "DGMulti2D: elixir_euler_shockcapturing.jl (SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         basis=DGMultiBasis(Quad(), 3, approximation_type = SBP()),
@@ -507,7 +522,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing_curved.jl" begin
+@testitem "DGMulti2D: elixir_euler_shockcapturing_curved.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
@@ -527,7 +542,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (FD SBP)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (FD SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
@@ -557,7 +572,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weakform.jl (FD SBP, EC)" begin
+@testitem "DGMulti2D: elixir_euler_weakform.jl (FD SBP, EC)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     using Trixi: SummationByPartsOperators, derivative_operator
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
@@ -589,7 +604,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+@testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
                             1.333332033888785e-6, 2.044834627786368e-6,
@@ -615,7 +630,7 @@ end
     ] rtol=1.0e-12
 end
 
-@trixi_testset "elixir_euler_cgsbp_periodic.jl" begin
+@testitem "DGMulti2D: elixir_euler_cgsbp_periodic.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_cgsbp_periodic.jl"),
                         l2=[
                             1.2713306233672395e-4, 1.5304132439425007e-4,
@@ -628,7 +643,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
+@testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         xmin=-200.0, xmax=100.0, #= parameters for reference interval =#
                         surface_flux=FluxHLL(min_max_speed_naive),
@@ -649,7 +667,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" begin
+@testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" setup=[
+    Setup,
+    DGMulti2D
+] tags=[:unstructured_dgmulti] begin
     using Trixi: periodic_derivative_operator
     global D = periodic_derivative_operator(derivative_order = 1,
                                             accuracy_order = 4,
@@ -677,7 +698,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_fdsbp_periodic.jl (CGSEM)" begin
+@testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl (CGSEM)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     using Trixi: SummationByPartsOperators
     D_local = SummationByPartsOperators.legendre_derivative_operator(xmin = 0.0,
                                                                      xmax = 1.0,
@@ -706,7 +727,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_weak_blast_wave.jl (Quad)" begin
+@testitem "DGMulti2D: elixir_mhd_weak_blast_wave.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
                         cells_per_dimension=4,
                         l2=[0.03906769915509508, 0.04923079758984701,
@@ -724,7 +745,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_weak_blast_wave.jl (Tri)" begin
+@testitem "DGMulti2D: elixir_mhd_weak_blast_wave.jl (Tri)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave.jl"),
                         cells_per_dimension=4, element_type=Tri(),
                         l2=[0.03372468091254386, 0.03971626483409167,
@@ -742,7 +763,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Quad)" begin
+@testitem "DGMulti2D: elixir_mhd_weak_blast_wave_SBP.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     # These setups do not pass CI reliably, see
     # https://github.com/trixi-framework/Trixi.jl/pull/880 and
     # https://github.com/trixi-framework/Trixi.jl/issues/881
@@ -762,7 +783,7 @@ end
                                        0.007212567638078835])
 end
 
-@trixi_testset "elixir_mhd_weak_blast_wave_SBP.jl (Tri)" begin
+@testitem "DGMulti2D: elixir_mhd_weak_blast_wave_SBP.jl (Tri)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     # These setups do not pass CI reliably, see
     # https://github.com/trixi-framework/Trixi.jl/pull/880 and
     # https://github.com/trixi-framework/Trixi.jl/issues/881
@@ -783,7 +804,7 @@ end
                                        0.010358210347485542])
 end
 
-@trixi_testset "elixir_mhd_reflective_wall.jl (Quad)" begin
+@testitem "DGMulti2D: elixir_mhd_reflective_wall.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_wall.jl"),
                         cells_per_dimension=4,
                         l2=[
@@ -812,8 +833,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-
-end # module

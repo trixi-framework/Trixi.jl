@@ -1,16 +1,11 @@
-module TestExamples2DHypDiff
+@testsnippet TreeMesh2DHypDiff begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Hyperbolic diffusion" begin
-#! format: noindent
-
-@trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin
+@testitem "TreeMesh2D HypDiff: elixir_hypdiff_lax_friedrichs.jl" setup=[
+    Setup,
+    TreeMesh2DHypDiff
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
                         l2=[
                             0.00015687751817403066,
@@ -24,14 +19,17 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Larger values for allowed allocations due to usage of custom 
-    # integrator which are not *recorded* for the methods from 
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
+@testitem "TreeMesh2D HypDiff: elixir_hypdiff_harmonic_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh2DHypDiff
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_hypdiff_harmonic_nonperiodic.jl"),
                         l2=[
@@ -49,7 +47,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
+@testitem "TreeMesh2D HypDiff: elixir_hypdiff_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh2DHypDiff
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[
                             8.523077653954864e-6,
@@ -66,7 +67,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_hypdiff_godunov.jl" begin
+@testitem "TreeMesh2D HypDiff: elixir_hypdiff_godunov.jl" setup=[Setup, TreeMesh2DHypDiff] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
                         l2=[
                             5.868147556427088e-6,
@@ -83,6 +84,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module

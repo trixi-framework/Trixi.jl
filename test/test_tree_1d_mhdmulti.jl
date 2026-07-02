@@ -1,16 +1,8 @@
-module TestExamples1DMHD
+@testsnippet TreeMesh1DMHDMulti begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "MHD Multicomponent" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhdmulti_ec.jl" begin
+@testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_ec.jl" setup=[Setup, TreeMesh1DMHDMulti] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
                         l2=[0.08166807325620999, 0.054659228513541616,
                             0.054659228513541616, 0.15578125987042812,
@@ -27,7 +19,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_ec.jl with flux_derigs_etal" begin
+@testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_ec.jl with flux_derigs_etal" setup=[
+    Setup,
+    TreeMesh1DMHDMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_ec.jl"),
                         l2=[0.08151404166186461, 0.054640238302693274,
                             0.054640238302693274, 0.15536125426328573,
@@ -45,7 +40,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_es.jl" begin
+@testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_es.jl" setup=[Setup, TreeMesh1DMHDMulti] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_es.jl"),
                         l2=[0.07994082660130175, 0.053940174914031976,
                             0.053940174914031976, 0.15165513559250643,
@@ -62,7 +57,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_convergence.jl" begin
+@testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_convergence.jl" setup=[
+    Setup,
+    TreeMesh1DMHDMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_convergence.jl"),
                         l2=[1.7337265267786785e-5, 0.00032976971029271364,
                             0.0003297697102926479, 6.194071694759044e-5,
@@ -79,7 +77,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhdmulti_briowu_shock_tube.jl" begin
+@testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_briowu_shock_tube.jl" setup=[
+    Setup,
+    TreeMesh1DMHDMulti
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_briowu_shock_tube.jl"),
                         l2=[0.1877830835572639, 0.3455841730726793, 0.0,
                             0.35413123388836687,
@@ -95,6 +96,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module

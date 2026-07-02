@@ -1,112 +1,61 @@
-module TestExamplesTree1D
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "TreeMesh1D" begin
-#! format: noindent
-
-# Run basic tests
-@testset "Examples 1D" begin
-    # Linear scalar advection
-    include("test_tree_1d_advection.jl")
-
-    # Burgers
-    include("test_tree_1d_burgers.jl")
-
-    # Hyperbolic diffusion
-    include("test_tree_1d_hypdiff.jl")
-
-    # Compressible Euler
-    include("test_tree_1d_euler.jl")
-
-    # Compressible Euler Multicomponent
-    include("test_tree_1d_eulermulti.jl")
-
-    # MHD
-    include("test_tree_1d_mhd.jl")
-
-    # MHD Multicomponent
-    include("test_tree_1d_mhdmulti.jl")
-
-    # Compressible Euler with self-gravity
-    include("test_tree_1d_eulergravity.jl")
-
-    # FDSBP methods on the TreeMesh
-    include("test_tree_1d_fdsbp.jl")
-
-    # Block-structured finite volume methods on TreeMesh
-    include("test_tree_1d_blockfv.jl")
-
-    # Traffic flow LWR
-    include("test_tree_1d_traffic_flow_lwr.jl")
-
-    # Linearized Euler
-    include("test_tree_1d_linearizedeuler.jl")
-
-    # Maxwell
-    include("test_tree_1d_maxwell.jl")
-
-    # Linear elasticity
-    include("test_tree_1d_linear_elasticity.jl")
-
-    # Passive tracers
-    include("test_tree_1d_passive_tracers.jl")
+@testsnippet TreeMesh1DMisc begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
 end
 
 # Coverage test for all initial conditions
-@testset "Tests for initial conditions" begin
-    # Linear scalar advection
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_sin" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[0.00017373554109980247],
-                            linf=[0.0006021275678165239],
-                            maxiters=1,
-                            initial_condition=Trixi.initial_condition_sin,
-                            visualization=TrivialCallback())
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_constant" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[2.441369287653687e-16],
-                            linf=[4.440892098500626e-16],
-                            maxiters=1,
-                            initial_condition=initial_condition_constant,
-                            visualization=TrivialCallback())
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[1.9882464973192864e-16],
-                            linf=[1.4432899320127035e-15],
-                            maxiters=1,
-                            initial_condition=Trixi.initial_condition_linear_x,
-                            boundary_conditions=Trixi.boundary_condition_linear_x,
-                            periodicity=false,
-                            visualization=TrivialCallback())
-    end
-
-    @trixi_testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
-                            l2=[6.1803596620800215e-6],
-                            linf=[2.4858560899509996e-5],
-                            maxiters=1,
-                            initial_condition=initial_condition_convergence_test,
-                            boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
-                            periodicity=false,
-                            visualization=TrivialCallback())
-    end
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_sin" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[0.00017373554109980247],
+                        linf=[0.0006021275678165239],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_sin,
+                        visualization=TrivialCallback())
 end
 
-@testset "Displaying components 1D" begin
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[2.441369287653687e-16],
+                        linf=[4.440892098500626e-16],
+                        maxiters=1,
+                        initial_condition=initial_condition_constant,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_linear_x" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[1.9882464973192864e-16],
+                        linf=[1.4432899320127035e-15],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_linear_x,
+                        boundary_conditions=Trixi.boundary_condition_linear_x,
+                        periodicity=false,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_convergence_test" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[6.1803596620800215e-6],
+                        linf=[2.4858560899509996e-5],
+                        maxiters=1,
+                        initial_condition=initial_condition_convergence_test,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
+                        periodicity=false,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: Displaying components 1D" setup=[Setup, TreeMesh1DMisc] tags=[:tree_part1] begin
     @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
     # test both short and long printing formats
@@ -208,22 +157,20 @@ end
     end
 end
 
-@testset "Additional tests in 1D" begin
-    @testset "compressible Euler" begin
-        eqn = CompressibleEulerEquations1D(1.4)
+@testitem "TreeMesh1D: Additional tests in 1D (compressible Euler)" setup=[Setup] tags=[:tree_part1] begin
+    eqn = CompressibleEulerEquations1D(1.4)
 
-        @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
-                       1.9740810260220094)
-        @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
-        @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+    @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
+                   1.9740810260220094)
+    @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+    @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
 
-        @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
-        @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
-        @test isapprox(energy_internal([1.0, 2.0, 20.0], eqn), 18.0)
-    end
+    @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
+    @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
+    @test isapprox(energy_internal([1.0, 2.0, 20.0], eqn), 18.0)
 end
 
-@trixi_testset "Nonconservative terms in 1D (linear advection)" begin
+@testitem "TreeMesh1D: Nonconservative terms in 1D (linear advection)" setup=[Setup] tags=[:tree_part1] begin
     # Same setup as docs/src/adding_new_equations/nonconservative_advection.md
 
     # Define new physics
@@ -310,9 +257,3 @@ end
 
     @test analysis_callback(sol).l2 ≈ [0.00029609575838969394, 5.5681704039507985e-6]
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-end # TreeMesh1D
-
-end # module

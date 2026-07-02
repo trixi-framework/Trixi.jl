@@ -1,17 +1,13 @@
-module TestExamples3DIdealGlmMhdMultiIon
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
+@testsnippet P4estMesh3DMHDMultiIon begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+end
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 
-@testset "MHD Multi-ion" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhdmultiion_ec.jl" begin
+@testitem "P4estMesh3D MHDMultiIon: elixir_mhdmultiion_ec.jl" setup=[
+    Setup,
+    P4estMesh3DMHDMultiIon
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.003734820532985263,
@@ -57,7 +53,10 @@ end
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
 # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-@trixi_testset "Provably entropy-stable LLF-type fluxes for multi-ion GLM-MHD" begin
+@testitem "P4estMesh3D MHDMultiIon: Provably entropy-stable LLF-type fluxes for multi-ion GLM-MHD" setup=[
+    Setup,
+    P4estMesh3DMHDMultiIon
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.0028955650582195335,
@@ -99,5 +98,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-end # module

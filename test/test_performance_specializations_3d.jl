@@ -1,21 +1,14 @@
-module TestPerformanceSpecializations3D
+@testsnippet PerfSpec3D begin
+    EXAMPLES_DIR = examples_dir()
+    using Trixi: @muladd
+end
 
-using Test
-using Trixi
 using Trixi: @muladd
 
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "Performance specializations 3D" begin
-#! format: noindent
-
-@timed_testset "TreeMesh3D, flux_shima_etal_turbo" begin
+@testitem "Performance specializations 3D: TreeMesh3D, flux_shima_etal_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
@@ -55,7 +48,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
-@timed_testset "TreeMesh3D, flux_ranocha_turbo" begin
+@testitem "Performance specializations 3D: TreeMesh3D, flux_ranocha_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_3d_dgsem", "elixir_euler_ec.jl"),
                   initial_refinement_level = 0, tspan = (0.0, 0.0), polydeg = 3,
@@ -94,7 +90,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, flux_shima_etal_turbo" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, flux_shima_etal_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -134,7 +133,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, flux_ranocha_turbo" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, flux_ranocha_turbo" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -173,7 +175,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, FluxTurbo(flux_ranocha)" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, FluxTurbo(flux_ranocha)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -208,7 +213,10 @@ end
     end
 end
 
-@timed_testset "StructuredMesh3D, FluxTurbo(flux_shima_etal)" begin
+@testitem "Performance specializations 3D: StructuredMesh3D, FluxTurbo(flux_shima_etal)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "structured_3d_dgsem", "elixir_euler_ec.jl"),
                   cells_per_dimension = (1, 1, 1), tspan = (0.0, 0.0), polydeg = 3,
@@ -244,7 +252,10 @@ end
 end
 
 # Test fallback method for mesh and type that are not supported
-@timed_testset "TreeMesh1D, fallback call FluxTurbo(flux_chandrashekar)" begin
+@testitem "Performance specializations 3D: TreeMesh1D, fallback call FluxTurbo(flux_chandrashekar)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
                            "elixir_euler_modified_sod.jl"),
@@ -262,7 +273,10 @@ end
     @test u_ode_specialized ≈ u_ode
 end
 
-@timed_testset "P4estMesh3D, FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" begin
+@testitem "Performance specializations 3D: P4estMesh3D, FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_mhd_alfven_wave_nonperiodic.jl"),
@@ -302,7 +316,10 @@ end
 end
 
 # Test nonconservative system fallback method for mesh and type that are not supported
-@timed_testset "TreeMesh2D, fallback call FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" begin
+@testitem "Performance specializations 3D: TreeMesh2D, fallback call FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                            "elixir_mhd_ec.jl"))
@@ -318,7 +335,10 @@ end
     @test u_ode_specialized ≈ u_ode
 end
 
-@timed_testset "P4estMesh3D, combine_conservative_and_nonconservative_fluxes" begin
+@testitem "Performance specializations 3D: P4estMesh3D, combine_conservative_and_nonconservative_fluxes" setup=[
+    Setup,
+    PerfSpec3D
+] tags=[:performance_specializations] begin
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                            "elixir_mhd_alfven_wave_nonperiodic.jl"),
@@ -517,9 +537,3 @@ end
     u_ode_specialized = copy(sol.u[end])
     @test u_ode_specialized ≈ u_ode
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end #module

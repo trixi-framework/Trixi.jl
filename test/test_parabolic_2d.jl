@@ -1,20 +1,8 @@
-module TestExamplesParabolic2D
+@testsnippet Parabolic2D begin
+    EXAMPLES_DIR = examples_dir()
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "SemidiscretizationHyperbolicParabolic (2D)" begin
-#! format: noindent
-
-@trixi_testset "DGMulti 2D rhs_parabolic!" begin
+@testitem "Parabolic2D: DGMulti 2D rhs_parabolic!" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     using Trixi
     dg = DGMulti(polydeg = 2, element_type = Quad(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
@@ -83,7 +71,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test getindex.(du, 1) ≈ 2 * y
 end
 
-@trixi_testset "DGMulti: elixir_advection_diffusion.jl" begin
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
@@ -95,7 +83,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_advection_diffusion_periodic.jl" begin
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_periodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion_periodic.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
@@ -107,7 +98,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_advection_diffusion_nonperiodic.jl" begin
+@testitem "Parabolic2D: DGMulti: elixir_advection_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
@@ -119,7 +113,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_navierstokes_convergence.jl" begin
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
@@ -141,7 +138,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_navierstokes_convergence_curved.jl" begin
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_convergence_curved.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
@@ -163,7 +163,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "DGMulti: elixir_navierstokes_lid_driven_cavity.jl" begin
+@testitem "Parabolic2D: DGMulti: elixir_navierstokes_lid_driven_cavity.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_2d",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.5),
@@ -185,7 +188,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
@@ -197,7 +203,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Gauss-Legendre)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion.jl (Gauss-Legendre)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         solver=DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs,
@@ -210,7 +219,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (LDG)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
@@ -222,7 +234,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_gradient_source_terms.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_gradient_source_terms.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=3,
@@ -233,7 +248,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_gradient_source_terms.jl (Fixed timestep)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_gradient_source_terms.jl (Fixed timestep)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.4),
@@ -246,7 +264,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_gradient_source_terms.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_gradient_source_terms.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_gradient_source_terms.jl"),
                         mesh=P4estMesh((4, 4), polydeg = 1,
@@ -263,7 +284,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0))
@@ -292,7 +316,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 100)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
                         initial_refinement_level=2,
@@ -307,7 +334,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -319,7 +349,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (Gauss-Legendre)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (Gauss-Legendre)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
@@ -333,7 +366,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
@@ -345,7 +381,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
@@ -358,7 +397,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_imex_operator.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_imex_operator.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_imex_operator.jl"),
                         l2=[7.542670562162156e-8], linf=[3.972014046560446e-7])
@@ -371,7 +413,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -383,7 +428,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -410,7 +458,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (isothermal walls)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_convergence.jl (isothermal walls)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     using Trixi: Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
@@ -437,7 +488,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -460,7 +514,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables, isothermal walls)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_convergence.jl (Entropy gradient variables, isothermal walls)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -487,7 +544,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (flux differencing)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_convergence.jl (flux differencing)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -510,7 +570,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_convergence.jl (Refined mesh)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_convergence.jl (Refined mesh)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=3)
@@ -547,7 +610,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_lid_driven_cavity.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
@@ -569,7 +635,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_amr.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_shearlayer_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_amr.jl"),
                         l2=[
@@ -591,7 +660,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_nonconforming.jl"),
                         l2=[
@@ -612,7 +684,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl (LDG)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_nonconforming.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
@@ -634,7 +709,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
                         l2=[
@@ -656,7 +734,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_viscous_shock.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_viscous_shock.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
@@ -677,7 +758,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_navierstokes_viscous_shock.jl (Gauss-Legendre, LDG)" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_navierstokes_viscous_shock.jl (Gauss-Legendre, LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hlle,
@@ -702,7 +786,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
@@ -715,7 +802,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
@@ -728,7 +818,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_rotated.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_rotated.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_rotated.jl"),
                         l2=[4.8533724384822306e-5], linf=[0.0006284491001110615])
@@ -738,7 +831,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic_curved.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_curved.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
@@ -750,7 +846,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic_amr.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_periodic_amr.jl"),
                         tspan=(0.0, 0.01),
@@ -762,7 +861,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
@@ -774,7 +876,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (Parabolic CFL)" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (Parabolic CFL)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         initial_refinement_level=2,
@@ -792,7 +897,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_amr.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
@@ -805,7 +913,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_nonperiodic_curved.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_curved.jl"),
                         trees_per_dimension=(1, 1), initial_refinement_level=2,
@@ -818,7 +929,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_convergence.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
@@ -840,7 +954,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_convergence_nonperiodic.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_convergence_nonperiodic.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
@@ -862,7 +979,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
@@ -884,7 +1004,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 1.0),
@@ -902,7 +1025,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity_amr.jl"),
                         tspan=(0.0, 2.5),
@@ -935,7 +1061,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_nonconforming.jl"),
                         l2=[
@@ -956,7 +1085,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl (LDG)" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_shearlayer_nonconforming.jl (LDG)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_nonconforming.jl"),
                         solver_parabolic=ParabolicFormulationLocalDG(),
@@ -978,7 +1110,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach08.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach08.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
                         l2=[0.000186486564226516,
@@ -1023,7 +1158,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
                         l2=[
@@ -1044,7 +1182,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_viscous_shock.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
@@ -1065,7 +1206,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" begin
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
                         tspan=(0.0, 0.1),
@@ -1091,7 +1235,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_SD7003airfoil.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_SD7003airfoil.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
@@ -1113,7 +1257,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" begin
+@testitem "Parabolic2D: elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
@@ -1136,7 +1283,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_RAE2822airfoil_separation.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_RAE2822airfoil_separation.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_RAE2822airfoil_separation.jl"),
                         l2=[
@@ -1158,7 +1308,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_vortex_street.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         tspan=(0.0, 0.5),
@@ -1187,7 +1337,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_vortex_street.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         l2=[
@@ -1209,7 +1359,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_vortex_street.jl (GradientVariablesEntropy)" begin
+@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl (GradientVariablesEntropy)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         gradient_variables=GradientVariablesEntropy(),
@@ -1232,7 +1385,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_poiseuille_flow.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_poiseuille_flow.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_poiseuille_flow.jl"),
                         l2=[
@@ -1253,7 +1406,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
                         l2=[
@@ -1279,7 +1435,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 20_500)
 end
 
-@trixi_testset "elixir_navierstokes_freestream_symmetry.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         l2=[
@@ -1299,7 +1458,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_freestream_ldg.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_freestream_ldg.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_ldg.jl"),
                         tspan=(0.0, 0.2),
@@ -1321,7 +1480,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_couette_flow.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_couette_flow.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_couette_flow.jl"),
                         l2=[
@@ -1342,7 +1501,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_blast_reflective.jl" begin
+@testitem "Parabolic2D: elixir_navierstokes_blast_reflective.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
@@ -1366,12 +1525,11 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
-end
 
-@testset "SemidiscretizationParabolic (2D)" begin
-#! format: noindent
-
-@trixi_testset "TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_diffusion_steady_state_linear_map.jl"),
                         tspan=(0.0, 1.0e-4),
@@ -1387,9 +1545,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
-
-end # module
