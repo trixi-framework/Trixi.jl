@@ -867,16 +867,6 @@ function prolong2mortars!(backend::Nothing, cache, u,
     return nothing
 end
 
-# function calc_mortar_flux!(surface_flux_values,
-#                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-#                            have_nonconservative_terms, equations,
-#                            mortar_l2::LobattoLegendreMortarL2,
-#                            surface_integral, dg::DG, cache)
-#     backend = trixi_backend(surface_flux_values)
-#     calc_mortar_flux!(backend, surface_flux_values, mesh, have_nonconservative_terms, 
-#                       equations, mortar_l2, surface_integral, dg, cache)
-# end
-
 function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                            have_nonconservative_terms, equations,
