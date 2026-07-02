@@ -28,7 +28,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # This avoids the issue when `value_mean` is slightly smaller than `threshold`
         # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
         # which results in invalid theta values smaller than 0. Note that min(1, theta)
-        # is not necessary since we are only enforcing lower bounds. 
+        # is not necessary since we are only enforcing lower bounds.
         theta = max(0, theta)
 
         for i in eachnode(dg)
@@ -52,7 +52,7 @@ end
 #   [doi: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
 function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{1},
                             equations, dg::DGSEM, cache,
-                            element_ids_new::Vector{Int}, u_mean_refined_elements)
+                            element_ids_new, u_mean_refined_elements)
     @assert length(element_ids_new)==size(u_mean_refined_elements, 2) "The length of `element_ids_new` must match the second dimension of `u_mean_refined_elements`."
 
     @threaded for idx in eachindex(element_ids_new)
@@ -79,6 +79,12 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{1},
 
         theta < 1 || continue # Check if limiting action is necessary
 
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
+
         # Iterate again over the children to apply joint shifting
         for new_element_id in element_ids_new[idx]:(element_ids_new[idx] + 2^ndims(mesh) - 1)
             for i in eachnode(dg)
@@ -97,10 +103,7 @@ end
 # the coarsened elements.
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{1}, equations, dg::DGSEM, cache,
-                            element_ids_new::Vector{Int})
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-
+                            element_ids_new)
     # Apply limiter to coarsened elements
     @threaded for element in element_ids_new
         # determine minimum value
@@ -117,6 +120,13 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
         value_mean = variable(u_mean, equations)
         theta = (value_mean - threshold) / (value_mean - value_min)
+
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
+
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
             set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,

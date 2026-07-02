@@ -28,7 +28,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # This avoids the issue when `value_mean` is slightly smaller than `threshold`
         # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
         # which results in invalid theta values smaller than 0. Note that min(1, theta)
-        # is not necessary since we are only enforcing lower bounds. 
+        # is not necessary since we are only enforcing lower bounds.
         theta = max(0, theta)
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -52,7 +52,7 @@ end
 #   [doi: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
 function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
                             equations, dg::DGSEM, cache,
-                            element_ids_new::Vector{Int}, u_mean_refined_elements)
+                            element_ids_new, u_mean_refined_elements)
     @assert length(element_ids_new)==size(u_mean_refined_elements, 2) "The length of `element_ids_new` must match the second dimension of `u_mean_refined_elements`."
 
     # theta_sum = [zero(eltype(u)) for _ in 1:Threads.maxthreadid()]
@@ -77,9 +77,6 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
 
             theta = min(theta, (value_mean - threshold) / (value_mean - value_min))
         end
-        if theta < 0
-            error("Negative theta encountered in Zhang-Shu limiter during refinement step: $theta")
-        end
 
         theta < 1 || continue # Check if limiting action is necessary
         # if theta < 1
@@ -88,6 +85,12 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
         #     theta_sum[Threads.threadid()] += 1.0
         #     continue # Check if limiting action is necessary
         # end
+
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
 
         # Iterate again over the children to apply joint shifting
         for new_element_id in element_ids_new[idx]:(element_ids_new[idx] + 2^ndims(mesh) - 1)
@@ -113,10 +116,7 @@ end
 # the coarsened elements.
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
-                            element_ids_new::Vector{Int})
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-
+                            element_ids_new)
     # theta_sum = [zero(eltype(u)) for _ in 1:Threads.maxthreadid()]
     # Apply limiter to coarsened elements
     @threaded for element in element_ids_new
@@ -139,9 +139,12 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         value_mean = variable(u_mean, equations)
         theta = (value_mean - threshold) / (value_mean - value_min)
 
-        if theta < 0
-            error("Negative theta encountered in Zhang-Shu limiter during refinement step: $theta")
-        end
+        # This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        # which results in invalid theta values smaller than 0. Note that min(1, theta)
+        # is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
+
         # theta_sum[Threads.threadid()] += theta
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
