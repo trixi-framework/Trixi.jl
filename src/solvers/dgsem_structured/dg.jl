@@ -235,4 +235,5 @@ include("dg_2d_subcell_limiters.jl")
 # Specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
 include("dg_3d_compressible_euler.jl")
+include("dg_3d_turbo.jl")
 end # @muladd

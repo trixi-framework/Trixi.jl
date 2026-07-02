@@ -3763,6 +3763,57 @@ end
     end
 end
 
+@timed_testset "Euler admissible projection for PositivityPreservingLimiterLiuZhang" begin
+    @testset "1D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations1D(1.4)
+        u = SVector(0.5, 1.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] >= lower_bounds[1]
+        @test energy_internal(u_projected, equations) >= lower_bounds[2] - arithmetic_tol
+
+        @test u_projected[1] ≈ 1.0
+        @test u_projected[2]≈0.7709169970592479 rtol=1e-12
+        @test u_projected[3]≈0.39715650817742415 rtol=1e-12
+    end
+
+    @testset "Consistency between 1D and 2D projections when v2 = 0" begin
+        equations_1d = CompressibleEulerEquations1D(1.4)
+        equations_2d = CompressibleEulerEquations2D(1.4)
+        u_1d = SVector(0.5, 1.0, 0.1)
+        u_2d = SVector(0.5, 1.0, 0.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected_1d = Trixi.project_to_admissible_set(u_1d, lower_bounds, variables,
+                                                         equations_1d)
+        u_projected_2d = Trixi.project_to_admissible_set(u_2d, lower_bounds, variables,
+                                                         equations_2d)
+
+        @test u_projected_2d[1] ≈ u_projected_1d[1]
+        @test u_projected_2d[2] ≈ u_projected_1d[2]
+        @test u_projected_2d[4] ≈ u_projected_1d[3]
+        @test u_projected_2d[3] == 0.0
+    end
+
+    @testset "2D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.5, 1.0, -2.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] > lower_bounds[1]
+        @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
+    end
+end
+
 @testset "load_mesh n_cells_max compatibility" begin
     mktempdir() do dir
         mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
