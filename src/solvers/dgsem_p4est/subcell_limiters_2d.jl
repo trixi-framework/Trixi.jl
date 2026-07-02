@@ -69,6 +69,113 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
     return nothing
 end
 
+@inline function calc_bounds_twosided_mortar!(var_min, var_max, variable, u,
+                                              semi, mesh::P4estMesh{2})
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, node_indices) = cache.mortars
+    index_range = eachnode(dg)
+
+    # TODO: How to include values at mortar interfaces?
+    # See comment above TreeMesh version
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            i_mortar_s = iszero(i_small_step) ? j_small : i_small
+            i_mortar_l = iszero(i_large_step) ? j_large : i_large
+
+            var_lower = u[variable, i_small, j_small, lower_element]
+            var_upper = u[variable, i_small, j_small, upper_element]
+            var_large = u[variable, i_large, j_large, large_element]
+
+            i_small_inner = i_small_start
+            j_small_inner = j_small_start
+            i_large_inner = i_large_start
+            j_large_inner = j_large_start
+            for j in eachnode(dg)
+                j_mortar_s = iszero(i_small_step) ? j_small_inner : i_small_inner
+                j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
+
+                # values of large element to lower element
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 1] > 0
+                    var_min[i_small_inner, j_small_inner, lower_element] = min(var_min[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       lower_element],
+                                                                               var_large)
+                    var_max[i_small_inner, j_small_inner, lower_element] = max(var_max[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       lower_element],
+                                                                               var_large)
+                end
+                # values of lower element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 1] > 0
+                    var_min[i_large_inner, j_large_inner, large_element] = min(var_min[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_lower)
+                    var_max[i_large_inner, j_large_inner, large_element] = max(var_max[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_lower)
+                end
+                # values of large element to upper element
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 2] > 0
+                    var_min[i_small_inner, j_small_inner, upper_element] = min(var_min[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       upper_element],
+                                                                               var_large)
+                    var_max[i_small_inner, j_small_inner, upper_element] = max(var_max[i_small_inner,
+                                                                                       j_small_inner,
+                                                                                       upper_element],
+                                                                               var_large)
+                end
+                # values of upper element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 2] > 0
+                    var_min[i_large_inner, j_large_inner, large_element] = min(var_min[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_upper)
+                    var_max[i_large_inner, j_large_inner, large_element] = max(var_max[i_large_inner,
+                                                                                       j_large_inner,
+                                                                                       large_element],
+                                                                               var_upper)
+                end
+                i_small_inner += i_small_step
+                j_small_inner += j_small_step
+                i_large_inner += i_large_step
+                j_large_inner += j_large_step
+            end
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
 @inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
                                                 boundary_conditions::BoundaryConditionPeriodic,
                                                 mesh::P4estMesh{2},
@@ -184,6 +291,100 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     return nothing
 end
 
+@inline function calc_bounds_onesided_mortar!(var_minmax, minmax, variable, u,
+                                              semi, mesh::P4estMesh{2})
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, node_indices) = cache.mortars
+    index_range = eachnode(dg)
+
+    # TODO: How to include values at mortar interfaces?
+    # See comment above TreeMesh version
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            i_mortar_s = iszero(i_small_step) ? j_small : i_small
+            i_mortar_l = iszero(i_large_step) ? j_large : i_large
+
+            u_lower = get_node_vars(u, equations, dg, i_small, j_small, lower_element)
+            u_upper = get_node_vars(u, equations, dg, i_small, j_small, upper_element)
+            u_large = get_node_vars(u, equations, dg, i_large, j_large, large_element)
+            var_lower = variable(u_lower, equations)
+            var_upper = variable(u_upper, equations)
+            var_large = variable(u_large, equations)
+
+            i_small_inner = i_small_start
+            j_small_inner = j_small_start
+            i_large_inner = i_large_start
+            j_large_inner = j_large_start
+            for j in eachnode(dg)
+                j_mortar_s = iszero(i_small_step) ? j_small_inner : i_small_inner
+                j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
+
+                # values of large element to lower element
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 1] > 0
+                    var_minmax[i_small_inner, j_small_inner, lower_element] = minmax(var_minmax[i_small_inner,
+                                                                                                j_small_inner,
+                                                                                                lower_element],
+                                                                                     var_large)
+                end
+                # values of lower element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 1] > 0
+                    var_minmax[i_large_inner, j_large_inner, large_element] = minmax(var_minmax[i_large_inner,
+                                                                                                j_large_inner,
+                                                                                                large_element],
+                                                                                     var_lower)
+                end
+                # values of large element to upper element
+                if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 2] > 0
+                    var_minmax[i_small_inner, j_small_inner, upper_element] = minmax(var_minmax[i_small_inner,
+                                                                                                j_small_inner,
+                                                                                                upper_element],
+                                                                                     var_large)
+                end
+                # values of upper element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j_mortar_l, i_mortar_s, 2] > 0
+                    var_minmax[i_large_inner, j_large_inner, large_element] = minmax(var_minmax[i_large_inner,
+                                                                                                j_large_inner,
+                                                                                                large_element],
+                                                                                     var_upper)
+                end
+                i_small_inner += i_small_step
+                j_small_inner += j_small_step
+                i_large_inner += i_large_step
+                j_large_inner += j_large_step
+            end
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
 @inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
                                                 boundary_conditions::BoundaryConditionPeriodic,
                                                 mesh::P4estMesh{2},
@@ -234,6 +435,664 @@ end
                 i_node += i_node_step
                 j_node += j_node_step
             end
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
+# IDP mortar limiting
+###############################################################################
+
+@inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralSubcellLimiting,
+                                                 dg, cache,
+                                                 mesh::P4estMesh{2})
+    if !(dg.mortar isa LobattoLegendreMortarIDP)
+        return nothing
+    end
+
+    (; n_mortars_per_node) = volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; neighbor_ids, node_indices) = cache.mortars
+    index_range = eachnode(dg)
+
+    n_mortars_per_node .= zero(eltype(n_mortars_per_node))
+
+    for mortar in eachmortar(dg, cache)
+        lower_element = neighbor_ids[1, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        large_element = neighbor_ids[3, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for node in eachnode(dg)
+            n_mortars_per_node[i_small, j_small, lower_element] += 1
+            n_mortars_per_node[i_small, j_small, upper_element] += 1
+            n_mortars_per_node[i_large, j_large, large_element] += 1
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
+# Local two-sided limiting of conservative variables
+@inline function limiting_local_conservative!(limiting_factor, u, dt, semi,
+                                              mesh::P4estMesh{2}, var_index)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, node_indices) = cache.mortars
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    variable_string = string(var_index)
+    var_min = variable_bounds[Symbol(variable_string, "_min")]
+    var_max = variable_bounds[Symbol(variable_string, "_max")]
+
+    index_range = eachnode(dg)
+
+    @threaded for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            var_upper = u[var_index, i_small, j_small, upper_element]
+            var_lower = u[var_index, i_small, j_small, lower_element]
+            var_large = u[var_index, i_large, j_large, large_element]
+
+            if min(var_upper, var_lower, var_large) < 0
+                error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
+            end
+
+            # Two-sided local bounds
+            var_min_upper = var_min[i_small, j_small, upper_element]
+            var_min_lower = var_min[i_small, j_small, lower_element]
+            var_min_large = var_min[i_large, j_large, large_element]
+            var_max_upper = var_max[i_small, j_small, upper_element]
+            var_max_lower = var_max[i_small, j_small, lower_element]
+            var_max_large = var_max[i_large, j_large, large_element]
+
+            Qp_upper = max(0, (var_max_upper - var_upper) / dt)
+            Qm_upper = min(0, (var_min_upper - var_upper) / dt)
+            Qp_lower = max(0, (var_max_lower - var_lower) / dt)
+            Qm_lower = min(0, (var_min_lower - var_lower) / dt)
+            Qp_large = max(0, (var_max_large - var_large) / dt)
+            Qm_large = min(0, (var_min_large - var_large) / dt)
+
+            # Compute flux differences
+            flux_lower_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   small_direction,
+                                                                   lower_element]
+            flux_lower_low_order = surface_flux_values[var_index, i, small_direction,
+                                                       lower_element]
+            flux_difference_lower = factor *
+                                    (flux_lower_high_order - flux_lower_low_order)
+
+            flux_upper_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   small_direction,
+                                                                   upper_element]
+            flux_upper_low_order = surface_flux_values[var_index, i, small_direction,
+                                                       upper_element]
+            flux_difference_upper = factor *
+                                    (flux_upper_high_order - flux_upper_low_order)
+
+            flux_large_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   large_direction,
+                                                                   large_element]
+            flux_large_low_order = surface_flux_values[var_index, i, large_direction,
+                                                       large_element]
+            flux_difference_large = factor *
+                                    (flux_large_high_order - flux_large_low_order)
+
+            # Use pure low-order fluxes if high-order fluxes are not finite.
+            if !isfinite(flux_lower_high_order) ||
+               !isfinite(flux_upper_high_order) ||
+               !isfinite(flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+
+            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          upper_element)
+            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          lower_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_large, j_large,
+                                                          large_element)
+
+            Pp_upper = max(0, flux_difference_upper)
+            Pm_upper = min(0, flux_difference_upper)
+            Pp_lower = max(0, flux_difference_lower)
+            Pm_lower = min(0, flux_difference_lower)
+            Pp_large = max(0, flux_difference_large)
+            Pm_large = min(0, flux_difference_large)
+
+            Pp_upper = inverse_jacobian_upper * Pp_upper
+            Pm_upper = inverse_jacobian_upper * Pm_upper
+            Pp_lower = inverse_jacobian_lower * Pp_lower
+            Pm_lower = inverse_jacobian_lower * Pm_lower
+            Pp_large = inverse_jacobian_large * Pp_large
+            Pm_large = inverse_jacobian_large * Pm_large
+
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            n_mortars_upper = n_mortars_per_node[i_small, j_small, upper_element]
+            n_mortars_lower = n_mortars_per_node[i_small, j_small, lower_element]
+            n_mortars_large = n_mortars_per_node[i_large, j_large, large_element]
+            Pp_upper *= n_mortars_upper
+            Pm_upper *= n_mortars_upper
+            Pp_lower *= n_mortars_lower
+            Pm_lower *= n_mortars_lower
+            Pp_large *= n_mortars_large
+            Pm_large *= n_mortars_large
+
+            Qp_upper = abs(Qp_upper) /
+                       (abs(Pp_upper) +
+                        eps(typeof(Qp_upper)) * 100 * abs(var_max_upper))
+            Qm_upper = abs(Qm_upper) /
+                       (abs(Pm_upper) +
+                        eps(typeof(Qm_upper)) * 100 * abs(var_max_upper))
+            Qp_lower = abs(Qp_lower) /
+                       (abs(Pp_lower) +
+                        eps(typeof(Qp_lower)) * 100 * abs(var_max_lower))
+            Qm_lower = abs(Qm_lower) /
+                       (abs(Pm_lower) +
+                        eps(typeof(Qm_lower)) * 100 * abs(var_max_lower))
+            Qp_large = abs(Qp_large) /
+                       (abs(Pp_large) +
+                        eps(typeof(Qp_large)) * 100 * abs(var_max_large))
+            Qm_large = abs(Qm_large) /
+                       (abs(Pm_large) +
+                        eps(typeof(Qm_large)) * 100 * abs(var_max_large))
+
+            # Calculate limiting factor
+            Q = min(1, Qp_upper, Qm_upper, Qp_lower, Qm_lower, Qp_large, Qm_large)
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Q)
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
+##############################################################################
+# Local one-sided limiting of nonlinear variables
+@inline function limiting_local_nonlinear!(limiting_factor, u, dt, semi,
+                                           mesh::P4estMesh{2}, variable,
+                                           min_or_max)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, node_indices) = cache.mortars
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+
+    (; inverse_weights) = dg.basis
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; limiter) = dg.volume_integral
+    if !((variable, min_or_max) in limiter.local_onesided_variables_nonlinear)
+        error("Nonlinear variable $variable with bound $min_or_max is not included in local_onesided_variables_nonlinear in the volume integral. So, the bounds are not computed before.")
+    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
+
+    (; gamma_constant_newton) = limiter
+
+    index_range = eachnode(dg)
+
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          upper_element)
+            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          lower_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_large, j_large,
+                                                          large_element)
+
+            u_lower = get_node_vars(u, equations, dg, i_small, j_small, lower_element)
+            u_upper = get_node_vars(u, equations, dg, i_small, j_small, upper_element)
+            u_large = get_node_vars(u, equations, dg, i_large, j_large, large_element)
+
+            bound_lower = var_minmax[i_small, j_small, lower_element]
+            bound_upper = var_minmax[i_small, j_small, upper_element]
+            bound_large = var_minmax[i_large, j_large, large_element]
+
+            # lower element
+            flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, small_direction, lower_element)
+            flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, small_direction, lower_element)
+            if !all(isfinite, flux_lower_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_lower = gamma_constant_newton * factor *
+                                       inverse_jacobian_lower *
+                                       (flux_lower_high_order .- flux_lower_low_order)
+
+            newton_loop!(limiting_factor, bound_lower, u_lower, (mortar,), variable,
+                         min_or_max, initial_check_local_onesided_newton_idp,
+                         final_check_local_onesided_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_lower)
+
+            # upper element
+            flux_upper_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, small_direction, upper_element)
+            flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, small_direction, upper_element)
+            if !all(isfinite, flux_upper_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_upper = gamma_constant_newton * factor *
+                                       inverse_jacobian_upper *
+                                       (flux_upper_high_order .- flux_upper_low_order)
+
+            newton_loop!(limiting_factor, bound_upper, u_upper, (mortar,), variable,
+                         min_or_max, initial_check_local_onesided_newton_idp,
+                         final_check_local_onesided_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_upper)
+
+            # large element
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, large_direction, large_element)
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, large_direction, large_element)
+            if !all(isfinite, flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_large = gamma_constant_newton * factor *
+                                       inverse_jacobian_large *
+                                       (flux_large_high_order .- flux_large_low_order)
+
+            newton_loop!(limiting_factor, bound_large, u_large, (mortar,), variable,
+                         min_or_max, initial_check_local_onesided_newton_idp,
+                         final_check_local_onesided_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_large)
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
+# Global positivity limiting of conservative variables
+@inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
+                                                   mesh::P4estMesh{2}, var_index)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, node_indices) = cache.mortars
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(var_index), "_min")]
+
+    index_range = eachnode(dg)
+
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            var_upper = u[var_index, i_small, j_small, upper_element]
+            var_lower = u[var_index, i_small, j_small, lower_element]
+            var_large = u[var_index, i_large, j_large, large_element]
+
+            if min(var_upper, var_lower, var_large) < 0
+                error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
+            end
+
+            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          upper_element)
+            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          lower_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_large, j_large,
+                                                          large_element)
+
+            # Calculate Pm
+            flux_lower_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   small_direction,
+                                                                   lower_element]
+            flux_lower_low_order = surface_flux_values[var_index, i, small_direction,
+                                                       lower_element]
+            flux_difference_lower = factor *
+                                    (flux_lower_high_order - flux_lower_low_order)
+
+            flux_upper_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   small_direction,
+                                                                   upper_element]
+            flux_upper_low_order = surface_flux_values[var_index, i, small_direction,
+                                                       upper_element]
+            flux_difference_upper = factor *
+                                    (flux_upper_high_order - flux_upper_low_order)
+
+            flux_large_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   large_direction,
+                                                                   large_element]
+            flux_large_low_order = surface_flux_values[var_index, i, large_direction,
+                                                       large_element]
+            flux_difference_large = factor *
+                                    (flux_large_high_order - flux_large_low_order)
+
+            # Check if high-order fluxes are finite. Otherwise, use pure low-order fluxes.
+            if !isfinite(flux_lower_high_order) ||
+               !isfinite(flux_upper_high_order) ||
+               !isfinite(flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+
+            # Minimum bound
+            var_min_upper = var_min[i_small, j_small, upper_element]
+            var_min_lower = var_min[i_small, j_small, lower_element]
+            var_min_large = var_min[i_large, j_large, large_element]
+
+            Qm_upper = min(0, var_min_upper - var_upper)
+            Qm_lower = min(0, var_min_lower - var_lower)
+            Qm_large = min(0, var_min_large - var_large)
+
+            Pm_upper = min(0, flux_difference_upper)
+            Pm_lower = min(0, flux_difference_lower)
+            Pm_large = min(0, flux_difference_large)
+
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            n_mortars_upper = n_mortars_per_node[i_small, j_small, upper_element]
+            n_mortars_lower = n_mortars_per_node[i_small, j_small, lower_element]
+            n_mortars_large = n_mortars_per_node[i_large, j_large, large_element]
+            Pm_upper *= n_mortars_upper
+            Pm_lower *= n_mortars_lower
+            Pm_large *= n_mortars_large
+
+            Pm_upper = dt * inverse_jacobian_upper * Pm_upper
+            Pm_lower = dt * inverse_jacobian_lower * Pm_lower
+            Pm_large = dt * inverse_jacobian_large * Pm_large
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            Qm_upper = abs(Qm_upper) / (abs(Pm_upper) + eps(typeof(Qm_upper)) * 100)
+            Qm_lower = abs(Qm_lower) / (abs(Pm_lower) + eps(typeof(Qm_lower)) * 100)
+            Qm_large = abs(Qm_large) / (abs(Pm_large) + eps(typeof(Qm_large)) * 100)
+
+            Q = min(1, Qm_upper, Qm_lower, Qm_large)
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Q)
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
+        end
+    end
+
+    return nothing
+end
+
+##############################################################################
+# Local one-sided limiting of nonlinear variables
+@inline function limiting_positivity_nonlinear!(limiting_factor, u, dt, semi,
+                                                mesh::P4estMesh{2}, variable)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, node_indices) = cache.mortars
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+
+    (; inverse_weights) = dg.basis
+    # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+    # This sign switch is directly applied to the boundary interpolation factors here.
+    factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; limiter) = dg.volume_integral
+    if !(variable in limiter.local_onesided_variables_nonlinear ||
+         variable in limiter.positivity_variables_nonlinear)
+        error("Variable $variable is not included to the limiting in the volume integral. So, the bounds are not computed before.")
+    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+
+    (; gamma_constant_newton) = limiter
+
+    index_range = eachnode(dg)
+
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
+
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
+
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
+
+        i_small = i_small_start
+        j_small = j_small_start
+        i_large = i_large_start
+        j_large = j_large_start
+        for i in eachnode(dg)
+            inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          upper_element)
+            inverse_jacobian_lower = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_small, j_small,
+                                                          lower_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_large, j_large,
+                                                          large_element)
+
+            u_lower = get_node_vars(u, equations, dg, i_small, j_small, lower_element)
+            u_upper = get_node_vars(u, equations, dg, i_small, j_small, upper_element)
+            u_large = get_node_vars(u, equations, dg, i_large, j_large, large_element)
+            var_lower = variable(u_lower, equations)
+            var_upper = variable(u_upper, equations)
+            var_large = variable(u_large, equations)
+            if var_lower < 0 || var_upper < 0 || var_large < 0
+                error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
+            end
+
+            # Minimum bound
+            var_min_lower = var_min[i_small, j_small, lower_element]
+            var_min_upper = var_min[i_small, j_small, upper_element]
+            var_min_large = var_min[i_large, j_large, large_element]
+
+            # lower element
+            flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, small_direction, lower_element)
+            flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, small_direction, lower_element)
+            # If high-order fluxes are non-finite, disable mortar correction.
+            # This mirrors the conservative mortar limiter behavior.
+            if !all(isfinite, flux_lower_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_lower = gamma_constant_newton * factor *
+                                       inverse_jacobian_lower *
+                                       (flux_lower_high_order .- flux_lower_low_order)
+
+            newton_loop!(limiting_factor, var_min_lower, u_lower, (mortar,), variable,
+                         min, initial_check_nonnegative_newton_idp,
+                         final_check_nonnegative_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_lower)
+
+            # upper element
+            flux_upper_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, small_direction, upper_element)
+            flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, small_direction, upper_element)
+            if !all(isfinite, flux_upper_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_upper = gamma_constant_newton * factor *
+                                       inverse_jacobian_upper *
+                                       (flux_upper_high_order .- flux_upper_low_order)
+
+            newton_loop!(limiting_factor, var_min_upper, u_upper, (mortar,), variable,
+                         min, initial_check_nonnegative_newton_idp,
+                         final_check_nonnegative_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_upper)
+
+            # large element
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, large_direction, large_element)
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, large_direction, large_element)
+            if !all(isfinite, flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            antidiffusive_flux_large = gamma_constant_newton * factor *
+                                       inverse_jacobian_large *
+                                       (flux_large_high_order .- flux_large_low_order)
+
+            newton_loop!(limiting_factor, var_min_large, u_large, (mortar,), variable,
+                         min, initial_check_nonnegative_newton_idp,
+                         final_check_nonnegative_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_large)
+
+            i_small += i_small_step
+            j_small += j_small_step
+            i_large += i_large_step
+            j_large += j_large_step
         end
     end
 

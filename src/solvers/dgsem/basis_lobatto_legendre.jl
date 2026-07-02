@@ -229,6 +229,67 @@ end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
 
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH,
+                                Limiter, Mortar} <: AbstractMortar{RealT}
+    limiter::Limiter
+    pure_low_order::Bool
+    mortar_l2::Mortar
+    # LENGTH = `2 * (NDIMS - 1) + 1`
+    mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
+    mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, small (1) / large (2) element]
+    output_directory::String
+end
+
+function MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
+                   pure_low_order = false,
+                   output_directory = "out")
+    @assert limiter isa SubcellLimiterIDP
+    RealT = real(basis)
+    n_dims = ndims(equations)
+    nnodes_ = nnodes(basis)
+
+    mortar_l2 = MortarL2(basis)
+
+    mortar_weights, mortar_weights_sums = calc_mortar_weights(equations, basis, RealT)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_, n_dims,
+                             2 * (n_dims - 1) + 1,
+                             typeof(limiter),
+                             typeof(mortar_l2)}(limiter,
+                                                pure_low_order,
+                                                mortar_l2,
+                                                mortar_weights,
+                                                mortar_weights_sums,
+                                                output_directory)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
+          "limiter=", mortar.limiter, ", pure_low_order=", mortar.pure_low_order, ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+
+    setup = ["limiter" => string(mortar.limiter)]
+    if mortar.pure_low_order
+        push!(setup, "" => "pure low-order mortars")
+    end
+    summary_box(io,
+                "LobattoLegendreMortarIDP{$(real(mortar)), polydeg=$(polydeg(mortar))}",
+                setup)
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                                NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 
@@ -409,7 +470,7 @@ function calc_Dhat(derivative_matrix, weights)
 end
 
 # Calculate the Dsplit matrix for split-form differentiation: Dsplit = 2D - M⁻¹B
-# Note that this is the negated version of the matrix that shows up on the RHS of the 
+# Note that this is the negated version of the matrix that shows up on the RHS of the
 # DG update multiplying the two-point numerical volume flux evaluations.
 function calc_Dsplit(derivative_matrix, weights)
     # Start with 2 x the normal D matrix

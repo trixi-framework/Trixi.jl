@@ -678,6 +678,11 @@ end
     @test isnothing(display(c3d))
 end
 
+@timed_testset "DG IDP mortar container debug output" begin
+    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    @test isnothing(display(c2d))
+end
+
 @timed_testset "TreeContainer1D nnodes(container)" begin
     capacity = 42
     n_variables = 9
@@ -702,8 +707,8 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(entropy_guermond_etal, min)], "cache",
-                                    1, (1.0, 1.0), 1.0)
+                                    true, [(entropy_guermond_etal, min)], true,
+                                    true, "cache", 1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))

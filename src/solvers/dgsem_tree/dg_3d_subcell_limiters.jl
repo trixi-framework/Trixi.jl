@@ -53,6 +53,7 @@ function create_cache_subcell_limiting(mesh::Union{TreeMesh{3}, P4estMesh{3}},
 
     # The limiter cache was created with 0 elements
     resize_subcell_limiter_cache!(volume_integral.limiter, n_elements)
+    precompute_n_mortars_per_nodes!(volume_integral, dg, cache_containers, mesh)
 
     return (; cache..., antidiffusive_fluxes,
             fhat1_L_threaded, fhat1_R_threaded,
@@ -316,5 +317,27 @@ end
     end
 
     return nothing
+end
+
+@inline function calc_lambdas_bar_states!(u, t, mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                                          have_nonconservative_terms, equations,
+                                          limiter, dg, cache, boundary_conditions;
+                                          calc_bar_states = true)
+    if limiter.bar_states == false
+        return nothing
+    end
+
+    error("Bar states are only implemented for 2D problems.")
+
+    return nothing
+end
+
+@inline function calc_variable_bounds!(u, mesh::AbstractMesh{3}, nonconservative_terms,
+                                       equations, limiter::SubcellLimiterIDP, dg, cache)
+    if limiter.bar_states == false
+        return nothing
+    end
+
+    error("Bar states are only implemented for 2D problems.")
 end
 end # @muladd

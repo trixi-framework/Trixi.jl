@@ -77,9 +77,11 @@ mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1} <:
                AbstractContainer
     alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
     variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
+    n_mortars_per_node::Array{Int, NDIMSP1}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
+    _n_mortars_per_node::Vector{Int}
 end
 
 function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
@@ -92,6 +94,10 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
     alpha = unsafe_wrap(Array, pointer(_alpha),
                         (ntuple(_ -> n_nodes, NDIMS)..., capacity))
 
+    _n_mortars_per_node = fill(zero(Int), prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+    n_mortars_per_node = unsafe_wrap(Array, pointer(_n_mortars_per_node),
+                                     (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+
     _variable_bounds = Dict{Symbol, Vector{uEltype}}()
     variable_bounds = Dict{Symbol, Array{uEltype, NDIMS + 1}}()
     for key in bound_keys
@@ -103,8 +109,10 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
 
     return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1}(alpha,
                                                                  variable_bounds,
+                                                                 n_mortars_per_node,
                                                                  _alpha,
-                                                                 _variable_bounds)
+                                                                 _variable_bounds,
+                                                                 _n_mortars_per_node)
 end
 
 @inline nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)
@@ -133,6 +141,12 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
                                                      (ntuple(_ -> n_nodes, n_dims)...,
                                                       capacity))
     end
+
+    (; _n_mortars_per_node) = container
+    resize!(_n_mortars_per_node, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    container.n_mortars_per_node = unsafe_wrap(Array, pointer(_n_mortars_per_node),
+                                               (ntuple(_ -> n_nodes, n_dims)...,
+                                                capacity))
 
     return nothing
 end

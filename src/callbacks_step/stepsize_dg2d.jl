@@ -72,6 +72,58 @@ function max_dt(u, t, mesh::TreeMesh{2},
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
+@inline function max_dt(u, t, mesh::TreeMesh{2},
+                        constant_speed::False, equations, semi, dg::DG, cache,
+                        limiter::SubcellLimiterIDP)
+    @unpack inverse_weights = dg.basis
+    calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms(equations),
+                             equations, limiter, dg, cache, semi.boundary_conditions;
+                             calc_bar_states = false)
+    @unpack lambda1, lambda2 = limiter.cache.container_bar_states
+
+    max_dt = floatmax(typeof(t))
+    @batch reduction=(min, max_dt) for element in eachelement(dg, cache)
+        max_dt_element = floatmax(typeof(t))
+        jacobian = 1 / cache.elements.inverse_jacobian[element]
+        for j in eachnode(dg), i in eachnode(dg)
+            denom = inverse_weights[i] *
+                    (lambda1[i, j, element] + lambda1[i + 1, j, element]) +
+                    inverse_weights[j] *
+                    (lambda2[i, j, element] + lambda2[i, j + 1, element])
+            max_dt_element = Base.min(max_dt_element, jacobian / denom)
+        end
+        max_dt = Base.min(max_dt, max_dt_element)
+    end
+
+    return max_dt
+end
+
+@inline function max_dt(u, t, mesh::P4estMesh{2},# StructuredMesh{2}
+                        constant_speed::False, equations, semi, dg::DG, cache,
+                        limiter::SubcellLimiterIDP)
+    @unpack inverse_weights = dg.basis
+    calc_lambdas_bar_states!(u, t, mesh, have_nonconservative_terms(equations),
+                             equations, limiter, dg, cache, semi.boundary_conditions;
+                             calc_bar_states = false)
+    @unpack lambda1, lambda2 = limiter.cache.container_bar_states
+
+    max_dt = floatmax(typeof(t))
+    @batch reduction=(min, max_dt) for element in eachelement(dg, cache)
+        max_dt_element = floatmax(typeof(t))
+        for j in eachnode(dg), i in eachnode(dg)
+            jacobian = 1 / cache.elements.inverse_jacobian[i, j, element]
+            denom = inverse_weights[i] *
+                    (lambda1[i, j, element] + lambda1[i + 1, j, element]) +
+                    inverse_weights[j] *
+                    (lambda2[i, j, element] + lambda2[i, j + 1, element])
+            max_dt_element = Base.min(max_dt_element, jacobian / denom)
+        end
+        max_dt = Base.min(max_dt, max_dt_element)
+    end
+
+    return max_dt
+end
+
 function max_dt(u, t, mesh::TreeMeshParallel{2},
                 constant_speed::False, equations, dg::DG, cache)
     # call the method accepting a general `mesh::TreeMesh{2}`
