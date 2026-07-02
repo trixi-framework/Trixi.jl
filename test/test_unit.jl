@@ -445,6 +445,137 @@ end
     @test_nowarn show(stdout, "text/plain", solution_analyzer)
 end
 
+@timed_testset "Positivity limiter for AMRCallback" begin
+    # Initial condition with simple discontinuity
+    @inline function initial_condition_discontinuity(x, t, equations)
+        if x[1] < -0.5
+            scalar = 1.0e-4
+        else
+            scalar = 1.0
+        end
+
+        return SVector(scalar)
+    end
+
+    # Set up variables used for 1D, 2D and 3D tests
+    solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+
+    adaptor = Trixi.AdaptorL2(solver.basis)
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                   variables = (first,))
+
+    @testset "1D" begin
+        equations = LinearScalarAdvectionEquation1D(1.0)
+
+        coordinates_min = (-1.0,)
+        coordinates_max = (1.0,)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000, periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:2)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "2D" begin
+        equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+        coordinates_min = (-1.0, -1.0)
+        coordinates_max = (1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000, periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:4)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "3D" begin
+        equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+        coordinates_min = (-1.0, -1.0, -1.0)
+        coordinates_max = (1.0, 1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000, periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:8)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+end
+
 @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
@@ -3852,6 +3983,57 @@ end
         @test size(ts.child_ids) == (2^NDIMS, ts.capacity + 1)
         @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
         @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
+    end
+end
+
+@timed_testset "Euler admissible projection for PositivityPreservingLimiterLiuZhang" begin
+    @testset "1D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations1D(1.4)
+        u = SVector(0.5, 1.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] >= lower_bounds[1]
+        @test energy_internal(u_projected, equations) >= lower_bounds[2] - arithmetic_tol
+
+        @test u_projected[1] ≈ 1.0
+        @test u_projected[2]≈0.7709169970592479 rtol=1e-12
+        @test u_projected[3]≈0.39715650817742415 rtol=1e-12
+    end
+
+    @testset "Consistency between 1D and 2D projections when v2 = 0" begin
+        equations_1d = CompressibleEulerEquations1D(1.4)
+        equations_2d = CompressibleEulerEquations2D(1.4)
+        u_1d = SVector(0.5, 1.0, 0.1)
+        u_2d = SVector(0.5, 1.0, 0.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected_1d = Trixi.project_to_admissible_set(u_1d, lower_bounds, variables,
+                                                         equations_1d)
+        u_projected_2d = Trixi.project_to_admissible_set(u_2d, lower_bounds, variables,
+                                                         equations_2d)
+
+        @test u_projected_2d[1] ≈ u_projected_1d[1]
+        @test u_projected_2d[2] ≈ u_projected_1d[2]
+        @test u_projected_2d[4] ≈ u_projected_1d[3]
+        @test u_projected_2d[3] == 0.0
+    end
+
+    @testset "2D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.5, 1.0, -2.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] > lower_bounds[1]
+        @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
     end
 end
 

@@ -83,16 +83,30 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# Positivity limiter as described in Remark 3 of the paper:
+# - Arpit Babbar, Praveen Chandrashekar (2025)
+#   Lax-Wendroff flux reconstruction on adaptive curvilinear meshes with
+#   error based time stepping for hyperbolic conservation laws
+#   [doi: 10.1016/j.jcp.2024.113622](https://doi.org/10.1016/j.jcp.2024.113622)
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                         variables = (Trixi.density,
+                                                                      pressure))
+
 amr_indicator = IndicatorLöhner(semi,
                                 variable = density_pressure)
+
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 4,
                                       med_level = 0, med_threshold = 0.1, # med_level = current level
                                       max_level = 6, max_threshold = 0.3)
+
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 2,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
@@ -101,12 +115,11 @@ callbacks = CallbackSet(summary_callback,
                         save_solution,
                         amr_callback, stepsize_callback)
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(; stage_limiter! = positivity_limiter,
+                                 williamson_condition = false);
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
