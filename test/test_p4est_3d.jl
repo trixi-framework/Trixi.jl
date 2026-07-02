@@ -24,6 +24,24 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_limiter_liu_zhang.jl"),
+                        mesh=P4estMesh((4, 4, 4), polydeg = 3,
+                                       coordinates_min = (-1.0, -1.0, -1.0),
+                                       coordinates_max = (1.0, 1.0, 1.0),
+                                       initial_refinement_level = 1,
+                                       periodicity = true),
+                        l2=[0.3917747509079011],
+                        linf=[1.3569114615249707])
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-3,) up to a tolerance
+    @test minimum(u) > 1e-3 - 10 * eps()
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_unstructured_curved.jl"),
