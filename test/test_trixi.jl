@@ -1,5 +1,9 @@
 using Test: @test, @testset
-using TrixiTest
+# Import TrixiTest's exports explicitly *except* `@test_allocations`, which we shadow
+# below with a function-barrier version (see the macro definition for the rationale).
+using TrixiTest: get_kwarg, append_to_kwargs, @trixi_test_nowarn,
+                 @test_trixi_include_base, @timed_testset, @trixi_testset,
+                 mpi_isroot, trixi_include
 using Trixi: examples_dir
 
 macro test_trixi_include(expr, args...)
@@ -35,4 +39,31 @@ macro test_trixi_include(expr, args...)
         @test_trixi_include_base($expr, $(args...))
     end
     return esc(ex)
+end
+
+# Shadow `TrixiTest.@test_allocations` with a version that measures the allocations
+# behind a *function barrier*, so that `rhs!`, `semi` and `sol` are concretely-typed
+# local arguments and the measured call is statically dispatched.
+#
+# The tests run as `@testitem`s (TestItemRunner), whose bodies execute at module-global
+# scope. There `rhs!`/`semi`/`sol` are non-const globals, so the previous
+# `@allocated rhs!(du, u, semi, t)` measured a dynamically dispatched call. On some CI
+# CPUs (observed on the AMD Zen runners) this reports large, spurious allocations that do
+# not reflect `rhs!` itself, while the same tests passed under the old `@testset` scope
+# (which already provided a function barrier). Measuring inside a local function restores
+# that type-stable behaviour without touching the (performance-critical) solver kernels.
+#
+# TODO: If this fixes the allocation measurements, upstream this into `TrixiTest.@test_allocations` and drop this shadow.
+macro test_allocations(rhs!, semi, sol, allocs)
+    quote
+        local measure_allocations = function (rhs!, semi, sol)
+            t = sol.t[end]
+            u = sol.u[end]
+            du = similar(u)
+            rhs!(du, u, semi, t)  # warm up so we do not measure compilation
+            return @allocated rhs!(du, u, semi, t)
+        end
+        @test measure_allocations($(esc(rhs!)), $(esc(semi)), $(esc(sol))) <
+              $(esc(allocs))
+    end
 end
