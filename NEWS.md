@@ -8,7 +8,7 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D`. 
+- Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D`.
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
@@ -16,18 +16,19 @@ for human readability.
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
   ([arXiv:2603.15112](https://arxiv.org/abs/2603.15112)).
 - A new semidiscretization type `SemidiscretizationParabolic` has been added to support purely parabolic equations with no hyperbolic part.
-The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality ([#2874]).
+  The new equation types `LinearDiffusionEquation1D` and `LinearDiffusionEquation2D` have been implemented to demonstrate this functionality ([#2874]).
 - A new AMR indicator `IndicatorNodalFunction` is introduced, which allows AMR depending on the solution, space, and time. This can be useful, for example, for testing AMR implementations, but also when the solution behavior is known a priori ([#2881]).
 - GPU support extended to include AMD GPU with a buildkite workflow using `TRIXI_TEST=AMDGPU` ([#2834]).
 - Support for 3D subcell limiting was extended by local limiting for nonperiodic `TreeMesh`es ([#2878]).
 - Support for user-defined RHS splitting for IMEX methods via SemidiscretizationHyperbolicSplit ([#2518]). The splitting follows the form `y_t = f_1(y) + f_2(y)`, allowing users to define separate solvers for the stiff (`f_1`) and non-stiff (`f_2`) parts of the right-hand side. Boundary conditions and source terms can be specified independently for the stiff and non-stiff parts.
 - Added postprocessing for kinetic energy spectral analysis via `compute_kinetic_energy_spectrum` for `AbstractCompressibleEulerEquations` on `TreeMesh`/`DGSEM` and on `DGMultiMesh`/`DGMultiSBP` in 2D and 3D; the routine returns matching integer wavenumber shells and the isotropic 1D spectrum `E(k)`.
 - Added the wrapper `FluxTurbo` that enables SIMD optimized implementations for conservative systems. Precomputation of primitive variables or other more efficient sets of variables can be enabled by specifying the number of precomputed variables, `nturbovars`; the transformation from conservative to precomputed variables, `cons2turbo`; and the `volume_flux_turbo`, which computes the numerical flux in terms of the precomputed variables. ([#3090])
+- `FluxTurbo` support was extended to nonconservative systems (mainly for the `P4estMesh` in 3D). ([#3094])
 - For the `NonIdealCompressibleEulerEquations` with a non-ideal equation of state a new Newton solver interface for the
-temperature has been added.
-This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.
-The new function `temperature_given_Vp` computes temperature given the specific volume `V` and pressure `p` using Newton's method,
-analogous to the existing `temperature` function for `AbstractEquationOfState` which takes in `V` and specific internal energy `e_internal` ([#3093]).
+  temperature has been added.
+  This is required for nonideal equations of state, where one cannot explicitly solve for temperature given two other thermodynamic variables.
+  The new function `temperature_given_Vp` computes temperature given the specific volume `V` and pressure `p` using Newton's method,
+  analogous to the existing `temperature` function for `AbstractEquationOfState` which takes in `V` and specific internal energy `e_internal` ([#3093]).
 
 #### Changed
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
