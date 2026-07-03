@@ -685,10 +685,7 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; limiter) = dg.volume_integral
-    if !((variable, min_or_max) in limiter.local_onesided_variables_nonlinear)
-        error("Nonlinear variable $variable with bound $min_or_max is not included in local_onesided_variables_nonlinear in the volume integral. So, the bounds are not computed before.")
-    end
+    (; limiter) = dg.mortar
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
 
@@ -966,11 +963,7 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; limiter) = dg.volume_integral
-    if !(variable in limiter.local_onesided_variables_nonlinear ||
-         variable in limiter.positivity_variables_nonlinear)
-        error("Variable $variable is not included to the limiting in the volume integral. So, the bounds are not computed before.")
-    end
+    (; limiter) = dg.mortar
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 

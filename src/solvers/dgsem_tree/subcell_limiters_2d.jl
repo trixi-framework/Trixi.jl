@@ -767,7 +767,7 @@ end
         return nothing
     end
 
-    (; n_mortars_per_node) = volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; n_mortars_per_node) = dg.mortar.limiter.cache.subcell_limiter_coefficients
     (; neighbor_ids, orientations, large_sides) = cache.mortars
 
     n_mortars_per_node .= zero(eltype(n_mortars_per_node))
@@ -1018,10 +1018,7 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; limiter) = dg.volume_integral
-    if !((variable, min_or_max) in limiter.local_onesided_variables_nonlinear)
-        error("Nonlinear variable $variable with bound $min_or_max is not included in local_onesided_variables_nonlinear in the volume integral. So, the bounds are not computed before.")
-    end
+    (; limiter) = dg.mortar
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
 
@@ -1170,7 +1167,7 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = dg.mortar.limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     for mortar in eachmortar(dg, cache)
@@ -1353,12 +1350,8 @@ end
 
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; limiter) = dg.volume_integral
-    if !(variable in limiter.local_onesided_variables_nonlinear ||
-         variable in limiter.positivity_variables_nonlinear)
-        error("Variable $variable is not included to the limiting in the volume integral. So, the bounds are not computed before.")
-    end
-    (; variable_bounds) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; limiter) = dg.mortar
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     (; gamma_constant_newton) = limiter
