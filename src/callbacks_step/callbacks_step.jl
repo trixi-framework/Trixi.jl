@@ -85,4 +85,7 @@ include("trivial.jl")
 
 # DGMulti callbacks
 include("analysis_dgmulti.jl")
+
+include("mesh_deformation.jl")
+
 end # @muladd

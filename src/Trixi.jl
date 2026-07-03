@@ -363,7 +363,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        TrivialCallback, AnalysisCallbackCoupled, AnalysisCallbackCoupledP4est,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
        DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
-       DragCoefficientPressure3D, LiftCoefficientPressure3D
+       DragCoefficientPressure3D, LiftCoefficientPressure3D,
+       MeshDeformationCallback
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!

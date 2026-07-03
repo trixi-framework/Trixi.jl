@@ -339,7 +339,7 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
                 vol = dot(cross(u, v), w)
 
                 if vol < z
-                    error("Discovered negative volumes in `cmesh`: vol = $vol")
+                    @warn "Discovered negative volumes in `cmesh`: tree $itree, vol = $vol"
                 end
             end
 
