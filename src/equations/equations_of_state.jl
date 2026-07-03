@@ -142,6 +142,7 @@ function temperature_given_Ve(V, e_internal, eos::AbstractEquationOfState;
                               tol = eos_newton_tol(eos),
                               maxiter = eos_newton_maxiter(eos))
     T = initial_T
+    tol = convert(typeof(T), tol)
     de = energy_internal_specific(V, T, eos) - e_internal
     iter = 1
     while abs(de) > tol * abs(e_internal) && iter < maxiter
@@ -178,6 +179,7 @@ function temperature_given_Vp(V, p, eos::AbstractEquationOfState;
                               tol = eos_newton_tol(eos),
                               maxiter = eos_newton_maxiter(eos))
     T = initial_T
+    tol = convert(typeof(T), tol)
     dp = pressure(V, T, eos) - p
     iter = 1
     while abs(dp) > tol * abs(p) && iter < maxiter

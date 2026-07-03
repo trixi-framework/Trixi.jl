@@ -248,8 +248,21 @@ isdir(outdir) && rm(outdir, recursive = true)
                               equations_helmholtz_ideal_gas, equations_thermally_perf_gas)
                 x = SVector(zero(RealT))
                 t = zero(RealT)
-                u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
-                                                           one(RealT))
+
+                if equations.equation_of_state isa ThermallyPerfectGas9PolyFit
+                    u = u_ll = u_rr = u_inner = cons = thermo2cons(SVector(convert(RealT,
+                                                                                   1 /
+                                                                                   1.225),
+                                                                           one(RealT),
+                                                                           convert(RealT,
+                                                                                   298.15)),
+                                                                   equations)
+
+                else
+                    u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
+                                                               one(RealT))
+                end
+
                 orientation = 1
                 direction = 1
 
@@ -305,6 +318,14 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                        equations_helmholtz_ideal_gas.equation_of_state)
             @test typeof(adapted_heim.gamma) == Float32
             @test typeof(adapted_heim.R) == Float32
+
+            eos_thermally_perfect = equations_thermally_perf_gas.equation_of_state
+            adapted_tp = @inferred Trixi.trixi_adapt(Array, Float32, eos_thermally_perfect)
+            @test typeof(adapted_tp.R_specific) == Float32
+            @test typeof(adapted_tp.temperature_bounds) == SVector{3, Float32}
+            @test typeof(adapted_tp.coefficients) == Trixi.SMatrix{9, 2, Float32, 18}
+            @test typeof(adapted_tp.p_ref) == Float32
+            @test typeof(adapted_tp.T_ref) == Float32
 
             # Wrapper adapt tests
             adapted_neq = @inferred Trixi.trixi_adapt(Array, Float32, equations_ideal_gas)
