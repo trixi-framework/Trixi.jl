@@ -505,7 +505,8 @@ end
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, i_node_index, j_node_index, direction_index, element_index] = flux_[v]
+        surface_flux_values[v, i_node_index, j_node_index, direction_index,
+                            element_index] = flux_[v]
     end
 end
 
@@ -563,7 +564,7 @@ end
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
         surface_flux_values[v, i_node_index, j_node_index,
-        direction_index, element_index] = flux[v]
+                            direction_index, element_index] = flux[v]
     end
 
     return nothing
@@ -672,49 +673,50 @@ function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-function prolong2mortars!(backend::KernelAbstractions.Backend, cache, u,
-                          mesh::Union{Trixi.P4estMesh{3}, P4estMeshView{3},
-                                      Trixi.T8codeMesh{3}},
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{3}, P4estMeshView{3},
+                                      T8codeMesh{3}},
                           equations,
-                          mortar_l2::Trixi.LobattoLegendreMortarL2,
-                          dg::Trixi.DGSEM{<:Trixi.LobattoLegendreBasis})
-    Trixi.nmortars(dg, cache) == 0 && return nothing
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
+    nmortars(dg, cache) == 0 && return nothing
 
     @unpack mortars = cache
     @unpack neighbor_ids, node_indices = cache.mortars
-    index_range = Trixi.eachnode(dg)
+    index_range = eachnode(dg)
 
-    N = Trixi.nnodes(dg)
-    T = eltype(u)
-    NVARS = Trixi.nvariables(equations)
+    _nnodes = nnodes(dg)
+    RealType = eltype(u)
+    NVARS = nvariables(equations)
 
-    L = NVARS * N * N
+    L = NVARS * _nnodes * _nnodes
 
     kernel! = prolong2mortars_KAkernel!(backend)
     kernel!(mortars.u, u, typeof(mesh), equations,
             neighbor_ids, node_indices, index_range,
             mortar_l2.forward_lower, mortar_l2.forward_upper,
-            Val(N), Val(NVARS), Val(T), Val(L);
-            ndrange = (Trixi.nmortars(dg, cache)))
+            Val(_nnodes), Val(NVARS), Val(RealType), Val(L);
+            ndrange = (nmortars(dg, cache)))
 
     return nothing
 end
 
 @kernel function prolong2mortars_KAkernel!(mortars_u, u,
-                                           MeshT::Type{<:Union{Trixi.P4estMesh{3},
+                                           MeshT::Type{<:Union{P4estMesh{3},
                                                                P4estMeshView{3},
-                                                               Trixi.T8codeMesh{3}}},
+                                                               T8codeMesh{3}}},
                                            equations,
                                            neighbor_ids, node_indices,
                                            index_range,
                                            forward_lower, forward_upper,
-                                           ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                           ::Val{L}) where {N, NVARS, T, L}
+                                           ::Val{_nnodes}, ::Val{NVARS},
+                                           ::Val{RealType},
+                                           ::Val{L}) where {_nnodes, NVARS, RealType, L}
     mortar = @index(Global)
     prolong2mortars_per_mortar!(mortars_u, u, mortar, MeshT, equations,
                                 neighbor_ids, node_indices, index_range,
                                 forward_lower, forward_upper,
-                                Val(N), Val(NVARS), Val(T), Val(L))
+                                Val(_nnodes), Val(NVARS), Val(RealType), Val(L))
 end
 
 @inline function prolong2mortars_per_mortar!(mortars_u, u, mortar,
@@ -722,8 +724,10 @@ end
                                              neighbor_ids, node_indices,
                                              index_range,
                                              forward_lower, forward_upper,
-                                             ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                             ::Val{L}) where {N, NVARS, T, L}
+                                             ::Val{_nnodes}, ::Val{NVARS},
+                                             ::Val{RealType},
+                                             ::Val{L}) where {_nnodes, NVARS, RealType,
+                                                              L}
     @inbounds begin
 
         # Copy solution data from the small elements using "delayed indexing" with
@@ -745,8 +749,8 @@ end
             j_small = j_small_start
             k_small = k_small_start
             element = neighbor_ids[position, mortar]
-            for j in 1:N
-                for i in 1:N
+            for j in 1:_nnodes
+                for i in 1:_nnodes
                     for v in Base.OneTo(NVARS)
                         mortars_u[1, v, position, i, j, mortar] = u[v, i_small,
                                                                     j_small,
@@ -765,12 +769,12 @@ end
 
         # Buffer to copy solution values of the large element in the correct orientation
         # before interpolating
-        u_buffer = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        u_buffer = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
         # temporary buffer for projections
-        fstar_tmp = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        fstar_tmp = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
         #buffer for output
-        val_out = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        val_out = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
         # Copy solution of large element face to buffer in the
         # correct orientation
@@ -790,8 +794,8 @@ end
         j_large = j_large_start
         k_large = k_large_start
         element = neighbor_ids[5, mortar]
-        for j in 1:N
-            for i in 1:N
+        for j in 1:_nnodes
+            for i in 1:_nnodes
                 for v in Base.OneTo(NVARS)
                     u_buffer[v, i, j] = u[v, i_large, j_large, k_large, element]
                 end
@@ -806,48 +810,48 @@ end
 
         # Interpolate large element face data from buffer to small face locations
         gpu_multiply_dimensionwise!(val_out,
-                                forward_lower,
-                                forward_lower,
-                                u_buffer,
-                                fstar_tmp)
+                                    forward_lower,
+                                    forward_lower,
+                                    u_buffer,
+                                    fstar_tmp)
 
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
+        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
             mortars_u[2, v, 1, i, j, mortar] = val_out[v, i, j]
         end
 
         gpu_multiply_dimensionwise!(val_out,
-                                forward_upper,
-                                forward_lower,
-                                u_buffer,
-                                fstar_tmp)
+                                    forward_upper,
+                                    forward_lower,
+                                    u_buffer,
+                                    fstar_tmp)
 
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
+        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
             mortars_u[2, v, 2, i, j, mortar] = val_out[v, i, j]
         end
 
         gpu_multiply_dimensionwise!(val_out,
-                                forward_lower,
-                                forward_upper,
-                                u_buffer,
-                                fstar_tmp)
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
+                                    forward_lower,
+                                    forward_upper,
+                                    u_buffer,
+                                    fstar_tmp)
+        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
             mortars_u[2, v, 3, i, j, mortar] = val_out[v, i, j]
         end
 
         gpu_multiply_dimensionwise!(val_out,
-                                forward_upper,
-                                forward_upper,
-                                u_buffer,
-                                fstar_tmp)
+                                    forward_upper,
+                                    forward_upper,
+                                    u_buffer,
+                                    fstar_tmp)
 
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
+        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
             mortars_u[2, v, 4, i, j, mortar] = val_out[v, i, j]
         end
     end #@inbounds
     return nothing
 end
 
-function calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_flux_values,
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                            have_nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -860,10 +864,10 @@ function calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_flux_val
     pure_surface_flux = surface_integral.surface_flux
     index_range = eachnode(dg)
 
-    N = nnodes(dg)
+    _nnodes = nnodes(dg)
     NVARS = nvariables(equations)
-    T = eltype(surface_flux_values)
-    L = N * N * NVARS
+    RealType = eltype(surface_flux_values)
+    L = _nnodes * _nnodes * NVARS
 
     kernel! = calc_mortar_flux_KAkernel!(backend)
 
@@ -871,7 +875,7 @@ function calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_flux_val
             equations, pure_surface_flux, dg,
             mortars_u, neighbor_ids, node_indices, contravariant_vectors,
             mortar_l2.reverse_lower, mortar_l2.reverse_upper, index_range,
-            Val(N), Val(NVARS), Val(T), Val(L);
+            Val(_nnodes), Val(NVARS), Val(RealType), Val(L);
             ndrange = nmortars(dg, cache))
 
     return nothing
@@ -885,22 +889,24 @@ end
                                             mortars_u, neighbor_ids, node_indices,
                                             contravariant_vectors,
                                             reverse_lower, reverse_upper, index_range,
-                                            ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                            ::Val{L}) where {N, NVARS, T, L}
+                                            ::Val{_nnodes}, ::Val{NVARS},
+                                            ::Val{RealType},
+                                            ::Val{L}) where {_nnodes, NVARS, RealType,
+                                                             L}
     mortar = @index(Global, Linear)
 
     @inbounds begin
-        fstar_primary1 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_primary2 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_primary3 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_primary4 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        fstar_primary1 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
+        fstar_primary2 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
+        fstar_primary3 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
+        fstar_primary4 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
-        fstar_secondary1 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_secondary2 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_secondary3 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_secondary4 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        fstar_secondary1 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
+        fstar_secondary2 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
+        fstar_secondary3 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
+        fstar_secondary4 = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
-        fstar_tmp = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        fstar_tmp = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
         small_indices = node_indices[1, mortar]
         small_direction = indices2direction(small_indices)
@@ -920,8 +926,8 @@ end
             j_small = j_small_start
             k_small = k_small_start
             element = neighbor_ids[position, mortar]
-            for j in 1:N
-                for i in 1:N
+            for j in 1:_nnodes
+                for i in 1:_nnodes
                     normal_direction = get_normal_direction(small_direction,
                                                             contravariant_vectors,
                                                             i_small, j_small, k_small,
@@ -945,7 +951,7 @@ end
             end
         end
 
-        u_buffer = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        u_buffer = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
         mortar_fluxes_to_elements!(surface_flux_values, neighbor_ids, node_indices,
                                    index_range,
@@ -954,7 +960,7 @@ end
                                    fstar_primary4,
                                    fstar_secondary1, fstar_secondary2, fstar_secondary3,
                                    fstar_secondary4,
-                                   u_buffer, fstar_tmp, N, NVARS)
+                                   u_buffer, fstar_tmp, _nnodes, NVARS)
     end
 end
 
@@ -1051,7 +1057,7 @@ end
                                             mortar,
                                             fstar_p_1, fstar_p_2, fstar_p_3, fstar_p_4,
                                             fstar_s_1, fstar_s_2, fstar_s_3, fstar_s_4,
-                                            u_buffer, fstar_tmp, N, NVARS)
+                                            u_buffer, fstar_tmp, _nnodes, NVARS)
 
     # Copy solution small to small
     small_indices = node_indices[1, mortar]
@@ -1059,7 +1065,7 @@ end
 
     for position in 1:4
         element = neighbor_ids[position, mortar]
-        for j in 1:N, i in 1:N
+        for j in 1:_nnodes, i in 1:_nnodes
             for v in Base.OneTo(NVARS)
                 if (position == 1)
                     surface_flux_values[v, i, j, small_direction,
@@ -1088,21 +1094,21 @@ end
 
     # Project small fluxes to large element.
     gpu_multiply_dimensionwise!(u_buffer,
-                            reverse_lower, reverse_lower,
-                            fstar_s_1,
-                            fstar_tmp)
-    gpu_add_multiply_dimensionwise!(u_buffer,
-                                reverse_upper, reverse_lower,
-                                fstar_s_2,
+                                reverse_lower, reverse_lower,
+                                fstar_s_1,
                                 fstar_tmp)
     gpu_add_multiply_dimensionwise!(u_buffer,
-                                reverse_lower, reverse_upper,
-                                fstar_s_3,
-                                fstar_tmp)
+                                    reverse_upper, reverse_lower,
+                                    fstar_s_2,
+                                    fstar_tmp)
     gpu_add_multiply_dimensionwise!(u_buffer,
-                                reverse_upper, reverse_upper,
-                                fstar_s_4,
-                                fstar_tmp)
+                                    reverse_lower, reverse_upper,
+                                    fstar_s_3,
+                                    fstar_tmp)
+    gpu_add_multiply_dimensionwise!(u_buffer,
+                                    reverse_upper, reverse_upper,
+                                    fstar_s_4,
+                                    fstar_tmp)
 
     # The flux is calculated in the outward direction of the small elements,
     # so the sign must be switched to get the flux in outward direction
@@ -1133,8 +1139,8 @@ end
     # the large indices might need to run backwards for flipped sides.
     i_large = i_large_start
     j_large = j_large_start
-    for j in 1:N
-        for i in 1:N
+    for j in 1:_nnodes
+        for i in 1:_nnodes
             for v in Base.OneTo(NVARS)
                 surface_flux_values[v, i_large, j_large, large_direction,
                                     large_element] = u_buffer[v,

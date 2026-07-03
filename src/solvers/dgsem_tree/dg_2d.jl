@@ -308,7 +308,8 @@ end
                               sc_interface_coords, reconstruction_mode, slope_limiter,
                               cons2recon, recon2cons,
                               alpha = true)
-    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
+    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
+            fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
@@ -409,7 +410,8 @@ end
                                                 T8codeMesh{2}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
-    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
+    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded,
+            fstar2_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
@@ -829,7 +831,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux = surface_integral
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack u, neighbor_ids, neighbor_sides, node_coordinates,
+            orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -864,7 +867,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           have_nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack u, neighbor_ids, neighbor_sides, node_coordinates,
+            orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -1040,7 +1044,7 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u_lower, u_upper, orientations, large_sides = cache.mortars
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container

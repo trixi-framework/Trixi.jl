@@ -196,24 +196,72 @@ function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
     return nothing
 end
 
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                      T8codeMesh{2}},
+                          equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
+    nmortars(dg, cache) == 0 && return nothing
+
+    @unpack mortars = cache
+    @unpack neighbor_ids, node_indices = cache.mortars
+
+    index_range = eachnode(dg)
+
+    _nnodes = nnodes(dg)
+    RealType = eltype(u)
+    NVARS = nvariables(equations)
+    L = _nnodes * NVARS
+
+    kernel! = prolong2mortars_KAkernel!(backend)
+    kernel!(mortars.u, u, typeof(mesh), equations,
+            neighbor_ids, node_indices, index_range,
+            mortar_l2.forward_lower, mortar_l2.forward_upper,
+            Val(_nnodes), Val(NVARS), Val(RealType), Val(L);
+            ndrange = nmortars(dg, cache))
+
+    return nothing
+end
+
+@kernel function prolong2mortars_KAkernel!(mortars_u, u,
+                                           MeshT::Type{<:Union{P4estMesh{2},
+                                                               P4estMeshView{2},
+                                                               T8codeMesh{2}}},
+                                           equations,
+                                           neighbor_ids, node_indices,
+                                           index_range,
+                                           forward_lower,
+                                           forward_upper,
+                                           ::Val{_nnodes}, ::Val{NVARS},
+                                           ::Val{RealType},
+                                           ::Val{L}) where {_nnodes, NVARS, RealType, L}
+    mortar = @index(Global)
+    prolong2mortars_per_mortar!(mortars_u, u, mortar, MeshT, equations,
+                                neighbor_ids, node_indices, index_range,
+                                forward_lower, forward_upper, Val(_nnodes), Val(NVARS),
+                                Val(RealType), Val(L))
+end
 
 @inline function prolong2mortars_per_mortar!(mortars_u, u, mortar,
-                                             MeshT::Type{<:Union{Trixi.P4estMesh{2},
-                                                                 Trixi.P4estMeshView{2},
-                                                                 Trixi.T8codeMesh{2}}},
+                                             MeshT::Type{<:Union{P4estMesh{2},
+                                                                 P4estMeshView{2},
+                                                                 T8codeMesh{2}}},
                                              equations,
                                              neighbor_ids, node_indices,
                                              index_range,
                                              forward_lower,
                                              forward_upper,
-                                             ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                             ::Val{L}) where {N, NVARS, T, L}
+                                             ::Val{_nnodes}, ::Val{NVARS},
+                                             ::Val{RealType},
+                                             ::Val{L}) where {_nnodes, NVARS, RealType,
+                                                              L}
     @inbounds begin
         small_indices = node_indices[1, mortar]
-        i_small_start, i_small_step = Trixi.index_to_start_step_2d(small_indices[1],
-                                                                   index_range)
-        j_small_start, j_small_step = Trixi.index_to_start_step_2d(small_indices[2],
-                                                                   index_range)
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
 
         for position in 1:2
             i_small = i_small_start
@@ -229,13 +277,13 @@ end
             end
         end
 
-        u_buffer = MArray{Tuple{NVARS, N}, T, 2, NVARS * N}(undef)
+        u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
 
         large_indices = node_indices[2, mortar]
-        i_large_start, i_large_step = Trixi.index_to_start_step_2d(large_indices[1],
-                                                                   index_range)
-        j_large_start, j_large_step = Trixi.index_to_start_step_2d(large_indices[2],
-                                                                   index_range)
+        i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
+                                                             index_range)
+        j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
+                                                             index_range)
 
         i_large = i_large_start
         j_large = j_large_start
@@ -248,18 +296,18 @@ end
             j_large += j_large_step
         end
 
-        val_lower = StaticArrays.MArray{Tuple{NVARS, N}, T, 2, L}(undef)
-        val_upper = StaticArrays.MArray{Tuple{NVARS, N}, T, 2, L}(undef)
+        val_lower = StaticArrays.MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
+        val_upper = StaticArrays.MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
 
-        for i in 1:N, v in Base.OneTo(NVARS)
-            val_lower[v, i] = zero(T)
-            val_upper[v, i] = zero(T)
+        for i in 1:_nnodes, v in Base.OneTo(NVARS)
+            val_lower[v, i] = zero(RealType)
+            val_upper[v, i] = zero(RealType)
         end
 
         gpu_multiply_dimensionwise!(val_lower, forward_lower, u_buffer)
         gpu_multiply_dimensionwise!(val_upper, forward_upper, u_buffer)
 
-        for i in 1:N
+        for i in 1:_nnodes
             for v in Base.OneTo(NVARS)
                 mortars_u[2, v, 1, i, mortar] = val_lower[v, i]
                 mortars_u[2, v, 2, i, mortar] = val_upper[v, i]
@@ -270,198 +318,77 @@ end
     return nothing
 end
 
-@kernel function prolong2mortars_KAkernel!(mortars_u, u,
-                                           MeshT::Type{<:Union{Trixi.P4estMesh{2},
-                                                               Trixi.P4estMeshView{2},
-                                                               Trixi.T8codeMesh{2}}},
-                                           equations,
-                                           neighbor_ids, node_indices,
-                                           index_range,
-                                           forward_lower,
-                                           forward_upper,
-                                           ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                           ::Val{L}) where {N, NVARS, T, L}
-    mortar = @index(Global)
-    prolong2mortars_per_mortar!(mortars_u, u, mortar, MeshT, equations,
-                                neighbor_ids, node_indices, index_range,
-                                forward_lower, forward_upper, Val(N), Val(NVARS),
-                                Val(T), Val(L))
-end
+function calc_mortar_flux!(backend::Backend,
+                           surface_flux_values,
+                           mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                       T8codeMesh{2}},
+                           have_nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DGSEM, cache)
+    nmortars(dg, cache) == 0 && return nothing
 
-function Trixi.prolong2mortars!(backend::KernelAbstractions.Backend, cache, u,
-                                mesh::Union{Trixi.P4estMesh{2}, Trixi.P4estMeshView{2},
-                                            Trixi.T8codeMesh{2}},
-                                equations,
-                                mortar_l2::Trixi.LobattoLegendreMortarL2,
-                                dg::Trixi.DGSEM{<:Trixi.LobattoLegendreBasis})
-    Trixi.nmortars(dg, cache) == 0 && return nothing
-
-    @unpack mortars = cache
     @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    mortars_u = cache.mortars.u
+    pure_surface_flux = surface_integral.surface_flux
+    index_range = eachnode(dg)
 
-    index_range = Trixi.eachnode(dg)
+    _nnodes = nnodes(dg)
+    NVARS = nvariables(equations)
+    RealType = eltype(surface_flux_values)
+    L = _nnodes * NVARS
 
-    N = Trixi.nnodes(dg)
-    T = eltype(u)
-    NVARS = Trixi.nvariables(equations)
-    L = N * NVARS
+    kernel! = calc_mortar_flux_KAkernel!(backend)
 
-    kernel! = prolong2mortars_KAkernel!(backend)
-    kernel!(mortars.u, u, typeof(mesh), equations,
-            neighbor_ids, node_indices, index_range,
-            mortar_l2.forward_lower, mortar_l2.forward_upper,
-            Val(N), Val(NVARS), Val(T), Val(L);
-            ndrange = Trixi.nmortars(dg, cache))
-
-    return nothing
-end
-
-@inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            neighbor_ids, node_indices,
-                                            reverse_lower, reverse_upper,
-                                            mortar,
-                                            fstar_primary_1, fstar_primary_2,
-                                            fstar_s_lower, fstar_s_upper,
-                                            u_buffer, N, NVARS)
-    small_indices = node_indices[1, mortar]
-    small_direction = Trixi.indices2direction(small_indices)
-
-    for position in 1:2
-        element = neighbor_ids[position, mortar]
-        for i in 1:N
-            for v in Base.OneTo(NVARS)
-                surface_flux_values[v, i, small_direction, element] = position == 1 ?
-                                                                      fstar_primary_1[v,
-                                                                                      i] :
-                                                                      fstar_primary_2[v,
-                                                                                      i]
-            end
-        end
-    end
-
-    gpu_multiply_dimensionwise!(u_buffer,
-                            reverse_upper, fstar_s_upper,
-                            reverse_lower, fstar_s_lower)
-
-    u_buffer .*= -2
-
-    large_element = neighbor_ids[3, mortar]
-    large_indices = node_indices[2, mortar]
-    large_direction = Trixi.indices2direction(large_indices)
-
-    if :i_backward in large_indices
-        for i in 1:N
-            for v in Base.OneTo(NVARS)
-                surface_flux_values[v, N + 1 - i, large_direction,
-                                    large_element] = u_buffer[v, i]
-            end
-        end
-    else
-        for i in 1:N
-            for v in Base.OneTo(NVARS)
-                surface_flux_values[v, i, large_direction, large_element] = u_buffer[v,
-                                                                                     i]
-            end
-        end
-    end
-
-    return nothing
-end
-
-@inline function gpu_calc_mortar_flux!(fstar_p_1, fstar_p_2, fstar_s_1, fstar_s_2,
-                                       MeshT,
-                                       have_nonconservative_terms::Trixi.False,
-                                       equations,
-                                       pure_surface_flux, dg::Trixi.DGSEM, mortar_u,
-                                       mortar_index, position_index, normal_direction,
-                                       node_index)
-    u_ll, u_rr = Trixi.get_surface_node_vars(mortar_u, equations, dg, position_index,
-                                             node_index, mortar_index)
-
-    flux = pure_surface_flux(u_ll, u_rr, normal_direction, equations)
-
-    if position_index == 1
-        Trixi.set_node_vars!(fstar_p_1, flux, equations, dg, node_index)
-        Trixi.set_node_vars!(fstar_s_1, flux, equations, dg, node_index)
-    else
-        Trixi.set_node_vars!(fstar_p_2, flux, equations, dg, node_index)
-        Trixi.set_node_vars!(fstar_s_2, flux, equations, dg, node_index)
-    end
-    return nothing
-end
-
-@inline function gpu_calc_mortar_flux!(fstar_p_1, fstar_p_2, fstar_s_1, fstar_s_2,
-                                       MeshT,
-                                       have_nonconservative_terms::Trixi.True,
-                                       equations,
-                                       pure_surface_flux, dg::Trixi.DGSEM, mortar_u,
-                                       mortar_index, position_index, normal_direction,
-                                       node_index)
-    surface_flux, nonconservative_flux = pure_surface_flux
-
-    u_ll, u_rr = Trixi.get_surface_node_vars(mortar_u, equations, dg, position_index,
-                                             node_index, mortar_index)
-
-    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
-
-    flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
-    flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
-
-    if position_index == 1
-        Trixi.set_node_vars!(fstar_p_1, flux_plus_noncons_primary, equations, dg,
-                             node_index)
-        Trixi.set_node_vars!(fstar_s_1, flux_plus_noncons_secondary, equations, dg,
-                             node_index)
-    else
-        Trixi.set_node_vars!(fstar_p_2, flux_plus_noncons_primary, equations, dg,
-                             node_index)
-        Trixi.set_node_vars!(fstar_s_2, flux_plus_noncons_secondary, equations, dg,
-                             node_index)
-    end
+    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms,
+            equations, pure_surface_flux, dg,
+            mortars_u, neighbor_ids, node_indices, contravariant_vectors,
+            mortar_l2.reverse_lower, mortar_l2.reverse_upper, index_range,
+            Val(_nnodes), Val(NVARS), Val(RealType), Val(L);
+            ndrange = nmortars(dg, cache))
 
     return nothing
 end
 
 @kernel function calc_mortar_flux_KAkernel!(surface_flux_values,
-                                            MeshT::Type{<:Union{Trixi.P4estMesh{2},
-                                                                Trixi.P4estMeshView{2},
-                                                                Trixi.T8codeMesh{2}}},
+                                            MeshT::Type{<:Union{P4estMesh{2},
+                                                                P4estMeshView{2},
+                                                                T8codeMesh{2}}},
                                             have_nonconservative_terms, equations,
-                                            pure_surface_flux, dg::Trixi.DGSEM,
+                                            pure_surface_flux, dg::DGSEM,
                                             mortars_u, neighbor_ids, node_indices,
                                             contravariant_vectors,
                                             reverse_lower, reverse_upper, index_range,
-                                            ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                            ::Val{L}) where {N, NVARS, T, L}
+                                            ::Val{_nnodes}, ::Val{NVARS},
+                                            ::Val{RealType},
+                                            ::Val{L}) where {_nnodes, NVARS, RealType,
+                                                             L}
     mortar = @index(Global)
 
     @inbounds begin
-        fstar_p_1 = MArray{Tuple{NVARS, N}, T, 2, L}(undef)
-        fstar_p_2 = MArray{Tuple{NVARS, N}, T, 2, L}(undef)
-        fstar_s_1 = MArray{Tuple{NVARS, N}, T, 2, L}(undef)
-        fstar_s_2 = MArray{Tuple{NVARS, N}, T, 2, L}(undef)
-        u_buffer = MArray{Tuple{NVARS, N}, T, 2, L}(undef)
+        fstar_p_1 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
+        fstar_p_2 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
+        fstar_s_1 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
+        fstar_s_2 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
+        u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType, 2, L}(undef)
 
         small_indices = node_indices[1, mortar]
-        small_direction = Trixi.indices2direction(small_indices)
+        small_direction = indices2direction(small_indices)
 
-        i_small_start, i_small_step = Trixi.index_to_start_step_2d(small_indices[1],
-                                                                   index_range)
-        j_small_start, j_small_step = Trixi.index_to_start_step_2d(small_indices[2],
-                                                                   index_range)
+        i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
+                                                             index_range)
+        j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
+                                                             index_range)
 
         for position in 1:2
             i_small = i_small_start
             j_small = j_small_start
             element = neighbor_ids[position, mortar]
 
-            for node in 1:N
-                normal_direction = Trixi.get_normal_direction(small_direction,
-                                                              contravariant_vectors,
-                                                              i_small, j_small, element)
+            for node in 1:_nnodes
+                normal_direction = get_normal_direction(small_direction,
+                                                        contravariant_vectors,
+                                                        i_small, j_small, element)
 
                 gpu_calc_mortar_flux!(fstar_p_1, fstar_p_2, fstar_s_1, fstar_s_2,
                                       MeshT, have_nonconservative_terms, equations,
@@ -479,38 +406,115 @@ end
                                    mortar,
                                    fstar_p_1, fstar_p_2,
                                    fstar_s_1, fstar_s_2,
-                                   u_buffer, N, NVARS)
+                                   u_buffer, _nnodes, NVARS)
     end
 end
 
-function Trixi.calc_mortar_flux!(backend::KernelAbstractions.Backend,
-                                 surface_flux_values,
-                                 mesh::Union{Trixi.P4estMesh{2}, Trixi.P4estMeshView{2},
-                                             Trixi.T8codeMesh{2}},
-                                 have_nonconservative_terms, equations,
-                                 mortar_l2::Trixi.LobattoLegendreMortarL2,
-                                 surface_integral, dg::Trixi.DGSEM, cache)
-    Trixi.nmortars(dg, cache) == 0 && return nothing
+@inline function gpu_calc_mortar_flux!(fstar_p_1, fstar_p_2, fstar_s_1, fstar_s_2,
+                                       MeshT,
+                                       have_nonconservative_terms::False,
+                                       equations,
+                                       pure_surface_flux, dg::DGSEM, mortar_u,
+                                       mortar_index, position_index, normal_direction,
+                                       node_index)
+    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position_index,
+                                       node_index, mortar_index)
 
-    @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack contravariant_vectors = cache.elements
-    mortars_u = cache.mortars.u
-    pure_surface_flux = surface_integral.surface_flux
-    index_range = Trixi.eachnode(dg)
+    flux = pure_surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    N = Trixi.nnodes(dg)
-    NVARS = Trixi.nvariables(equations)
-    T = eltype(surface_flux_values)
-    L = N * NVARS
+    if position_index == 1
+        set_node_vars!(fstar_p_1, flux, equations, dg, node_index)
+        set_node_vars!(fstar_s_1, flux, equations, dg, node_index)
+    else
+        set_node_vars!(fstar_p_2, flux, equations, dg, node_index)
+        set_node_vars!(fstar_s_2, flux, equations, dg, node_index)
+    end
+    return nothing
+end
 
-    kernel! = calc_mortar_flux_KAkernel!(backend)
+@inline function gpu_calc_mortar_flux!(fstar_p_1, fstar_p_2, fstar_s_1, fstar_s_2,
+                                       MeshT,
+                                       have_nonconservative_terms::True,
+                                       equations,
+                                       pure_surface_flux, dg::DGSEM, mortar_u,
+                                       mortar_index, position_index, normal_direction,
+                                       node_index)
+    surface_flux, nonconservative_flux = pure_surface_flux
 
-    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms,
-            equations, pure_surface_flux, dg,
-            mortars_u, neighbor_ids, node_indices, contravariant_vectors,
-            mortar_l2.reverse_lower, mortar_l2.reverse_upper, index_range,
-            Val(N), Val(NVARS), Val(T), Val(L);
-            ndrange = Trixi.nmortars(dg, cache))
+    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position_index,
+                                       node_index, mortar_index)
+
+    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+
+    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+
+    flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
+    flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
+
+    if position_index == 1
+        set_node_vars!(fstar_p_1, flux_plus_noncons_primary, equations, dg,
+                       node_index)
+        set_node_vars!(fstar_s_1, flux_plus_noncons_secondary, equations, dg,
+                       node_index)
+    else
+        set_node_vars!(fstar_p_2, flux_plus_noncons_primary, equations, dg,
+                       node_index)
+        set_node_vars!(fstar_s_2, flux_plus_noncons_secondary, equations, dg,
+                       node_index)
+    end
+
+    return nothing
+end
+
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            neighbor_ids, node_indices,
+                                            reverse_lower, reverse_upper,
+                                            mortar,
+                                            fstar_primary_1, fstar_primary_2,
+                                            fstar_s_lower, fstar_s_upper,
+                                            u_buffer, _nnodes, NVARS)
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
+
+    for position in 1:2
+        element = neighbor_ids[position, mortar]
+        for i in 1:_nnodes
+            for v in Base.OneTo(NVARS)
+                surface_flux_values[v, i, small_direction, element] = position == 1 ?
+                                                                      fstar_primary_1[v,
+                                                                                      i] :
+                                                                      fstar_primary_2[v,
+                                                                                      i]
+            end
+        end
+    end
+
+    gpu_multiply_dimensionwise!(u_buffer,
+                                reverse_upper, fstar_s_upper,
+                                reverse_lower, fstar_s_lower)
+
+    u_buffer .*= -2
+
+    large_element = neighbor_ids[3, mortar]
+    large_indices = node_indices[2, mortar]
+    large_direction = indices2direction(large_indices)
+
+    if :i_backward in large_indices
+        for i in 1:_nnodes
+            for v in Base.OneTo(NVARS)
+                surface_flux_values[v, _nnodes + 1 - i, large_direction,
+                                    large_element] = u_buffer[v, i]
+            end
+        end
+    else
+        for i in 1:_nnodes
+            for v in Base.OneTo(NVARS)
+                surface_flux_values[v, i, large_direction, large_element] = u_buffer[v,
+                                                                                     i]
+            end
+        end
+    end
 
     return nothing
 end

@@ -596,7 +596,8 @@ function calc_boundary_flux_by_direction_gradient!(surface_flux_values::Abstract
                                                    direction, first_boundary,
                                                    last_boundary)
     @unpack surface_flux = surface_integral
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack u, neighbor_ids, neighbor_sides, node_coordinates,
+            orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -679,7 +680,8 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 
     # Note: cache.boundaries.u contains the unsigned normal component (using "orientation", not "direction")
     # of the parabolic flux, as computed in `prolong2boundaries!`
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack u, neighbor_ids, neighbor_sides, node_coordinates,
+            orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element

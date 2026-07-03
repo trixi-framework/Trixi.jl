@@ -271,7 +271,8 @@ end
                                                 T8codeMesh{3}}},
                             have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
-    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
+    @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded,
+            fstar3_L_threaded, fstar3_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
@@ -315,8 +316,8 @@ end
                               cons2recon, recon2cons,
                               alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded,
-    fstar2_L_threaded, fstar2_R_threaded,
-    fstar3_L_threaded, fstar3_R_threaded = cache
+            fstar2_L_threaded, fstar2_R_threaded,
+            fstar3_L_threaded, fstar3_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
 
     # Calculate FV two-point fluxes
@@ -739,7 +740,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux = surface_integral
-    @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+    @unpack u, neighbor_ids, neighbor_sides, node_coordinates,
+            orientations = cache.boundaries
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -963,10 +965,11 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
-    @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
+    @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right,
+            orientations = cache.mortars
     @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
-    fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
-    fstar_tmp1_threaded) = cache
+             fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
+             fstar_tmp1_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
@@ -1012,12 +1015,13 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
-    @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations, large_sides = cache.mortars
+    @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations,
+            large_sides = cache.mortars
     @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
-    fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
-    fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
-    fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
-    fstar_tmp1_threaded) = cache
+             fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
+             fstar_secondary_upper_left_threaded, fstar_secondary_upper_right_threaded,
+             fstar_secondary_lower_left_threaded, fstar_secondary_lower_right_threaded,
+             fstar_tmp1_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
@@ -1063,17 +1067,19 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                 u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
                                                                          equations, dg,
                                                                          i, j, mortar)
-                u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right,
-                                                                           equations,
-                                                                           dg, i, j,
-                                                                           mortar)
+                u_upper_right_ll,
+                u_upper_right_rr = get_surface_node_vars(u_upper_right,
+                                                         equations,
+                                                         dg, i, j,
+                                                         mortar)
                 u_lower_left_ll, u_lower_left_rr = get_surface_node_vars(u_lower_left,
                                                                          equations, dg,
                                                                          i, j, mortar)
-                u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right,
-                                                                           equations,
-                                                                           dg, i, j,
-                                                                           mortar)
+                u_lower_right_ll,
+                u_lower_right_rr = get_surface_node_vars(u_lower_right,
+                                                         equations,
+                                                         dg, i, j,
+                                                         mortar)
                 # Call pointwise nonconservative term
                 noncons_primary_upper_left = nonconservative_flux(u_upper_left_ll,
                                                                   u_upper_left_rr,
@@ -1139,17 +1145,19 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                 u_upper_left_ll, u_upper_left_rr = get_surface_node_vars(u_upper_left,
                                                                          equations, dg,
                                                                          i, j, mortar)
-                u_upper_right_ll, u_upper_right_rr = get_surface_node_vars(u_upper_right,
-                                                                           equations,
-                                                                           dg, i, j,
-                                                                           mortar)
+                u_upper_right_ll,
+                u_upper_right_rr = get_surface_node_vars(u_upper_right,
+                                                         equations,
+                                                         dg, i, j,
+                                                         mortar)
                 u_lower_left_ll, u_lower_left_rr = get_surface_node_vars(u_lower_left,
                                                                          equations, dg,
                                                                          i, j, mortar)
-                u_lower_right_ll, u_lower_right_rr = get_surface_node_vars(u_lower_right,
-                                                                           equations,
-                                                                           dg, i, j,
-                                                                           mortar)
+                u_lower_right_ll,
+                u_lower_right_rr = get_surface_node_vars(u_lower_right,
+                                                         equations,
+                                                         dg, i, j,
+                                                         mortar)
                 # Call pointwise nonconservative term
                 noncons_primary_upper_left = nonconservative_flux(u_upper_left_rr,
                                                                   u_upper_left_ll,
@@ -1284,10 +1292,14 @@ end
             direction = 6
         end
     end
-    surface_flux_values[:, :, :, direction, upper_left_element] .= fstar_primary_upper_left
-    surface_flux_values[:, :, :, direction, upper_right_element] .= fstar_primary_upper_right
-    surface_flux_values[:, :, :, direction, lower_left_element] .= fstar_primary_lower_left
-    surface_flux_values[:, :, :, direction, lower_right_element] .= fstar_primary_lower_right
+    surface_flux_values[:, :, :, direction,
+                        upper_left_element] .= fstar_primary_upper_left
+    surface_flux_values[:, :, :, direction,
+                        upper_right_element] .= fstar_primary_upper_right
+    surface_flux_values[:, :, :, direction,
+                        lower_left_element] .= fstar_primary_lower_left
+    surface_flux_values[:, :, :, direction,
+                        lower_right_element] .= fstar_primary_lower_right
 
     # Project small fluxes to large element
     if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
