@@ -69,16 +69,6 @@ function Base.show(io::IO, ::BoundaryConditionPeriodic)
     return nothing
 end
 
-"""
-    struct BoundaryConditionDoNothing
-
-Creates a boundary condition which does not impose any constraints on the solution at the boundary.
-In other words, the boundary flux is computed entirely from the inner state
-which has the effect of extending the domain beydond the boundary with the same solution state as
-in the interior.
-Also applicable to parabolic equations.
-See also [`boundary_condition_do_nothing`](@ref).
-"""
 struct BoundaryConditionDoNothing end
 
 # This version can be called by hyperbolic solvers on logically Cartesian meshes
