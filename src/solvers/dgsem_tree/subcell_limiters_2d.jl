@@ -777,23 +777,22 @@ end
         upper_element = neighbor_ids[2, mortar]
         large_element = neighbor_ids[3, mortar]
 
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            node_small = 1
+            node_large = nnodes(dg)
+        else # large_sides[mortar] == 2 -> small elements on left side
+            node_small = nnodes(dg)
+            node_large = 1
+        end
+
         for i in eachnode(dg)
-            if large_sides[mortar] == 1 # -> small elements on right side
-                if orientations[mortar] == 1
-                    indices_small = (1, i)
-                    indices_large = (nnodes(dg), i)
-                else
-                    indices_small = (i, 1)
-                    indices_large = (i, nnodes(dg))
-                end
-            else # large_sides[mortar] == 2 -> small elements on left side
-                if orientations[mortar] == 1
-                    indices_small = (nnodes(dg), i)
-                    indices_large = (1, i)
-                else
-                    indices_small = (i, nnodes(dg))
-                    indices_large = (i, 1)
-                end
+            if orientation == 1
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
             end
 
             n_mortars_per_node[indices_small..., lower_element] += 1
