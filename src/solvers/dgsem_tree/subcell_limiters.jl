@@ -12,6 +12,10 @@ function create_cache(typ::Type{LimiterType},
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
+@inline bar_states_as_static(bar_states::Bool) = bar_states ? True() : False()
+@inline bar_states_as_static(bar_states::True) = bar_states
+@inline bar_states_as_static(bar_states::False) = bar_states
+
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
                       local_twosided_variables_cons = String[],
@@ -68,10 +72,6 @@ More features will follow soon.
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
-@inline bar_states_as_static(bar_states::Bool) = bar_states ? True() : False()
-@inline bar_states_as_static(bar_states::True) = bar_states
-@inline bar_states_as_static(bar_states::False) = bar_states
-
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
                          LimitingOnesidedVariablesNonlinear, BarStates, Cache} <:
        AbstractSubcellLimiter
