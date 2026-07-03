@@ -1115,21 +1115,17 @@ end
 @inline function add_mortar_bar_states!(bar_states1, bar_states2, orientation,
                                         equations, lambda_indices_large,
                                         large_element, lambda_indices_small,
-                                        small_element, bar_state,
-                                        weight_large, weight_small)
+                                        small_element, bar_state, weight,
+                                        weight_sum_large, weight_sum_small)
     if orientation == 1
         for v in eachvariable(equations)
-            bar_states1[v, lambda_indices_large..., large_element] += weight_large *
-                                                                      bar_state[v]
-            bar_states1[v, lambda_indices_small..., small_element] += weight_small *
-                                                                      bar_state[v]
+            bar_states1[v, lambda_indices_large..., large_element] += weight * bar_state[v] / weight_sum_large
+            bar_states1[v, lambda_indices_small..., small_element] += weight * bar_state[v] / weight_sum_small
         end
     else # orientation == 2
         for v in eachvariable(equations)
-            bar_states2[v, lambda_indices_large..., large_element] += weight_large *
-                                                                      bar_state[v]
-            bar_states2[v, lambda_indices_small..., small_element] += weight_small *
-                                                                      bar_state[v]
+            bar_states2[v, lambda_indices_large..., large_element] += weight * bar_state[v] / weight_sum_large
+            bar_states2[v, lambda_indices_small..., small_element] += weight * bar_state[v] / weight_sum_small
         end
     end
 
@@ -1220,9 +1216,9 @@ end
                     add_mortar_bar_states!(bar_states1, bar_states2, orientation,
                                            equations, lambda_indices_large,
                                            large_element, lambda_indices_small,
-                                           small_element, bar_state,
-                                           weight / mortar_weights_sums[j, 2],
-                                           weight / mortar_weights_sums[k, 1])
+                                           small_element, bar_state, weight,
+                                           mortar_weights_sums[j, 2],
+                                           mortar_weights_sums[k, 1])
                 end
             end
         end
