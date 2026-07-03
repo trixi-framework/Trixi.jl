@@ -135,28 +135,23 @@ end
         large_element = neighbor_ids[3, mortar]
 
         orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            node_small = 1
+            node_large = nnodes(dg)
+        else # large_sides[mortar] == 2 -> small elements on left side
+            node_small = nnodes(dg)
+            node_large = 1
+        end
 
         for i in eachnode(dg)
-            if large_sides[mortar] == 1 # -> small elements on right side
-                if orientation == 1
-                    # L2 mortars in x-direction
-                    indices_small = (1, i)
-                    indices_large = (nnodes(dg), i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, 1)
-                    indices_large = (i, nnodes(dg))
-                end
-            else # large_sides[mortar] == 2 -> small elements on left side
-                if orientation == 1
-                    # L2 mortars in x-direction
-                    indices_small = (nnodes(dg), i)
-                    indices_large = (1, i)
-                else
-                    # L2 mortars in y-direction
-                    indices_small = (i, nnodes(dg))
-                    indices_large = (i, 1)
-                end
+            if orientation == 1
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
             end
             # Get solution data
             var_small = (u[variable, indices_small..., neighbor_ids[1, mortar]],
@@ -171,26 +166,14 @@ end
             var_large = u[variable, indices_large..., large_element]
 
             for j in eachnode(dg)
-                if large_sides[mortar] == 1 # -> small elements on right side
-                    if orientation == 1
-                        # L2 mortars in x-direction
-                        indices_small_inner = (1, j)
-                        indices_large_inner = (nnodes(dg), j)
-                    else
-                        # L2 mortars in y-direction
-                        indices_small_inner = (j, 1)
-                        indices_large_inner = (j, nnodes(dg))
-                    end
-                else # large_sides[mortar] == 2 -> small elements on left side
-                    if orientation == 1
-                        # L2 mortars in x-direction
-                        indices_small_inner = (nnodes(dg), j)
-                        indices_large_inner = (1, j)
-                    else
-                        # L2 mortars in y-direction
-                        indices_small_inner = (j, nnodes(dg))
-                        indices_large_inner = (j, 1)
-                    end
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small_inner = (node_small, j)
+                    indices_large_inner = (node_large, j)
+                else
+                    # L2 mortars in y-direction
+                    indices_small_inner = (j, node_small)
+                    indices_large_inner = (j, node_large)
                 end
 
                 for small_element_index in 1:2
