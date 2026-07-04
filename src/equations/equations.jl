@@ -693,8 +693,6 @@ include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
 include("linear_variable_scalar_advection_2d.jl")
 
-include("linear_variable_scalar_advection_2d.jl")
-
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end

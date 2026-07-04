@@ -40,12 +40,17 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
     ninterfaces(cache.interfaces) == 0 && return nothing
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
+    aux_interface = get_aux_surface_node_vars_vector(have_aux_node_vars, cache)
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
+    SolverT = typeof(dg)
 
     kernel! = calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms,
-            equations, surface_integral, typeof(dg), cache.interfaces.u,
-            neighbor_ids, node_indices, contravariant_vectors, index_range,
+    kernel!(surface_flux_values, MeshT, have_nonconservative_terms,
+            have_aux_node_vars,
+            equations, surface_integral, SolverT, cache.interfaces.u,
+            aux_interface, neighbor_ids, node_indices, contravariant_vectors,
+            index_range,
             ndrange = ninterfaces(cache.interfaces))
 
     return nothing
@@ -56,14 +61,17 @@ end
                                                                    P4estMeshView{2},
                                                                    T8codeMesh{2}}},
                                                have_nonconservative_terms,
+                                               have_aux_node_vars,
                                                equations, surface_integral,
                                                SolverT::Type{<:DG}, u_interface,
-                                               neighbor_ids, node_indices,
+                                               aux_interface, neighbor_ids,
+                                               node_indices,
                                                contravariant_vectors, index_range)
     interface = @index(Global)
     calc_interface_flux_per_interface!(surface_flux_values, MeshT,
-                                       have_nonconservative_terms, equations,
-                                       surface_integral, SolverT, u_interface,
+                                       have_nonconservative_terms, have_aux_node_vars,
+                                       equations, surface_integral, SolverT,
+                                       u_interface, aux_interface,
                                        interface, neighbor_ids, node_indices,
                                        contravariant_vectors, index_range)
 end
