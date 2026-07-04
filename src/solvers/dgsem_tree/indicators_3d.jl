@@ -61,7 +61,7 @@ end
     # Calculate total energies without two highest, without highest, and for all modes
     total_energy_clip2 = zero(eltype(modal))
     @trixi_bounds for k in 1:(nnodes(dg) - 2), j in 1:(nnodes(dg) - 2),
-                  i in 1:(nnodes(dg) - 2)
+                      i in 1:(nnodes(dg) - 2)
 
         total_energy_clip2 += modal[i, j, k]^2
     end

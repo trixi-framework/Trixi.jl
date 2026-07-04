@@ -540,7 +540,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
         if orientations[interface] == 1
             # interface in x-direction
             @trixi_bounds for k in eachnode(dg), j in eachnode(dg),
-                          v in eachvariable(equations)
+                              v in eachvariable(equations)
 
                 interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
                                                         left_element]
@@ -550,7 +550,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
         elseif orientations[interface] == 2
             # interface in y-direction
             @trixi_bounds for k in eachnode(dg), i in eachnode(dg),
-                          v in eachvariable(equations)
+                              v in eachvariable(equations)
 
                 interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
                                                         left_element]
@@ -560,7 +560,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
         else # if orientations[interface] == 3
             # interface in z-direction
             @trixi_bounds for j in eachnode(dg), i in eachnode(dg),
-                          v in eachvariable(equations)
+                              v in eachvariable(equations)
 
                 interfaces_u[1, v, i, j, interface] = u[v, i, j, nnodes(dg),
                                                         left_element]
@@ -667,13 +667,13 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
                 @trixi_bounds for k in eachnode(dg), j in eachnode(dg),
-                              v in eachvariable(equations)
+                                  v in eachvariable(equations)
 
                     boundaries.u[1, v, j, k, boundary] = u[v, nnodes(dg), j, k, element]
                 end
             else # Element in +x direction of boundary
                 @trixi_bounds for k in eachnode(dg), j in eachnode(dg),
-                              v in eachvariable(equations)
+                                  v in eachvariable(equations)
 
                     boundaries.u[2, v, j, k, boundary] = u[v, 1, j, k, element]
                 end
@@ -683,14 +683,14 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
                 @trixi_bounds for k in eachnode(dg), i in eachnode(dg),
-                              v in eachvariable(equations)
+                                  v in eachvariable(equations)
 
                     boundaries.u[1, v, i, k, boundary] = u[v, i, nnodes(dg), k, element]
                 end
             else
                 # element in +y direction of boundary
                 @trixi_bounds for k in eachnode(dg), i in eachnode(dg),
-                              v in eachvariable(equations)
+                                  v in eachvariable(equations)
 
                     boundaries.u[2, v, i, k, boundary] = u[v, i, 1, k, element]
                 end
@@ -700,14 +700,14 @@ function prolong2boundaries!(backend::Nothing, cache, u,
             if neighbor_sides[boundary] == 1
                 # element in -z direction of boundary
                 @trixi_bounds for j in eachnode(dg), i in eachnode(dg),
-                              v in eachvariable(equations)
+                                  v in eachvariable(equations)
 
                     boundaries.u[1, v, i, j, boundary] = u[v, i, j, nnodes(dg), element]
                 end
             else
                 # element in +z direction of boundary
                 @trixi_bounds for j in eachnode(dg), i in eachnode(dg),
-                              v in eachvariable(equations)
+                                  v in eachvariable(equations)
 
                     boundaries.u[2, v, i, j, boundary] = u[v, i, j, 1, element]
                 end

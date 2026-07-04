@@ -371,13 +371,15 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
                 @trixi_bounds for l in eachnode(dg),
-                                    v in eachvariable(equations_parabolic)
+                                  v in eachvariable(equations_parabolic)
+
                     boundaries_u[1, v, l, boundary] = flux_parabolic_x[v, nnodes(dg), l,
                                                                        element]
                 end
             else # Element in +x direction of boundary
                 @trixi_bounds for l in eachnode(dg),
-                                    v in eachvariable(equations_parabolic)
+                                  v in eachvariable(equations_parabolic)
+
                     boundaries_u[2, v, l, boundary] = flux_parabolic_x[v, 1, l,
                                                                        element]
                 end
@@ -387,14 +389,16 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
                 @trixi_bounds for l in eachnode(dg),
-                                    v in eachvariable(equations_parabolic)
+                                  v in eachvariable(equations_parabolic)
+
                     boundaries_u[1, v, l, boundary] = flux_parabolic_y[v, l, nnodes(dg),
                                                                        element]
                 end
             else
                 # element in +y direction of boundary
                 @trixi_bounds for l in eachnode(dg),
-                                    v in eachvariable(equations_parabolic)
+                                  v in eachvariable(equations_parabolic)
+
                     boundaries_u[2, v, l, boundary] = flux_parabolic_y[v, l, 1,
                                                                        element]
                 end
