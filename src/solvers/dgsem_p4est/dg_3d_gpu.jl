@@ -431,14 +431,17 @@ end
     end
 end
 
-function calc_boundary_flux_per_boundary!(u,
-                                          surface_flux_values, t, boundary_condition,
-                                          MeshT::Type{<:Union{P4estMesh{3},
-                                                              T8codeMesh{3}}},
-                                          equations, surface_integral, dg, cache,
-                                          boundary, neighbor_ids, node_indices_arr,
-                                          index_range, node_coordinates,
-                                          contravariant_vectors)
+@inline function calc_boundary_flux_per_boundary!(u,
+                                                  surface_flux_values, t,
+                                                  boundary_condition,
+                                                  MeshT::Type{<:Union{P4estMesh{3},
+                                                                      T8codeMesh{3}}},
+                                                  equations, surface_integral, dg,
+                                                  cache,
+                                                  boundary, neighbor_ids,
+                                                  node_indices_arr,
+                                                  index_range, node_coordinates,
+                                                  contravariant_vectors)
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them

@@ -72,9 +72,9 @@ using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Back
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
-    using LoopVectorization: LoopVectorization, @turbo, indices
+    using LoopVectorization: LoopVectorization, @turbo, indices, AbstractSIMD
 else
-    using LoopVectorization: LoopVectorization, indices
+    using LoopVectorization: LoopVectorization, indices, AbstractSIMD
     include("auxiliary/mock_turbo.jl")
 end
 
@@ -255,7 +255,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxUpwind,
-       FluxTracerEquationsCentral
+       FluxTracerEquationsCentral, FluxTurbo
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
