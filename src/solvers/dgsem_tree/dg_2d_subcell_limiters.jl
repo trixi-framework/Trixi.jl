@@ -1066,10 +1066,10 @@ end
                 flux_right = flux(u_right, orientation, equations)
                 bar_state = 0.5 * (u_left + u_right) -
                             0.5 * (flux_right - flux_left) / lambda
-                for v in eachvariable(equations)
-                    bar_states1[v, nnodes(dg) + 1, j, left_element] = bar_state[v]
-                    bar_states1[v, 1, j, right_element] = bar_state[v]
-                end
+                set_node_vars!(bar_states1, bar_state, equations, dg,
+                               nnodes(dg) + 1, j, left_element)
+                set_node_vars!(bar_states1, bar_state, equations, dg,
+                               1, j, right_element)
             end
         else # orientation == 2
             for i in eachnode(dg)
@@ -1086,10 +1086,10 @@ end
                 flux_right = flux(u_right, orientation, equations)
                 bar_state = 0.5 * (u_left + u_right) -
                             0.5 * (flux_right - flux_left) / lambda
-                for v in eachvariable(equations)
-                    bar_states2[v, i, nnodes(dg) + 1, left_element] = bar_state[v]
-                    bar_states2[v, i, 1, right_element] = bar_state[v]
-                end
+                set_node_vars!(bar_states2, bar_state, equations, dg,
+                               i, nnodes(dg) + 1, left_element)
+                set_node_vars!(bar_states2, bar_state, equations, dg,
+                               i, 1, right_element)
             end
         end
     end
@@ -1255,18 +1255,18 @@ end
                                                        orientation, 1,
                                                        mesh, equations, dg, cache,
                                                        1, j, element)
-                    lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer,
-                                                                 orientation, equations)
+                    lambda = max_abs_speed_naive(u_inner, u_outer, orientation,
+                                                 equations)
+                    lambda1[1, j, element] = lambda
 
                     calc_bar_states || continue
 
                     flux_inner = flux(u_inner, orientation, equations)
                     flux_outer = flux(u_outer, orientation, equations)
                     bar_state = 0.5 * (u_inner + u_outer) -
-                                0.5 * (flux_inner - flux_outer) / lambda1[1, j, element]
-                    for v in eachvariable(equations)
-                        bar_states1[v, 1, j, element] = bar_state[v]
-                    end
+                                0.5 * (flux_inner - flux_outer) / lambda
+                    set_node_vars!(bar_states1, bar_state, equations, dg,
+                                   1, j, element)
                 end
             else # Element is on the left, boundary on the right
                 for j in eachnode(dg)
@@ -1276,21 +1276,18 @@ end
                                                        orientation, 2,
                                                        mesh, equations, dg, cache,
                                                        nnodes(dg), j, element)
-                    lambda1[nnodes(dg) + 1, j, element] = max_abs_speed_naive(u_inner,
-                                                                              u_outer,
-                                                                              orientation,
-                                                                              equations)
+                    lambda = max_abs_speed_naive(u_inner, u_outer, orientation,
+                                                 equations)
+                    lambda1[nnodes(dg) + 1, j, element] = lambda
 
                     calc_bar_states || continue
 
                     flux_inner = flux(u_inner, orientation, equations)
                     flux_outer = flux(u_outer, orientation, equations)
                     bar_state = 0.5 * (u_inner + u_outer) -
-                                0.5 * (flux_outer - flux_inner) /
-                                lambda1[nnodes(dg) + 1, j, element]
-                    for v in eachvariable(equations)
-                        bar_states1[v, nnodes(dg) + 1, j, element] = bar_state[v]
-                    end
+                                0.5 * (flux_outer - flux_inner) / lambda
+                    set_node_vars!(bar_states1, bar_state, equations, dg,
+                                   nnodes(dg) + 1, j, element)
                 end
             end
         else # orientation == 2
@@ -1302,18 +1299,18 @@ end
                                                        orientation, 3,
                                                        mesh, equations, dg, cache,
                                                        i, 1, element)
-                    lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer,
-                                                                 orientation, equations)
+                    lambda = max_abs_speed_naive(u_inner, u_outer, orientation,
+                                                 equations)
+                    lambda2[i, 1, element] = lambda
 
                     calc_bar_states || continue
 
                     flux_inner = flux(u_inner, orientation, equations)
                     flux_outer = flux(u_outer, orientation, equations)
                     bar_state = 0.5 * (u_inner + u_outer) -
-                                0.5 * (flux_inner - flux_outer) / lambda2[i, 1, element]
-                    for v in eachvariable(equations)
-                        bar_states2[v, i, 1, element] = bar_state[v]
-                    end
+                                0.5 * (flux_inner - flux_outer) / lambda
+                    set_node_vars!(bar_states2, bar_state, equations, dg,
+                                   i, 1, element)
                 end
             else # Element is on the left, boundary on the right
                 for i in eachnode(dg)
@@ -1323,21 +1320,18 @@ end
                                                        orientation, 4,
                                                        mesh, equations, dg, cache,
                                                        i, nnodes(dg), element)
-                    lambda2[i, nnodes(dg) + 1, element] = max_abs_speed_naive(u_inner,
-                                                                              u_outer,
-                                                                              orientation,
-                                                                              equations)
+                    lambda = max_abs_speed_naive(u_inner, u_outer, orientation,
+                                                 equations)
+                    lambda2[i, nnodes(dg) + 1, element] = lambda
 
                     calc_bar_states || continue
 
                     flux_inner = flux(u_inner, orientation, equations)
                     flux_outer = flux(u_outer, orientation, equations)
                     bar_state = 0.5 * (u_inner + u_outer) -
-                                0.5 * (flux_outer - flux_inner) /
-                                lambda2[i, nnodes(dg) + 1, element]
-                    for v in eachvariable(equations)
-                        bar_states2[v, i, nnodes(dg) + 1, element] = bar_state[v]
-                    end
+                                0.5 * (flux_outer - flux_inner) / lambda
+                    set_node_vars!(bar_states2, bar_state, equations, dg,
+                                   i, nnodes(dg) + 1, element)
                 end
             end
         end
