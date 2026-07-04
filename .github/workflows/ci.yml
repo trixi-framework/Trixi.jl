@@ -112,7 +112,7 @@ jobs:
             arch: x64
             trixi_test: threaded
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
@@ -136,7 +136,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           directories: src,examples,ext
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         if: ${{ !cancelled() }}
         with:
           files: ./lcov.info
@@ -155,7 +155,8 @@ jobs:
       #     github-token: ${{ secrets.GITHUB_TOKEN }}
       #     flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.run_id }}
       #     parallel: true
-      #     path-to-lcov: ./lcov.info
+      #     file: ./lcov.info
+      #     format: lcov
       # Instead, we use a more tedious approach:
       # - Store all individual coverage files as artifacts (directly below)
       # - Download and merge individual coverage reports in another step
@@ -187,7 +188,7 @@ jobs:
       # Instead, we use the more tedious approach described above.
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
       - run: ls -R
       # Next, we merge the individual coverage files and upload
@@ -209,7 +210,9 @@ jobs:
       - uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./lcov.info
+          file: ./lcov.info
+          format: lcov
+          debug: true
       # Upload merged coverage data as artifact for debugging
       - uses: actions/upload-artifact@v7
         with:

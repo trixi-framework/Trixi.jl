@@ -21,6 +21,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Hyperbolic diffusion
     include("test_tree_2d_hypdiff.jl")
+
+    # Block-structured finite volume methods on TreeMesh
+    include("test_tree_2d_blockfv.jl")
 end
 
 @testset "Displaying components 2D" begin
