@@ -72,9 +72,9 @@ using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Back
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
-    using LoopVectorization: LoopVectorization, @turbo, indices
+    using LoopVectorization: LoopVectorization, @turbo, indices, AbstractSIMD
 else
-    using LoopVectorization: LoopVectorization, indices
+    using LoopVectorization: LoopVectorization, indices, AbstractSIMD
     include("auxiliary/mock_turbo.jl")
 end
 
@@ -255,7 +255,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxUpwind,
-       FluxTracerEquationsCentral
+       FluxTracerEquationsCentral, FluxTurbo
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -289,7 +289,8 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons, cons2thermo, thermo2cons
-export density, pressure, density_pressure, velocity, temperature,
+export density, pressure, density_pressure, velocity,
+       temperature, temperature_given_Vp,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
@@ -370,7 +371,8 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
-export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterLiuZhang,
+       EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options

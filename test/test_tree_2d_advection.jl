@@ -20,6 +20,21 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_limiter_liu_zhang.jl"),
+                        l2=[0.204437455578503], linf=[0.8175130986098857],
+                        record_davis_yin_iterations=true)
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-1,) up to a tolerance
+    @test minimum(u) > 1e-1 - 10 * eps()
+
+    # check that the limiter was activated
+    @test length(global_limiter!.history_davis_yin_iterations) > 0
+
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_advection_extended.jl with polydeg=1" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[0.02134571266411136],

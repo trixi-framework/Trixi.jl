@@ -393,6 +393,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_leblanc_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_leblanc_limiter_liu_zhang.jl"),
+                        l2=[
+                            0.21290060065772057,
+                            0.05964675586608289,
+                            0.024936454073233603
+                        ],
+                        linf=[
+                            0.5778648389634408,
+                            0.10546874166288663,
+                            0.06306983030165976
+                        ],
+                        atol=1e-7, # limiters are not smooth, so we need bigger tolerances
+                        rtol=1e-6)
+
+    # check that the limiter is activated; the precise number of activations 
+    # can vary by 1-2 based on architecture. 
+    @test length(global_limiter!.history_davis_yin_iterations) > 10
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[0.21934822867340323, 0.28131919126002686, 0.554361702716662],
