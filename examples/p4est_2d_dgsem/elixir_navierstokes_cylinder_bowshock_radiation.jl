@@ -86,6 +86,7 @@ end
 
 rho_inf() = 0.00385101 # [kg/m^3]
 p_inf() = 277.522 # [Pa]
+mu() = 1.6e-5 # [Pa * s] NOTE: approximate value, temperature depencen is here ignored
 
 @inline function Trixi.temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e_total = u
@@ -123,10 +124,6 @@ equations = CompressibleEulerEquations2D(gamma())
 
 prandtl_number() = 0.72
 
-Re() = 1e5 # 1e6
-diameter() = 1.0
-
-mu() = rho_inf() * U_inf() * diameter() / Re()
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
@@ -156,7 +153,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 trees_per_dimension = (60, 30)
 
-cylinder_radius = diameter() / 2
+cylinder_radius = 0.5
 # Follow from a-priori known shock shape, originally for first qaudrant,
 # here transformed to second quadrant, see `mapping_cylinder_shock_fitted`.
 spline_points = 0.6 .* [1.32, 1.05, 2.25]
@@ -191,7 +188,8 @@ isoT_heat_bc = Isothermal((x, t, equations) -> 800.0)
 
 boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_noslip,
                                                                 #ad_heat_bc)
-                                                                isoT_heat_bc)
+                                                                rad_eq_heat_bc)
+#isoT_heat_bc)
 
 boundary_conditions_parabolic = (; x_neg = bc_inflow,
                                  y_neg = bc_symmetry_plane, # Induce symmetry by slip wall
@@ -250,7 +248,7 @@ amr_controller = ControllerThreeLevel(semi, shock_indicator;
                                       max_level = 2, max_threshold = 0.35)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 25,
+                           interval = 50,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
@@ -262,5 +260,5 @@ callbacks = CallbackSet(summary_callback,
 # Run the simulation
 
 sol = solve(ode, SSPRK43(; thread = Trixi.Threaded());
-            dt = 1e-7, abstol = 1e-4, reltol = 1e-4,
+            dt = 1e-8, abstol = 1e-4, reltol = 1e-4,
             ode_default_options()..., callback = callbacks);
