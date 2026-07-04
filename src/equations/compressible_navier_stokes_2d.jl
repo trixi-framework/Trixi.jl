@@ -623,39 +623,40 @@ end
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
-                                                                        <:RadiativeEquilibrium})(flux_inner,
-                                                                                                 u_inner,
-                                                                                                 normal::AbstractVector,
-                                                                                                 x,
-                                                                                                 t,
-                                                                                                 operator_type::Gradient,
-                                                                                                 equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+                                                                        <:RadiativeEquilibriumOneWay})(flux_inner,
+                                                                                                       u_inner,
+                                                                                                       normal::AbstractVector,
+                                                                                                       x,
+                                                                                                       t,
+                                                                                                       operator_type::Gradient,
+                                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
     v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
                                                                                     t,
                                                                                     equations)
 
-    T_inner = u_inner[4]
-
     mu = dynamic_viscosity(u_inner, equations)
     _, tau_1n, tau_2n, normal_energy_flux = flux_inner
+
+    # For moving walls one needs to remove the kinetic energy from the total energy.
+    # For stationary walls, this could be omitted.
     normal_heat_flux = normal_energy_flux - (v1 * tau_1n + v2 * tau_2n) * mu
 
     rad_eq_bc = boundary_condition.boundary_condition_heat_flux
 
-    T_w = solve_radiative_equilibrium_temperature(T_inner, normal_heat_flux,
-                                                  rad_eq_bc, equations)
+    T_w = solve_radiative_equilibrium_temperature(normal_heat_flux,
+                                                  rad_eq_bc)
 
     return SVector(u_inner[1], v1, v2, T_w)
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
-                                                                        <:RadiativeEquilibrium})(flux_inner,
-                                                                                                 u_inner,
-                                                                                                 normal::AbstractVector,
-                                                                                                 x,
-                                                                                                 t,
-                                                                                                 operator_type::Divergence,
-                                                                                                 equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+                                                                        <:RadiativeEquilibriumOneWay})(flux_inner,
+                                                                                                       u_inner,
+                                                                                                       normal::AbstractVector,
+                                                                                                       x,
+                                                                                                       t,
+                                                                                                       operator_type::Divergence,
+                                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
     # Same as no-slip isothermal
     return flux_inner
 end

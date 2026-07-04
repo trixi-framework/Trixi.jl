@@ -275,7 +275,7 @@ export boundary_condition_do_nothing,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall,
        NoSlip, Slip,
-       Adiabatic, Isothermal, RadiativeEquilibrium,
+       Adiabatic, Isothermal, RadiativeEquilibriumOneWay,
        BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
 export initial_condition_convergence_test, source_terms_convergence_test,

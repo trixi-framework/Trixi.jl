@@ -188,8 +188,8 @@ bc_symmetry_plane = BoundaryConditionNavierStokesWall(Slip(), ad_heat_bc)
 
 velocity_bc_noslip = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 
-rad_eq_heat_bc = RadiativeEquilibrium(emissivity = 0.85,
-                                      T_far_field = T_inf())
+rad_eq_heat_bc = RadiativeEquilibriumOneWay(emissivity = 0.85,
+                                            T_far_field = T_inf())
 
 boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_noslip,
                                                                 rad_eq_heat_bc)
