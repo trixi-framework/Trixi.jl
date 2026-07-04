@@ -193,18 +193,6 @@ function ghost_new_p4est(p8est::PointerOrWrapper{p8est_t})
     return p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
 end
 
-# Check if ghost layer is valid
-# 2D
-function ghost_is_valid_p4est(p4est::PointerOrWrapper{p4est_t},
-                              ghost_layer::Ptr{p4est_ghost_t})
-    return p4est_ghost_is_valid(p4est, ghost_layer)
-end
-# 3D
-function ghost_is_valid_p4est(p4est::PointerOrWrapper{p8est_t},
-                              ghost_layer::Ptr{p8est_ghost_t})
-    return p8est_ghost_is_valid(p4est, ghost_layer)
-end
-
 # Destroy ghost layer
 # 2D
 function ghost_destroy_p4est(ghost_layer::PointerOrWrapper{p4est_ghost_t})
