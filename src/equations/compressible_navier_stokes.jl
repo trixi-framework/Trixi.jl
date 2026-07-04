@@ -194,9 +194,9 @@ end
 
 @doc raw"""
     RadiativeEquilibriumOneWay(;
-                         emissivity = 1.0,
-                         T_far_field = 0.0f0,
-                         stefan_boltzmann = 5.670374419f-8)
+                               emissivity = 1.0,
+                               T_far_field = 0.0f0,
+                               stefan_boltzmann = 5.670374419f-8)
 
 See [`RadiativeEquilibriumOneWay`](@ref) for details.
 
