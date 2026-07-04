@@ -249,6 +249,8 @@ end
     return dpdT_V, dpdV_T
 end
 
-eos_newton_tol(eos::ThermallyPerfectGas9PolyFit) = 1e-8
+@inline function eos_newton_tol(eos::ThermallyPerfectGas9PolyFit)
+    return convert(eltype(eos.R_specific), 1e-8)
+end
 
 eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas9PolyFit) = eos.T_ref # [K]
