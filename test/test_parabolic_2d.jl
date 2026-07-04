@@ -1390,6 +1390,28 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_navierstokes_cylinder_bowshock_radiation.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_cylinder_bowshock_radiation.jl"),
+                        tspan=(0.0, 1e-6),
+                        l2=[
+                            0.000457265616673306,
+                            0.27165574459552794,
+                            0.3701989606385697,
+                            920.3634906155573
+                        ],
+                        linf=[
+                            0.019794849986233008,
+                            19.91227581362785,
+                            21.53313048407424,
+                            38161.15616571513
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
 end
 
 @testset "SemidiscretizationParabolic (2D)" begin
