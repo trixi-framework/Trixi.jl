@@ -151,23 +151,36 @@ if the diffusion term is linear in the variables/constant.
 """
 @inline have_constant_diffusivity(::AbstractCompressibleNavierStokesDiffusion) = False()
 
-# Radiative-equilibrium no-slip wall BC for CompressibleNavierStokesDiffusion1D
-#
-# Physics: convective/conductive heat reaching the wall is balanced by
-# grey-body radiative emission to a cold far field (neglecting incoming
-# radiation):
-#
-#     k(T_w) * dT/dn|_w  =  eps * sigma * (T_w^4 - T_far_field^4)
-#
-# T_w is not prescribed -- it's the root of this nonlinear balance, solved
-# locally (per boundary node) via Newton's method, using a one-sided estimate
-# of dT/dn purely as the *iteration* surrogate. Trixi's own (more accurate,
-# lifted) gradient machinery is what actually gets used in the real flux,
-# once we hand back the converged T_w as the boundary value -- exactly the
-# same structural slot the built-in `Isothermal` BC fills with a prescribed T.
-
-"""
+@doc raw"""
     RadiativeEquilibrium
+
+This implements a one-way coupled radiative equilibrium boundary condition for the `AbstractCompressibleNavierStokesDiffusion` equations.
+The main use case of this thermal/heat boundary condition is to model radiative cooling,
+the main mechanism of heat loss of objects in hypersonic flows, e.g. reentry vehicles.
+The wall temperature ``T_w`` is computed from the heat flux at the wall ``q_w`` and the far-field temperature ``T_\infty`` via
+```math
+T_w = \left(\frac{q_w}{\epsilon \sigma} + T_\infty^4\right)^{1/4}
+```
+in the above equation, ``\epsilon`` is the emissivity of the gray body wall and ``\sigma`` is the Stefan-Boltzmann constant.
+
+In a fully coupled code, the fluid heat flux would not be taken as input, but computed from the temperature gradient at the wall, i.e.,
+```math
+q_w = -\kappa \frac{\partial T}{\partial y}\bigg|_w \approx \kappa \frac{T_\text{f} - T_w}{\Delta y}
+```
+where ``\kappa`` denotes the thermal conductivity of the fluid and ``T_f`` is the temperature of the fluid at the first interior node,
+while ``T_w`` is the temperature of the Gauss-Lobatto node at the wall.
+Note that this assumes that the wall has the same temperature as the fluid, i.e., jumps as for rarefied gases are not considered.
+The radiative heat flux is given by
+```math
+q_r = \epsilon \sigma (T_w^4 - T_\infty^4)
+```
+
+## References
+See Chapter 3 and in particular equations (3.12) to (3.14) in
+
+- Hirschel (2015).
+  Basics of Aerothermodynamics, 2nd Edition.
+  [DOI: 10.1007/978-3-319-14373-6](https://doi.org/10.1007/978-3-319-14373-6)
 """
 struct RadiativeEquilibrium{TempFarfield4 <: Real,
                             EpsTimesSigma <: Real}
@@ -175,11 +188,17 @@ struct RadiativeEquilibrium{TempFarfield4 <: Real,
     eps_times_sigma::EpsTimesSigma
 end
 
-"""
+@doc raw"""
     RadiativeEquilibrium(;
                          emissivity = 1.0,
                          T_far_field = 0.0f0,
                          stefan_boltzmann = 5.670374419f-8)
+
+See [`RadiativeEquilibrium`](@ref) for details.
+
+`emissivity` is the gray body radiation emissivity ``\epsilon`` of the wall,
+`T_far_field` is the far-field temperature ``T_\infty`` of the surrounding fluid, and
+`stefan_boltzmann` is the Stefan-Boltzmann constant ``\sigma``.
 """
 function RadiativeEquilibrium(;
                               emissivity = 1.0f0,

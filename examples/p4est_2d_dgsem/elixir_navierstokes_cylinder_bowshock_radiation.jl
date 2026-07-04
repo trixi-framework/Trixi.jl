@@ -20,6 +20,9 @@ using OrdinaryDiffEqSSPRK
 #   [DOI: 10.1016/j.compfluid.2025.106640](https://doi.org/10.1016/j.compfluid.2025.106640)
 #
 # The mapping produces the following geometry & shock (indicated by the asterisks `* `):
+# 
+# Here, a boundary layer cell sizing is added to allow for a thermal boundary layer to develop along the cylinder wall.
+# 
 #                  ____x_neg____
 #                 |             |
 #               |               |
@@ -86,7 +89,8 @@ end
 
 rho_inf() = 0.00385101 # [kg/m^3]
 p_inf() = 277.522 # [Pa]
-mu() = 1.6e-5 # [Pa * s] NOTE: approximate value, temperature depencen is here ignored
+T_inf() = 250.35 # [K]
+mu() = 1.6e-5 # [Pa * s] NOTE: approximate value, temperature dependence is ignored here
 
 @inline function Trixi.temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e_total = u
@@ -98,7 +102,9 @@ mu() = 1.6e-5 # [Pa * s] NOTE: approximate value, temperature depencen is here i
     return T
 end
 
-gamma() = 1.4 # ideal gas employed here, although high-temperature effects become relevant
+# ideal gas employed here, although high-temperature effects become relevant
+# see "examples/p4est_2d_dgsem/elixir_euler_therm_perf_cylinder_bowshock_mach6.jl"
+gamma() = 1.4
 a_inf() = sqrt(gamma() * p_inf() / rho_inf())
 
 M() = 6.0 # [1]
@@ -123,7 +129,6 @@ end
 equations = CompressibleEulerEquations2D(gamma())
 
 prandtl_number() = 0.72
-
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
@@ -183,13 +188,11 @@ bc_symmetry_plane = BoundaryConditionNavierStokesWall(Slip(), ad_heat_bc)
 
 velocity_bc_noslip = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
 
-rad_eq_heat_bc = RadiativeEquilibrium()
-isoT_heat_bc = Isothermal((x, t, equations) -> 800.0)
+rad_eq_heat_bc = RadiativeEquilibrium(emissivity = 0.85,
+                                      T_far_field = T_inf())
 
 boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_noslip,
-                                                                #ad_heat_bc)
                                                                 rad_eq_heat_bc)
-#isoT_heat_bc)
 
 boundary_conditions_parabolic = (; x_neg = bc_inflow,
                                  y_neg = bc_symmetry_plane, # Induce symmetry by slip wall
@@ -204,7 +207,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # Semidiscretization & callbacks
 
-tspan = (0.0, 2e-2) # 2e-2
+tspan = (0.0, 2e-2) # [s]
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -213,9 +216,6 @@ analysis_callback = AnalysisCallback(semi, interval = 5000)
 alive_callback = AliveCallback(alive_interval = 200)
 
 extra_node_variables = (:temperature,)
-
-# ... and specify the function `get_node_variable` for this symbol,
-# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
 function Trixi.get_node_variable(::Val{:temperature}, u, mesh, equations, dg, cache,
                                  equations_parabolic, cache_parabolic)
     n_nodes = nnodes(dg)
