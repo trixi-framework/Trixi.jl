@@ -39,7 +39,8 @@ using OrdinaryDiffEqSSPRK
 #  |          *         .  (Cylinder)
 #  |_______y_neg_______.
 function mapping_cylinder_shock_fitted(xi_, eta_,
-                                       cylinder_radius, spline_points)
+                                       cylinder_radius, spline_points;
+                                       wall_normal_stretch = 1.0)
     shock_shape = [
         (spline_points[1], 0.0), # Shock position on the stagnation line (`y_neg`, y = 0)
         (spline_points[2], spline_points[2]), # Shock position at -45° angle
@@ -67,10 +68,16 @@ function mapping_cylinder_shock_fitted(xi_, eta_,
     # shock positions where originally for first quadrant, here we use second quadrant
     xi_01 = (-xi_ + 1) / 2
 
+    # Cluster points close to the cylinder wall to mimic a wall-function style
+    # boundary-layer spacing while keeping the outer mesh unchanged.
+    xi_bl = ifelse(wall_normal_stretch == 1.0,
+                   xi_01,
+                   (exp(wall_normal_stretch * xi_01) - 1) / (exp(wall_normal_stretch) - 1))
+
     R_outer = R[1] + spline_coeffs[1] * eta_01^2 + spline_coeffs[2] * eta_01^3
 
     angle = -π / 4 + eta_ * π / 4 # Angle runs from -90° to 0°
-    r = (cylinder_radius + xi_01 * (R_outer - cylinder_radius))
+    r = (cylinder_radius + xi_bl * (R_outer - cylinder_radius))
 
     return SVector(round(r * sin(angle); digits = 8), round(r * cos(angle); digits = 8))
 end
@@ -80,14 +87,23 @@ end
 rho_inf() = 0.00385101 # [kg/m^3]
 p_inf() = 277.522 # [Pa]
 
+@inline function Trixi.temperature(u, equations::CompressibleNavierStokesDiffusion2D)
+    rho, rho_v1, rho_v2, rho_e_total = u
+    @unpack gamma = equations
+
+    p = (gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
+    R_specific = 287.058 # [J/(kg*K)]
+    T = p / (rho * R_specific) # [K]
+    return T
+end
+
 gamma() = 1.4 # ideal gas employed here, although high-temperature effects become relevant
 a_inf() = sqrt(gamma() * p_inf() / rho_inf())
 
 M() = 6.0 # [1]
 U_inf() = M() * a_inf() # [m/s]
 
-@inline function initial_condition_mach6_flow(x, t,
-                                              equations::NonIdealCompressibleEulerEquations2D)
+@inline function initial_condition_mach6_flow(x, t, equations)
     return prim2cons(SVector(rho_inf(), U_inf(), 0.0, p_inf()), equations)
 end
 
@@ -103,17 +119,14 @@ end
 ###############################################################################
 # Equations, mesh and solver
 
+equations = CompressibleEulerEquations2D(gamma())
+
 prandtl_number() = 0.72
 
-Re() = 1e6
+Re() = 1e5 # 1e6
 diameter() = 1.0
 
-t_c = diameter() / U_inf()
-
-prandtl_number() = 0.72
 mu() = rho_inf() * U_inf() * diameter() / Re()
-
-equations = CompressibleEulerEquations2D(gamma())
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
@@ -125,33 +138,37 @@ volume_flux = flux_ranocha
 
 shock_indicator = IndicatorHennemannGassner(equations, basis,
                                             alpha_max = 1.0,
-                                            alpha_min = 0.001,
+                                            alpha_min = 0.01,
                                             alpha_smooth = true,
                                             variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+
+volume_integral_default = VolumeIntegralWeakForm()
+volume_integral_blend_high_order = VolumeIntegralFluxDifferencing(volume_flux)
+volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolume(surface_flux)
+
+volume_integral = VolumeIntegralShockCapturingHGType(shock_indicator;
+                                                     volume_integral_default = volume_integral_default,
+                                                     volume_integral_blend_high_order = volume_integral_blend_high_order,
+                                                     volume_integral_blend_low_order = volume_integral_blend_low_order)
 
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-trees_per_dimension = (20, 16)
+trees_per_dimension = (60, 30)
 
-cylinder_radius = 0.5
+cylinder_radius = diameter() / 2
 # Follow from a-priori known shock shape, originally for first qaudrant,
 # here transformed to second quadrant, see `mapping_cylinder_shock_fitted`.
 spline_points = 0.6 .* [1.32, 1.05, 2.25]
 cylinder_mapping = (xi, eta) -> mapping_cylinder_shock_fitted(xi, eta,
                                                               cylinder_radius,
-                                                              spline_points)
+                                                              spline_points;
+                                                              wall_normal_stretch = 4.0)
 
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = polydeg,
                  mapping = cylinder_mapping,
                  periodicity = false)
-
-solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral)
 
 # For physical significance of boundary conditions, see sketch at `mapping_cylinder_shock_fitted`
 boundary_conditions = (; x_neg = boundary_condition_supersonic_inflow, # Supersonic inflow
@@ -164,26 +181,32 @@ bc_inflow = BoundaryConditionDirichlet(initial_condition)
 
 # The "Slip" boundary condition rotates all velocities into tangential direction
 # and thus acts as a symmetry plane.
-# TODO: Implement no slip BC that takes velocity from the domain
-bc_symmetry_plane = BoundaryConditionNavierStokesWall(Slip(), heat_bc)
+ad_heat_bc = Adiabatic((x, t, equations) -> 0.0)
+bc_symmetry_plane = BoundaryConditionNavierStokesWall(Slip(), ad_heat_bc)
 
-velocity_bc_free = NoSlip((x, t, equations) -> SVector(v_in, 0))
-# Use adiabatic also on the boundaries to "copy" temperature from the domain
-heat_bc_free = Adiabatic((x, t, equations) -> 0)
-boundary_condition_free = BoundaryConditionNavierStokesWall(velocity_bc_free, heat_bc_free)
+velocity_bc_noslip = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
+
+rad_eq_heat_bc = RadiativeEquilibrium()
+isoT_heat_bc = Isothermal((x, t, equations) -> 800.0)
+
+boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_noslip,
+                                                                #ad_heat_bc)
+                                                                isoT_heat_bc)
 
 boundary_conditions_parabolic = (; x_neg = bc_inflow,
-                       y_neg = bc_symmetry_plane, # Induce symmetry by slip wall
-                       y_pos = boundary_condition_do_nothing, # Free outflow
-                       x_pos = boundary_condition_slip_wall) # Cylinder
+                                 y_neg = bc_symmetry_plane, # Induce symmetry by slip wall
+                                 y_pos = boundary_condition_do_nothing, # Free outflow
+                                 x_pos = boundary_condition_cylinder) # Cylinder
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+                                             initial_condition, solver;
+                                             boundary_conditions = (boundary_conditions,
+                                                                    boundary_conditions_parabolic))
 
 ###############################################################################
 # Semidiscretization & callbacks
 
-tspan = (0.0, 1e-3)
+tspan = (0.0, 2e-2) # 2e-2
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -191,7 +214,35 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 5000)
 alive_callback = AliveCallback(alive_interval = 200)
 
-save_solution = SaveSolutionCallback(interval = 5000)
+extra_node_variables = (:temperature,)
+
+# ... and specify the function `get_node_variable` for this symbol,
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+function Trixi.get_node_variable(::Val{:temperature}, u, mesh, equations, dg, cache,
+                                 equations_parabolic, cache_parabolic)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    temp_array = zeros(eltype(cache.elements),
+                       n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                       n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+
+            temp_array[i, j, element] = Trixi.temperature(u_node, equations_parabolic)
+        end
+    end
+
+    return temp_array
+end
+
+save_solution = SaveSolutionCallback(interval = 5000,
+                                     extra_node_variables = extra_node_variables)
 
 amr_controller = ControllerThreeLevel(semi, shock_indicator;
                                       base_level = 0,

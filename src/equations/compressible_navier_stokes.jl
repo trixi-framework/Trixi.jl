@@ -169,9 +169,9 @@ if the diffusion term is linear in the variables/constant.
 """
     RadiativeEquilibrium
 """
-struct RadiativeEquilibrium{TempFarfield <: Real,
+struct RadiativeEquilibrium{TempFarfield4 <: Real,
                             EpsTimesSigma <: Real}
-    temp_farfield::TempFarfield
+    temp_farfield4::TempFarfield4
     eps_times_sigma::EpsTimesSigma
 end
 
@@ -182,24 +182,24 @@ end
                          stefan_boltzmann = 5.670374419f-8)
 """
 function RadiativeEquilibrium(;
-                              emissivity = 1.0,
+                              emissivity = 1.0f0,
                               T_far_field = 0.0f0,
-                              stefan_boltzmann = 5.670374419f-8)
+                              stefan_boltzmann = 5.670374419e-8)
     eps_times_sigma = emissivity * stefan_boltzmann
+    temp_farfield4 = T_far_field^4
 
-    return RadiativeEquilibrium{typeof(T_far_field),
-                                typeof(eps_times_sigma)}(T_far_field,
-                                eps_times_sigma)
+    return RadiativeEquilibrium{typeof(temp_farfield4),
+                                typeof(eps_times_sigma)}(temp_farfield4,
+                                                         eps_times_sigma)
 end
 
 @inline function solve_radiative_equilibrium_temperature(T_inner, normal_heat_flux,
                                                          rad_eq_bc, equations)
-    @unpack eps_times_sigma = rad_eq_bc
+    @unpack eps_times_sigma, temp_farfield4 = rad_eq_bc
     @unpack kappa = equations
-    T_far4 = rad_eq_bc.temp_farfield^4
 
     # Initialize wall temperature from `normal_heat_flux`
-    T_wall = (normal_heat_flux / eps_times_sigma + T_far4)^(1/4)
+    T_wall = (normal_heat_flux / eps_times_sigma + temp_farfield4)^(1 / 4)
 
     #=
     rel_tol = 1e-8 # TODO: Make field of BC
@@ -208,7 +208,7 @@ end
 
         # TODO: Need dx for temperature gradient and conductive heat flux
         q_cond = kappa * (T_inner - T_wall)
-        q_rad = eps_times_sigma * (T_wall_3 * T_wall - T_far4)
+        q_rad = eps_times_sigma * (T_wall_3 * T_wall - temp_farfield4)
         q_diff = q_cond - q_rad
 
         dq_cond_dT = -kappa
