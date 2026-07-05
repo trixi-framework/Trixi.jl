@@ -260,6 +260,11 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
 end
 
 #new thing
+
+function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y, orientation_x, orientation_y)
+    return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y, orientation_x, orientation_y, true)
+end
+
 # Decide whether to visualize point values (default) or cell values,
 # e.g., for finite volume methods.
 visualize_point_values(mesh, solver) = true
