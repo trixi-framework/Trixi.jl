@@ -275,7 +275,7 @@ and thus the largest absolute eigenvalue is
 end
 
 # Convert conservative variables to primitive, with temperature instead of pressure
-@inline function cons2prim_temp(u, equations::CompressibleNavierStokesDiffusion3D)
+@inline function cons2prim_temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
 
     v1 = rho_v1 / rho
@@ -649,7 +649,7 @@ end
     #  because the gradients are assumed to be with respect to the primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    return cons2prim_temp(u_boundary, equations)
+    return cons2prim_temperature(u_boundary, equations)
 end
 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
