@@ -280,7 +280,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     solution_variables_ = digest_solution_variables(equations, solution_variables)
 
     point_values = visualize_point_values(mesh, solver)
-    
+
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
     length_level_0 = mesh.tree.length_level_0
