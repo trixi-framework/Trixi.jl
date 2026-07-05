@@ -274,8 +274,8 @@ and thus the largest absolute eigenvalue is
            equations_parabolic.max_4over3_kappa
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+# Convert conservative variables to primitive, with temperature instead of pressure
+@inline function cons2prim_temp(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
 
     v1 = rho_v1 / rho
@@ -360,10 +360,9 @@ end
                    T * T * gradient_entropy_vars[5])
 end
 
-# This routine is required because `prim2cons` is called in `initial_condition`, which
-# is called with `equations::CompressibleEulerEquations3D`. This means it is inconsistent
-# with `cons2prim(..., ::CompressibleNavierStokesDiffusion3D)` as defined above.
-# TODO: parabolic. Is there a way to clean this up?
+@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+    return cons2prim(u, equations.equations_hyperbolic)
+end
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
     return prim2cons(u, equations.equations_hyperbolic)
 end
@@ -650,7 +649,7 @@ end
     #  because the gradients are assumed to be with respect to the primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    return cons2prim(u_boundary, equations)
+    return cons2prim_temp(u_boundary, equations)
 end
 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,

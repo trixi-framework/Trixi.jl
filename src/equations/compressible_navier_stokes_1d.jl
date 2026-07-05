@@ -229,8 +229,8 @@ and thus the largest absolute eigenvalue is
            equations_parabolic.max_1_kappa
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion1D)
+# Convert conservative variables to primitive, with temperature instead of pressure
+@inline function cons2prim_temp(u, equations::CompressibleNavierStokesDiffusion1D)
     rho, rho_v1, _ = u
 
     v1 = rho_v1 / rho
@@ -308,10 +308,9 @@ end
                    T * T * gradient_entropy_vars[3])
 end
 
-# This routine is required because `prim2cons` is called in `initial_condition`, which
-# is called with `equations::CompressibleEulerEquations1D`. This means it is inconsistent
-# with `cons2prim(..., ::CompressibleNavierStokesDiffusion1D)` as defined above.
-# TODO: parabolic. Is there a way to clean this up?
+@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion1D)
+    return cons2prim(u, equations.equations_hyperbolic)
+end
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion1D)
     return prim2cons(u, equations.equations_hyperbolic)
 end
