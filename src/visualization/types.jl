@@ -70,6 +70,7 @@ struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
     mesh_vertices_y::Vertices
     orientation_x::Int
     orientation_y::Int
+    point_values::Bool
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -258,6 +259,7 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
+#new thing
 # Decide whether to visualize point values (default) or cell values,
 # e.g., for finite volume methods.
 visualize_point_values(mesh, solver) = true
@@ -267,7 +269,7 @@ function visualize_point_values(mesh, solver::DGSEM)
     # visualized as cell (mean) values.
     return polydeg(solver) > 0
 end
-
+#end new thing
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -296,7 +298,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     # For 1 node per cell, we use a finite volume method and want to visualize
     # cell mean values as piecewise constant solution instead of point values.
     # Thus, we map unstructured data directly to a uniform structured matrix matching the max mesh level.
-    if nnodes(solver) == 1 && ndims(mesh) == 2
+    if !point_values && ndims(mesh) == 2
         # For piecewise constant solutions, it does not make sense to perform
         # any (re)interpolation.
         if !(isnothing(nvisnodes) || nvisnodes == 1)
@@ -349,7 +351,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y,
-                               orientation_x, orientation_y)
+                               orientation_x, orientation_y, point_values)
 end
 
 """
