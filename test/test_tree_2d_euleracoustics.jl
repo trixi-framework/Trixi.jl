@@ -37,7 +37,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 
-    @test_nowarn show(stdout, semi)
+    @test_nowarn show(semi)
 end
 end
 
