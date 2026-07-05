@@ -186,6 +186,33 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# Required for the StepsizeCallback. The difference to the default implementation of `max_dt`
+# used for DGSEM is that we compute the maximum of the sum of the wave speeds instead of the
+# maximum of the wave speeds in each direction separately. The default implementation would
+# make the result depend on the number of FV cells per macro-cell, which is not desirable.
+function max_dt(u, t, mesh::TreeMesh{2},
+                constant_speed::False, equations, dg::BlockFV, cache)
+    # Avoid division by zero if the speed vanishes everywhere,
+    # e.g. for steady-state linear advection
+    max_scaled_speed = nextfloat(zero(t))
+
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+        max_lambda_sum = zero(max_scaled_speed)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            lambda1, lambda2 = max_abs_speeds(u_node, equations)
+            max_lambda_sum = Base.max(max_lambda_sum, lambda1 + lambda2)
+        end
+        inv_jacobian = cache.elements.inverse_jacobian[element]
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * max_lambda_sum)
+    end
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::UniformFiniteVolumeBasis,
                                                leftright,
