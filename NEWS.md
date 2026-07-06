@@ -5,6 +5,14 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.17 from v0.16.x
+
+#### Changed
+- The function `cons2prim` for the `CompressibleNavierStokesEquations` has been changed.
+  It now returns the primitive variables `(rho, v1, v2, v3, p)` (identical to the `CompressibleEulerEquations`)
+  instead of `(rho, v1, v2, v3, T)`.
+  The latter functionality is now provided by `cons2prim_temperature` instead. ([#3125])
+
 ## Changes in the v0.16 lifecycle
 
 #### Added
