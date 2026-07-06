@@ -137,7 +137,7 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
+# varnames(::typeof(cons2prim_temperature)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
 # varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
 
 function varnames(variable_mapping,
@@ -148,7 +148,7 @@ end
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    return cons2prim
+    return cons2prim_temperature
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
     return cons2entropy
@@ -361,9 +361,21 @@ end
                    T * T * gradient_entropy_vars[5])
 end
 
+"""
+    cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`cons2prim(u, equations::CompressibleEulerEquations3D)`](@ref)
+to convert conservative variables to primitive variables.
+"""
 @inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
     return cons2prim(u, equations.equations_hyperbolic)
 end
+"""
+    prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`prim2cons(u, equations::CompressibleEulerEquations3D)`](@ref)
+to convert primitive variables to conservative variables.
+"""
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
     return prim2cons(u, equations.equations_hyperbolic)
 end
