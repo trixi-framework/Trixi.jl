@@ -250,7 +250,8 @@ and thus the largest absolute eigenvalue is
 end
 
 # Convert conservative variables to primitive, with temperature instead of pressure
-@inline function cons2prim_temperature(u, equations::CompressibleNavierStokesDiffusion2D)
+@inline function cons2prim_temperature(u,
+                                       equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, _ = u
 
     v1 = rho_v1 / rho
