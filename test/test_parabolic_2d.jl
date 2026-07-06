@@ -1319,7 +1319,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl (Re=20)" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl (Re=20)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         tspan=(0.0, 0.5),

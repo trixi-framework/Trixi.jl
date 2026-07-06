@@ -146,7 +146,10 @@ end
                                          RealT = typeof(parent_mesh).parameters[3])
 end
 
-@testitem "P4estMesh2D: elixir_advection_basic.jl (initial_refinement_level=0)" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+@testitem "P4estMesh2D: elixir_advection_basic.jl (initial_refinement_level=0)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with P4estMeshView!
                         l2=[0.00013773915040249946],
