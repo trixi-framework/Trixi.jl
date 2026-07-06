@@ -160,7 +160,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 
     # Both setups have exactly the same degrees of freedom.
