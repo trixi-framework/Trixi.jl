@@ -261,7 +261,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Euler: elixir_euler_source_terms_nonperiodic.jl" setup=[
+@testitem "TreeMesh2D Euler: elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" setup=[
     Setup,
     TreeMesh2DEuler
 ] tags=[:tree_part2] begin

@@ -31,7 +31,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_ldg.jl" setup=[
+@testitem "Parabolic1D: TreeMesh1D: elixir_advection_diffusion_ldg.jl (Gauss-Legendre)" setup=[
     Setup,
     Parabolic1D
 ] tags=[:parabolic_part1] begin

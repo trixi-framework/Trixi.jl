@@ -802,22 +802,6 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic.jl" setup=[
-    Setup,
-    Parabolic2D
-] tags=[:parabolic_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_advection_diffusion_periodic.jl"),
-                        trees_per_dimension=(1, 1), initial_refinement_level=2,
-                        tspan=(0.0, 0.5),
-                        l2=[0.0023754695605828443],
-                        linf=[0.008154128363741964])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
-end
-
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_rotated.jl" setup=[
     Setup,
     Parabolic2D
@@ -1025,7 +1009,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl" setup=[
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_lid_driven_cavity_amr.jl (IndicatorNodalFunction)" setup=[
     Setup,
     Parabolic2D
 ] tags=[:parabolic_part1] begin
@@ -1335,7 +1319,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl (Re=20)" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         tspan=(0.0, 0.5),

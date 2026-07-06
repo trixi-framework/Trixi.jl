@@ -2249,7 +2249,7 @@ end
     end
 end
 
-@testitem "Type stability: Laplace Diffusion Entropy Variables 1D" setup=[
+@testitem "Type stability: Laplace Diffusion Entropy Variables 1D (adapt)" setup=[
     Setup,
     TypeStability
 ] tags=[:misc_part1] begin
@@ -2271,7 +2271,7 @@ end
     end
 end
 
-@testitem "Type stability: Laplace Diffusion Entropy Variables 2D" setup=[
+@testitem "Type stability: Laplace Diffusion Entropy Variables 2D (adapt)" setup=[
     Setup,
     TypeStability
 ] tags=[:misc_part1] begin
@@ -2296,7 +2296,7 @@ end
     end
 end
 
-@testitem "Type stability: Laplace Diffusion Entropy Variables 3D" setup=[
+@testitem "Type stability: Laplace Diffusion Entropy Variables 3D (adapt)" setup=[
     Setup,
     TypeStability
 ] tags=[:misc_part1] begin
