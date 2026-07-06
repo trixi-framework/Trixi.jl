@@ -592,14 +592,37 @@ end
                                                                    equations))) ==
                   RealT
 
-            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
-                                                       equations)) == RealT
-            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation,
-                                                       equations)) == RealT
-            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
-                                                       equations)) == RealT
-            @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, orientation,
-                                                          equations)) == RealT
+            # EoS adapt tests
+            adapted_ig = @inferred Trixi.trixi_adapt(Array, Float32,
+                                                     equations_ideal_gas.equation_of_state)
+            @test typeof(adapted_ig.gamma) == Float32
+            @test typeof(adapted_ig.cv) == Float32
+            adapted_vdw = @inferred Trixi.trixi_adapt(Array, Float32,
+                                                      equations_vdw.equation_of_state)
+            @test typeof(adapted_vdw.a) == Float32
+            @test typeof(adapted_vdw.cv) == Float32
+            eos_pr = Trixi.PengRobinson(RealT(0.5), RealT(0.1), RealT(0.7), RealT(0.3),
+                                        RealT(300), RealT(8.314))
+            adapted_pr = @inferred Trixi.trixi_adapt(Array, Float32, eos_pr)
+            @test typeof(adapted_pr.R) == Float32
+            @test typeof(adapted_pr.inv2sqrt2b) == Float32
+            adapted_heim = @inferred Trixi.trixi_adapt(Array, Float32,
+                                                       equations_helmholtz_ideal_gas.equation_of_state)
+            @test typeof(adapted_heim.gamma) == Float32
+            @test typeof(adapted_heim.R) == Float32
+
+            eos_thermally_perfect = equations_thermally_perf_gas.equation_of_state
+            adapted_tp = @inferred Trixi.trixi_adapt(Array, Float32, eos_thermally_perfect)
+            @test typeof(adapted_tp.R_specific) == Float32
+            @test typeof(adapted_tp.temperature_bounds) == SVector{3, Float32}
+            @test typeof(adapted_tp.coefficients) == Trixi.SMatrix{9, 2, Float32, 18}
+            @test typeof(adapted_tp.p_ref) == Float32
+            @test typeof(adapted_tp.T_ref) == Float32
+
+            # Wrapper adapt tests
+            adapted_neq = @inferred Trixi.trixi_adapt(Array, Float32, equations_ideal_gas)
+            @test adapted_neq isa NonIdealCompressibleEulerEquations1D
+            @test typeof(adapted_neq.equation_of_state.gamma) == Float32
         end
 
         @test eltype(@inferred velocity(u, equations)) == RealT

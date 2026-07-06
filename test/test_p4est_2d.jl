@@ -1075,6 +1075,30 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh2D: elixir_euler_therm_perf_cylinder_bowshock_mach6.jl" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_therm_perf_cylinder_bowshock_mach6.jl"),
+                        tspan=(0.0, 5e-5),
+                        l2=[
+                            0.002289906234552541,
+                            1.4251279367429517,
+                            1.906905651849529,
+                            4047.021328146389
+                        ],
+                        linf=[
+                            0.021755490782915055,
+                            16.631382262811613,
+                            20.886810059751575,
+                            35716.96540793927
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh2D: Unified mesh constructor signatures (P4estMesh)" setup=[
     Setup,
     P4estMesh2D

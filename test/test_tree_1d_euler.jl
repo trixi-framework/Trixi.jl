@@ -856,6 +856,29 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh1D Euler: elixir_euler_therm_perf_density_wave.jl" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_therm_perf_density_wave.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            0.00010397080488813483,
+                            1.4670887303232284e-5,
+                            54.36439859463928
+                        ],
+                        linf=[
+                            0.00022025848616108457,
+                            4.740363074715037e-5,
+                            154.54396273448947
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh1D Euler: elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" setup=[
     Setup,
     TreeMesh1DEuler
