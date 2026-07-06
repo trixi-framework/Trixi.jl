@@ -55,7 +55,15 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::UniformFiniteVolume
     return nothing
 end
 
-# create_cache computes and stores for every FV cell face the 
+# BlockFV uses its basis as `dg.mortar` (see blockfv.jl constructor).
+# The shared rhs! (TreeMesh/P4estMesh) calls create_cache, prolong2mortars!, and
+# calc_mortar_flux! with dg.mortar. BlockFV on P4estMesh needs none of these.
+create_cache(::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis, ::Any) = NamedTuple()
+
+prolong2mortars!(_, _, ::P4estMesh{2}, _, ::UniformFiniteVolumeBasis, ::BlockFV) = nothing
+calc_mortar_flux!(_, ::P4estMesh{2}, _, _, ::UniformFiniteVolumeBasis, _, ::BlockFV, _) = nothing
+
+# create_cache computes and stores for every FV cell face the
 # scaled face-normal vector (`normal_x`/`normal_y`)
 # and the midpoint of the face (`midpoint_x`/`midpoint_y`,
 
