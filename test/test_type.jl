@@ -225,12 +225,34 @@ end
                                                                                    gamma,
                                                                                    R))
         equations_helmholtz_ideal_gas = @inferred NonIdealCompressibleEulerEquations1D(HelmholtzIdealGas(RealT(2)))
+        R_specific = convert(RealT, 287.0509010514002)
+        temperature_bounds = convert.(RealT, SVector(200.0, 1000.0, 6000.0))
+        a = convert.(RealT, Trixi.coefficients_air_9polyfit(temperature_bounds))
+        p_ref = convert(RealT, 100000.0)
+        T_ref = convert(RealT, 298.15)
+
+        equations_thermally_perf_gas = @inferred NonIdealCompressibleEulerEquations1D(ThermallyPerfectGas9PolyFit(R_specific,
+                                                                                                                  temperature_bounds,
+                                                                                                                  a,
+                                                                                                                  p_ref,
+                                                                                                                  T_ref))
         for equations in (equations_ideal_gas, equations_vdw,
-                          equations_helmholtz_ideal_gas)
+                          equations_helmholtz_ideal_gas, equations_thermally_perf_gas)
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
-                                                       one(RealT))
+            if equations.equation_of_state isa ThermallyPerfectGas9PolyFit
+                u = u_ll = u_rr = u_inner = cons = thermo2cons(SVector(convert(RealT,
+                                                                               1 /
+                                                                               1.225),
+                                                                       one(RealT),
+                                                                       convert(RealT,
+                                                                               298.15)),
+                                                               equations)
+
+            else
+                u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT),
+                                                           one(RealT))
+            end
             orientation = 1
             direction = 1
 
@@ -286,6 +308,14 @@ end
                                                    equations_helmholtz_ideal_gas.equation_of_state)
         @test typeof(adapted_heim.gamma) == Float32
         @test typeof(adapted_heim.R) == Float32
+
+        eos_thermally_perfect = equations_thermally_perf_gas.equation_of_state
+        adapted_tp = @inferred Trixi.trixi_adapt(Array, Float32, eos_thermally_perfect)
+        @test typeof(adapted_tp.R_specific) == Float32
+        @test typeof(adapted_tp.temperature_bounds) == SVector{3, Float32}
+        @test typeof(adapted_tp.coefficients) == Trixi.SMatrix{9, 2, Float32, 18}
+        @test typeof(adapted_tp.p_ref) == Float32
+        @test typeof(adapted_tp.T_ref) == Float32
 
         # Wrapper adapt tests
         adapted_neq = @inferred Trixi.trixi_adapt(Array, Float32, equations_ideal_gas)
@@ -592,37 +622,14 @@ end
                                                                    equations))) ==
                   RealT
 
-            # EoS adapt tests
-            adapted_ig = @inferred Trixi.trixi_adapt(Array, Float32,
-                                                     equations_ideal_gas.equation_of_state)
-            @test typeof(adapted_ig.gamma) == Float32
-            @test typeof(adapted_ig.cv) == Float32
-            adapted_vdw = @inferred Trixi.trixi_adapt(Array, Float32,
-                                                      equations_vdw.equation_of_state)
-            @test typeof(adapted_vdw.a) == Float32
-            @test typeof(adapted_vdw.cv) == Float32
-            eos_pr = Trixi.PengRobinson(RealT(0.5), RealT(0.1), RealT(0.7), RealT(0.3),
-                                        RealT(300), RealT(8.314))
-            adapted_pr = @inferred Trixi.trixi_adapt(Array, Float32, eos_pr)
-            @test typeof(adapted_pr.R) == Float32
-            @test typeof(adapted_pr.inv2sqrt2b) == Float32
-            adapted_heim = @inferred Trixi.trixi_adapt(Array, Float32,
-                                                       equations_helmholtz_ideal_gas.equation_of_state)
-            @test typeof(adapted_heim.gamma) == Float32
-            @test typeof(adapted_heim.R) == Float32
-
-            eos_thermally_perfect = equations_thermally_perf_gas.equation_of_state
-            adapted_tp = @inferred Trixi.trixi_adapt(Array, Float32, eos_thermally_perfect)
-            @test typeof(adapted_tp.R_specific) == Float32
-            @test typeof(adapted_tp.temperature_bounds) == SVector{3, Float32}
-            @test typeof(adapted_tp.coefficients) == Trixi.SMatrix{9, 2, Float32, 18}
-            @test typeof(adapted_tp.p_ref) == Float32
-            @test typeof(adapted_tp.T_ref) == Float32
-
-            # Wrapper adapt tests
-            adapted_neq = @inferred Trixi.trixi_adapt(Array, Float32, equations_ideal_gas)
-            @test adapted_neq isa NonIdealCompressibleEulerEquations1D
-            @test typeof(adapted_neq.equation_of_state.gamma) == Float32
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, orientation,
+                                                          equations)) == RealT
         end
 
         @test eltype(@inferred velocity(u, equations)) == RealT
