@@ -1405,7 +1405,7 @@ function reset_antidiffusive_fluxes!(antidiffusive_flux1_L, antidiffusive_flux1_
 end
 
 function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equations,
-                                  dg::DGSEM, cache)
+                                  dg::Union{DGSEM, BlockFV}, cache)
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
     n_cells = length(leaf_cell_ids)

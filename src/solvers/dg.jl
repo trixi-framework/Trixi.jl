@@ -1119,6 +1119,13 @@ SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
 
 AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 
+# Block-structured finite volume methods
+include("blockfv/blockfv.jl")
+include("blockfv/containers_1d.jl")
+include("blockfv/containers_2d.jl")
+include("blockfv/blockfv_1d.jl")
+include("blockfv/blockfv_2d.jl")
+
 # General structs for discretizations based on the basic principle of
 # DGSEM (discontinuous Galerkin spectral element method)
 include("dgsem/dgsem.jl")
@@ -1130,12 +1137,6 @@ include("dgsem/dgsem.jl")
 include("fdsbp_tree/fdsbp.jl")
 include("fdsbp_unstructured/fdsbp.jl")
 
-# Block-structured finite volume methods
-include("blockfv/blockfv.jl")
-include("blockfv/containers_1d.jl")
-include("blockfv/containers_2d.jl")
-include("blockfv/blockfv_1d.jl")
-include("blockfv/blockfv_2d.jl")
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).

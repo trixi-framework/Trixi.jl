@@ -102,4 +102,12 @@ end
 
 # This hack is currently required for the SaveSolutionCallback.
 @inline polydeg(dg::BlockFV) = polydeg(dg.basis)
-end # @muladd
+
+#no special Adaptor is needed for the BlockFV solver:
+struct AdaptorBlockFV{RealT} <: AdaptorAMR{RealT}
+    basis::UniformFiniteVolumeBasis{RealT}
+end
+
+AdaptorAMR(mesh, dg::BlockFV) = AdaptorBlockFV(dg.basis)
+
+end

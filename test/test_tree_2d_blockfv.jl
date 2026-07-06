@@ -50,6 +50,18 @@ end
     @test res1.l2 ≈ res2.l2
     @test res1.linf ≈ res2.linf
 end
+
+@trixi_testset "elixir_advection_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+                        # Expected errors are exactly the same as in the parallel test!
+                        l2=[2.61358358e-03],
+                        linf=[2.76654464e-02],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 end # Linear scalar advection
 
 @testset "Compressible Euler equations" begin
