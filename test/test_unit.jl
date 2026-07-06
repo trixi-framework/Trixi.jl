@@ -1078,7 +1078,6 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-@timed_testset "Reproducing ideal gas with ThermallyPerfectGas9PolyFit" begin
     R_specific = 287.0509010514002 # [J/(kg*K)]
     p_ref = 100000.0 # [Pa]
     T_ref = 298.15 # [K]
