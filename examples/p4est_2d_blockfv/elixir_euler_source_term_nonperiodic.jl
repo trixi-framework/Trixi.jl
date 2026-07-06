@@ -59,4 +59,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, Euler();
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
