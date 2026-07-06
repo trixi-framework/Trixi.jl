@@ -330,4 +330,93 @@ end
     end
     return nothing
 end
+
+function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
+                         old_u, old_element_id,
+                         adaptor::AdaptorBlockFV, equations, dg)
+    @boundscheck begin
+        @assert old_element_id >= 1
+        @assert size(old_u, 1) == nvariables(equations)
+        @assert size(old_u, 2) == nnodes(dg)
+        @assert size(old_u, 3) == nnodes(dg)
+        @assert size(old_u, 4) >= old_element_id
+        @assert element_id >= 1
+        @assert size(u, 1) == nvariables(equations)
+        @assert size(u, 2) == nnodes(dg)
+        @assert size(u, 3) == nnodes(dg)
+        @assert size(u, 4) >= element_id + 3
+    end
+
+    # Copy the solution from the old element to the new elements
+    if size(old_u, 2) % 2 == 1 #odd number of nodes
+        for j in 1:2*nnodes(dg)
+            for i in 1:nnodes(dg)
+                #nodes werden wie in KOS nummeriert, d.h. old_u[:,1,1,old_element_id] ist die linke untere Ecke
+                u[:, i, mod1(j,nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg))] = view(old_u, :, div(i + 1, 2)
+                                                                                   , div(j + 1, 2)
+                                                                                   , old_element_id)
+
+                
+                u[:, i, mod1(j,nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg)) + 1] = view(old_u, :, div(i, 2) + 1 + div(nnodes(dg), 2)
+                                                                                       , div(j + 1, 2)
+                                                                                       , old_element_id)
+            end
+        end
+    else    #even number of nodes
+        for j in 1:2*nnodes(dg)
+            for i in 1:nnodes(dg)
+                
+                u[:, i, mod1(j, nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg))] = view(old_u, :, div(i + 1, 2)
+                                                      , div(j + 1, 2)
+                                                      , old_element_id)
+
+            
+                u[:, i, mod1(j, nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg)) + 1] = view(old_u, :, div(i + 1, 2) + div(nnodes(dg), 2) 
+                                                          , div(j + 1, 2)
+                                                          , old_element_id)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
+                           old_u, old_element_id,
+                           adaptor::AdaptorBlockFV, equations, dg)
+
+    @boundscheck begin
+        @assert old_element_id >= 1
+        @assert size(old_u, 1) == nvariables(equations)
+        @assert size(old_u, 2) == nnodes(dg)
+        @assert size(old_u, 3) == nnodes(dg)
+        @assert size(old_u, 4) >= old_element_id + 3
+        @assert element_id >= 1
+        @assert size(u, 1) == nvariables(equations)
+        @assert size(u, 2) == nnodes(dg)
+        @assert size(u, 3) == nnodes(dg)
+        @assert size(u, 4) >= element_id
+    end
+
+    u[:,:,:,element_id] .= zero(eltype(u))
+
+    if size(u, 2) % 2 == 1 #odd number of nodes
+        for j in 1:2*nnodes(dg)
+            for i in 1:size(u, 2)
+                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
+
+                u[:, div(i, 2) + 1 + div(nnodes(dg), 2), div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1]
+            end
+        end
+    else    #even number of nodes
+        for j in 1:2*nnodes(dg)
+            for i in 1:nnodes(dg)
+                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
+            
+                u[:, div(i + 1, 2) + div(nnodes(dg), 2) , div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1] 
+            end
+        end
+    end
+end
+
 end # @muladd

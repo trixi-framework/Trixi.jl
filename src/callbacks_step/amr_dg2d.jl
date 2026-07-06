@@ -83,7 +83,7 @@ end
 # from the parent element into the four children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                 equations, dg::DGSEM, cache, elements_to_refine)
+                 equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_refine)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         if mpi_isparallel()
@@ -183,7 +183,7 @@ end
 
 function refine!(u_ode::AbstractVector, adaptor,
                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
-                 equations, dg::DGSEM, cache, cache_parabolic,
+                 equations, dg::Union{DGSEM, BlockFV}, cache, cache_parabolic,
                  elements_to_refine)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the refined cells
@@ -271,7 +271,7 @@ end
 # element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                  equations, dg::DGSEM, cache, elements_to_remove)
+                  equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_remove)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         if mpi_isparallel()
@@ -378,7 +378,7 @@ end
 
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
-                  equations, dg::DGSEM, cache, cache_parabolic,
+                  equations, dg::Union{DGSEM, BlockFV}, cache, cache_parabolic,
                   elements_to_remove)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the coarsened cells

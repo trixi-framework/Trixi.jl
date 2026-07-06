@@ -12,7 +12,7 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function create_cache_indicator_for_amr(typ::Type{IndicatorType},
-                                        mesh, equations::AbstractEquations, dg::DGSEM,
+                                        mesh, equations::AbstractEquations, dg::Union{DGSEM, BlockFV},
                                         cache) where {IndicatorType <:
                                                       AbstractIndicator}
     return create_cache(typ, equations, dg.basis)
