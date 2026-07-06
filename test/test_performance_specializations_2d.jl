@@ -3,8 +3,6 @@
     using Trixi: @muladd
 end
 
-using Trixi: @muladd
-
 @testitem "Performance specializations 2D: TreeMesh2D, flux_shima_etal_turbo" setup=[
     Setup,
     PerfSpec2D
