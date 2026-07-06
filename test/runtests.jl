@@ -71,6 +71,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part1"
         include(joinpath(@__DIR__, "test_p4est_2d.jl"))
+        include(joinpath(@__DIR__, "test_p4est_2d_blockfv.jl"))
     end
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part2"
         include(joinpath(@__DIR__, "test_p4est_3d.jl"))
