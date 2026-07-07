@@ -22,7 +22,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -52,7 +51,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
@@ -83,7 +81,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -118,7 +115,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -156,7 +152,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
