@@ -172,6 +172,27 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+@trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_NACA6412airfoil_mach2.jl"),
+                        tspan=(0.0, 0.05),
+                        l2=[
+                            0.12535465649604935,
+                            0.2387836884109298,
+                            0.12319269120809999,
+                            0.5506659100710758,
+                        ],
+                        linf=[
+                            1.8860955840906906,
+                            2.1495129396086883,
+                            1.890312312939321,
+                            7.526922464267882,
+                        ])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end # Compressible Euler equations
 
 @testset "Visualization" begin
