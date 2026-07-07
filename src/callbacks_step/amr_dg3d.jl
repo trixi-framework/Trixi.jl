@@ -29,7 +29,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
@@ -234,7 +234,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
@@ -445,7 +445,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
 
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
