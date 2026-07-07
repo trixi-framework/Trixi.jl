@@ -997,7 +997,7 @@ end
 """
     cons2prim(u, equations::CompressibleEulerEquations1D)
 
-Convert conservative variables `(rho, rho*v1, rho*e_total)` to
+Convert conservative variables `u = (rho, rho*v1, rho*e_total)` to
 primitive variables `(rho, v1, p)`.
 """
 @inline function cons2prim(u, equations::CompressibleEulerEquations1D)
@@ -1053,7 +1053,7 @@ end
 """
     prim2cons(prim, equations::CompressibleEulerEquations1D)
 
-Convert primitive variables `(rho, v1, p)` to
+Convert primitive variables `prim = (rho, v1, p)` to
 conservative variables `(rho, rho*v1, rho*e_total)`.
 """
 @inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
