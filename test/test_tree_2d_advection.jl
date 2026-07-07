@@ -262,6 +262,16 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_advection_variable_swirling_flow.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_variable_swirling_flow.jl"),
+                        l2=[2.90963554e-01],
+                        linf=[1.31858729e+00])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 # Coverage test for all initial conditions
 @testset "Linear scalar advection: Tests for initial conditions" begin
     # Linear scalar advection

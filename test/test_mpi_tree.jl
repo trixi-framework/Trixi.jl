@@ -106,6 +106,20 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                             linf=[0.0253454486893413])
     end
 
+    @trixi_testset "elixir_advection_variable_swirling_flow.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_variable_swirling_flow.jl"),
+                            l2=[2.90963554e-01],
+                            linf=[1.31858729e+00])
+    end
+
+    @trixi_testset "elixir_acoustics_gauss_wall_amr_auxvars.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_acoustics_gauss_wall_amr_auxvars.jl"),
+                            l2=[0.0194350488, 0.0195225440, 0.04819822538525215],
+                            linf=[0.183057645, 0.190845961, 1.03618809])
+    end
+
     # Hyperbolic diffusion
     if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
         @trixi_testset "elixir_hypdiff_lax_friedrichs.jl" begin

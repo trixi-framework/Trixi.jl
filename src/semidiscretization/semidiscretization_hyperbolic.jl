@@ -40,22 +40,40 @@ end
                                  source_terms=nothing,
                                  boundary_conditions,
                                  RealT=real(solver),
-                                 uEltype=RealT)
+                                 uEltype=RealT,
+                                 aux_field = nothing)
 
 Construct a semidiscretization of a hyperbolic PDE.
 
 Boundary conditions must be provided explicitly either as a `NamedTuple` or as a
 single boundary condition that gets applied to all boundaries.
+
+`aux_field` is an optional function taking a coordinate vector `x` and the current
+`equations` as arguments. It is used to fill an additional field `aux_vars` in the `cache`,
+which will be available, e.g., in flux computations. The current `equations` need to set
+`have_aux_node_vars to `True()` and `n_aux_node_vars` to the number of auxiliary variables
+per node. Upon refinement, `aux_field` will be called again to recompute the auxiliary variables.
+!!! warning "Experimental implementation"
+    The use of auxiliary variables is an experimental feature and may change in future 
+    releases. Currently, only 2D `TreeMesh` is supported.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
                                       boundary_conditions,
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
-                                      RealT = real(solver), uEltype = RealT)
+                                      RealT = real(solver), uEltype = RealT,
+                                      aux_field = nothing)
     @assert ndims(mesh) == ndims(equations)
 
     cache = create_cache(mesh, equations, solver, RealT, uEltype)
+
+    # Add auxiliary node variables cache
+    if have_aux_node_vars(equations) == True()
+        cache = (; cache...,
+                 create_cache_aux(mesh, equations, solver, cache, aux_field)...)
+    end
+
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
@@ -95,6 +113,12 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     #       the indicators and their own caches...).
     return SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                         source_terms, boundary_conditions, uEltype)
+end
+
+# auxiliary variables cache
+function create_cache_aux(mesh, equations, solver, cache, aux_field)
+    aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
+    return (; aux_vars)
 end
 
 # general fallback
@@ -481,6 +505,10 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         print_boundary_conditions(io, semi)
 
         summary_line(io, "source terms", semi.source_terms)
+        if have_aux_node_vars(semi.equations) == True()
+            summary_line(io, "auxiliary variables",
+                         semi.cache.aux_vars.aux_field)
+        end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)

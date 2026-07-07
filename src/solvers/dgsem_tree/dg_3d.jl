@@ -132,7 +132,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element, ::Type{<:TreeMesh{3}},
-                                   have_nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -164,7 +165,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 @inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{3}},
-                                           have_nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -214,7 +216,8 @@ end
 end
 
 @inline function flux_differencing_kernel!(du, u, element, MeshT::Type{<:TreeMesh{3}},
-                                           have_nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -222,8 +225,9 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, MeshT, False(), equations, symmetric_flux,
-                              dg, cache, alpha)
+    flux_differencing_kernel!(du, u, element, MeshT, False(), have_aux_node_vars,
+                              equations,
+                              symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -269,7 +273,7 @@ end
                             MeshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
                                                 P4estMesh{3},
                                                 T8codeMesh{3}}},
-                            have_nonconservative_terms, equations,
+                            have_nonconservative_terms, have_aux_node_vars, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
@@ -283,7 +287,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                 MeshT, have_nonconservative_terms, equations,
+                 MeshT, have_nonconservative_terms, have_aux_node_vars, equations,
                  volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
@@ -309,7 +313,7 @@ end
                               MeshT::Type{<:Union{TreeMesh{3}, StructuredMesh{3},
                                                   P4estMesh{3},
                                                   T8codeMesh{3}}},
-                              have_nonconservative_terms, equations,
+                              have_nonconservative_terms, have_aux_node_vars, equations,
                               volume_flux_fv, dg::DGSEM, cache, element,
                               sc_interface_coords, reconstruction_mode, slope_limiter,
                               cons2recon, recon2cons,
@@ -328,7 +332,7 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                   MeshT, have_nonconservative_terms, equations,
+                   MeshT, have_nonconservative_terms, have_aux_node_vars, equations,
                    volume_flux_fv, dg, element, cache,
                    sc_interface_coords, reconstruction_mode, slope_limiter,
                    cons2recon, recon2cons)
@@ -359,7 +363,7 @@ end
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
                               ::Type{<:TreeMesh{3}}, have_nonconservative_terms::False,
-                              equations,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
@@ -391,7 +395,8 @@ end
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               fstar3_L, fstar3_R, u,
                               ::Type{<:TreeMesh{3}},
-                              have_nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -456,7 +461,7 @@ end
                                 fstar3_L, fstar3_R, u,
                                 ::Type{<:TreeMesh{3}},
                                 have_nonconservative_terms::False,
-                                equations,
+                                have_aux_node_vars::False, equations,
                                 volume_flux_fv, dg::DGSEM, element, cache,
                                 sc_interface_coords, reconstruction_mode, slope_limiter,
                                 cons2recon, recon2cons)
@@ -568,7 +573,8 @@ end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
-                              have_nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False,
+                              have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -603,7 +609,8 @@ end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
                               mesh::TreeMesh{3},
-                              have_nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True,
+                              have_aux_node_vars::False, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -959,7 +966,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           have_nonconservative_terms::False, equations,
+                           have_nonconservative_terms::False,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -1008,7 +1016,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           have_nonconservative_terms::True, equations,
+                           have_nonconservative_terms::True,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
@@ -1415,12 +1424,14 @@ end
 
 # Need dimension specific version to avoid error at dispatching
 function calc_sources!(backend::Nothing, du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+                       have_aux_node_vars::False, equations::AbstractEquations{3},
+                       dg::DG, cache)
     return nothing
 end
 
 function calc_sources!(backend::Nothing, du, u, t, source_terms,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+                       have_aux_node_vars::False, equations::AbstractEquations{3},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)

@@ -64,7 +64,8 @@ end
 # Subcell limiting currently only implemented for certain mesh types
 @inline function volume_integral_kernel!(du, u, element,
                                          MeshT::Type{<:Union{TreeMesh{3}, P4estMesh{3}}},
-                                         nonconservative_terms, equations,
+                                         have_nonconservative_terms,
+                                         have_aux_node_vars, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
@@ -80,7 +81,7 @@ end
     fhat3_L = fhat3_L_threaded[Threads.threadid()]
     fhat3_R = fhat3_R_threaded[Threads.threadid()]
     calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
-                   u, MeshT, nonconservative_terms, equations, volume_flux_dg,
+                   u, MeshT, have_nonconservative_terms, equations, volume_flux_dg,
                    dg, element, cache)
 
     # low-order FV fluxes
@@ -93,13 +94,13 @@ end
     fstar3_L = fstar3_L_threaded[Threads.threadid()]
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
-                 u, MeshT, nonconservative_terms, equations, volume_flux_fv,
-                 dg, element, cache)
+                 u, MeshT, have_nonconservative_terms, have_aux_node_vars, equations,
+                 volume_flux_fv, dg, element, cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, fhat3_L, fhat3_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R,
-                            u, MeshT, nonconservative_terms, equations, limiter,
+                            u, MeshT, have_nonconservative_terms, equations, limiter,
                             dg, element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
