@@ -445,6 +445,137 @@ end
     @test_nowarn show(stdout, "text/plain", solution_analyzer)
 end
 
+@timed_testset "Positivity limiter for AMRCallback" begin
+    # Initial condition with simple discontinuity
+    @inline function initial_condition_discontinuity(x, t, equations)
+        if x[1] < -0.5
+            scalar = 1.0e-4
+        else
+            scalar = 1.0
+        end
+
+        return SVector(scalar)
+    end
+
+    # Set up variables used for 1D, 2D and 3D tests
+    solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+
+    adaptor = Trixi.AdaptorL2(solver.basis)
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                   variables = (first,))
+
+    @testset "1D" begin
+        equations = LinearScalarAdvectionEquation1D(1.0)
+
+        coordinates_min = (-1.0,)
+        coordinates_max = (1.0,)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000, periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:2)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "2D" begin
+        equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+        coordinates_min = (-1.0, -1.0)
+        coordinates_max = (1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000, periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:4)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "3D" begin
+        equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+        coordinates_min = (-1.0, -1.0, -1.0)
+        coordinates_max = (1.0, 1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        n_cells_max = 1_000, periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:8)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+end
+
 @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
@@ -951,6 +1082,54 @@ end
     end
 end
 
+@timed_testset "Reproducing ideal gas with ThermallyPerfectGas9PolyFit" begin
+    R_specific = 287.0509010514002 # [J/(kg*K)]
+    p_ref = 100000.0 # [Pa]
+    T_ref = 298.15 # [K]
+
+    gamma_target = 1.4
+    cp_over_R = gamma_target / (gamma_target - 1)
+
+    temp_bounds = SVector(eps(Float64), typemax(Float64))  # single wide interval, avoid eps/typemax edge cases
+    a = Trixi.SMatrix{9, 1}([0.0, 0.0, cp_over_R, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                      temperature_bounds = temp_bounds,
+                                      coefficients = a,
+                                      p_ref = p_ref,
+                                      T_ref = T_ref)
+
+    rho = 1.255 # [kg/m^3]
+    V = 1 / rho
+
+    # 1. cp, cv, gamma match the ideal-gas properties
+    cp = Trixi.heat_capacity_constant_pressure(T_ref, eos)
+    cv = Trixi.heat_capacity_constant_volume(V, T_ref, eos)
+    @test cp ≈ gamma_target / (gamma_target - 1) * R_specific
+    @test cv ≈ 1 / (gamma_target - 1) * R_specific
+    @test cp / cv ≈ gamma_target
+
+    # 2. pressure matches ideal gas law
+    @test pressure(V, T_ref, eos) ≈ rho * R_specific * T_ref
+
+    # 3. internal energy matches u = cv * T (calorically perfect gas, up to a reference offset)
+    T_test = 400.0
+    e_internal1 = Trixi.energy_internal_specific(V, T_ref, eos)
+    e_internal2 = Trixi.energy_internal_specific(V, T_test, eos)
+    @test (e_internal2 - e_internal1) ≈ cv * (T_test - T_ref)
+
+    # 4. entropy difference matches ideal-gas relation
+    #    Δs = cp*ln(T2/T1) - R_specific*ln(p2/p1)
+    p1 = pressure(V, T_ref, eos)
+    p2 = pressure(V, T_test, eos)  # same V, different T -> different p
+    s1 = Trixi.entropy_specific(V, T_ref, eos)
+    s2 = Trixi.entropy_specific(V, T_test, eos)
+    @test (s2 - s1) ≈ cp * log(T_test / T_ref) - R_specific * log(p2 / p1)
+
+    # 5. check speed of sound
+    @test Trixi.speed_of_sound(V, T_ref, eos) ≈
+          sqrt(gamma_target * pressure(V, T_ref, eos) * V)
+end
+
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
@@ -990,6 +1169,26 @@ end
     @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+
+    eos = ThermallyPerfectGas9PolyFit()
+
+    equations = NonIdealCompressibleEulerEquations1D(eos)
+
+    # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
+    rho = 2.22e-8 # [kg/m^3]
+    V = inv(rho) # [m^3/kg]
+
+    a = 380.4 # [m/s]
+    v1 = 26 * a # [m/s]
+    T = 360 # [K]
+    q = SVector(V, v1, T)
+    u = thermo2cons(q, equations)
+
+    @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 end
 
 @timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" begin
@@ -1064,6 +1263,35 @@ end
     @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+
+    eos = ThermallyPerfectGas9PolyFit()
+
+    equations = NonIdealCompressibleEulerEquations2D(eos)
+
+    # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
+    rho = 2.22e-8 # [kg/m^3]
+    V = inv(rho) # [m^3/kg]
+
+    a = 380.4 # [m/s]
+
+    aoa = deg2rad(40.0) # angle of attack
+
+    v1 = 26 * a * cos(aoa) # [m/s]
+    v2 = 26 * a * sin(aoa) # [m/s]
+    T = 360 # [K]
+    q = SVector(V, v1, v2, T)
+    u = thermo2cons(q, equations)
+
+    for orientation in (1, 2)
+        @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+
+        @test flux_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_central_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
 end
 
 @timed_testset "StepsizeCallback" begin
@@ -3755,6 +3983,57 @@ end
         @test size(ts.child_ids) == (2^NDIMS, ts.capacity + 1)
         @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
         @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
+    end
+end
+
+@timed_testset "Euler admissible projection for PositivityPreservingLimiterLiuZhang" begin
+    @testset "1D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations1D(1.4)
+        u = SVector(0.5, 1.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] >= lower_bounds[1]
+        @test energy_internal(u_projected, equations) >= lower_bounds[2] - arithmetic_tol
+
+        @test u_projected[1] ≈ 1.0
+        @test u_projected[2]≈0.7709169970592479 rtol=1e-12
+        @test u_projected[3]≈0.39715650817742415 rtol=1e-12
+    end
+
+    @testset "Consistency between 1D and 2D projections when v2 = 0" begin
+        equations_1d = CompressibleEulerEquations1D(1.4)
+        equations_2d = CompressibleEulerEquations2D(1.4)
+        u_1d = SVector(0.5, 1.0, 0.1)
+        u_2d = SVector(0.5, 1.0, 0.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected_1d = Trixi.project_to_admissible_set(u_1d, lower_bounds, variables,
+                                                         equations_1d)
+        u_projected_2d = Trixi.project_to_admissible_set(u_2d, lower_bounds, variables,
+                                                         equations_2d)
+
+        @test u_projected_2d[1] ≈ u_projected_1d[1]
+        @test u_projected_2d[2] ≈ u_projected_1d[2]
+        @test u_projected_2d[4] ≈ u_projected_1d[3]
+        @test u_projected_2d[3] == 0.0
+    end
+
+    @testset "2D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.5, 1.0, -2.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] > lower_bounds[1]
+        @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
     end
 end
 
