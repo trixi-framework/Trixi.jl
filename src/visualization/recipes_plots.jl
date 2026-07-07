@@ -18,7 +18,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     point_values = hasproperty(plot_data, :point_values) ? plot_data.point_values : true #plot_data.point_values #getproperty(plot_data, :point_values, true)
 
     # Convert centers to edges to prevent heatmap from clipping boundary cells.
-    if !point_values # outdated explanation for reinterpolate = getproperty(plot_data, :reinterpolate, true) "since reinterpolate is false for new stuff where :reinterpolate is false, only that case enters the if loop" 
+    if !point_values #loop for dgsem .# outdated explanation for reinterpolate = getproperty(plot_data, :reinterpolate, true) "since reinterpolate is false for new stuff where :reinterpolate is false, only that case enters the if loop" 
         dx = (x[end] - x[begin]) / (length(x) - 1)
         dy = (y[end] - y[begin]) / (length(y) - 1)
 

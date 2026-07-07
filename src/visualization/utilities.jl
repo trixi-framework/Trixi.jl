@@ -1413,11 +1413,11 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
         # For a level-0 cell, its length equals the absolute width of the bounding box.
         # find the global bounding box size using the coordinates and levels.
-        global_domain_length = 0.0
-        for element_id in 1:n_elements
-            level = levels[element_id]
-            global_domain_length = max(global_domain_length, 2^level * (2.0 / 2^level))
-        end
+        #global_domain_length = 0.0
+        #for element_id in 1:n_elements
+        #    level = levels[element_id]
+        #    global_domain_length = max(global_domain_length, 2^level * (2.0 / 2^level))
+        #end
 
         # read the maximum coordinate boundary from the mesh elements to find the exact span
         x_coords = normalized_coordinates[1, :]
