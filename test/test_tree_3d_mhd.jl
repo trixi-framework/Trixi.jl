@@ -278,6 +278,75 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_mhd_diffusive_alfven_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_diffusive_alfven_wave.jl"),
+                        l2=[
+                            0.009725490649056904,
+                            0.0013112972306831665,
+                            0.0006463808957294592,
+                            0.0014706442797199322,
+                            0.0004591088428369186,
+                            0.001327365691990755,
+                            0.0006383411500935288,
+                            0.0014678657751955623,
+                            0.00022640641122184633
+                        ],
+                        linf=[
+                            0.014253830503336729,
+                            0.002307922189811089,
+                            0.0011474106218302242,
+                            0.0026780692744902655,
+                            0.0013331215219585246,
+                            0.0024251308517167502,
+                            0.0012040541344605638,
+                            0.002703564812805887,
+                            0.0007897217866712239
+                        ])
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh3D: elixir_mhd_diffusive_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_diffusive_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        l2=[
+                            0.0004099054450507347,
+                            0.0005097935577580122,
+                            0.00026428489303849823,
+                            0.0006104229663348432,
+                            0.0006936699278307907,
+                            0.0005891834422587535,
+                            0.00016324894657679612,
+                            0.00061380768217785,
+                            0.0002313854455020063
+                        ],
+                        linf=[
+                            0.0009032648006239707,
+                            0.002453353201023462,
+                            0.0014715003858754164,
+                            0.0027990878897229225,
+                            0.0026739613330022394,
+                            0.002741920257871122,
+                            0.00045750716194969954,
+                            0.0027537765715366464,
+                            0.0008321478659842286
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Check specialised methods on ViscoResistiveMhd2D for coverage
+    equations_parabolic = semi.equations_parabolic
+    @test Trixi.gradient_variable_transformation(equations_parabolic) ===
+          Trixi.cons2prim
+    u_node = initial_condition(SVector(0.0, 0.0), 0.0, semi.equations)
+    @test Trixi.energy_magnetic_mhd(u_node, equations_parabolic) isa Real
+end
 end
 
 end # module
