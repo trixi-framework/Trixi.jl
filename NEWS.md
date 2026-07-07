@@ -36,6 +36,12 @@ for human readability.
   This equation of state needs to be supplied to `NonIdealCompressibleEulerEquations`.
 
 #### Changed
+- Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]). 
+- Changed the element variables saved for `VolumeIntegralEntropyCorrectionShockCapturingCombined` ([#3131]):
+  - `:indicator_combined` (new) stores the actual blending coefficient (the max between the entropy correction and shock capturing coefficients).
+  - `:indicator_entropy_correction` (new) stores the entropy-correction blending coefficient.
+  - `:indicator_shock_capturing` now stores the shock-capturing indicator values only; previously it was overwritten with the combined coefficient.
+  If you were visualizing the combined blending coefficient via `:indicator_shock_capturing`, switch to `:indicator_combined`.
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
 
 ## Changes when updating to v0.16 from v0.15.x
