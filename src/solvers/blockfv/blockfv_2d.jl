@@ -403,17 +403,17 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
     if size(u, 2) % 2 == 1 #odd number of nodes
         for j in 1:2*nnodes(dg)
             for i in 1:size(u, 2)
-                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
+                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
 
-                u[:, div(i, 2) + 1 + div(nnodes(dg), 2), div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1]
+                u[:, div(i, 2) + 1 + div(nnodes(dg), 2), div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1]
             end
         end
     else    #even number of nodes
         for j in 1:2*nnodes(dg)
             for i in 1:nnodes(dg)
-                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
+                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
             
-                u[:, div(i + 1, 2) + div(nnodes(dg), 2) , div(j + 1, 2), element_id] += 1/4 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1] 
+                u[:, div(i + 1, 2) + div(nnodes(dg), 2) , div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1] 
             end
         end
     end
