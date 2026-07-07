@@ -828,7 +828,6 @@ end
     @test haskey(element_variables, :indicator_shock_capturing)
     @test haskey(element_variables, :indicator_entropy_correction)
 
-    # check that relationships between the blending coefficients are correct
     alpha_combined = element_variables[:indicator_combined]
     alpha_shock_capturing = element_variables[:indicator_shock_capturing]
     alpha_entropy_correction = element_variables[:indicator_entropy_correction]
