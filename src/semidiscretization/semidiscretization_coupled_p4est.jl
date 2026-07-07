@@ -574,7 +574,8 @@ end
     return converter(x, u_boundary_raw, semi_other.equations, equations)
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
+function calc_boundary_flux!(cache, t, boundary_condition::BC,
+                             boundary_indexing::Vector{Int},
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
