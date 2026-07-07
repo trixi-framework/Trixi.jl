@@ -195,7 +195,7 @@ or [`source_terms_eoc_test_euler`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,
                                                           equations::CompressibleEulerEquations3D)
-    # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+    # Note: this assumes that γ = 2 other manufactured source terms are incorrect
     if equations.gamma != 2
         error("adiabatic constant must be 2 for the coupling convergence test")
     end
@@ -1859,7 +1859,7 @@ end
 @doc raw"""
     apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations3D)
 
-Calculate the Jacobian for the mapping from entropy variables to conservative 
+Calculate the Jacobian for the mapping from entropy variables to conservative
 variables at the entropy variable state `w` and apply it to the vector `dw`.
 
 The explicit Jacobian formula can be found in Barth (1999), p. 205.
