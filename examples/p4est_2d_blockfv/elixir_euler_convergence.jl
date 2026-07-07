@@ -19,6 +19,7 @@ function mapping(xi, eta)
     return SVector(x, y)
 end
 
+# Create P4estMesh with 4 x 4 trees and periodic boundaries
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  initial_refinement_level = 1,

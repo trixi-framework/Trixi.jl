@@ -29,13 +29,52 @@ end
 
 @trixi_testset "elixir_advection_basic.jl (matches flat TreeMesh result)" begin
     # On a flat (uncurved) P4estMesh, BlockFV must reproduce the TreeMesh result
-    # at the same total resolution (8 trees x 4 FV cells = 32 cells per direction,
-    # cf. tree_2d_blockfv/elixir_advection_basic.jl with initial_refinement_level=5
-    # and n_nodes=1, or equivalently TreeMesh's `l2=[0.017295205942012868]` test).
+    # at the same total resolution (8 trees x 2^1 refinements x 4 FV cells = 64 cells
+    # per direction).
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         tspan=(0.0, 0.5),
                         l2=[0.01729520594201313],
                         linf=[0.02444847499806957])
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_advection_basic.jl with fewer n_nodes and higher refinement" begin
+    # Compute with more FV cells per macro element.
+    # trees=(8,8), level=1, n_nodes=4 -> 16 elements × 4 = 64 FV cells per direction.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        n_nodes=4,
+                        initial_refinement_level=1,
+                        tspan=(0.0, 0.5))
+    res1 = @inferred analysis_callback(sol)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Compute with fewer FV cells per macro element at higher mesh refinement.
+    # trees=(8,8), level=2, n_nodes=2 -> 32 elements × 2 = 64 FV cells per direction.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        n_nodes=2,
+                        initial_refinement_level=2,
+                        tspan=(0.0, 0.5))
+    res2 = @inferred analysis_callback(sol)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+
+    # Both setups have exactly the same total number of FV cells.
+    # On this mesh BlockFV must return the same errors (up to floating-point precision).
+    @test res1.l2 ≈ res2.l2
+    @test res1.linf ≈ res2.linf
+end
+
+@trixi_testset "elixir_advection_unstructured_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_unstructured_flag.jl"),
+                        l2=[0.03679333289248872],
+                        linf=[0.14531183424293137])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -84,7 +123,77 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@trixi_testset "elixir_euler_free_stream.jl" begin
+    # Free-stream preservation on a curved unstructured mesh:
+    # a constant initial state must stay constant up to machine precision.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            1.9312342788165835e-16,
+                            1.1102787289041371e-15,
+                            1.3624908968852466e-15,
+                            2.7423460152751346e-15
+                        ],
+                        linf=[
+                            2.220446049250313e-15,
+                            1.6181500583911657e-14,
+                            2.3453461395206432e-14,
+                            2.842170943040401e-14
+                        ],
+                        atol=1.0e-12)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+    # Free-stream preservation on a hybrid mesh (mixed first-order and second-order
+    # quadrilateral elements).
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_hybrid_mesh.jl"),
+                        tspan=(0.0, 0.5),
+                        l2=[
+                            1.0449504481826722e-17,
+                            1.1935127706587904e-16,
+                            1.2657920453908178e-16,
+                            9.750392607336836e-17
+                        ],
+                        linf=[
+                            1.1102230246251565e-16,
+                            3.608224830031759e-16,
+                            4.163336342344337e-16,
+                            1.7763568394002505e-15
+                        ],
+                        atol=1.0e-12)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 end # Compressible Euler equations
+
+@testset "Visualization" begin
+#! format: noindent
+
+@trixi_testset "PlotData2DTriangulated for BlockFV on P4estMesh" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        tspan=(0.0, 0.1))
+
+    # PlotData2D must return PlotData2DTriangulated
+    # for BlockFV on P4estMesh.
+    pd = @test_nowarn PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+
+    # Variable lookup by name
+    @test pd["scalar"] == Trixi.PlotDataSeries(pd, 1)
+
+    # show must not error
+    @trixi_test_nowarn show(stdout, pd)
+    println(stdout)
+end
+end # Visualization
 end # BlockFV 2D (P4estMesh)
 
 end # module
