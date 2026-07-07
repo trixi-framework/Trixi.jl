@@ -811,6 +811,33 @@ end
                       indicator)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       indicator)
+
+    # Test saved element variables for combined, shock-capturing, and entropy-correction indicators
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+    n_elements = Trixi.nelements(solver, cache)
+    combined_indicator = solver.volume_integral.indicator
+    @test length(combined_indicator.cache.alpha) == n_elements
+    @test length(combined_indicator.indicator_entropy_correction.cache.alpha) ==
+          n_elements
+    @test length(combined_indicator.indicator_shock_capturing.cache.alpha) == n_elements
+
+    element_variables = Dict{Symbol, Any}()
+    Trixi.get_element_variables!(element_variables, sol.u[end], semi)
+    @test haskey(element_variables, :indicator_combined)
+    @test haskey(element_variables, :indicator_shock_capturing)
+    @test haskey(element_variables, :indicator_entropy_correction)
+
+    alpha_combined = element_variables[:indicator_combined]
+    alpha_shock_capturing = element_variables[:indicator_shock_capturing]
+    alpha_entropy_correction = element_variables[:indicator_entropy_correction]
+    @test length(alpha_combined) == n_elements
+    @test length(alpha_shock_capturing) == n_elements
+    @test length(alpha_entropy_correction) == n_elements
+    @test all(isfinite, alpha_combined)
+    @test all(isfinite, alpha_shock_capturing)
+    @test all(isfinite, alpha_entropy_correction)
+    @test all(alpha_combined .>= alpha_shock_capturing .- 1.0e-10)
+    @test all(alpha_combined .>= alpha_entropy_correction .- 1.0e-10)
 end
 
 @trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" begin
