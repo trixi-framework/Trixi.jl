@@ -180,6 +180,127 @@ end
     return nothing
 end
 
+# Compute entropy correction blending factor for a single element.
+@inline function calc_entropy_correction_alpha_element!(du, u, element, MeshT,
+                                                        have_nonconservative_terms,
+                                                        equations,
+                                                        volume_integral_default,
+                                                        volume_integral_stabilized,
+                                                        scaling, dg, cache,
+                                                        du_element_threaded)
+    volume_integral_kernel!(du, u, element, MeshT,
+                            have_nonconservative_terms, equations,
+                            volume_integral_default, dg, cache)
+
+    dS_volume_integral = -entropy_change_reference_element(du, u, element,
+                                                           MeshT, equations, dg, cache)
+    dS_true = surface_integral_reference_element(entropy_potential, u, element,
+                                                 MeshT, equations, dg, cache)
+    entropy_residual = dS_volume_integral - dS_true
+
+    alpha_element = zero(eltype(du))
+    if entropy_residual > 0
+        du_FD_element = du_element_threaded[Threads.threadid()]
+        @views du_FD_element .= du[.., element]
+        @views du[.., element] .= zero(eltype(du))
+        volume_integral_kernel!(du, u, element, MeshT,
+                                have_nonconservative_terms, equations,
+                                volume_integral_stabilized, dg, cache)
+        dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
+                                                                          element,
+                                                                          MeshT,
+                                                                          equations, dg,
+                                                                          cache)
+        entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
+        ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
+        alpha_element = min(1, scaling * ratio)
+    end
+
+    return alpha_element
+end
+
+# Apply entropy correction blending for a single element using a precomputed alpha.
+@inline function apply_entropy_correction_blend!(du, u, element, MeshT,
+                                                 have_nonconservative_terms, equations,
+                                                 volume_integral_default,
+                                                 volume_integral_stabilized,
+                                                 alpha_element, dg, cache,
+                                                 du_element_threaded)
+    volume_integral_kernel!(du, u, element, MeshT,
+                            have_nonconservative_terms, equations,
+                            volume_integral_default, dg, cache)
+
+    if alpha_element > zero(alpha_element)
+        du_FD_element = du_element_threaded[Threads.threadid()]
+        @views du_FD_element .= du[.., element]
+        @views du[.., element] .= zero(eltype(du))
+        volume_integral_kernel!(du, u, element, MeshT,
+                                have_nonconservative_terms, equations,
+                                volume_integral_stabilized, dg, cache)
+        @views du[.., element] .= alpha_element .* du[.., element] .+
+                                  (1 - alpha_element) .* du_FD_element
+    end
+
+    return nothing
+end
+
+function calc_volume_integral!(backend::Nothing, du, u, mesh,
+                               have_nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralEntropyCorrection,
+                               dg::DGSEM, cache)
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+    @unpack scaling, alpha_smooth = indicator
+    @unpack alpha, alpha_tmp, volume_integral_values_threaded = indicator.cache
+
+    RealT = eltype(alpha)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+    MeshT = typeof(mesh)
+
+    if !alpha_smooth
+        @threaded for element in eachelement(dg, cache)
+            volume_integral_kernel!(du, u, element, MeshT,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral, dg, cache)
+        end
+        return nothing
+    end
+
+    resize!(alpha, nelements(dg, cache))
+    resize!(alpha_tmp, nelements(dg, cache))
+
+    # Pass 1: compute raw entropy correction blending factors
+    @threaded for element in eachelement(dg, cache)
+        alpha[element] = calc_entropy_correction_alpha_element!(du, u, element, MeshT,
+                                                                have_nonconservative_terms,
+                                                                equations,
+                                                                volume_integral_default,
+                                                                volume_integral_stabilized,
+                                                                scaling, dg, cache,
+                                                                volume_integral_values_threaded)
+    end
+
+    apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
+
+    # Pass 2: apply volume integral using smoothed blending factors
+    @threaded for element in eachelement(dg, cache)
+        alpha_element = alpha[element]
+        if isapprox(alpha_element, 0, atol = atol)
+            volume_integral_kernel!(du, u, element, MeshT,
+                                    have_nonconservative_terms, equations,
+                                    volume_integral_default, dg, cache)
+        else
+            apply_entropy_correction_blend!(du, u, element, MeshT,
+                                            have_nonconservative_terms, equations,
+                                            volume_integral_default,
+                                            volume_integral_stabilized,
+                                            alpha_element, dg, cache,
+                                            volume_integral_values_threaded)
+        end
+    end
+
+    return nothing
+end
+
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
@@ -277,7 +398,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
     (; alpha) = indicator.cache
-    (; scaling) = indicator_entropy_correction
+    (; scaling, alpha_smooth) = indicator_entropy_correction
+    (; alpha_tmp) = indicator_entropy_correction.cache
     du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
     alpha_entropy_correction = indicator_entropy_correction.cache.alpha
     alpha_combined = alpha
@@ -296,6 +418,60 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                                                                                cache)
 
     MeshT = typeof(mesh)
+
+    if alpha_smooth
+        n_elements = nelements(dg, cache)
+        resize!(alpha_entropy_correction, n_elements)
+        resize!(alpha_tmp, n_elements)
+        resize!(alpha_combined, n_elements)
+
+        # Pass 1: compute raw entropy correction blending factors
+        @threaded for element in eachelement(dg, cache)
+            alpha_entropy_correction[element] = calc_entropy_correction_alpha_element!(du,
+                                                                                       u,
+                                                                                       element,
+                                                                                       MeshT,
+                                                                                       have_nonconservative_terms,
+                                                                                       equations,
+                                                                                       volume_integral_default,
+                                                                                       volume_integral_stabilized,
+                                                                                       scaling,
+                                                                                       dg,
+                                                                                       cache,
+                                                                                       du_element_threaded)
+        end
+
+        apply_smoothing!(mesh, alpha_entropy_correction, alpha_tmp, dg, cache)
+
+        # Pass 2: combine with shock capturing and apply blending
+        @threaded for element in eachelement(dg, cache)
+            alpha_shock_capturing_element = alpha_shock_capturing[element]
+            alpha_combined_element = max(alpha_shock_capturing_element,
+                                         alpha_entropy_correction[element])
+            alpha_combined[element] = alpha_combined_element
+
+            if isapprox(alpha_combined_element, 0, atol = atol)
+                volume_integral_kernel!(du, u, element, MeshT,
+                                        have_nonconservative_terms, equations,
+                                        volume_integral_default, dg, cache)
+            else
+                volume_integral_kernel!(du, u, element, MeshT,
+                                        have_nonconservative_terms, equations,
+                                        volume_integral_default, dg, cache)
+                du_FD_element = du_element_threaded[Threads.threadid()]
+                @views du_FD_element .= du[.., element]
+                @views du[.., element] .= zero(eltype(du))
+                volume_integral_kernel!(du, u, element, MeshT,
+                                        have_nonconservative_terms, equations,
+                                        volume_integral_stabilized, dg, cache)
+                @views du[.., element] .= alpha_combined_element .* du[.., element] .+
+                                          (1 - alpha_combined_element) .* du_FD_element
+            end
+        end
+
+        return nothing
+    end
+
     @threaded for element in eachelement(dg, cache)
         # run default volume integral
         volume_integral_kernel!(du, u, element, MeshT,

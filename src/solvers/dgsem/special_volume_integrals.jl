@@ -63,6 +63,7 @@ function create_cache(mesh, equations,
                                     dg, cache_containers, uEltype)
 
     resize!(volume_integral.indicator.cache.alpha, nelements(dg, cache_containers))
+    resize!(volume_integral.indicator.cache.alpha_tmp, nelements(dg, cache_containers))
 
     return (; cache_default..., cache_stabilized...)
 end
@@ -78,6 +79,7 @@ function resize_volume_integral_cache!(cache, mesh,
     resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
 
     resize!(volume_integral.indicator.cache.alpha, new_size)
+    resize!(volume_integral.indicator.cache.alpha_tmp, new_size)
 
     return nothing
 end
@@ -111,6 +113,7 @@ function create_cache(mesh, equations,
     (; indicator_entropy_correction, indicator_shock_capturing) = volume_integral.indicator
     resize!(volume_integral.indicator.cache.alpha, n_elements)
     resize!(indicator_entropy_correction.cache.alpha, n_elements)
+    resize!(indicator_entropy_correction.cache.alpha_tmp, n_elements)
     resize!(indicator_shock_capturing.cache.alpha, n_elements)
 
     return (; cache_default..., cache_stabilized...)
@@ -127,6 +130,7 @@ function resize_volume_integral_cache!(cache, mesh,
     (; indicator_entropy_correction, indicator_shock_capturing) = volume_integral.indicator
     resize!(volume_integral.indicator.cache.alpha, new_size)
     resize!(indicator_entropy_correction.cache.alpha, new_size)
+    resize!(indicator_entropy_correction.cache.alpha_tmp, new_size)
     resize!(indicator_shock_capturing.cache.alpha, new_size)
 
     return nothing
