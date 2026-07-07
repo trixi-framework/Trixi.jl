@@ -33,7 +33,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
         x_edges = x
     end
 
-                                
     xlims --> (x_edges[begin], x_edges[end])
     ylims --> (y_edges[begin], y_edges[end])
     aspect_ratio --> :equal
@@ -46,7 +45,6 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     seriestype --> :heatmap
 
     return x_edges, y_edges, data[variable_id]
-
 
     # Set geometric properties
     xlims --> (x[begin], x[end])
