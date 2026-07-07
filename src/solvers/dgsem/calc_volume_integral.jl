@@ -352,7 +352,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             alpha_combined = max(alpha_shock_capturing[element],
                                  alpha_entropy_correction)
 
-            # save values for visualization                                 
+            # save values for visualization
             alpha_entropy_correction[element] = alpha_entropy_correction
             alpha_combined[element] = alpha_combined
 
