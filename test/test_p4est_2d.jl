@@ -134,8 +134,6 @@ end
                         linf=[0.0009605782290112996, 0.0009605782290100784])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
