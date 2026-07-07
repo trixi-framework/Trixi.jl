@@ -6,6 +6,12 @@ using TestItemRunner
 # selection of meaningful tests that cover a broad part of the code.
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
 
+# With `TRIXI_TEST_VERBOSE=true`, `@run_package_tests` prints every `@testitem` (together
+# with its run time) in the final test summary instead of only the failing ones. It is off
+# by default (to keep local runs quiet) and enabled in CI so that per-testitem timings
+# show up in the job logs.
+const TRIXI_TEST_VERBOSE = get(ENV, "TRIXI_TEST_VERBOSE", "false") == "true"
+
 # Some GitHub CI runners may not have much RAM and just 3 virtual CPU cores.
 # In this case, we do not want to use all of the cores to speed-up CI.
 const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS - 1, 2, 3)
@@ -132,7 +138,7 @@ else
     special_tags = Symbol.(SPECIAL_PROCESS_SUITES)
     tag = target_tag(TRIXI_TEST)
 
-    @run_package_tests filter = ti -> begin
+    testitem_filter = ti -> begin
         if TRIXI_TEST == "all"
             # The special suites run in dedicated processes (see above).
             any(t -> t in ti.tags, special_tags) && return false
@@ -148,6 +154,7 @@ else
         :AMDGPU in ti.tags && !RUN_AMDGPU && return false
         return true
     end
+    @run_package_tests filter=testitem_filter verbose=TRIXI_TEST_VERBOSE
 end
 
 # Common setup shared by all `@testitem`s. Listing `setup=[Setup]` on a test item
