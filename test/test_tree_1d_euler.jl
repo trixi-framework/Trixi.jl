@@ -859,6 +859,41 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection, alpha_smooth=true)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        indicator=IndicatorEntropyCorrection(equations, basis;
+                                                             alpha_smooth = true),
+                        tspan=(0.0, 0.1),
+                        l2=[0.27083804646536547, 0.4427940877412131, 0.9710825387327987],
+                        linf=[
+                            0.7136665293804841,
+                            1.2716529574925706,
+                            2.35819429614792
+                        ])
+
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@trixi_testset "elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined, EC alpha_smooth=true)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_modified_sod_entropy_correction_amr.jl"),
+                        indicator_ec=IndicatorEntropyCorrection(equations, basis;
+                                                                alpha_smooth = true),
+                        indicator=IndicatorEntropyCorrectionShockCapturingCombined(;
+                                                                                   indicator_entropy_correction = indicator_ec,
+                                                                                   indicator_shock_capturing = indicator_sc),
+                        tspan=(0.0, 0.1),
+                        l2=[0.24292998882273648, 0.401776947563816, 0.8670689181841471],
+                        linf=[
+                            0.7319744981008685,
+                            1.0998630580300006,
+                            2.2511868832400386
+                        ])
+
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_nonideal_transcritical_wave.jl"),
