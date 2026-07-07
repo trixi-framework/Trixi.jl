@@ -475,16 +475,29 @@ The use of `IndicatorEntropyCorrectionShockCapturingCombined` requires either
 `entropy_potential(u, normal_direction, equations)` for other mesh types
 to be defined.
 """
-struct IndicatorEntropyCorrectionShockCapturingCombined{IndicatorEC, IndicatorSC} <:
+struct IndicatorEntropyCorrectionShockCapturingCombined{IndicatorEC, IndicatorSC,
+                                                        Cache} <:
        AbstractIndicator
     indicator_entropy_correction::IndicatorEC
     indicator_shock_capturing::IndicatorSC
+    cache::Cache
 end
 
 function IndicatorEntropyCorrectionShockCapturingCombined(; indicator_shock_capturing,
                                                           indicator_entropy_correction)
+    cache = create_cache(IndicatorEntropyCorrectionShockCapturingCombined,
+                         indicator_entropy_correction, indicator_shock_capturing)
     return IndicatorEntropyCorrectionShockCapturingCombined(indicator_entropy_correction,
-                                                            indicator_shock_capturing)
+                                                            indicator_shock_capturing,
+                                                            cache)
+end
+
+function create_cache(::Type{IndicatorEntropyCorrectionShockCapturingCombined},
+                      indicator_entropy_correction, indicator_shock_capturing)
+    uEltype = eltype(indicator_entropy_correction.cache.alpha)
+    # stores the combined blending coefficients for visualization
+    alpha = Vector{uEltype}()
+    return (; alpha)
 end
 
 function Base.show(io::IO, indicator::IndicatorEntropyCorrectionShockCapturingCombined)

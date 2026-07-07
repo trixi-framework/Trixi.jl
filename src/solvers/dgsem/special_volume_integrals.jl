@@ -89,8 +89,46 @@ const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdap
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                 dg, cache)
-    # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable 
-    element_variables[:indicator_shock_capturing] = volume_integral.indicator.indicator_shock_capturing.cache.alpha
+    (; indicator_entropy_correction, indicator_shock_capturing) = volume_integral.indicator
+    (; alpha) = volume_integral.indicator.cache
+    element_variables[:indicator_combined] = alpha
+    element_variables[:indicator_shock_capturing] = indicator_shock_capturing.cache.alpha
+    element_variables[:indicator_entropy_correction] = indicator_entropy_correction.cache.alpha
+    return nothing
+end
+
+function create_cache(mesh, equations,
+                      volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                      dg, cache_containers, uEltype)
+    cache_default = create_cache(mesh, equations,
+                                 volume_integral.volume_integral_default,
+                                 dg, cache_containers, uEltype)
+    cache_stabilized = create_cache(mesh, equations,
+                                    volume_integral.volume_integral_stabilized,
+                                    dg, cache_containers, uEltype)
+
+    n_elements = nelements(dg, cache_containers)
+    (; indicator_entropy_correction, indicator_shock_capturing) = volume_integral.indicator
+    resize!(volume_integral.indicator.cache.alpha, n_elements)
+    resize!(indicator_entropy_correction.cache.alpha, n_elements)
+    resize!(indicator_shock_capturing.cache.alpha, n_elements)
+
+    return (; cache_default..., cache_stabilized...)
+end
+
+# `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
+function resize_volume_integral_cache!(cache, mesh,
+                                       volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
+                                       new_size)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    resize_volume_integral_cache!(cache, mesh, volume_integral_default, new_size)
+    resize_volume_integral_cache!(cache, mesh, volume_integral_stabilized, new_size)
+
+    (; indicator_entropy_correction, indicator_shock_capturing) = volume_integral.indicator
+    resize!(volume_integral.indicator.cache.alpha, new_size)
+    resize!(indicator_entropy_correction.cache.alpha, new_size)
+    resize!(indicator_shock_capturing.cache.alpha, new_size)
+
     return nothing
 end
 end # @muladd
