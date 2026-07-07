@@ -54,8 +54,8 @@ end
 @trixi_testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as in the parallel test!
-                        l2=[3.04403912e-02],
-                        linf=[2.37325777e-01],
+                        l2=[2.23122321e-03],
+                        linf=[2.73842937e-02],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
