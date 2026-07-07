@@ -185,4 +185,176 @@ function calc_error_norms(func, u, t, analyzer,
     l2_error = @. sqrt(l2_error / total_volume_)
     return l2_error, linf_error
 end
+
+# Required for the StepsizeCallback. The difference to the default implementation of `max_dt`
+# used for DGSEM is that we compute the maximum of the sum of the wave speeds instead of the
+# maximum of the wave speeds in each direction separately. The default implementation would
+# make the result depend on the number of FV cells per macro-cell, which is not desirable.
+function max_dt(u, t, mesh::TreeMesh{2},
+                constant_speed::False, equations, dg::BlockFV, cache)
+    # Avoid division by zero if the speed vanishes everywhere,
+    # e.g. for steady-state linear advection
+    max_scaled_speed = nextfloat(zero(t))
+
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+        max_lambda_sum = zero(max_scaled_speed)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            lambda1, lambda2 = max_abs_speeds(u_node, equations)
+            max_lambda_sum = Base.max(max_lambda_sum, lambda1 + lambda2)
+        end
+        inv_jacobian = cache.elements.inverse_jacobian[element]
+        # Use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+        # `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
+        max_scaled_speed = Base.max(max_scaled_speed,
+                                    inv_jacobian * max_lambda_sum)
+    end
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+@inline function element_solutions_to_mortars!(mortars,
+                                               mortar_l2::UniformFiniteVolumeBasis,
+                                               leftright,
+                                               mortar,
+                                               u_large::AbstractArray{<:Any, 2})
+
+    # Project the solution from the large element to the two small mortar sides
+    # by duplicating each large-element node
+    if size(u_large, 2) % 2 == 1
+        for i in 1:size(u_large, 2)
+            # Copy values to the lower small element
+            # (middle node is shared for odd numbers of nodes)
+            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :,
+                                                            div(i + 1, 2))
+
+            # Copy values to the upper small element
+            # (middle node is shared for odd numbers of nodes)
+            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :,
+                                                            div(i, 2) + 1 +
+                                                            div(size(u_large, 2), 2))
+        end
+    else
+        for i in 1:size(u_large, 2)
+            # Copy values to the lower small element
+            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :,
+                                                            div(i + 1, 2))
+
+            # Copy values to the upper small element
+            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :,
+                                                            div(i + 1, 2) +
+                                                            div(size(u_large, 2), 2))
+        end
+    end
+
+    return nothing
+end
+
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{2}, equations,
+                                            mortar_l2::UniformFiniteVolumeBasis,
+                                            dg::BlockFV, cache,
+                                            mortar, fstar_primary_upper,
+                                            fstar_primary_lower,
+                                            fstar_secondary_upper,
+                                            fstar_secondary_lower)
+    large_element = cache.mortars.neighbor_ids[3, mortar]
+    upper_element = cache.mortars.neighbor_ids[2, mortar]
+    lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+    # Copy flux small to small
+    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 1
+        else
+            # L2 mortars in y-direction
+            direction = 3
+        end
+    else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 2
+        else
+            # L2 mortars in y-direction
+            direction = 4
+        end
+    end
+    surface_flux_values[:, :, direction, upper_element] .= fstar_primary_upper
+    surface_flux_values[:, :, direction, lower_element] .= fstar_primary_lower
+
+    # Determine on which face of the large element the mortar is located and which direction it corresponds to:
+    if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 2
+        else
+            # L2 mortars in y-direction
+            direction = 4
+        end
+    else # large_sides[mortar] == 2 -> large element on right side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 1
+        else
+            # L2 mortars in y-direction
+            direction = 3
+        end
+    end
+
+    # Project fluxes from the two small elements to the large element.
+    # The fluxes on the small elements are already computed and stored in
+    # fstar_primary_upper and fstar_primary_lower.
+    # The fluxes on the large element are computed by averaging the fluxes
+    # from the two small elements.
+    for v in eachvariable(equations)
+        if nnodes(dg) % 2 == 1
+            # For an odd number of nodes, average the interface values at the center node
+            surface_flux_values[v, (nnodes(dg) + 1) ÷ 2, direction, large_element] = 0.5f0 *
+                                                                                     (fstar_primary_lower[v,
+                                                                                                          end] +
+                                                                                      fstar_primary_upper[v,
+                                                                                                          1])
+            for i in eachnode(mortar_l2)
+                if i <= nnodes(dg) ÷ 2
+                    # Average neighboring fluxes from the lower small element
+                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
+                                                                          (fstar_primary_lower[v,
+                                                                                               2 * i - 1] +
+                                                                           fstar_primary_lower[v,
+                                                                                               2 * i])
+                elseif i == (nnodes(dg) + 1) ÷ 2
+                    continue
+                    # Center node already set above
+                else
+                    # Average neighboring fluxes from the upper small element
+                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
+                                                                          (fstar_primary_upper[v,
+                                                                                               2 * i - 1 - nnodes(dg)] +
+                                                                           fstar_primary_upper[v,
+                                                                                               2 * i - nnodes(dg)])
+                end
+            end
+        else
+            for i in eachnode(mortar_l2)
+                if i <= nnodes(dg) ÷ 2
+                    # Average neighboring fluxes from the lower small element
+                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
+                                                                          (fstar_primary_lower[v,
+                                                                                               2 * i - 1] +
+                                                                           fstar_primary_lower[v,
+                                                                                               2 * i])
+                else
+                    # Average neighboring fluxes from the upper small element
+                    surface_flux_values[v, i, direction, large_element] = 0.5f0 *
+                                                                          (fstar_primary_upper[v,
+                                                                                               2 * i - 1 - nnodes(dg)] +
+                                                                           fstar_primary_upper[v,
+                                                                                               2 * i - nnodes(dg)])
+                end
+            end
+        end
+    end
+    return nothing
+end
 end # @muladd

@@ -7,7 +7,7 @@
 
 """
     PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
-                                        global_limiter_tol = 1e3 * eps(real(semi)),
+                                        global_limiter_tol = 100 * eps(real(semi)),
                                         max_davis_yin_iterations = 500,
                                         record_davis_yin_iterations = false)
 
@@ -34,11 +34,6 @@ two authors who are on all of the other optimization-based limiter papers.
   An optimization based limiter for enforcing positivity in a semi-implicit discontinuous Galerkin scheme for compressible Navier-Stokes equations
   [doi: 10.1016/j.jcp.2024.113440](https://doi.org/10.1016/j.jcp.2024.113440)
 
-Currently, admissibility is enforced via projection onto lower bounds only for
-scalar equations (`nvariables(equations) == 1`). The local limiter must use
-`variables = (first,)` so that [`project_to_admissible_set`](@ref) dispatches to
-the scalar clipping projection.
-
 The keyword argument `global_limiter_tol` is the convergence tolerance for the Davis-Yin
 splitting iteration in the global cell-average limiter, and `max_davis_yin_iterations` sets 
 the maximum number of Davis-Yin iterations per global limiting step.
@@ -53,7 +48,9 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
                                                    AbstractVector,
                                                    SqrtCellVolumes <:
                                                    AbstractVector{<:Real},
-                                                   RealT <: Real}
+                                                   RealT <: Real,
+                                                   ProjectionThresholds,
+                                                   ProjectionVariables}
     local_limiter!::LocalLimiter
     cell_averages::CellAverages
     davis_yin_dual_vars::DavisYinDualVars
@@ -61,13 +58,56 @@ mutable struct PositivityPreservingLimiterLiuZhang{LocalLimiter,
     sqrt_cell_volumes::SqrtCellVolumes
     global_limiter_tol::RealT
     max_davis_yin_iterations::Int
+    projection_thresholds::ProjectionThresholds
+    projection_variables::ProjectionVariables
     record_davis_yin_iterations::Bool
     history_davis_yin_iterations::Vector{Int}
 end
 
+# For compressible Euler, convert local limiter variables and thresholds 
+# to `(rho_floor, rho_e_floor)` with variables `(Trixi.density, energy_internal)`.
+function convert_variables_and_thresholds(thresholds, variables,
+                                          equations::Union{CompressibleEulerEquations1D,
+                                                           CompressibleEulerEquations2D})
+    if length(thresholds) != 2 || length(variables) != 2
+        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
+              "two limiter variables: one for density and one for internal energy or pressure.")
+    end
+
+    rho_floor = nothing
+    rho_e_floor = nothing
+    for (threshold, variable) in zip(thresholds, variables)
+        if variable === density
+            rho_floor = threshold
+        elseif variable === energy_internal
+            rho_e_floor = threshold
+        elseif variable === pressure
+            # convert pressure floor to internal energy floor; 
+            # for ideal gas, p / (gamma - 1) = rho_e
+            rho_e_floor = equations.inv_gamma_minus_one * threshold
+        else
+            error("PositivityPreservingLimiterLiuZhang for compressible Euler requires ",
+                  "variables = (density, energy_internal) or (density, pressure) ",
+                  "(in either order); got unsupported variable.")
+        end
+    end
+    if rho_floor === nothing || rho_e_floor === nothing
+        error("PositivityPreservingLimiterLiuZhang for compressible Euler requires exactly ",
+              "one limiter variable for density and one for internal energy or pressure.")
+    end
+
+    # return sorted thresholds and variables
+    return (rho_floor, rho_e_floor), (density, energy_internal)
+end
+
+# generic fallback: copy over the local limiter variables and thresholds as-is.
+function convert_variables_and_thresholds(thresholds, variables, equations)
+    return thresholds, variables
+end
+
 function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              semi::AbstractSemidiscretization;
-                                             global_limiter_tol = 1e3 * eps(real(semi)),
+                                             global_limiter_tol = 100 * eps(real(semi)),
                                              max_davis_yin_iterations = 500,
                                              record_davis_yin_iterations = false)
     return PositivityPreservingLimiterLiuZhang(local_limiter!,
@@ -98,12 +138,19 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
     # initialize empty length-0 history of Davis-Yin iterations 
     history_davis_yin_iterations = Vector{Int}(undef, 0)
 
+    # convert local limiter variables and thresholds to the format expected by the global limiter
+    projection_thresholds, projection_variables = convert_variables_and_thresholds(local_limiter!.thresholds,
+                                                                                   local_limiter!.variables,
+                                                                                   equations)
+
     return PositivityPreservingLimiterLiuZhang(local_limiter!, cell_averages,
                                                davis_yin_dual_vars,
                                                projected_cell_averages,
                                                sqrt_cell_volumes,
                                                global_limiter_tol,
                                                max_davis_yin_iterations,
+                                               projection_thresholds,
+                                               projection_variables,
                                                record_davis_yin_iterations,
                                                history_davis_yin_iterations)
 end
@@ -114,6 +161,7 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; local_limiter!, cell_averages, davis_yin_dual_vars, projected_cell_averages,
     sqrt_cell_volumes, global_limiter_tol, max_davis_yin_iterations,
+    projection_thresholds, projection_variables,
     record_davis_yin_iterations, history_davis_yin_iterations) = global_limiter!
 
     @trixi_timeit timer() "Liu-Zhang positivity limiter" begin
@@ -136,20 +184,16 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
             end
         end
 
-        # loop through all positivity bounds enforced by the local limiter,
-        # and check if the cell average violates any of them
+        # check if the cell average is admissible
         cell_average_bounds_violated = false
         for element in eachelement(dg, cache)
-            # TODO: check if this loses type stability for tuples of functions
-            # since the types of the `variables` will be different for e.g., (pressure, density).
-            for (index, variable) in enumerate(local_limiter!.variables)
-                if variable(cell_averages[element], equations) <
-                   local_limiter!.thresholds[index]
-                    cell_average_bounds_violated = true
-                    break
-                end
+            if !state_is_admissible(cell_averages[element],
+                                    projection_thresholds,
+                                    projection_variables,
+                                    equations)
+                cell_average_bounds_violated = true
+                break
             end
-            cell_average_bounds_violated && break
         end
 
         # if any cell average violates a positivity bound, apply the global limiter
@@ -172,8 +216,8 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                                              davis_yin_dual_vars,
                                              projected_cell_averages,
                                              sqrt_cell_volumes, total_volume,
-                                             local_limiter!.thresholds,
-                                             local_limiter!.variables,
+                                             projection_thresholds,
+                                             projection_variables,
                                              global_limiter_tol,
                                              max_davis_yin_iterations,
                                              record_davis_yin_iterations,
@@ -190,26 +234,10 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
     return nothing
 end
 
-"""
-    project_to_admissible_set(cell_average, lower_bound, variables, equations)
-
-For scalar equations, the positivity-preserving limiter enforces `u > u_lower`, and
-projection to the admissible set is a clipping operation. 
-
-To ensure that `variables` is consistent with this assumption, users must set 
-`variables = (first,)`. 
-"""
-@inline function project_to_admissible_set(cell_average, lower_bound,
-                                           variables::Tuple{typeof(first)},
-                                           equations::AbstractEquations{NDIMS, 1}) where {NDIMS}
-    # lower_bound and cell_average are SVectors of size 1
-    return SVector(max(lower_bound[1], cell_average[1]))
-end
-
 function global_cell_average_limiter!(u, cell_averages,
                                       davis_yin_dual_vars, projected_cell_averages,
                                       sqrt_cell_volumes, total_volume,
-                                      lower_bound, variables,
+                                      lower_bounds, variables,
                                       global_limiter_tol,
                                       max_davis_yin_iterations,
                                       record_davis_yin_iterations,
@@ -272,7 +300,7 @@ function global_cell_average_limiter!(u, cell_averages,
             sqrt_cell_volume = sqrt_cell_volumes[element]
             unweighted_cell_average = davis_yin_dual_vars[element] / sqrt_cell_volume
             unweighted_projected_cell_average = project_to_admissible_set(unweighted_cell_average,
-                                                                          lower_bound,
+                                                                          lower_bounds,
                                                                           variables,
                                                                           equations)
             projected_cell_averages[element] = unweighted_projected_cell_average *
@@ -330,7 +358,8 @@ function global_cell_average_limiter!(u, cell_averages,
         sqrt_cell_volume = sqrt_cell_volumes[element]
         new_cell_average = project_to_admissible_set(davis_yin_dual_vars[element] /
                                                      sqrt_cell_volume,
-                                                     lower_bound, variables, equations)
+                                                     lower_bounds, variables, equations)
+
         set_u_mean!(u, new_cell_average, old_cell_average, element, mesh, equations, dg,
                     cache)
     end
@@ -338,3 +367,5 @@ function global_cell_average_limiter!(u, cell_averages,
     return nothing
 end
 end # @muladd
+
+include("admissible_projection.jl")

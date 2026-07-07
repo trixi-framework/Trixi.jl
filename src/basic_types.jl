@@ -120,6 +120,9 @@ end
     boundary_condition_do_nothing = Trixi.BoundaryConditionDoNothing()
 
 Imposing no boundary condition just evaluates the flux at the inner state.
+This has the effect of extending the domain beyond the boundary with the same solution state as
+in the interior.
+Also applicable to parabolic equations.
 """
 const boundary_condition_do_nothing = BoundaryConditionDoNothing()
 

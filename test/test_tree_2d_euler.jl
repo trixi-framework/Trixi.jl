@@ -532,6 +532,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_sedov_limiter_liu_zhang.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_limiter_liu_zhang.jl"),
+                        l2=[
+                            0.90804578279466,
+                            0.21785647903550392,
+                            0.21785665052959136,
+                            0.28670869115421455
+                        ],
+                        linf=[
+                            5.37828857574071,
+                            2.044547247030974,
+                            2.0445488517007133,
+                            1.1947919489346195
+                        ],
+                        atol=5e-2, # limiters are not smooth, so we need bigger tolerances
+                        rtol=1e-2)
+    @test length(global_limiter!.history_davis_yin_iterations) == 1
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -1001,16 +1022,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[
-                            0.0017208369388227673,
-                            0.09628684992237334,
-                            0.09620157717330868,
-                            0.1758809552387432
+                            3.1363505551305216e-5,
+                            0.0006614564510650079,
+                            0.0006466955139840528,
+                            0.002661217863027477
                         ],
                         linf=[
-                            0.021869936355319086,
-                            0.9956698009442038,
-                            1.0002507727219028,
-                            2.223249697515648
+                            0.0010628052760547346,
+                            0.028186424944457555,
+                            0.01130123802781463,
+                            0.07516351234122709
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
