@@ -84,7 +84,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_header(io, "DGMultiMesh{$NDIMS, $MeshType}, ")
         summary_line(io, "number of elements", mesh.md.num_elements)
         summary_line(io, "number of boundaries", length(mesh.boundary_faces))
-        for (boundary_name, faces) in mesh.boundary_faces
+        for (boundary_name, faces) in pairs(mesh.boundary_faces)
             summary_line(increment_indent(io), "nfaces on $boundary_name",
                          length(faces))
         end

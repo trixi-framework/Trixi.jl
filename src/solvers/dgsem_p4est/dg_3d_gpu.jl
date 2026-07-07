@@ -6,37 +6,38 @@
 #! format: noindent
 
 @inline function calc_volume_integral!(backend::Backend, du, u,
-                                       mesh::P4estMesh{3},
+                                       mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralFluxDifferencing,
                                        dg::DGSEM, cache)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     kernel! = flux_differencing_KAkernel!(backend)
-    _nnodes = nnodes(dg)
+    NNODES = nnodes(dg)
     kernel!(du, u, equations,
             typeof(mesh),
             have_nonconservative_terms,
             combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
                                                             equations),
             dg,
-            volume_integral, Val(_nnodes),
+            volume_integral, Val(NNODES),
             derivative_split,
             contravariant_vectors,
-            ndrange = (_nnodes, _nnodes, _nnodes, nelements(dg, cache)))
+            ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
     return nothing
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:P4estMesh{3}},
+                                             MeshT::Type{<:Union{P4estMesh{3},
+                                                                 T8codeMesh{3}}},
                                              have_nonconservative_terms::False,
                                              combine_conservative_and_nonconservative_fluxes::False,
                                              dg::DGSEM,
                                              volume_integral,
-                                             ::Val{_nnodes},
+                                             ::Val{NNODES},
                                              derivative_split,
                                              contravariant_vectors,
-                                             alpha = true) where {_nnodes}
+                                             alpha = true) where {NNODES}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -70,15 +71,15 @@ end
     #   with Non-Conservative Terms.
     #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
 
-    half_nnodes = div(_nnodes, 2)
-    even_nodes = iseven(_nnodes)
+    half_nnodes = div(NNODES, 2)
+    even_nodes = iseven(NNODES)
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
 
         # first coordinate direction: rotate the partner index along `i`
-        ii = mod(i - 1 + offset, _nnodes) + 1
+        ii = mod(i - 1 + offset, NNODES) + 1
         u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
         # pull the contravariant vectors and compute the average
         Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
@@ -97,7 +98,7 @@ end
                                            ii, j, k, element)
 
         # second coordinate direction: rotate the partner index along `j`
-        jj = mod(j - 1 + offset, _nnodes) + 1
+        jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
         # pull the contravariant vectors and compute the average
         Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
@@ -116,7 +117,7 @@ end
                                            i, jj, k, element)
 
         # third coordinate direction: rotate the partner index along `k`
-        kk = mod(k - 1 + offset, _nnodes) + 1
+        kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
         # pull the contravariant vectors and compute the average
         Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
@@ -150,34 +151,17 @@ function prolong2interfaces!(backend::Backend, cache, u,
     return nothing
 end
 
-@kernel function prolong2interfaces_KAkernel!(interface_u, u, MeshT, equations,
+@kernel function prolong2interfaces_KAkernel!(interface_u, u,
+                                              MeshT::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                              equations,
                                               neighbor_ids, node_indices, index_range)
     interface = @index(Global)
-    prolong2interfaces_per_interface!(interface_u, u, MeshT, equations, neighbor_ids,
+    prolong2interfaces_per_interface!(interface_u, u,
+                                      MeshT::Type{<:Union{P4estMesh{3},
+                                                          T8codeMesh{3}}},
+                                      equations, neighbor_ids,
                                       node_indices, index_range, interface)
-end
-
-function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM, cache)
-    @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
-
-    kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, surface_integral, dg, inverse_weights[1],
-            surface_flux_values, ndrange = nelements(cache.elements))
-    return nothing
-end
-
-@kernel function calc_surface_integral_KAkernel!(du, MeshT, equations,
-                                                 surface_integral, dg, factor,
-                                                 surface_flux_values)
-    element = @index(Global)
-    calc_surface_integral_per_element!(du, MeshT,
-                                       equations, surface_integral, dg, factor,
-                                       surface_flux_values, element)
 end
 
 function calc_interface_flux!(backend::Backend, surface_flux_values,
@@ -196,7 +180,9 @@ function calc_interface_flux!(backend::Backend, surface_flux_values,
     return nothing
 end
 
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values, MeshT,
+@kernel function calc_interface_flux_KAkernel!(surface_flux_values,
+                                               MeshT::Type{<:Union{P4estMesh{3},
+                                                                   T8codeMesh{3}}},
                                                have_nonconservative_terms, equations,
                                                surface_integral, SolverT, u_interface,
                                                neighbor_ids, node_indices,
@@ -213,7 +199,7 @@ end
 end
 
 function prolong2boundaries!(backend::Backend, cache, u,
-                             mesh::P4estMesh,
+                             mesh::Union{P4estMesh, T8codeMesh},
                              equations, dg::DG)
     @unpack boundaries = cache
     @unpack neighbor_ids, node_indices = boundaries
@@ -226,7 +212,10 @@ function prolong2boundaries!(backend::Backend, cache, u,
     return nothing
 end
 
-@kernel function prolong2boundaries_kernel!(u, MeshT, equations, dg, index_range,
+@kernel function prolong2boundaries_kernel!(u,
+                                            MeshT::Type{<:Union{P4estMesh{3},
+                                                                T8codeMesh{3}}},
+                                            equations, dg, index_range,
                                             u_boundaries, neighbor_ids, node_indices)
     boundary = @index(Global)
     prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
@@ -235,7 +224,7 @@ end
 
 function calc_boundary_flux!(backend::Backend, cache, t::Real,
                              boundary_condition::BoundaryConditionPeriodic,
-                             mesh::P4estMesh,
+                             mesh::Union{P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 
@@ -243,7 +232,7 @@ function calc_boundary_flux!(backend::Backend, cache, t::Real,
 end
 
 function calc_boundary_flux!(backend::Backend, cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
+                             mesh::Union{P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
     @unpack node_coordinates, contravariant_vectors = cache.elements
@@ -257,7 +246,8 @@ end
 function calc_boundary_flux_by_type!(backend::Backend, cache, t,
                                      BCs::Tuple{},
                                      BC_indices::Tuple{},
-                                     mesh, equations, surface_integral, dg,
+                                     mesh::Union{P4estMesh, T8codeMesh},
+                                     equations, surface_integral, dg,
                                      node_coordinates, contravariant_vectors)
     return nothing
 end
@@ -266,7 +256,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
                                      BCs::Tuple{Any, Vararg{Any}},
                                      BC_indices::Tuple{AbstractVector{Int},
                                                        Vararg{AbstractVector{Int}}},
-                                     mesh::Union{UnstructuredMesh2D, P4estMesh,
+                                     mesh::Union{P4estMesh,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG,
                                      node_coordinates, contravariant_vectors)
@@ -311,7 +301,8 @@ end
                                             t,
                                             boundary_condition,
                                             index_range,
-                                            mesh,
+                                            MeshT::Type{<:Union{P4estMesh,
+                                                                T8codeMesh}},
                                             equations,
                                             surface_integral,
                                             dg,
@@ -324,7 +315,7 @@ end
 
         calc_boundary_flux_per_boundary!(u,
                                          surface_flux_values, t, boundary_condition,
-                                         mesh, equations, surface_integral, dg, cache,
+                                         MeshT, equations, surface_integral, dg, cache,
                                          boundary, neighbor_ids, node_indices_arr,
                                          index_range, node_coordinates,
                                          contravariant_vectors)
@@ -333,7 +324,8 @@ end
 
 function calc_boundary_flux_per_boundary!(u,
                                           surface_flux_values, t, boundary_condition,
-                                          MeshT::Type{<:P4estMesh{3}},
+                                          MeshT::Type{<:Union{P4estMesh{3},
+                                                              T8codeMesh{3}}},
                                           equations, surface_integral, dg, cache,
                                           boundary, neighbor_ids, node_indices_arr,
                                           index_range, node_coordinates,
@@ -374,7 +366,8 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(u, surface_flux_values, t, boundary_condition,
-                                     MeshT,
+                                     MeshT::Type{<:Union{P4estMesh{3},
+                                                         T8codeMesh{3}}},
                                      have_nonconservative_terms::False, equations,
                                      surface_integral, dg, cache,
                                      i_index, j_index, k_index, i_node_index,
@@ -403,6 +396,59 @@ end
     end
 end
 
+function calc_surface_integral!(backend::Backend, du, u,
+                                mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                equations,
+                                surface_integral::SurfaceIntegralWeakForm,
+                                dg::DGSEM{<:LobattoLegendreBasis},
+                                cache)
+    @unpack inverse_weights = dg.basis
+    @unpack surface_flux_values = cache.elements
+    NNODES = nnodes(dg)
+    kernel! = calc_surface_integral_KAkernel!(backend)
+    kernel!(du, typeof(mesh), equations, inverse_weights[1],
+            Val(NNODES),
+            surface_flux_values,
+            ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
+
+    return nothing
+end
+
+@kernel function calc_surface_integral_KAkernel!(du,
+                                                 MeshT::Type{<:Union{P4estMesh{3},
+                                                                     T8codeMesh{3}}},
+                                                 equations, factor, ::Val{NNODES},
+                                                 surface_flux_values) where {NNODES}
+    i, j, k, element = @index(Global, NTuple)
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    #
+    # factor = inverse_weights[1]
+    # For LGL basis: Identical to weighted boundary interpolation at x = ±1	
+    x_node_interface = (i == 1) | (i == NNODES)
+    y_node_interface = (j == 1) | (j == NNODES)
+    z_node_interface = (k == 1) | (k == NNODES)
+    x_face = ifelse(i == 1, 1, 2)
+    y_face = ifelse(j == 1, 3, 4)
+    z_face = ifelse(k == 1, 5, 6)
+    _zero = zero(eltype(du))
+    for v in eachvariable(equations)
+        x_contribution = ifelse(x_node_interface,
+                                surface_flux_values[v, j, k, x_face, element], _zero)
+        y_contribution = ifelse(y_node_interface,
+                                surface_flux_values[v, i, k, y_face, element], _zero)
+        z_contribution = ifelse(z_node_interface,
+                                surface_flux_values[v, i, j, z_face, element], _zero)
+        du_node = x_contribution + y_contribution + z_contribution
+        du[v, i, j, k, element] = du[v, i, j, k, element] + du_node * factor
+    end
+end
+
 function apply_jacobian!(backend::Backend, du,
                          mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
@@ -414,7 +460,10 @@ function apply_jacobian!(backend::Backend, du,
     return nothing
 end
 
-@kernel function apply_jacobian_KAkernel!(du, MeshT, equations, dg::DG,
+@kernel function apply_jacobian_KAkernel!(du,
+                                          MeshT::Type{<:Union{P4estMesh{3},
+                                                              T8codeMesh{3}}},
+                                          equations, dg::DG,
                                           inverse_jacobian)
     i, j, k, element = @index(Global, NTuple)
     apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian,

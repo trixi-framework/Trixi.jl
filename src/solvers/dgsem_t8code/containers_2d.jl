@@ -69,9 +69,9 @@ end
 # on the ordering given by t8code's space filling curve, and could become a point of
 # failure.
 # xref: https://github.com/DLR-AMR/t8code/issues/2190
-function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
-                                   other_face, orientation, neighbor_ielements,
-                                   mortar_id)
+@inline function init_mortar_neighbor_ids!(mortars::P4estMortarContainer{2}, my_face,
+                                           other_face, orientation, neighbor_ielements,
+                                           mortar_id)
     mortars.neighbor_ids[1, mortar_id] = neighbor_ielements[1] + 1
     mortars.neighbor_ids[2, mortar_id] = neighbor_ielements[2] + 1
 end
