@@ -32,7 +32,10 @@ const IN_WORKER = haskey(ENV, "TRIXI_TEST_RUN_ITEMS")
 # share the working directory and finish before the parent exits, so a single
 # cleanup here avoids races on `out`.
 function clean_outdir()
-    isdir("out") && rm("out", recursive = true, force = true)
+    # When running tests via `Pkg.test`, the working directory is the
+    # `test` directory of the package to be tested.
+    outdir = joinpath(@__DIR__, "out")
+    isdir(outdir) && rm(outdir, recursive = true, force = true)
 end
 if !IN_WORKER
     clean_outdir()
