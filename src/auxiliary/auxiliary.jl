@@ -262,18 +262,7 @@ end
 """
     @trixi_bounds expr
 
-Semantically the same as `Base.@inbounds expr`, i.e., annotate `expr` to tell the
-compiler that it may elide array bounds checks, but only if the `inbounds` preference
-is enabled (which is the default).
-
-When the `inbounds` preference is disabled via [`Trixi.set_inbounds!(false)`](@ref),
-this macro becomes a no-op and the wrapped `expr` keeps its array bounds checks. This
-is useful for debugging out-of-bounds accesses in Trixi.jl's hot loops without globally
-disabling bounds checks via `--check-bounds=yes`, which would also affect other packages.
-
-Since the preference is read at compile time, the choice is baked into the compiled code
-and this macro has no runtime overhead compared to a bare `Base.@inbounds` when enabled.
-A change of the preference requires restarting Julia and reloading Trixi.jl to take effect.
+TODO... decide if the default option should be inbounds or not.
 """
 macro trixi_bounds(expr)
     # The preference is a compile-time constant, so `@static if` bakes the choice into
