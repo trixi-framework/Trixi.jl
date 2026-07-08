@@ -163,14 +163,20 @@ volume_flux = flux_chandrashekar # works with Chandrashekar flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
+indicator = IndicatorHennemannGassner(equations, basis,
+                                      alpha_max = 1.0, alpha_min = 0.001,
+                                      alpha_smooth = false,
+                                      variable = pressure)
+
 # shock capturing necessary for this tough example
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
                                 positivity_correction_factor = 0.1,
-                                # local_twosided_variables_cons = ["rho"],
-                                # local_onesided_variables_nonlinear = [(entropy_guermond_etal,
-                                #                                        min)],
+                                local_twosided_variables_cons = ["rho"],
+                                local_onesided_variables_nonlinear = [(entropy_guermond_etal,
+                                                                       min)],
+                                indicator = indicator,
                                 max_iterations_newton = 500)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -227,16 +233,14 @@ positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-10, 
                                                          variables = (Trixi.density,
                                                                       pressure))
 
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max = 1.0,
-                                          alpha_min = 0.0001,
-                                          alpha_smooth = true,
-                                          variable = Trixi.density)
+amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 2,
-                                      med_level = 0, med_threshold = 0.0003, # med_level = current level
-                                      max_level = refinement_level, max_threshold = 0.003)
+amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator,
+                                              base_level = 2,
+                                              med_level = 0, med_threshold = 0.05, # med_level = current level
+                                              max_level = refinement_level,
+                                              max_threshold = 0.1,
+                                              max_threshold_secondary = 0.5)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,

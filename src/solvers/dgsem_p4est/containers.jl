@@ -665,6 +665,7 @@ mutable struct P4estIDPMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
     neighbor_ids::IdsMatrix # [position, mortar]
     node_indices::IndicesMatrix # [small/large, mortar]
     limiting_factor::Vector{uEltype} # [mortar]
+    limiting_factor_local::Vector{uEltype} # [mortar]
     # internal `resize!`able storage
     _u::uVector
     _u_large::uVector
@@ -681,7 +682,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::P4estIDPMortarContainer, capacity)
-    @unpack _u, _u_large, _neighbor_ids, _node_indices, limiting_factor = mortars
+    @unpack _u, _u_large, _neighbor_ids, _node_indices, limiting_factor, limiting_factor_local = mortars
 
     n_dims = ndims(mortars)
     n_nodes = size(mortars.u, 4)
@@ -706,6 +707,7 @@ function Base.resize!(mortars::P4estIDPMortarContainer, capacity)
     mortars.node_indices = unsafe_wrap(ArrayType, pointer(_node_indices), (2, capacity))
 
     resize!(limiting_factor, capacity)
+    resize!(limiting_factor_local, capacity)
 
     return nothing
 end
@@ -741,6 +743,7 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
 
     limiting_factor = Vector{uEltype}(undef, n_mortars)
+    limiting_factor_local = Vector{uEltype}(undef, n_mortars)
 
     mortars = P4estIDPMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
                                       typeof(u_large),
@@ -750,6 +753,7 @@ function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equatio
                                                              neighbor_ids,
                                                              node_indices,
                                                              limiting_factor,
+                                                             limiting_factor_local,
                                                              _u, _u_large,
                                                              _neighbor_ids,
                                                              _node_indices)

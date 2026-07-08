@@ -76,10 +76,12 @@ end
 mutable struct ContainerSubcellLimiterIDP{NDIMS, uEltype <: Real, NDIMSP1} <:
                AbstractContainer
     alpha::Array{uEltype, NDIMSP1} # [i, j, k, element]
+    alpha_local::Array{uEltype, NDIMSP1} # [i, j, k, element]
     variable_bounds::Dict{Symbol, Array{uEltype, NDIMSP1}}
     n_mortars_per_node::Array{Int, NDIMSP1}
     # internal `resize!`able storage
     _alpha::Vector{uEltype}
+    _alpha_local::Vector{uEltype}
     _variable_bounds::Dict{Symbol, Vector{uEltype}}
     _n_mortars_per_node::Vector{Int}
 end
@@ -93,6 +95,10 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
     _alpha = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
     alpha = unsafe_wrap(Array, pointer(_alpha),
                         (ntuple(_ -> n_nodes, NDIMS)..., capacity))
+
+    _alpha_local = fill(nan_uEltype, prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
+    alpha_local = unsafe_wrap(Array, pointer(_alpha_local),
+                              (ntuple(_ -> n_nodes, NDIMS)..., capacity))
 
     _n_mortars_per_node = fill(zero(Int), prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
     n_mortars_per_node = unsafe_wrap(Array, pointer(_n_mortars_per_node),
@@ -108,9 +114,11 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
     end
 
     return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1}(alpha,
+                                                                 alpha_local,
                                                                  variable_bounds,
                                                                  n_mortars_per_node,
                                                                  _alpha,
+                                                                 _alpha_local,
                                                                  _variable_bounds,
                                                                  _n_mortars_per_node)
 end
@@ -127,11 +135,16 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     n_nodes = nnodes(container)
     n_dims = ndims(container)
 
-    (; _alpha) = container
+    (; _alpha, _alpha_local) = container
     resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
     container.alpha = unsafe_wrap(Array, pointer(_alpha),
                                   (ntuple(_ -> n_nodes, n_dims)..., capacity))
     container.alpha .= convert(eltype(container.alpha), NaN)
+
+    resize!(_alpha_local, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
+    container.alpha_local = unsafe_wrap(Array, pointer(_alpha_local),
+                                        (ntuple(_ -> n_nodes, n_dims)..., capacity))
+    container.alpha_local .= convert(eltype(container.alpha_local), NaN)
 
     (; _variable_bounds) = container
     for (key, _) in _variable_bounds

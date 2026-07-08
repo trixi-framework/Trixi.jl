@@ -483,6 +483,34 @@ end
     return nothing
 end
 
+@inline function merge_alphas!(alpha::AbstractArray{<:Any, 3}, alpha_local,
+                               alpha_indicator, dg, cache)
+    for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            alpha[i, j, element] = (1 - alpha_indicator[element]) *
+                                   alpha[i, j, element] +
+                                   alpha_indicator[element] *
+                                   alpha_local[i, j, element]
+        end
+    end
+
+    return nothing
+end
+
+@inline function merge_alphas_mortar!(limiting_factor, limiting_factor_local,
+                                      alpha_indicator, dg, mesh::AbstractMesh{2}, cache)
+    (; neighbor_ids) = cache.mortars
+    for mortar in eachmortar(dg, cache)
+        alpha_element = max(alpha_indicator[neighbor_ids[1, mortar]],
+                            alpha_indicator[neighbor_ids[2, mortar]],
+                            alpha_indicator[neighbor_ids[3, mortar]])
+        limiting_factor[mortar] = (1 - alpha_element) * limiting_factor[mortar] +
+                                  alpha_element * limiting_factor_local[mortar]
+    end
+
+    return nothing
+end
+
 ###############################################################################
 # Local minimum and maximum limiting of conservative variables
 

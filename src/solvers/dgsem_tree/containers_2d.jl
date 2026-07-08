@@ -675,6 +675,7 @@ mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractContainer
     large_sides::Vector{Int}  # [mortars]
     orientations::Vector{Int} # [mortars]
     limiting_factor::Vector{uEltype} # [mortars]
+    limiting_factor_local::Vector{uEltype} # [mortars]
     # internal `resize!`able storage
     _u_upper::Vector{uEltype}
     _u_lower::Vector{uEltype}
@@ -691,7 +692,7 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
     n_nodes = nnodes(mortars)
     n_variables = nvariables(mortars)
     @unpack _u_upper, _u_lower, _u_large, _neighbor_ids,
-    large_sides, orientations, limiting_factor = mortars
+    large_sides, orientations, limiting_factor, limiting_factor_local = mortars
 
     resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
     mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
@@ -714,6 +715,7 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
     resize!(orientations, capacity)
 
     resize!(limiting_factor, capacity)
+    resize!(limiting_factor_local, capacity)
 
     return nothing
 end
@@ -744,9 +746,11 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
     orientations = fill(typemin(Int), capacity)
 
     limiting_factor = fill(nan, capacity)
+    limiting_factor_local = fill(nan, capacity)
 
     return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
-                                         large_sides, orientations, limiting_factor,
+                                         large_sides, orientations,
+                                         limiting_factor, limiting_factor_local,
                                          _u_upper, _u_lower, _u_large, _neighbor_ids)
 end
 

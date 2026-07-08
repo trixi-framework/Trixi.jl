@@ -707,7 +707,7 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(entropy_guermond_etal, min)], true,
+                                    true, [(entropy_guermond_etal, min)], nothing, true,
                                     true, "cache", 1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
