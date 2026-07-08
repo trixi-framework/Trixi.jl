@@ -237,11 +237,11 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_advection_restart_amr.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
-                            l2=[2.869137983727866e-6],
-                            linf=[3.8353423270964804e-5])
-    end
+@trixi_testset "elixir_advection_restart_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
+                        l2=[2.869137983727866e-6],
+                        linf=[3.8353423270964804e-5])
+end
 
     @trixi_testset "elixir_advection_coupled.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
