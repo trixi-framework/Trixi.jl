@@ -12,28 +12,24 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
-    # Check in reinterpolation is specified - for cases like first order Finite Volume, this is not desired.
-    #reinterpolate = hasproperty(plot_data, :reinterpolate) && plot_data.reinterpolate
-    #reinterpolate = getproperty(plot_data, :reinterpolate, true) #this is true when plot_data has an argument :reinterpolate which is true. And its true by default for old stuff that doensnt have an argument :reintterpolate. Its false when :reinterpolate is false
-    point_values = hasproperty(plot_data, :point_values) ? plot_data.point_values : true #plot_data.point_values #getproperty(plot_data, :point_values, true)
-    #false when solver is fv and true when solver is dg
+   point_values = hasproperty(plot_data, :point_values) ? plot_data.point_values : true # False for FV cell-centered data, true for DG point values.
 
-    # Convert centers to edges to prevent heatmap from clipping boundary cells.
-    if !point_values #loop for fv .# outdated explanation for reinterpolate = getproperty(plot_data, :reinterpolate, true) "since reinterpolate is false for new stuff where :reinterpolate is false, only that case enters the if loop" 
-        dx = (x[end] - x[begin]) / (length(x) - 1)
-        dy = (y[end] - y[begin]) / (length(y) - 1)
+    if !point_values #block will be entered only when point values is false aka FV
+        dx = (x[end] - x[begin]) / (length(x) - 1) #distance from the center of the leftest pixel to the center of the very rightest pixel, div by the number of gaps. dx is the  dist of one gap
+        dy = (y[end] - y[begin]) / (length(y) - 1) #this vector x comes from the fct PlotData2DCartesian in types.jl
 
         y_edges = collect(range(y[begin] - dy / 2, y[end] + dy / 2,
-                                length = length(y) + 1))
+                                length = length(y) + 1)) 
         x_edges = collect(range(x[begin] - dx / 2, x[end] + dx / 2,
-                                length = length(x) + 1))
+                                length = length(x) + 1)) #y[begin] - dy / 2 takes the center of the leftest pixel and moves half a pixel width to the left to find the left edge of the grid. analog  for [end]: right edge of the grid.
+        #we do all of that because FV has values at the centers but not at the grids boundary. But we need info there for plotting.
 
-    else
+    else # nothing changes for DG
         y_edges = y
         x_edges = x
     end
 
-    xlims --> (x_edges[begin], x_edges[end])
+    xlims --> (x_edges[begin], x_edges[end]) #was there before, is just called x_edges instead of x....
     ylims --> (y_edges[begin], y_edges[end])
     aspect_ratio --> :equal
 

@@ -259,12 +259,12 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
-#new thing
-
+#WIP Plot fv 2d for issue #2998 (Magalie) begin
+# Attaches a boolean (visualize_point_values(mesh, solver) which is defined below) to every PlotData2DCartesian(x, y, .....). That boolean is point_values 
 function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                              mesh_vertices_y, orientation_x, orientation_y)
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
-                               mesh_vertices_y, orientation_x, orientation_y, true)
+                               mesh_vertices_y, orientation_x, orientation_y, visualize_point_values(mesh, solver))
 end
 
 # Decide whether to visualize point values (default) or cell values,
@@ -274,9 +274,10 @@ function visualize_point_values(mesh, solver::DGSEM)
     # We interpret DG methods with polynomial degree 0 as
     # first-order finite volume methods, which should be
     # visualized as cell (mean) values.
-    return polydeg(solver) > 0
+    return polydeg(solver) > 0 #function returns true for DG and false for FV
 end
-#end new thing
+#WIP Plot fv 2d for issue #2998 (Magalie) end
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -300,39 +301,33 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     #WIP Plot fv 2d for issue #2998 (Magalie) begin
 
-    variable_names = SVector(varnames(solution_variables_, equations))
-
-    # For 1 node per cell, we use a finite volume method and want to visualize
-    # cell mean values as piecewise constant solution instead of point values.
-    # Thus, we map unstructured data directly to a uniform structured matrix matching the max mesh level.
-    if !point_values && ndims(mesh) == 2
-        # For piecewise constant solutions, it does not make sense to perform
-        # any (re)interpolation.
+    if !point_values && ndims(mesh) == 2 #check wether point_values is false. This is the case for FV. We only enter this block for FV.
+        
         if !(isnothing(nvisnodes) || nvisnodes == 1)
-            throw(ArgumentError("For finite volume methods (`polydeg = 0`), `nvisnodes` must be `nothing` or `1`; got $nvisnodes."))
+            throw(ArgumentError("For finite volume methods (`polydeg = 0`), `nvisnodes` must be `nothing` or `1`; got $nvisnodes.")) #throw an error when the number of visualuization nodes is too high
         end
 
-        max_level = maximum(levels)
-        true_resolution = Int(2^max_level)
+        max_level = maximum(levels) #finest refinement level
+        true_resolution = Int(2^max_level) #Total number of uniform pixels in one dimension
 
-        resolution_param = [true_resolution, true_resolution]
-        nvis_param = 1
+        resolution_param = [true_resolution, true_resolution] #true resolutuin in x and y (pixels are square)
+        nvis_param = 1 #how many visualization points to extract per element (caution when implementing Block FV)
 
         structured_data = unstructured2structured(unstructured_data, coordinates,
                                                   levels, resolution_param,
-                                                  nvis_param)
+                                                  nvis_param) # this is the function from utilities.jl. It gives out the state of all variables at the one node.
 
         if structured_data isa Vector
-            data = structured_data
+            data = structured_data #if structured_data is already a vector, we do nothing
         else
-            data = [structured_data]
+            data = [structured_data] #If it's a single 2D matrix (one variable) we put it inside a 1-element vector
         end
 
         x = collect(range(-1.0 + 1.0 / true_resolution, 1.0 - 1.0 / true_resolution,
-                          length = true_resolution))
-        y = copy(x)
+                          length = true_resolution)) #the left edge of the leftest pixel is at -1. The center of that pixel is half a pixel width (=1.0 / true_resolution) to the right. The right edge of the rightest pixel is at 1. The center of that last pixel is half a pixel width to the left. range generates a sequence of coordinates evenly spaced (the total number of points is true_resolution) from that first pixel center to the last pixel center.
+        y = copy(x) #y is a vector that is the same as x.
 
-        mesh_vertices_x = Float64[]
+        mesh_vertices_x = Float64[] # Initialized as empty because we don't draw cell boundaries for uniform FV pixels, but the return needs them.
         mesh_vertices_y = Float64[]
 
     else
@@ -355,6 +350,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     end
     #WIP Plot fv 2d for issue #2998 (Magalie) end
     orientation_x, orientation_y = _get_orientations(mesh, slice)
+
+    variable_names = SVector(varnames(solution_variables_, equations))
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y,

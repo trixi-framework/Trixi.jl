@@ -1403,64 +1403,85 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
     #WIP Plot fv 2d for issue #2998 (Magalie) begin
-
     # Bypasses polynomial interpolation. Projects cell areas from continuous space to matrix slices.
-    if n_nodes_in == 1
-        res_x = Int(resolution[1])
+    
+    is_fv_data = true
+    tol = 1e-12
+
+    for element_id in 1:n_elements, var in 1:n_variables #check for every variable and every element
+        ref_val = unstructured_data[1, 1, element_id, var] #Get the value of 1st node in x and y, 1st variable  as a reference for this specific element.
+        if !all(abs.(unstructured_data[:, :, element_id, var] .- ref_val) .< tol) # Check if any node in this element deviates from the reference value (this check goes over all x and y values)
+            is_fv_data = false #if so, it's not FV because DG hals curves. FV has lines (Caution when implementing BlockFV)
+            break
+        end
+    end
+            
+    if is_fv_data
+        println("inside FV block")
+        res_x = Int(resolution[1]) #resolution (argument of unstructured2structured) is a vector
         res_y = Int(resolution[2])
 
-        structured = [zeros(Float64, res_y, res_x) for _ in 1:n_variables]
+        structured = [zeros(Float64, res_y, res_x) for _ in 1:n_variables] #this is a set of res_x times res_y matrices (n_variables-many matrices)
 
-        # For a level-0 cell, its length equals the absolute width of the bounding box.
-        # find the global bounding box size using the coordinates and levels.
-        #global_domain_length = 0.0
-        #for element_id in 1:n_elements
-        #    level = levels[element_id]
-        #    global_domain_length = max(global_domain_length, 2^level * (2.0 / 2^level))
-        #end
-
-        # read the maximum coordinate boundary from the mesh elements to find the exact span
-        x_coords = normalized_coordinates[1, :]
+        x_coords = normalized_coordinates[1, :] #normalized_coordinates are an argument of the function, its a matrix that holds the center points of the elements and we take the 1st and 2nd row here because 2D.
         y_coords = normalized_coordinates[2, :]
-        x_min_domain = minimum(x_coords) - (1.0 / (2^minimum(levels)))
-        x_max_domain = maximum(x_coords) + (1.0 / (2^minimum(levels)))
-        y_min_domain = minimum(y_coords) - (1.0 / (2^minimum(levels)))
-        y_max_domain = maximum(y_coords) + (1.0 / (2^minimum(levels)))
 
-        domain_width = x_max_domain - x_min_domain
-        domain_height = y_max_domain - y_min_domain
+        min_idx_x = argmin(x_coords) #the smallest phys coordinate value in x
+        max_idx_x = argmax(x_coords) #the biggest phys coordinate value in x
+        min_idx_y = argmin(y_coords) #...
+        max_idx_y = argmax(y_coords)
 
-        for element_id in 1:n_elements
-            cx, cy = normalized_coordinates[:, element_id]
-            level = levels[element_id]
+        # Calculate reference spans
+        ref_span_x = 2.0 - (1.0 / (2^levels[max_idx_x])) - (1.0 / (2^levels[min_idx_x])) #2^levels[min_idx_x] is the number of cells of this specific size that would fit across the domain width. 1.0 / (2^levels[min_idx_x] is the width of such a cell.
+        ref_span_y = 2.0 - (1.0 / (2^levels[max_idx_y])) - (1.0 / (2^levels[min_idx_y])) # the reference element has lenth 2. We substract both boundary cell half-widths from the reference domains width
 
-            # Continuous physical width/height of a cell at this specific refinement level
-            # For tree-mesh domains of length L, a level-k cell has length L / (2^k)
-            cell_width = domain_width / (2^level)
+        # Calculate the true scale factors (physical distance / reference distance)
+        x_scale = (x_coords[max_idx_x] - x_coords[min_idx_x]) / ref_span_x #therefore x_scale and y_scale are kind of a map between reference and physical (ref to phys: multiply, phys to ref: divide)
+        y_scale = (y_coords[max_idx_y] - y_coords[min_idx_y]) / ref_span_y
 
-            # Physical continuous boundaries of the current cell element
-            x_min_cont = cx - cell_width / 2
+        # Calculate the physical half-widths of the outermost edge cells
+        phys_half_width_max_x = (1.0 / (2^levels[max_idx_x])) * x_scale #multiply the reference half width with the scale factor to get to the physical half width
+        phys_half_width_max_y = (1.0 / (2^levels[max_idx_y])) * y_scale
+
+        # Calculate physical boundaries anywhere in coordinate space
+        x_max_domain = x_coords[max_idx_x] + phys_half_width_max_x #physical maximum edge (phys center point + phys half cell)
+        y_max_domain = y_coords[max_idx_y] + phys_half_width_max_y
+        
+        domain_width  = 2.0 * x_scale #multiply the reference domain width (=2) with the scale factor to get to the physical domain width
+        domain_height = 2.0 * y_scale
+
+        x_min_domain = x_max_domain - domain_width #all phys, substract phys domain width from right domain boundary 
+        y_min_domain = y_max_domain - domain_height
+
+        for element_id in 1:n_elements # loop over all elements
+            cx, cy = normalized_coordinates[:, element_id] #center coordinates of that specific element (we used the ones on the domain boundary before to be able to get info about the physical domain, now we need all)
+            level = levels[element_id] #this specific elements refinement level
+
+            cell_width = domain_width / (2^level) # physical width of a cell at this specific refinement level
+
+            x_min_cont = cx - cell_width / 2 # phys continuous boundaries of this specific cell (be in the center, go half a cell_witdh up, down, right, left and be at the boundary)
             x_max_cont = cx + cell_width / 2
             y_min_cont = cy - cell_width / 2
             y_max_cont = cy + cell_width / 2
 
-            # Map physical space linearly into the pixel resolution bounds
-            i_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) + 1
-            i_end = ceil(Int, (x_max_cont - x_min_domain) / domain_width * res_x)
+            # Map physical space linearly into the pixel resolution bounds, (phys to ref: divide)
+            i_start = floor(Int, (x_min_cont - x_min_domain) / domain_width * res_x) + 1 #x_min_cont - x_min_domain is the physical distance of the cells left boundary to the domains left boundary. domain_width is the phys domain width. Mult by resolution to to convert the fraction into a pixel index.
+            i_end = ceil(Int, (x_max_cont - x_min_domain) / domain_width * res_x) #floor rounds down to capture the starting pixel, while the +1 prevents cell overlapping when a boundary lands exactly on a whole pixel line. ceil rounds up to ensure the ending pixel is fully included.
 
             j_start = floor(Int, (y_min_cont - y_min_domain) / domain_height * res_y) +
                       1
             j_end = ceil(Int, (y_max_cont - y_min_domain) / domain_height * res_y)
 
             # Clamp bounds to protect against edge precision errors
-            i_start = clamp(i_start, 1, res_x)
-            i_end = clamp(i_end, 1, res_x)
+            i_start = clamp(i_start, 1, res_x) #starting horizontal pixel index should never be less than 1 (we start counting at 1) and never greater than the image width.
+            i_end = clamp(i_end, 1, res_x) 
             j_start = clamp(j_start, 1, res_y)
             j_end = clamp(j_end, 1, res_y)
 
             # Slice row index first (j) and column index second (i)
-            for v in 1:n_variables
-                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1, 1,
+            for v in 1:n_variables #loop over all variables
+                #structured[v] is the 2D pixel image for variable v. [j_start:j_end, i_start:i_end] is the rectangular box of pixels that this specific element covers on the screen. This gets filled (.=) with the state of v at the one node that FV has in this specifiv element (unstructured_data[1, 1, element_id, v]) (Caution when implementing BlockFV)
+                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1, 1, 
                                                                                  element_id,
                                                                                  v]
             end
