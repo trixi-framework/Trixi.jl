@@ -101,7 +101,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
 
-    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+    # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
     interfaces_u = interfaces.u
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
@@ -201,7 +201,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
 
-    # OBS! `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
+    # Note: `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
     boundaries_u = boundaries.u
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 

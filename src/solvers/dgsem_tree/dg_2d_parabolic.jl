@@ -57,7 +57,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # The remainder of this function is essentially a regular rhs! for parabolic
     # equations (i.e., it computes the divergence of the parabolic fluxes)
     #
-    # OBS! In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
+    # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
     # been computed and stored in `flux_parabolic`. In the following, we *reuse* (abuse) the
     # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
@@ -117,7 +117,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     end
 
     # Calculate mortar fluxes.
-    # This calls the specialized version from 
+    # This calls the specialized version from
     # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values,
@@ -209,7 +209,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
 
-    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+    # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
     interfaces_u = interfaces.u
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
@@ -252,7 +252,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack orientations, neighbor_ids = interfaces
     @unpack boundary_interpolation = dg.basis
 
-    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+    # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
     interfaces_u = interfaces.u
 
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
@@ -359,7 +359,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
 
-    # OBS! `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
+    # Note: `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
     boundaries_u = boundaries.u
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 
@@ -421,7 +421,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
     @unpack boundary_interpolation = dg.basis
 
-    # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
+    # Note: `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
     boundaries_u = boundaries.u
     flux_parabolic_x, flux_parabolic_y = flux_parabolic
 

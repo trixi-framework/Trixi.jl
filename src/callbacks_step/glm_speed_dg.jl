@@ -22,7 +22,7 @@ function calc_dt_for_cleaning_speed(cfl::Real, mesh,
                                                   mpi_comm())[]
     end
 
-    # OBS! This depends on the implementation details of the StepsizeCallback and needs to be adapted
+    # Note: This depends on the implementation details of the StepsizeCallback and needs to be adapted
     #      as well if that callback changes.
     return cfl * 2 / (nnodes(dg) * max_scaled_speed_for_c_h)
 end
