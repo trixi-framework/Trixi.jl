@@ -209,7 +209,8 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, have_constant_speed,
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda = max_scaled_speed_per_element(u, aux, typeof(mesh), have_constant_speed,
+        max_lambda = max_scaled_speed_per_element(u, aux, typeof(mesh),
+                                                  have_constant_speed,
                                                   have_aux_node_vars, equations, dg,
                                                   contravariant_vectors,
                                                   inverse_jacobian,
@@ -232,7 +233,8 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, have_constant_speed
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
     max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
                                                     init, neutral) do element
-        max_scaled_speed_per_element(u, aux, MeshT, have_constant_speed, have_aux_node_vars,
+        max_scaled_speed_per_element(u, aux, MeshT, have_constant_speed,
+                                     have_aux_node_vars,
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,
