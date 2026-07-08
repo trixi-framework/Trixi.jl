@@ -30,7 +30,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     # Extra test to make sure the "TimeSeriesCallback" made correct data.
-    # Extracts data at all points from the first step of the time series and compares it to the 
+    # Extracts data at all points from the first step of the time series and compares it to the
     # exact solution and an interpolated reference solution
     point_data = [getindex(time_series.affect!.point_data[i], 1:5) for i in 1:3]
     exact_data = [initial_condition_convergence_test(time_series.affect!.point_coordinates[:,
@@ -220,7 +220,7 @@ end
 end
 
 @trixi_testset "elixir_euler_shockcapturing_amr.jl" begin
-    # OBS! This setup does not make much practical sense. It is only added to exercise the
+    # Note: This setup does not make much practical sense. It is only added to exercise the
     # `sedov_self_gravity` AMR indicator, which in its original configuration is too expensive for
     # CI testing
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_amr.jl"),

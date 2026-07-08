@@ -1045,6 +1045,27 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@trixi_testset "elixir_euler_therm_perf_cylinder_bowshock_mach6.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_therm_perf_cylinder_bowshock_mach6.jl"),
+                        tspan=(0.0, 5e-5),
+                        l2=[
+                            0.002289906234552541,
+                            1.4251279367429517,
+                            1.906905651849529,
+                            4047.021328146389
+                        ],
+                        linf=[
+                            0.021755490782915055,
+                            16.631382262811613,
+                            20.886810059751575,
+                            35716.96540793927
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @testset "Unified mesh constructor signatures (P4estMesh)" begin
     # 2D: reference (trees_per_dimension) positional
     mesh_ref = P4estMesh((4, 4); polydeg = 1,
