@@ -283,6 +283,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
     # Pass 2: apply volume integral using smoothed blending factors
     @threaded for element in eachelement(dg, cache)
+        # Pass 1 used `du` as scratch space to compute alpha.
+        # Clear it before recomputing the actual volume contribution.
+        @views du[.., element] .= zero(eltype(du))
+
         alpha_element = alpha[element]
         if isapprox(alpha_element, 0, atol = atol)
             volume_integral_kernel!(du, u, element, MeshT,
@@ -445,6 +449,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
 
         # Pass 2: combine with shock capturing and apply blending
         @threaded for element in eachelement(dg, cache)
+            # Pass 1 used `du` as scratch space to compute entropy-correction alpha.
+            # Clear it before recomputing the final combined volume contribution.
+            @views du[.., element] .= zero(eltype(du))
+
             alpha_shock_capturing_element = alpha_shock_capturing[element]
             alpha_combined_element = max(alpha_shock_capturing_element,
                                          alpha_entropy_correction[element])
