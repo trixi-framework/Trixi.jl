@@ -596,8 +596,10 @@ end
     flux_ = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
 
     # Compute both nonconservative fluxes
-    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, aux_rr, aux_ll, normal_direction, equations)
+    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction,
+                                           equations)
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, aux_rr, aux_ll,
+                                             normal_direction, equations)
 
     # Store the flux with nonconservative terms on the primary and secondary elements
     for v in eachvariable(equations)
@@ -614,7 +616,7 @@ end
 
     return nothing
 end
-  
+
 @inline function calc_interface_flux!(surface_flux_values,
                                       ::Type{<:Union{P4estMesh{2}, T8codeMesh{2}}},
                                       have_nonconservative_terms::True,

@@ -515,4 +515,112 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeMe
         end
     end
 end
+
+# Initialize auxiliary MPI interface node variables
+# 3D P4estMesh implementation, similar to prolong2mpiinterfaces
+# However we directly assign to both sides, assuming the aux field had no jumps. Therefore
+# we do not need any exchange.
+function init_aux_mpiinterface_node_vars!(aux_vars, mesh::P4estMeshParallel{3},
+                                          equations,
+                                          solver, cache)
+    @unpack aux_node_vars, aux_mpiinterface_node_vars = aux_vars
+    @unpack mpi_interfaces = cache
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachmpiinterface(solver, cache)
+        # Copy solution data from the local element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the index of the primary side
+        # will always run forwards.
+        local_element = mpi_interfaces.local_neighbor_ids[interface]
+        local_indices = mpi_interfaces.node_indices[interface]
+
+        i_element_start, i_element_step_i, i_element_step_j = index_to_start_step_3d(local_indices[1],
+                                                                                     index_range)
+        j_element_start, j_element_step_i, j_element_step_j = index_to_start_step_3d(local_indices[2],
+                                                                                     index_range)
+        k_element_start, k_element_step_i, k_element_step_j = index_to_start_step_3d(local_indices[3],
+                                                                                     index_range)
+
+        i_element = i_element_start
+        j_element = j_element_start
+        k_element = k_element_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in axes(aux_mpiinterface_node_vars, 2)
+                    aux_mpiinterface_node_vars[:, v, i, j, interface] .= aux_node_vars[v,
+                                                                                       i_element,
+                                                                                       j_element,
+                                                                                       k_element,
+                                                                                       local_element]
+                end
+                i_element += i_element_step_i
+                j_element += j_element_step_i
+                k_element += k_element_step_i
+            end
+            i_element += i_element_step_j
+            j_element += j_element_step_j
+            k_element += k_element_step_j
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary MPI mortar node variables
+# 3D P4est implementation, similar to prolong2mpimortars
+# However: - We only assign the small element values (only leftright = 1 is used)
+#          - These have to be communicated
+function init_aux_mpimortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, equations,
+                                       solver, cache)
+    @unpack aux_node_vars, aux_mpimortar_node_vars = aux_vars
+    @unpack node_indices = cache.mpi_mortars
+    index_range = eachnode(solver)
+
+    @threaded for mortar in eachmpimortar(solver, cache)
+        local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+        local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
+
+        # Get start value and step size for indices on both sides to get the correct face
+        # and orientation
+        small_indices = node_indices[1, mortar]
+        small_indices = node_indices[1, mortar]
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                               index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                               index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                               index_range)
+
+        for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
+            if position in (1, 2, 3, 4) # small element
+                # Copy solution data from the small elements
+                i_small = i_small_start
+                j_small = j_small_start
+                k_small = k_small_start
+                for j in eachnode(solver)
+                    for i in eachnode(solver)
+                        for v in axes(aux_mpimortar_node_vars, 2)
+                            aux_mpimortar_node_vars[1, v, position, i, j, mortar] = aux_node_vars[v,
+                                                                                                  i_small,
+                                                                                                  j_small,
+                                                                                                  k_small,
+                                                                                                  element]
+                        end
+                        i_small += i_small_step_i
+                        j_small += j_small_step_i
+                        k_small += k_small_step_i
+                    end
+                    i_small += i_small_step_j
+                    j_small += j_small_step_j
+                    k_small += k_small_step_j
+                end
+            end
+        end
+    end
+
+    data_size = nnodes(solver) * n_aux_node_vars(equations)
+    exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
+    return nothing
+end
 end # @muladd

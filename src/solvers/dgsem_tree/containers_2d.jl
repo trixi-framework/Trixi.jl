@@ -1634,7 +1634,7 @@ end
 
 # Initialize auxiliary MPI interface node variables
 # 2D TreeMesh implementation, similar to prolong2mpiinterfaces
-# However we directly assign to both sides, assuming the aux field had no jumps. Therefore
+# However we directly assign to both sides, assuming the aux field has no jumps. Therefore
 # we do not need any exchange.
 function init_aux_mpiinterface_node_vars!(aux_vars, mesh::TreeMeshParallel{2},
                                           equations,
@@ -1752,16 +1752,19 @@ end
 
 function exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
     @unpack mpi_cache = cache
+    num_pos = size(aux_mpimortar_node_vars)[3]
+    pos_small = ntuple(i -> i, num_pos)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
         send_buffer = mpi_cache.mpi_send_buffers[rank]
-        mortars_data_size = length(mpi_cache.mpi_neighbor_mortars[rank]) * data_size * 2
+        mortars_data_size = length(mpi_cache.mpi_neighbor_mortars[rank]) * data_size *
+                            num_pos
         send_buffer[1:mortars_data_size] .= NaN
         for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[rank])
-            base_index = (index - 1) * 2 * data_size + 1
+            base_index = (index - 1) * num_pos * data_size + 1
             for position in cache.mpi_mortars.local_neighbor_positions[mortar]
                 # Determine whether the data belongs to the left or right side
-                if position in (1, 2) # small element
+                if position in pos_small # small element
                     first = base_index + (position - 1) * data_size
                     last = first - 1 + data_size
                     @views send_buffer[first:last] .= vec(aux_mpimortar_node_vars[1, :,
@@ -1785,8 +1788,8 @@ function exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
     while data !== nothing
         recv_buffer = mpi_cache.mpi_recv_buffers[data]
         for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[data])
-            base_index = (index - 1) * 2 * data_size + 1
-            for position in 1:2
+            base_index = (index - 1) * num_pos * data_size + 1
+            for position in pos_small
                 first = base_index + (position - 1) * data_size
                 last = first - 1 + data_size
                 # Skip if received data for `position` is NaN as no real data has been sent for the

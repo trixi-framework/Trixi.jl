@@ -172,6 +172,12 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     return aux_vars
 end
 
+init_aux_vars!(aux_vars, mesh, equations, solver, cache) = init_aux_vars!(aux_vars,
+                                                                          mesh,
+                                                                          equations,
+                                                                          solver, cache,
+                                                                          0.0)
+
 function init_aux_vars!(aux_vars, mesh, equations, solver, cache, t)
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache, t)
     init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)

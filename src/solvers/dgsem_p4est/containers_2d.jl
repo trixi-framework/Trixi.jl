@@ -392,7 +392,7 @@ function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{2}, equations, sol
 end
 
 # Initialize auxiliary MPI interface node variables
-# 2D TreeMesh implementation, similar to prolong2mpiinterfaces
+# 2D P4estMesh implementation, similar to prolong2mpiinterfaces
 # However we directly assign to both sides, assuming the aux field had no jumps. Therefore
 # we do not need any exchange.
 function init_aux_mpiinterface_node_vars!(aux_vars, mesh::P4estMeshParallel{2},
