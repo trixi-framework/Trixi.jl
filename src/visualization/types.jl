@@ -264,7 +264,8 @@ end
 function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                              mesh_vertices_y, orientation_x, orientation_y)
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
-                               mesh_vertices_y, orientation_x, orientation_y, visualize_point_values(mesh, solver))
+                               mesh_vertices_y, orientation_x, orientation_y,
+                               visualize_point_values(mesh, solver))
 end
 
 # Decide whether to visualize point values (default) or cell values,
@@ -302,7 +303,6 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
     #WIP Plot fv 2d for issue #2998 (Magalie) begin
 
     if !point_values && ndims(mesh) == 2 #check wether point_values is false. This is the case for FV. We only enter this block for FV.
-        
         if !(isnothing(nvisnodes) || nvisnodes == 1)
             throw(ArgumentError("For finite volume methods (`polydeg = 0`), `nvisnodes` must be `nothing` or `1`; got $nvisnodes.")) #throw an error when the number of visualuization nodes is too high
         end

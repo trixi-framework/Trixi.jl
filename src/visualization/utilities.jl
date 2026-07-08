@@ -1404,7 +1404,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
     #WIP Plot fv 2d for issue #2998 (Magalie) begin
     # Bypasses polynomial interpolation. Projects cell areas from continuous space to matrix slices.
-    
+
     is_fv_data = true
     tol = 1e-12
 
@@ -1415,7 +1415,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
             break
         end
     end
-            
+
     if is_fv_data
         println("inside FV block")
         res_x = Int(resolution[1]) #resolution (argument of unstructured2structured) is a vector
@@ -1446,8 +1446,8 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
         # Calculate physical boundaries anywhere in coordinate space
         x_max_domain = x_coords[max_idx_x] + phys_half_width_max_x #physical maximum edge (phys center point + phys half cell)
         y_max_domain = y_coords[max_idx_y] + phys_half_width_max_y
-        
-        domain_width  = 2.0 * x_scale #multiply the reference domain width (=2) with the scale factor to get to the physical domain width
+
+        domain_width = 2.0 * x_scale #multiply the reference domain width (=2) with the scale factor to get to the physical domain width
         domain_height = 2.0 * y_scale
 
         x_min_domain = x_max_domain - domain_width #all phys, substract phys domain width from right domain boundary 
@@ -1474,14 +1474,14 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
             # Clamp bounds to protect against edge precision errors
             i_start = clamp(i_start, 1, res_x) #starting horizontal pixel index should never be less than 1 (we start counting at 1) and never greater than the image width.
-            i_end = clamp(i_end, 1, res_x) 
+            i_end = clamp(i_end, 1, res_x)
             j_start = clamp(j_start, 1, res_y)
             j_end = clamp(j_end, 1, res_y)
 
             # Slice row index first (j) and column index second (i)
             for v in 1:n_variables #loop over all variables
                 #structured[v] is the 2D pixel image for variable v. [j_start:j_end, i_start:i_end] is the rectangular box of pixels that this specific element covers on the screen. This gets filled (.=) with the state of v at the one node that FV has in this specifiv element (unstructured_data[1, 1, element_id, v]) (Caution when implementing BlockFV)
-                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1, 1, 
+                structured[v][j_start:j_end, i_start:i_end] .= unstructured_data[1, 1,
                                                                                  element_id,
                                                                                  v]
             end
