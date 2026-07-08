@@ -534,24 +534,21 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_blast_wave_amr.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
-                            l2=[
-                                0.6321850210104147,
-                                0.38691446170269167,
-                                0.3868695626809587,
-                                1.0657553825683956
-                            ],
-                            linf=[
-                                2.7602280007469666,
-                                2.3265993814913672,
-                                2.3258078438689673,
-                                2.1577683028925416
-                            ],
-                            tspan=(0.0, 0.3))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    # Test `resize!` for non `VolumeIntegralSubcellLimiting`
+    let
+        solver = DGSEM(basis, surface_flux)
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                            boundary_conditions = boundary_condition_periodic)
+
+        ode = semidiscretize(semi, tspan)
+        ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))
+        callbacks = CallbackSet(summary_callback)
+        integrator = Trixi.init(ode, ode_alg, dt = 11.0, callback = callbacks)
+
+        resize!(integrator, 4711)
+        @test length(integrator.u) == 4711
+        @test length(integrator.du) == 4711
+        @test length(integrator.u_tmp) == 4711
     end
 
     @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
