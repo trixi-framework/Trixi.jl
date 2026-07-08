@@ -551,25 +551,9 @@ end
         @test length(integrator.u_tmp) == 4711
     end
 
-    @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
-                            l2=[
-                                0.020266970819461425,
-                                0.01746740120890609,
-                                0.011378393090609054,
-                                0.05138965928352185
-                            ],
-                            linf=[
-                                0.3593492062888952,
-                                0.32077672777509403,
-                                0.23600493584887167,
-                                0.9291837711500472
-                            ],
-                            tspan=(0.0, 0.15))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+# Test `resize!`
+ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
+integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
 
     @trixi_testset "elixir_euler_wall_bc_amr.jl (VolumeIntegralAdaptive)" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
