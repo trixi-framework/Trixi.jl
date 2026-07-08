@@ -534,6 +534,7 @@ end
         @test length(integrator.du) == 4711
         @test length(integrator.u_tmp) == 4711
     end
+end
 
 # Test `resize!`
 ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
