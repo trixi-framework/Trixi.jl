@@ -614,26 +614,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_forward_step_amr.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_forward_step_amr.jl"),
-                            l2=[
-                                0.004191480950848891,
-                                0.003781298410569231,
-                                0.0013470418422981045,
-                                0.03262817609394949
-                            ],
-                            linf=[
-                                2.0581500751947113,
-                                2.2051301367971288,
-                                3.8502467979250254,
-                                17.750333649853616
-                            ],
-                            tspan=(0.0, 0.0001),
-                            rtol=1.0e-7)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
+                        l2=[
+                            0.6321850210104147,
+                            0.38691446170269167,
+                            0.3868695626809587,
+                            1.0657553825683956
+                        ],
+                        linf=[
+                            2.7602280007469666,
+                            2.3265993814913672,
+                            2.3258078438689673,
+                            2.1577683028925416
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_euler_wall_bc_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
