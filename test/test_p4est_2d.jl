@@ -437,25 +437,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_sedov.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-                            l2=[
-                                3.76149952e-01,
-                                2.46970327e-01,
-                                2.46970327e-01,
-                                1.28889042e+00
-                            ],
-                            linf=[
-                                1.22139001e+00,
-                                1.17742626e+00,
-                                1.17742626e+00,
-                                6.20638482e+00
-                            ],
-                            tspan=(0.0, 0.3))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_sedov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
+                        l2=[
+                            3.76149952e-01,
+                            2.46970327e-01,
+                            2.46970327e-01,
+                            1.28889042e+00
+                        ],
+                        linf=[
+                            1.22139001e+00,
+                            1.17742626e+00,
+                            1.17742626e+00,
+                            6.20638482e+00
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
     @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
         using Trixi: Trixi, DGSEM, SemidiscretizationHyperbolic, semidiscretize, CallbackSet
