@@ -1433,7 +1433,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
         # Calculate reference spans
         ref_span_x = 2.0 - (1.0 / (2^levels[max_idx_x])) - (1.0 / (2^levels[min_idx_x])) #2^levels[min_idx_x] is the number of cells of this specific size that would fit across the domain width. 1.0 / (2^levels[min_idx_x] is the width of such a cell.
-        ref_span_y = 2.0 - (1.0 / (2^levels[max_idx_y])) - (1.0 / (2^levels[min_idx_y])) # the reference element has lenth 2. We substract both boundary cell half-widths from the reference domains width
+        ref_span_y = 2.0 - (1.0 / (2^levels[max_idx_y])) - (1.0 / (2^levels[min_idx_y])) # the reference element has length 2. We subtract both boundary cell half-widths from the reference domains width
 
         # Calculate the true scale factors (physical distance / reference distance)
         x_scale = (x_coords[max_idx_x] - x_coords[min_idx_x]) / ref_span_x #therefore x_scale and y_scale are kind of a map between reference and physical (ref to phys: multiply, phys to ref: divide)
@@ -1450,7 +1450,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
         domain_width = 2.0 * x_scale #multiply the reference domain width (=2) with the scale factor to get to the physical domain width
         domain_height = 2.0 * y_scale
 
-        x_min_domain = x_max_domain - domain_width #all phys, substract phys domain width from right domain boundary 
+        x_min_domain = x_max_domain - domain_width #all phys, subtract phys domain width from right domain boundary 
         y_min_domain = y_max_domain - domain_height
 
         for element_id in 1:n_elements # loop over all elements
@@ -1459,7 +1459,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
             cell_width = domain_width / (2^level) # physical width of a cell at this specific refinement level
 
-            x_min_cont = cx - cell_width / 2 # phys continuous boundaries of this specific cell (be in the center, go half a cell_witdh up, down, right, left and be at the boundary)
+            x_min_cont = cx - cell_width / 2 # phys continuous boundaries of this specific cell (be in the center, go half a cell_width up, down, right, left and be at the boundary)
             x_max_cont = cx + cell_width / 2
             y_min_cont = cy - cell_width / 2
             y_max_cont = cy + cell_width / 2
