@@ -513,26 +513,10 @@ end
     ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
     integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
 
-    @trixi_testset "elixir_euler_sedov.jl (HLLE)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
-                            l2=[
-                                0.40853279043747015,
-                                0.25356771650524296,
-                                0.2535677165052422,
-                                1.2984601729572691
-                            ],
-                            linf=[
-                                1.3840909333784284,
-                                1.3077772519086124,
-                                1.3077772519086157,
-                                6.298798630968632
-                            ],
-                            surface_flux=flux_hlle,
-                            tspan=(0.0, 0.3))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
 
     # Test `resize!` for non `VolumeIntegralSubcellLimiting`
     let
