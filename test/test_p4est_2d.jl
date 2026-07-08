@@ -939,25 +939,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_mhd_rotor.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                            l2=[0.4551839744017604, 0.8917986079085971, 0.832474072904728,
-                                0.0,
-                                0.98015167453983, 0.10475978783943254,
-                                0.15551175906375883,
-                                0.0,
-                                2.026208477271868e-5],
-                            linf=[10.19496728149964, 18.23726813972206,
-                                10.04367783820621,
-                                0.0,
-                                19.63022306543678, 1.3952679820406384, 1.8716515525771589,
-                                0.0,
-                                0.0017266639582675424],
-                            tspan=(0.0, 0.02))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_mhd_rotor.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
+                        l2=[0.4551839744017604, 0.8917986079085971, 0.832474072904728,
+                            0.0,
+                            0.98015167453983, 0.10475978783943254,
+                            0.15551175906375883,
+                            0.0,
+                            2.026208477271868e-5],
+                        linf=[10.19496728149964, 18.23726813972206,
+                            10.04367783820621,
+                            0.0,
+                            19.63022306543678, 1.3952679820406384, 1.8716515525771589,
+                            0.0,
+                            0.0017266639582675424],
+                        tspan=(0.0, 0.02))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_mhd_rotor_cfl_ramp.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_cfl_ramp.jl"),
