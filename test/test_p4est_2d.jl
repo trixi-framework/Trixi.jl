@@ -907,6 +907,7 @@ end
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
