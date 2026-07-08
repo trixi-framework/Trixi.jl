@@ -1449,8 +1449,9 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
-                       equations::AbstractEquations{3}, dg::DG, cache)
+function calc_sources!(backend::Nothing, du, u, t, source_terms,
+                       have_aux_node_vars::True, equations::AbstractEquations{3},
+                       dg::DG, cache)
     @unpack node_coordinates = cache.elements
     @unpack aux_node_vars = cache.aux_vars
 
