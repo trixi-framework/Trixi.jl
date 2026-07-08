@@ -635,25 +635,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_double_mach_amr.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_amr.jl"),
-                            l2=[
-                                0.051359355290192046,
-                                0.4266034859911273,
-                                0.2438304855475594,
-                                4.11487176105527
-                            ],
-                            linf=[
-                                6.902000373057003,
-                                53.95714139820832,
-                                24.241610279839758,
-                                561.0630401858057
-                            ],
-                            tspan=(0.0, 0.0001))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_wall_bc_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
+                        l2=[
+                            0.020266970819461425,
+                            0.01746740120890609,
+                            0.011378393090609054,
+                            0.05138965928352185
+                        ],
+                        linf=[
+                            0.3593492062888952,
+                            0.32077672777509403,
+                            0.23600493584887167,
+                            0.9291837711500472
+                        ],
+                        tspan=(0.0, 0.15))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_euler_wall_bc_amr.jl (VolumeIntegralAdaptive)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
