@@ -373,25 +373,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
-                            l2=[
-                                9.53984675e-02,
-                                1.05633455e-01,
-                                1.05636158e-01,
-                                3.50747237e-01
-                            ],
-                            linf=[
-                                2.94357464e-01,
-                                4.07893014e-01,
-                                3.97334516e-01,
-                                1.08142520e+00
-                            ],
-                            tspan=(0.0, 1.0))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
+                        l2=[
+                            9.53984675e-02,
+                            1.05633455e-01,
+                            1.05636158e-01,
+                            3.50747237e-01
+                        ],
+                        linf=[
+                            2.94357464e-01,
+                            4.07893014e-01,
+                            3.97334516e-01,
+                            1.08142520e+00
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
     @trixi_testset "elixir_euler_shockcapturing_ec.jl (flux_chandrashekar)" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
