@@ -1,4 +1,4 @@
-using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowOrderRK
 using Trixi
 
 ###############################################################################
@@ -62,8 +62,9 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     prim = SVector(rho, v1, v2, p)
     return prim2cons(prim, equations)
 end
+
 initial_condition = initial_condition_isentropic_vortex
-solver = DGSEM(polydeg = 3, surface_flux = flux_hllc)
+solver = BlockFV(n_nodes = 10, surface_flux = flux_hllc)
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
@@ -72,7 +73,7 @@ refinement_patches = ((type = "box", coordinates_min = (0.0, -10.0),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
-                n_cells_max = 10_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -100,7 +101,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.4)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -109,7 +110,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode, Euler();
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
