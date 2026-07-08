@@ -1017,25 +1017,25 @@ end
         Trixi.save_mesh_file(mesh1, "out"; system = "1", timestep = 0)
     end
 
-    @trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_linearizedeuler_gaussian_source.jl"),
-                            l2=[
-                                0.006047938590548741,
-                                0.0040953286019907035,
-                                0.004222698522497298,
-                                0.006269492499336128
-                            ],
-                            linf=[
-                                0.06386175207349379,
-                                0.0378926444850457,
-                                0.041759728067967065,
-                                0.06430136016259067
-                            ])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_gaussian_source.jl"),
+                        l2=[
+                            0.006047938590548741,
+                            0.0040953286019907035,
+                            0.004222698522497298,
+                            0.006269492499336128
+                        ],
+                        linf=[
+                            0.06386175207349379,
+                            0.0378926444850457,
+                            0.041759728067967065,
+                            0.06430136016259067
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_euler_subsonic_cylinder.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_cylinder.jl"),
