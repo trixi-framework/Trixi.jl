@@ -828,25 +828,25 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_eulergravity_convergence.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
-                            l2=[
-                                0.00024871265138964204,
-                                0.0003370077102132591,
-                                0.0003370077102131964,
-                                0.0007231525513793697
-                            ],
-                            linf=[
-                                0.0015813032944647087,
-                                0.0020494288423820173,
-                                0.0020494288423824614,
-                                0.004793821195083758
-                            ],
-                            tspan=(0.0, 0.1))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_eulergravity_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
+                        l2=[
+                            0.00024871265138964204,
+                            0.0003370077102132591,
+                            0.0003370077102131964,
+                            0.0007231525513793697
+                        ],
+                        linf=[
+                            0.0015813032944647087,
+                            0.0020494288423820173,
+                            0.0020494288423824614,
+                            0.004793821195083758
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @trixi_testset "elixir_eulermulti_shock.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
