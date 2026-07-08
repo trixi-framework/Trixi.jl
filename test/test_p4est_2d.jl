@@ -1009,9 +1009,9 @@ end
         # (e.g., from type instabilities)
         @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
 
-        # Test ncells for P4estMeshView for code coverage.
-        mesh1, _, _, _ = Trixi.mesh_equations_solver_cache(semi.semis[1])
-        @test Trixi.ncells(mesh1) == length(mesh1.cell_ids)
+    # Test ncells for P4estMeshView for code coverage.
+    mesh1, _, _, _ = Trixi.mesh_equations_solver_cache(semi.semis[1])
+    @test Trixi.ncells(mesh1) == length(mesh1.cell_ids)
 
     # Test save_mesh_file for P4estMeshView for code coverage.
     Trixi.save_mesh_file(mesh1, "out"; system = "1", timestep = 0)
