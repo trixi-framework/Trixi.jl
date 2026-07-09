@@ -1,16 +1,11 @@
-module TestExamples2DEulerMulticomponent
+@testsnippet TreeMesh2DEulerPolytropic begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Polytropic Euler" begin
-#! format: noindent
-
-@trixi_testset "elixir_eulerpolytropic_convergence.jl" begin
+@testitem "TreeMesh2D Polytropic Euler: elixir_eulerpolytropic_convergence.jl" setup=[
+    Setup,
+    TreeMesh2DEulerPolytropic
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_eulerpolytropic_convergence.jl"),
                         l2=[
@@ -25,6 +20,3 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module

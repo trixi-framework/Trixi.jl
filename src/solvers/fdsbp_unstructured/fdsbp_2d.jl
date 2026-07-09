@@ -27,7 +27,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
 end
 
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
-# OBS! This is the standard (not de-aliased) form of the volume integral.
+# Note: This is the standard (not de-aliased) form of the volume integral.
 # So it is not provably stable for variable coefficients due to the the metric terms.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
