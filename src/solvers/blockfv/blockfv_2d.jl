@@ -186,6 +186,37 @@ function calc_error_norms(func, u, t, analyzer,
     return l2_error, linf_error
 end
 
+# Arguments:
+#   idx         - the fine-element node index, 1 <= idx <= nnodes
+#   upper_lower - 0 = lower/left child, 1 = upper/right child
+#   nnodes      - number of FV cells per element per direction
+#
+# Returns: the coarse-element node index that `idx` on the given child
+# corresponds to.
+#
+# Logic:
+#   - Lower/left child (upper_lower == 0): the fine cells simply map onto
+#     the first half of the coarse cells, two-to-one -> (idx+1) ÷ 2.
+#   - Upper/right child, even nnodes: symmetric formula, offset by nnodes÷2
+#     to land in the second half of the coarse cells.
+#   - Upper/right child, odd nnodes: the middle coarse cell is shared
+#     between both children (it straddles the child boundary), so the
+#     mapping is shifted by one compared to the even case.
+@inline function parent_index(idx::Int, upper_lower::Int, nnodes::Int)
+    @boundscheck begin
+        @assert 1 <= idx <= nnodes
+        @assert upper_lower == 0 || upper_lower == 1
+    end
+
+    if upper_lower == 0                  # left or bottom child
+        return (idx + 1) ÷ 2
+    elseif iseven(nnodes)              # right or top child (even)
+        return (idx + 1) ÷ 2 + nnodes ÷ 2
+    else                          # right or top child (odd)
+        return idx ÷ 2 + 1 + nnodes ÷ 2
+    end
+end
+
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::UniformFiniteVolumeBasis,
                                                leftright,
@@ -194,30 +225,15 @@ end
 
     # Project the solution from the large element to the two small mortar sides
     # by duplicating each large-element node
-    if size(u_large, 2) % 2 == 1
-        for i in 1:size(u_large, 2)
+    n = size(u_large, 2) # number of nodes 
+    for i in 1:n
             # Copy values to the lower small element
             # (middle node is shared for odd numbers of nodes)
-            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :,
-                                                            div(i + 1, 2))
+            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 0, n))
 
             # Copy values to the upper small element
             # (middle node is shared for odd numbers of nodes)
-            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :,
-                                                            div(i, 2) + 1 +
-                                                            div(size(u_large, 2), 2))
-        end
-    else
-        for i in 1:size(u_large, 2)
-            # Copy values to the lower small element
-            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :,
-                                                            div(i + 1, 2))
-
-            # Copy values to the upper small element
-            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :,
-                                                            div(i + 1, 2) +
-                                                            div(size(u_large, 2), 2))
-        end
+            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 1, n))
     end
 
     return nothing
@@ -348,32 +364,19 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
     end
 
     # Copy the solution from the old element to the new elements
-    if size(old_u, 2) % 2 == 1 #odd number of nodes
-        for j in 1:2*nnodes(dg)
-            for i in 1:nnodes(dg)
-                #nodes werden wie in KOS nummeriert, d.h. old_u[:,1,1,old_element_id] ist die linke untere Ecke
-                u[:, i, mod1(j,nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg))] = view(old_u, :, div(i + 1, 2)
-                                                                                   , div(j + 1, 2)
-                                                                                   , old_element_id)
+    n = nnodes(dg)
 
-                
-                u[:, i, mod1(j,nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg)) + 1] = view(old_u, :, div(i, 2) + 1 + div(nnodes(dg), 2)
-                                                                                       , div(j + 1, 2)
-                                                                                       , old_element_id)
-            end
-        end
-    else    #even number of nodes
-        for j in 1:2*nnodes(dg)
-            for i in 1:nnodes(dg)
-                
-                u[:, i, mod1(j, nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg))] = view(old_u, :, div(i + 1, 2)
-                                                      , div(j + 1, 2)
-                                                      , old_element_id)
+    for child_y in 0:1
+        for child_x in 0:1
+            child = element_id + child_x + 2*child_y
 
-            
-                u[:, i, mod1(j, nnodes(dg)), element_id + 2 * div(j - 1, nnodes(dg)) + 1] = view(old_u, :, div(i + 1, 2) + div(nnodes(dg), 2) 
-                                                          , div(j + 1, 2)
-                                                          , old_element_id)
+            for j in 1:n
+                parent_j = parent_index(j, child_y, n)
+
+                for i in 1:n
+                    parent_i = parent_index(i, child_x, n)
+                    u[:, i, j, child] = view(old_u, :, parent_i, parent_j, old_element_id)
+                end
             end
         end
     end
@@ -398,25 +401,28 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
         @assert size(u, 4) >= element_id
     end
 
-    u[:,:,:,element_id] .= zero(eltype(u))
+    n = nnodes(dg)
 
-    if size(u, 2) % 2 == 1 #odd number of nodes
-        for j in 1:2*nnodes(dg)
-            for i in 1:size(u, 2)
-                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
+    u[:, :, :, element_id] .= zero(eltype(u))
 
-                u[:, div(i, 2) + 1 + div(nnodes(dg), 2), div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1]
-            end
-        end
-    else    #even number of nodes
-        for j in 1:2*nnodes(dg)
-            for i in 1:nnodes(dg)
-                u[:, div(i + 1, 2), div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg))] 
-            
-                u[:, div(i + 1, 2) + div(nnodes(dg), 2) , div(j + 1, 2), element_id] += 0.25f0 * old_u[:, i, mod1(j, nnodes(dg)), old_element_id + 2 * div(j - 1, nnodes(dg)) + 1] 
+    for child_y in 0:1
+        for child_x in 0:1
+
+            child = old_element_id + child_x + 2*child_y
+
+            for j in 1:n
+                parent_j = parent_index(j, child_y, n)
+
+                for i in 1:n
+                    parent_i = parent_index(i, child_x, n)
+
+                    u[:, parent_i, parent_j, element_id] += 0.25f0 * old_u[:, i, j, child]
+                end
             end
         end
     end
+
+    return nothing
 end
 
 end # @muladd
