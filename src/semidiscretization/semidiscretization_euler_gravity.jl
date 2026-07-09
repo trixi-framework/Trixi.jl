@@ -370,7 +370,7 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
 
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
-        # OBS! subtract off the background density ρ_0 (spatial mean value)
+        # Note: subtract off the background density ρ_0 (spatial mean value)
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
@@ -439,7 +439,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
 
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
-        # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
+        # Note: subtract off the background density ρ_0 around which the Jeans instability is perturbed
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *

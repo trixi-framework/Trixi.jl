@@ -1,16 +1,8 @@
-module TestExamples2DLatticeBoltzmann
+@testsnippet TreeMesh2DLBM begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Lattice-Boltzmann" begin
-#! format: noindent
-
-@trixi_testset "elixir_lbm_constant.jl" begin
+@testitem "TreeMesh2D LBM: elixir_lbm_constant.jl" setup=[Setup, TreeMesh2DLBM] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_constant.jl"),
                         l2=[4.888991832247047e-15, 4.8856380534982224e-15,
                             5.140829677785587e-16,
@@ -29,7 +21,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_lbm_couette.jl" begin
+@testitem "TreeMesh2D LBM: elixir_lbm_couette.jl" setup=[Setup, TreeMesh2DLBM] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_couette.jl"),
                         l2=[0.0007899749117603378, 7.0995283148275575e-6,
                             0.0007454191223764233,
@@ -49,7 +41,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_lbm_lid_driven_cavity.jl" begin
+@testitem "TreeMesh2D LBM: elixir_lbm_lid_driven_cavity.jl" setup=[Setup, TreeMesh2DLBM] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
                         l2=[0.0013628495945172754, 0.00021475256243322154,
                             0.0012579141312268184,
@@ -68,7 +60,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_lbm_couette.jl with initial_condition_couette_steady" begin
+@testitem "TreeMesh2D LBM: elixir_lbm_couette.jl with initial_condition_couette_steady" setup=[
+    Setup,
+    TreeMesh2DLBM
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_couette.jl"),
                         l2=[9.321369073400123e-16, 1.6498793963435488e-6,
                             5.211495843124065e-16,
@@ -101,7 +96,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
+@testitem "TreeMesh2D LBM: elixir_lbm_lid_driven_cavity.jl with stationary walls" setup=[
+    Setup,
+    TreeMesh2DLBM
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
                         l2=[1.7198203373689985e-16, 1.685644347036533e-16,
                             2.1604974801394525e-16,
@@ -122,6 +120,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module
