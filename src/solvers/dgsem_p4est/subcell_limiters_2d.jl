@@ -518,6 +518,8 @@ end
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
@@ -694,6 +696,8 @@ end
     index_range = eachnode(dg)
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
@@ -826,6 +830,8 @@ end
     index_range = eachnode(dg)
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
@@ -972,6 +978,8 @@ end
     index_range = eachnode(dg)
 
     for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
