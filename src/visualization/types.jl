@@ -70,6 +70,7 @@ struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
     mesh_vertices_y::Vertices
     orientation_x::Int
     orientation_y::Int
+    point_values::Bool
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -197,7 +198,7 @@ nodes to be used. If it is `nothing`, twice the number of solution DG nodes are 
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
-`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.end
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
@@ -258,6 +259,26 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
+#WIP Plot fv 2d for issue #2998 (Magalie) begin
+# Attaches a boolean (true) to every PlotData2DCartesian(x, y, .....). That boolean is point_values 
+function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                             mesh_vertices_y, orientation_x, orientation_y)
+    return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                               mesh_vertices_y, orientation_x, orientation_y,
+                               true)
+end
+
+# Decide whether to visualize point values (default) or cell values,
+# e.g., for finite volume methods.
+visualize_point_values(mesh, solver) = true
+function visualize_point_values(mesh, solver::DGSEM)
+    # We interpret DG methods with polynomial degree 0 as
+    # first-order finite volume methods, which should be
+    # visualized as cell (mean) values.
+    return polydeg(solver) > 0 #function returns true for DG and false for FV
+end
+#WIP Plot fv 2d for issue #2998 (Magalie) end
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -266,6 +287,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              slice = :xy, point = (0.0, 0.0, 0.0))
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
+
+    point_values = visualize_point_values(mesh, solver)
 
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
@@ -276,24 +299,63 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
 
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
-    x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
-                                                               length_level_0,
-                                                               leaf_cell_ids,
-                                                               coordinates, levels,
-                                                               ndims(mesh),
-                                                               unstructured_data,
-                                                               nnodes(solver),
-                                                               grid_lines,
-                                                               max_supported_level,
-                                                               nvisnodes,
-                                                               slice, point)
-    variable_names = SVector(varnames(solution_variables_, equations))
 
+    #WIP Plot fv 2d for issue #2998 (Magalie) begin
+
+    if !point_values && ndims(mesh) == 2 #check whether point_values is false. This is the case for FV. We only enter this block for FV.
+        if !(isnothing(nvisnodes) || nvisnodes == 1)
+            throw(ArgumentError("For finite volume methods (`polydeg = 0`), `nvisnodes` must be `nothing` or `1`; got $nvisnodes.")) #throw an error when the number of visualuization nodes is too high
+        end
+
+        max_level = maximum(levels) #finest refinement level
+        true_resolution = Int(2^max_level) #Total number of uniform pixels in one dimension
+
+        resolution_param = [true_resolution, true_resolution]
+        nvis_param = fill(1, max_level + 1) #visualization points to extract per element (per level) (caution when implementing Block FV)
+
+        structured_data = unstructured2structured(unstructured_data, coordinates,
+                                                  levels, resolution_param,
+                                                  nvis_param) # this is the function from utilities.jl. It gives out the state of all variables at the one node.
+
+        if structured_data isa Vector
+            data = structured_data #if structured_data is already a vector, we do nothing
+        else
+            data = [structured_data] #If it's a single 2D matrix (one variable) we put it inside a 1-element vector
+        end
+
+        x = collect(range(-1.0 + 1.0 / true_resolution, 1.0 - 1.0 / true_resolution,
+                          length = true_resolution)) #the left edge of the leftest pixel is at -1. The center of that pixel is half a pixel width (=1.0 / true_resolution) to the right. The right edge of the rightest pixel is at 1. The center of that last pixel is half a pixel width to the left. range generates a sequence of coordinates evenly spaced (the total number of points is true_resolution) from that first pixel center to the last pixel center.
+        y = copy(x) #y is a vector that is the same as x.
+
+        mesh_vertices_x = Float64[] # Initialized as empty because we don't draw cell boundaries for uniform FV pixels, but the return needs them.
+        mesh_vertices_y = Float64[]
+
+    else
+
+        #WIP Plot fv 2d for issue #2998 (Magalie) end
+
+        x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0,
+                                                                   length_level_0,
+                                                                   leaf_cell_ids,
+                                                                   coordinates, levels,
+                                                                   ndims(mesh),
+                                                                   unstructured_data,
+                                                                   nnodes(solver),
+                                                                   grid_lines,
+                                                                   max_supported_level,
+                                                                   nvisnodes,
+                                                                   slice, point)
+
+        #WIP Plot fv 2d for issue #2998 (Magalie) begin
+    end
+    #WIP Plot fv 2d for issue #2998 (Magalie) end
     orientation_x, orientation_y = _get_orientations(mesh, slice)
+
+    variable_names = SVector(varnames(solution_variables_, equations))
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y,
-                               orientation_x, orientation_y)
+                               orientation_x, orientation_y, point_values)
 end
 
 """
