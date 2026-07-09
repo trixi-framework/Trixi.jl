@@ -198,7 +198,7 @@ nodes to be used. If it is `nothing`, twice the number of solution DG nodes are 
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
-`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.end
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
 Both of these values are ignored when visualizing 2D data.
 
@@ -260,12 +260,12 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
 end
 
 #WIP Plot fv 2d for issue #2998 (Magalie) begin
-# Attaches a boolean (visualize_point_values(mesh, solver) which is defined below) to every PlotData2DCartesian(x, y, .....). That boolean is point_values 
+# Attaches a boolean (true) to every PlotData2DCartesian(x, y, .....). That boolean is point_values 
 function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                              mesh_vertices_y, orientation_x, orientation_y)
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y, orientation_x, orientation_y,
-                               visualize_point_values(mesh, solver))
+                               true)
 end
 
 # Decide whether to visualize point values (default) or cell values,
@@ -310,8 +310,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
         max_level = maximum(levels) #finest refinement level
         true_resolution = Int(2^max_level) #Total number of uniform pixels in one dimension
 
-        resolution_param = [true_resolution, true_resolution] #true resolutuin in x and y (pixels are square)
-        nvis_param = 1 #how many visualization points to extract per element (caution when implementing Block FV)
+        resolution_param = true_resolution
+        nvis_param = fill(1, max_level + 1) #visualization points to extract per element (per level) (caution when implementing Block FV)
 
         structured_data = unstructured2structured(unstructured_data, coordinates,
                                                   levels, resolution_param,
