@@ -1,13 +1,7 @@
-module TestAqua
+@testitem "Aqua.jl" setup=[Setup] tags=[:misc_part2] begin
+    using Aqua
+    using ExplicitImports: check_no_implicit_imports, check_no_stale_explicit_imports
 
-using Aqua
-using ExplicitImports: check_no_implicit_imports, check_no_stale_explicit_imports
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-@timed_testset "Aqua.jl" begin
     Aqua.test_all(Trixi,
                   ambiguities = false,
                   unbound_args = false, # FIXME: UnstructuredSortedBoundaryTypes
@@ -27,5 +21,3 @@ include("test_trixi.jl")
                                                               :derivative_discontinuity!,
                                                               Symbol("@batch"))))
 end
-
-end #module

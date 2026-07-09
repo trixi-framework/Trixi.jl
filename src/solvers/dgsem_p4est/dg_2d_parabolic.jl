@@ -56,7 +56,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     # The remainder of this function is essentially a regular rhs! for parabolic
     # equations (i.e., it computes the divergence of the parabolic fluxes)
     #
-    # OBS! In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
+    # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
     # been computed and stored in `flux_parabolic`. In the following, we *reuse* (abuse) the
     # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
@@ -451,7 +451,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                     primary_element)
 
             for v in eachvariable(equations_parabolic)
-                # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
                 flux_parabolic = SVector(flux_parabolic_x[v, i_primary, j_primary,
                                                           primary_element],
                                          flux_parabolic_y[v, i_primary, j_primary,
@@ -486,12 +486,12 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                     secondary_element)
 
             for v in eachvariable(equations_parabolic)
-                # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
                 flux_parabolic = SVector(flux_parabolic_x[v, i_secondary, j_secondary,
                                                           secondary_element],
                                          flux_parabolic_y[v, i_secondary, j_secondary,
                                                           secondary_element])
-                # store the normal flux with respect to the primary normal direction, 
+                # store the normal flux with respect to the primary normal direction,
                 # which is the negative of the secondary normal direction
                 interfaces.u[2, v, i, interface] = -dot(flux_parabolic,
                                                         normal_direction)
@@ -564,7 +564,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{2},
 
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, primary_direction_index, primary_element] = flux_[v]
-                # Sign flip required for divergence calculation since the divergence interface flux 
+                # Sign flip required for divergence calculation since the divergence interface flux
                 # involves the normal direction.
                 surface_flux_values[v, node_secondary, secondary_direction_index, secondary_element] = -flux_[v]
             end

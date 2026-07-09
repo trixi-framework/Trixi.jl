@@ -57,7 +57,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1},
     # The remainder of this function is essentially a regular rhs! for
     # parabolic equations (i.e., it computes the divergence of the parabolic fluxes)
     #
-    # OBS! In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
+    # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
     # been computed and stored in `flux_parabolic`. In the following, we *reuse* (abuse) the
     # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
@@ -192,7 +192,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
                                                  equations_parabolic,
                                                  dg, interface)
 
-        # compute interface flux for the DG divergence 
+        # compute interface flux for the DG divergence
         flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
                               equations_parabolic, parabolic_scheme)
 
@@ -435,7 +435,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
             surface_flux_values[v, left_direction, left_id] = flux[v]
-            # No sign flip needed for gradient computation because for parabolic terms, 
+            # No sign flip needed for gradient computation because for parabolic terms,
             # the normals are not embedded in `flux_` for gradient computations.
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end
