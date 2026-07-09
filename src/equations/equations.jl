@@ -298,9 +298,9 @@ struct NonConservativeJump end
     FluxNonConservative{STRUCTURE}
 
 Abstract type for non-conservative fluxes that are composed of a local term and a structured two-point
-term. The `STRUCTURE` type parameter should be set to [`NonConservativeSymmetric`](@ref) or 
+term. The `STRUCTURE` type parameter should be set to [`NonConservativeSymmetric`](@ref) or
 [`NonConservativeJump`](@ref), depending on the structure of the non-conservative term.
-The abstract type is required for dispatch on the non-conservative type (symmetric / jump) 
+The abstract type is required for dispatch on the non-conservative type (symmetric / jump)
 for the staggered volume flux computation in `calcflux_fhat!`.
 """
 abstract type FluxNonConservative{STRUCTURE} end
@@ -340,8 +340,8 @@ to compute surface terms or the [`VolumeIntegralFluxDifferencing`](@ref).
 For some systems and flux implementations, it is cheaper to compute
 
     flux_noncons(u_ll, u_rr, orientation_or_normal_direction, equations)
-    
-and 
+
+and
 
     flux_noncons(u_rr, u_ll, orientation_or_normal_direction, equations)
 
@@ -351,13 +351,13 @@ to take advantage of a more efficient implementation. In this case, you have to
 define a single method that computes
 
     flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_ll, u_rr, n, equations)
-  
+
 and
 
     flux_cons(u_ll, u_rr, n, equations) + 0.5f0 * flux_noncons(u_rr, u_ll, n, equations)
 
 together and returns them as a tuple.
-See also the test section P4estMesh2D with combine_conservative_and_nonconservative_fluxes in
+See also the test section `P4estMesh2D with combine_conservative_and_nonconservative_fluxes` in
 [Test Performance](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_performance_specializations_2d.jl).
 """
 combine_conservative_and_nonconservative_fluxes(flux, ::AbstractEquations) = False()
@@ -577,7 +577,7 @@ of the correct length `nvariables(equations)`.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight end
@@ -594,19 +594,19 @@ of the correct length `nvariables(equations)`.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight_pressure end
 
 """
     lake_at_rest_error(u, equations)
-    
+
 Calculate the point-wise error for the lake-at-rest steady state solution.
 
 !!! note
     This function is defined in Trixi.jl to have a common interface for the
-    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl)
     and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function lake_at_rest_error end

@@ -1,16 +1,11 @@
-module TestExamples1DEuler
+@testsnippet TreeMesh1DPassiveTracers begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
-
-@testset "Passive Tracers Tree 1D" begin
-#! format: noindent
-
-@trixi_testset "elixir_euler_density_wave_tracers.jl" begin
+@testitem "TreeMesh1D Passive Tracers: elixir_euler_density_wave_tracers.jl" setup=[
+    Setup,
+    TreeMesh1DPassiveTracers
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_tracers.jl"),
                         l2=[0.07817688029733633,
                             0.007817688029733637,
@@ -26,5 +21,3 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end # testset
-end # module
