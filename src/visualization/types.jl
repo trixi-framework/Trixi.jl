@@ -310,7 +310,7 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
         max_level = maximum(levels) #finest refinement level
         true_resolution = Int(2^max_level) #Total number of uniform pixels in one dimension
 
-        resolution_param = true_resolution
+        resolution_param = [true_resolution, true_resolution]
         nvis_param = fill(1, max_level + 1) #visualization points to extract per element (per level) (caution when implementing Block FV)
 
         structured_data = unstructured2structured(unstructured_data, coordinates,
