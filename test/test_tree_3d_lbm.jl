@@ -1,16 +1,8 @@
-module TestExamples3DLatticeBoltzmann
+@testsnippet TreeMesh3DLBM begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
-
-@testset "Lattice-Boltzmann" begin
-#! format: noindent
-
-@trixi_testset "elixir_lbm_constant.jl" begin
+@testitem "TreeMesh3D LBM: elixir_lbm_constant.jl" setup=[Setup, TreeMesh3DLBM] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_constant.jl"),
                         l2=[5.861930511199053e-16, 6.282772442363201e-16,
                             5.47591540767842e-16,
@@ -54,7 +46,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_lbm_taylor_green_vortex.jl" begin
+@testitem "TreeMesh3D LBM: elixir_lbm_taylor_green_vortex.jl" setup=[Setup, TreeMesh3DLBM] tags=[:tree_part6] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_taylor_green_vortex.jl"),
                         l2=[7.516128821554829e-5, 7.516128821554695e-5,
                             7.516128821554932e-5,
@@ -96,6 +88,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module
