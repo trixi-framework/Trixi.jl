@@ -37,7 +37,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = (true, false, true),
 #       and by the initial condition (which passes in `CompressibleEulerEquations3D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
-    # Constants. OBS! Must match those in `source_terms_navier_stokes_convergence_test`
+    # Constants. Note: Must match those in `source_terms_navier_stokes_convergence_test`
     c = 2.0
     A1 = 0.5
     A2 = 1.0
@@ -67,7 +67,7 @@ end
     Pr = prandtl_number()
     mu_ = mu()
 
-    # Constants. OBS! Must match those in `initial_condition_navier_stokes_convergence_test`
+    # Constants. Note: Must match those in `initial_condition_navier_stokes_convergence_test`
     c = 2.0
     A1 = 0.5
     A2 = 1.0

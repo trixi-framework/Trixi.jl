@@ -321,6 +321,11 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::False)
     return joinpath(dirname, mesh_file)
 end
 
+@inline function get_cell_volume(element, mesh::TreeMesh{NDIMS}, equations, dg,
+                                 cache) where {NDIMS}
+    return 2^NDIMS * volume_jacobian(element, mesh, cache)
+end
+
 function total_volume(mesh::TreeMesh)
     return mesh.tree.length_level_0^ndims(mesh)
 end

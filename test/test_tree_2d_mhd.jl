@@ -1,16 +1,8 @@
-module TestExamples2DMHD
+@testsnippet TreeMesh2DMHD begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "MHD" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhd_alfven_wave.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_alfven_wave.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             0.00011149543672225127,
@@ -39,7 +31,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl with flux_derigs_etal" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_alfven_wave.jl with flux_derigs_etal" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             1.7201098719531215e-6,
@@ -69,7 +64,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_dirichlet.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_alfven_wave_dirichlet.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_dirichlet.jl"),
                         l2=[
                             0.00011004538877483271,
@@ -98,7 +93,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_mortar.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_alfven_wave_mortar.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_mortar.jl"),
                         l2=[
                             1.0896015330565795e-5,
@@ -128,7 +123,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_ec.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[
                             0.03637302248881514,
@@ -157,7 +152,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_ec_float32.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_ec_float32.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_float32.jl"),
                         l2=Float32[0.03635566,
                                    0.042947732,
@@ -183,7 +178,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_orszag_tang.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_orszag_tang.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
                         l2=[
                             0.21970081242543155,
@@ -213,7 +208,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_orszag_tang.jl with flux_hlle" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_orszag_tang.jl with flux_hlle" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
                         l2=[
                             0.10806640059794005,
@@ -245,7 +243,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl one step with initial_condition_constant" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_alfven_wave.jl one step with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[
                             7.144325530681224e-17,
@@ -277,7 +278,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_rotor.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_rotor.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
                         l2=[
                             1.264189543599029,
@@ -307,7 +308,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_blast_wave.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_blast_wave.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave.jl"),
                         l2=[
                             0.17638656371490055,
@@ -337,7 +338,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_shockcapturing_subcell.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_shockcapturing_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
                             3.2064026219236076e-02,
@@ -372,7 +376,10 @@ end
 end
 
 # This is tested with reference values for the local-symmetric formulation.
-@trixi_testset "elixir_mhd_shockcapturing_subcell.jl (local-jump formulation)" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_shockcapturing_subcell.jl (local-jump formulation)" setup=[
+    Setup,
+    TreeMesh2DMHD
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
                             3.2064026219236076e-02,
@@ -417,7 +424,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_mhd_onion.jl" begin
+@testitem "TreeMesh2D MHD: elixir_mhd_onion.jl" setup=[Setup, TreeMesh2DMHD] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
                         l2=[
                             0.006145640007814805,
@@ -445,6 +452,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module
