@@ -4096,6 +4096,27 @@ end
         @test u_projected[1] > lower_bounds[1]
         @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
     end
+
+    # this test failed without the rationalized approximation of 
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang. 
+    @testset "2D projection near zero momentum boundary" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.9376339560775117,
+                    1.353902558446827e-8,
+                    6.230911048510285e-9,
+                    -3.779101287247884)
+        lower_bounds = (1e-8, 2.5e-8)
+        variables = (density, energy_internal)
+
+        u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_proj[1]≈0.9376339560775118 rtol=1e-12
+        @test u_proj[2]≈6.637197729990257e-9 rtol=1e-12
+        @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
+        @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
+        @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
+    end
 end
 
 @testset "load_mesh n_cells_max compatibility" begin

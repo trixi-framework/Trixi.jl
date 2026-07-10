@@ -83,10 +83,13 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                         (rho_e_floor + rho - rho_e_total)^2 / a)
     if discriminant_rho >= zero(discriminant_rho)
         sqrt_discriminant_rho = sqrt(discriminant_rho)
-        for rho_candidate in (0.5f0 * (rho - sqrt_discriminant_rho),
+        for rho_candidate in (0.5f0 * a_minus_sqrt_b_rationalized(rho,
+                                                          discriminant_rho,
+                                                          sqrt_discriminant_rho),
                               0.5f0 * (rho + sqrt_discriminant_rho))
-            discriminant_rho_v_primary = -8 * a * rho_candidate * rho_candidate +
-                                         8 * a * rho * rho_candidate +
+            # For ρ_candidate = ½(ρ ± √Δ_ρ), the inner momentum discriminant satisfies
+            # -8aρ_c² + 8aρρ_c + (aρv)² = 2a(ρ² - Δ_ρ) + (aρv)² without evaluating ρ_c.
+            discriminant_rho_v_primary = 2 * a * (rho * rho - discriminant_rho) +
                                          (a * rho_v_primary)^2
             # Roundoff can make discriminant_rho_v_primary slightly negative at the real-root
             # boundary; treat as zero so the >= 0 check passes and sqrt is valid.
@@ -103,9 +106,7 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                                                 0.5f0 *
                                                 (rho_v_primary +
                                                  sqrt_discriminant_rho_v_primary))
-                    # μ > 0 sign check (λ = 0 branch); ρ_candidate cancellation can flip the
-                    # (1 - arithmetic_tol) comparison — see the inner-loop comment in
-                    # admissible_projection_euler_1d.jl.
+                    # μ > 0 sign check (λ = 0 branch); see admissible_projection_euler_1d.jl.
                     candidate_energy_internal_times_rho = rho_e_floor * rho_candidate +
                                                           0.5f0 * a *
                                                           rho_v_primary_candidate *
