@@ -504,7 +504,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                             T8codeMesh{3}},
                  equations, dg::Union{DGSEM, FDSBP}, cache)
     # The entropy_timederivative may depend on auxiliary variables.
     return analyze(entropy_timederivative, du, u, t,
