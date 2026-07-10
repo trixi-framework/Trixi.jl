@@ -8,6 +8,7 @@
 # `compute_u_mean` is used in:
 # (Stage-) Callbacks `EntropyBoundedLimiter`, `PositivityPreservingLimiterZhangShu`, and
 # `PositivityPreservingLimiterLiuZhang`. 
+# `compute_u_mean_and_cell_volume` is used in `PositivityPreservingLimiterLiuZhang`.
 # `set_u_mean!` is used in `PositivityPreservingLimiterLiuZhang`.
 
 # positional arguments `mesh` and `cache` passed in to match signature of 2D/3D functions
@@ -65,6 +66,107 @@ end
         u_mean += u_node * node_volume
     end
     return u_mean / total_volume # normalize with the total volume
+end
+
+# for TreeMesh, we can use that the Jacobian is constant on each element, 
+# and that the size of the reference element is 2^NDIMS
+@inline function compute_u_mean(u::AbstractArray{<:Any, 4}, element,
+                                mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+    @unpack weights = dg.basis
+
+    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        u_mean += u_node * weights[i] * weights[j]
+    end
+    # normalize with the total volume of the reference element [-1, 1]^2
+    return 0.25f0 * u_mean
+end
+
+@inline function compute_u_mean(u::AbstractArray{<:Any, 5}, element,
+                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache)
+    @unpack weights = dg.basis
+
+    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        u_mean += u_node * weights[i] * weights[j] * weights[k]
+    end
+    # normalize with the total volume of the reference element [-1, 1]^3
+    return 0.125f0 * u_mean
+end
+
+@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 3}, element,
+                                                mesh::AbstractMesh{1}, equations,
+                                                dg::DGSEM,
+                                                cache)
+    u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
+    cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
+    return u_mean, cell_volume
+end
+
+@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 4}, element,
+                                                mesh::TreeMesh{2}, equations, dg::DGSEM,
+                                                cache)
+    u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
+    cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
+    return u_mean, cell_volume
+end
+
+@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 5}, element,
+                                                mesh::TreeMesh{3}, equations, dg::DGSEM,
+                                                cache)
+    u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
+    cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
+    return u_mean, cell_volume
+end
+
+# For non-TreeMesh meshes, `compute_u_mean_and_cell_volume` calculates both the cell 
+# average and the cell volume together for efficiency. 
+@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 4}, element,
+                                                mesh::AbstractMesh{2}, equations,
+                                                dg::DGSEM,
+                                                cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    node_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    cell_volume = zero(node_volume)
+
+    u_integral = zero(get_node_vars(u, equations, dg, 1, 1, element))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, element)))
+        node_volume = weights[i] * weights[j] * volume_jacobian
+        cell_volume += node_volume
+
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        u_integral += u_node * node_volume
+    end
+    return u_integral / cell_volume, cell_volume
+end
+
+@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 5}, element,
+                                                mesh::AbstractMesh{3}, equations,
+                                                dg::DGSEM,
+                                                cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    node_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
+    cell_volume = zero(node_volume)
+
+    u_integral = zero(get_node_vars(u, equations, dg, 1, 1, 1, element))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                       i, j, k, element)))
+        node_volume = weights[i] * weights[j] * weights[k] * volume_jacobian
+        cell_volume += node_volume
+
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        u_integral += u_node * node_volume
+    end
+    return u_integral / cell_volume, cell_volume
 end
 
 @inline function set_u_mean!(u, new_cell_average, old_cell_average, element,
