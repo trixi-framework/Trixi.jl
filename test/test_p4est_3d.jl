@@ -12,7 +12,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "elixir_advection_limiter_liu_zhang.jl" begin
+@testitem "P4estMesh3D: elixir_advection_limiter_liu_zhang.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
                                  "elixir_advection_limiter_liu_zhang.jl"),
                         mesh=P4estMesh((4, 4, 4), polydeg = 3,

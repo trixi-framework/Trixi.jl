@@ -1499,7 +1499,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" begin
+@testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         gradient_variables=GradientVariablesEntropy(),
