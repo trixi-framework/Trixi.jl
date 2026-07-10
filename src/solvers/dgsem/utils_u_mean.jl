@@ -96,26 +96,10 @@ end
     return 0.125f0 * u_mean
 end
 
-@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 3}, element,
-                                                mesh::AbstractMesh{1}, equations,
+@inline function compute_u_mean_and_cell_volume(u, element,
+                                                mesh::TreeMesh{NDIMS}, equations,
                                                 dg::DGSEM,
-                                                cache)
-    u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
-    cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
-    return u_mean, cell_volume
-end
-
-@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 4}, element,
-                                                mesh::TreeMesh{2}, equations, dg::DGSEM,
-                                                cache)
-    u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
-    cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
-    return u_mean, cell_volume
-end
-
-@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 5}, element,
-                                                mesh::TreeMesh{3}, equations, dg::DGSEM,
-                                                cache)
+                                                cache) where {NDIMS}
     u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
     cell_volume = get_cell_volume(element, mesh, equations, dg, cache)
     return u_mean, cell_volume
@@ -123,7 +107,7 @@ end
 
 # For non-TreeMesh meshes, `compute_u_mean_and_cell_volume` calculates both the cell 
 # average and the cell volume together for efficiency. 
-@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 4}, element,
+@inline function compute_u_mean_and_cell_volume(u, element,
                                                 mesh::AbstractMesh{2}, equations,
                                                 dg::DGSEM,
                                                 cache)
@@ -146,7 +130,7 @@ end
     return u_integral / cell_volume, cell_volume
 end
 
-@inline function compute_u_mean_and_cell_volume(u::AbstractArray{<:Any, 5}, element,
+@inline function compute_u_mean_and_cell_volume(u, element,
                                                 mesh::AbstractMesh{3}, equations,
                                                 dg::DGSEM,
                                                 cache)
