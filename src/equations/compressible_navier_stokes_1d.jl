@@ -232,7 +232,7 @@ end
 """
     cons2prim_temperature(u, equations::CompressibleNavierStokesDiffusion1D)
 
-Convert conservative variables to primitive (rho, v1, T).
+Convert conservative variables `u` to primitive variables `(rho, v1, T)`.
 In contrast to [`cons2prim`](@ref), this function returns temperature as the last variable instead of pressure.
 """
 @inline function cons2prim_temperature(u,
