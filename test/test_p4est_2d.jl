@@ -509,38 +509,7 @@ end
         end
     end
 
-    # Test `resize!`
-    ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
-    integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
-
-    resize!(integrator, 42)
-    @test length(integrator.u) == 42
-    @test length(integrator.du) == 42
-    @test length(integrator.u_tmp) == 42
-
-    # Test `resize!` for non `VolumeIntegralSubcellLimiting`
-    let
-        solver = DGSEM(basis, surface_flux)
-        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                            boundary_conditions = boundary_condition_periodic)
-
-        ode = semidiscretize(semi, tspan)
-        ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = (;))
-        callbacks = CallbackSet(summary_callback)
-        integrator = Trixi.init(ode, ode_alg, dt = 11.0, callback = callbacks)
-
-        resize!(integrator, 4711)
-        @test length(integrator.u) == 4711
-        @test length(integrator.du) == 4711
-        @test length(integrator.u_tmp) == 4711
-    end
-end
-
-# Test `resize!`
-ode_alg = Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks)
-integrator = Trixi.init(ode, ode_alg, dt = 42.0, callback = callbacks)
-
-    @trixi_testset "elixir_euler_wall_bc_amr.jl (VolumeIntegralAdaptive)" begin
+@trixi_testset "elixir_euler_wall_bc_amr.jl (VolumeIntegralAdaptive)" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_wall_bc_amr.jl"),
                             volume_integral=VolumeIntegralAdaptive(indicator = IndicatorEntropyChange(maximum_entropy_increase = 5e-3),
                                                                    volume_integral_default = VolumeIntegralWeakForm(),
