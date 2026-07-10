@@ -111,6 +111,7 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
     boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
     for (symbol, _) in pairs(boundary_conditions)
         indices = findall(x -> x === symbol, cache.boundaries.name)
+        # Store the indices in `boundary_symbol_indices` dictionary
         boundary_symbol_indices[symbol] = sort!(indices)
     end
 
