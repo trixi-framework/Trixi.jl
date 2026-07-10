@@ -624,7 +624,8 @@ end
     v3 = -w_inner[4] / negative_rho_inv_p
     v1_outer, v2_outer, v3_outer = velocity_symmetry_plane(normal, v1, v2, v3)
 
-    return SVector(w_inner[1], -v1_outer * negative_rho_inv_p, -v2_outer * negative_rho_inv_p,
+    return SVector(w_inner[1], -v1_outer * negative_rho_inv_p,
+                   -v2_outer * negative_rho_inv_p,
                    -v3_outer * negative_rho_inv_p, negative_rho_inv_p)
 end
 
