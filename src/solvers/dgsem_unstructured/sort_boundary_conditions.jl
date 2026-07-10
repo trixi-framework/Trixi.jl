@@ -30,26 +30,22 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
     BoundaryConditions = typeof(boundary_conditions)
     boundary_condition_types = Tuple(unique(values(boundary_conditions)))
     n_boundary_types = length(boundary_condition_types)
-    boundary_indices = ntuple(_ -> [], n_boundary_types)
+    boundary_indices, boundary_symbol_indices = initialize_boundary_data(boundary_conditions,
+                                                                         boundary_condition_types,
+                                                                         cache)
 
-    # Initialize `boundary_symbol_indices` as an empty dictionary, filled later in `initialize!`
-    boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
-
-    container = UnstructuredSortedBoundaryTypes{n_boundary_types,
-                                                typeof(boundary_condition_types),
-                                                Vector{Int},
-                                                BoundaryConditions}(boundary_condition_types,
-                                                                    boundary_indices,
-                                                                    boundary_conditions,
-                                                                    boundary_symbol_indices)
-
-    return initialize!(container, cache)
+    return UnstructuredSortedBoundaryTypes{n_boundary_types,
+                                           typeof(boundary_condition_types),
+                                           Vector{Int},
+                                           BoundaryConditions}(boundary_condition_types,
+                                                               boundary_indices,
+                                                               boundary_conditions,
+                                                               boundary_symbol_indices)
 end
 
-function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N},
-                     cache) where {N}
-    @unpack boundary_conditions, boundary_condition_types = boundary_types_container
-
+function initialize_boundary_data(boundary_conditions::NamedTuple,
+                                  boundary_condition_types,
+                                  cache)
     unique_names = unique(cache.boundaries.name)
 
     if mpi_isparallel()
@@ -92,8 +88,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     end
 
     # pull and sort the indexing for each boundary type
-    _boundary_indices = Vector{Any}(nothing, N)
-    for j in 1:N
+    _boundary_indices = Vector{Vector{Int}}(undef, length(boundary_condition_types))
+    for j in eachindex(boundary_condition_types)
         indices_for_current_type = Int[]
         for (test_name, test_condition) in pairs(boundary_conditions)
             temp_indices = findall(x -> x === test_name, cache.boundaries.name)
@@ -112,15 +108,24 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
         end
     end
 
-    # convert the work array with the boundary indices into a tuple
-    boundary_types_container.boundary_indices = Tuple(_boundary_indices)
-
-    # Store boundary indices per symbol (required for force computations, for instance)
+    boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
     for (symbol, _) in pairs(boundary_conditions)
         indices = findall(x -> x === symbol, cache.boundaries.name)
-        # Store the indices in `boundary_symbol_indices` dictionary
-        boundary_types_container.boundary_symbol_indices[symbol] = sort!(indices)
+        boundary_symbol_indices[symbol] = sort!(indices)
     end
+
+    return Tuple(_boundary_indices), boundary_symbol_indices
+end
+
+function reinitialize!(boundary_types_container::UnstructuredSortedBoundaryTypes,
+                       cache)
+    @unpack boundary_conditions, boundary_condition_types = boundary_types_container
+    boundary_indices, boundary_symbol_indices = initialize_boundary_data(boundary_conditions,
+                                                                         boundary_condition_types,
+                                                                         cache)
+
+    boundary_types_container.boundary_indices = boundary_indices
+    boundary_types_container.boundary_symbol_indices = boundary_symbol_indices
 
     return boundary_types_container
 end
