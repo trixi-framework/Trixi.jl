@@ -1472,8 +1472,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-<<<<<<< jc/gradient_variables_entropy_slip_bcs
-@trixi_testset "elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" begin
+@testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         gradient_variables=GradientVariablesEntropy(),
@@ -1494,10 +1493,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_navierstokes_freestream_ldg.jl" begin
-=======
 @testitem "Parabolic2D: elixir_navierstokes_freestream_ldg.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
->>>>>>> main
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_ldg.jl"),
                         tspan=(0.0, 0.2),
