@@ -448,6 +448,8 @@ function create_cache(::Type{IndicatorEntropyCorrection},
 
     # stores the blending coefficients
     alpha = Vector{uEltype}()
+    # alpha_tmp is temporary storage for blending coefficients
+    # in order to facilitate smoothing. 
     alpha_tmp = similar(alpha)
 
     return (; alpha, alpha_tmp, volume_integral_values_threaded)
