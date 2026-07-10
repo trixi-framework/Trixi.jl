@@ -255,10 +255,11 @@ Should be used together with [`TreeMesh`](@ref).
     if v_normal <= 0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
         p_scaling_base = (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)
-        if base >= 0
+        if p_scaling_base >= 0
             p_star = p_local *
-                     base^(2 * equations.gamma * equations.inv_gamma_minus_one)
-        else # avoid taking powers if base < 0
+                     p_scaling_base^(2 * equations.gamma *
+                                     equations.inv_gamma_minus_one)
+        else # avoid taking powers if p_scaling_base < 0
             p_star = zero(p_local)
         end
     else # v_normal > 0
