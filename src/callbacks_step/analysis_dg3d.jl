@@ -504,9 +504,19 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
+                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                 equations, dg::Union{DGSEM, FDSBP}, cache)
+    # The entropy_timederivative may depend on auxiliary variables.
+    return analyze(entropy_timederivative, du, u, t,
+                   mesh,
+                   have_aux_node_vars(equations), equations,
+                   dg, cache)
+end
+
+function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                              T8codeMesh{3}},
-                 equations, dg::Union{DGSEM, FDSBP}, cache)
+                 have_aux_node_vars::False, equations, dg::Union{DGSEM, FDSBP}, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, k, element, equations, dg, du
