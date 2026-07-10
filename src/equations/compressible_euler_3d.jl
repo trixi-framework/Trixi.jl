@@ -339,7 +339,7 @@ Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
         if base >= 0
             p_star = p_local *
                      base^(2 * equations.gamma * equations.inv_gamma_minus_one)
-        else # avoid taking powers of if base < 0
+        else # avoid taking powers if base < 0
             p_star = zero(p_local)
         end
     else # v_normal > 0
