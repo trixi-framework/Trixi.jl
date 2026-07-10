@@ -72,12 +72,11 @@ function (md_callback::MeshDeformationCallback)(integrator)
 
     u_ode = integrator.u
     semi = integrator.p
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     @trixi_timeit timer() "Mesh deformation" begin
         
         @info "Calling t8_mesh_deformation..."
-        Trixi.t8_mesh_deformation(mesh.forest, brep_folder)
+        Trixi.t8_mesh_deformation(semi.mesh.forest, brep_folder)
         
         adapt_to_deformation!(u_ode, mesh_equations_solver_cache(semi)...)
     end
@@ -89,6 +88,9 @@ end
 
 function adapt_to_deformation!(u_ode::AbstractVector, mesh::T8codeMesh,
                                equations, dg::DG, cache)
+    # Recalculate node coordinates of reference mesh.
+    reinitialize_tree_node_coordinates!(mesh)
+
     # Retain current solution and inverse Jacobian data.
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
@@ -124,5 +126,23 @@ function adapt_to_deformation!(u_ode::AbstractVector, mesh::T8codeMesh,
     mesh.unsaved_changes = true
 
     return nothing
+end
+
+function reinitialize_tree_node_coordinates!(mesh::T8codeMesh{2})
+    @unpack forest, nodes, tree_node_coordinates = mesh
+
+    cmesh = t8_forest_get_cmesh(forest)
+    number_of_trees = t8_forest_get_num_global_trees(forest)
+    reference_coordinates = Vector{eltype(tree_node_coordinates)}(undef, 3)
+
+    for itree in 1:number_of_trees
+        for j in eachindex(nodes), i in eachindex(nodes)
+            reference_coordinates[1] = nodes[i]
+            reference_coordinates[2] = nodes[j]
+            reference_coordinates[3] = 0.0
+            t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
+                                 @view(tree_node_coordinates[:, i, j, itree]))
+        end
+    end
 end
 end # @muladd
