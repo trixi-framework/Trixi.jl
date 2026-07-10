@@ -124,10 +124,12 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              max_davis_yin_iterations,
                                              record_davis_yin_iterations)
     uEltype = real(dg)
+    volumeEltype = promote_type(real(mesh), real(dg))
 
     n_elements = nelements(dg, cache)
-    sqrt_cell_volumes = [sqrt(get_cell_volume(element, mesh, equations, dg, cache))
-                         for element in eachelement(dg, cache)]
+    # Refreshed for every element each time the limiter is called.
+    # Stores cell volumes during pass 1; square roots are taken if the global limiter runs.
+    sqrt_cell_volumes = Vector{volumeEltype}(undef, n_elements)
 
     # create resizable arrays
     T = SVector{nvariables(equations), uEltype}
@@ -211,11 +213,14 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
             resize!(sqrt_cell_volumes, n_elements)
         end
 
-        @trixi_timeit timer() "calc cell averages" begin
-            # calculate cell averages of all variables
+        @trixi_timeit timer() "calc cell averages and volumes" begin
+            # calculate cell averages and local cell volumes of all variables
             @threaded for element in eachelement(dg, cache)
-                cell_averages[element] = compute_u_mean(u, element, mesh, equations, dg,
-                                                        cache)
+                u_mean, cell_volume = compute_u_mean_and_cell_volume(u, element, mesh,
+                                                                     equations,
+                                                                     dg, cache)
+                cell_averages[element] = u_mean
+                sqrt_cell_volumes[element] = cell_volume
             end
         end
 
@@ -233,17 +238,11 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
 
         # if any cell average violates a positivity bound, apply the global limiter
         if cell_average_bounds_violated
-
-            # Recalculate total volume and sqrt of cell volumes. 
-            # Note: this can be avoided by detecting when AMR occurs; however, 
-            # the check `length(cell_averages) != n_elements` used to resize arrays 
-            # is insufficient to detect this, since AMR can refine/coarsen while 
-            # keeping the total number of elements constant.
             total_volume = zero(eltype(sqrt_cell_volumes))
-            for e in eachelement(dg, cache)
-                cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
-                sqrt_cell_volumes[e] = sqrt(cell_volume)
+            for element in eachelement(dg, cache)
+                cell_volume = sqrt_cell_volumes[element]
                 total_volume += cell_volume
+                sqrt_cell_volumes[element] = sqrt(cell_volume)
             end
 
             @trixi_timeit timer() "global cell-average limiter" begin
