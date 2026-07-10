@@ -137,8 +137,8 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim_temperature)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
+# varnames(::typeof(cons2prim_temperature), ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
+# varnames(::typeof(cons2entropy),          ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion3D)
