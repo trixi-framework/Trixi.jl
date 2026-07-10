@@ -1,25 +1,15 @@
-module TestExamplesKernelAbstractions
+@testsnippet KernelAbstractionsExamples begin
+    EXAMPLES_DIR = examples_dir()
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = examples_dir()
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive = true)
-Trixi.MPI.Barrier(Trixi.mpi_comm())
-
-@testset "basic" begin
+@testitem "KernelAbstractions backend preference" setup=[Setup] tags=[:kernelabstractions] begin
     @test Trixi._PREFERENCE_THREADING == :kernelabstractions
 end
 
-@testset "KernelAbstractions CPU 2D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -45,7 +35,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_basic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -73,7 +66,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms.jl native" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -105,7 +101,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         l2=Float32[2.4917018095933837e-6,
@@ -138,7 +137,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms.jl Flux Differencing Float32" begin
+@testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Flux Differencing Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_euler_source_terms.jl"),
                         l2=Float32[2.7905685982444506e-6,
@@ -173,12 +175,11 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
-end
 
-@testset "KernelAbstractions CPU 3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -204,7 +205,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -232,7 +236,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[0.0014517629881062517,
@@ -266,7 +273,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=Float32[0.0014518665391031068,
@@ -302,7 +312,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -348,7 +361,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" begin
+@testitem "KernelAbstractions CPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     using Trixi
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -391,10 +407,3 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-Trixi.mpi_isroot() && isdir(outdir) && @test_nowarn rm(outdir, recursive = true)
-Trixi.MPI.Barrier(Trixi.mpi_comm())
-
-end # module

@@ -1,16 +1,8 @@
-module TestExamples2DEuler
+@testsnippet TreeMesh2DEuler begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Compressible Euler" begin
-#! format: noindent
-
-@trixi_testset "elixir_euler_source_terms.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_source_terms.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         l2=[
                             9.321181253186009e-7,
@@ -29,7 +21,10 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_convergence_pure_fv.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
                         l2=[
                             0.026440292358506527,
@@ -48,7 +43,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" begin
+@testitem "TreeMesh2D Euler: elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fv.jl"),
                         volume_integral=VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
                                                                             volume_flux_fv = flux_hllc,
@@ -71,7 +69,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fvO2.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_convergence_pure_fvO2.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_pure_fvO2.jl"),
                         l2=[
                             0.0025035946669334152,
@@ -90,7 +91,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_mortar_sc_subcell.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_convergence_mortar_sc_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_mortar_sc_subcell.jl"),
                         l2=[
@@ -114,7 +118,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_convergence_gauss_legendre.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_convergence_gauss_legendre.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_gauss_legendre.jl"),
                         l2=[
@@ -134,7 +141,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
                             0.0010600778457964775,
@@ -154,7 +161,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave_nonconforming_idp_mortars.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_density_wave_nonconforming_idp_mortars.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_density_wave_nonconforming_idp_mortars.jl"),
                         initial_refinement_level=2,
@@ -180,7 +190,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_density_wave.jl with entropy correction" begin
+@testitem "TreeMesh2D Euler: elixir_euler_density_wave.jl with entropy correction" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         solver=DGSEM(LobattoLegendreBasis(3),
                                      flux_lax_friedrichs,
@@ -207,7 +220,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_nonideal_density_wave.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
                         tspan=(0.0, 0.5),
                         l2=[
@@ -227,7 +243,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl (FluxHLL))" begin
+@testitem "TreeMesh2D Euler: elixir_euler_nonideal_density_wave.jl (FluxHLL))" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
                         tspan=(0.0, 0.5), surface_flux=flux_hll,
                         l2=[
@@ -247,7 +266,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_nonideal_density_wave.jl (with entropy correction)" begin
+@testitem "TreeMesh2D Euler: elixir_euler_nonideal_density_wave.jl (with entropy correction)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonideal_density_wave.jl"),
                         solver=DGSEM(basis, flux_lax_friedrichs,
                                      VolumeIntegralAdaptive(IndicatorEntropyCorrection(equations,
@@ -272,7 +294,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_source_terms_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[
@@ -292,7 +317,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
@@ -315,7 +343,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_ec.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.061751715597716854,
@@ -334,7 +362,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_kennedy_gruber" begin
+@testitem "TreeMesh2D Euler: elixir_euler_ec.jl with flux_kennedy_gruber" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.03481471610306124,
@@ -356,7 +387,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl with flux_chandrashekar" begin
+@testitem "TreeMesh2D Euler: elixir_euler_ec.jl with flux_chandrashekar" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.03481122603050542,
@@ -378,7 +412,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_shockcapturing.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         l2=[
                             0.05380629130119074,
@@ -397,7 +431,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing_subcell.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_shockcapturing_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shockcapturing_subcell.jl"),
                         l2=[
@@ -421,7 +458,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
+@testitem "TreeMesh2D Euler: elixir_euler_shockcapturing_subcell.jl (fixed time step)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     # Testing local SSP method without stepsize callback
     # Additionally, tests combination with SaveSolutionCallback using time interval
     @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -452,7 +492,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_blast_wave.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[
                             0.14170569763947993,
@@ -473,7 +513,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blast_wave.jl with DissipationMatrixWintersEtal" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave.jl with DissipationMatrixWintersEtal" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         surface_flux=FluxPlusDissipation(flux_ranocha,
                                                          DissipationMatrixWintersEtal()),
@@ -496,7 +539,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_pure_fv.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_pure_fv.jl"),
                         l2=[
                             0.39957047631960346,
@@ -516,7 +562,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
                         l2=[
                             0.6835576416907511,
@@ -536,106 +582,119 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blast_wave_nonconforming_sc_subcell.jl" begin
-    @trixi_testset "positivity limiting" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
-                            l2=[
-                                0.7201725342462154,
-                                0.3046670253240239,
-                                0.30467515418188695,
-                                0.7325309360088359
-                            ],
-                            linf=[
-                                4.832734074721358,
-                                2.569624474016189,
-                                2.588507284415831,
-                                3.056308177579416
-                            ],
-                            tspan=(0.0, 1.0))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15000)
-    end
-
-    @trixi_testset "local limiting" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
-                            local_twosided_variables_cons=["rho"],
-                            local_onesided_variables_nonlinear=[(entropy_math,
-                                                                 max)],
-                            l2=[
-                                0.5717196039375327,
-                                0.23595903512759547,
-                                0.2362183347230602,
-                                0.7047760052352289
-                            ],
-                            linf=[
-                                2.3105119843669453,
-                                1.224327541967734,
-                                1.2282995367780682,
-                                2.9728147340304227
-                            ],
-                            tspan=(0.0, 1.0))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15000)
-    end
-
-    @trixi_testset "local limiting with bar states" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
-                            local_twosided_variables_cons=["rho"],
-                            local_onesided_variables_nonlinear=[(entropy_math,
-                                                                 max)],
-                            bar_states=true,
-                            cfl=0.9,
-                            l2=[
-                                0.6364461416074191,
-                                0.26804557206405333,
-                                0.2672562767904788,
-                                0.7159364638066054
-                            ],
-                            linf=[
-                                3.801802893589546,
-                                1.9847561761565402,
-                                1.965677541576987,
-                                3.0097115924172613
-                            ],
-                            tspan=(0.0, 1.0))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15000)
-    end
-
-    @trixi_testset "conservation" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
-                            pure_low_order=true,
-                            tspan=(0.0, 1.0))
-        state_integrals = Trixi.integrate(sol.u[2], semi)
-        initial_state_integrals = analysis_callback.affect!.initial_state_integrals
-
-        @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
-        @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
-        @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
-        @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
-    end
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (positivity limiting)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
+                        l2=[
+                            0.7201725342462154,
+                            0.3046670253240239,
+                            0.30467515418188695,
+                            0.7325309360088359
+                        ],
+                        linf=[
+                            4.832734074721358,
+                            2.569624474016189,
+                            2.588507284415831,
+                            3.056308177579416
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (local limiting)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_math,
+                                                             max)],
+                        l2=[
+                            0.5717196039375327,
+                            0.23595903512759547,
+                            0.2362183347230602,
+                            0.7047760052352289
+                        ],
+                        linf=[
+                            2.3105119843669453,
+                            1.224327541967734,
+                            1.2282995367780682,
+                            2.9728147340304227
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (local limiting with bar states)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_math,
+                                                             max)],
+                        bar_states=true,
+                        cfl=0.9,
+                        l2=[
+                            0.6364461416074191,
+                            0.26804557206405333,
+                            0.2672562767904788,
+                            0.7159364638066054
+                        ],
+                        linf=[
+                            3.801802893589546,
+                            1.9847561761565402,
+                            1.965677541576987,
+                            3.0097115924172613
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (conservation)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_nonconforming_sc_subcell.jl"),
+                        pure_low_order=true,
+                        tspan=(0.0, 1.0))
+    state_integrals = Trixi.integrate(sol.u[2], semi)
+    initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+    @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+    @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+    @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+    @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_blast_wave_sc_subcell_nonperiodic.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
@@ -661,7 +720,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
                             0.4866953770742574,
@@ -681,7 +743,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_limiter_liu_zhang.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_limiter_liu_zhang.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_limiter_liu_zhang.jl"),
                         l2=[
@@ -702,7 +767,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave_sc_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
@@ -734,65 +802,72 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl" begin
-    @trixi_testset "local limiting" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl"),
-                            l2=[
-                                0.4788114268228323,
-                                0.16272123689374318,
-                                0.16272134462149304,
-                                0.6172026575507662
-                            ],
-                            linf=[
-                                2.3502927194828196,
-                                1.1367235613461917,
-                                1.136723672147965,
-                                6.462700812608096
-                            ],
-                            tspan=(0.0, 1.0),
-                            initial_refinement_level=5,
-                            max_level=5)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15000)
-    end
-
-    @trixi_testset "local limiting with bar states" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl"),
-                            l2=[
-                                0.5272064007313454,
-                                0.17964172962127506,
-                                0.1796417296234891,
-                                0.6199822533716246
-                            ],
-                            linf=[
-                                3.6903439366068307,
-                                1.7100359172581063,
-                                1.7100359171012502,
-                                6.479880391554932
-                            ],
-                            tspan=(0.0, 1.0),
-                            initial_refinement_level=5,
-                            max_level=5,
-                            bar_states=true,
-                            cfl=0.9)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15000)
-    end
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave_amr_sc_subcell.jl (local limiting)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl"),
+                        l2=[
+                            0.4788114268228323,
+                            0.16272123689374318,
+                            0.16272134462149304,
+                            0.6172026575507662
+                        ],
+                        linf=[
+                            2.3502927194828196,
+                            1.1367235613461917,
+                            1.136723672147965,
+                            6.462700812608096
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=5,
+                        max_level=5)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_sedov_adaptive_sc_subcell.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave_amr_sc_subcell.jl (local limiting with bar states)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_amr_sc_subcell.jl"),
+                        l2=[
+                            0.5272064007313454,
+                            0.17964172962127506,
+                            0.1796417296234891,
+                            0.6199822533716246
+                        ],
+                        linf=[
+                            3.6903439366068307,
+                            1.7100359172581063,
+                            1.7100359171012502,
+                            6.479880391554932
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=5,
+                        max_level=5,
+                        bar_states=true,
+                        cfl=0.9)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_adaptive_sc_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_adaptive_sc_subcell.jl"),
@@ -827,7 +902,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave.jl (HLLE)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
                         l2=[
                             0.352405949321075,
@@ -851,7 +929,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_medium_blast_wave_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_medium_blast_wave_amr.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_medium_blast_wave_amr.jl"),
                         l2=[
                             0.07516809124651969,
@@ -870,7 +951,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_positivity.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_positivity.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[
                             0.48862067511841695,
@@ -890,7 +971,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blob_mortar.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blob_mortar.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar.jl"),
                         l2=[
                             0.22271619518391986,
@@ -910,7 +991,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_blob_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_blob_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
                         l2=[
                             0.2086261501910662,
@@ -930,7 +1011,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_density_wave_adaptive_vol_int.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_density_wave_adaptive_vol_int.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_density_wave_adaptive_vol_int.jl"),
                         l2=[
@@ -962,7 +1046,10 @@ end
                       volume_integral)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_fjordholm_etal.jl"),
                         l2=[
@@ -983,7 +1070,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
                         l2=[
@@ -1004,7 +1094,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl (with entropy correction)" begin
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability.jl (with entropy correction)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability.jl"),
                         # adding `scaling = 2` increases the amount of subcell FV blended in by
@@ -1031,7 +1124,10 @@ end
                         ])
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_amr.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
                         l2=[
@@ -1052,101 +1148,111 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl" begin
-    @trixi_testset "positivity limiting" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
-                            cfl=0.5,
-                            l2=[
-                                0.05570146941664593,
-                                0.03298637971789495,
-                                0.05223983591970746,
-                                0.08010996289468988
-                            ],
-                            linf=[
-                                0.24090243222110863,
-                                0.16602758414679125,
-                                0.1228832039209845,
-                                0.2695272249736771
-                            ],
-                            tspan=(0.0, 0.2))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15_000)
-    end
-
-    @trixi_testset "local limiting" begin
-        rm(joinpath("out", "deviations.txt"), force = true)
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
-                            local_twosided_variables_cons=["rho"],
-                            cfl=0.5,
-                            l2=[
-                                0.055714326705681654,
-                                0.032895044953767084,
-                                0.05112126635792253,
-                                0.07890178487713327
-                            ],
-                            linf=[
-                                0.24093270305756276,
-                                0.16626998830196316,
-                                0.16533320802015902,
-                                0.2698480335314488
-                            ],
-                            tspan=(0.0, 0.2),
-                            save_errors=true)
-        lines = readlines(joinpath("out", "deviations.txt"))
-        @test lines[1] == "# iter, simu_time, rho_min, rho_max, pressure_min"
-        # Run takes 99 time steps
-        @test startswith(lines[end], "99")
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15_000)
-
-        # test long printing format
-        @test_nowarn display(solver.mortar)
-    end
-
-    @trixi_testset "local limiting with bar states" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
-                            local_twosided_variables_cons=["rho"],
-                            local_onesided_variables_nonlinear=[(entropy_guermond_etal,
-                                                                 min)],
-                            bar_states=true,
-                            cfl=0.9,
-                            l2=[
-                                0.059673375734041384,
-                                0.037530166459803685,
-                                0.050061502806392884,
-                                0.07794073386723621
-                            ],
-                            linf=[
-                                0.35727147409819315,
-                                0.28320724745453696,
-                                0.1328159453416183,
-                                0.27333168911707695
-                            ],
-                            tspan=(0.0, 0.2))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        # Larger values for allowed allocations due to usage of custom
-        # integrator which are not *recorded* for the methods from
-        # OrdinaryDiffEq.jl
-        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-        @test_allocations(Trixi.rhs!, semi, sol, 15_000)
-    end
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl (positivity limiting)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
+                        cfl=0.5,
+                        l2=[
+                            0.05570146941664593,
+                            0.03298637971789495,
+                            0.05223983591970746,
+                            0.08010996289468988
+                        ],
+                        linf=[
+                            0.24090243222110863,
+                            0.16602758414679125,
+                            0.1228832039209845,
+                            0.2695272249736771
+                        ],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl (local limiting)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    rm(joinpath("out", "deviations.txt"), force = true)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        cfl=0.5,
+                        l2=[
+                            0.055714326705681654,
+                            0.032895044953767084,
+                            0.05112126635792253,
+                            0.07890178487713327
+                        ],
+                        linf=[
+                            0.24093270305756276,
+                            0.16626998830196316,
+                            0.16533320802015902,
+                            0.2698480335314488
+                        ],
+                        tspan=(0.0, 0.2),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, rho_max, pressure_min"
+    # Run takes 99 time steps
+    @test startswith(lines[end], "99")
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+
+    # test long printing format
+    @test_nowarn display(solver.mortar)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl (local limiting with bar states)" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        bar_states=true,
+                        cfl=0.9,
+                        l2=[
+                            0.059673375734041384,
+                            0.037530166459803685,
+                            0.050061502806392884,
+                            0.07794073386723621
+                        ],
+                        linf=[
+                            0.35727147409819315,
+                            0.28320724745453696,
+                            0.1328159453416183,
+                            0.27333168911707695
+                        ],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl"),
                         tspan=(0.0, 0.1),
@@ -1167,7 +1273,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_colliding_flow.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_colliding_flow.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow.jl"),
                         l2=[
                             0.007237139090503349,
@@ -1187,7 +1293,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_colliding_flow_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_colliding_flow_amr.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_colliding_flow_amr.jl"),
                         l2=[
                             0.006768801432802192,
@@ -1207,7 +1316,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_colliding_flow_amr_entropy_bounded.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_colliding_flow_amr_entropy_bounded.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_colliding_flow_amr_entropy_bounded.jl"),
                         l2=[
@@ -1229,7 +1341,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_colliding_flow_amr_sc_subcell.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_colliding_flow_amr_sc_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_colliding_flow_amr_sc_subcell.jl"),
                         l2=[
@@ -1254,7 +1369,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_astro_jet_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_astro_jet_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_amr.jl"),
                         l2=[
                             0.011338365293662804,
@@ -1274,7 +1389,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_astro_jet_amr_scO2.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_astro_jet_amr_scO2.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_amr_scO2.jl"),
                         l2=[
                             0.011443079784345214,
@@ -1294,7 +1412,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_astro_jet_sc_subcell.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_astro_jet_sc_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_sc_subcell.jl"),
                         l2=[
                             1.455461660282908,
@@ -1318,7 +1439,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@trixi_testset "elixir_euler_vortex.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
                         l2=[
                             0.00013492249515826863,
@@ -1337,7 +1458,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_mortar.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_mortar.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[
@@ -1357,7 +1478,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_mortar_split.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_mortar_split.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
                         l2=[
                             0.0017203323613648241,
@@ -1376,7 +1500,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_shockcapturing.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_shockcapturing.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
                         l2=[
                             0.0017158367642679273,
@@ -1395,7 +1522,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_mortar_shockcapturing.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_mortar_shockcapturing.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_vortex_mortar_shockcapturing.jl"),
                         l2=[
@@ -1415,7 +1545,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
                         # Expected errors are exactly the same as in the parallel test!
                         l2=[
@@ -1435,7 +1565,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_vortex_er.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_vortex_er.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_er.jl"),
                         l2=[
                             0.02611497083247329,
@@ -1465,7 +1595,10 @@ end
     show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
-@trixi_testset "elixir_euler_ec.jl with boundary_condition_slip_wall" begin
+@testitem "TreeMesh2D Euler: elixir_euler_ec.jl with boundary_condition_slip_wall" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.03341239373099515,
@@ -1487,7 +1620,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_warm_bubble.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_warm_bubble.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_warm_bubble.jl"),
                         l2=[
                             0.0001379946769624388,
@@ -1520,52 +1653,59 @@ end
 end
 
 # Coverage test for all initial conditions
-@testset "Compressible Euler: Tests for initial conditions" begin
-    @trixi_testset "elixir_euler_vortex.jl one step with initial_condition_constant" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
-                            l2=[
-                                1.1790213022362371e-16,
-                                8.580657423476384e-17,
-                                1.3082387431804115e-16,
-                                1.6182739965672862e-15
-                            ],
-                            linf=[
-                                3.3306690738754696e-16,
-                                2.220446049250313e-16,
-                                5.273559366969494e-16,
-                                3.552713678800501e-15
-                            ],
-                            maxiters=1,
-                            initial_condition=initial_condition_constant)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@testitem "TreeMesh2D Euler: elixir_euler_vortex.jl one step with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+                        l2=[
+                            1.1790213022362371e-16,
+                            8.580657423476384e-17,
+                            1.3082387431804115e-16,
+                            1.6182739965672862e-15
+                        ],
+                        linf=[
+                            3.3306690738754696e-16,
+                            2.220446049250313e-16,
+                            5.273559366969494e-16,
+                            3.552713678800501e-15
+                        ],
+                        maxiters=1,
+                        initial_condition=initial_condition_constant)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
-    @trixi_testset "elixir_euler_sedov_blast_wave.jl one step" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
-                            l2=[
-                                0.0021196114178949396,
-                                0.010703549234544042,
-                                0.01070354923454404,
-                                0.10719124037195142
-                            ],
-                            linf=[
-                                0.11987270645890724,
-                                0.7468615461136827,
-                                0.7468615461136827,
-                                3.910689155287799
-                            ],
-                            maxiters=1)
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave.jl one step" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
+                        l2=[
+                            0.0021196114178949396,
+                            0.010703549234544042,
+                            0.01070354923454404,
+                            0.10719124037195142
+                        ],
+                        linf=[
+                            0.11987270645890724,
+                            0.7468615461136827,
+                            0.7468615461136827,
+                            3.910689155287799
+                        ],
+                        maxiters=1)
 
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 # Constant subsonic flow test
-@trixi_testset "elixir_euler_subsonic_constant.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_subsonic_constant.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_constant.jl"),
                         l2=[
                             9.135564506684991e-14, 1.9441147665983966e-14,
@@ -1582,7 +1722,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_riemannproblem_quadrants_amr.jl" begin
+@testitem "TreeMesh2D Euler: elixir_euler_riemannproblem_quadrants_amr.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_riemannproblem_quadrants_amr.jl"),
                         tspan=(0.0, 0.05),
@@ -1602,6 +1745,3 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end
-
-end # module
