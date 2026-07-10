@@ -9,8 +9,7 @@ mu = 1e-3 # equivalent to Re = 1000
 
 equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                          Prandtl = prandtl_number(),
-                                                          gradient_variables = GradientVariablesPrimitive())
+                                                          Prandtl = prandtl_number())
 
 # Flow in y-direction to test the symmetry BCs at the left and right boundaries
 function initial_condition_freestream(x, t, equations)
