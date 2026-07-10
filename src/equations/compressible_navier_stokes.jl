@@ -216,6 +216,10 @@ function RadiativeEquilibriumOneWay(;
                                                                eps_times_sigma)
 end
 
+function init_boundary_conditions!(boundary_conditions<:RadiativeEquilibriumOneWay, cache)
+    init_radiative_equilibrium_heat_flux_container(cache.boundary_container)
+end
+
 @inline function solve_radiative_equilibrium_temperature(normal_heat_flux,
                                                          rad_eq_bc::RadiativeEquilibriumOneWay)
     @unpack eps_times_sigma, temp_farfield4 = rad_eq_bc

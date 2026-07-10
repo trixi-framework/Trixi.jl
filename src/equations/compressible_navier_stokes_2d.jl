@@ -622,6 +622,22 @@ end
     return flux_inner
 end
 
+struct RadiativeEquilibriumHeatFluxContainer2D{uEltype <: Real}
+    heat_flux_values::Array{uEltype, 3} # [i, direction, elements]
+        # internal `resize!`able storage
+    _heat_flux_values::Vector{uEltype}
+end
+
+function init_radiative_equilibrium_heat_flux_container(boundary_container::Union{TreeBoundaryContainer2D, P4estBoundaryContainer{2}})
+    _, _, n_nodes, capacity = size(boundary_container.u)
+
+    _heat_flux_values = fill(nan_uEltype, n_nodes * 2 * 2 * capacity)
+    heat_flux_values = unsafe_wrap(Array, pointer(_heat_flux_values),
+                                   (n_nodes, 2 * 2, capacity))
+
+    return RadiativeEquilibriumHeatFluxContainer2D(heat_flux_values, _heat_flux_values)
+end
+
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:RadiativeEquilibriumOneWay})(flux_inner,
                                                                                                        u_inner,
