@@ -50,6 +50,28 @@ RecipesBase.@recipe function f(pm::PlotMesh{<:AbstractPlotData{2}})
     return mesh_vertices_x, mesh_vertices_y
 end
 
+# Visualize the mesh in a 2D plot
+RecipesBase.@recipe function f(pm::PlotMesh{<:PlotData2DCartesian{<:Any,
+                                                                  <:AbstractVector{<:AbstractVector}}})
+    @unpack plot_data = pm
+    @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
+
+    # Set geometric and annotation properties
+    xlims --> (minimum(x), maximum(x))
+    ylims --> (minimum(y), maximum(y))
+    aspect_ratio --> :equal
+    legend --> :none
+    grid --> false
+
+    # Set series properties
+    seriestype --> :path
+    linecolor --> :grey
+    linewidth --> 1
+
+    # Return data for plotting
+    return mesh_vertices_x, mesh_vertices_y
+end
+
 # Plot all available variables at once for convenience
 RecipesBase.@recipe function f(pd::AbstractPlotData)
     # Create layout that is as square as possible, when there are more than 3 subplots.
