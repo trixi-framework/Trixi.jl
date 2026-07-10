@@ -902,35 +902,6 @@ end
                       indicator)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       indicator)
-
-    # Test saved element variables
-    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
-    n_elements = Trixi.nelements(solver, cache)
-    combined_indicator = solver.volume_integral.indicator
-    @test length(combined_indicator.cache.alpha) == n_elements
-    @test length(combined_indicator.indicator_entropy_correction.cache.alpha) ==
-          n_elements
-    @test length(combined_indicator.indicator_shock_capturing.cache.alpha) == n_elements
-
-    # check that the element variable keys are valid
-    element_variables = Dict{Symbol, Any}()
-    Trixi.get_element_variables!(element_variables, sol.u[end], semi)
-    @test haskey(element_variables, :indicator_combined)
-    @test haskey(element_variables, :indicator_shock_capturing)
-    @test haskey(element_variables, :indicator_entropy_correction)
-
-    alpha_combined = element_variables[:indicator_combined]
-    alpha_shock_capturing = element_variables[:indicator_shock_capturing]
-    alpha_entropy_correction = element_variables[:indicator_entropy_correction]
-    @test length(alpha_combined) == n_elements
-    @test length(alpha_shock_capturing) == n_elements
-    @test length(alpha_entropy_correction) == n_elements
-
-    # check that alpha_combined is not smaller than both 
-    # alpha_shock_capturing and alpha_entropy_correction
-    tol = eps(eltype(alpha_combined))
-    @test all(alpha_combined .>= alpha_shock_capturing .- tol)
-    @test all(alpha_combined .>= alpha_entropy_correction .- tol)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrection)" setup=[

@@ -136,9 +136,6 @@ end
     # exactly zero for an entropy conservative volume integral. 
     entropy_residual = dS_volume_integral - dS_true
 
-    # initialize blending factor for visualization
-    alpha[element] = zero(eltype(alpha))
-
     if entropy_residual > 0
         # Store "high order" result
         du_FD_element = du_element_threaded[Threads.threadid()]
@@ -276,24 +273,22 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                dg::DGSEM, cache)
     (; volume_integral_default, volume_integral_stabilized, indicator) = volume_integral
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
-    (; alpha) = indicator.cache
     (; scaling) = indicator_entropy_correction
     du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
-    alpha_entropy_correction = indicator_entropy_correction.cache.alpha
-    alpha_combined = alpha
-
-    # tolerance to determine "active" blending factors
-    # For `Float64`, this gives 1.8189894035458565e-12
-    # For `Float32`, this gives 1.1920929f-5
-    RealT = eltype(alpha)
-    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
+    # Note that we also reuse the `alpha_shock_capturing` array to store the indicator values for visualization.
     alpha_shock_capturing = @trixi_timeit timer() "blending factors" indicator_shock_capturing(u,
                                                                                                mesh,
                                                                                                equations,
                                                                                                dg,
                                                                                                cache)
+
+    # tolerance to determine "active" blending factors
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    RealT = eltype(alpha_shock_capturing)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
@@ -324,10 +319,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         # exactly zero for an entropy conservative volume integral.
         entropy_residual = dS_volume_integral - dS_true
 
-        # initialize blending factors for visualization
-        alpha_entropy_correction[element] = zero(eltype(alpha_entropy_correction))
         alpha_shock_capturing_element = alpha_shock_capturing[element]
-        alpha_combined[element] = alpha_shock_capturing_element
 
         # if either entropy correction or shock capturing is activated
         if entropy_residual > 0 || alpha_shock_capturing_element > atol
@@ -364,17 +356,15 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             # max(0, entropy_residual) avoids activating entropy correction if 
             # shock capturing is active but there is no entropy violation.
             ratio = regularized_ratio(-max(0, entropy_residual), entropy_dissipation)
-            alpha_entropy_correction_element = min(1, scaling * ratio)
-            alpha_combined_element = max(alpha_shock_capturing_element,
-                                         alpha_entropy_correction_element)
+            alpha_element = max(alpha_shock_capturing_element, min(1, scaling * ratio))
 
-            # save values for visualization
-            alpha_entropy_correction[element] = alpha_entropy_correction_element
-            alpha_combined[element] = alpha_combined_element
+            # Save blending coefficient for visualization. Note that we overwrite the data 
+            # in `alpha_shock_capturing[element]`. 
+            alpha_shock_capturing[element] = alpha_element
 
             # Blend the high order method back in 
-            @views du[.., element] .= alpha_combined_element .* du[.., element] .+
-                                      (1 - alpha_combined_element) .* du_FD_element
+            @views du[.., element] .= alpha_element .* du[.., element] .+
+                                      (1 - alpha_element) .* du_FD_element
         end
     end
 
