@@ -1,15 +1,11 @@
+@testsnippet TreeMesh3DLinearizedEuler begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
-
-@testset "Linearized Euler Equations 3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_linearizedeuler_gauss_wall.jl" begin
+@testitem "TreeMesh3D LinearizedEuler: elixir_linearizedeuler_gauss_wall.jl" setup=[
+    Setup,
+    TreeMesh3DLinearizedEuler
+] tags=[:tree_part5] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gauss_wall.jl"),
                         l2=[
                             0.020380328336745232, 0.027122442311921492,
@@ -26,5 +22,4 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
 end

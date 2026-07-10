@@ -1,16 +1,11 @@
-module TestExamples2DEulerAcoustics
+@testsnippet TreeMesh2DEulerAcoustics begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
-
-@testset "Acoustic perturbation coupled with compressible Euler" begin
-#! format: noindent
-
-@trixi_testset "elixir_euleracoustics_co-rotating_vortex_pair.jl" begin
+@testitem "TreeMesh2D EulerAcoustics: elixir_euleracoustics_co-rotating_vortex_pair.jl" setup=[
+    Setup,
+    TreeMesh2DEulerAcoustics
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euleracoustics_co-rotating_vortex_pair.jl"),
                         initial_refinement_level=5,
@@ -39,6 +34,3 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
     @test_nowarn show(semi)
 end
-end
-
-end # module
