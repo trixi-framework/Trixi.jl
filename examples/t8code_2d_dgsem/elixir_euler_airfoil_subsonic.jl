@@ -111,7 +111,7 @@ save_solution = SaveSolutionCallback(interval = 500,
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
-mesh_deformation_callback = MeshDeformationCallback(interval = 50)
+mesh_deformation_callback = MeshDeformationCallback(brep_folder = ".", interval = 50)
 
 # TODO
 # visualization

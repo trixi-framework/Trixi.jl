@@ -12,17 +12,18 @@ Performs mesh deformation every `interval` time steps
 for a given semidiscretization `semi`.
 """
 struct MeshDeformationCallback
+    brep_folder::String
     interval::Int
 end
 # TODO additional members? caches?
 
-function MeshDeformationCallback(; interval = 0)
+function MeshDeformationCallback(; brep_folder, interval = 0)
     # check arguments
     if !(interval isa Integer && interval >= 0)
         throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
     end
 
-    md_callback = MeshDeformationCallback(interval)
+    md_callback = MeshDeformationCallback(brep_folder, interval)
 
     return DiscreteCallback(md_callback, md_callback, # the first one is the condition, the second the affect!
                             save_positions = (false, false),
@@ -66,13 +67,17 @@ end
 
 
 # this method is called when the callback is activated
-function (amr_callback::MeshDeformationCallback)(integrator)
+function (md_callback::MeshDeformationCallback)(integrator)
+    @unpack brep_folder = md_callback
+
     u_ode = integrator.u
     semi = integrator.p
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     @trixi_timeit timer() "Mesh deformation" begin
         
-        @info "Do mesh deformation here!"
+        @info "Calling t8_mesh_deformation..."
+        Trixi.t8_mesh_deformation(mesh.forest, brep_folder)
         
         adapt_to_deformation!(u_ode, mesh_equations_solver_cache(semi)...)
     end

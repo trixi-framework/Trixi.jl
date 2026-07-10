@@ -89,6 +89,17 @@ using RecipesBase: RecipesBase
 using RecursiveArrayTools: VectorOfArray
 using Static: Static, One, True, False
 
+"""
+preliminary interface to:
+
+int
+t8_forest_hacky_deformation (t8_forest_t forest, const char* brep_folder);
+"""
+function t8_mesh_deformation(forest, brep_folder)
+    @ccall T8code.Libt8.libt8.t8_forest_hacky_deformation(forest::t8_forest_t, brep_folder::Cstring)::Cint
+end
+
+
 @doc """
     Trixi.Threaded()
 
