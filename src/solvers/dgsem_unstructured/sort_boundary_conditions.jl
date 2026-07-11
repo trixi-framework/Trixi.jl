@@ -99,6 +99,7 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
         end
         _boundary_indices[j] = sort!(indices_for_current_type)
     end
+    boundary_indices = Tuple(_boundary_indices)
 
     # Check if all boundaries (determined from connectivity) are equipped with a boundary condition
     for (index, boundary_name) in enumerate(cache.boundaries.name)
@@ -115,9 +116,10 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
         boundary_symbol_indices[symbol] = sort!(indices)
     end
 
-    return Tuple(_boundary_indices), boundary_symbol_indices
+    return boundary_indices, boundary_symbol_indices
 end
 
+# This is called after AMR, i.e., when the mesh has changed and the boundary indices need to be re-initialized.
 function reinitialize!(boundary_types_container::UnstructuredSortedBoundaryTypes,
                        cache)
     @unpack boundary_conditions, boundary_condition_types = boundary_types_container
