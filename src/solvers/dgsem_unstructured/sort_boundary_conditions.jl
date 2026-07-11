@@ -30,6 +30,9 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
     BoundaryConditions = typeof(boundary_conditions)
     boundary_condition_types = Tuple(unique(values(boundary_conditions)))
     n_boundary_types = length(boundary_condition_types)
+
+    validate_boundary_conditions(boundary_conditions, cache)
+
     boundary_indices, boundary_symbol_indices = initialize_boundary_data(boundary_conditions,
                                                                          boundary_condition_types,
                                                                          cache)
@@ -43,11 +46,13 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
                                                                boundary_symbol_indices)
 end
 
-function initialize_boundary_data(boundary_conditions::NamedTuple,
-                                  boundary_condition_types,
-                                  cache)
-    unique_names = unique(cache.boundaries.name)
+# Check that supplied boundary conditions are valid, i.e., 
+# - that the keys of the `boundary_conditions` match the names of the boundaries identified by the mesh (`cache.boundaries.name`), and
+# - that each boundary has a boundary condition specified
+function validate_boundary_conditions(boundary_conditions::NamedTuple, cache)
+    unique_names = unique(cache.boundaries.name) # boundaries identified by the mesh
 
+    # Verify that the names of the user-given boundaries match the ones identified by the mesh
     if mpi_isparallel()
         # Exchange of boundaries names
         send_buffer = Vector{UInt8}(join(unique_names, "\0"))
@@ -86,7 +91,11 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
             error("No boundary condition specified for boundary $(repr(name))")
         end
     end
+end
 
+function initialize_boundary_data(boundary_conditions::NamedTuple,
+                                  boundary_condition_types,
+                                  cache)
     # pull and sort the indexing for each boundary type
     _boundary_indices = Vector{Vector{Int}}(undef, length(boundary_condition_types))
     for j in eachindex(boundary_condition_types)
@@ -101,14 +110,6 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
     end
     boundary_indices = Tuple(_boundary_indices)
 
-    # Check if all boundaries (determined from connectivity) are equipped with a boundary condition
-    for (index, boundary_name) in enumerate(cache.boundaries.name)
-        if !(boundary_name in keys(boundary_conditions))
-            neighbor_element = cache.boundaries.neighbor_ids[index]
-            @warn "Boundary condition for boundary type $(repr(boundary_name)) of boundary $(index) (neighbor element $neighbor_element) not found in boundary conditions!"
-        end
-    end
-
     boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
     for (symbol, _) in pairs(boundary_conditions)
         indices = findall(x -> x === symbol, cache.boundaries.name)
@@ -120,6 +121,7 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
 end
 
 # This is called after AMR, i.e., when the mesh has changed and the boundary indices need to be re-initialized.
+# Note that at this point no validation of the boundary condition names is necessary.
 function reinitialize!(boundary_types_container::UnstructuredSortedBoundaryTypes,
                        cache)
     @unpack boundary_conditions, boundary_condition_types = boundary_types_container
