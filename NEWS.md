@@ -11,7 +11,6 @@ for human readability.
 
 - The `rhs!` function now dispatches additionally on the backend type ([#3113]).
 
-
 ## Changes in the v0.16 lifecycle
 
 #### Added
