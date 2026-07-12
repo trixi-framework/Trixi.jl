@@ -325,6 +325,10 @@ end
     alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
                                                         dg, cache)
 
+    # These tolerances for "active" shock capturing alpha values are copied 
+    # from the `calc_volume_integral!` implementation for 
+    # `VolumeIntegralShockCapturingHGType`
+
     # For `Float64`, this gives 1.8189894035458565e-12
     # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha)
