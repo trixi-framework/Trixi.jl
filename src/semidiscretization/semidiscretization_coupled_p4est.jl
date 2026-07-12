@@ -208,7 +208,7 @@ function rhs!(du_ode, u_ode, u_parent, semis,
     time_start = time_ns()
     @trixi_timeit timer() "rhs!" rhs!(backend, du, u, t, u_parent,
                                       semis, mesh, equations,
-boundary_conditions, source_terms, solver, cache)
+                                      boundary_conditions, source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 
