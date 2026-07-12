@@ -5,6 +5,13 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.17 from v0.16.x
+
+#### Changed
+
+- The `rhs!` function now dispatches additionally on the backend type ([#3113]).
+
+
 ## Changes in the v0.16 lifecycle
 
 #### Added
@@ -34,7 +41,6 @@ for human readability.
   This is a concrete implementation for `AbstractThermallyPerfectGas` that uses a 9th order polynomial fit to the NASA polynomials for specific heat capacities, as described in the corresponding [NASA Technical Publication](https://ntrs.nasa.gov/citations/20020085330).
   This EOS allows for temperature-dependent specific heat capacities (`c_p(T)`, `c_v(T)`) and ratio of specific heats (`\gamma(T)`), while obeying the ideal gas law to relate pressure, density, and temperature ([#3079]).
   This equation of state needs to be supplied to `NonIdealCompressibleEulerEquations`.
-- The `rhs!` function now dispatches additionally on the backend type ([#3113]).
 
 #### Changed
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
