@@ -1,23 +1,11 @@
-module TestExamplesP4estMesh2DBlockFV
+@testsnippet P4estMesh2DBlockFV begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_blockfv")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_blockfv")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "BlockFV 2D (P4estMesh)" begin
-#! format: noindent
-
-@testset "Linear scalar advection" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_advection_basic.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         l2=[0.03374473828931446],
                         linf=[0.047702534871517654])
@@ -27,7 +15,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_basic.jl (matches flat TreeMesh result)" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_advection_basic.jl (matches flat TreeMesh result)" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     # On a flat (uncurved) P4estMesh, BlockFV must reproduce the TreeMesh result
     # at the same total resolution (8 trees x 2^1 refinements x 4 FV cells = 64 cells
     # per direction).
@@ -41,7 +32,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_basic.jl with fewer n_nodes and higher refinement" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_advection_basic.jl with fewer n_nodes and higher refinement" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     # Compute with more FV cells per macro element.
     # trees=(8,8), level=1, n_nodes=4 -> 16 elements × 4 = 64 FV cells per direction.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -70,7 +64,10 @@ end
     @test res1.linf ≈ res2.linf
 end
 
-@trixi_testset "elixir_advection_unstructured_flag.jl" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_advection_unstructured_flag.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_unstructured_flag.jl"),
                         l2=[0.03679333289248872],
@@ -80,12 +77,11 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end # Linear scalar advection
 
-@testset "Compressible Euler equations" begin
-#! format: noindent
-
-@trixi_testset "elixir_euler_convergence.jl" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_euler_convergence.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         tspan=(0.0, 0.5),
                         l2=[0.007478883579676853,
@@ -102,7 +98,10 @@ end # Linear scalar advection
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_term_nonperiodic.jl" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_euler_source_term_nonperiodic.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     # Non-periodic (Dirichlet) boundaries on a curved mesh exercise the exact
     # boundary-face normal and midpoint computed in `create_cache` (as opposed
     # to the offset FV cell center), see `get_fv_boundary_normal`/
@@ -124,7 +123,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream.jl" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_euler_free_stream.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     # Free-stream preservation on a curved unstructured mesh:
     # a constant initial state must stay constant up to machine precision.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
@@ -148,7 +150,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+@testitem "BlockFV 2D (P4estMesh): elixir_euler_free_stream_hybrid_mesh.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     # Free-stream preservation on a hybrid mesh (mixed first-order and second-order
     # quadrilateral elements).
     @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -172,7 +177,11 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-@trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
+
+@testitem "BlockFV 2D (P4estMesh): elixir_euler_NACA6412airfoil_mach2.jl" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_NACA6412airfoil_mach2.jl"),
                         tspan=(0.0, 0.05),
@@ -193,12 +202,11 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
-end # Compressible Euler equations
 
-@testset "Visualization" begin
-#! format: noindent
-
-@trixi_testset "PlotData2DTriangulated for BlockFV on P4estMesh" begin
+@testitem "BlockFV 2D (P4estMesh): PlotData2DTriangulated" setup=[
+    Setup,
+    P4estMesh2DBlockFV
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         tspan=(0.0, 0.1))
 
@@ -214,7 +222,3 @@ end # Compressible Euler equations
     @trixi_test_nowarn show(stdout, pd)
     println(stdout)
 end
-end # Visualization
-end # BlockFV 2D (P4estMesh)
-
-end # module
