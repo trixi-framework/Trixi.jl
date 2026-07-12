@@ -345,7 +345,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
 end
 
 #####################################################################
-# max_dt: the generic version (src/callbacks_step/stepsize_dg2d.jl) reads 
+# max_dt: the generic version (src/callbacks_step/stepsize_dg2d.jl) reads
 # `contravariant_vectors`, which BlockFV does not populate.
 #  CFL condition: dt = |Ω_ij| / max_face_speed.
 @inline function max_face_speed(normal_x, normal_y, i, j, element, lambda1, lambda2)
