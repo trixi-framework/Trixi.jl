@@ -696,6 +696,61 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_freestream_symmetry.jl" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        tspan=(0.0, 0.1),
+                        l2=[
+                            1.0252320654466589e-15,
+                            1.3318297113844456e-15,
+                            1.711094657112791e-15,
+                            1.2162632724921277e-15,
+                            2.6801455578221708e-15
+                        ],
+                        linf=[
+                            5.46229728115577e-14,
+                            3.824279604760554e-14,
+                            7.105427357601002e-14,
+                            5.09852174219878e-14,
+                            1.3367085216486885e-13
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_3d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        tspan=(0.0, 0.1),
+                        gradient_variables=GradientVariablesEntropy(),
+                        l2=[
+                            1.034080393302434e-15,
+                            1.330253747609625e-15,
+                            1.7187390349902388e-15,
+                            1.2151591229508492e-15,
+                            2.6832252213455377e-15
+                        ],
+                        linf=[
+                            5.551115123125783e-14,
+                            3.827402063213771e-14,
+                            7.149836278586008e-14,
+                            5.130880881629417e-14,
+                            1.3455903058456897e-13
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" setup=[
     Setup,
     Parabolic3D
