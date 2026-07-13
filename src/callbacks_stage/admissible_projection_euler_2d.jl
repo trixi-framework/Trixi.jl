@@ -91,7 +91,7 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
             # -8aρ_c² + 8aρρ_c + (aρv)² = 2a(ρ² - Δ_ρ) + (aρv)² (which is independent of 
             # rho_candidate). 
             discriminant_rho_v_primary = 2 * a * (rho^2 - discriminant_rho) +
-(a * rho_v_primary)^2
+                                         (a * rho_v_primary)^2
             # Roundoff can make discriminant_rho_v_primary slightly negative at the real-root
             # boundary; treat as zero so the >= 0 check passes. 
             if discriminant_rho_v_primary < zero(discriminant_rho_v_primary) &&
