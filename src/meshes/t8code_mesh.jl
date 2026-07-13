@@ -603,7 +603,24 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
                                    mpi_comm())
 
     # There's no simple and generic way to distinguish boundaries, yet. Name all of them :all.
-    boundary_names = fill(:all, 2 * NDIMS, t8_cmesh_get_num_trees(cmesh))
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+    boundary_names = fill(:outer, 2 * NDIMS, num_trees)
+
+    # NOTE: hard-coded quad
+    num_faces = 4
+
+    for itree in 1:num_trees
+        # define T8_CMESH_CAD_EDGE_ATTRIBUTE_KEY 5 /**< Used to store which edge is linked to which geometry */
+        geom_info_void_ptr = t8_cmesh_get_attribute(cmesh, t8_get_package_id(), 5, itree-1)
+        geom_info_int_ptr = Base.unsafe_convert(Ptr{Cint}, geom_info_void_ptr)
+        geom_info = unsafe_wrap(Vector{Cint}, geom_info_int_ptr, num_faces)
+        for iface in 1:num_faces
+            if geom_info[iface] == 5 || geom_info[iface] == 6
+                # direction per dimension, should be consistent
+                boundary_names[iface, itree] = :airfoil
+            end
+        end
+    end
 
     return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
                                     mapping = mapping,
@@ -742,7 +759,7 @@ function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
 
     meshfile_prefix, meshfile_suffix = splitext(meshfile.path)
 
-    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
+    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 1)
 
     return T8codeMesh(cmesh; kwargs...)
 end

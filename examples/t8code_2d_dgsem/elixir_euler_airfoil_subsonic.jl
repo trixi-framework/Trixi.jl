@@ -2,6 +2,7 @@
 
 using OrdinaryDiffEqSSPRK
 using Trixi
+#using Plots
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -10,7 +11,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 p_inf() = 1.0
 rho_inf() = p_inf() / (1.0 * 287.87) # p_inf = 1.0,  T = 1, R = 287.87
-mach_inf() = 0.85
+mach_inf() = 0.4
 aoa() = pi / 180.0 # 1 Degree angle of attack
 c_inf(equations) = sqrt(equations.gamma * p_inf() / rho_inf())
 u_inf(equations) = mach_inf() * c_inf(equations)
@@ -40,9 +41,9 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux)
 
 #               volume_integral = volume_integral)
 
-mesh_file = "airfoil_step.msh"
+mesh_file = "airfoil_0000.msh"
 
-mesh = T8codeMesh(mesh_file, 2; polydeg = 1,
+mesh = T8codeMesh(mesh_file, 2; polydeg = 3,
                   initial_refinement_level = 1)
 
 @inline function boundary_condition_subsonic_constant(u_inner,
@@ -55,7 +56,8 @@ mesh = T8codeMesh(mesh_file, 2; polydeg = 1,
     return flux_hll(u_inner, u_boundary, normal_direction, equations)
 end
 
-boundary_conditions = (; all = boundary_condition_subsonic_constant)
+boundary_conditions = (; outer = boundary_condition_subsonic_constant,
+                        airfoil = boundary_condition_slip_wall)
 
 # TODO: somehow get the boundary symbols and set slip wall conditions for the airfoil
 
@@ -80,7 +82,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 2000
+analysis_interval = 1000
 
 l_inf = 1.0 # Length of airfoil
 
@@ -103,24 +105,26 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 500,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
                                      output_directory = "out_airfoil")
 
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 0.1)
 
-mesh_deformation_callback = MeshDeformationCallback(brep_folder = ".", interval = 50)
+mesh_deformation_callback = MeshDeformationCallback(brep_folder = "neue_breps",
+                                                    interval = 1000)
 
-# TODO
-# visualization
+#visualization = VisualizationCallback(semi; interval = 500, show_mesh = false,
+#                                      variable_names = ["p"])
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         save_solution, stepsize_callback, mesh_deformation_callback)
+#                        visualization)
 
 ###############################################################################
 # run the simulation
 sol = solve(ode, SSPRK54(thread = Trixi.Threaded());
-            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
