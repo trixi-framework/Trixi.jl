@@ -95,3 +95,5 @@ jobs:
           '
         env:
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          # Print every `@testitem` (with its run time) in the test summary.
+          TRIXI_TEST_VERBOSE: "true"
