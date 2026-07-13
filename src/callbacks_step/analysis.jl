@@ -268,7 +268,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
 
     # Compute the relative runtime per thread as time spent in `rhs!` divided by the number of calls
     # to `rhs!` and the number of local degrees of freedom
-    # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
+    # Note: This computation must happen *after* the PID computation above, since `take!(...)`
     #      will reset the number of calls to `rhs!`
     runtime_relative = 1.0e-9 * take!(semi.performance_counter) * Threads.nthreads() /
                        ndofs(semi)
