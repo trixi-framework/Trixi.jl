@@ -304,8 +304,8 @@ end
             val_upper[v, i] = zero(RealType)
         end
 
-        gpu_multiply_dimensionwise!(val_lower, forward_lower, u_buffer)
-        gpu_multiply_dimensionwise!(val_upper, forward_upper, u_buffer)
+        multiply_dimensionwise!(val_lower, forward_lower, u_buffer)
+        multiply_dimensionwise!(val_upper, forward_upper, u_buffer)
 
         for i in 1:_nnodes
             for v in Base.OneTo(NVARS)
@@ -490,9 +490,9 @@ end
         end
     end
 
-    gpu_multiply_dimensionwise!(u_buffer,
-                                reverse_upper, fstar_s_upper,
-                                reverse_lower, fstar_s_lower)
+    multiply_dimensionwise!(u_buffer,
+                            reverse_upper, fstar_s_upper,
+                            reverse_lower, fstar_s_lower)
 
     u_buffer .*= -2
 

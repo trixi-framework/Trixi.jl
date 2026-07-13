@@ -809,44 +809,44 @@ end
         end
 
         # Interpolate large element face data from buffer to small face locations
-        gpu_multiply_dimensionwise!(val_out,
-                                    forward_lower,
-                                    forward_lower,
-                                    u_buffer,
-                                    fstar_tmp)
+        multiply_dimensionwise!(view(mortars_u, 2, :, 1, :, :, mortar),
+                                forward_lower,
+                                forward_lower,
+                                u_buffer,
+                                fstar_tmp)
 
-        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 1, i, j, mortar] = val_out[v, i, j]
-        end
+        # for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
+        #     mortars_u[2, v, 1, i, j, mortar] = val_out[v, i, j]
+        # end
 
-        gpu_multiply_dimensionwise!(val_out,
-                                    forward_upper,
-                                    forward_lower,
-                                    u_buffer,
-                                    fstar_tmp)
+        multiply_dimensionwise!(view(mortars_u, 2, :, 2, :, :, mortar),
+                                forward_upper,
+                                forward_lower,
+                                u_buffer,
+                                fstar_tmp)
 
-        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 2, i, j, mortar] = val_out[v, i, j]
-        end
+        # for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
+        #     mortars_u[2, v, 2, i, j, mortar] = val_out[v, i, j]
+        # end
 
-        gpu_multiply_dimensionwise!(val_out,
-                                    forward_lower,
-                                    forward_upper,
-                                    u_buffer,
-                                    fstar_tmp)
-        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 3, i, j, mortar] = val_out[v, i, j]
-        end
+        multiply_dimensionwise!(view(mortars_u, 2, :, 3, :, :, mortar),
+                                forward_lower,
+                                forward_upper,
+                                u_buffer,
+                                fstar_tmp)
+        # for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
+        #     mortars_u[2, v, 3, i, j, mortar] = val_out[v, i, j]
+        # end
 
-        gpu_multiply_dimensionwise!(val_out,
-                                    forward_upper,
-                                    forward_upper,
-                                    u_buffer,
-                                    fstar_tmp)
+        multiply_dimensionwise!(view(mortars_u, 2, :, 4, :, :, mortar),
+                                forward_upper,
+                                forward_upper,
+                                u_buffer,
+                                fstar_tmp)
 
-        for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 4, i, j, mortar] = val_out[v, i, j]
-        end
+        # for j in 1:_nnodes, i in 1:_nnodes, v in Base.OneTo(NVARS)
+        #     mortars_u[2, v, 4, i, j, mortar] = val_out[v, i, j]
+        # end
     end #@inbounds
     return nothing
 end
@@ -1093,22 +1093,22 @@ end
     end
 
     # Project small fluxes to large element.
-    gpu_multiply_dimensionwise!(u_buffer,
-                                reverse_lower, reverse_lower,
-                                fstar_s_1,
+    multiply_dimensionwise!(u_buffer,
+                            reverse_lower, reverse_lower,
+                            fstar_s_1,
+                            fstar_tmp)
+    add_multiply_dimensionwise!(u_buffer,
+                                reverse_upper, reverse_lower,
+                                fstar_s_2,
                                 fstar_tmp)
-    gpu_add_multiply_dimensionwise!(u_buffer,
-                                    reverse_upper, reverse_lower,
-                                    fstar_s_2,
-                                    fstar_tmp)
-    gpu_add_multiply_dimensionwise!(u_buffer,
-                                    reverse_lower, reverse_upper,
-                                    fstar_s_3,
-                                    fstar_tmp)
-    gpu_add_multiply_dimensionwise!(u_buffer,
-                                    reverse_upper, reverse_upper,
-                                    fstar_s_4,
-                                    fstar_tmp)
+    add_multiply_dimensionwise!(u_buffer,
+                                reverse_lower, reverse_upper,
+                                fstar_s_3,
+                                fstar_tmp)
+    add_multiply_dimensionwise!(u_buffer,
+                                reverse_upper, reverse_upper,
+                                fstar_s_4,
+                                fstar_tmp)
 
     # The flux is calculated in the outward direction of the small elements,
     # so the sign must be switched to get the flux in outward direction
