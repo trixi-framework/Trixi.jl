@@ -87,12 +87,13 @@ function project_euler_lambda_zero_branch!(best_dist_squared, best_u, has_candid
                                                           discriminant_rho,
                                                           sqrt_discriminant_rho),
                               0.5f0 * (rho + sqrt_discriminant_rho))
-            # For ρ_candidate = ½(ρ ± √Δ_ρ), the inner momentum discriminant satisfies
-            # -8aρ_c² + 8aρρ_c + (aρv)² = 2a(ρ² - Δ_ρ) + (aρv)² without evaluating ρ_c.
+            # For rho_candidate = ½(ρ ± √Δ_ρ), the momentum discriminant reduces to
+            # -8aρ_c² + 8aρρ_c + (aρv)² = 2a(ρ² - Δ_ρ) + (aρv)² (which is independent of 
+            # rho_candidate). 
             discriminant_rho_v_primary = 2 * a * (rho * rho - discriminant_rho) +
                                          (a * rho_v_primary)^2
             # Roundoff can make discriminant_rho_v_primary slightly negative at the real-root
-            # boundary; treat as zero so the >= 0 check passes and sqrt is valid.
+            # boundary; treat as zero so the >= 0 check passes. 
             if discriminant_rho_v_primary < zero(discriminant_rho_v_primary) &&
                discriminant_rho_v_primary > -arithmetic_tol
                 discriminant_rho_v_primary = zero(discriminant_rho_v_primary)

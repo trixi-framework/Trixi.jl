@@ -218,8 +218,9 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                               discriminant_rho,
                                                               sqrt_discriminant_rho),
                                   0.5f0 * (rho + sqrt_discriminant_rho))
-                # For ρ_candidate = ½(ρ ± √Δ_ρ), the inner momentum discriminant satisfies
-                # -8ρ_c² + 8ρρ_c + ρv² = 2(ρ² - Δ_ρ) + ρv² without evaluating ρ_c.
+                # For rho_candidate = ½(ρ ± √Δ_ρ), the momentum discriminant reduces to
+                # -8ρ_c² + 8ρρ_c + ρv² = 2(ρ² - Δ_ρ) + ρv² (which is independent of 
+                # rho_candidate). 
                 discriminant_momentum = 2 * (rho * rho - discriminant_rho) +
                                         rho_v1 * rho_v1
                 # Roundoff can make discriminant_momentum slightly negative at the real-root
