@@ -123,6 +123,10 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                              global_limiter_tol,
                                              max_davis_yin_iterations,
                                              record_davis_yin_iterations)
+    if mpi_parallel(mesh) == True()
+        error("PositivityPreservingLimiterLiuZhang does not yet support MPI.")
+    end
+
     uEltype = real(dg)
 
     n_elements = nelements(dg, cache)
