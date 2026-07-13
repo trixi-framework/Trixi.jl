@@ -988,6 +988,57 @@ end
     end
 end
 
+@testitem "Unit: hardened boundary_condition_slip_wall" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    let equations = CompressibleEulerEquations1D(1.4)
+        # this state results in base < 0 in the implementation of 
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 1), equations)
+
+        x, t = 0, 0
+        orientation = 1
+        direction = 2 # even direction: v_normal stays <= 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero                                            
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+        # this state results in base < 0 in the implementation of 
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero                                            
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+        # this state results in base < 0 in the implementation of 
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero                                            
+        @test flux == zero(flux)
+    end
+end
+
 @testitem "Unit: Helmholtz ideal gas equation of state (AD vs analytical)" setup=[
     Setup,
     UnitTests
