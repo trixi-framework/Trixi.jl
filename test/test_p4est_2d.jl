@@ -569,6 +569,7 @@ end
         @test length(integrator.du) == 4711
         @test length(integrator.u_tmp) == 4711
     end
+end
 
 @testitem "P4estMesh2D: elixir_euler_sedov.jl with HLLC Flux" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
