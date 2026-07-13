@@ -88,8 +88,10 @@ end
 
 function adapt_to_deformation!(u_ode::AbstractVector, mesh::T8codeMesh,
                                equations, dg::DG, cache)
-    # Recalculate node coordinates of reference mesh.
-    reinitialize_tree_node_coordinates!(mesh)
+    @trixi_timeit timer() "reinitialize tree node coordinates" begin
+        # Recalculate node coordinates of reference mesh.
+        reinitialize_tree_node_coordinates!(mesh)
+    end
 
     # Retain current solution and inverse Jacobian data.
     old_u_ode = copy(u_ode)
@@ -131,9 +133,13 @@ end
 function reinitialize_tree_node_coordinates!(mesh::T8codeMesh{2})
     @unpack forest, nodes, tree_node_coordinates = mesh
 
+    # In t8code reference space is [0,1].
+    nodes = 0.5f0 .* (nodes .+ 1)
+
     cmesh = t8_forest_get_cmesh(forest)
     number_of_trees = t8_forest_get_num_global_trees(forest)
     reference_coordinates = Vector{eltype(tree_node_coordinates)}(undef, 3)
+    global_coordinates = Vector{eltype(tree_node_coordinates)}(undef, 3)
 
     for itree in 1:number_of_trees
         for j in eachindex(nodes), i in eachindex(nodes)
@@ -141,7 +147,8 @@ function reinitialize_tree_node_coordinates!(mesh::T8codeMesh{2})
             reference_coordinates[2] = nodes[j]
             reference_coordinates[3] = 0.0
             t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
-                                 @view(tree_node_coordinates[:, i, j, itree]))
+                                 global_coordinates)
+            @view(tree_node_coordinates[:, i, j, itree]) .= @view(global_coordinates[1:2])
         end
     end
 end
