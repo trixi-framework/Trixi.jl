@@ -619,7 +619,7 @@ function init_aux_mpimortar_node_vars!(aux_vars, mesh::P4estMeshParallel{3}, equ
         end
     end
 
-    data_size = nnodes(solver) * n_aux_node_vars(equations)
+    data_size = nnodes(solver) * nnodes(solver) * n_aux_node_vars(equations)
     exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
     return nothing
 end

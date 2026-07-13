@@ -1769,7 +1769,7 @@ function exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
                     last = first - 1 + data_size
                     @views send_buffer[first:last] .= vec(aux_mpimortar_node_vars[1, :,
                                                                                   position,
-                                                                                  :,
+                                                                                  ..,
                                                                                   mortar])
                 end
             end
@@ -1795,7 +1795,7 @@ function exchange_aux_mpimortars!(aux_mpimortar_node_vars, cache, data_size)
                 # Skip if received data for `position` is NaN as no real data has been sent for the
                 # corresponding element
                 if !isnan(recv_buffer[first])
-                    @views vec(aux_mpimortar_node_vars[1, :, position, :, mortar]) .= recv_buffer[first:last]
+                    @views vec(aux_mpimortar_node_vars[1, :, position, .., mortar]) .= recv_buffer[first:last]
                 end
             end
         end
