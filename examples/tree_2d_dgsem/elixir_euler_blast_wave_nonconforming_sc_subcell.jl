@@ -85,24 +85,11 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim,
                                      extra_node_variables = (:limiting_coefficient,))
 
-# amr_indicator = IndicatorMax(semi, variable = first)
-
-# amr_controller = ControllerThreeLevel(semi, amr_indicator,
-#                                       base_level = 4,
-#                                       med_level = 5, med_threshold = 1.01,
-#                                       max_level = 6, max_threshold = 1.1)
-
-# amr_callback = AMRCallback(semi, amr_controller,
-#                            interval = 10,
-#                            adapt_initial_condition = true,
-#                            adapt_initial_condition_only_refine = false)
-
 stepsize_callback = StepsizeCallback(cfl = 0.5, bar_states = false)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
-                        # amr_callback,
                         LimitingAnalysisCallback(),
                         stepsize_callback)
 
