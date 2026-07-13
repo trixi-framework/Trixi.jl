@@ -221,8 +221,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                 # For rho_candidate = ½(ρ ± √Δ_ρ), the momentum discriminant reduces to
                 # -8ρ_c² + 8ρρ_c + ρv² = 2(ρ² - Δ_ρ) + ρv² (which is independent of 
                 # rho_candidate). 
-                discriminant_momentum = 2 * (rho * rho - discriminant_rho) +
-                                        rho_v1 * rho_v1
+                discriminant_momentum = 2 * (rho^2 - discriminant_rho) +
+                                        rho_v1^2
                 # Roundoff can make discriminant_momentum slightly negative at the real-root
                 # boundary; treat as zero so the >= 0 check passes and sqrt is valid.
                 if discriminant_momentum < zero(discriminant_momentum) &&
