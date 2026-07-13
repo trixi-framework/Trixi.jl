@@ -8,7 +8,9 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations (including on `P4estMesh` in 3D) and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, `CompressibleNavierStokesDiffusion1D`, and `CompressibleNavierStokesDiffusion2D`. 
+- Extended `PositivityPreservingLimiterLiuZhang` to `P4estMesh`, and added an example using `CompressibleNavierStokesDiffusion` ([#3100]).
+- Extended `PositivityPreservingLimiterLiuZhang` to `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D` ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` and supports lower bounds on both density and internal energy (or both density and pressure). 
+- Added `PositivityPreservingLimiterLiuZhang` for `TreeMesh`, which enforces global positivity of cell averages through an iterative algorithm ([#3063]). Currently only implemented for `LinearScalarAdvectionEquation`.
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
