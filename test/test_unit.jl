@@ -698,6 +698,25 @@ end
     indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
                                               LobattoLegendreBasis(3))
     @test_nowarn show(stdout, indicator_ec)
+
+    # test Base.show for PositivityPreservingLimiterLiuZhang
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    solver = DGSEM(polydeg = 3)
+    mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                         variables = (first,))
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                          semi;
+                                                          record_davis_yin_iterations = true)
+    @test_nowarn show(stdout, global_limiter!)
+    @test_nowarn show(stdout, "text/plain", global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      global_limiter!)
 end
 
 @testitem "Unit: LBM 2D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -4127,6 +4146,27 @@ end
 
         @test u_projected[1] > lower_bounds[1]
         @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
+    end
+
+    # this test failed without the rationalized approximation of 
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang. 
+    @testset "2D projection near zero momentum boundary" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.9376339560775117,
+                    1.353902558446827e-8,
+                    6.230911048510285e-9,
+                    -3.779101287247884)
+        lower_bounds = (1e-8, 2.5e-8)
+        variables = (density, energy_internal)
+
+        u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_proj[1]≈0.9376339560775118 rtol=1e-12
+        @test u_proj[2]≈6.637197729990257e-9 rtol=1e-12
+        @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
+        @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
+        @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
     end
 end
 
