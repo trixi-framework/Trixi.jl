@@ -509,7 +509,7 @@ end
 
 #GPU version of coarsen!
 function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
-                  mesh::Union{TreeMesh{3}, P4estMesh{3}},
+                  mesh::Union{TreeMesh{3}, P4estMesh{3}, P4estMesh{2}},
                   equations, dg::DGSEM, cache, elements_to_remove)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
@@ -522,7 +522,9 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
     end
 
     # Retain current solution data and Jacobians
+    #TODO(Shahu)
     old_n_elements = nelements(dg, cache)
+    num_children = 2^ndims(mesh)
 
     offsets = Vector{Int64}(undef, old_n_elements)
     to_be_removed = Vector{Bool}(undef, old_n_elements)
@@ -551,7 +553,7 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
             offsets[i] = new_element_id
             to_be_removed[i] = true
             is_lead[i] = true
-            skip = 7
+            skip = num_children - 1
             new_element_id += 1
             remove_index += 1
 
@@ -587,14 +589,13 @@ function coarsen!(backend::Backend, u_ode::AbstractVector, adaptor,
         resize!(u_ode,
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
-
+        
         kernel! = prolong2coarsenedElements_KAkernel!(backend)
         kernel!(u, old_u, offsets, to_be_removed, is_lead,
-                adaptor.reverse_upper, adaptor.reverse_lower,
-                old_inverse_jacobian, cache.elements.inverse_jacobian,
-                #equations, dg,
-                Val(ndims(mesh)), Val(nvariables(equations)), Val(nnodes(dg)),
-                ndrange = old_n_elements)
+                    adaptor.reverse_upper, adaptor.reverse_lower,
+                    old_inverse_jacobian, cache.elements.inverse_jacobian,
+                    Val(ndims(mesh)), Val(nvariables(equations)), Val(nnodes(dg)),
+                    ndrange = old_n_elements)
     end
 
     return nothing
@@ -605,8 +606,8 @@ end
                                                      reverse_lower,
                                                      old_inverse_jacobian,
                                                      inverse_jacobian,
-                                                     ::Val{_ndims}, ::Val{_nvariables},
-                                                     ::Val{_nnodes}) where {_ndims,
+                                                     ::Val{3}, ::Val{_nvariables},
+                                                     ::Val{_nnodes}) where {
                                                                             _nvariables,
                                                                             _nnodes}
     old_element_id = @index(Global)

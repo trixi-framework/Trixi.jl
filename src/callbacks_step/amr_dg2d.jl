@@ -431,12 +431,94 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     return nothing
 end
 
+@kernel function prolong2coarsenedElements_KAkernel!(u, old_u, offsets, to_be_removed,
+                                                        is_lead, reverse_upper,
+                                                        reverse_lower,
+                                                        old_inverse_jacobian,
+                                                        inverse_jacobian,
+                                                        ::Val{2},           
+                                                        ::Val{_nvariables},
+                                                        ::Val{_nnodes}) where {_nvariables, _nnodes}
+    old_element_id = @index(Global)
+
+    if is_lead[old_element_id]
+        new_element_id = offsets[old_element_id]
+
+        if to_be_removed[old_element_id]
+            for m in 0:3
+                child_id = old_element_id + m
+                for j in 1:_nnodes, i in 1:_nnodes
+                    inv_J = old_inverse_jacobian[i, j, child_id]
+                    for v in 1:_nvariables
+                        old_u[v, i, j, child_id] = old_u[v, i, j, child_id] / inv_J
+                    end
+                end
+            end
+
+            coarsen_element!(u, new_element_id, 
+                                old_u, old_element_id, 
+                                reverse_upper, reverse_lower, 
+                                Val(_nvariables), Val(_nnodes))
+
+            for j in 1:_nnodes, i in 1:_nnodes
+                J_new = inverse_jacobian[i, j, new_element_id]
+                for v in 1:_nvariables
+                    u[v, i, j, new_element_id] = u[v, i, j, new_element_id] * 4 * J_new
+                end
+            end
+
+        else
+            for j in 1:_nnodes, i in 1:_nnodes
+                for v in 1:_nvariables
+                    u[v, i, j, new_element_id] = old_u[v, i, j, old_element_id]
+                end
+            end
+        end
+    end
+end
+
+@inline function coarsen_element!(u, element_id,
+                                     old_u, old_element_id,
+                                     reverse_upper, reverse_lower,
+                                     ::Val{_nvariables}, ::Val{_nnodes}) where {_nvariables, _nnodes}
+    
+    lower_left_id  = old_element_id
+    lower_right_id = old_element_id + 1
+    upper_left_id  = old_element_id + 2
+    upper_right_id = old_element_id + 3
+
+    for v in 1:_nvariables
+        for j in 1:_nnodes, i in 1:_nnodes
+            acc = zero(eltype(u))
+
+            for l in 1:_nnodes, k in 1:_nnodes
+                acc += old_u[v, k, l, lower_left_id] * reverse_lower[i, k] * reverse_lower[j, l]
+            end
+
+            for l in 1:_nnodes, k in 1:_nnodes
+                acc += old_u[v, k, l, lower_right_id] * reverse_upper[i, k] * reverse_lower[j, l]
+            end
+
+            for l in 1:_nnodes, k in 1:_nnodes
+                acc += old_u[v, k, l, upper_left_id] * reverse_lower[i, k] * reverse_upper[j, l]
+            end
+
+            for l in 1:_nnodes, k in 1:_nnodes
+                acc += old_u[v, k, l, upper_right_id] * reverse_upper[i, k] * reverse_upper[j, l]
+            end
+
+            u[v, i, j, element_id] = acc
+        end
+    end
+end
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
+@inline function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                            old_u, old_element_id,
-                           adaptor::LobattoLegendreAdaptorL2, equations, dg)
-    @unpack reverse_upper, reverse_lower = adaptor
+                           #adaptor::LobattoLegendreAdaptorL2,
+                           reverse_upper, reverse_lower,
+                            equations, dg)
+    #@unpack reverse_upper, reverse_lower = adaptor
 
     # Store old element ids
     lower_left_id = old_element_id
@@ -444,18 +526,18 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
     upper_left_id = old_element_id + 2
     upper_right_id = old_element_id + 3
 
-    @boundscheck begin
-        @assert old_element_id >= 1
-        @assert size(old_u, 1) == nvariables(equations)
-        @assert size(old_u, 2) == nnodes(dg)
-        @assert size(old_u, 3) == nnodes(dg)
-        @assert size(old_u, 4) >= old_element_id + 3
-        @assert element_id >= 1
-        @assert size(u, 1) == nvariables(equations)
-        @assert size(u, 2) == nnodes(dg)
-        @assert size(u, 3) == nnodes(dg)
-        @assert size(u, 4) >= element_id
-    end
+    # @boundscheck begin
+    #     @assert old_element_id >= 1
+    #     @assert size(old_u, 1) == nvariables(equations)
+    #     @assert size(old_u, 2) == nnodes(dg)
+    #     @assert size(old_u, 3) == nnodes(dg)
+    #     @assert size(old_u, 4) >= old_element_id + 3
+    #     @assert element_id >= 1
+    #     @assert size(u, 1) == nvariables(equations)
+    #     @assert size(u, 2) == nnodes(dg)
+    #     @assert size(u, 3) == nnodes(dg)
+    #     @assert size(u, 4) >= element_id
+    # end
 
     for j in eachnode(dg), i in eachnode(dg)
         acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
