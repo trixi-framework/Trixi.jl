@@ -727,27 +727,23 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "DGMulti2D: nonconservative terms with periodic FDSBP" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
-    using Trixi: periodic_derivative_operator, flux_hindenlang_gassner,
-                 flux_nonconservative_powell, initial_condition_weak_blast_wave
-
-    D = periodic_derivative_operator(derivative_order = 1, accuracy_order = 4,
-                                     xmin = 0.0, xmax = 1.0, N = 10)
-
-    equations = IdealGlmMhdEquations2D(1.4, 4.0)
-    volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-    dg = DGMulti(element_type = Quad(), approximation_type = D,
-                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
-    mesh = DGMultiMesh(dg, coordinates_min = (-2.0, -2.0),
-                       coordinates_max = (2.0, 2.0))
-    semi = SemidiscretizationHyperbolic(mesh, equations,
-                                        initial_condition_weak_blast_wave, dg;
-                                        boundary_conditions = boundary_condition_periodic)
-    ode = semidiscretize(semi, (0.0, 1.0e-4))
-    du = similar(ode.u0)
-
-    Trixi.rhs!(du, ode.u0, semi, first(ode.tspan))
-    @test all(isfinite, du)
+@testitem "DGMulti2D: elixir_mhd_weak_blast_wave_fdsbp.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_weak_blast_wave_fdsbp.jl"),
+                        l2=[
+                            0.03495794264095348, 0.04240103345087587,
+                            0.04205136667079541, 0.01925408663717691,
+                            0.1732995800768458, 0.01856540837463353,
+                            0.018586812245144548, 0.026284873768154294,
+                            1.079548082252828e-15
+                        ],
+                        linf=[
+                            0.23398293991397878, 0.28323148085023403,
+                            0.2746017086187053, 0.15562956908433284,
+                            1.1262822505392922, 0.09490223392801811,
+                            0.09557389384038739, 0.17186851619246546,
+                            3.391485632737473e-15
+                        ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_mhd_weak_blast_wave.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
