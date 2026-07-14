@@ -295,7 +295,6 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
     return nothing
 end
 
-
 # Periodic SBP operators are global operators without interfaces. Thus, both the
 # conservative and nonconservative contributions are applied directly using Q = M D.
 # Unlike the conservative flux, the nonconservative flux is not symmetric in its
@@ -323,13 +322,13 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                 u_j = u[j]
 
                 conservative_flux = flux_conservative(u_i, u_j, normal_direction,
-                                                       equations)
+                                                      equations)
                 # The factor 1/2 in the direction is required by the global-SBP
                 # interpretation of nonconservative fluxes. The outer factor 2
                 # is the usual flux-differencing scaling.
                 nonconservative_flux = flux_nonconservative(u_i, u_j,
-                                                             0.5f0 * normal_direction,
-                                                             equations)
+                                                            0.5f0 * normal_direction,
+                                                            equations)
                 du_i = du_i + 2 * A_ij * (conservative_flux + nonconservative_flux)
             end
             du[i] = du_i
