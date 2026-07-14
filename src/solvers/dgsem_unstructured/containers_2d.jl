@@ -340,4 +340,8 @@ function init_boundaries!(boundaries::UnstructuredBoundaryContainer2D, edge_info
 
     return nothing
 end
+
+@inline get_boundary_element(boundaries::UnstructuredBoundaryContainer2D, boundary_index) =
+    boundaries.element_id[boundary_index]
+
 end # @muladd

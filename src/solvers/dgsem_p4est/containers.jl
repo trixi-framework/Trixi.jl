@@ -541,6 +541,9 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
     return nothing
 end
 
+@inline get_boundary_element(boundaries::P4estBoundaryContainer, boundary_index) =
+    boundaries.neighbor_ids[boundary_index]
+
 function Adapt.parent_type(::Type{<:P4estBoundaryContainer{<:Any, <:Any, <:Any, ArrayT}}) where {ArrayT}
     return ArrayT
 end
