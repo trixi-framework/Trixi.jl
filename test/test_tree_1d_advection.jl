@@ -152,7 +152,6 @@ end
 
 @testitem "elixir_advection_multifloat.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
     using MultiFloats: Float64x2
-    MultiFloats.use_bigfloat_transcendentals()
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_multifloat.jl"),
                         l2=[Float64x2(6.80895929885700039832943251427357703e-11)],
                         linf=[Float64x2(5.82834770064525291688100323411704252e-10)])
