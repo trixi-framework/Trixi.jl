@@ -96,12 +96,14 @@ end
 function initialize_boundary_data(boundary_conditions::NamedTuple,
                                   boundary_condition_types,
                                   cache)
+    boundary_names = cache.boundaries.name
+
     # pull and sort the indexing for each boundary type
     _boundary_indices = Vector{Vector{Int}}(undef, length(boundary_condition_types))
     for j in eachindex(boundary_condition_types)
         indices_for_current_type = Int[]
         for (test_name, test_condition) in pairs(boundary_conditions)
-            temp_indices = findall(x -> x === test_name, cache.boundaries.name)
+            temp_indices = findall(x -> x === test_name, boundary_names)
             if test_condition === boundary_condition_types[j]
                 indices_for_current_type = vcat(indices_for_current_type, temp_indices)
             end
@@ -110,9 +112,17 @@ function initialize_boundary_data(boundary_conditions::NamedTuple,
     end
     boundary_indices = Tuple(_boundary_indices)
 
+    # Check if all boundaries (determined from connectivity) are equipped with a boundary condition
+    for (index, boundary_name) in enumerate(boundary_names)
+        if !(boundary_name in keys(boundary_conditions))
+            neighbor_element = boundaries.neighbor_ids[index]
+            @warn "Boundary condition for boundary type $(repr(boundary_name)) of boundary $(index) (neighbor element $neighbor_element) not found in boundary conditions!"
+        end
+    end
+
     boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
     for (symbol, _) in pairs(boundary_conditions)
-        indices = findall(x -> x === symbol, cache.boundaries.name)
+        indices = findall(x -> x === symbol, boundary_names)
         # Store the indices in `boundary_symbol_indices` dictionary
         boundary_symbol_indices[symbol] = sort!(indices)
     end
