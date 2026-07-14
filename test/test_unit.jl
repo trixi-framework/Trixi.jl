@@ -2008,7 +2008,10 @@ end
     end
 end
 
-@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     equations = InviscidBurgersEquation1D()
     u_ll = SVector(2.0)
     u_rr = SVector(-1.0)
