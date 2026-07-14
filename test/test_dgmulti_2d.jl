@@ -319,10 +319,10 @@ end
 end
 
 @testitem "DGMulti2D: elixir_euler_gmsh_square_cylinder.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
-    # @test_trixi_include errors due to an @info call by StartUpDG.jl during 
-    # Gmsh file parsing. To avoid this, we directly call trixi_include. 
-    # We pass @__MODULE__ to ensure that variables defined during the test 
-    # are visible inside the @trixi_testset block. 
+    # @test_trixi_include errors due to an @info call by StartUpDG.jl during
+    # Gmsh file parsing. To avoid this, we directly call trixi_include.
+    # We pass @__MODULE__ to ensure that variables defined during the test
+    # are visible inside the @trixi_testset block.
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
                   polydeg = 2, adaptive = false, tspan = (0.0, 1e-3))
@@ -346,8 +346,8 @@ end
 end
 
 @testitem "DGMulti2D: elixir_euler_triangulate_scramjet.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
-    # Note: these test values were generated using Julia v1.10.11~x64. Running this on v1.12 
-    # using an M-series MacBook Pro resulted in test values with an O(1e-7) difference. 
+    # Note: these test values were generated using Julia v1.10.11~x64. Running this on v1.12
+    # using an M-series MacBook Pro resulted in test values with an O(1e-7) difference.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_scramjet.jl"),
                         h=0.1, tspan=(0.0, 0.1),
                         l2=[
@@ -725,6 +725,29 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "DGMulti2D: nonconservative terms with periodic FDSBP" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
+    using Trixi: periodic_derivative_operator, flux_hindenlang_gassner,
+                 flux_nonconservative_powell, initial_condition_weak_blast_wave
+
+    D = periodic_derivative_operator(derivative_order = 1, accuracy_order = 4,
+                                     xmin = 0.0, xmax = 1.0, N = 10)
+
+    equations = IdealGlmMhdEquations2D(1.4, 4.0)
+    volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
+    dg = DGMulti(element_type = Quad(), approximation_type = D,
+                 volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+    mesh = DGMultiMesh(dg, coordinates_min = (-2.0, -2.0),
+                       coordinates_max = (2.0, 2.0))
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_weak_blast_wave, dg;
+                                        boundary_conditions = boundary_condition_periodic)
+    ode = semidiscretize(semi, (0.0, 1.0e-4))
+    du = similar(ode.u0)
+
+    Trixi.rhs!(du, ode.u0, semi, first(ode.tspan))
+    @test all(isfinite, du)
 end
 
 @testitem "DGMulti2D: elixir_mhd_weak_blast_wave.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
