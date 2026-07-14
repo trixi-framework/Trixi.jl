@@ -135,7 +135,8 @@ Godunov (upwind) numerical flux for the inviscid Burgers' equation.
 See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
 section 4.1.5 and especially equation (4.16).
 """
-function flux_godunov(u_ll, u_rr, orientation::Integer, equation::InviscidBurgersEquation1D)
+function flux_godunov(u_ll, u_rr, orientation::Integer,
+                      equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
 
