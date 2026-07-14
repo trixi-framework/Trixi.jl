@@ -405,26 +405,26 @@ end
         @test_allocations(Trixi.rhs!, semi, sol, 1000)
     end
 
-    @trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_free_stream_hybrid_mesh.jl"),
-                            l2=[
-                                1.0174922714929637e-15,
-                                5.053352600778435e-15,
-                                7.358169131303026e-15,
-                                5.999843977180112e-15
-                            ],
-                            linf=[
-                                4.440892098500626e-15,
-                                2.6117996654306808e-14,
-                                4.246603069191224e-14,
-                                5.861977570020827e-14
-                            ],
-                            atol=2.0e-12)
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    end
+@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_hybrid_mesh.jl"),
+                        l2=[
+                            1.0174922714929637e-15,
+                            5.053352600778435e-15,
+                            7.358169131303026e-15,
+                            5.999843977180112e-15
+                        ],
+                        linf=[
+                            4.440892098500626e-15,
+                            2.6117996654306808e-14,
+                            4.246603069191224e-14,
+                            5.861977570020827e-14
+                        ],
+                        atol=2.0e-12)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
 
 @testitem "P4estMesh2D: elixir_euler_shockcapturing_ec.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
