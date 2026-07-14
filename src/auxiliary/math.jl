@@ -481,4 +481,14 @@ end
 # Regularized approximation to the ratio a / b, which is numerically stable 
 # for b close to zero and approaches zero as b -> 0.
 @inline regularized_ratio(a, b) = a * b / (eps(typeof(b)) + b^2)
+
+# Stable evaluation of a - sqrt(b) via (a^2 - b) / (a + sqrt(b)).
+# If a ≈ sqrt(b), catastrophic cancellation can occur when 
+# evaluating a - sqrt(b) directly. 
+# See for example the section on Catastrophic Cancellation in:
+# https://acme.byu.edu/00000179-d4cb-d26e-a37b-fffb577b0000/conditioning-stability-pdf
+# Used in `project_to_admissible_set` as part of `PositivityPreservingLimiterLiuZhang`.
+@inline function a_minus_sqrt_b_rationalized(a, b, sqrt_b)
+    return (a * a - b) / (a + sqrt_b)
+end
 end # @muladd
