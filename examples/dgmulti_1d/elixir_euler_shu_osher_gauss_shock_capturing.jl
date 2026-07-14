@@ -78,7 +78,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
