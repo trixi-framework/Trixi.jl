@@ -36,7 +36,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
