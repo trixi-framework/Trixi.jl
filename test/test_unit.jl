@@ -1007,7 +1007,7 @@ end
     UnitTests
 ] tags=[:misc_part1] begin
     let equations = CompressibleEulerEquations1D(1.4)
-        # this state results in base < 0 in the implementation of 
+        # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
         u_inner = prim2cons(SVector(1.4, -6, 1), equations)
 
@@ -1018,12 +1018,12 @@ end
         flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                             surface_flux_function, equations)
 
-        # boundary_condition_slip_wall should return exactly zero                                            
+        # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 
     let equations = CompressibleEulerEquations2D(1.4)
-        # this state results in base < 0 in the implementation of 
+        # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
         u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
         normal_direction = SVector(1.0, 0.0)
@@ -1033,12 +1033,12 @@ end
         flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                             surface_flux_function, equations)
 
-        # boundary_condition_slip_wall should return exactly zero                                            
+        # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 
     let equations = CompressibleEulerEquations3D(1.4)
-        # this state results in base < 0 in the implementation of 
+        # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
         u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
         normal_direction = SVector(1.0, 0.0, 0.0)
@@ -1048,7 +1048,7 @@ end
         flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                             surface_flux_function, equations)
 
-        # boundary_condition_slip_wall should return exactly zero                                            
+        # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 end
@@ -2006,6 +2006,22 @@ end
         @test flux_godunov(u, u, normal_direction, equation) ≈
               flux(u, normal_direction, equation)
     end
+end
+
+@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    equations = InviscidBurgersEquation1D()
+    u_ll = SVector(2.0)
+    u_rr = SVector(-1.0)
+
+    for normal_direction in (SVector(1.0), SVector(-1.2))
+        @test flux_ec(u_ll, u_rr, normal_direction, equations) ≈
+              normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
+    end
+
+    u = SVector(42.0)
+    normal_direction = SVector(-1.2)
+    @test flux_ec(u, u, normal_direction, equations) ≈
+          flux(u, normal_direction, equations)
 end
 
 @testitem "Unit: Consistency check for Engquist-Osher flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -4148,8 +4164,8 @@ end
         @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
     end
 
-    # this test failed without the rationalized approximation of 
-    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang. 
+    # this test failed without the rationalized approximation of
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang.
     @testset "2D projection near zero momentum boundary" begin
         equations = CompressibleEulerEquations2D(1.4)
         u = SVector(0.9376339560775117,
