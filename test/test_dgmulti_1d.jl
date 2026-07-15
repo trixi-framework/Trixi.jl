@@ -2,6 +2,20 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_1d")
 end
 
+@testitem "DGMulti1D: AnalysisCallback infers uEltype" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
+    equations = LinearScalarAdvectionEquation1D(1.0f0)
+    solver = DGMulti(polydeg = 1, element_type = Line())
+    mesh = DGMultiMesh(solver, (2,))
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test, solver,
+                                        boundary_conditions = boundary_condition_periodic,
+                                        uEltype = Float32)
+
+    analysis_callback = AnalysisCallback(semi)
+
+    @test eltype(analysis_callback.affect!.initial_state_integrals) === Float32
+end
+
 @testitem "DGMulti1D: elixir_advection_gauss_sbp.jl " setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_gauss_sbp.jl"),
                         cells_per_dimension=(8,),
