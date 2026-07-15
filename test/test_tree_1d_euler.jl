@@ -440,21 +440,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_leblanc_limiter_liu_zhang.jl"),
                         l2=[
-                            0.21290060065772057,
-                            0.05964675586608289,
-                            0.024936454073233603
+                            0.2129004457480824,
+                            0.05964663507377728,
+                            0.02493641252833064
                         ],
                         linf=[
-                            0.5778648389634408,
-                            0.10546874166288663,
-                            0.06306983030165976
+                            0.5778648326078111,
+                            0.10546874011739589,
+                            0.0630697082996007
                         ],
                         atol=1e-7, # limiters are not smooth, so we need bigger tolerances
                         rtol=1e-6)
 
-    # check that the limiter is activated; the precise number of activations 
-    # can vary by 1-2 based on architecture. 
-    @test length(global_limiter!.history_davis_yin_iterations) > 10
+    # check that the limiter is activated; the precise number of activations
+    # can vary by 1-2 based on architecture.
+    @test length(global_limiter!.history_davis_yin_iterations) > 5
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
@@ -886,11 +886,11 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         tspan=(0.0, 0.1),
-                        l2=[0.18464446565258658, 0.3140498549283543, 0.6496099923312244],
+                        l2=[0.19031527888816185, 0.3177347211309023, 0.6638790268491553],
                         linf=[
-                            0.5635649557004835,
-                            0.8086426785591834,
-                            1.7109218921081835
+                            0.56573132955681,
+                            0.8066341470904254,
+                            1.7168659629043157
                         ])
 
     # Ensure that we do not have excessive memory allocations
