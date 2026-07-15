@@ -1054,4 +1054,23 @@ end
     v = u[orientation] / rho
     return v
 end
+
+# Entropy potential is the bulk momentum in the requested direction; see, for example,
+# - Ayoub Gouasmi, Karthik Duraisamy (2020)
+#   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
+#   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerMulticomponentEquations2D)
+    if orientation == 1
+        return u[1] # rho_v1
+    else # if orientation == 2
+        return u[2] # rho_v2
+    end
+end
+
+@inline function entropy_potential(u, normal_direction::AbstractVector,
+                                   equations::CompressibleEulerMulticomponentEquations2D)
+    return u[1] * normal_direction[1] +
+           u[2] * normal_direction[2]
+end
 end # @muladd

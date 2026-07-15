@@ -693,4 +693,13 @@ end
     v1 = u[1] / rho
     return v1
 end
+
+# Entropy potential is the bulk momentum rho_v1; see, for example,
+# - Ayoub Gouasmi, Karthik Duraisamy (2020)
+#   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
+#   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerMulticomponentEquations1D)
+    return u[1] # rho_v1
+end
 end # @muladd
