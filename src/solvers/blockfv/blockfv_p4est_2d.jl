@@ -57,8 +57,15 @@ end
 
 # BlockFV uses its basis as `dg.mortar` (see blockfv.jl constructor).
 # The shared rhs! (TreeMesh/P4estMesh) calls create_cache, prolong2mortars!, and
-# calc_mortar_flux! with dg.mortar. BlockFV on P4estMesh needs none of these.
-create_cache(::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis, ::Any) = NamedTuple()
+# calc_mortar_flux! with dg.mortar. BlockFV on P4estMesh needs none of these,
+# since mortars are not yet supported
+function create_cache(mesh::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis, ::Any)
+    if count_required_surfaces(mesh).mortars > 0
+        throw(ArgumentError("BlockFV on P4estMesh does not yet support non-conforming " *
+                            "meshes with hanging nodes (mortars)"))
+    end
+    return NamedTuple()
+end
 
 prolong2mortars!(_, _, ::P4estMesh{2}, _, ::UniformFiniteVolumeBasis, ::BlockFV) = nothing
 calc_mortar_flux!(_, ::P4estMesh{2}, _, _, ::UniformFiniteVolumeBasis, _, ::BlockFV, _) = nothing
