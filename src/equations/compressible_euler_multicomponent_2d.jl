@@ -384,12 +384,12 @@ end
     p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
 
     if orientation == 1
-        f_rho = densities(u, v1, equations)
+        f_rho = densities_times_velocity(u, v1, equations)
         f1 = rho_v1 * v1 + p
         f2 = rho_v2 * v1
         f3 = (rho_e_total + p) * v1
     else
-        f_rho = densities(u, v2, equations)
+        f_rho = densities_times_velocity(u, v2, equations)
         f1 = rho_v1 * v2
         f2 = rho_v2 * v2 + p
         f3 = (rho_e_total + p) * v2
@@ -413,7 +413,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
 
-    f_rho = densities(u, v_normal, equations)
+    f_rho = densities_times_velocity(u, v_normal, equations)
     f1 = rho_v1 * v_normal + p * normal_direction[1]
     f2 = rho_v2 * v_normal + p * normal_direction[2]
     f3 = (rho_e_total + p) * v_normal
@@ -1036,7 +1036,7 @@ end
     return rho
 end
 
-@inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function densities_times_velocity(u, v, equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
                                                             for i in eachcomponent(equations))
 end
