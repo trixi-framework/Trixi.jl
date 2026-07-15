@@ -2017,6 +2017,7 @@ end
         t = zero(RealT)
         u = u_ll = u_rr = SVector(one(RealT))
         orientation = 1
+        normal_direction = SVector(one(RealT))
 
         @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
         @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
@@ -2027,6 +2028,7 @@ end
 
         @test eltype(@inferred flux(u, orientation, equations)) == RealT
         @test eltype(@inferred flux_ec(u_ll, u_rr, orientation, equations)) == RealT
+        @test eltype(@inferred flux_ec(u_ll, u_rr, normal_direction, equations)) == RealT
         @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation, equations)) ==
               RealT
         @test eltype(@inferred Trixi.flux_engquist_osher(u_ll, u_rr, orientation,
