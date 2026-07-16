@@ -683,7 +683,8 @@ Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved var
     return rho
 end
 
-@inline function densities_times_velocity(u, v, equations::CompressibleEulerMulticomponentEquations1D)
+@inline function densities_times_velocity(u, v,
+                                          equations::CompressibleEulerMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 2] * v
                                                             for i in eachcomponent(equations))
 end

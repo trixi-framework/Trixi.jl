@@ -658,7 +658,8 @@ end
     return help1 / help2
 end
 
-@inline function densities_times_velocity(u, v, equations::IdealGlmMhdMulticomponentEquations1D)
+@inline function densities_times_velocity(u, v,
+                                          equations::IdealGlmMhdMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 7] * v
                                                             for i in eachcomponent(equations))
 end

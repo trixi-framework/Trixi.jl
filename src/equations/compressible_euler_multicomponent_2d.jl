@@ -1036,7 +1036,8 @@ end
     return rho
 end
 
-@inline function densities_times_velocity(u, v, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function densities_times_velocity(u, v,
+                                          equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
                                                             for i in eachcomponent(equations))
 end
