@@ -232,16 +232,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_advection_amr_unstructured_flag.jl"),
-                        l2=[0.0012808538770535593],
-                        linf=[0.01752690016659812])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
 @testitem "P4estMesh2D: elixir_euler_free_stream.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
@@ -252,32 +242,6 @@ end
                         ],
                         linf=[1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
                         atol=2.0e-12)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_advection_restart.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                        l2=[4.507575525876275e-6],
-                        linf=[6.21489667023134e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_advection_restart_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
-                        l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5])
-end
-
-@trixi_testset "elixir_advection_basic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                        # Expected errors are exactly the same as with P4estMeshView!
-                        l2=[0.00013773915040249946],
-                        linf=[0.0010140184322192658],
-                        initial_refinement_level=0)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
@@ -311,87 +275,6 @@ end
 end
 
 @testitem "P4estMesh2D: elixir_euler_free_stream_hybrid_mesh.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_subsonic_constant.jl"),
-                        l2=[
-                            9.268884363640194e-14,
-                            1.0689589615395477e-13,
-                            1.0408994850535984e-13,
-                            1.7032684855598177e-13
-                        ],
-                        linf=[
-                            1.6986412276764895e-13,
-                            2.2503592098759465e-12,
-                            1.7696906239744284e-12,
-                            3.623767952376511e-13
-                        ],
-                        initial_refinement_level=7,
-                        tspan=(0.0, 0.1))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                        l2=[
-                            0.0034516244508588046,
-                            0.0023420334036925493,
-                            0.0024261923964557187,
-                            0.004731710454271893
-                        ],
-                        linf=[
-                            0.04155789011775046,
-                            0.024772109862748914,
-                            0.03759938693042297,
-                            0.08039824959535657
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_euler_free_stream.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-                        l2=[
-                            2.063350241405049e-15,
-                            1.8571016296925367e-14,
-                            3.1769447886391905e-14,
-                            1.4104095258528071e-14
-                        ],
-                        linf=[1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
-                        atol=2.0e-12)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_euler_free_stream.jl (O2 full reconstruction)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-                        solver=DGSEM(polydeg = 3, surface_flux = flux_hllc,
-                                     volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(LobattoLegendreBasis(3),
-                                                                                           volume_flux_fv = flux_hllc,
-                                                                                           reconstruction_mode = reconstruction_O2_full,
-                                                                                           slope_limiter = vanleer)),
-                        l2=[
-                            2.063350241405049e-15,
-                            1.8571016296925367e-14,
-                            3.1769447886391905e-14,
-                            1.4104095258528071e-14
-                        ],
-                        linf=[
-                            1.9539925233402755e-14,
-                            1.1951967193724045e-12,
-                            1.3014866961924554e-12,
-                            9.272582701669307e-13
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-end
-
-@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_hybrid_mesh.jl"),
                         l2=[
