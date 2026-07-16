@@ -665,44 +665,15 @@ end
     return nothing
 end
 
-# inlined version of the boundary flux calculation along a physical interface
 # Inlined version of the boundary flux calculation for P4estMeshView{2}.
 # BoundaryConditionCoupledP4est reads neighbor state from its stored fields,
-# so no extra u_parent argument is needed.
+# so no extra u_parent argument is needed. The boundary condition functor handles
+# combining conservative and nonconservative fluxes internally, so a single method
+# suffices for both `nonconservative_terms::True` and `::False`.
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::P4estMeshView{2},
-                                     nonconservative_terms::False, equations,
-                                     surface_integral, dg::DG, cache,
-                                     i_index, j_index,
-                                     node_index, direction_index, element_index,
-                                     boundary_index)
-    @unpack boundaries = cache
-    @unpack contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
-
-    # Extract solution data from boundary container
-    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
-
-    # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
-                                            i_index, j_index, element_index)
-
-    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index,
-                               element_index, normal_direction, surface_flux,
-                               normal_direction, boundary_index)
-
-    # Copy flux to element storage in the correct orientation
-    for v in eachvariable(equations)
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
-    end
-    return nothing
-end
-
-# Inlined version of the boundary flux with nonconservative terms for P4estMeshView{2}.
-# The boundary condition functor handles combining conservative and nonconservative fluxes internally.
-@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::P4estMeshView{2},
-                                     nonconservative_terms::True, equations,
+                                     nonconservative_terms::Union{True, False},
+                                     equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
