@@ -986,7 +986,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_mhd_coupled.jl" begin
+@testitem "P4estMesh2D: elixir_euler_mhd_coupled.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
                         l2=[
                             0.0009298429085292762, 0.001493667091551915,
@@ -1004,7 +1004,12 @@ end
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 
     # Test ncells for P4estMeshView for code coverage.
     mesh1, _, _, _ = Trixi.mesh_equations_solver_cache(semi.semis[1])
