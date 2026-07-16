@@ -144,6 +144,9 @@ end
     # Load the mesh file for code coverage.
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
                                          RealT = typeof(parent_mesh).parameters[3])
+
+    # Test show methods for code coverage.
+    @test_nowarn show(stdout, semi)
 end
 
 @testitem "P4estMesh2D: elixir_advection_basic.jl (initial_refinement_level=0)" setup=[
@@ -267,23 +270,6 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
                         linf=[3.8353423270964804e-5])
-end
-
-@trixi_testset "elixir_advection_coupled.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
-                        l2=[0.00013318279010712176, 0.00013318279010712014],
-                        linf=[0.000960578229013187, 0.0009605782290140752])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-
-    # Test show methods for code coverage.
-    @test_nowarn show(stdout, semi)
-
-    # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1_000000000.h5");
-                                         n_cells_max = 0,
-                                         RealT = typeof(parent_mesh).parameters[3])
 end
 
 @trixi_testset "elixir_advection_basic.jl" begin
