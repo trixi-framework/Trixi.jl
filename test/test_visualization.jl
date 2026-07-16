@@ -1182,6 +1182,7 @@ end
     @test pd_amr isa Trixi.PlotData2DCartesian
     @test !pd_amr.point_values
     @test !isempty(pd_amr.data)
+    @trixi_test_nowarn Plots.plot(pd_amr)
 
     # DG with no AMR (point values, default)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
@@ -1191,6 +1192,7 @@ end
     @test pd_basic isa Trixi.PlotData2DCartesian
     @test pd_basic.point_values
     @test !isempty(pd_basic.data)
+    @trixi_test_nowarn Plots.plot(pd_basic)
 
     # FV (`polydeg = 0`) with no AMR
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
@@ -1200,6 +1202,11 @@ end
     @test pd_fv isa Trixi.PlotData2DCartesian
     @test !pd_fv.point_values
     @test !isempty(pd_fv.data)
+    @trixi_test_nowarn Plots.plot(pd_fv)
+
+    # `nvisnodes` cannot be chosen freely for finite volume data, since there is
+    # nothing to interpolate: only `nothing` or the native cell resolution are valid.
+    @test_throws ArgumentError PlotData2D(sol; nvisnodes = 5)
 
     # BlockFV with multiple finite volume cells per element
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
@@ -1209,4 +1216,19 @@ end
     @test pd_blockfv isa Trixi.PlotData2DCartesian
     @test !pd_blockfv.point_values
     @test !isempty(pd_blockfv.data)
+    @trixi_test_nowarn Plots.plot(pd_blockfv)
+end
+
+@testitem "Visualization: PlotData2D elixir_advection_finite_volume.jl" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    # example elixir for finite volume (`polydeg = 0`) plotting
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_finite_volume.jl"))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DCartesian
+    @test !pd.point_values
+    @test !isempty(pd.data)
+    @trixi_test_nowarn Plots.plot(pd)
 end
