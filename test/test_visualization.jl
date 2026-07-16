@@ -1169,3 +1169,44 @@ end
 
     @trixi_test_nowarn Trixi.iplot(sol)
 end
+
+@testitem "Visualization: PlotData2D Finite Volume (polydeg = 0, BlockFV) Examples" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    # FV (`polydeg = 0`) with AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_amr.jl"),
+                        polydeg=0)
+    pd_amr = PlotData2D(sol)
+    @test pd_amr isa Trixi.PlotData2DCartesian
+    @test !pd_amr.point_values
+    @test !isempty(pd_amr.data)
+
+    # DG with no AMR (point values, default)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=1)
+    pd_basic = PlotData2D(sol)
+    @test pd_basic isa Trixi.PlotData2DCartesian
+    @test pd_basic.point_values
+    @test !isempty(pd_basic.data)
+
+    # FV (`polydeg = 0`) with no AMR
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
+    @test pd_fv isa Trixi.PlotData2DCartesian
+    @test !pd_fv.point_values
+    @test !isempty(pd_fv.data)
+
+    # BlockFV with multiple finite volume cells per element
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        n_nodes=2)
+    pd_blockfv = PlotData2D(sol)
+    @test pd_blockfv isa Trixi.PlotData2DCartesian
+    @test !pd_blockfv.point_values
+    @test !isempty(pd_blockfv.data)
+end
