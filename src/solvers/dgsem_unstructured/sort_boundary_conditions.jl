@@ -87,10 +87,11 @@ function validate_boundary_conditions(boundary_conditions::NamedTuple, cache)
 
     # Verify that each boundary (determined from connectivity) is equipped with a boundary condition
     for (index, boundary_name) in enumerate(unique_names)
-        neighbor_element = get_boundary_element(cache.boundaries, index)
         if boundary_name == Symbol("---")
-            @warn "Mesh connectivity identified boundary $index (neighbor element $neighbor_element) as boundary element/non-connected - check your mesh!"
+            neighbor_element = get_boundary_element(cache.boundaries, index)
+            error("Mesh connectivity identified boundary $index (neighbor element $neighbor_element) as boundary element/non-connected - check your mesh!")
         elseif !(boundary_name in keys(boundary_conditions))
+            neighbor_element = get_boundary_element(cache.boundaries, index)
             @warn "Boundary condition for boundary type $(repr(boundary_name)) of boundary $index (neighbor element $neighbor_element) not found in boundary conditions!"
         end
     end
