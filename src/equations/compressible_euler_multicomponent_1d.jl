@@ -700,6 +700,16 @@ end
 #   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
 @inline function entropy_potential(u, orientation::Int,
                                    equations::CompressibleEulerMulticomponentEquations1D)
-    return u[1] # rho_v1
+    @unpack gas_constants = equations
+
+    v1 = u[1] / density(u, equations)
+
+    RealT = eltype(u)
+    rho_r_sum = zero(RealT)   # ∑_k r_k * rho_k = p / T
+    for i in eachcomponent(equations)
+        rho_r_sum += gas_constants[i] * u[i + 2]
+    end
+
+    return rho_r_sum * v1     # 𝓕 = (∑_k r_k rho_k) * v1
 end
 end # @muladd

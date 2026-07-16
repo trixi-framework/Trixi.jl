@@ -1055,22 +1055,38 @@ end
     return v
 end
 
-# Entropy potential is the bulk momentum in the requested direction; see, for example,
+# Entropy potential in the requested direction; see, for example,
 # - Ayoub Gouasmi, Karthik Duraisamy (2020)
 #   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
 #   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
 @inline function entropy_potential(u, orientation::Int,
                                    equations::CompressibleEulerMulticomponentEquations2D)
-    if orientation == 1
-        return u[1] # rho_v1
-    else # if orientation == 2
-        return u[2] # rho_v2
+    @unpack gas_constants = equations
+
+    v = velocity(u, orientation, equations)
+
+    RealT = eltype(u)
+    rho_r_sum = zero(RealT)
+    for i in eachcomponent(equations)
+        rho_r_sum += gas_constants[i] * u[i + 3]
     end
+
+    return rho_r_sum * v
 end
 
 @inline function entropy_potential(u, normal_direction::AbstractVector,
                                    equations::CompressibleEulerMulticomponentEquations2D)
-    return u[1] * normal_direction[1] +
-           u[2] * normal_direction[2]
+    @unpack gas_constants = equations
+
+    v = velocity(u, equations)
+    normal_velocity = v[1] * normal_direction[1] + v[2] * normal_direction[2]
+
+    RealT = eltype(u)
+    rho_r_sum = zero(RealT)
+    for i in eachcomponent(equations)
+        rho_r_sum += gas_constants[i] * u[i + 3]
+    end
+
+    return rho_r_sum * normal_velocity
 end
 end # @muladd
