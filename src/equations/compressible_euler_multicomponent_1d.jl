@@ -250,7 +250,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * v1^2)
 
-    f_rho = densities_times_velocity(u, v1, equations)
+    f_rho = partial_momenta(u, v1, equations)
     f1 = rho_v1 * v1 + p
     f2 = (rho_e_total + p) * v1
 
@@ -683,8 +683,8 @@ Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved var
     return rho
 end
 
-@inline function densities_times_velocity(u, v,
-                                          equations::CompressibleEulerMulticomponentEquations1D)
+@inline function partial_momenta(u, v,
+                                 equations::CompressibleEulerMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 2] * v
                                                             for i in eachcomponent(equations))
 end
