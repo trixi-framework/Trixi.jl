@@ -764,6 +764,21 @@ end
         end
     end
 
+    @testset "PlotData2D finite volume (polydeg = 0) from 3D solution" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                     "elixir_advection_basic.jl"),
+                            analysis_callback=Trixi.TrivialCallback(),
+                            initial_refinement_level=1,
+                            polydeg=0)
+        for slice in (:xy, :yz, :xz)
+            pd = PlotData2D(sol, slice = slice)
+            @test pd isa Trixi.PlotData2DCartesian
+            @test !pd.point_values
+            @test !isempty(pd.data)
+            @trixi_test_nowarn Plots.plot(pd)
+        end
+    end
+
     @test_trixi_include(joinpath(EXAMPLES_DIR, "structured_3d_dgsem",
                                  "elixir_advection_basic.jl"))
 
