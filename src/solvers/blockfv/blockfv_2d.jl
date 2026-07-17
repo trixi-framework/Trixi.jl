@@ -374,7 +374,7 @@ end
 
 function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
                          old_u, old_element_id,
-                         adaptor::AdaptorBlockFV, equations, dg)
+                         adaptor::UniformFiniteVolumeBasis, equations, dg)
     @boundscheck begin
         @assert old_element_id >= 1
         @assert size(old_u, 1) == nvariables(equations)
@@ -411,7 +411,7 @@ end
 
 function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                            old_u, old_element_id,
-                           adaptor::AdaptorBlockFV, equations, dg)
+                           adaptor::UniformFiniteVolumeBasis, equations, dg)
 
     @boundscheck begin
         @assert old_element_id >= 1
