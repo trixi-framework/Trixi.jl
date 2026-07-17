@@ -83,7 +83,8 @@ end
 # from the parent element into the four children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                 equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_refine, limiter!)
+                 equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_refine,
+                 limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         if mpi_isparallel()
@@ -293,7 +294,8 @@ end
 # element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                  equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_remove, limiter!)
+                  equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_remove,
+                  limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         if mpi_isparallel()

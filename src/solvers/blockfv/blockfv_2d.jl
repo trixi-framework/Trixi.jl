@@ -254,11 +254,13 @@ end
     # by duplicating each large-element node
     n_nodes = size(u_large, 2) # number of nodes 
     for i in 1:n_nodes
-            # Copy values to the lower small element
-            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 0, n_nodes))
+        # Copy values to the lower small element
+        mortars.u_lower[leftright, :, i, mortar] = view(u_large, :,
+                                                        parent_index(i, 0, n_nodes))
 
-            # Copy values to the upper small element
-            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 1, n_nodes))
+        # Copy values to the upper small element
+        mortars.u_upper[leftright, :, i, mortar] = view(u_large, :,
+                                                        parent_index(i, 1, n_nodes))
     end
 
     return nothing
@@ -393,14 +395,15 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 
     for child_y in 0:1
         for child_x in 0:1
-            child = element_id + child_x + 2*child_y
+            child = element_id + child_x + 2 * child_y
 
             for j in 1:n_nodes
                 parent_j = parent_index(j, child_y, n_nodes)
 
                 for i in 1:n_nodes
                     parent_i = parent_index(i, child_x, n_nodes)
-                    u[:, i, j, child] = view(old_u, :, parent_i, parent_j, old_element_id)
+                    u[:, i, j, child] = view(old_u, :, parent_i, parent_j,
+                                             old_element_id)
                 end
             end
         end
@@ -412,7 +415,6 @@ end
 function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                            old_u, old_element_id,
                            adaptor::UniformFiniteVolumeBasis, equations, dg)
-
     @boundscheck begin
         @assert old_element_id >= 1
         @assert size(old_u, 1) == nvariables(equations)
@@ -432,8 +434,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
 
     for child_y in 0:1
         for child_x in 0:1
-
-            child = old_element_id + child_x + 2*child_y
+            child = old_element_id + child_x + 2 * child_y
 
             for j in 1:n_nodes
                 parent_j = parent_index(j, child_y, n_nodes)
@@ -442,7 +443,10 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                     parent_i = parent_index(i, child_x, n_nodes)
 
                     for v in eachvariable(equations)
-                        u[v, parent_i, parent_j, element_id] = u[v, parent_i, parent_j, element_id] + 0.25f0 * old_u[v, i, j, child]
+                        u[v, parent_i, parent_j, element_id] = u[v, parent_i, parent_j,
+                                                                 element_id] +
+                                                               0.25f0 *
+                                                               old_u[v, i, j, child]
                     end
                 end
             end
@@ -451,5 +455,4 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
 
     return nothing
 end
-
 end # @muladd

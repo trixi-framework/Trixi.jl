@@ -13,8 +13,7 @@ solver = BlockFV(n_nodes = 4, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4
-                , periodicity = true)
+                initial_refinement_level = 4, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)

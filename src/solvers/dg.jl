@@ -1137,7 +1137,6 @@ include("blockfv/containers_2d.jl")
 include("blockfv/blockfv_1d.jl")
 include("blockfv/blockfv_2d.jl")
 
-
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
