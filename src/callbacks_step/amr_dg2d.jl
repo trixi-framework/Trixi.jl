@@ -205,7 +205,7 @@ end
 
 function refine!(u_ode::AbstractVector, adaptor,
                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
-                 equations, dg::Union{DGSEM, BlockFV}, cache, cache_parabolic,
+                 equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine, limiter!)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the refined cells
@@ -409,7 +409,7 @@ end
 
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
-                  equations, dg::Union{DGSEM, BlockFV}, cache, cache_parabolic,
+                  equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove, limiter!)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
     # actually transferring the solution to the coarsened cells

@@ -215,32 +215,32 @@ end
 
 # Arguments:
 #   idx         - the fine-element node index, 1 <= idx <= nnodes
-#   upper_lower - 0 = lower/left child, 1 = upper/right child
-#   nnodes      - number of FV cells per element per direction
+#   lower_upper - 0 = lower/left child, 1 = upper/right child
+#   n_nodes      - number of FV cells per element per direction
 #
 # Returns: the coarse-element node index that `idx` on the given child
 # corresponds to.
 #
 # Logic:
-#   - Lower/left child (upper_lower == 0): the fine cells simply map onto
+#   - Lower/left child (lower_upper == 0): the fine cells simply map onto
 #     the first half of the coarse cells, two-to-one -> (idx+1) ÷ 2.
-#   - Upper/right child, even nnodes: symmetric formula, offset by nnodes÷2
+#   - Upper/right child, even n_nodes: symmetric formula, offset by n_nodes÷2
 #     to land in the second half of the coarse cells.
-#   - Upper/right child, odd nnodes: the middle coarse cell is shared
+#   - Upper/right child, odd n_nodes: the middle coarse cell is shared
 #     between both children (it straddles the child boundary), so the
 #     mapping is shifted by one compared to the even case.
-@inline function parent_index(idx::Int, upper_lower::Int, nnodes::Int)
+@inline function parent_index(idx::Int, lower_upper::Int, n_nodes::Int)
     @boundscheck begin
-        @assert 1 <= idx <= nnodes
-        @assert upper_lower == 0 || upper_lower == 1
+        @assert 1 <= idx <= n_nodes
+        @assert lower_upper == 0 || lower_upper == 1
     end
 
-    if upper_lower == 0                  # left or bottom child
+    if lower_upper == 0                  # left or bottom child
         return (idx + 1) ÷ 2
-    elseif iseven(nnodes)              # right or top child (even)
-        return (idx + 1) ÷ 2 + nnodes ÷ 2
+    elseif iseven(n_nodes)              # right or top child (even)
+        return (idx + 1) ÷ 2 + n_nodes ÷ 2
     else                          # right or top child (odd)
-        return idx ÷ 2 + 1 + nnodes ÷ 2
+        return idx ÷ 2 + 1 + n_nodes ÷ 2
     end
 end
 
@@ -252,15 +252,13 @@ end
 
     # Project the solution from the large element to the two small mortar sides
     # by duplicating each large-element node
-    n = size(u_large, 2) # number of nodes 
-    for i in 1:n
+    n_nodes = size(u_large, 2) # number of nodes 
+    for i in 1:n_nodes
             # Copy values to the lower small element
-            # (middle node is shared for odd numbers of nodes)
-            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 0, n))
+            mortars.u_lower[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 0, n_nodes))
 
             # Copy values to the upper small element
-            # (middle node is shared for odd numbers of nodes)
-            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 1, n))
+            mortars.u_upper[leftright, :, i, mortar] = view(u_large, :, parent_index(i, 1, n_nodes))
     end
 
     return nothing
@@ -391,17 +389,17 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
     end
 
     # Copy the solution from the old element to the new elements
-    n = nnodes(dg)
+    n_nodes = nnodes(dg)
 
     for child_y in 0:1
         for child_x in 0:1
             child = element_id + child_x + 2*child_y
 
-            for j in 1:n
-                parent_j = parent_index(j, child_y, n)
+            for j in 1:n_nodes
+                parent_j = parent_index(j, child_y, n_nodes)
 
-                for i in 1:n
-                    parent_i = parent_index(i, child_x, n)
+                for i in 1:n_nodes
+                    parent_i = parent_index(i, child_x, n_nodes)
                     u[:, i, j, child] = view(old_u, :, parent_i, parent_j, old_element_id)
                 end
             end
@@ -428,7 +426,7 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
         @assert size(u, 4) >= element_id
     end
 
-    n = nnodes(dg)
+    n_nodes = nnodes(dg)
 
     u[:, :, :, element_id] .= zero(eltype(u))
 
@@ -437,13 +435,15 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
 
             child = old_element_id + child_x + 2*child_y
 
-            for j in 1:n
-                parent_j = parent_index(j, child_y, n)
+            for j in 1:n_nodes
+                parent_j = parent_index(j, child_y, n_nodes)
 
-                for i in 1:n
-                    parent_i = parent_index(i, child_x, n)
+                for i in 1:n_nodes
+                    parent_i = parent_index(i, child_x, n_nodes)
 
-                    u[:, parent_i, parent_j, element_id] += 0.25f0 * old_u[:, i, j, child]
+                    for v in eachvariable(equations)
+                        u[v, parent_i, parent_j, element_id] = u[v, parent_i, parent_j, element_id] + 0.25f0 * old_u[v, i, j, child]
+                    end
                 end
             end
         end

@@ -108,6 +108,13 @@ struct AdaptorBlockFV{RealT} <: AdaptorAMR{RealT}
     basis::UniformFiniteVolumeBasis{RealT}
 end
 
+function create_cache_indicator_for_amr(typ::Type{IndicatorType},
+                                        mesh, equations::AbstractEquations, dg::BlockFV,
+                                        cache) where {IndicatorType <:
+                                                      AbstractIndicator}
+    return create_cache(typ, equations, dg.basis)
+end
+
 AdaptorAMR(mesh, dg::BlockFV) = AdaptorBlockFV(dg.basis)
 
 end
