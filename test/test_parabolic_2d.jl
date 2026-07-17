@@ -786,7 +786,10 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@trixi_testset "TreeMesh2D: elixir_mhd_diffusive_convergence.jl" begin
+@testitem "Parabolic2D: TreeMesh2D: elixir_mhd_diffusive_convergence.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_mhd_diffusive_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
@@ -823,19 +826,6 @@ end
     u_node = initial_condition(SVector(0.0, 0.0), 0.0, semi.equations)
     @test Trixi.max_diffusivity(u_node, equations_parabolic) isa Real
     @test Trixi.energy_magnetic_mhd(u_node, equations_parabolic) isa Real
-end
-
-@trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_advection_diffusion_periodic.jl"),
-                        trees_per_dimension=(1, 1), initial_refinement_level=2,
-                        tspan=(0.0, 0.5),
-                        l2=[0.0023754695605828443],
-                        linf=[0.008154128363741964])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
-    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @testitem "Parabolic2D: P4estMesh2D: elixir_advection_diffusion_periodic.jl" setup=[
