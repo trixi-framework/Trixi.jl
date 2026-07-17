@@ -7,8 +7,8 @@ using Trixi
 prandtl_number() = 0.72
 mu = 1e-3 # equivalent to Re = 1000
 
-equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+equations = CompressibleEulerEquations3D(1.4)
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -17,21 +17,22 @@ function initial_condition_freestream(x, t, equations)
     rho = 1.4
     v1 = 0.0
     v2 = 1.0
+    v3 = 0.0
     p = 1.0
 
-    return prim2cons(SVector(rho, v1, v2, p), equations)
+    return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 initial_condition = initial_condition_freestream
 
 volume_flux = flux_ranocha
 solver = DGSEM(polydeg = 3, surface_flux = flux_hlle)
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (1.0, 1.0)
-trees_per_dimension = (4, 4)
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (1.0, 1.0, 1.0)
+trees_per_dimension = (4, 4, 4)
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = (false, true))
+                 periodicity = (false, true, true))
 
 boundary_conditions = (; x_neg = boundary_condition_slip_wall,
                        x_pos = boundary_condition_slip_wall)
