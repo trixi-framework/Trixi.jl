@@ -80,7 +80,7 @@ end
 
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                have_constant_speed, have_aux_node_vars::False, equations, dg::DG,
+                have_constant_speed, have_aux_node_vars, equations, dg::DG,
                 cache)
     backend = trixi_backend(u)
 
@@ -135,10 +135,10 @@ end
                                               have_aux_node_vars::True, equations, dg,
                                               contravariant_vectors, inverse_jacobian,
                                               element)
-    max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
+    max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(u))
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
-        aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux, equations, dg, i, j, k, element)
         lambda1, lambda2, lambda3 = max_abs_speeds(u_node, aux_node, equations)
 
         Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
@@ -151,7 +151,7 @@ end
                                                     k, element)
         lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
 
-        inv_jacobian = abs(cache.elements.inverse_jacobian[i, j, k, element])
+        inv_jacobian = abs(inverse_jacobian[i, j, k, element])
 
         max_lambda1 = max(max_lambda1, inv_jacobian * lambda1_transformed)
         max_lambda2 = max(max_lambda2, inv_jacobian * lambda2_transformed)
