@@ -19,8 +19,9 @@ end
         velocity_1_2d = ones(4, 4)
         velocity_2_2d = zeros(4, 4)
 
-        wavenumbers_2d, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
-                                                                                   velocity_2_2d)
+        wavenumbers_2d,
+        energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
+                                                                   velocity_2_2d)
         @test wavenumbers_2d == 0:3
         @test energy_spectrum_2d[1] ≈ 0.5
         @test all(isapprox.(energy_spectrum_2d[2:end], 0, atol = 100 * eps()))
@@ -43,9 +44,10 @@ end
         velocity_2_3d = zeros(4, 4, 4)
         velocity_3_3d = zeros(4, 4, 4)
 
-        wavenumbers_3d, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
-                                                                                   velocity_2_3d,
-                                                                                   velocity_3_3d)
+        wavenumbers_3d,
+        energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
+                                                                   velocity_2_3d,
+                                                                   velocity_3_3d)
         @test wavenumbers_3d == 0:3
         @test energy_spectrum_3d[1] ≈ 0.5
         @test all(isapprox.(energy_spectrum_3d[2:end], 0, atol = 100 * eps()))
@@ -416,11 +418,11 @@ end
 end
 
 @testitem "Unit: GaussLegendreBasis" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    basis = GaussLegendreBasis(3)
+    basis=GaussLegendreBasis(3)
     @test nnodes(basis) == 4
     @test_nowarn show(stdout, "text/plain", basis)
 
-    solution_analyzer = Trixi.SolutionAnalyzer(basis)
+    solution_analyzer=Trixi.SolutionAnalyzer(basis)
     @test nnodes(solution_analyzer) == 7
     @test_nowarn show(stdout, "text/plain", solution_analyzer)
 end
@@ -438,11 +440,11 @@ end
     end
 
     # Set up variables used for 1D, 2D and 3D tests
-    solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+    solver=DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
-    adaptor = Trixi.AdaptorL2(solver.basis)
-    limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
-                                                   variables = (first,))
+    adaptor=Trixi.AdaptorL2(solver.basis)
+    limiter!=PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                 variables = (first,))
 
     @testset "1D" begin
         equations = LinearScalarAdvectionEquation1D(1.0)
@@ -558,16 +560,16 @@ end
 
 @testitem "Unit: containers" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up mock container
-    mutable struct MyContainer <: Trixi.AbstractContainer
+    mutable struct MyContainer<:Trixi.AbstractContainer
         data::Vector{Int}
         capacity::Int
         length::Int
         dummy::Int
     end
     function MyContainer(data, capacity)
-        c = MyContainer(Vector{Int}(undef, capacity + 1), capacity, length(data),
-                        capacity + 1)
-        c.data[eachindex(data)] .= data
+        c=MyContainer(Vector{Int}(undef, capacity+1), capacity, length(data),
+                      capacity+1)
+        c.data[eachindex(data)].=data
         return c
     end
     MyContainer(data::AbstractArray) = MyContainer(data, length(data))
@@ -580,14 +582,14 @@ end
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
     Trixi.delete_connectivity!(c::MyContainer, first, last) = c
     function Trixi.reset_data_structures!(c::MyContainer)
-        c.data = Vector{Int}(undef, c.capacity + 1)
+        c.data=Vector{Int}(undef, c.capacity+1)
         return c
     end
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
-        return (c1.capacity == c2.capacity &&
-                c1.length == c2.length &&
-                c1.dummy == c2.dummy &&
-                c1.data[1:(c1.length)] == c2.data[1:(c2.length)])
+        return (c1.capacity==c2.capacity&&
+                c1.length==c2.length&&
+                c1.dummy==c2.dummy&&
+                c1.data[1:(c1.length)]==c2.data[1:(c2.length)])
     end
 
     @testset "size" begin
@@ -649,27 +651,27 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    equations = CompressibleEulerEquations1D(1.4)
-    u = SVector(1.0, 0.0, 0.0)
+    equations=CompressibleEulerEquations1D(1.4)
+    u=SVector(1.0, 0.0, 0.0)
     @test !any(isnan, flux_hll(u, u, 1, equations))
 end
 
 @testitem "Unit: DG L2 mortar container debug output" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    c2d = Trixi.TreeL2MortarContainer2D{Float64}(1, 1, 1)
+    c2d=Trixi.TreeL2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
-    c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
+    c3d=Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
 end
 
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    capacity = 42
-    n_variables = 9
+    capacity=42
+    n_variables=9
 
-    interface_container = Trixi.TreeInterfaceContainer1D{Float64}(capacity, n_variables)
+    interface_container=Trixi.TreeInterfaceContainer1D{Float64}(capacity, n_variables)
     @test nnodes(interface_container) == 1
 
-    boundary_container = Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
-                                                                         n_variables)
+    boundary_container=Trixi.TreeBoundaryContainer1D{Float64, Float64}(capacity,
+                                                                       n_variables)
     @test nnodes(boundary_container) == 1
 end
 
@@ -677,40 +679,40 @@ end
     # Note: Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
 
-    c = ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary",
-                                     "cache")
+    c=ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary",
+                                   "cache")
     @test_nowarn show(stdout, c)
 
-    indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
+    indicator_hg=IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(entropy_guermond_etal, min)], "cache",
-                                    1, (1.0, 1.0), 1.0)
+    limiter_idp=SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
+                                  true, [(entropy_guermond_etal, min)], "cache",
+                                  1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
-    indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
+    indicator_loehner=IndicatorLöhner(1.0, "variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_loehner)
 
-    indicator_max = IndicatorMax("variable", (; cache = nothing))
+    indicator_max=IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
 
-    indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
-                                              LobattoLegendreBasis(3))
+    indicator_ec=IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
+                                            LobattoLegendreBasis(3))
     @test_nowarn show(stdout, indicator_ec)
 
     # test Base.show for PositivityPreservingLimiterLiuZhang
-    equations = LinearScalarAdvectionEquation1D(1.0)
-    solver = DGSEM(polydeg = 3)
-    mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
-                                        solver;
-                                        boundary_conditions = boundary_condition_periodic)
-    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
-                                                         variables = (first,))
-    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
-                                                          semi;
-                                                          record_davis_yin_iterations = true)
+    equations=LinearScalarAdvectionEquation1D(1.0)
+    solver=DGSEM(polydeg = 3)
+    mesh=TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
+    semi=SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                      solver;
+                                      boundary_conditions = boundary_condition_periodic)
+    local_limiter!=PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                       variables = (first,))
+    global_limiter!=PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                        semi;
+                                                        record_davis_yin_iterations = true)
     @test_nowarn show(stdout, global_limiter!)
     @test_nowarn show(stdout, "text/plain", global_limiter!)
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
@@ -757,8 +759,8 @@ end
 
 @testitem "Unit: LBM 2D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up LBM struct and dummy distribution
-    equation = LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000)
-    u = Trixi.equilibrium_distribution(1, 2, 3, equation)
+    equation=LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000)
+    u=Trixi.equilibrium_distribution(1, 2, 3, equation)
 
     # Component-wise velocity
     @test isapprox(Trixi.velocity(u, 1, equation), 2)
@@ -767,8 +769,8 @@ end
 
 @testitem "Unit: LBM 3D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up LBM struct and dummy distribution
-    equation = LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000)
-    u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
+    equation=LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000)
+    u=Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
 
     # Component-wise velocity
     @test isapprox(velocity(u, 1, equation), 2)
@@ -778,7 +780,7 @@ end
 
 @testitem "Unit: LBMCollisionCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Printing of LBM collision callback
-    callback = LBMCollisionCallback()
+    callback=LBMCollisionCallback()
     @test_nowarn show(stdout, callback)
     println()
     @test_nowarn show(stdout, "text/plain", callback)
@@ -786,11 +788,11 @@ end
 end
 
 @testitem "Unit: Acoustic perturbation 2D varnames" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    v_mean_global = (0.0, 0.0)
-    c_mean_global = 1.0
-    rho_mean_global = 1.0
-    equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global,
-                                                rho_mean_global)
+    v_mean_global=(0.0, 0.0)
+    c_mean_global=1.0
+    rho_mean_global=1.0
+    equations=AcousticPerturbationEquations2D(v_mean_global, c_mean_global,
+                                              rho_mean_global)
 
     @test Trixi.varnames(cons2state, equations) ==
           ("v1_prime", "v2_prime", "p_prime_scaled")
@@ -802,35 +804,35 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
+    rho, v1, v2, v3, p=1.0, 0.1, 0.2, 0.3, 2.0
 
-    let equations = CompressibleEulerEquations1D(1.4)
-        cons_vars = prim2cons(SVector(rho, v1, p), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
+    let equations=CompressibleEulerEquations1D(1.4)
+        cons_vars=prim2cons(SVector(rho, v1, p), equations)
+        entropy_vars=cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
 
         # test tuple args
-        cons_vars = prim2cons((rho, v1, p), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
+        cons_vars=prim2cons((rho, v1, p), equations)
+        entropy_vars=cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
     # Test PassiveTracerEquations
-    let flow_equations = CompressibleEulerEquations1D(1.4)
-        equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
-        xi1, xi2 = 0.4, 0.5
-        cons_ref = SVector(rho, rho * v1, p / 0.4 + 0.5 * (rho * v1 * v1), rho * xi1,
-                           rho * xi2)
-        cons_test = prim2cons(SVector(rho, v1, p, xi1, xi2), equations)
+    let flow_equations=CompressibleEulerEquations1D(1.4)
+        equations=PassiveTracerEquations(flow_equations, n_tracers = 2)
+        xi1, xi2=0.4, 0.5
+        cons_ref=SVector(rho, rho*v1, p/0.4+0.5*(rho*v1*v1), rho*xi1,
+                         rho*xi2)
+        cons_test=prim2cons(SVector(rho, v1, p, xi1, xi2), equations)
         @test cons_test ≈ cons_ref
-        prim_test = cons2prim(cons_test, equations)
+        prim_test=cons2prim(cons_test, equations)
         @test prim_test ≈ SVector(rho, v1, p, xi1, xi2)
-        flow_entropy = cons2entropy(cons_ref, flow_equations)
+        flow_entropy=cons2entropy(cons_ref, flow_equations)
 
-        entropy_ref = SVector(flow_entropy[1] - (xi1^2 + xi2^2),
-                              (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
-                              2 * xi1, 2 * xi2)
-        entropy_test = cons2entropy(cons_test, equations)
+        entropy_ref=SVector(flow_entropy[1]-(xi1^2+xi2^2),
+                            (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
+                            2*xi1, 2*xi2)
+        entropy_test=cons2entropy(cons_test, equations)
         @test entropy_test ≈ entropy_ref
 
         # Also test density, pressure, density_pressure and entropy here because there is currently
@@ -841,31 +843,31 @@ end
         @test entropy(cons_test, equations) ≈
               entropy(cons_ref, flow_equations) + rho * (xi1^2 + xi2^2)
 
-        tracers_ = Trixi.tracers(cons_test, equations)
+        tracers_=Trixi.tracers(cons_test, equations)
         @test tracers_ ≈ SVector(xi1, xi2)
-        rho_tracers_ = Trixi.rho_tracers(cons_test, equations)
+        rho_tracers_=Trixi.rho_tracers(cons_test, equations)
         @test rho_tracers_ ≈ SVector(rho * xi1, rho * xi2)
     end
 
-    let equations = CompressibleEulerEquations2D(1.4)
-        cons_vars = prim2cons(SVector(rho, v1, v2, p), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
+    let equations=CompressibleEulerEquations2D(1.4)
+        cons_vars=prim2cons(SVector(rho, v1, v2, p), equations)
+        entropy_vars=cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
 
         # test tuple args
-        cons_vars = prim2cons((rho, v1, v2, p), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
+        cons_vars=prim2cons((rho, v1, v2, p), equations)
+        entropy_vars=cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
-    let equations = CompressibleEulerEquations3D(1.4)
-        cons_vars = prim2cons(SVector(rho, v1, v2, v3, p), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
+    let equations=CompressibleEulerEquations3D(1.4)
+        cons_vars=prim2cons(SVector(rho, v1, v2, v3, p), equations)
+        entropy_vars=cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
 
         # test tuple args
-        cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
-        entropy_vars = cons2entropy(cons_vars, equations)
+        cons_vars=prim2cons((rho, v1, v2, v3, p), equations)
+        entropy_vars=cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 end
@@ -874,26 +876,26 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    rho, v1, v2, v3, p = 1.0, 0.1, -0.2, 0.3, 2.0
+    rho, v1, v2, v3, p=1.0, 0.1, -0.2, 0.3, 2.0
 
     for (equations_parabolic, prim, dw) in ((LaplaceDiffusionEntropyVariables1D(0.01,
-                                                                                CompressibleEulerEquations1D(1.4)),
-                                             SVector(rho, v1, p),
-                                             SVector(1.0, 0.1, 2.0)),
-                                            (LaplaceDiffusionEntropyVariables2D(0.01,
-                                                                                CompressibleEulerEquations2D(1.4)),
-                                             SVector(rho, v1, v2, p),
-                                             SVector(1.0, 0.1, -0.2, 2.0)),
-                                            (LaplaceDiffusionEntropyVariables3D(0.01,
-                                                                                CompressibleEulerEquations3D(1.4)),
-                                             SVector(rho, v1, v2, v3, p),
-                                             SVector(1.0, 0.1, -0.2, 0.3, 2.0)))
-        equations = equations_parabolic.equations_hyperbolic
-        w = cons2entropy(prim2cons(prim, equations), equations)
-        jvp_specialized = Trixi.apply_jacobian_entropy2cons(dw, w, equations_parabolic)
-        jvp_ad = invoke(Trixi.apply_jacobian_entropy2cons,
-                        Tuple{typeof(dw), typeof(w), Trixi.AbstractEquations},
-                        dw, w, equations)
+        CompressibleEulerEquations1D(1.4)),
+        SVector(rho, v1, p),
+        SVector(1.0, 0.1, 2.0)),
+        (LaplaceDiffusionEntropyVariables2D(0.01,
+        CompressibleEulerEquations2D(1.4)),
+        SVector(rho, v1, v2, p),
+        SVector(1.0, 0.1, -0.2, 2.0)),
+        (LaplaceDiffusionEntropyVariables3D(0.01,
+        CompressibleEulerEquations3D(1.4)),
+        SVector(rho, v1, v2, v3, p),
+        SVector(1.0, 0.1, -0.2, 0.3, 2.0)))
+        equations=equations_parabolic.equations_hyperbolic
+        w=cons2entropy(prim2cons(prim, equations), equations)
+        jvp_specialized=Trixi.apply_jacobian_entropy2cons(dw, w, equations_parabolic)
+        jvp_ad=invoke(Trixi.apply_jacobian_entropy2cons,
+                      Tuple{typeof(dw), typeof(w), Trixi.AbstractEquations},
+                      dw, w, equations)
         @test jvp_specialized ≈ jvp_ad
     end
 end
@@ -904,100 +906,100 @@ end
 # dividing the squared momenta by the density, an operation that can be avoided
 # when computing the product ρ ⋅ p directly.
 @testitem "Unit: Test density_pressure" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    let equations = CompressibleEulerEquations1D(5 / 3)
-        u = initial_condition_density_wave(SVector(1.0), 3.0, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=CompressibleEulerEquations1D(5/3)
+        u=initial_condition_density_wave(SVector(1.0), 3.0, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = CompressibleEulerEquations2D(2.0)
-        u = initial_condition_eoc_test_coupled_euler_gravity(SVector(0.666, 0.25), 0.1,
-                                                             equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=CompressibleEulerEquations2D(2.0)
+        u=initial_condition_eoc_test_coupled_euler_gravity(SVector(0.666, 0.25), 0.1,
+                                                           equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = CompressibleEulerEquations3D(1.4)
-        u = initial_condition_convergence_test(SVector(0.5, 0.1, -0.2), 1.5, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=CompressibleEulerEquations3D(1.4)
+        u=initial_condition_convergence_test(SVector(0.5, 0.1, -0.2), 1.5, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = CompressibleEulerEquationsQuasi1D(1.4)
-        u = initial_condition_convergence_test(SVector(2.0), 5.0, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=CompressibleEulerEquationsQuasi1D(1.4)
+        u=initial_condition_convergence_test(SVector(2.0), 5.0, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = IdealGlmMhdEquations1D(5 / 3)
-        u = initial_condition_convergence_test(SVector(-1.0), 7.0, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=IdealGlmMhdEquations1D(5/3)
+        u=initial_condition_convergence_test(SVector(-1.0), 7.0, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = IdealGlmMhdEquations2D(5 / 3)
-        u = initial_condition_convergence_test(SVector(-1.0, 0.5), 0.1, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=IdealGlmMhdEquations2D(5/3)
+        u=initial_condition_convergence_test(SVector(-1.0, 0.5), 0.1, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = IdealGlmMhdEquations3D(5 / 3)
-        u = initial_condition_convergence_test(SVector(-1.0, 0.5, 0.2), 0.8, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=IdealGlmMhdEquations3D(5/3)
+        u=initial_condition_convergence_test(SVector(-1.0, 0.5, 0.2), 0.8, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4),
-                                                               gas_constants = (0.4,
-                                                                                0.4))
-        u = initial_condition_convergence_test(SVector(1.0), 42.0, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4),
+                                                             gas_constants = (0.4,
+                                                                              0.4))
+        u=initial_condition_convergence_test(SVector(1.0), 42.0, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
-                                                               gas_constants = (0.287,
-                                                                                1.578))
-        u = initial_condition_convergence_test(SVector(1.0, 0.1), 0.42, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                             gas_constants = (0.287,
+                                                                              1.578))
+        u=initial_condition_convergence_test(SVector(1.0, 0.1), 0.42, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = IdealGlmMhdMulticomponentEquations1D(gammas = (2.0, 2.0, 2.0),
-                                                         gas_constants = (2.0, 2.0,
-                                                                          2.0))
-        u = initial_condition_weak_blast_wave(SVector(0.5, 0.1), 0.0, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=IdealGlmMhdMulticomponentEquations1D(gammas = (2.0, 2.0, 2.0),
+                                                       gas_constants = (2.0, 2.0,
+                                                                        2.0))
+        u=initial_condition_weak_blast_wave(SVector(0.5, 0.1), 0.0, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 
-    let equations = IdealGlmMhdMulticomponentEquations2D(gammas = (5 / 3, 5 / 3, 5 / 3),
-                                                         gas_constants = (2.08, 2.08,
-                                                                          2.08))
-        u = initial_condition_convergence_test(SVector(-0.5, 0.1), 0.666, equations)
-        rho = density(u, equations)
-        p = pressure(u, equations)
-        rho_p = density_pressure(u, equations)
+    let equations=IdealGlmMhdMulticomponentEquations2D(gammas = (5/3, 5/3, 5/3),
+                                                       gas_constants = (2.08, 2.08,
+                                                                        2.08))
+        u=initial_condition_convergence_test(SVector(-0.5, 0.1), 0.666, equations)
+        rho=density(u, equations)
+        p=pressure(u, equations)
+        rho_p=density_pressure(u, equations)
         @test rho * p ≈ rho_p
     end
 end
@@ -1006,47 +1008,47 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    let equations = CompressibleEulerEquations1D(1.4)
+    let equations=CompressibleEulerEquations1D(1.4)
         # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
-        u_inner = prim2cons(SVector(1.4, -6, 1), equations)
+        u_inner=prim2cons(SVector(1.4, -6, 1), equations)
 
-        x, t = 0, 0
-        orientation = 1
-        direction = 2 # even direction: v_normal stays <= 0
-        surface_flux_function = flux_lax_friedrichs
-        flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
-                                            surface_flux_function, equations)
+        x, t=0, 0
+        orientation=1
+        direction=2 # even direction: v_normal stays <= 0
+        surface_flux_function=flux_lax_friedrichs
+        flux=boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                          surface_flux_function, equations)
 
         # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 
-    let equations = CompressibleEulerEquations2D(1.4)
+    let equations=CompressibleEulerEquations2D(1.4)
         # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
-        u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
-        normal_direction = SVector(1.0, 0.0)
+        u_inner=prim2cons(SVector(1.4, -6, 0, 1), equations)
+        normal_direction=SVector(1.0, 0.0)
 
-        x, t = 0, 0
-        surface_flux_function = flux_lax_friedrichs
-        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
-                                            surface_flux_function, equations)
+        x, t=0, 0
+        surface_flux_function=flux_lax_friedrichs
+        flux=boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                          surface_flux_function, equations)
 
         # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 
-    let equations = CompressibleEulerEquations3D(1.4)
+    let equations=CompressibleEulerEquations3D(1.4)
         # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
-        u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
-        normal_direction = SVector(1.0, 0.0, 0.0)
+        u_inner=prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
+        normal_direction=SVector(1.0, 0.0, 0.0)
 
-        x, t = 0, 0
-        surface_flux_function = flux_lax_friedrichs
-        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
-                                            surface_flux_function, equations)
+        x, t=0, 0
+        surface_flux_function=flux_lax_friedrichs
+        flux=boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                          surface_flux_function, equations)
 
         # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
@@ -1059,52 +1061,52 @@ end
 ] tags=[:misc_part1] begin
     # Closed forms for ideal gas from Klein et al., Appendix E (E.1), in (V, T) variables
     function ideal_gas_analytical_helmholtz(V, T, eos::HelmholtzIdealGas)
-        alpha = inv(eos.gamma - 1)
-        p = eos.R * T / V
-        s = eos.R * (1 + alpha + log((T^alpha) * V))
-        e = eos.R * T * alpha
+        alpha=inv(eos.gamma-1)
+        p=eos.R*T/V
+        s=eos.R*(1+alpha+log((T^alpha)*V))
+        e=eos.R*T*alpha
         return (; p, s, e)
     end
 
-    rho = 1.225
-    T = 300.15
-    V = inv(rho)
-    eos = HelmholtzIdealGas()
-    ref = ideal_gas_analytical_helmholtz(V, T, eos)
+    rho=1.225
+    T=300.15
+    V=inv(rho)
+    eos=HelmholtzIdealGas()
+    ref=ideal_gas_analytical_helmholtz(V, T, eos)
     @test isapprox(pressure(V, T, eos), ref.p)
     @test isapprox(Trixi.entropy_specific(V, T, eos), ref.s)
     @test isapprox(energy_internal_specific(V, T, eos), ref.e)
 
-    ig = IdealGas(1.4, eos.R)
+    ig=IdealGas(1.4, eos.R)
     @test Trixi.speed_of_sound(V, T, eos) ≈ Trixi.speed_of_sound(V, T, ig)
-    c_direct = Trixi.speed_of_sound(V, T, eos)
-    c_fallback = invoke(Trixi.speed_of_sound,
-                        Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
-                        V, T, eos)
+    c_direct=Trixi.speed_of_sound(V, T, eos)
+    c_fallback=invoke(Trixi.speed_of_sound,
+                      Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
+                      V, T, eos)
     @test c_direct ≈ c_fallback
     @test temperature(V, ref.e, eos) ≈ T
-    e_h = energy_internal_specific(V, T, eos)
-    p_h = pressure(V, T, eos)
-    s_h = Trixi.entropy_specific(V, T, eos)
+    e_h=energy_internal_specific(V, T, eos)
+    p_h=pressure(V, T, eos)
+    s_h=Trixi.entropy_specific(V, T, eos)
     @test Trixi.gibbs_free_energy(V, T, eos) ≈ e_h + p_h * V - T * s_h
 end
 
 @testitem "Unit: boundary_condition_do_nothing" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
+    rho, v1, v2, p=1.0, 0.1, 0.2, 0.3, 2.0
 
-    let equations = CompressibleEulerEquations2D(1.4)
-        u = prim2cons(SVector(rho, v1, v2, p), equations)
-        x = SVector(1.0, 2.0)
-        t = 0.5
-        surface_flux = flux_lax_friedrichs
+    let equations=CompressibleEulerEquations2D(1.4)
+        u=prim2cons(SVector(rho, v1, v2, p), equations)
+        x=SVector(1.0, 2.0)
+        t=0.5
+        surface_flux=flux_lax_friedrichs
 
-        outward_direction = SVector(0.2, -0.3)
+        outward_direction=SVector(0.2, -0.3)
         @test flux(u, outward_direction, equations) ≈
               boundary_condition_do_nothing(u, outward_direction, x, t, surface_flux,
                                             equations)
 
-        orientation = 2
-        direction = 4
+        orientation=2
+        direction=4
         @test flux(u, orientation, equations) ≈
               boundary_condition_do_nothing(u, orientation, direction, x, t,
                                             surface_flux, equations)
@@ -1112,16 +1114,16 @@ end
 end
 
 @testitem "Unit: boundary_condition_do_nothing_non_conservative" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
-                                          40.0 / sqrt(4.0 * pi), 0.0, 0.0
+    rho, v1, v2, v3, p, B1, B2, B3, psi=1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
+                                        40.0/sqrt(4.0*pi), 0.0, 0.0
 
-    let equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
-        u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
-        x = SVector(1.0, 2.0)
-        t = 0.5
-        surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
+    let equations=IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+        u=prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+        x=SVector(1.0, 2.0)
+        t=0.5
+        surface_fluxes=(flux_lax_friedrichs, flux_nonconservative_powell)
 
-        outward_direction = SVector(0.2, 0.3)
+        outward_direction=SVector(0.2, 0.3)
 
         @test all(isapprox(x, y)
                   for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u,
@@ -1131,8 +1133,8 @@ end
                                                                   x, t, surface_fluxes,
                                                                   equations)))
 
-        orientation = 2
-        direction = 4
+        orientation=2
+        direction=4
 
         @test all(isapprox(x, y)
                   for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u, orientation,
@@ -1148,27 +1150,27 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    R_specific = 287.0509010514002 # [J/(kg*K)]
-    p_ref = 100000.0 # [Pa]
-    T_ref = 298.15 # [K]
+    R_specific=287.0509010514002 # [J/(kg*K)]
+    p_ref=100000.0 # [Pa]
+    T_ref=298.15 # [K]
 
-    gamma_target = 1.4
-    cp_over_R = gamma_target / (gamma_target - 1)
+    gamma_target=1.4
+    cp_over_R=gamma_target/(gamma_target-1)
 
-    temp_bounds = SVector(eps(Float64), typemax(Float64))  # single wide interval, avoid eps/typemax edge cases
-    a = Trixi.SMatrix{9, 1}([0.0, 0.0, cp_over_R, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
-                                      temperature_bounds = temp_bounds,
-                                      coefficients = a,
-                                      p_ref = p_ref,
-                                      T_ref = T_ref)
+    temp_bounds=SVector(eps(Float64), typemax(Float64))  # single wide interval, avoid eps/typemax edge cases
+    a=Trixi.SMatrix{9, 1}([0.0, 0.0, cp_over_R, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    eos=ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                    temperature_bounds = temp_bounds,
+                                    coefficients = a,
+                                    p_ref = p_ref,
+                                    T_ref = T_ref)
 
-    rho = 1.255 # [kg/m^3]
-    V = 1 / rho
+    rho=1.255 # [kg/m^3]
+    V=1/rho
 
     # 1. cp, cv, gamma match the ideal-gas properties
-    cp = Trixi.heat_capacity_constant_pressure(T_ref, eos)
-    cv = Trixi.heat_capacity_constant_volume(V, T_ref, eos)
+    cp=Trixi.heat_capacity_constant_pressure(T_ref, eos)
+    cv=Trixi.heat_capacity_constant_volume(V, T_ref, eos)
     @test cp ≈ gamma_target / (gamma_target - 1) * R_specific
     @test cv ≈ 1 / (gamma_target - 1) * R_specific
     @test cp / cv ≈ gamma_target
@@ -1177,17 +1179,17 @@ end
     @test pressure(V, T_ref, eos) ≈ rho * R_specific * T_ref
 
     # 3. internal energy matches u = cv * T (calorically perfect gas, up to a reference offset)
-    T_test = 400.0
-    e_internal1 = Trixi.energy_internal_specific(V, T_ref, eos)
-    e_internal2 = Trixi.energy_internal_specific(V, T_test, eos)
+    T_test=400.0
+    e_internal1=Trixi.energy_internal_specific(V, T_ref, eos)
+    e_internal2=Trixi.energy_internal_specific(V, T_test, eos)
     @test (e_internal2 - e_internal1) ≈ cv * (T_test - T_ref)
 
     # 4. entropy difference matches ideal-gas relation
     #    Δs = cp*ln(T2/T1) - R_specific*ln(p2/p1)
-    p1 = pressure(V, T_ref, eos)
-    p2 = pressure(V, T_test, eos)  # same V, different T -> different p
-    s1 = Trixi.entropy_specific(V, T_ref, eos)
-    s2 = Trixi.entropy_specific(V, T_test, eos)
+    p1=pressure(V, T_ref, eos)
+    p2=pressure(V, T_test, eos)  # same V, different T -> different p
+    s1=Trixi.entropy_specific(V, T_ref, eos)
+    s2=Trixi.entropy_specific(V, T_test, eos)
     @test (s2 - s1) ≈ cp * log(T_test / T_ref) - R_specific * log(p2 / p1)
 
     # 5. check speed of sound
@@ -1199,13 +1201,13 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
-    equations = NonIdealCompressibleEulerEquations1D(eos)
+    eos=VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+    equations=NonIdealCompressibleEulerEquations1D(eos)
     @test Trixi.get_name(equations) ==
           "NonIdealCompressibleEulerEquations1D{VanDerWaals}"
-    q = SVector(2.0, 0.1, 10.0)
-    V, v1, T = q
-    u = thermo2cons(q, equations)
+    q=SVector(2.0, 0.1, 10.0)
+    V, v1, T=q
+    u=thermo2cons(q, equations)
 
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ 0.1
@@ -1222,8 +1224,8 @@ end
 
     # check that the fallback temperature and specialized temperature
     # return the same value
-    V, v1, T = cons2thermo(u, equations)
-    e_internal = energy_internal_specific(V, T, eos)
+    V, v1, T=cons2thermo(u, equations)
+    e_internal=energy_internal_specific(V, T, eos)
     @test temperature(V, e_internal, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V,
                  e_internal, eos)
@@ -1238,19 +1240,19 @@ end
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 
-    eos = ThermallyPerfectGas9PolyFit()
+    eos=ThermallyPerfectGas9PolyFit()
 
-    equations = NonIdealCompressibleEulerEquations1D(eos)
+    equations=NonIdealCompressibleEulerEquations1D(eos)
 
     # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
-    rho = 2.22e-8 # [kg/m^3]
-    V = inv(rho) # [m^3/kg]
+    rho=2.22e-8 # [kg/m^3]
+    V=inv(rho) # [m^3/kg]
 
-    a = 380.4 # [m/s]
-    v1 = 26 * a # [m/s]
-    T = 360 # [K]
-    q = SVector(V, v1, T)
-    u = thermo2cons(q, equations)
+    a=380.4 # [m/s]
+    v1=26*a # [m/s]
+    T=360 # [K]
+    q=SVector(V, v1, T)
+    u=thermo2cons(q, equations)
 
     @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
@@ -1263,11 +1265,11 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
-    equations = NonIdealCompressibleEulerEquations2D(eos)
-    q = SVector(2.0, 0.1, 0.2, 10.0)
-    V, v1, v2, T = q
-    u = thermo2cons(q, equations)
+    eos=VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
+    equations=NonIdealCompressibleEulerEquations2D(eos)
+    q=SVector(2.0, 0.1, 0.2, 10.0)
+    V, v1, v2, T=q
+    u=thermo2cons(q, equations)
 
     @test density(u, equations) ≈ 0.5
     @test velocity(u, equations) ≈ SVector(0.1, 0.2)
@@ -1288,13 +1290,13 @@ end
               flux(u, orientation, equations)
     end
 
-    normal_direction = SVector(1, 2) / norm(SVector(1, 2))
+    normal_direction=SVector(1, 2)/norm(SVector(1, 2))
     @test flux(u, normal_direction, equations) ≈
           flux(u, 1, equations) * normal_direction[1] +
           flux(u, 2, equations) * normal_direction[2]
 
-    u_ll = u
-    u_rr = thermo2cons(SVector(2.5, 0.2, 0.1, 8.0), equations)
+    u_ll=u
+    u_rr=thermo2cons(SVector(2.5, 0.2, 0.1, 8.0), equations)
     @test flux_terashima_etal(u_ll, u_rr, normal_direction, equations) ≈
           flux_terashima_etal(u_ll, u_rr, 1, equations) * normal_direction[1] +
           flux_terashima_etal(u_ll, u_rr, 2, equations) * normal_direction[2]
@@ -1311,9 +1313,9 @@ end
 
     # check consistency of slip wall boundary conditions
     for orientation in (1, 2)
-        x, t = 0, 0
-        direction = 1 # this variable is not used in `boundary_condition_slip_wall`
-        normal_direction = orientation == 1 ? SVector(1.0, 0.0) : SVector(0.0, 1.0)
+        x, t=0, 0
+        direction=1 # this variable is not used in `boundary_condition_slip_wall`
+        normal_direction=orientation==1 ? SVector(1.0, 0.0) : SVector(0.0, 1.0)
         @test boundary_condition_slip_wall(u, orientation, direction, x, t,
                                            flux_lax_friedrichs, equations) ≈
               boundary_condition_slip_wall(u, normal_direction, x, t,
@@ -1322,8 +1324,8 @@ end
 
     # check that the fallback temperature and specialized temperature
     # return the same value
-    V, v1, v2, T = cons2thermo(u, equations)
-    e = energy_internal_specific(V, T, eos)
+    V, v1, v2, T=cons2thermo(u, equations)
+    e=energy_internal_specific(V, T, eos)
     @test temperature(V, e, eos) ≈
           invoke(temperature, Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, e, eos)
 
@@ -1335,23 +1337,23 @@ end
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
 
-    eos = ThermallyPerfectGas9PolyFit()
+    eos=ThermallyPerfectGas9PolyFit()
 
-    equations = NonIdealCompressibleEulerEquations2D(eos)
+    equations=NonIdealCompressibleEulerEquations2D(eos)
 
     # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
-    rho = 2.22e-8 # [kg/m^3]
-    V = inv(rho) # [m^3/kg]
+    rho=2.22e-8 # [kg/m^3]
+    V=inv(rho) # [m^3/kg]
 
-    a = 380.4 # [m/s]
+    a=380.4 # [m/s]
 
-    aoa = deg2rad(40.0) # angle of attack
+    aoa=deg2rad(40.0) # angle of attack
 
-    v1 = 26 * a * cos(aoa) # [m/s]
-    v2 = 26 * a * sin(aoa) # [m/s]
-    T = 360 # [K]
-    q = SVector(V, v1, v2, T)
-    u = thermo2cons(q, equations)
+    v1=26*a*cos(aoa) # [m/s]
+    v2=26*a*sin(aoa) # [m/s]
+    T=360 # [K]
+    q=SVector(V, v1, v2, T)
+    u=thermo2cons(q, equations)
 
     for orientation in (1, 2)
         @test flux_lax_friedrichs(u, u, orientation, equations) ≈
@@ -1381,7 +1383,7 @@ end
                                  "elixir_acoustics_gaussian_source.jl"),
                         tspan=(0, 0.05))
 
-    point_data_1 = time_series.affect!.point_data[1]
+    point_data_1=time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:7],
                         [-2.4417734981719132e-5, -3.4296207289200194e-5,
                             0.0018130846385739788, -0.5, 0.25, 1.0, 1.0]))
@@ -1394,22 +1396,22 @@ end
 end
 
 @testitem "Unit: resize! RelaxationIntegrators" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    equations = LinearScalarAdvectionEquation1D(42.0)
-    solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
-    mesh = TreeMesh((0.0,), (1.0,),
-                    initial_refinement_level = 2,
-                    n_cells_max = 30_000,
-                    periodicity = true)
-    semi = SemidiscretizationHyperbolic(mesh, equations,
-                                        initial_condition_convergence_test,
-                                        solver;
-                                        boundary_conditions = boundary_condition_periodic)
-    u0 = zeros(4)
-    tspan = (0.0, 1.0)
-    ode = semidiscretize(semi, tspan)
+    equations=LinearScalarAdvectionEquation1D(42.0)
+    solver=DGSEM(polydeg = 0, surface_flux = flux_ranocha)
+    mesh=TreeMesh((0.0,), (1.0,),
+                  initial_refinement_level = 2,
+                  n_cells_max = 30_000,
+                  periodicity = true)
+    semi=SemidiscretizationHyperbolic(mesh, equations,
+                                      initial_condition_convergence_test,
+                                      solver;
+                                      boundary_conditions = boundary_condition_periodic)
+    u0=zeros(4)
+    tspan=(0.0, 1.0)
+    ode=semidiscretize(semi, tspan)
 
-    ode_alg = Trixi.RelaxationRK44() # SubDiagonalAlgorithm
-    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # SubDiagonalRelaxationIntegrator
+    ode_alg=Trixi.RelaxationRK44() # SubDiagonalAlgorithm
+    integrator=Trixi.init(ode, ode_alg; dt = 1.0) # SubDiagonalRelaxationIntegrator
 
     resize!(integrator, 1001)
     @test length(integrator.u) == 1001
@@ -1417,8 +1419,8 @@ end
     @test length(integrator.u_tmp) == 1001
     @test length(integrator.direction) == 1001
 
-    ode_alg = Trixi.RelaxationCKL54() # vanderHouwenAlgorithm
-    integrator = Trixi.init(ode, ode_alg; dt = 1.0) # vanderHouwenRelaxationIntegrator
+    ode_alg=Trixi.RelaxationCKL54() # vanderHouwenAlgorithm
+    integrator=Trixi.init(ode, ode_alg; dt = 1.0) # vanderHouwenRelaxationIntegrator
 
     resize!(integrator, 42)
     @test length(integrator.u) == 42
@@ -1429,11 +1431,11 @@ end
 end
 
 @testitem "Unit: Consistency check for single point flux: CEMCE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
-                                                           gas_constants = (0.4, 0.4))
-    u = SVector(0.1, -0.5, 1.0, 1.0, 2.0)
+    equations=CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
+                                                         gas_constants = (0.4, 0.4))
+    u=SVector(0.1, -0.5, 1.0, 1.0, 2.0)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux(u, orientation, equations) ≈
               flux_ranocha(u, u, orientation, equations)
@@ -1441,29 +1443,29 @@ end
 end
 
 @testitem "Unit: Consistency check for HLL flux (naive): CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_naive)
+    flux_hll=FluxHLL(min_max_speed_naive)
 
     # Set up equations and dummy conservative variables state
-    equations = CompressibleEulerEquations1D(1.4)
-    u = SVector(1.1, 2.34, 5.5)
+    equations=CompressibleEulerEquations1D(1.4)
+    u=SVector(1.1, 2.34, 5.5)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    equations = CompressibleEulerEquations2D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 5.5)
+    equations=CompressibleEulerEquations2D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 5.5)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    equations = CompressibleEulerEquations3D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+    equations=CompressibleEulerEquations3D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 2.4, 5.5)
 
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
@@ -1472,10 +1474,10 @@ end
 @testitem "Unit: Consistency check for flux_chan_etal: CEEQ" setup=[Setup, UnitTests] tags=[:misc_part1] begin
 
     # Set up equations and dummy conservative variables state
-    equations = CompressibleEulerEquationsQuasi1D(1.4)
-    u = SVector(1.1, 2.34, 5.5, 2.73)
+    equations=CompressibleEulerEquationsQuasi1D(1.4)
+    u=SVector(1.1, 2.34, 5.5, 2.73)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test flux_chan_etal(u, u, orientation, equations) ≈
               flux(u, orientation, equations)
@@ -1483,17 +1485,17 @@ end
 end
 
 @testitem "Unit: Consistency check for HLL flux (naive): LEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_naive)
+    flux_hll=FluxHLL(min_max_speed_naive)
 
-    equations = LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
-    u = SVector(1.1, -0.5, 2.34, 5.5)
+    equations=LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
+    u=SVector(1.1, -0.5, 2.34, 5.5)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1505,24 +1507,24 @@ end
 end
 
 @testitem "Unit: Consistency check for HLL flux (naive): MHD" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_naive)
+    flux_hll=FluxHLL(min_max_speed_naive)
 
-    equations = IdealGlmMhdEquations1D(1.4)
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
+    equations=IdealGlmMhdEquations1D(1.4)
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
         @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
-    equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
-    normal_directions = [SVector(1.0, 0.0),
+    equations=IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
-    orientations = [1, 2]
+    orientations=[1, 2]
 
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
@@ -1534,15 +1536,15 @@ end
               flux(u, normal_direction, equations)
     end
 
-    equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    equations=IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
         SVector(-1.2, 0.3, 1.4)]
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
 
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
@@ -1559,26 +1561,26 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_davis)
+    flux_hll=FluxHLL(min_max_speed_davis)
 
     # Set up equations and dummy conservative variables state
-    equations = CompressibleEulerEquations1D(1.4)
-    u = SVector(1.1, 2.34, 5.5)
+    equations=CompressibleEulerEquations1D(1.4)
+    u=SVector(1.1, 2.34, 5.5)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    equations = CompressibleEulerEquations2D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 5.5)
+    equations=CompressibleEulerEquations2D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 5.5)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1588,15 +1590,15 @@ end
               flux(u, normal_direction, equations)
     end
 
-    equations = CompressibleEulerEquations3D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+    equations=CompressibleEulerEquations3D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 2.4, 5.5)
 
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
@@ -1612,19 +1614,19 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_davis)
+    flux_hll=FluxHLL(min_max_speed_davis)
 
-    gamma = 1.4
-    kappa = 0.5     # Scaling factor for the pressure.
-    equations = PolytropicEulerEquations2D(gamma, kappa)
-    u = SVector(1.1, -0.5, 2.34)
+    gamma=1.4
+    kappa=0.5     # Scaling factor for the pressure.
+    equations=PolytropicEulerEquations2D(gamma, kappa)
+    u=SVector(1.1, -0.5, 2.34)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1639,18 +1641,18 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    for gamma in [1.4, 1.0, 5 / 3]
-        kappa = 0.5     # Scaling factor for the pressure.
-        equations = PolytropicEulerEquations2D(gamma, kappa)
-        u = SVector(1.1, -0.5, 2.34)
+    for gamma in [1.4, 1.0, 5/3]
+        kappa=0.5     # Scaling factor for the pressure.
+        equations=PolytropicEulerEquations2D(gamma, kappa)
+        u=SVector(1.1, -0.5, 2.34)
 
-        orientations = [1, 2]
+        orientations=[1, 2]
         for orientation in orientations
             @test flux_winters_etal(u, u, orientation, equations) ≈
                   flux(u, orientation, equations)
         end
 
-        normal_directions = [SVector(1.0, 0.0),
+        normal_directions=[SVector(1.0, 0.0),
             SVector(0.0, 1.0),
             SVector(0.5, -0.5),
             SVector(-1.2, 0.3)]
@@ -1666,18 +1668,18 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    for gamma in [1.4, 1.0, 5 / 3]
-        kappa = 0.5     # Scaling factor for the pressure.
-        equations = PolytropicEulerEquations2D(gamma, kappa)
-        u = SVector(1.1, -0.5, 2.34)
+    for gamma in [1.4, 1.0, 5/3]
+        kappa=0.5     # Scaling factor for the pressure.
+        equations=PolytropicEulerEquations2D(gamma, kappa)
+        u=SVector(1.1, -0.5, 2.34)
 
-        orientations = [1, 2]
+        orientations=[1, 2]
         for orientation in orientations
             @test flux_lax_friedrichs(u, u, orientation, equations) ≈
                   flux(u, orientation, equations)
         end
 
-        normal_directions = [SVector(1.0, 0.0),
+        normal_directions=[SVector(1.0, 0.0),
             SVector(0.0, 1.0),
             SVector(0.5, -0.5),
             SVector(-1.2, 0.3)]
@@ -1693,17 +1695,17 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_davis)
+    flux_hll=FluxHLL(min_max_speed_davis)
 
-    equations = LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
-    u = SVector(1.1, -0.5, 2.34, 5.5)
+    equations=LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
+    u=SVector(1.1, -0.5, 2.34, 5.5)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1718,24 +1720,24 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    flux_hll = FluxHLL(min_max_speed_davis)
+    flux_hll=FluxHLL(min_max_speed_davis)
 
-    equations = IdealGlmMhdEquations1D(1.4)
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
+    equations=IdealGlmMhdEquations1D(1.4)
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
         @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
-    equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
-    normal_directions = [SVector(1.0, 0.0),
+    equations=IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
-    orientations = [1, 2]
+    orientations=[1, 2]
 
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
@@ -1747,15 +1749,15 @@ end
               flux(u, normal_direction, equations)
     end
 
-    equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    equations=IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
         SVector(-1.2, 0.3, 1.4)]
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
 
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
@@ -1770,23 +1772,23 @@ end
 
 @testitem "Unit: Consistency check for HLLE flux: CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
-    equations = CompressibleEulerEquations1D(1.4)
-    u = SVector(1.1, 2.34, 5.5)
+    equations=CompressibleEulerEquations1D(1.4)
+    u=SVector(1.1, 2.34, 5.5)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    equations = CompressibleEulerEquations2D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 5.5)
+    equations=CompressibleEulerEquations2D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 5.5)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1796,15 +1798,15 @@ end
               flux(u, normal_direction, equations)
     end
 
-    equations = CompressibleEulerEquations3D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+    equations=CompressibleEulerEquations3D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 2.4, 5.5)
 
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
     for orientation in orientations
         @test flux_hlle(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
@@ -1817,8 +1819,8 @@ end
 end
 
 @testitem "Unit: Consistency check for HLLE flux: MHD" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    equations = IdealGlmMhdEquations1D(1.4)
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
+    equations=IdealGlmMhdEquations1D(1.4)
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
 
     for u in u_values
@@ -1826,14 +1828,14 @@ end
         @test flux_hllc(u, u, 1, equations) ≈ flux(u, 1, equations)
     end
 
-    equations = IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
-    normal_directions = [SVector(1.0, 0.0),
+    equations=IdealGlmMhdEquations2D(1.4, 5.0) #= c_h =#
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
-    orientations = [1, 2]
+    orientations=[1, 2]
 
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
@@ -1845,15 +1847,15 @@ end
               flux(u, normal_direction, equations)
     end
 
-    equations = IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    equations=IdealGlmMhdEquations3D(1.4, 5.0) #= c_h =#
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
         SVector(-1.2, 0.3, 1.4)]
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
 
-    u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
+    u_values=[SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)]
 
     for u in u_values, orientation in orientations
@@ -1868,15 +1870,15 @@ end
 
 @testitem "Unit: Consistency check for HLLC flux: CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
-    equations = CompressibleEulerEquations2D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 5.5)
+    equations=CompressibleEulerEquations2D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 5.5)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_hllc(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1887,33 +1889,33 @@ end
     end
 
     # check consistency between 1D and 2D HLLC fluxes
-    u_1d = SVector(1.1, -0.5, 5.5)
-    u_2d = SVector(u_1d[1], u_1d[2], 0.0, u_1d[3])
-    normal_1d = SVector(-0.3)
-    normal_2d = SVector(normal_1d[1], 0.0)
-    equations_1d = CompressibleEulerEquations1D(1.4)
-    equations_2d = CompressibleEulerEquations2D(1.4)
-    flux_1d = flux_hllc(u_1d, u_1d, normal_1d, equations_1d)
-    flux_2d = flux_hllc(u_2d, u_2d, normal_2d, equations_2d)
+    u_1d=SVector(1.1, -0.5, 5.5)
+    u_2d=SVector(u_1d[1], u_1d[2], 0.0, u_1d[3])
+    normal_1d=SVector(-0.3)
+    normal_2d=SVector(normal_1d[1], 0.0)
+    equations_1d=CompressibleEulerEquations1D(1.4)
+    equations_2d=CompressibleEulerEquations2D(1.4)
+    flux_1d=flux_hllc(u_1d, u_1d, normal_1d, equations_1d)
+    flux_2d=flux_hllc(u_2d, u_2d, normal_2d, equations_2d)
     @test flux_1d ≈ flux(u_1d, normal_1d, equations_1d)
     @test flux_1d ≈ flux_2d[[1, 2, 4]]
 
     # test when u_ll is not the same as u_rr
-    u_rr_1d = SVector(2.1, 0.3, 0.1)
-    u_rr_2d = SVector(u_rr_1d[1], u_rr_1d[2], 0.0, u_rr_1d[3])
-    flux_1d = flux_hllc(u_1d, u_rr_1d, normal_1d, equations_1d)
-    flux_2d = flux_hllc(u_2d, u_rr_2d, normal_2d, equations_2d)
+    u_rr_1d=SVector(2.1, 0.3, 0.1)
+    u_rr_2d=SVector(u_rr_1d[1], u_rr_1d[2], 0.0, u_rr_1d[3])
+    flux_1d=flux_hllc(u_1d, u_rr_1d, normal_1d, equations_1d)
+    flux_2d=flux_hllc(u_2d, u_rr_2d, normal_2d, equations_2d)
     @test flux_1d ≈ flux_2d[[1, 2, 4]]
 
-    equations = CompressibleEulerEquations3D(1.4)
-    u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
+    equations=CompressibleEulerEquations3D(1.4)
+    u=SVector(1.1, -0.5, 2.34, 2.4, 5.5)
 
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
     for orientation in orientations
         @test flux_hllc(u, u, orientation, equations) ≈ flux(u, orientation, equations)
     end
 
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
@@ -1929,33 +1931,33 @@ end
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
 
-    equation = InviscidBurgersEquation1D()
-    u_values = [SVector(42.0), SVector(-42.0)]
+    equation=InviscidBurgersEquation1D()
+    u_values=[SVector(42.0), SVector(-42.0)]
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations, u in u_values
         @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
     # Linear Advection 1D
-    equation = LinearScalarAdvectionEquation1D(-4.2)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation1D(-4.2)
+    u=SVector(3.14159)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
     # Linear Advection 2D
-    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation2D(-4.2, 2.4)
+    u=SVector(3.14159)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -1966,15 +1968,15 @@ end
     end
 
     # Linear Advection 3D
-    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
+    u=SVector(3.14159)
 
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
     for orientation in orientations
         @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
@@ -1986,18 +1988,18 @@ end
     end
 
     # Linearized Euler 2D
-    equation = LinearizedEulerEquations2D(v_mean_global = (0.5, -0.7),
-                                          c_mean_global = 1.1,
-                                          rho_mean_global = 1.2)
-    u_values = [SVector(1.0, 0.5, -0.7, 1.0),
+    equation=LinearizedEulerEquations2D(v_mean_global = (0.5, -0.7),
+                                        c_mean_global = 1.1,
+                                        rho_mean_global = 1.2)
+    u_values=[SVector(1.0, 0.5, -0.7, 1.0),
         SVector(1.5, -0.2, 0.1, 5.0)]
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations, u in u_values
         @test flux_godunov(u, u, orientation, equation) ≈ flux(u, orientation, equation)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -2012,36 +2014,36 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    equations = InviscidBurgersEquation1D()
-    u_ll = SVector(2.0)
-    u_rr = SVector(-1.0)
+    equations=InviscidBurgersEquation1D()
+    u_ll=SVector(2.0)
+    u_rr=SVector(-1.0)
 
     for normal_direction in (SVector(1.0), SVector(-1.2))
         @test flux_ec(u_ll, u_rr, normal_direction, equations) ≈
               normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
     end
 
-    u = SVector(42.0)
-    normal_direction = SVector(-1.2)
+    u=SVector(42.0)
+    normal_direction=SVector(-1.2)
     @test flux_ec(u, u, normal_direction, equations) ≈
           flux(u, normal_direction, equations)
 end
 
 @testitem "Unit: Consistency check for Engquist-Osher flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
-    equation = InviscidBurgersEquation1D()
-    u_values = [SVector(42.0), SVector(-42.0)]
+    equation=InviscidBurgersEquation1D()
+    u_values=[SVector(42.0), SVector(-42.0)]
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations, u in u_values
         @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈
               flux(u, orientation, equation)
     end
 
-    equation = LinearScalarAdvectionEquation1D(-4.2)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation1D(-4.2)
+    u=SVector(3.14159)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test Trixi.flux_engquist_osher(u, u, orientation, equation) ≈
               flux(u, orientation, equation)
@@ -2052,14 +2054,14 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    rho = 7800.0 # kg/m³
-    lambda = 9.3288e10
-    mu = lambda
-    equations = LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
+    rho=7800.0 # kg/m³
+    lambda=9.3288e10
+    mu=lambda
+    equations=LinearElasticityEquations1D(rho = rho, mu = mu, lambda = lambda)
 
-    u = SVector(1.42, 2.666)
+    u=SVector(1.42, 2.666)
 
-    orientation = 1
+    orientation=1
     @test flux_central(u, u, orientation, equations) ≈
           flux(u, orientation, equations)
 
@@ -2075,14 +2077,14 @@ end
     UnitTests
 ] tags=[:misc_part1] begin
     # Set up conservative variables, equations
-    u = [
+    u=[
         0.5011914484393387,
         0.8829127712445113,
         0.43024132987932817,
         0.7560616633050348
     ]
 
-    equations = CompressibleEulerEquations2D(1.4)
+    equations=CompressibleEulerEquations2D(1.4)
 
     # Define wrapper function for pressure in order to call default implementation
     function pressure_test(u, equations)
@@ -2097,20 +2099,20 @@ end
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
 
-    equation = InviscidBurgersEquation1D()
-    u_values = [SVector(42.0), SVector(-42.0)]
+    equation=InviscidBurgersEquation1D()
+    u_values=[SVector(42.0), SVector(-42.0)]
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations, u in u_values
         @test flux_godunov(0.75 * u, u, orientation, equation) ≈
               Trixi.flux_engquist_osher(0.75 * u, u, orientation, equation)
     end
 
     # Linear Advection 1D
-    equation = LinearScalarAdvectionEquation1D(-4.2)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation1D(-4.2)
+    u=SVector(3.14159)
 
-    orientations = [1]
+    orientations=[1]
     for orientation in orientations
         @test flux_godunov(0.5 * u, u, orientation, equation) ≈
               flux_lax_friedrichs(0.5 * u, u, orientation, equation)
@@ -2119,16 +2121,16 @@ end
     end
 
     # Linear Advection 2D
-    equation = LinearScalarAdvectionEquation2D(-4.2, 2.4)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation2D(-4.2, 2.4)
+    u=SVector(3.14159)
 
-    orientations = [1, 2]
+    orientations=[1, 2]
     for orientation in orientations
         @test flux_godunov(0.25 * u, u, orientation, equation) ≈
               flux_lax_friedrichs(0.25 * u, u, orientation, equation)
     end
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
@@ -2139,16 +2141,16 @@ end
     end
 
     # Linear Advection 3D
-    equation = LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
-    u = SVector(3.14159)
+    equation=LinearScalarAdvectionEquation3D(-4.2, 2.4, 1.2)
+    u=SVector(3.14159)
 
-    orientations = [1, 2, 3]
+    orientations=[1, 2, 3]
     for orientation in orientations
         @test flux_godunov(1.5 * u, u, orientation, equation) ≈
               flux_lax_friedrichs(1.5 * u, u, orientation, equation)
     end
 
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
@@ -2161,15 +2163,15 @@ end
 end
 
 @testitem "Unit: Consistency check for LMARS flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    equations = CompressibleEulerEquations2D(1.4)
-    flux_lmars = FluxLMARS(340)
+    equations=CompressibleEulerEquations2D(1.4)
+    flux_lmars=FluxLMARS(340)
 
-    normal_directions = [SVector(1.0, 0.0),
+    normal_directions=[SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
         SVector(-1.2, 0.3)]
-    orientations = [1, 2]
-    u_values = [SVector(1.0, 0.5, -0.7, 1.0),
+    orientations=[1, 2]
+    u_values=[SVector(1.0, 0.5, -0.7, 1.0),
         SVector(1.5, -0.2, 0.1, 5.0)]
 
     for u in u_values, orientation in orientations
@@ -2182,14 +2184,14 @@ end
               flux(u, normal_direction, equations)
     end
 
-    equations = CompressibleEulerEquations3D(1.4)
-    normal_directions = [SVector(1.0, 0.0, 0.0),
+    equations=CompressibleEulerEquations3D(1.4)
+    normal_directions=[SVector(1.0, 0.0, 0.0),
         SVector(0.0, 1.0, 0.0),
         SVector(0.0, 0.0, 1.0),
         SVector(0.5, -0.5, 0.2),
         SVector(-1.2, 0.3, 1.4)]
-    orientations = [1, 2, 3]
-    u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
+    orientations=[1, 2, 3]
+    u_values=[SVector(1.0, 0.5, -0.7, 0.1, 1.0),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
 
     for u in u_values, orientation in orientations
@@ -2221,7 +2223,6 @@ end
         println(typeof(f_rot))
         for u in u_values,
             normal_direction in normal_directions
-
             @test f_rot(u, normal_direction, equations) ≈
                   f_std(u, normal_direction, equations)
         end
@@ -2244,7 +2245,6 @@ end
             f_rot = FluxRotated(f_std)
             for u_ll in u_values, u_rr in u_values,
                 normal_direction in normal_directions
-
                 @test f_rot(u_ll, u_rr, normal_direction, equations) ≈
                       f_std(u_ll, u_rr, normal_direction, equations)
             end
@@ -2269,7 +2269,6 @@ end
             f_rot = FluxRotated(f_std)
             for u_ll in u_values, u_rr in u_values,
                 normal_direction in normal_directions
-
                 @test f_rot(u_ll, u_rr, normal_direction, equations) ≈
                       f_std(u_ll, u_rr, normal_direction, equations)
             end
@@ -2295,7 +2294,6 @@ end
             f_rot = FluxRotated(f_std)
             for u_ll in u_values, u_rr in u_values,
                 normal_direction in normal_directions
-
                 @test f_rot(u_ll, u_rr, normal_direction, equations) ≈
                       f_std(u_ll, u_rr, normal_direction, equations)
             end
@@ -2322,7 +2320,6 @@ end
             f_rot = FluxRotated(f_std)
             for u_ll in u_values, u_rr in u_values,
                 normal_direction in normal_directions
-
                 @test f_rot(u_ll, u_rr, normal_direction, equations) ≈
                       f_std(u_ll, u_rr, normal_direction, equations)
             end
@@ -2334,98 +2331,98 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    equations = CompressibleEulerEquations1D(1.4)
-    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+    equations=CompressibleEulerEquations1D(1.4)
+    dissipation_matrix_winters_etal=DissipationMatrixWintersEtal()
 
     # test constant preservation and entropy dissipation vector
-    u_ll = prim2cons(SVector(1, 0, 2.0), equations)
-    u_rr = prim2cons(SVector(1.1, 0, 2.0), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
+    u_ll=prim2cons(SVector(1, 0, 2.0), equations)
+    u_rr=prim2cons(SVector(1.1, 0, 2.0), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
     @test norm(dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) <
           100 * eps()
     @test dot(v_ll - v_rr,
               dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) ≥ 0
 
     # test non-unit vector
-    u_ll = prim2cons(SVector(rand(), randn(), rand()), equations)
-    u_rr = prim2cons(SVector(rand(), randn(), rand()), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
+    u_ll=prim2cons(SVector(rand(), randn(), rand()), equations)
+    u_rr=prim2cons(SVector(rand(), randn(), rand()), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
     @test dot(v_ll - v_rr,
               dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) ≥ 0
     @test dissipation_matrix_winters_etal(u_ll, u_rr, SVector(0.1), equations) ≈
           0.1 * dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)
 
-    equations = CompressibleEulerEquations2D(1.4)
+    equations=CompressibleEulerEquations2D(1.4)
 
     # test that 2D flux is consistent with 1D matrix flux
-    u_ll = prim2cons(SVector(1, 0.1, 0, 1.0), equations)
-    u_rr = prim2cons(SVector(1.1, -0.2, 0, 2.0), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
-    normal = SVector(1.0, 0.0)
-    ids = [1, 2, 4] # indices of 1D variables/fluxes within the 2D solution
+    u_ll=prim2cons(SVector(1, 0.1, 0, 1.0), equations)
+    u_rr=prim2cons(SVector(1.1, -0.2, 0, 2.0), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
+    normal=SVector(1.0, 0.0)
+    ids=[1, 2, 4] # indices of 1D variables/fluxes within the 2D solution
     @test dissipation_matrix_winters_etal(u_ll, u_rr, normal, equations)[ids] ≈
           dissipation_matrix_winters_etal(u_ll[ids], u_rr[ids],
                                           SVector(1.0),
                                           CompressibleEulerEquations1D(1.4))
 
     # test 2D entropy dissipation
-    u_ll = prim2cons(SVector(1, 1, -3, 100.0), equations)
-    u_rr = prim2cons(SVector(100, -2, 4, 1.0), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
-    dissipation = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0),
-                                                  equations)
+    u_ll=prim2cons(SVector(1, 1, -3, 100.0), equations)
+    u_rr=prim2cons(SVector(100, -2, 4, 1.0), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
+    dissipation=dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0),
+                                                equations)
     @test dot(v_ll - v_rr, dissipation) ≥ 0
 
     # test non-unit vector
-    normal_direction = SVector(1.0, 2.0)
+    normal_direction=SVector(1.0, 2.0)
     @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
           norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
                                           normal_direction / norm(normal_direction),
                                           equations)
 
     # test that 3D flux is consistent with 1D and 2D versions
-    equations = CompressibleEulerEquations3D(1.4)
-    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+    equations=CompressibleEulerEquations3D(1.4)
+    dissipation_matrix_winters_etal=DissipationMatrixWintersEtal()
 
     # test for consistency with 1D and 2D flux
-    u_ll = prim2cons(SVector(1, 0.1, 0, 0, 1.0), equations)
-    u_rr = prim2cons(SVector(1.1, -0.2, 0, 0, 2.0), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
-    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 0.0, 0.0),
-                                                     equations)
-    dissipation_1d = dissipation_matrix_winters_etal(u_ll[[1, 2, 5]], u_rr[[1, 2, 5]],
-                                                     SVector(1.0),
-                                                     CompressibleEulerEquations1D(1.4))
+    u_ll=prim2cons(SVector(1, 0.1, 0, 0, 1.0), equations)
+    u_rr=prim2cons(SVector(1.1, -0.2, 0, 0, 2.0), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
+    dissipation_3d=dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 0.0, 0.0),
+                                                   equations)
+    dissipation_1d=dissipation_matrix_winters_etal(u_ll[[1, 2, 5]], u_rr[[1, 2, 5]],
+                                                   SVector(1.0),
+                                                   CompressibleEulerEquations1D(1.4))
     @test dissipation_3d[[1, 2, 5]] ≈ dissipation_1d
 
-    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0, 1.0), equations)
-    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0, 2.0), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
-    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0, 0.0),
-                                                     equations)
-    dissipation_2d = dissipation_matrix_winters_etal(u_ll[[1, 2, 3, 5]],
-                                                     u_rr[[1, 2, 3, 5]],
-                                                     SVector(1.0, 1.0),
-                                                     CompressibleEulerEquations2D(1.4))
+    u_ll=prim2cons(SVector(1, 0.1, 0.2, 0, 1.0), equations)
+    u_rr=prim2cons(SVector(1.1, -0.2, -0.3, 0, 2.0), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
+    dissipation_3d=dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0, 0.0),
+                                                   equations)
+    dissipation_2d=dissipation_matrix_winters_etal(u_ll[[1, 2, 3, 5]],
+                                                   u_rr[[1, 2, 3, 5]],
+                                                   SVector(1.0, 1.0),
+                                                   CompressibleEulerEquations2D(1.4))
     @test dissipation_3d[[1, 2, 3, 5]] ≈ dissipation_2d
 
     # test 3D entropy dissipation
-    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0.3, 1.0), equations)
-    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0.4, 2.0), equations)
-    v_ll = cons2entropy(u_ll, equations)
-    v_rr = cons2entropy(u_rr, equations)
-    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 2.0, 3.0),
-                                                     equations)
+    u_ll=prim2cons(SVector(1, 0.1, 0.2, 0.3, 1.0), equations)
+    u_rr=prim2cons(SVector(1.1, -0.2, -0.3, 0.4, 2.0), equations)
+    v_ll=cons2entropy(u_ll, equations)
+    v_rr=cons2entropy(u_rr, equations)
+    dissipation_3d=dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 2.0, 3.0),
+                                                   equations)
     @test dot(v_ll - v_rr, dissipation_3d) ≥ 0
 
     # test non-unit vector
-    normal_direction = SVector(1.0, 2.0, 3.0)
+    normal_direction=SVector(1.0, 2.0, 3.0)
     @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
           norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
                                           normal_direction / norm(normal_direction),
@@ -3004,52 +3001,52 @@ end
 end
 
 @testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    N = 3
+    N=3
 
-    NDIMS = 2
-    r, s = StartUpDG.nodes(Quad(), N)
-    V = StartUpDG.vandermonde(Quad(), N, r, s)
-    r1D = StartUpDG.nodes(Line(), N)
-    V1D = StartUpDG.vandermonde(Line(), N, r1D)
+    NDIMS=2
+    r, s=StartUpDG.nodes(Quad(), N)
+    V=StartUpDG.vandermonde(Quad(), N, r, s)
+    r1D=StartUpDG.nodes(Line(), N)
+    V1D=StartUpDG.vandermonde(Line(), N, r1D)
 
-    x = r + s
-    V_kron = Trixi.SimpleKronecker(NDIMS, V1D, eltype(x))
+    x=r+s
+    V_kron=Trixi.SimpleKronecker(NDIMS, V1D, eltype(x))
 
-    b = similar(x)
-    b_kron = similar(x)
+    b=similar(x)
+    b_kron=similar(x)
     Trixi.mul!(b, V, x)
     Trixi.mul!(b_kron, V_kron, x)
     @test b ≈ b_kron
 end
 
 @testitem "Unit: SummationByPartsOperators + StartUpDG" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
-                                   derivative_order = 1,
-                                   accuracy_order = 4,
-                                   xmin = 0.0, xmax = 1.0,
-                                   N = 10)
-    dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = D)
+    global D=derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                 derivative_order = 1,
+                                 accuracy_order = 4,
+                                 xmin = 0.0, xmax = 1.0,
+                                 N = 10)
+    dg=DGMulti(polydeg = 3, element_type = Quad(), approximation_type = D)
 
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
 end
 
 @testitem "Unit: 1D non-periodic DGMultiMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
-    dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
-                 surface_integral = SurfaceIntegralWeakForm(flux_central),
-                 volume_integral = VolumeIntegralFluxDifferencing(flux_central))
-    cells_per_dimension = (1,)
-    mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
+    dg=DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
+               surface_integral = SurfaceIntegralWeakForm(flux_central),
+               volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    cells_per_dimension=(1,)
+    mesh=DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
 @testitem "Unit: PERK Single p2 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    path_coeff_file = mktempdir()
+    path_coeff_file=mktempdir()
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
                    joinpath(path_coeff_file, "gamma_6.txt"))
 
-    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
+    ode_algorithm=Trixi.PairedExplicitRK2(6, path_coeff_file)
 
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.12405417889682908 0.07594582110317093
@@ -3060,9 +3057,9 @@ end
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
                    joinpath(path_coeff_file, "spectrum_2d.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
-    tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
+    eig_vals=readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
+    tspan=(0.0, 1.0)
+    ode_algorithm=Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.06453812656711647 0.02637096434197444
@@ -3078,11 +3075,11 @@ end
 end
 
 @testitem "Unit: PERK Single p3 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    path_coeff_file = mktempdir()
+    path_coeff_file=mktempdir()
     Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
                    joinpath(path_coeff_file, "a_8.txt"))
 
-    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
+    ode_algorithm=Trixi.PairedExplicitRK3(8, path_coeff_file)
 
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.33551678438002486 0.06448322158043965
@@ -3095,9 +3092,9 @@ end
     Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
                    joinpath(path_coeff_file, "spectrum.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
-    tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
+    eig_vals=readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    tspan=(0.0, 1.0)
+    ode_algorithm=Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
 
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.19121164778938382 0.008788355190848427
@@ -3114,13 +3111,13 @@ end
 end
 
 @testitem "Unit: PERK Single p4 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    path_coeff_file = mktempdir()
+    path_coeff_file=mktempdir()
     Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
                    joinpath(path_coeff_file, "spectrum.txt"))
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
-    tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
+    eig_vals=readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    tspan=(0.0, 1.0)
+    ode_algorithm=Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
 
     @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.9935765040401348 0.0064234959598652
@@ -3136,39 +3133,39 @@ end
 
 @testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     function mu(u, equations)
-        T_ref = 291.15
+        T_ref=291.15
 
-        R_specific_air = 287.052874
-        T = R_specific_air * Trixi.temperature(u, equations)
+        R_specific_air=287.052874
+        T=R_specific_air*Trixi.temperature(u, equations)
 
-        C_air = 120.0
-        mu_ref_air = 1.827e-5
+        C_air=120.0
+        mu_ref_air=1.827e-5
 
-        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
+        return mu_ref_air*(T_ref+C_air)/(T+C_air)*(T/T_ref)^1.5
     end
 
     function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
-        T = R_specific * Trixi.temperature(u, equations)
+        T=R_specific*Trixi.temperature(u, equations)
 
-        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+        return mu_ref*(T_ref+C)/(T+C)*(T/T_ref)^1.5
     end
 
     # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
-    T_ref = 291.15
-    C = 120.0 # Sutherland's constant
-    R_specific = 287.052874
-    mu_ref = 1.827e-5
+    T_ref=291.15
+    C=120.0 # Sutherland's constant
+    R_specific=287.052874
+    mu_ref=1.827e-5
     prandtl_number() = 0.72
-    gamma = 1.4
+    gamma=1.4
 
-    equations = CompressibleEulerEquations2D(gamma)
-    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                              Prandtl = prandtl_number())
+    equations=CompressibleEulerEquations2D(gamma)
+    equations_parabolic=CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                            Prandtl = prandtl_number())
     @test equations_parabolic.gamma == gamma
     @test :gamma in @inferred(propertynames(equations_parabolic))
 
     # Flow at rest
-    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+    u=prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
 
     # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
     @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
@@ -3176,11 +3173,11 @@ end
 end
 
 @testitem "Unit: Slope Limiters" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    sl = 1.0
-    sr = -1.0
+    sl=1.0
+    sr=-1.0
 
     # Test for code coverage
-    dummy = 42
+    dummy=42
     @test reconstruction_constant(dummy, sl, sr, dummy, dummy, dummy, dummy, dummy) ==
           (sl, sr)
 
@@ -3189,20 +3186,20 @@ end
     @test superbee(sl, sr) == 0.0
     @test vanleer(sl, sr) == 0.0
 
-    sr = 0.5
+    sr=0.5
     @test minmod(sl, sr) == 0.5
     @test monotonized_central(sl, sr) == 0.75
     @test superbee(sl, sr) == 1.0
     @test isapprox(vanleer(sl, sr), 2 / 3)
 
-    sl = -1.0
-    sr = 0.0
+    sl=-1.0
+    sr=0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
     @test vanleer(sl, sr) == 0.0
 
-    sr = -0.8
+    sr=-0.8
     @test minmod(sl, sr) == -0.8
     @test monotonized_central(sl, sr) == -0.9
     @test superbee(sl, sr) == -1.0
@@ -3214,8 +3211,8 @@ end
     @test superbee(sr, sl) == -1.0
     @test isapprox(vanleer(sr, sl), -8 / 9)
 
-    sl = 1.0
-    sr = 0.0
+    sl=1.0
+    sr=0.0
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
@@ -3226,23 +3223,23 @@ end
     # Test van Leer zero case
     @test vanleer(0.0, 0.0) == 0.0
 
-    sl = -1.0
-    sr = -2.0
+    sl=-1.0
+    sr=-2.0
     @test koren(sl, sr) == -5 / 3
     @test koren(sl, sr) == koren_flipped(sr, sl)
     @test koren_symmetric(sl, sr) == -4 / 3
 
-    sl = 0.0
+    sl=0.0
     @test koren(sl, sr) == 0.0
     @test koren(sl, sr) == koren_flipped(sr, sl)
     @test koren_symmetric(sl, sr) == 0.0
 
-    sr = 2.0
+    sr=2.0
     @test koren(sl, sr) == 0.0
     @test koren(sl, sr) == koren_flipped(sr, sl)
     @test koren_symmetric(sl, sr) == 0.0
 
-    sl = 1.0
+    sl=1.0
     @test koren(sl, sr) == 5 / 3
     @test koren(sl, sr) == koren_flipped(sr, sl)
     @test koren_symmetric(sl, sr) == 4 / 3
@@ -3250,25 +3247,25 @@ end
 
 # Velocity functions are present in many equations and are tested here
 @testitem "Unit: Velocity functions for different equations" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    gamma = 1.4
-    rho = pi * pi
-    pres = sqrt(pi)
-    v1, v2, v3 = pi, exp(1.0), exp(pi) # use pi, exp to test with non-trivial numbers
-    v_vector = SVector(v1, v2, v3)
-    normal_direction_2d = SVector(pi^2, pi^3)
-    normal_direction_3d = SVector(normal_direction_2d..., pi^4)
-    v_normal_1d = v1 * normal_direction_2d[1]
-    v_normal_2d = v1 * normal_direction_2d[1] + v2 * normal_direction_2d[2]
-    v_normal_3d = v_normal_2d + v3 * normal_direction_3d[3]
+    gamma=1.4
+    rho=pi*pi
+    pres=sqrt(pi)
+    v1, v2, v3=pi, exp(1.0), exp(pi) # use pi, exp to test with non-trivial numbers
+    v_vector=SVector(v1, v2, v3)
+    normal_direction_2d=SVector(pi^2, pi^3)
+    normal_direction_3d=SVector(normal_direction_2d..., pi^4)
+    v_normal_1d=v1*normal_direction_2d[1]
+    v_normal_2d=v1*normal_direction_2d[1]+v2*normal_direction_2d[2]
+    v_normal_3d=v_normal_2d+v3*normal_direction_3d[3]
 
-    equations_euler_1d = CompressibleEulerEquations1D(gamma)
-    u = prim2cons(SVector(rho, v1, pres), equations_euler_1d)
+    equations_euler_1d=CompressibleEulerEquations1D(gamma)
+    u=prim2cons(SVector(rho, v1, pres), equations_euler_1d)
     @test isapprox(velocity(u, equations_euler_1d), v1)
-    orientation = 1 # 1D only has one orientation
+    orientation=1 # 1D only has one orientation
     @test isapprox(velocity(u, orientation, equations_euler_1d), v1)
 
-    equations_euler_2d = CompressibleEulerEquations2D(gamma)
-    u = prim2cons(SVector(rho, v1, v2, pres), equations_euler_2d)
+    equations_euler_2d=CompressibleEulerEquations2D(gamma)
+    u=prim2cons(SVector(rho, v1, v2, pres), equations_euler_2d)
     @test isapprox(velocity(u, equations_euler_2d), SVector(v1, v2))
     @test isapprox(velocity(u, normal_direction_2d, equations_euler_2d), v_normal_2d)
     for orientation in 1:2
@@ -3276,8 +3273,8 @@ end
                        v_vector[orientation])
     end
 
-    equations_euler_3d = CompressibleEulerEquations3D(gamma)
-    u = prim2cons(SVector(rho, v1, v2, v3, pres), equations_euler_3d)
+    equations_euler_3d=CompressibleEulerEquations3D(gamma)
+    u=prim2cons(SVector(rho, v1, v2, v3, pres), equations_euler_3d)
     @test isapprox(velocity(u, equations_euler_3d), SVector(v1, v2, v3))
     @test isapprox(velocity(u, normal_direction_3d, equations_euler_3d), v_normal_3d)
     for orientation in 1:3
@@ -3285,18 +3282,18 @@ end
                        v_vector[orientation])
     end
 
-    rho1, rho2 = rho, rho * pi # use pi to test with non-trivial numbers
-    gammas = (gamma, exp(gamma))
-    gas_constants = (0.387, 1.678) # Standard numbers + 0.1
+    rho1, rho2=rho, rho*pi # use pi to test with non-trivial numbers
+    gammas=(gamma, exp(gamma))
+    gas_constants=(0.387, 1.678) # Standard numbers + 0.1
 
-    equations_multi_euler_1d = CompressibleEulerMulticomponentEquations1D(; gammas,
-                                                                          gas_constants)
-    u = prim2cons(SVector(v1, pres, rho1, rho2), equations_multi_euler_1d)
+    equations_multi_euler_1d=CompressibleEulerMulticomponentEquations1D(; gammas,
+                                                                        gas_constants)
+    u=prim2cons(SVector(v1, pres, rho1, rho2), equations_multi_euler_1d)
     @test isapprox(velocity(u, equations_multi_euler_1d), v1)
 
-    equations_multi_euler_2d = CompressibleEulerMulticomponentEquations2D(; gammas,
-                                                                          gas_constants)
-    u = prim2cons(SVector(v1, v2, pres, rho1, rho2), equations_multi_euler_2d)
+    equations_multi_euler_2d=CompressibleEulerMulticomponentEquations2D(; gammas,
+                                                                        gas_constants)
+    u=prim2cons(SVector(v1, v2, pres, rho1, rho2), equations_multi_euler_2d)
     @test isapprox(velocity(u, equations_multi_euler_2d), SVector(v1, v2))
     @test isapprox(velocity(u, normal_direction_2d, equations_multi_euler_2d),
                    v_normal_2d)
@@ -3305,13 +3302,13 @@ end
                        v_vector[orientation])
     end
 
-    kappa = 0.1 * pi # pi for non-trivial test
-    equations_polytropic = PolytropicEulerEquations2D(gamma, kappa)
-    u = prim2cons(SVector(rho, v1, v2), equations_polytropic)
+    kappa=0.1*pi # pi for non-trivial test
+    equations_polytropic=PolytropicEulerEquations2D(gamma, kappa)
+    u=prim2cons(SVector(rho, v1, v2), equations_polytropic)
     @test isapprox(velocity(u, equations_polytropic), SVector(v1, v2))
-    equations_polytropic = CompressibleEulerMulticomponentEquations2D(; gammas,
-                                                                      gas_constants)
-    u = prim2cons(SVector(v1, v2, pres, rho1, rho2), equations_polytropic)
+    equations_polytropic=CompressibleEulerMulticomponentEquations2D(; gammas,
+                                                                    gas_constants)
+    u=prim2cons(SVector(v1, v2, pres, rho1, rho2), equations_polytropic)
     @test isapprox(velocity(u, equations_polytropic), SVector(v1, v2))
     @test isapprox(velocity(u, normal_direction_2d, equations_polytropic), v_normal_2d)
     for orientation in 1:2
@@ -3319,19 +3316,19 @@ end
                        v_vector[orientation])
     end
 
-    B1, B2, B3 = pi^3, pi^4, pi^5
-    equations_ideal_mhd_1d = IdealGlmMhdEquations1D(gamma)
-    u = prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3), equations_ideal_mhd_1d)
+    B1, B2, B3=pi^3, pi^4, pi^5
+    equations_ideal_mhd_1d=IdealGlmMhdEquations1D(gamma)
+    u=prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3), equations_ideal_mhd_1d)
     @test isapprox(velocity(u, equations_ideal_mhd_1d), SVector(v1, v2, v3))
     for orientation in 1:3
         @test isapprox(velocity(u, orientation, equations_ideal_mhd_1d),
                        v_vector[orientation])
     end
 
-    psi = exp(0.1)
-    equations_ideal_mhd_2d = IdealGlmMhdEquations2D(gamma)
-    u = prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3, psi),
-                  equations_ideal_mhd_2d)
+    psi=exp(0.1)
+    equations_ideal_mhd_2d=IdealGlmMhdEquations2D(gamma)
+    u=prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3, psi),
+                equations_ideal_mhd_2d)
     @test isapprox(velocity(u, equations_ideal_mhd_2d), SVector(v1, v2, v3))
     @test isapprox(velocity(u, normal_direction_2d, equations_ideal_mhd_2d),
                    v_normal_2d)
@@ -3340,9 +3337,9 @@ end
                        v_vector[orientation])
     end
 
-    equations_ideal_mhd_3d = IdealGlmMhdEquations3D(gamma)
-    u = prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3, psi),
-                  equations_ideal_mhd_3d)
+    equations_ideal_mhd_3d=IdealGlmMhdEquations3D(gamma)
+    u=prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3, psi),
+                equations_ideal_mhd_3d)
     @test isapprox(velocity(u, equations_ideal_mhd_3d), SVector(v1, v2, v3))
     @test isapprox(velocity(u, normal_direction_3d, equations_ideal_mhd_3d),
                    v_normal_3d)
@@ -3360,23 +3357,23 @@ end
 # Ensure consistency for nonconservative fluxes used in the subcell-limiting. Specifically, test
 # that flux_noncons_local_structured = flux_noncons_local * flux_noncons_structured.
 @testitem "Unit: Nonconservative fluxes for subcell-limiting" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    equations = IdealGlmMhdEquations2D(1.4)
-    u_ll = SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0)
-    u_rr = SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)
+    equations=IdealGlmMhdEquations2D(1.4)
+    u_ll=SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0)
+    u_rr=SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)
 
     ## Tests for flux_nonconservative_powell_local_symmetric
     # Implementation for meshes with orientation
     for orientation in 1:2
-        flux_noncons = zero(u_ll)
+        flux_noncons=zero(u_ll)
         for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_symmetric)
-            flux_noncons += flux_nonconservative_powell_local_symmetric(u_ll, 1,
-                                                                        equations,
-                                                                        Trixi.NonConservativeLocal(),
-                                                                        noncons) .*
-                            flux_nonconservative_powell_local_symmetric(u_ll, u_rr, 1,
-                                                                        equations,
-                                                                        Trixi.NonConservativeSymmetric(),
-                                                                        noncons)
+            flux_noncons+=flux_nonconservative_powell_local_symmetric(u_ll, 1,
+                                                                      equations,
+                                                                      Trixi.NonConservativeLocal(),
+                                                                      noncons) .*
+                          flux_nonconservative_powell_local_symmetric(u_ll, u_rr, 1,
+                                                                      equations,
+                                                                      Trixi.NonConservativeSymmetric(),
+                                                                      noncons)
         end
 
         @test flux_noncons ≈
@@ -3386,18 +3383,18 @@ end
     # Implementation for meshes with normal_direction
     for (orientation, normal_direction) in enumerate((SVector(1.0, 0.0),
                                                       SVector(0.0, 1.0)))
-        flux_noncons = zero(u_ll)
+        flux_noncons=zero(u_ll)
         for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_symmetric)
-            flux_noncons += flux_nonconservative_powell_local_symmetric(u_ll,
-                                                                        normal_direction,
-                                                                        equations,
-                                                                        Trixi.NonConservativeLocal(),
-                                                                        noncons) .*
-                            flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
-                                                                        normal_direction,
-                                                                        equations,
-                                                                        Trixi.NonConservativeSymmetric(),
-                                                                        noncons)
+            flux_noncons+=flux_nonconservative_powell_local_symmetric(u_ll,
+                                                                      normal_direction,
+                                                                      equations,
+                                                                      Trixi.NonConservativeLocal(),
+                                                                      noncons) .*
+                          flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                                      normal_direction,
+                                                                      equations,
+                                                                      Trixi.NonConservativeSymmetric(),
+                                                                      noncons)
         end
 
         @test flux_noncons ≈
@@ -3411,15 +3408,15 @@ end
     ## Tests for flux_nonconservative_powell_local_jump
     # Implementation for meshes with orientation
     for orientation in 1:2
-        flux_noncons = zero(u_ll)
+        flux_noncons=zero(u_ll)
         for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_jump)
-            flux_noncons += flux_nonconservative_powell_local_jump(u_ll, 1, equations,
-                                                                   Trixi.NonConservativeLocal(),
-                                                                   noncons) .*
-                            flux_nonconservative_powell_local_jump(u_ll, u_rr, 1,
-                                                                   equations,
-                                                                   Trixi.NonConservativeJump(),
-                                                                   noncons)
+            flux_noncons+=flux_nonconservative_powell_local_jump(u_ll, 1, equations,
+                                                                 Trixi.NonConservativeLocal(),
+                                                                 noncons) .*
+                          flux_nonconservative_powell_local_jump(u_ll, u_rr, 1,
+                                                                 equations,
+                                                                 Trixi.NonConservativeJump(),
+                                                                 noncons)
         end
 
         @test flux_noncons ≈
@@ -3429,18 +3426,18 @@ end
     # Implementation for meshes with normal_direction
     for (orientation, normal_direction) in enumerate((SVector(1.0, 0.0),
                                                       SVector(0.0, 1.0)))
-        flux_noncons = zero(u_ll)
+        flux_noncons=zero(u_ll)
         for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_jump)
-            flux_noncons += flux_nonconservative_powell_local_jump(u_ll,
-                                                                   normal_direction,
-                                                                   equations,
-                                                                   Trixi.NonConservativeLocal(),
-                                                                   noncons) .*
-                            flux_nonconservative_powell_local_jump(u_ll, u_rr,
-                                                                   normal_direction,
-                                                                   equations,
-                                                                   Trixi.NonConservativeJump(),
-                                                                   noncons)
+            flux_noncons+=flux_nonconservative_powell_local_jump(u_ll,
+                                                                 normal_direction,
+                                                                 equations,
+                                                                 Trixi.NonConservativeLocal(),
+                                                                 noncons) .*
+                          flux_nonconservative_powell_local_jump(u_ll, u_rr,
+                                                                 normal_direction,
+                                                                 equations,
+                                                                 Trixi.NonConservativeJump(),
+                                                                 noncons)
         end
 
         @test flux_noncons ≈
@@ -3456,82 +3453,82 @@ end
     ###############################################################################
     ### equations, solver, mesh ###
 
-    advection_velocities = (0.2, -0.7)
-    equations = LinearScalarAdvectionEquation2D(advection_velocities)
+    advection_velocities=(0.2, -0.7)
+    equations=LinearScalarAdvectionEquation2D(advection_velocities)
 
-    float_type = Float64 # Datatype for the actual simulation
-    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = float_type)
+    float_type=Float64 # Datatype for the actual simulation
+    solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs, RealT = float_type)
 
-    coordinates_min = (-1.0, -1.0)
-    coordinates_max = (1.0, 1.0)
+    coordinates_min=(-1.0, -1.0)
+    coordinates_max=(1.0, 1.0)
 
-    mesh = TreeMesh(coordinates_min, coordinates_max,
-                    initial_refinement_level = 4,
-                    n_cells_max = 30_000,
-                    periodicity = true)
+    mesh=TreeMesh(coordinates_min, coordinates_max,
+                  initial_refinement_level = 4,
+                  n_cells_max = 30_000,
+                  periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
 
-    jac_detector = TracerSparsityDetector()
+    jac_detector=TracerSparsityDetector()
     # We need to construct the semidiscretization with the correct
     # sparsity-detection ready datatype, which is retrieved here
-    jac_eltype = jacobian_eltype(float_type, jac_detector)
+    jac_eltype=jacobian_eltype(float_type, jac_detector)
 
     # Semidiscretization for sparsity pattern detection
-    semi_jac_type = SemidiscretizationHyperbolic(mesh, equations,
-                                                 initial_condition_convergence_test,
-                                                 solver;
-                                                 boundary_conditions = boundary_condition_periodic,
-                                                 uEltype = jac_eltype) # Need to supply Jacobian element type
+    semi_jac_type=SemidiscretizationHyperbolic(mesh, equations,
+                                               initial_condition_convergence_test,
+                                               solver;
+                                               boundary_conditions = boundary_condition_periodic,
+                                               uEltype = jac_eltype) # Need to supply Jacobian element type
 
-    tspan = (0.0, 1.0) # Re-used for wrapping `rhs` below
+    tspan=(0.0, 1.0) # Re-used for wrapping `rhs` below
 
     # Call `semidiscretize` to create the ODE problem to have access to the
     # initial condition based on which the sparsity pattern is computed
-    ode_jac_type = semidiscretize(semi_jac_type, tspan)
-    u0_ode = ode_jac_type.u0
-    du_ode = similar(u0_ode)
+    ode_jac_type=semidiscretize(semi_jac_type, tspan)
+    u0_ode=ode_jac_type.u0
+    du_ode=similar(u0_ode)
 
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
 
     # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                   tspan[1])
+    rhs_jac_type!=(du_ode, u0_ode)->Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+                                               tspan[1])
 
-    jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
+    jac_prototype=jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
-    coloring_prob = ColoringProblem(; structure = :nonsymmetric, partition = :column)
-    coloring_alg = GreedyColoringAlgorithm(; decompression = :direct)
-    coloring_result = coloring(jac_prototype, coloring_prob, coloring_alg)
-    coloring_vec = column_colors(coloring_result)
+    coloring_prob=ColoringProblem(; structure = :nonsymmetric, partition = :column)
+    coloring_alg=GreedyColoringAlgorithm(; decompression = :direct)
+    coloring_result=coloring(jac_prototype, coloring_prob, coloring_alg)
+    coloring_vec=column_colors(coloring_result)
 
     ###############################################################################
     ### float-type semidiscretization ###
 
-    semi_float_type = SemidiscretizationHyperbolic(mesh, equations,
-                                                   initial_condition_convergence_test,
-                                                   solver;
-                                                   boundary_conditions = boundary_condition_periodic)
+    semi_float_type=SemidiscretizationHyperbolic(mesh, equations,
+                                                 initial_condition_convergence_test,
+                                                 solver;
+                                                 boundary_conditions = boundary_condition_periodic)
 
-    ode_float_type = semidiscretize(semi_float_type, tspan)
-    u0_ode = ode_float_type.u0
-    du_ode = similar(u0_ode)
-    N = length(u0_ode)
+    ode_float_type=semidiscretize(semi_float_type, tspan)
+    u0_ode=ode_float_type.u0
+    du_ode=similar(u0_ode)
+    N=length(u0_ode)
 
-    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     tspan[1])
+    rhs_float_type!=(du_ode, u0_ode)->Trixi.rhs!(du_ode, u0_ode, semi_float_type,
+                                                 tspan[1])
 
     ###############################################################################
     ### sparsity-aware finite diff ###
 
-    jac_sparse_finite_diff = spzeros(N, N)
+    jac_sparse_finite_diff=spzeros(N, N)
     finite_difference_jacobian!(jac_sparse_finite_diff, rhs_float_type!,
                                 u0_ode, sparsity = jac_prototype,
                                 colorvec = coloring_vec)
 
-    jac_finite_diff = jacobian_fd(semi_float_type)
+    jac_finite_diff=jacobian_fd(semi_float_type)
 
     @test isapprox(jac_finite_diff, jac_sparse_finite_diff; rtol = 5e-8)
     @test isapprox(jac_finite_diff, Matrix(jac_sparse_finite_diff); rtol = 5e-8)
@@ -3543,7 +3540,7 @@ end
     # Poor-mans rebuild of `SplitODEProblem` from SciML
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
-        du_para = similar(du_ode) # This obviously allocates, but fine for this test
+        du_para=similar(du_ode) # This obviously allocates, but fine for this test
         Trixi.rhs!(du_ode, u_ode, semi, t)
         Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
@@ -3556,46 +3553,46 @@ end
     ###############################################################################
     ### equations, solver, mesh ###
 
-    advection_velocity = 1.5
-    equations_hyperbolic = LinearScalarAdvectionEquation1D(advection_velocity)
+    advection_velocity=1.5
+    equations_hyperbolic=LinearScalarAdvectionEquation1D(advection_velocity)
     diffusivity() = 5.0e-2
-    equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations_hyperbolic)
+    equations_parabolic=LaplaceDiffusion1D(diffusivity(), equations_hyperbolic)
 
-    solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+    solver=DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-    coordinates_min = -1.0
-    coordinates_max = 1.0
+    coordinates_min=-1.0
+    coordinates_max=1.0
 
-    mesh = TreeMesh(coordinates_min, coordinates_max,
-                    initial_refinement_level = 4,
-                    n_cells_max = 30_000,
-                    periodicity = true)
+    mesh=TreeMesh(coordinates_min, coordinates_max,
+                  initial_refinement_level = 4,
+                  n_cells_max = 30_000,
+                  periodicity = true)
 
     ###############################################################################
     ### semidiscretization for sparsity detection ###
 
-    jac_detector = TracerSparsityDetector()
+    jac_detector=TracerSparsityDetector()
     # We need to construct the semidiscretization with the correct
     # sparsity-detection ready datatype, which is retrieved here
-    jac_eltype = jacobian_eltype(real(solver), jac_detector)
+    jac_eltype=jacobian_eltype(real(solver), jac_detector)
 
     # Semidiscretization for sparsity pattern detection
-    semi_jac_type = SemidiscretizationHyperbolicParabolic(mesh,
-                                                          (equations_hyperbolic,
-                                                           equations_parabolic),
-                                                          initial_condition_convergence_test,
-                                                          solver;
-                                                          boundary_conditions = (boundary_condition_periodic,
-                                                                                 boundary_condition_periodic),
-                                                          uEltype = jac_eltype) # Need to supply Jacobian element type
+    semi_jac_type=SemidiscretizationHyperbolicParabolic(mesh,
+                                                        (equations_hyperbolic,
+                                                         equations_parabolic),
+                                                        initial_condition_convergence_test,
+                                                        solver;
+                                                        boundary_conditions = (boundary_condition_periodic,
+                                                                               boundary_condition_periodic),
+                                                        uEltype = jac_eltype) # Need to supply Jacobian element type
 
-    tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
+    tspan=(0.0, 1.5) # Re-used for wrapping `rhs` below
 
     # Call `semidiscretize` to create the ODE problem to have access to the
     # initial condition based on which the sparsity pattern is computed
-    ode_jac_type = semidiscretize(semi_jac_type, tspan)
-    u0_ode = ode_jac_type.u0
-    du_ode = similar(u0_ode)
+    ode_jac_type=semidiscretize(semi_jac_type, tspan)
+    u0_ode=ode_jac_type.u0
+    du_ode=similar(u0_ode)
 
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
@@ -3609,27 +3606,27 @@ end
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
-                                                                      u0_ode,
-                                                                      semi_jac_type,
-                                                                      tspan[1])
+    rhs_parabolic_wrapped!=(du_ode, u0_ode)->Trixi.rhs_parabolic!(du_ode,
+                                                                  u0_ode,
+                                                                  semi_jac_type,
+                                                                  tspan[1])
 
-    jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!,
-                                                du_ode, u0_ode,
-                                                jac_detector)
+    jac_prototype_parabolic=jacobian_sparsity(rhs_parabolic_wrapped!,
+                                              du_ode, u0_ode,
+                                              jac_detector)
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
     ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
 
-    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
-                                                                          u0_ode,
-                                                                          semi_jac_type,
-                                                                          tspan[1])
+    rhs_hyp_para_wrapped!=(du_ode, u0_ode)->rhs_hyperbolic_parabolic!(du_ode,
+                                                                      u0_ode,
+                                                                      semi_jac_type,
+                                                                      tspan[1])
 
-    jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
-                                                           du_ode, u0_ode,
-                                                           jac_detector)
+    jac_prototype_hyperbolic_parabolic=jacobian_sparsity(rhs_hyp_para_wrapped!,
+                                                         du_ode, u0_ode,
+                                                         jac_detector)
 
     # Given that the stencil for the BR1 parabolic solver is for the DGSEM always larger than that of a hyperbolic solver,
     # the sparsity pattern of the parabolic part of a hyperbolic-parabolic problem always includes the hyperbolic one
@@ -3640,18 +3637,18 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    solver = DGSEM(polydeg = 1)
-    ic = initial_condition_convergence_test
-    bc = boundary_condition_periodic
-    bc_dn = boundary_condition_do_nothing
+    solver=DGSEM(polydeg = 1)
+    ic=initial_condition_convergence_test
+    bc=boundary_condition_periodic
+    bc_dn=boundary_condition_do_nothing
     # 1D
-    eq1d = LinearScalarAdvectionEquation1D(1.0)
-    tree_mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
-    structured_mesh1d_periodic = StructuredMesh((4,), (-1.0,), (1.0,),
-                                                periodicity = true)
+    eq1d=LinearScalarAdvectionEquation1D(1.0)
+    tree_mesh1d_periodic=TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
+                                  n_cells_max = 10, periodicity = true)
+    structured_mesh1d_periodic=StructuredMesh((4,), (-1.0,), (1.0,),
+                                              periodicity = true)
     for mesh1d_periodic in (tree_mesh1d_periodic,
-                            structured_mesh1d_periodic)
+        structured_mesh1d_periodic)
         # Passing Tuples and arrays is not allowed
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh1d_periodic, eq1d,
                                                                 ic, solver;
@@ -3682,12 +3679,12 @@ end
                                                                                         y_pos = bc))
     end
     # non-periodic mesh
-    tree_mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
-    structured_mesh1d_nonperiodic = StructuredMesh((4,), (-1.0,), (1.0,),
-                                                   periodicity = false)
+    tree_mesh1d_nonperiodic=TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
+                                     n_cells_max = 10, periodicity = false)
+    structured_mesh1d_nonperiodic=StructuredMesh((4,), (-1.0,), (1.0,),
+                                                 periodicity = false)
     for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
-                               structured_mesh1d_nonperiodic)
+        structured_mesh1d_nonperiodic)
         @test_nowarn SemidiscretizationHyperbolic(mesh1d_nonperiodic,
                                                   eq1d, ic, solver;
                                                   boundary_conditions = (;
@@ -3709,14 +3706,14 @@ end
                                                                                        x_neg = bc_dn,))
     end
     # 2D
-    eq2d = LinearScalarAdvectionEquation2D((1.0, -1.0))
-    tree_mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
-                                    initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
-    structured_mesh2d_periodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
-                                                periodicity = true)
+    eq2d=LinearScalarAdvectionEquation2D((1.0, -1.0))
+    tree_mesh2d_periodic=TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                  initial_refinement_level = 1,
+                                  n_cells_max = 10, periodicity = true)
+    structured_mesh2d_periodic=StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
+                                              periodicity = true)
     for mesh2d_periodic in (tree_mesh2d_periodic,
-                            structured_mesh2d_periodic)
+        structured_mesh2d_periodic)
         # Passing Tuples and arrays is not allowed
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh2d_periodic, eq2d,
                                                                 ic, solver;
@@ -3756,13 +3753,13 @@ end
                                                                                         z_pos = bc))
     end
     # non-periodic mesh
-    tree_mesh2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
-                                       initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
-    structured_mesh2d_nonperiodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
-                                                   periodicity = false)
+    tree_mesh2d_nonperiodic=TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                     initial_refinement_level = 1,
+                                     n_cells_max = 10, periodicity = false)
+    structured_mesh2d_nonperiodic=StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
+                                                 periodicity = false)
     for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
-                               structured_mesh2d_nonperiodic)
+        structured_mesh2d_nonperiodic)
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_nonperiodic,
                                                   eq2d, ic, solver;
                                                   boundary_conditions = (;
@@ -3790,15 +3787,15 @@ end
                                                                                        y_neg = bc_dn))
     end
     # partially periodic
-    tree_mesh2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
-                                            initial_refinement_level = 1,
-                                            n_cells_max = 10,
-                                            periodicity = (true, false))
-    structured_mesh2d_partial_periodic = StructuredMesh((4, 4), (-1.0, -1.0),
-                                                        (1.0, 1.0),
-                                                        periodicity = (true, false))
+    tree_mesh2d_partial_periodic=TreeMesh((-1.0, -1.0), (1.0, 1.0),
+                                          initial_refinement_level = 1,
+                                          n_cells_max = 10,
+                                          periodicity = (true, false))
+    structured_mesh2d_partial_periodic=StructuredMesh((4, 4), (-1.0, -1.0),
+                                                      (1.0, 1.0),
+                                                      periodicity = (true, false))
     for mesh2d_partial_periodic in (tree_mesh2d_partial_periodic,
-                                    structured_mesh2d_partial_periodic)
+        structured_mesh2d_partial_periodic)
         # Specifying all boundary conditions is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh2d_partial_periodic,
                                                   eq2d, ic, solver;
@@ -3830,15 +3827,15 @@ end
                                                                                        y_pos = bc_dn))
     end
     # 3D
-    eq3d = LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
-    tree_mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
-                                    initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
-    structured_mesh3d_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
-                                                (1.0, 1.0, 1.0),
-                                                periodicity = true)
+    eq3d=LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
+    tree_mesh3d_periodic=TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                  initial_refinement_level = 1,
+                                  n_cells_max = 10, periodicity = true)
+    structured_mesh3d_periodic=StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
+                                              (1.0, 1.0, 1.0),
+                                              periodicity = true)
     for mesh3d_periodic in (tree_mesh3d_periodic,
-                            structured_mesh3d_periodic)
+        structured_mesh3d_periodic)
         # Passing Tuples and arrays is not allowed
         @test_throws ArgumentError SemidiscretizationHyperbolic(mesh3d_periodic, eq3d,
                                                                 ic, solver;
@@ -3885,14 +3882,14 @@ end
                                                                                         pos = bc))
     end
     # non-periodic mesh
-    tree_mesh3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
-                                       initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
-    structured_mesh3d_nonperiodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
-                                                   (1.0, 1.0, 1.0),
-                                                   periodicity = false)
+    tree_mesh3d_nonperiodic=TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                     initial_refinement_level = 1,
+                                     n_cells_max = 10, periodicity = false)
+    structured_mesh3d_nonperiodic=StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
+                                                 (1.0, 1.0, 1.0),
+                                                 periodicity = false)
     for mesh3d_nonperiodic in (tree_mesh3d_nonperiodic,
-                               structured_mesh3d_nonperiodic)
+        structured_mesh3d_nonperiodic)
         # Passing all non-periodic boundary conditions for non-periodic mesh is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_nonperiodic,
                                                   eq3d, ic, solver;
@@ -3927,16 +3924,16 @@ end
                                                                                        z_neg = bc_dn))
     end
     # partially periodic
-    tree_mesh3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
-                                            initial_refinement_level = 1,
-                                            n_cells_max = 10,
-                                            periodicity = (false, true, true))
-    structured_mesh3d_partial_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
-                                                        (1.0, 1.0, 1.0),
-                                                        periodicity = (false, true,
-                                                                       true))
+    tree_mesh3d_partial_periodic=TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
+                                          initial_refinement_level = 1,
+                                          n_cells_max = 10,
+                                          periodicity = (false, true, true))
+    structured_mesh3d_partial_periodic=StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
+                                                      (1.0, 1.0, 1.0),
+                                                      periodicity = (false, true,
+                                                                     true))
     for mesh3d_partial_periodic in (tree_mesh3d_partial_periodic,
-                                    structured_mesh3d_partial_periodic)
+        structured_mesh3d_partial_periodic)
         # Specifying all boundary conditions is allowed
         @test_nowarn SemidiscretizationHyperbolic(mesh3d_partial_periodic,
                                                   eq3d, ic, solver;
@@ -3977,38 +3974,38 @@ end
     Setup,
     UnitTests
 ] tags=[:misc_part1] begin
-    gamma = 1004 / 717
-    equations = CompressibleEulerEquations2D(gamma)
+    gamma=1004/717
+    equations=CompressibleEulerEquations2D(gamma)
 
-    polydeg = 2
-    basis = LobattoLegendreBasis(polydeg)
+    polydeg=2
+    basis=LobattoLegendreBasis(polydeg)
 
-    volume_integral_explicit = VolumeIntegralFluxDifferencing(flux_ranocha)
-    solver_explicit = DGSEM(basis, flux_ranocha, volume_integral_explicit)
+    volume_integral_explicit=VolumeIntegralFluxDifferencing(flux_ranocha)
+    solver_explicit=DGSEM(basis, flux_ranocha, volume_integral_explicit)
 
-    volume_integral_implicit = VolumeIntegralFluxDifferencing(flux_ranocha)
-    solver_implicit = DGSEM(basis, flux_ranocha, volume_integral_implicit)
+    volume_integral_implicit=VolumeIntegralFluxDifferencing(flux_ranocha)
+    solver_implicit=DGSEM(basis, flux_ranocha, volume_integral_implicit)
 
-    coordinates_min = (0.0, 0.0)
-    coordinates_max = (20_000.0, 10_000.0)
-    trees_per_dimension = (16, 8)
-    mesh = P4estMesh(trees_per_dimension; polydeg = polydeg,
-                     coordinates_min = coordinates_min,
-                     coordinates_max = coordinates_max,
-                     periodicity = (true, false), initial_refinement_level = 0)
+    coordinates_min=(0.0, 0.0)
+    coordinates_max=(20_000.0, 10_000.0)
+    trees_per_dimension=(16, 8)
+    mesh=P4estMesh(trees_per_dimension; polydeg = polydeg,
+                   coordinates_min = coordinates_min,
+                   coordinates_max = coordinates_max,
+                   periodicity = (true, false), initial_refinement_level = 0)
 
-    boundary_conditions = (; y_neg = boundary_condition_slip_wall,
-                           y_pos = boundary_condition_slip_wall)
+    boundary_conditions=(; y_neg = boundary_condition_slip_wall,
+                         y_pos = boundary_condition_slip_wall)
 
-    initial_condition = initial_condition_convergence_test
+    initial_condition=initial_condition_convergence_test
 
-    semi = SemidiscretizationHyperbolicSplit(mesh,
-                                             (equations, equations),
-                                             initial_condition,
-                                             (solver_implicit, solver_explicit);
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions),
-                                             source_terms = (nothing, nothing),)
+    semi=SemidiscretizationHyperbolicSplit(mesh,
+                                           (equations, equations),
+                                           initial_condition,
+                                           (solver_implicit, solver_explicit);
+                                           boundary_conditions = (boundary_conditions,
+                                                                  boundary_conditions),
+                                           source_terms = (nothing, nothing))
 
     @test Trixi.ndims(semi) == 2
 end
@@ -4018,23 +4015,23 @@ end
     UnitTests
 ] tags=[:misc_part1] begin
     # 1D: keyword interface (2^2 = 4 cells per dimension)
-    mesh_1d_ref = StructuredMesh((4,), (-1.0,), (1.0,))
-    mesh_1d_kw = StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),
-                                refinement_level = 2)
+    mesh_1d_ref=StructuredMesh((4,), (-1.0,), (1.0,))
+    mesh_1d_kw=StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                              refinement_level = 2)
     @test mesh_1d_ref.cells_per_dimension == mesh_1d_kw.cells_per_dimension
 
     # 2D: keyword interface
-    mesh_2d_ref = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
-    mesh_2d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0),
-                                coordinates_max = (1.0, 1.0),
-                                refinement_level = 2)
+    mesh_2d_ref=StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
+    mesh_2d_kw=StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                              coordinates_max = (1.0, 1.0),
+                              refinement_level = 2)
     @test mesh_2d_ref.cells_per_dimension == mesh_2d_kw.cells_per_dimension
 
     # 3D: keyword interface
-    mesh_3d_ref = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
-    mesh_3d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0, -1.0),
-                                coordinates_max = (1.0, 1.0, 1.0),
-                                refinement_level = 2)
+    mesh_3d_ref=StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
+    mesh_3d_kw=StructuredMesh(; coordinates_min = (-1.0, -1.0, -1.0),
+                              coordinates_max = (1.0, 1.0, 1.0),
+                              refinement_level = 2)
     @test mesh_3d_ref.cells_per_dimension == mesh_3d_kw.cells_per_dimension
     @test_throws ArgumentError StructuredMesh(; coordinates_min = (-1.0, -1.0),
                                               coordinates_max = (1.0, 1.0, 1.0),
@@ -4042,26 +4039,26 @@ end
 end
 
 @testitem "Unit: Unified mesh constructor signatures (DGMultiMesh)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    dg_1d = DGMulti(polydeg = 2, element_type = Line(),
-                    approximation_type = Polynomial(),
-                    surface_integral = SurfaceIntegralWeakForm(flux_central),
-                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    dg_1d=DGMulti(polydeg = 2, element_type = Line(),
+                  approximation_type = Polynomial(),
+                  surface_integral = SurfaceIntegralWeakForm(flux_central),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
     # 1D: keyword interface (2^2 = 4 elements)
-    mesh_1d_ref = DGMultiMesh(dg_1d, (4,))
-    mesh_1d_kw = DGMultiMesh(dg_1d; coordinates_min = (-1.0,), coordinates_max = (1.0,),
-                             refinement_level = 2)
+    mesh_1d_ref=DGMultiMesh(dg_1d, (4,))
+    mesh_1d_kw=DGMultiMesh(dg_1d; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                           refinement_level = 2)
     @test mesh_1d_ref.md.num_elements == mesh_1d_kw.md.num_elements
 
-    dg_2d = DGMulti(polydeg = 2, element_type = Quad(),
-                    approximation_type = Polynomial(),
-                    surface_integral = SurfaceIntegralWeakForm(flux_central),
-                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+    dg_2d=DGMulti(polydeg = 2, element_type = Quad(),
+                  approximation_type = Polynomial(),
+                  surface_integral = SurfaceIntegralWeakForm(flux_central),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
     # 2D: keyword interface
-    mesh_2d_ref = DGMultiMesh(dg_2d, (4, 4))
-    mesh_2d_kw = DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
-                             coordinates_max = (1.0, 1.0), refinement_level = 2)
+    mesh_2d_ref=DGMultiMesh(dg_2d, (4, 4))
+    mesh_2d_kw=DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0), refinement_level = 2)
     @test mesh_2d_ref.md.num_elements == mesh_2d_kw.md.num_elements
     @test_throws ArgumentError DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
                                            coordinates_max = (1.0, 1.0, 1.0),
@@ -4070,9 +4067,9 @@ end
 
 @testitem "Unit: TreeMesh without n_cells_max" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
-        coords_min = ntuple(_ -> -1.0, NDIMS)
-        coords_max = ntuple(_ -> 1.0, NDIMS)
-        mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        coords_min=ntuple(_->-1.0, NDIMS)
+        coords_max=ntuple(_->1.0, NDIMS)
+        mesh=TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
         @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
         @test mesh.tree.capacity >= mesh.tree.length
     end
@@ -4080,24 +4077,24 @@ end
 
 @testitem "Unit: TreeMesh auto-growth matches large-capacity tree" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:2
-        coords_min = ntuple(_ -> -1.0, NDIMS)
-        coords_max = ntuple(_ -> 1.0, NDIMS)
+        coords_min=ntuple(_->-1.0, NDIMS)
+        coords_max=ntuple(_->1.0, NDIMS)
 
         # Reference: large capacity, no growth needed
-        mesh_ref = TreeMesh(coords_min, coords_max;
-                            n_cells_max = 10_000,
-                            initial_refinement_level = 3)
+        mesh_ref=TreeMesh(coords_min, coords_max;
+                          n_cells_max = 10_000,
+                          initial_refinement_level = 3)
         # Test: starts tiny, must grow during construction and again during AMR
-        mesh_small = TreeMesh(coords_min, coords_max;
-                              n_cells_max = 2,
-                              initial_refinement_level = 3)
+        mesh_small=TreeMesh(coords_min, coords_max;
+                            n_cells_max = 2,
+                            initial_refinement_level = 3)
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
         Trixi.refine!(mesh_small.tree)
 
-        tr = mesh_ref.tree
-        ts = mesh_small.tree
+        tr=mesh_ref.tree
+        ts=mesh_small.tree
 
         @test ts.length == tr.length
         @test ts.capacity >= ts.length
@@ -4235,10 +4232,10 @@ end
                                                                     Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic) == 1.0
+        @test temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion1D(equations,
@@ -4262,10 +4259,10 @@ end
                                                                     Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic) == 1.0
+        @test temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion2D(equations,
@@ -4289,10 +4286,10 @@ end
                                                                     Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic) == 1.0
+        @test temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion3D(equations,

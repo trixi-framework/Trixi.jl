@@ -104,7 +104,7 @@ end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             R=1, mu, Prandtl,
+                                             R = 1, mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
