@@ -45,6 +45,14 @@ end
           jump_entropy_potential_x
     @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 2, equations)) ≈
           jump_entropy_potential_y
+
+    normal_directions = [SVector(1.0, 0.0), SVector(0.0, 1.0)]
+    for (orientation, normal_direction) in enumerate(normal_directions)
+        for u in (u_ll, u_rr)
+            @test entropy_potential(u, normal_direction, equations) ≈
+                  entropy_potential(u, orientation, equations)
+        end
+    end
 end
 
 # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
