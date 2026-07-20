@@ -851,7 +851,7 @@ end
     return help1 / help2
 end
 
-# v should be a scalar velocity (i.e., v1 or v2)
+# `v` should be a scalar velocity component (i.e., `v1` or `v2`)
 @inline function partial_momenta(u, v,
                                  equations::IdealGlmMhdMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 8] * v
