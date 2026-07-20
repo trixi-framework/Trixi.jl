@@ -4242,8 +4242,8 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion1D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
+                                                                  mu = mu_ref,
+                                                                  Prandtl = prandtl_number())
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test temperature(u_cons, equations_parabolic) == 0.5
@@ -4269,8 +4269,8 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion2D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
+                                                                  mu = mu_ref,
+                                                                  Prandtl = prandtl_number())
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test temperature(u_cons, equations_parabolic) == 0.5
@@ -4296,8 +4296,8 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion3D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
+                                                                  mu = mu_ref,
+                                                                  Prandtl = prandtl_number())
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test temperature(u_cons, equations_parabolic) == 0.5
