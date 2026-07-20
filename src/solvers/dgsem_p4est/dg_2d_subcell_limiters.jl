@@ -180,7 +180,7 @@ end
             i_small += i_small_step
             j_small += j_small_step
 
-            i_mortar = iszero(i_small_step) ? j_small : i_small
+            i_mortar = get_mortar_index(small_direction, i_small, j_small)
 
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
@@ -197,7 +197,7 @@ end
                     i_large += i_large_step
                     j_large += j_large_step
 
-                    j_mortar = iszero(i_large_step) ? j_large : i_large
+                    j_mortar = get_mortar_index(large_direction, i_large, j_large)
 
                     weight = mortar_weights[j_mortar, i_mortar, small_element_index]
                     !iszero(weight) || continue
@@ -428,7 +428,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
         j_small = j_small_start
         # Calculate fluxes
         for i in eachnode(dg)
-            i_mortar = iszero(i_small_step) ? j_small : i_small
+            i_mortar = get_mortar_index(small_direction, i_small, j_small)
 
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
@@ -446,7 +446,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                 i_large = i_large_start
                 j_large = j_large_start
                 for j in eachnode(dg)
-                    j_mortar = iszero(i_large_step) ? j_large : i_large
+                    j_mortar = get_mortar_index(large_direction, i_large, j_large)
 
                     factor = mortar_weights[j_mortar, i_mortar, small_element_index]
                     if !isapprox(factor, zero(typeof(factor)))

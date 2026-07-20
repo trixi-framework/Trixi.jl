@@ -5,6 +5,14 @@
 @muladd begin
 #! format: noindent
 
+@inline function get_mortar_index(direction, i, j)
+    if direction == 1 || direction == 2
+        return j
+    else # direction == 3 || direction == 4
+        return i
+    end
+end
+
 function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                          semi, mesh::P4estMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
@@ -86,12 +94,14 @@ end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
 
         large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
@@ -102,8 +112,8 @@ end
         i_large = i_large_start
         j_large = j_large_start
         for i in eachnode(dg)
-            i_mortar_s = iszero(i_small_step) ? j_small : i_small
-            i_mortar_l = iszero(i_large_step) ? j_large : i_large
+            i_mortar_s = get_mortar_index(small_direction, i_small, j_small)
+            i_mortar_l = get_mortar_index(large_direction, i_large, j_large)
 
             var_lower = u[variable, i_small, j_small, lower_element]
             var_upper = u[variable, i_small, j_small, upper_element]
@@ -114,8 +124,10 @@ end
             i_large_inner = i_large_start
             j_large_inner = j_large_start
             for j in eachnode(dg)
-                j_mortar_s = iszero(i_small_step) ? j_small_inner : i_small_inner
-                j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
+                j_mortar_s = get_mortar_index(small_direction,
+                                              i_small_inner, j_small_inner)
+                j_mortar_l = get_mortar_index(large_direction,
+                                              i_large_inner, j_large_inner)
 
                 # values of large element to lower element
                 if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 1] > 0
@@ -308,12 +320,14 @@ end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
+        small_direction = indices2direction(small_indices)
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
 
         large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
@@ -324,8 +338,8 @@ end
         i_large = i_large_start
         j_large = j_large_start
         for i in eachnode(dg)
-            i_mortar_s = iszero(i_small_step) ? j_small : i_small
-            i_mortar_l = iszero(i_large_step) ? j_large : i_large
+            i_mortar_s = get_mortar_index(small_direction, i_small, j_small)
+            i_mortar_l = get_mortar_index(large_direction, i_large, j_large)
 
             u_lower = get_node_vars(u, equations, dg, i_small, j_small, lower_element)
             u_upper = get_node_vars(u, equations, dg, i_small, j_small, upper_element)
@@ -339,8 +353,10 @@ end
             i_large_inner = i_large_start
             j_large_inner = j_large_start
             for j in eachnode(dg)
-                j_mortar_s = iszero(i_small_step) ? j_small_inner : i_small_inner
-                j_mortar_l = iszero(i_large_step) ? j_large_inner : i_large_inner
+                j_mortar_s = get_mortar_index(small_direction,
+                                              i_small_inner, j_small_inner)
+                j_mortar_l = get_mortar_index(large_direction,
+                                              i_large_inner, j_large_inner)
 
                 # values of large element to lower element
                 if l2_mortars || dg.mortar.mortar_weights[i_mortar_l, j_mortar_s, 1] > 0
