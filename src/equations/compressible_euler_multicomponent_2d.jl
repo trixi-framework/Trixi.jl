@@ -1036,7 +1036,7 @@ end
     return rho
 end
 
-# v should be a scalar velocity (i.e., v1 or v2)
+# `v` should be a scalar velocity component (i.e., `v1` or `v2`)
 @inline function partial_momenta(u, v,
                                  equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
