@@ -5,11 +5,11 @@
 @muladd begin
 #! format: noindent
 
-@inline function get_mortar_index(direction, i, j)
-    if direction == 1 || direction == 2
-        return j
-    else # direction == 3 || direction == 4
+@inline function get_mortar_index(indices, i, j)
+    if indices[1] === :i_forward || indices[1] === :i_backward
         return i
+    else # indices[2] === :i_forward || indices[2] === :i_backward
+        return j
     end
 end
 
@@ -94,14 +94,12 @@ end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
 
         large_indices = node_indices[2, mortar]
-        large_direction = indices2direction(large_indices)
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
@@ -112,8 +110,8 @@ end
         i_large = i_large_start
         j_large = j_large_start
         for i in eachnode(dg)
-            i_mortar_s = get_mortar_index(small_direction, i_small, j_small)
-            i_mortar_l = get_mortar_index(large_direction, i_large, j_large)
+            i_mortar_s = get_mortar_index(small_indices, i_small, j_small)
+            i_mortar_l = get_mortar_index(large_indices, i_large, j_large)
 
             var_lower = u[variable, i_small, j_small, lower_element]
             var_upper = u[variable, i_small, j_small, upper_element]
@@ -124,9 +122,9 @@ end
             i_large_inner = i_large_start
             j_large_inner = j_large_start
             for j in eachnode(dg)
-                j_mortar_s = get_mortar_index(small_direction,
+                j_mortar_s = get_mortar_index(small_indices,
                                               i_small_inner, j_small_inner)
-                j_mortar_l = get_mortar_index(large_direction,
+                j_mortar_l = get_mortar_index(large_indices,
                                               i_large_inner, j_large_inner)
 
                 # values of large element to lower element
@@ -320,14 +318,12 @@ end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
         i_small_start, i_small_step = index_to_start_step_2d(small_indices[1],
                                                              index_range)
         j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                              index_range)
 
         large_indices = node_indices[2, mortar]
-        large_direction = indices2direction(large_indices)
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
@@ -338,8 +334,8 @@ end
         i_large = i_large_start
         j_large = j_large_start
         for i in eachnode(dg)
-            i_mortar_s = get_mortar_index(small_direction, i_small, j_small)
-            i_mortar_l = get_mortar_index(large_direction, i_large, j_large)
+            i_mortar_s = get_mortar_index(small_indices, i_small, j_small)
+            i_mortar_l = get_mortar_index(large_indices, i_large, j_large)
 
             u_lower = get_node_vars(u, equations, dg, i_small, j_small, lower_element)
             u_upper = get_node_vars(u, equations, dg, i_small, j_small, upper_element)
@@ -353,9 +349,9 @@ end
             i_large_inner = i_large_start
             j_large_inner = j_large_start
             for j in eachnode(dg)
-                j_mortar_s = get_mortar_index(small_direction,
+                j_mortar_s = get_mortar_index(small_indices,
                                               i_small_inner, j_small_inner)
-                j_mortar_l = get_mortar_index(large_direction,
+                j_mortar_l = get_mortar_index(large_indices,
                                               i_large_inner, j_large_inner)
 
                 # values of large element to lower element

@@ -168,7 +168,7 @@ end
                                                              index_range)
 
         large_indices = node_indices[2, mortar]
-        large_direction = indices2direction(large_indices)
+        # large_direction = indices2direction(large_indices)
         i_large_start, i_large_step = index_to_start_step_2d(large_indices[1],
                                                              index_range)
         j_large_start, j_large_step = index_to_start_step_2d(large_indices[2],
@@ -180,7 +180,7 @@ end
             i_small += i_small_step
             j_small += j_small_step
 
-            i_mortar = get_mortar_index(small_direction, i_small, j_small)
+            i_mortar = get_mortar_index(small_indices, i_small, j_small)
 
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
@@ -197,7 +197,7 @@ end
                     i_large += i_large_step
                     j_large += j_large_step
 
-                    j_mortar = get_mortar_index(large_direction, i_large, j_large)
+                    j_mortar = get_mortar_index(large_indices, i_large, j_large)
 
                     weight = mortar_weights[j_mortar, i_mortar, small_element_index]
                     !iszero(weight) || continue
@@ -428,7 +428,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
         j_small = j_small_start
         # Calculate fluxes
         for i in eachnode(dg)
-            i_mortar = get_mortar_index(small_direction, i_small, j_small)
+            i_mortar = get_mortar_index(small_indices, i_small, j_small)
 
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
@@ -446,16 +446,16 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                 i_large = i_large_start
                 j_large = j_large_start
                 for j in eachnode(dg)
-                    j_mortar = get_mortar_index(large_direction, i_large, j_large)
+                    j_mortar = get_mortar_index(large_indices, i_large, j_large)
 
                     factor = mortar_weights[j_mortar, i_mortar, small_element_index]
                     if !isapprox(factor, zero(typeof(factor)))
                         u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
 
-                        normal_direction_large = get_normal_direction(large_direction,
-                                                                      contravariant_vectors,
-                                                                      i_large, j_large,
-                                                                      large_element)
+                        # normal_direction_large = get_normal_direction(large_direction,
+                        #                                               contravariant_vectors,
+                        #                                               i_large, j_large,
+                        #                                               large_element)
                         # TODO: What do I do with the normal_directions? Doesn't make sense right now. See theory.
 
                         flux = surface_flux(u_small_local, u_large_local,
