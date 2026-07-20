@@ -200,6 +200,10 @@ end
     alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
                                                         dg, cache)
 
+    # These tolerances for "active" shock capturing alpha values are copied 
+    # from the `calc_volume_integral!` implementation for 
+    # `VolumeIntegralShockCapturingHGType`
+
     # For `Float64`, this gives 1.8189894035458565e-12
     # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha)
@@ -284,6 +288,12 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                                                                                dg,
                                                                                                cache)
 
+    # tolerance to determine "active" blending factors
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    RealT = eltype(alpha_shock_capturing)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         # run default volume integral
@@ -313,7 +323,10 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         # exactly zero for an entropy conservative volume integral.
         entropy_residual = dS_volume_integral - dS_true
 
-        if entropy_residual > 0
+        alpha_shock_capturing_element = alpha_shock_capturing[element]
+
+        # if either entropy correction or shock capturing is activated
+        if entropy_residual > 0 || alpha_shock_capturing_element > atol
             # Store "high order" result
             du_FD_element = du_element_threaded[Threads.threadid()]
             @views du_FD_element .= du[.., element]
@@ -340,11 +353,14 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             # assuming the stabilized volume integral is entropy stable.
             entropy_dissipation = dS_volume_integral_stabilized - dS_volume_integral
 
-            # Calculate DG-FV blending factor as the minimum between the entropy correction 
-            # indicator and shock capturing indicator
-            # TODO: replacing this with a differentiable version of `min`
-            ratio = regularized_ratio(-entropy_residual, entropy_dissipation)
-            alpha_element = min(1, max(alpha_shock_capturing[element], scaling * ratio))
+            # Calculate DG-FV blending factor as the maximum between the entropy correction 
+            # indicator and shock capturing indicator. 
+            # TODO: replace this with a differentiable version of `max` and `min`
+
+            # max(0, entropy_residual) avoids activating entropy correction if 
+            # shock capturing is active but there is no entropy violation.
+            ratio = regularized_ratio(-max(0, entropy_residual), entropy_dissipation)
+            alpha_element = max(alpha_shock_capturing_element, min(1, scaling * ratio))
 
             # Save blending coefficient for visualization. Note that we overwrite the data 
             # in `alpha_shock_capturing[element]`. 
