@@ -4239,6 +4239,7 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion1D(equations,
+                                                                  R = R_specific,
                                                                   mu = mu_ref,
                                                                   Prandtl = prandtl_number())
 
@@ -4266,6 +4267,7 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion2D(equations,
+                                                                  R = R_specific,
                                                                   mu = mu_ref,
                                                                   Prandtl = prandtl_number())
 
@@ -4293,6 +4295,7 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion3D(equations,
+                                                                  R = R_specific,
                                                                   mu = mu_ref,
                                                                   Prandtl = prandtl_number())
 
