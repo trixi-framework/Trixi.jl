@@ -46,9 +46,11 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::NamedTuple, cache)
                                                                boundary_symbol_indices)
 end
 
-# Check that supplied boundary conditions are valid, i.e., 
-# - that the keys of the `boundary_conditions` match the names of the boundaries identified by the mesh (`cache.boundaries.name`), and
-# - that each boundary has a boundary condition specified
+# Check that supplied boundary conditions are valid, i.e.,
+# - that each boundary has a boundary condition specified, and
+# - that the keys of the `boundary_conditions` match the
+#   names of the boundaries identified by the mesh (`cache.boundaries.name`).
+#   This also checks that no unlabeled/"internal" (`Symbol("---")`) boundaries are present.
 function validate_boundary_conditions(boundary_conditions::NamedTuple, cache)
     unique_names = unique(cache.boundaries.name) # boundaries identified by the mesh
 
@@ -86,7 +88,7 @@ function validate_boundary_conditions(boundary_conditions::NamedTuple, cache)
     end
 
     # Verify that each boundary (determined from connectivity) is equipped with a boundary condition
-    for (index, boundary_name) in enumerate(unique_names)
+    for (index, boundary_name) in enumerate(cache.boundaries.name)
         if boundary_name == Symbol("---")
             neighbor_element = get_boundary_element(cache.boundaries, index)
             error("Mesh connectivity identified boundary $index (neighbor element $neighbor_element) as boundary element/non-connected - check your mesh!")
