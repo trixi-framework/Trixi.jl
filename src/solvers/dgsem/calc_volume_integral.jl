@@ -205,7 +205,7 @@ end
        volume_integral_stabilized.limiter.bar_states == true
         error("`bar_states=true` is currently not supported in combination with the adaptive volume integral.")
     end
-    
+
     # These tolerances for "active" shock capturing alpha values are copied 
     # from the `calc_volume_integral!` implementation for 
     # `VolumeIntegralShockCapturingHGType`
