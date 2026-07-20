@@ -4232,7 +4232,7 @@ end
                                                                     Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
+        u_cons = prim2cons(SVector(1.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
         @test temperature(u_cons, equations_parabolic_d) == 1.0
@@ -4288,7 +4288,7 @@ end
                                                                     Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
+        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
         @test temperature(u_cons, equations_parabolic_d) == 1.0
