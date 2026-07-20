@@ -26,6 +26,7 @@ end
 end
 
 @testitem "TreeMesh2D EulerMulti: entropy potential" setup=[Setup] tags=[:tree_part2] begin
+    using LinearAlgebra: dot
     gammas = (1.4, 1.6)
     gas_constants = (1.0, 2.0)
     equations = CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)

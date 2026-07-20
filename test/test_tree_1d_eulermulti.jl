@@ -23,6 +23,7 @@ end
 end
 
 @testitem "TreeMesh1D EulerMulti: Testing entropy potential" setup=[Setup] tags=[:tree_part1] begin
+    using LinearAlgebra: dot
     gammas = (1.4, 1.6)
     gas_constants = (1.0, 2.0)
     equations = CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
