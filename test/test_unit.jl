@@ -19,9 +19,8 @@ end
         velocity_1_2d = ones(4, 4)
         velocity_2_2d = zeros(4, 4)
 
-        wavenumbers_2d,
-        energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
-                                                                   velocity_2_2d)
+        wavenumbers_2d, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
+                                                                                   velocity_2_2d)
         @test wavenumbers_2d == 0:3
         @test energy_spectrum_2d[1] ≈ 0.5
         @test all(isapprox.(energy_spectrum_2d[2:end], 0, atol = 100 * eps()))
@@ -44,10 +43,9 @@ end
         velocity_2_3d = zeros(4, 4, 4)
         velocity_3_3d = zeros(4, 4, 4)
 
-        wavenumbers_3d,
-        energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
-                                                                   velocity_2_3d,
-                                                                   velocity_3_3d)
+        wavenumbers_3d, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
+                                                                                   velocity_2_3d,
+                                                                                   velocity_3_3d)
         @test wavenumbers_3d == 0:3
         @test energy_spectrum_3d[1] ≈ 0.5
         @test all(isapprox.(energy_spectrum_3d[2:end], 0, atol = 100 * eps()))
@@ -443,8 +441,8 @@ end
     solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
     adaptor = Trixi.AdaptorL2(solver.basis)
-    limiter != PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
-                                        variables = (first,))
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                   variables = (first,))
 
     @testset "1D" begin
         equations = LinearScalarAdvectionEquation1D(1.0)
@@ -708,11 +706,11 @@ end
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
                                         solver;
                                         boundary_conditions = boundary_condition_periodic)
-    local_limiter != PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
-                                        variables = (first,))
-    global_limiter != PositivityPreservingLimiterLiuZhang(local_limiter!,
-                                        semi;
-                                        record_davis_yin_iterations = true)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                         variables = (first,))
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                          semi;
+                                                          record_davis_yin_iterations = true)
     @test_nowarn show(stdout, global_limiter!)
     @test_nowarn show(stdout, "text/plain", global_limiter!)
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
@@ -3499,7 +3497,7 @@ end
 
     # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type != (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
+    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
                                                    tspan[1])
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
@@ -3522,9 +3520,8 @@ end
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
-    rhs_float_type !=
-    (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                   tspan[1])
+    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
+                                                     tspan[1])
 
     ###############################################################################
     ### sparsity-aware finite diff ###
@@ -3612,11 +3609,10 @@ end
 
     # Wrap the `Trixi.rhs_parabolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_parabolic_wrapped !=
-    (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
-                                             u0_ode,
-                                             semi_jac_type,
-                                             tspan[1])
+    rhs_parabolic_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_parabolic!(du_ode,
+                                                                      u0_ode,
+                                                                      semi_jac_type,
+                                                                      tspan[1])
 
     jac_prototype_parabolic = jacobian_sparsity(rhs_parabolic_wrapped!,
                                                 du_ode, u0_ode,
@@ -3626,11 +3622,10 @@ end
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
     ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
 
-    rhs_hyp_para_wrapped !=
-    (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
-                                                  u0_ode,
-                                                  semi_jac_type,
-                                                  tspan[1])
+    rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
+                                                                          u0_ode,
+                                                                          semi_jac_type,
+                                                                          tspan[1])
 
     jac_prototype_hyperbolic_parabolic = jacobian_sparsity(rhs_hyp_para_wrapped!,
                                                            du_ode, u0_ode,
@@ -4013,7 +4008,7 @@ end
                                              (solver_implicit, solver_explicit);
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions),
-                                             source_terms = (nothing, nothing))
+                                             source_terms = (nothing, nothing),)
 
     @test Trixi.ndims(semi) == 2
 end
