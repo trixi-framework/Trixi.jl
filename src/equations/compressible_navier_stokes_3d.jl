@@ -387,7 +387,7 @@ T = \\frac{p}{R \\rho}
 
     p = (gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
-    T = p / (rho * equations.R) # Corresponds to a specific gas constant R = 1
+    T = p / (rho * equations.R)
     return T
 end
 
