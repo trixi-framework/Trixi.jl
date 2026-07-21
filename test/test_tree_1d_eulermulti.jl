@@ -22,6 +22,24 @@ end
     @test entropy2cons(w, equations) ≈ u
 end
 
+@testitem "TreeMesh1D EulerMulti: Testing entropy potential" setup=[Setup] tags=[:tree_part1] begin
+    using LinearAlgebra: dot
+    gammas = (1.4, 1.6)
+    gas_constants = (1.0, 2.0)
+    equations = CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
+
+    q_ll = SVector(-0.1, 1.0, 1.1, 0.9)
+    q_rr = SVector(0.2, 2.0, 1.9, 2.1)
+    u_ll, u_rr = prim2cons.((q_ll, q_rr), equations)
+
+    # check that `flux_chandrashekar` is entropy conservative 
+    v_ll, v_rr = cons2entropy.((u_ll, u_rr), equations)
+    jump_entropy_potential = entropy_potential(u_rr, 1, equations) -
+                             entropy_potential(u_ll, 1, equations)
+    @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 1, equations)) ≈
+          jump_entropy_potential
+end
+
 @testitem "TreeMesh1D EulerMulti: elixir_eulermulti_ec.jl" setup=[
     Setup,
     TreeMesh1DEulerMulti
