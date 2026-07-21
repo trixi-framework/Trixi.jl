@@ -25,6 +25,36 @@ end
     @test entropy2cons(w, equations) ≈ u
 end
 
+@testitem "TreeMesh2D EulerMulti: entropy potential" setup=[Setup] tags=[:tree_part2] begin
+    using LinearAlgebra: dot
+    gammas = (1.4, 1.6)
+    gas_constants = (1.0, 2.0)
+    equations = CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
+
+    q_ll = SVector(-0.1, 0.2, 1.0, 1.1, 0.9)
+    q_rr = SVector(0.2, -0.3, 2.0, 1.9, 2.1)
+    u_ll, u_rr = prim2cons.((q_ll, q_rr), equations)
+
+    # check that `flux_chandrashekar` is entropy conservative 
+    v_ll, v_rr = cons2entropy.((u_ll, u_rr), equations)
+    jump_entropy_potential_x = entropy_potential(u_rr, 1, equations) -
+                               entropy_potential(u_ll, 1, equations)
+    jump_entropy_potential_y = entropy_potential(u_rr, 2, equations) -
+                               entropy_potential(u_ll, 2, equations)
+    @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 1, equations)) ≈
+          jump_entropy_potential_x
+    @test dot(v_rr - v_ll, flux_chandrashekar(u_ll, u_rr, 2, equations)) ≈
+          jump_entropy_potential_y
+
+    normal_directions = [SVector(1.0, 0.0), SVector(0.0, 1.0)]
+    for (orientation, normal_direction) in enumerate(normal_directions)
+        for u in (u_ll, u_rr)
+            @test entropy_potential(u, normal_direction, equations) ≈
+                  entropy_potential(u, orientation, equations)
+        end
+    end
+end
+
 # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
 #       simulations are set up with dimensional states. For example, the reference pressure in SI
 #       units is 101325 Pa, i.e., pressure has values of O(10^5)
