@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion1D(equations; R=1, mu, Pr,
+    CompressibleNavierStokesDiffusion1D(equations; mu, Pr, R=1,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -14,9 +14,9 @@ to mass, momenta, and total energy together with the advective terms from
 the [`CompressibleEulerEquations1D`](@ref).
 
 - `equations`: instance of the [`CompressibleEulerEquations1D`](@ref)
-- `R`: specific gas constant. Defaults to 1.
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
+- `R`: specific gas constant (defaults to 1),
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to [`GradientVariablesPrimitive()`](@ref).
                         For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
