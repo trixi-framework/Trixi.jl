@@ -4242,9 +4242,9 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion1D(equations,
-                                                                  R = R_specific,
                                                                   mu = mu_ref,
-                                                                  Prandtl = prandtl_number())
+                                                                  Prandtl = prandtl_number(),
+                                                                  R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test temperature(u_cons, equations_parabolic) == 0.5
@@ -4270,9 +4270,9 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion2D(equations,
-                                                                  R = R_specific,
                                                                   mu = mu_ref,
-                                                                  Prandtl = prandtl_number())
+                                                                  Prandtl = prandtl_number(),
+                                                                  R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test temperature(u_cons, equations_parabolic) == 0.5
@@ -4298,9 +4298,9 @@ end
 
         R_specific = 2.0
         equations_parabolic = CompressibleNavierStokesDiffusion3D(equations,
-                                                                  R = R_specific,
                                                                   mu = mu_ref,
-                                                                  Prandtl = prandtl_number())
+                                                                  Prandtl = prandtl_number(),
+                                                                  R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test temperature(u_cons, equations_parabolic) == 0.5

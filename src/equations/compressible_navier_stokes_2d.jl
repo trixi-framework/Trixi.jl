@@ -104,7 +104,7 @@ end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             R = 1, mu, Prandtl,
+                                             mu, Prandtl, R = 1,
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
@@ -133,10 +133,10 @@ function Base.similar(equations::CompressibleNavierStokesDiffusion2D,
     mu = equations.mu isa Real ? convert(NewRealT, equations.mu) : equations.mu
     return CompressibleNavierStokesDiffusion2D(similar(equations.equations_hyperbolic,
                                                        NewRealT);
-                                               R = convert(NewRealT, equations.R),
                                                mu = mu,
                                                Prandtl = convert(NewRealT,
                                                                  equations.Pr),
+                                               R = convert(NewRealT, equations.R),
                                                gradient_variables = equations.gradient_variables)
 end
 
@@ -355,10 +355,10 @@ T = \\frac{p}{R \\rho}
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e_total = u
-    @unpack gamma = equations
+    @unpack gamma, R = equations
 
     p = (gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
-    T = p / (rho * equations.R)
+    T = p / (rho * R)
     return T
 end
 

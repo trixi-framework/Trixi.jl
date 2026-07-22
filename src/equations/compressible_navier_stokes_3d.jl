@@ -104,7 +104,7 @@ end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquations3D;
-                                             R = 1, mu, Prandtl,
+                                             mu, Prandtl, R = 1,
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
@@ -133,10 +133,10 @@ function Base.similar(equations::CompressibleNavierStokesDiffusion3D,
     mu = equations.mu isa Real ? convert(NewRealT, equations.mu) : equations.mu
     return CompressibleNavierStokesDiffusion3D(similar(equations.equations_hyperbolic,
                                                        NewRealT);
-                                               R = convert(NewRealT, equations.R),
                                                mu = mu,
                                                Prandtl = convert(NewRealT,
                                                                  equations.Pr),
+                                               R = convert(NewRealT, equations.R),
                                                gradient_variables = equations.gradient_variables)
 end
 
@@ -383,11 +383,11 @@ T = \\frac{p}{R \\rho}
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
-    @unpack gamma = equations
+    @unpack gamma, R = equations
 
     p = (gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
-    T = p / (rho * equations.R)
+    T = p / (rho * R)
     return T
 end
 
@@ -459,10 +459,9 @@ end
                                                                                       t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    v1, v2,
-    v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                t,
-                                                                                equations)
+    v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                        t,
+                                                                                        equations)
     return SVector(u_inner[1], v1, v2, v3, u_inner[5])
 end
 
@@ -478,10 +477,9 @@ end
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
-    v1, v2,
-    v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                t,
-                                                                                equations)
+    v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                        t,
+                                                                                        equations)
     _, tau_1n, tau_2n, tau_3n, _ = flux_inner # extract fluxes for 2nd, 3rd, and 4th equations
     normal_energy_flux = v1 * tau_1n + v2 * tau_2n + v3 * tau_3n + normal_heat_flux
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
@@ -496,10 +494,9 @@ end
                                                                                        t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    v1, v2,
-    v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                t,
-                                                                                equations)
+    v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                        t,
+                                                                                        equations)
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
     return SVector(u_inner[1], v1, v2, v3, T)
@@ -533,10 +530,9 @@ end
                                                                                       t,
                                                                                       operator_type::Gradient,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
-    v1, v2,
-    v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                t,
-                                                                                equations)
+    v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                        t,
+                                                                                        equations)
     negative_rho_inv_p = w_inner[5] # w_5 = -rho / p
     return SVector(w_inner[1], -v1 * negative_rho_inv_p, -v2 * negative_rho_inv_p,
                    -v3 * negative_rho_inv_p, negative_rho_inv_p)
@@ -550,10 +546,9 @@ end
                                                                                        t,
                                                                                        operator_type::Gradient,
                                                                                        equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
-    v1, v2,
-    v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                t,
-                                                                                equations)
+    v1, v2, v3 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                        t,
+                                                                                        equations)
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
 
