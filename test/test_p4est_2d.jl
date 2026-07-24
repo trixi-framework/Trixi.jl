@@ -1069,7 +1069,7 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 15000)
 end
 
-@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting)" setup=[
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting, low-order bounds)" setup=[
     Setup,
     P4estMesh2D
 ] tags=[:p4est_part1] begin
@@ -1078,18 +1078,53 @@ end
                         local_twosided_variables_cons=["rho"],
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
                                                              min)],
+                        max_iterations_newton=30,
                         cfl=0.3,
                         l2=[
-                            0.12109199245179458,
-                            0.12072016480742452,
-                            0.12071950625090565,
-                            0.7673632440390399
+                            0.12109201615888719,
+                            0.12072023737145607,
+                            0.12071951427093544,
+                            0.7673633187647572
                         ],
                         linf=[
                             0.5308851705112634,
                             0.7025360709058487,
-                            0.7026075656400925,
+                            0.702607566402268,
                             4.068560965697952
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr_sc_subcell.jl (local limiting, bar state bounds)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_amr_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=30,
+                        bar_states=true,
+                        cfl=0.9,
+                        l2=[
+                            0.12809811708867533,
+                            0.12474245197640065,
+                            0.1247424520264346,
+                            0.7738857285332523
+                        ],
+                        linf=[
+                            0.5982124517205043,
+                            0.7312942203012992,
+                            0.7312942384841344,
+                            3.978825630729965
                         ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
