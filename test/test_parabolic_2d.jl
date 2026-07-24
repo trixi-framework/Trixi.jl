@@ -1469,7 +1469,7 @@ end
                             0.3247497921546598
                         ],
                         tspan=(0.0, 1.0))
-    limiter = semi.solver.volume_integral.volume_integral_hyperbolic.volume_integral_stabilized.limiter
+    limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
     @test maximum(deviations) <= 1.0e-13
