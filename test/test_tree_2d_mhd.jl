@@ -366,6 +366,11 @@ end
                             6.1013422157115546e-03
                         ],
                         tspan=(0.0, 0.003))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -415,6 +420,11 @@ end
                                       flux_nonconservative_powell_local_jump),
                         volume_flux=(flux_derigs_etal,
                                      flux_nonconservative_powell_local_jump))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
