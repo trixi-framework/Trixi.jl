@@ -250,7 +250,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * v1^2)
 
-    f_rho = densities(u, v1, equations)
+    f_rho = partial_momenta(u, v1, equations)
     f1 = rho_v1 * v1 + p
     f2 = (rho_e_total + p) * v1
 
@@ -683,7 +683,9 @@ Computes the total density ``\rho = \sum_{i=1}^n \rho_i`` from the conserved var
     return rho
 end
 
-@inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations1D)
+# `v` should be a scalar velocity component (i.e., `v1`)
+@inline function partial_momenta(u, v,
+                                 equations::CompressibleEulerMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 2] * v
                                                             for i in eachcomponent(equations))
 end
@@ -692,5 +694,24 @@ end
     rho = density(u, equations)
     v1 = u[1] / rho
     return v1
+end
+
+# Entropy potential is the bulk momentum rho_v1; see, for example,
+# - Ayoub Gouasmi, Karthik Duraisamy (2020)
+#   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
+#   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerMulticomponentEquations1D)
+    @unpack gas_constants = equations
+
+    v1 = u[1] / density(u, equations)
+
+    RealT = eltype(u)
+    rho_r_sum = zero(RealT)   # ∑_k r_k * rho_k = p / T
+    for i in eachcomponent(equations)
+        rho_r_sum += gas_constants[i] * u[i + 2]
+    end
+
+    return rho_r_sum * v1     # 𝓕 = (∑_k r_k rho_k) * v1
 end
 end # @muladd
