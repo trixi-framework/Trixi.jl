@@ -64,7 +64,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
 end
 
 #####################################################################
-# Second-order volume integral wth reconsturcted states at internal faces
+# Second-order volume integral with reconstructed states at internal faces
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{1},
                                have_nonconservative_terms::False, equations,
