@@ -132,5 +132,5 @@ end
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                       integral_o2)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
-                      ntegral_o2)
+                      integral_o2)
 end
