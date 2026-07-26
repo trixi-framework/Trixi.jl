@@ -199,8 +199,8 @@ Returns the reconstructed values `u_lr, u_rl` at the interface
 `sc_interface_coords[node_index - 1]` for a [`BlockFV`](@ref) element.
 """
 @inline function reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
-                                        sc_interface_coords, node_index,
-                                        limiter, dg::BlockFV)
+                                   sc_interface_coords, node_index,
+                                   limiter, dg::BlockFV)
     @unpack nodes = dg.basis
     x_lr = nodes[node_index - 1]
     x_rl = nodes[node_index]

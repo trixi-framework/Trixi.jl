@@ -91,8 +91,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
                               equations)
 
             u_l, u_r = reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
-                                              sc_interface_coords, i,
-                                              slope_limiter, dg)
+                                         sc_interface_coords, i,
+                                         slope_limiter, dg)
 
             f = surface_flux(recon2cons(u_l, equations),
                              recon2cons(u_r, equations), 1, equations)
@@ -135,7 +135,7 @@ end
         u_rl = cons2recon(get_node_vars(u, equations, dg, i, element), equations)
         u_rr = u_rl
         _, u_face = reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
-                                           sc_interface_coords, i, slope_limiter, dg)
+                                      sc_interface_coords, i, slope_limiter, dg)
         x_c = nodes[i]
         return recon2cons(u_rl +
                           (u_face - u_rl) / (sc_interface_coords[i - 1] - x_c) *
@@ -149,7 +149,7 @@ end
         u_rr = cons2recon(get_node_vars(u, equations, dg, min(n, 3), element),
                           equations)
         u_face, _ = reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
-                                           sc_interface_coords, i, slope_limiter, dg)
+                                      sc_interface_coords, i, slope_limiter, dg)
         x_c = nodes[i - 1]
         return recon2cons(u_lr +
                           (u_face - u_lr) / (sc_interface_coords[i - 1] - x_c) *
