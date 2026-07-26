@@ -68,28 +68,24 @@ end
 
 """
     VolumeIntegralFiniteVolumeO2(n_nodes, surface_flux;
-                                 reconstruction_mode = reconstruction_O2_full,
                                  slope_limiter = minmod,
                                  cons2recon = cons2prim,
                                  recon2cons = prim2cons,
                                  RealT = Float64)
 
-Second-order volume integral for [`BlockFVO2`](@ref). Same reconstruction API as
-[`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
+Second-order volume integral for [`BlockFVO2`](@ref) with higher order reconstruction.
 """
-struct VolumeIntegralFiniteVolumeO2{InterfaceCoords, SurfaceFlux, Reconstruction,
+struct VolumeIntegralFiniteVolumeO2{InterfaceCoords, SurfaceFlux,
                                     Limiter, Cons2Recon, Recon2Cons} <:
        AbstractVolumeIntegral
     sc_interface_coords::InterfaceCoords
     surface_flux::SurfaceFlux
-    reconstruction_mode::Reconstruction
     slope_limiter::Limiter
     cons2recon::Cons2Recon
     recon2cons::Recon2Cons
 end
 
 function VolumeIntegralFiniteVolumeO2(n_nodes::Integer, surface_flux;
-                                      reconstruction_mode = reconstruction_O2_full,
                                       slope_limiter = minmod,
                                       cons2recon = cons2prim,
                                       recon2cons = prim2cons,
@@ -100,12 +96,10 @@ function VolumeIntegralFiniteVolumeO2(n_nodes::Integer, surface_flux;
                                                              n_nodes - 1))
     return VolumeIntegralFiniteVolumeO2{typeof(sc_interface_coords),
                                         typeof(surface_flux),
-                                        typeof(reconstruction_mode),
                                         typeof(slope_limiter),
                                         typeof(cons2recon),
                                         typeof(recon2cons)}(sc_interface_coords,
                                                             surface_flux,
-                                                            reconstruction_mode,
                                                             slope_limiter,
                                                             cons2recon,
                                                             recon2cons)
@@ -115,7 +109,6 @@ function Base.show(io::IO, ::MIME"text/plain",
                    integral::VolumeIntegralFiniteVolumeO2)
     @nospecialize integral
     setup = ["surface flux" => integral.surface_flux,
-        "Reconstruction" => integral.reconstruction_mode,
         "Slope limiter" => integral.slope_limiter,
         "cons2recon" => integral.cons2recon,
         "recon2cons" => integral.recon2cons]
@@ -149,14 +142,13 @@ end
 """
     BlockFVO2(; n_nodes::Integer,
                 surface_flux,
-                reconstruction_mode = reconstruction_O2_full,
                 slope_limiter = minmod,
                 cons2recon = cons2prim,
                 recon2cons = prim2cons,
                 RealT = Float64)
 
-Create a second-order block finite volume solver with volume-local
-reconstruction. See [`VolumeIntegralFiniteVolumeO2`](@ref).
+Create a second-order block finite volume solver with high-order volume reconstruction.
+See [`VolumeIntegralFiniteVolumeO2`](@ref).
 
 !!! warning "Experimental code"
     This code is experimental and may change in any future release.
@@ -171,14 +163,12 @@ const BlockFVO2 = DG{Basis, Mortar, SurfaceIntegral,
 
 function BlockFVO2(; n_nodes::Integer,
                    surface_flux,
-                   reconstruction_mode = reconstruction_O2_full,
                    slope_limiter = minmod,
                    cons2recon = cons2prim,
                    recon2cons = prim2cons,
                    RealT = Float64)
     basis = UniformFiniteVolumeBasis(RealT, n_nodes)
     volume_integral = VolumeIntegralFiniteVolumeO2(n_nodes, surface_flux;
-                                                   reconstruction_mode = reconstruction_mode,
                                                    slope_limiter = slope_limiter,
                                                    cons2recon = cons2recon,
                                                    recon2cons = recon2cons,
@@ -201,14 +191,14 @@ end
 @inline polydeg(dg::BlockFV) = polydeg(dg.basis)
 
 """
-    reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
+    reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
                            sc_interface_coords, node_index,
                            limiter, dg::BlockFV)
 
 Returns the reconstructed values `u_lr, u_rl` at the interface
 `sc_interface_coords[node_index - 1]` for a [`BlockFV`](@ref) element.
 """
-@inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
+@inline function reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
                                         sc_interface_coords, node_index,
                                         limiter, dg::BlockFV)
     @unpack nodes = dg.basis
@@ -230,52 +220,6 @@ Returns the reconstructed values `u_lr, u_rl` at the interface
 
     if node_index == nnodes(dg) # Catch case rl == rr
         s_r = s_m # Use unlimited "central" slope
-    else
-        x_rr = nodes[node_index + 1]
-        # Slope between "right" nodes
-        s_rl = (u_rr - u_rl) / (x_rr - x_rl)
-        # Select slope between crossing (middle) and extrapolated (right) slope
-        s_r = limiter.(s_m, s_rl)
-    end
-
-    return reconstruction_linear(u_lr, u_rl, s_l, s_r,
-                                 x_lr, x_rl, sc_interface_coords, node_index)
-end
-
-"""
-    reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
-                            sc_interface_coords, node_index,
-                            limiter, dg::BlockFV)
-
-Returns the reconstructed values `u_lr, u_rl` at the interface
-`sc_interface_coords[node_index - 1]` for a [`BlockFV`](@ref) element.
-For the outer cells, constant values are used (no reconstruction), while
-computes limited slopes on the inner subcells
-"""
-@inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
-                                         sc_interface_coords, node_index,
-                                         limiter, dg::BlockFV)
-    @unpack nodes = dg.basis
-    x_lr = nodes[node_index - 1]
-    x_rl = nodes[node_index]
-
-    # Slope between "middle" nodes
-    s_m = (u_rl - u_lr) / (x_rl - x_lr)
-
-    if node_index == 2 # Catch case ll == lr
-        # Do not reconstruct at the boundary
-        s_l = zero(s_m)
-    else
-        x_ll = nodes[node_index - 2]
-        # Slope between "left" nodes
-        s_lr = (u_lr - u_ll) / (x_lr - x_ll)
-        # Select slope between extrapolated (left) and crossing (middle) slope
-        s_l = limiter.(s_lr, s_m)
-    end
-
-    if node_index == nnodes(dg) # Catch case rl == rr
-        # Do not reconstruct at the boundary
-        s_r = zero(s_m)
     else
         x_rr = nodes[node_index + 1]
         # Slope between "right" nodes
