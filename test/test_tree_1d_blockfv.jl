@@ -106,6 +106,17 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
+@testitem "BlockFV 1D: elixir_euler_fvO2.jl with n_nodes=1" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
+    #covers the single-cell surface reconstruction n_nodes=1 case
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        n_nodes=1,
+                        tspan=(0.0, 0.1))
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
 @testitem "BlockFV 1D: elixir_euler_fvO2.jl (convergence)" setup=[
     Setup,
     TreeMesh1DBlockFV

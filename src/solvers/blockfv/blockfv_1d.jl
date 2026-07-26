@@ -78,6 +78,31 @@ function calc_volume_integral!(backend::Nothing, du, u,
     @threaded for element in eachelement(dg, cache)
         fstar = fstar_threaded[Threads.threadid()]
 
+        # Each BlockFV element is split into n equal FV cells on [-1, 1].
+        # Cell averages live at the cell centers; numerical fluxes are stored
+        # in fstar at the n+1 faces (element boundaries + internal faces).
+        # Schematic for n_nodes = 4:
+        #
+        #   ξ = -1                                           ξ = +1
+        #        |--- u₁ ---|--- u₂ ---|--- u₃ ---|--- u₄ ---|
+        #       f₁         f₂         f₃         f₄         f₅
+        #    (bound) (internal faces: sc_interface_coords) (bound)
+        #
+        # Volume loop only fills internal faces i = 2, ..., n (f₂..f₄ above).
+        # Boundary faces f₁ and f₅ are zero until the surface integral adds them.
+        #
+        # At internal face i (between cells i-1 and i), high-order reconstruction
+        # needs up to four neighboring cell averages:
+        #
+        #            u_ll        u_lr   |   u_rl        u_rr
+        #              ·          ·     |     ·          ·
+        #           cell i-2   cell i-1 |  cell i    cell i+1
+        #                               ^
+        #                          face i (flux)
+        #
+        # Near the element ends the missing neighbor is clamped to the
+        # outermost cell (volume-local stencil; no values from other elements).
+
         for i in 2:nnodes(dg)
             # Four-point stencil, clamped to the element (volume-local)
             u_ll = cons2recon(get_node_vars(u, equations, dg, max(1, i - 2), element),
@@ -122,10 +147,21 @@ end
     nodes = dg.basis.nodes
     n = nnodes(dg)
 
+    #the one node case, just return the node value
     if n == 1
         return get_node_vars(u, equations, dg, 1, element)
     end
 
+    # Reconstruct at ξ = ±1 by extrapolating from the nearest internal face.
+    #
+    #   ξ = -1                                              ξ = +1
+    #        |--- u₁ ---|--- u₂ --- ... ---|--- u_n ---|
+    #                   f₂                            f_n
+    #        ^                                         ^
+    #     left face                               right face
+    #
+    # Right (face = +1): reconstruct at f_n, then extrapolate from u_n to ξ = +1.
+    # Left  (face = -1): reconstruct at f₂, then extrapolate from u₁ to ξ = -1.
     if face > 0
         # Right face on ξ = +1
         i = n
