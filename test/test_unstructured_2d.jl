@@ -216,6 +216,8 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    # Test `get_boundary_element`
+    @test Trixi.get_boundary_element(semi.cache.boundaries, 1) == 407
 end
 
 @testitem "UnstructuredMesh2D: elixir_mhd_ec.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin

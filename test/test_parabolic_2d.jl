@@ -911,6 +911,8 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+    # Test `get_boundary_element`
+    @test Trixi.get_boundary_element(semi.cache.boundaries, 1) == 1
 end
 
 @testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_convergence.jl" setup=[
