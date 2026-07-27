@@ -69,7 +69,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{1},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFiniteVolumeO2,
-                               dg::BlockFV, cache)
+                               dg::BlockFVO2, cache)
     @unpack (sc_interface_coords, surface_flux, slope_limiter,
     cons2recon, recon2cons) = volume_integral
     @unpack fstar_threaded = cache
@@ -78,7 +78,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
     @threaded for element in eachelement(dg, cache)
         fstar = fstar_threaded[Threads.threadid()]
 
-        # Each BlockFV element is split into n equal FV cells on [-1, 1].
+        # Each BlockFVO2 element is split into n equal FV cells on [-1, 1].
         # Cell averages live at the cell centers; numerical fluxes are stored
         # in fstar at the n+1 faces (element boundaries + internal faces).
         # Schematic for n_nodes = 4:
@@ -140,7 +140,7 @@ end
 # Surface reconstruction for BlockFVO2 interfaces or boundaries.
 # Reconstruct to element face ξ = +/- 1 using reconstruction_O2,
 # then extrapolate from the near-boundary internal face
-@inline function reconstruct_element_face(u, equations, dg, element, face,
+@inline function reconstruct_element_face(u, equations, dg::BlockFVO2, element, face,
                                           volume_integral)
     @unpack sc_interface_coords, slope_limiter,
     cons2recon, recon2cons = volume_integral

@@ -193,15 +193,15 @@ end
 """
     reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
                            sc_interface_coords, node_index,
-                           limiter, dg::BlockFV)
+                           limiter, dg::BlockFVO2)
 
 Returns the reconstructed values `u_lr, u_rl` for internal interface reconstruction at
-`node_index` for a [`BlockFV`](@ref) element. The interface coordinates are given by
+`node_index` for a [`BlockFVO2`](@ref) element. The interface coordinates are given by
 `sc_interface_coords[node_index - 1]`.
 """
 @inline function reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
                                    sc_interface_coords, node_index,
-                                   limiter, dg::BlockFV)
+                                   limiter, dg::BlockFVO2)
     @unpack nodes = dg.basis
     x_lr = nodes[node_index - 1]
     x_rl = nodes[node_index]
