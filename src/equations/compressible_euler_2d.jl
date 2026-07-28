@@ -211,7 +211,7 @@ or [`source_terms_eoc_test_euler`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,
                                                           equations::CompressibleEulerEquations2D)
-    # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+    # Note: this assumes that γ = 2 other manufactured source terms are incorrect
     if equations.gamma != 2
         error("adiabatic constant must be 2 for the coupling convergence test")
     end
@@ -311,6 +311,12 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
+The implementation is modified to ensure non-negativity of `p_star`. This modification 
+preserves entropy stability based on the analysis in the paper:  
+- F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
+  Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
+  [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
+
 Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
@@ -334,10 +340,14 @@ Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), 
     # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
     if v_normal <= 0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-        p_star = p_local *
-                 (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                               equations.gamma *
-                                                                               equations.inv_gamma_minus_one)
+        p_scaling_base = (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)
+        if p_scaling_base >= 0
+            p_star = p_local *
+                     p_scaling_base^(2 * equations.gamma *
+                                     equations.inv_gamma_minus_one)
+        else # avoid taking powers if p_scaling_base < 0
+            p_star = zero(p_local)
+        end
     else # v_normal > 0
         A = 2 / ((equations.gamma + 1) * rho_local)
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
@@ -2109,7 +2119,7 @@ end
 @doc raw"""
     apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations2D)
 
-Calculate the Jacobian for the mapping from entropy variables to conservative 
+Calculate the Jacobian for the mapping from entropy variables to conservative
 variables at the entropy variable state `w` and apply it to the vector `dw`.
 
 The explicit Jacobian formula can be found in Barth (1999), p. 205.
