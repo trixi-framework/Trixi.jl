@@ -4259,8 +4259,8 @@ end
 
         # default
         equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion2D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
         u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
@@ -4270,9 +4270,9 @@ end
 
         R_specific = 2.0
         equations_parabolic = @inferred CompressibleNavierStokesDiffusion2D(equations,
-                                                                              mu = mu_ref,
-                                                                              Prandtl = prandtl_number(),
-                                                                              R = R_specific)
+                                                                            mu = mu_ref,
+                                                                            Prandtl = prandtl_number(),
+                                                                            R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test @inferred temperature(u_cons, equations_parabolic) == 0.5
@@ -4291,16 +4291,17 @@ end
                                                                               Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0), equations_parabolic_d)
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0),
+                                     equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
         @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
         equations_parabolic = @inferred CompressibleNavierStokesDiffusion3D(equations,
-                                                                              mu = mu_ref,
-                                                                              Prandtl = prandtl_number(),
-                                                                              R = R_specific)
+                                                                            mu = mu_ref,
+                                                                            Prandtl = prandtl_number(),
+                                                                            R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
         @test @inferred temperature(u_cons, equations_parabolic) == 0.5
