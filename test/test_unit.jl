@@ -4227,27 +4227,27 @@ end
         prandtl_number() = 0.72
         gamma = 1.4
 
-        equations = CompressibleEulerEquations1D(gamma)
+        equations = @inferred CompressibleEulerEquations1D(gamma)
 
         # default
-        equations_parabolic_d = CompressibleNavierStokesDiffusion1D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
+        equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 1.0), equations_parabolic_d)
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic_d) == 1.0
+        @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
-        equations_parabolic = CompressibleNavierStokesDiffusion1D(equations,
-                                                                  mu = mu_ref,
-                                                                  Prandtl = prandtl_number(),
-                                                                  R = R_specific)
+        equations_parabolic = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                            mu = mu_ref,
+                                                                            Prandtl = prandtl_number(),
+                                                                            R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
-        @test temperature(u_cons, equations_parabolic) == 0.5
+        @test @inferred temperature(u_cons, equations_parabolic) == 0.5
     end
 
     @testset "2D equations" begin
@@ -4258,24 +4258,24 @@ end
         equations = CompressibleEulerEquations2D(gamma)
 
         # default
-        equations_parabolic_d = CompressibleNavierStokesDiffusion2D(equations,
+        equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion2D(equations,
                                                                     mu = mu_ref,
                                                                     Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic_d) == 1.0
+        @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
-        equations_parabolic = CompressibleNavierStokesDiffusion2D(equations,
-                                                                  mu = mu_ref,
-                                                                  Prandtl = prandtl_number(),
-                                                                  R = R_specific)
+        equations_parabolic = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number(),
+                                                                              R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
-        @test temperature(u_cons, equations_parabolic) == 0.5
+        @test @inferred temperature(u_cons, equations_parabolic) == 0.5
     end
 
     @testset "3D equations" begin
@@ -4283,26 +4283,26 @@ end
         prandtl_number() = 0.72
         gamma = 1.4
 
-        equations = CompressibleEulerEquations3D(gamma)
+        equations = @inferred CompressibleEulerEquations3D(gamma)
 
         # default
-        equations_parabolic_d = CompressibleNavierStokesDiffusion3D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
+        equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number())
 
         # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0), equations_parabolic_d)
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0), equations_parabolic_d)
 
         # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic_d) == 1.0
+        @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
 
         R_specific = 2.0
-        equations_parabolic = CompressibleNavierStokesDiffusion3D(equations,
-                                                                  mu = mu_ref,
-                                                                  Prandtl = prandtl_number(),
-                                                                  R = R_specific)
+        equations_parabolic = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number(),
+                                                                              R = R_specific)
 
         # p = rho R T, R = 2, rho = 1 => T = 0.5
-        @test temperature(u_cons, equations_parabolic) == 0.5
+        @test @inferred temperature(u_cons, equations_parabolic) == 0.5
     end
 end
