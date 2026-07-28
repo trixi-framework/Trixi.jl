@@ -999,6 +999,7 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 2.0),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
+                        # Exact same errors as for the R = 1 case above
                         l2=[
                             0.00028716166408816073,
                             0.08101204560401647,

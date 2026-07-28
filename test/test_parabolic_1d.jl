@@ -218,6 +218,7 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 2.0),
+                        # Exact same errors as for the R = 1 case above
                         l2=[
                             0.0001133835907077494,
                             6.226282245610444e-5,

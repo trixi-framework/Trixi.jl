@@ -855,6 +855,7 @@ end
                                                                                 mu = mu_deviatoric(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 42.0),
+                        # Exact same errors as for the R = 1 case above
                         l2=[
                             0.0002576235757916208,
                             0.00014336914033937938,
