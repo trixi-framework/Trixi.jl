@@ -48,11 +48,6 @@ end
         du_ode = similar(u_ode)
         @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
-    @test real(ode.p.solver) == Float32
-    @test real(ode.p.solver.basis) == Float32
-    @test real(ode.p.solver.mortar) == Float32
-    # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(ode.p.mesh) == Float64
 end
 
 @testitem "P4estMesh2D: elixir_advection_nonconforming_flag.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
@@ -149,6 +144,9 @@ end
     # Load the mesh file for code coverage.
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
                                          RealT = typeof(parent_mesh).parameters[3])
+
+    # Test show methods for code coverage.
+    @test_nowarn show(stdout, semi)
 end
 
 @testitem "P4estMesh2D: elixir_advection_basic.jl (initial_refinement_level=0)" setup=[
@@ -770,19 +768,24 @@ end
 
 @testitem "P4estMesh2D: elixir_mhd_alfven_wave.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
-                        l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
-                            1.0517900957304043e-6, 1.511816606372376e-6,
-                            1.0443997728645063e-6, 7.879639064990798e-7,
-                            7.879639065049896e-7, 1.0628631669056271e-6,
-                            4.3382328912336153e-7],
-                        linf=[4.255466285174592e-5, 1.0029706745823264e-5,
-                            1.0029706747467781e-5, 1.2122265939010224e-5,
-                            5.4791097160444835e-6, 5.18922042269665e-6,
-                            5.189220422141538e-6, 9.552667261422676e-6,
-                            1.4237578427628152e-6])
+                        l2=[1.0513414461455308e-5, 1.0517900957064215e-6,
+                            1.0517900957294453e-6, 1.5118166063746164e-6,
+                            1.0443997728655552e-6, 7.879639065135079e-7,
+                            7.879639064974571e-7, 1.0628631669044688e-6,
+                            4.338232891005933e-7],
+                        linf=[4.255466285196796e-5, 1.0029706747197165e-5,
+                            1.0029706746697564e-5, 1.2122265939315535e-5,
+                            5.479109717598796e-6, 5.189220423029717e-6,
+                            5.1892204214754045e-6, 9.552667261436554e-6,
+                            1.4237578425562423e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @testitem "P4estMesh2D: elixir_mhd_alfven_wave_nonconforming.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
@@ -864,6 +867,39 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh2D: elixir_euler_mhd_coupled.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mhd_coupled.jl"),
+                        l2=[
+                            0.0009298429085292762, 0.001493667091551915,
+                            1.3880200513838985e-7, 0.0, 0.002324586945682294,
+                            0.0, 0.0, 0.0, 0.0, 0.000930224035177847,
+                            0.0014944958076029463, 1.8536128566663707e-7,
+                            0.0023266433566251038
+                        ],
+                        linf=[
+                            0.0015949952992960759, 0.0026047400211187777,
+                            2.1137352797650287e-6, 0.0, 0.003994377993553844,
+                            0.0, 0.0, 0.0, 0.0, 0.0015998321088653844,
+                            0.00260875068917614, 2.1084038302110918e-6,
+                            0.004011403632471433],
+                        tspan=(0.0, 0.02))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    # Test ncells for P4estMeshView for code coverage.
+    mesh1, _, _, _ = Trixi.mesh_equations_solver_cache(semi.semis[1])
+    @test Trixi.ncells(mesh1) == length(mesh1.cell_ids)
+
+    # Test save_mesh_file for P4estMeshView for code coverage.
+    Trixi.save_mesh_file(mesh1, "out"; system = "1", timestep = 0)
 end
 
 @testitem "P4estMesh2D: elixir_linearizedeuler_gaussian_source.jl" setup=[

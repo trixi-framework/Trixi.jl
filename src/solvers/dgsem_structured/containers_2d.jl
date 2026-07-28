@@ -199,6 +199,7 @@ end
 #   [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
                                         mesh::Union{StructuredMesh{2},
+                                                    StructuredMeshView{2},
                                                     UnstructuredMesh2D,
                                                     P4estMesh{2}, T8codeMesh{2}},
                                         dg, cache_containers)
@@ -298,7 +299,8 @@ mutable struct NormalVectorContainer2D{RealT <: Real} <:
     _normal_vectors_2::Vector{RealT}
 end
 
-function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+function NormalVectorContainer2D(mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                             UnstructuredMesh2D,
                                              P4estMesh{2}, T8codeMesh{2}},
                                  dg, cache_containers)
     @unpack contravariant_vectors = cache_containers.elements
