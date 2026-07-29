@@ -94,12 +94,12 @@ using Static: Static, One, True, False
 
 Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
 [`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference. Both OrdinaryDiffEq.jl and
-Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend, 
-(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms, 
+Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend,
+(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms,
 since we have observed negative interactions between Polyester.jl and the Julia native shared memory parallelism.
 """ Threaded
 
-@static if _PREFERENCE_THREADING === "polyester"
+@static if _PREFERENCE_THREADING === :polyester
     @static if isdefined(DiffEqBase, :Threaded)
         Threaded() = DiffEqBase.Threaded()
     else
@@ -398,7 +398,7 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
 function __init__()
     # Skip MPI/library initialization during precompilation of subsequent packages.
     # The specific case we are guarding against is recompilation when running under MPI,
-    # then the MPI launcher will error if more processes than asked for are launched. 
+    # then the MPI launcher will error if more processes than asked for are launched.
     if ccall(:jl_generating_output, Cint, ()) == 1
         return nothing
     end
