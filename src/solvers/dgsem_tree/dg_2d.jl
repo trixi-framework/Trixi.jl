@@ -155,13 +155,13 @@ function rhs!(du, u, t,
 
     # Prolong solution to mortars
     @trixi_timeit_ext backend timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
+        prolong2mortars!(backend, cache, u, mesh, equations,
                          dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
     @trixi_timeit_ext backend timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
