@@ -480,12 +480,13 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
     end
 
     do_partition = 0
+    cmesh = t8_cmesh_new()
     if NDIMS == 2
-        cmesh = t8_cmesh_new_brick_2d(trees_per_dimension..., periodicity...,
-                                      sc_MPI_COMM_WORLD)
+        t8_cmesh_new_brick_2d(cmesh, trees_per_dimension..., periodicity...,
+                              sc_MPI_COMM_WORLD)
     elseif NDIMS == 3
-        cmesh = t8_cmesh_new_brick_3d(trees_per_dimension..., periodicity...,
-                                      sc_MPI_COMM_WORLD)
+        t8_cmesh_new_brick_3d(cmesh, trees_per_dimension..., periodicity...,
+                              sc_MPI_COMM_WORLD)
     end
 
     do_face_ghost = mpi_isparallel()
@@ -631,7 +632,8 @@ conforming mesh from a `p4est_connectivity` data structure.
                                     same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
-    cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), 0)
+    cmesh = t8_cmesh_new()
+    t8_cmesh_new_from_p4est(cmesh, conn, mpi_comm(), 0)
 
     return T8codeMesh(cmesh; kwargs...)
 end
@@ -657,7 +659,8 @@ conforming mesh from a `p4est_connectivity` data structure.
                                     same-level siblings, thus allowing to coarsen again.
 """
 function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
-    cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), 0)
+    cmesh = t8_cmesh_new()
+    t8_cmesh_new_from_p8est(cmesh, conn, mpi_comm(), 0)
 
     return T8codeMesh(cmesh; kwargs...)
 end
@@ -742,7 +745,8 @@ function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
 
     meshfile_prefix, meshfile_suffix = splitext(meshfile.path)
 
-    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
+    cmesh = t8_cmesh_new()
+    t8_cmesh_from_msh_file(cmesh, meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
 
     return T8codeMesh(cmesh; kwargs...)
 end
@@ -855,11 +859,15 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
 end
 
 function t8_cmesh_new_from_connectivity(connectivity::Ptr{p4est_connectivity}, comm)
-    return t8_cmesh_new_from_p4est(connectivity, comm, 0)
+    cmesh = t8_cmesh_new()
+    t8_cmesh_new_from_p4est(cmesh, connectivity, comm, 0)
+    return cmesh
 end
 
 function t8_cmesh_new_from_connectivity(connectivity::Ptr{p8est_connectivity}, comm)
-    return t8_cmesh_new_from_p8est(connectivity, comm, 0)
+    cmesh = t8_cmesh_new()
+    t8_cmesh_new_from_p8est(cmesh, connectivity, comm, 0)
+    return cmesh
 end
 
 """
@@ -893,9 +901,10 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                polydeg, RealT = Float64, initial_refinement_level = 0,
                                partition_allow_for_coarsening = true)
     NDIMS = 3
-    cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
-                                               trees_per_face_dimension,
-                                               layers, mpi_comm())
+    cmesh = t8_cmesh_new()
+    t8_cmesh_new_cubed_spherical_shell(cmesh, inner_radius, thickness,
+                                       trees_per_face_dimension,
+                                       layers, mpi_comm())
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default()
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
