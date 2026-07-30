@@ -845,6 +845,33 @@ end
                         ])
 end
 
+@testitem "Parabolic3D: TreeMesh3D: elixir_navierstokes_viscous_shock.jl (R = 42)" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion3D(equations,
+                                                                                mu = mu_deviatoric(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 42.0),
+                        # Almost exact same errors as for the R = 1 case above, differences due to altered diffusive CFL speeds
+                        l2=[
+                            0.00025762356614190713,
+                            0.00014336911515809575,
+                            3.361746364570895e-17,
+                            3.1399702631471645e-17,
+                            0.0001736985108794003
+                        ],
+                        linf=[
+                            0.0016731996698962082,
+                            0.0010638561371555388,
+                            1.733671234158084e-16,
+                            1.9060786274399122e-16,
+                            0.00114951767935223
+                        ])
+end
+
 @testitem "Parabolic3D: P4estMesh3D: elixir_navierstokes_blast_wave_amr.jl" setup=[
     Setup,
     Parabolic3D
