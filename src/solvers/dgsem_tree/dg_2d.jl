@@ -1035,7 +1035,7 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::TreeMesh{2},
                            have_nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
