@@ -203,6 +203,8 @@ function rhs_hyperbolic!(du_ode, u_ode, u_parent, semis,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
+    backend = trixi_backend(u)
+
     time_start = time_ns()
     @trixi_timeit timer() "rhs_hyperbolic!" rhs_hyperbolic!(du, u, t, u_parent, semis,
                                                             mesh, equations,
