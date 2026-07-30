@@ -7,9 +7,19 @@ for human readability.
 
 ## Changes when updating to v0.17 from v0.16.x
 
-#### Changed
+#### Added
 
-- The internal ODE right-hand side functions such as `rhs!` and `rhs_parabolic!` now dispatch additionally on the backend type ([#3113]). The public interface `rhs!(du_ode, u_ode, semi, t)` is unchanged.
+#### Changed
+- The `NonConservativeJump` terms now require `normal_direction_ll` and
+  `normal_direction_rr` as function arguments instead of the previous averaged `normal_direction`. 
+  This is necessary because the averaged `normal_direction` did not yield a consistent jump term. ([#2890])
+- The internal ODE right-hand side functions such as `rhs!` and `rhs_parabolic!` now dispatch additionally
+  on the backend type ([#3113]). The public interface `rhs!(du_ode, u_ode, semi, t)` is unchanged.
+
+#### Deprecated
+
+#### Removed
+
 
 ## Changes in the v0.16 lifecycle
 
