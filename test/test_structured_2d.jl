@@ -702,7 +702,7 @@ end
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
     # Note: see comment https://github.com/trixi-framework/Trixi.jl/pull/3154#discussion_r3645247787
-    @test maximum(deviations) <= 1.0e-6
+    @test maximum(deviations) <= 1.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
