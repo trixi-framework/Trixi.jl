@@ -35,6 +35,8 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
 
+    backend = trixi_backend(u)
+
     # Convert conservative variables to a form more suitable for parabolic flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
@@ -112,7 +114,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # This calls the specialized version for the parabolic fluxes from
     # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, flux_parabolic, mesh, equations_parabolic,
+        prolong2mortars!(backend, cache, flux_parabolic, mesh, equations_parabolic,
                          dg.mortar, dg)
     end
 

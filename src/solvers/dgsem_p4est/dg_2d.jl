@@ -1018,9 +1018,9 @@ end
 
     # Copy to buffer
     set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations,
-                   dg, node_index)
+                   SolverT, node_index)
     set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary,
-                   equations, dg, node_index)
+                   equations, SolverT, node_index)
 
     return nothing
 end
