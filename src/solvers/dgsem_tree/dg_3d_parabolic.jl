@@ -556,7 +556,7 @@ end
 # Specialization `flux_parabolic::Tuple` needed to
 # avoid amibiguity with the hyperbolic version of `prolong2mortars!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
-function prolong2mortars!(cache, flux_parabolic::Tuple,
+function prolong2mortars!(backend::Nothing, cache, flux_parabolic::Tuple,
                           mesh::TreeMesh{3},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)

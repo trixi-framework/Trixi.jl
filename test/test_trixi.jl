@@ -22,7 +22,7 @@ macro test_trixi_include(expr, args...)
         # OrdinaryDiffEq.jl throws the following warning, which we can safely ignore in our tests:
         r"┌ Warning: Verbosity toggle: dt_epsilon \n│  Initial timestep too small \(near machine epsilon\), using default: dt = 0.0\n└ @ OrdinaryDiffEqCore ~/.julia/packages/OrdinaryDiffEqCore.*\n",
         # TODO: remove once updated!
-        r"┌ Warning: Passing `stage_limiter!` to the algorithm constructor is deprecated; pass `stage_limiter` as a keyword argument to `solve`/`init` instead.\n   caller = ip:0x0\n└ @ Core :-1\n",
+        r"┌ Warning: Passing `stage_limiter!` to the algorithm constructor is deprecated; pass `stage_limiter` as a keyword argument to `solve`/`init` instead.\n│   caller = ip:0x0\n└ @ Core :-1\n",
         r"┌ Warning: Passing `step_limiter!` to the algorithm constructor is deprecated; pass `step_limiter` as a keyword argument to `solve`/`init` instead.\n│   caller = ip:0x0\n└ @ Core :-1\n"
     ]
     # if `maxiters` is set in tests, it is usually set to a small number to
