@@ -205,6 +205,10 @@ struct DGMultiSolutionContainer{uType, ufType, ffType, lType}
     local_values_threaded::lType
 end
 
+@inline function solution_eltype(dg::DGMulti, cache)
+    return eltype(eltype(cache.solution_container.u_values))
+end
+
 # Allocates arrays shared across most DGMulti cache types.
 function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
                                                dg::DGMulti,

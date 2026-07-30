@@ -14,7 +14,9 @@ for human readability.
 ## Changes in the v0.16 lifecycle
 
 #### Added
-- Added `PositivityPreservingLimiterLiuZhang`, which enforces global positivity of cell averages through an iterative algorithm ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` in 1D and 2D, and supports enforcing lower bounds on the solution for scalar equations and on both density and internal energy (or density and pressure) for `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D`.
+- Extended `PositivityPreservingLimiterLiuZhang` to `P4estMesh`, and added an example using `CompressibleNavierStokesDiffusion` ([#3100]).
+- Extended `PositivityPreservingLimiterLiuZhang` to `CompressibleEulerEquations1D` and `CompressibleEulerEquations2D` ([#3066]). When combined with `PositivityPreservingLimiterZhangShu`, the density and pressure are guaranteed to be positive at nodal points. The limiter is currently implemented for `TreeMesh` and supports lower bounds on both density and internal energy (or both density and pressure).
+- Added `PositivityPreservingLimiterLiuZhang` for `TreeMesh`, which enforces global positivity of cell averages through an iterative algorithm ([#3063]). Currently only implemented for `LinearScalarAdvectionEquation`.
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
@@ -40,10 +42,12 @@ for human readability.
   This is a concrete implementation for `AbstractThermallyPerfectGas` that uses a 9th order polynomial fit to the NASA polynomials for specific heat capacities, as described in the corresponding [NASA Technical Publication](https://ntrs.nasa.gov/citations/20020085330).
   This EOS allows for temperature-dependent specific heat capacities (`c_p(T)`, `c_v(T)`) and ratio of specific heats (`\gamma(T)`), while obeying the ideal gas law to relate pressure, density, and temperature ([#3079]).
   This equation of state needs to be supplied to `NonIdealCompressibleEulerEquations`.
+- Added support for one-block periodic SBP operators (finite differences, CGSEM, etc.) on `DGMultiMesh`es with nonconservative terms ([#3144]).
 
 #### Changed
-- Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]). 
+- Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]).
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
+- Removed the requirement to pass `uEltype = real(dg)` to the `AnalysisCallback` for `DGMulti` solvers ([#3143]).
 
 ## Changes when updating to v0.16 from v0.15.x
 
