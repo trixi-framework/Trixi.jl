@@ -855,7 +855,7 @@ end
                                                                                 mu = mu_deviatoric(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 42.0),
-                        # Almost exact same errors as for the R = 1 case above
+                        # Almost exact same errors as for the R = 1 case above, differences due to altered diffusive CFL speeds
                         l2=[
                             0.00025762356614190713,
                             0.00014336911515809575,
