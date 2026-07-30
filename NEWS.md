@@ -9,7 +9,7 @@ for human readability.
 
 #### Changed
 
-- The `rhs!` function now dispatches additionally on the backend type ([#3113]).
+- The internal ODE right-hand side functions such as `rhs!` and `rhs_parabolic!` now dispatch additionally on the backend type ([#3113]). The public interface `rhs!(du_ode, u_ode, semi, t)` is unchanged.
 
 ## Changes in the v0.16 lifecycle
 
