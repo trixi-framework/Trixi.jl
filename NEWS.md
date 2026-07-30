@@ -5,6 +5,20 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.17 from v0.16.x
+
+#### Added
+
+#### Changed
+- The `NonConservativeJump` terms now require `normal_direction_ll` and
+`normal_direction_rr` as function arguments instead of the previous averaged `normal_direction`. 
+This is necessary because the averaged `normal_direction` did not yield a consistent jump term. ([#2890])
+
+#### Deprecated
+
+#### Removed
+
+
 ## Changes in the v0.16 lifecycle
 
 #### Added
