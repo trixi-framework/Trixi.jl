@@ -11,7 +11,7 @@
 Specialized semidiscretization routines for coupled problems using P4est mesh views.
 This is analogous to the implementation for structured meshes.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
-Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
+Each call of `rhs_hyperbolic!` will call `rhs_hyperbolic!` for each semidiscretization individually.
 The semidiscretizations can be coupled by glueing meshes together using [`BoundaryConditionCoupled`](@ref).
 
 See also: [`SemidiscretizationCoupled`](@ref)
@@ -160,7 +160,7 @@ end
 end
 
 # RHS call for the coupled system.
-function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
@@ -180,11 +180,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
         u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
     end
 
-    # Call rhs! for each semidiscretization
+    # Call rhs_hyperbolic! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
+        rhs_hyperbolic!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -196,16 +196,18 @@ end
 # RHS call for the local system.
 # Here we require the data from u_parent for each semidiscretization in order
 # to exchange the correct boundary values.
-function rhs!(du_ode, u_ode, u_parent, semis,
-              semi::SemidiscretizationHyperbolic, t)
+function rhs_hyperbolic!(du_ode, u_ode, u_parent, semis,
+                         semi::SemidiscretizationHyperbolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, u_parent, semis, mesh, equations,
-                                      boundary_conditions, source_terms, solver, cache)
+    @trixi_timeit timer() "rhs_hyperbolic!" rhs_hyperbolic!(du, u, t, u_parent, semis,
+                                                            mesh, equations,
+                                                            boundary_conditions,
+                                                            source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)
 

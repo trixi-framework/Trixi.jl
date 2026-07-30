@@ -789,9 +789,9 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
-function rhs!(du, u, t, mesh, equations,
-              boundary_conditions::BC, source_terms::Source,
-              dg::DGMulti, cache) where {BC, Source}
+function rhs_hyperbolic!(du, u, t, mesh, equations,
+                         boundary_conditions::BC, source_terms::Source,
+                         dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" begin

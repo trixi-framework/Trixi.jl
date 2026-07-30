@@ -32,9 +32,9 @@ plot!([0, -0.5], [-9.5, -11.5], arrow = true, color = :black, linewidth = 2, lab
 plot!([0, 0.5], [-9.5, -11.5], arrow = true, color = :black, linewidth = 2, label = "")
 annotate!(0.8, -10.5, ("Specialized for \nsemidiscretization", 9, :black, :center))
 
-plot!(Shape([(-0.95, -11.5), (0.95, -11.5), (0.95, -12.5), (-0.95, -12.5)]),
+plot!(Shape([(-1.35, -11.5), (1.35, -11.5), (1.35, -12.5), (-1.35, -12.5)]),
       linecolor = "black", fillcolor = "white", label = false, linewidth = 2)
-annotate!(0, -12, ("Trixi.rhs!(du_ode, u_ode, semi, t)", 12, :black, :center))
+annotate!(0, -12, ("Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)", 12, :black, :center))
 plot!([0, 0], [-12.5, -14.5], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([0, -0.5], [-12.5, -14.5], arrow = true, color = :black, linewidth = 2, label = "")
 plot!([0, 0.5], [-12.5, -14.5], arrow = true, color = :black, linewidth = 2, label = "")
@@ -43,12 +43,12 @@ plot!(Shape([(-1.7, -11), (1.7, -11), (1.7, -17), (-1.7, -17)]), linecolor = :bl
       fillcolor = :transparent, label = false, linewidth = 1, linestyle = :dash)
 annotate!(1.5, -14, ("Trixi.jl", 12, :blue, :center))
 
-plot!(Shape([(-1.4, -14.5), (1.4, -14.5), (1.4, -16.5), (-1.4, -16.5)]),
+plot!(Shape([(-1.35, -14.5), (1.35, -14.5), (1.35, -16.5), (-1.35, -16.5)]),
       linecolor = "black", fillcolor = "white", label = false, linewidth = 2)
 annotate!(0, -15.5,
-          ("Trixi.rhs!(du, u, t, mesh, equations, \nboundary_conditions, source_terms, dg, cache)",
+          ("Trixi.rhs_hyperbolic!(du, u, t, mesh, equations, \nboundary_conditions, source_terms, dg, cache)",
            12, :black, :center))
 
 plot!([-2, 2], [2, 2], linecolor = "white", fillcolor = "white", label = false,
       linewidth = 2)
-savefig("./rhs!")
+savefig("./rhs_hyperbolic!")

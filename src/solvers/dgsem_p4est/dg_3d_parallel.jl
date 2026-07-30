@@ -5,10 +5,11 @@
 @muladd begin
 #! format: noindent
 
-function rhs!(du, u, t,
-              mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
+function rhs_hyperbolic!(du, u, t,
+                         mesh::Union{P4estMeshParallel{3}, T8codeMeshParallel{3}},
+                         equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     backend = trixi_backend(u)
 
     # Start to receive MPI data

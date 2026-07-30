@@ -199,6 +199,9 @@ include("postprocessing/spectral_analysis.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
+# Preserve compatibility for callers using the former hyperbolic RHS name
+Base.@deprecate rhs!(args...) rhs_hyperbolic!(args...)
+
 # export types/functions that define the public API of Trixi.jl
 
 export AcousticPerturbationEquations2D,

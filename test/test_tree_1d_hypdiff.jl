@@ -11,7 +11,7 @@ end
                         linf=[7.173285075379177e-7, 4.507116828644797e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D HypDiff: elixir_hypdiff_nonperiodic_perk4.jl" setup=[
@@ -28,7 +28,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 end
 
 @testitem "TreeMesh1D HypDiff: elixir_hypdiff_harmonic_nonperiodic.jl" setup=[
@@ -46,5 +46,5 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end

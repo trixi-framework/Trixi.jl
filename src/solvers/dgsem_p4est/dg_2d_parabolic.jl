@@ -52,7 +52,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{P4estMesh{2}, P4estMesh{3}},
                                equations_parabolic, dg, cache)
     end
 
-    # The remainder of this function is essentially a regular rhs! for parabolic
+    # The remainder of this function is essentially a regular RHS evaluation for parabolic
     # equations (i.e., it computes the divergence of the parabolic fluxes)
     #
     # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have

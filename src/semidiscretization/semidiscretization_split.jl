@@ -196,18 +196,19 @@ function rhs_stiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! stiff" rhs!(du, u, t, mesh, equations_stiff,
-                                            boundary_conditions_stiff,
-                                            source_terms_stiff,
-                                            solver_stiff,
-                                            cache_stiff)
+    @trixi_timeit timer() "rhs_hyperbolic! stiff" rhs_hyperbolic!(du, u, t, mesh,
+                                                                  equations_stiff,
+                                                                  boundary_conditions_stiff,
+                                                                  source_terms_stiff,
+                                                                  solver_stiff,
+                                                                  cache_stiff)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
     return nothing
 end
 
-# nonstiff `rhs!`
+# nonstiff `rhs_hyperbolic!`
 function rhs_nonstiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t)
     @unpack mesh, equations_nonstiff, initial_condition, boundary_conditions_nonstiff, source_terms_nonstiff, solver_nonstiff, cache_nonstiff = semi
 
@@ -216,11 +217,12 @@ function rhs_nonstiff!(du_ode, u_ode, semi::SemidiscretizationHyperbolicSplit, t
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs! nonstiff" rhs!(du, u, t, mesh, equations_nonstiff,
-                                               boundary_conditions_nonstiff,
-                                               source_terms_nonstiff,
-                                               solver_nonstiff,
-                                               cache_nonstiff)
+    @trixi_timeit timer() "rhs_hyperbolic! nonstiff" rhs_hyperbolic!(du, u, t, mesh,
+                                                                     equations_nonstiff,
+                                                                     boundary_conditions_nonstiff,
+                                                                     source_terms_nonstiff,
+                                                                     solver_nonstiff,
+                                                                     cache_nonstiff)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[2], runtime)
 

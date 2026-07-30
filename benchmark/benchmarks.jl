@@ -48,7 +48,7 @@ for elixir in [# 1D
   SUITE[benchname] = BenchmarkGroup()
   for polydeg in [3, 7]
     trixi_include(elixir, tspan=(0.0, 1.0e-10); polydeg)
-    SUITE[benchname]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!(
+    SUITE[benchname]["p$(polydeg)_rhs_hyperbolic!"] = @benchmarkable Trixi.rhs_hyperbolic!(
       $(similar(sol.u[end])), $(copy(sol.u[end])), $(semi), $(first(tspan)))
     SUITE[benchname]["p$(polydeg)_analysis"] = @benchmarkable ($analysis_callback)($sol)
   end
