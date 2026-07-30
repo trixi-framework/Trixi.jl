@@ -43,7 +43,10 @@ end
     @test res1.linf ≈ res2.linf
 end
 
-@testitem "BlockFV 2D: elixir_advection_amr.jl with even n_nodes" setup=[Setup, TreeMesh2DBlockFV] tags=[:tree_part1] begin
+@testitem "BlockFV 2D: elixir_advection_amr.jl with even n_nodes" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         l2=[2.23122321e-03],
                         linf=[2.73842937e-02],
@@ -54,7 +57,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "BlockFV 2D: elixir_advection_amr.jl with odd n_nodes" setup=[Setup, TreeMesh2DBlockFV] tags=[:tree_part1] begin
+@testitem "BlockFV 2D: elixir_advection_amr.jl with odd n_nodes" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         l2=[1.79519028e-03],
                         linf=[2.31327415e-02],
