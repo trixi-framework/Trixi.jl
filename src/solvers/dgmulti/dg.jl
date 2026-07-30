@@ -205,6 +205,10 @@ struct DGMultiSolutionContainer{uType, ufType, ffType, lType}
     local_values_threaded::lType
 end
 
+@inline function solution_eltype(dg::DGMulti, cache)
+    return eltype(eltype(cache.solution_container.u_values))
+end
+
 # Allocates arrays shared across most DGMulti cache types.
 function initialize_dgmulti_solution_container(mesh::DGMultiMesh, equations,
                                                dg::DGMulti,
@@ -785,7 +789,7 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
-function rhs!(du, u, t, mesh, equations,
+function rhs!(backend::Nothing, du, u, t, mesh, equations,
               boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)

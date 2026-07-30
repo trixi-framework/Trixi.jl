@@ -38,11 +38,10 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
     return nothing
 end
 
-function rhs!(du, u, t,
+function rhs!(backend::Nothing, du, u, t,
               mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
 
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
@@ -234,4 +233,5 @@ include("dg_2d_subcell_limiters.jl")
 # Specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")
 include("dg_3d_compressible_euler.jl")
+include("dg_3d_turbo.jl")
 end # @muladd
