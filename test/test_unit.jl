@@ -698,6 +698,25 @@ end
     indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
                                               LobattoLegendreBasis(3))
     @test_nowarn show(stdout, indicator_ec)
+
+    # test Base.show for PositivityPreservingLimiterLiuZhang
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    solver = DGSEM(polydeg = 3)
+    mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                         variables = (first,))
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                          semi;
+                                                          record_davis_yin_iterations = true)
+    @test_nowarn show(stdout, global_limiter!)
+    @test_nowarn show(stdout, "text/plain", global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      global_limiter!)
 end
 
 @testitem "Unit: LBM 2D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -980,6 +999,57 @@ end
         p = pressure(u, equations)
         rho_p = density_pressure(u, equations)
         @test rho * p ≈ rho_p
+    end
+end
+
+@testitem "Unit: hardened boundary_condition_slip_wall" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    let equations = CompressibleEulerEquations1D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 1), equations)
+
+        x, t = 0, 0
+        orientation = 1
+        direction = 2 # even direction: v_normal stays <= 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
     end
 end
 
@@ -1936,6 +2006,25 @@ end
         @test flux_godunov(u, u, normal_direction, equation) ≈
               flux(u, normal_direction, equation)
     end
+end
+
+@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = InviscidBurgersEquation1D()
+    u_ll = SVector(2.0)
+    u_rr = SVector(-1.0)
+
+    for normal_direction in (SVector(1.0), SVector(-1.2))
+        @test flux_ec(u_ll, u_rr, normal_direction, equations) ≈
+              normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
+    end
+
+    u = SVector(42.0)
+    normal_direction = SVector(-1.2)
+    @test flux_ec(u, u, normal_direction, equations) ≈
+          flux(u, normal_direction, equations)
 end
 
 @testitem "Unit: Consistency check for Engquist-Osher flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -4077,6 +4166,27 @@ end
         @test u_projected[1] > lower_bounds[1]
         @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
     end
+
+    # this test failed without the rationalized approximation of
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang.
+    @testset "2D projection near zero momentum boundary" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.9376339560775117,
+                    1.353902558446827e-8,
+                    6.230911048510285e-9,
+                    -3.779101287247884)
+        lower_bounds = (1e-8, 2.5e-8)
+        variables = (density, energy_internal)
+
+        u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_proj[1]≈0.9376339560775118 rtol=1e-12
+        @test u_proj[2]≈6.637197729990257e-9 rtol=1e-12
+        @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
+        @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
+        @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
+    end
 end
 
 @testset "load_mesh n_cells_max compatibility" begin
@@ -4106,5 +4216,94 @@ end
         # negative value: rejected
         @test_throws ArgumentError Trixi.load_mesh_serial(mesh_file; n_cells_max = -1,
                                                           RealT = Float64)
+    end
+end
+
+@testitem "Unit: Specific gas constant" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # test computation of temperature for CompressibleNavierStokesDiffusion equations
+    # with gas constant not equal to 1
+    @testset "1D equations" begin
+        mu_ref = 1.0
+        prandtl_number() = 0.72
+        gamma = 1.4
+
+        equations = @inferred CompressibleEulerEquations1D(gamma)
+
+        # default
+        equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number())
+
+        # Flow at rest, rho = 1.0, p = 1.0
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 1.0), equations_parabolic_d)
+
+        # p = rho R T, R = 1, rho = 1 => T = 1.0
+        @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
+
+        R_specific = 2.0
+        equations_parabolic = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                            mu = mu_ref,
+                                                                            Prandtl = prandtl_number(),
+                                                                            R = R_specific)
+
+        # p = rho R T, R = 2, rho = 1 => T = 0.5
+        @test @inferred temperature(u_cons, equations_parabolic) == 0.5
+    end
+
+    @testset "2D equations" begin
+        mu_ref = 1.0
+        prandtl_number() = 0.72
+        gamma = 1.4
+
+        equations = CompressibleEulerEquations2D(gamma)
+
+        # default
+        equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number())
+
+        # Flow at rest, rho = 1.0, p = 1.0
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
+
+        # p = rho R T, R = 1, rho = 1 => T = 1.0
+        @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
+
+        R_specific = 2.0
+        equations_parabolic = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                            mu = mu_ref,
+                                                                            Prandtl = prandtl_number(),
+                                                                            R = R_specific)
+
+        # p = rho R T, R = 2, rho = 1 => T = 0.5
+        @test @inferred temperature(u_cons, equations_parabolic) == 0.5
+    end
+
+    @testset "3D equations" begin
+        mu_ref = 1.0
+        prandtl_number() = 0.72
+        gamma = 1.4
+
+        equations = @inferred CompressibleEulerEquations3D(gamma)
+
+        # default
+        equations_parabolic_d = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                              mu = mu_ref,
+                                                                              Prandtl = prandtl_number())
+
+        # Flow at rest, rho = 1.0, p = 1.0
+        u_cons = @inferred prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0),
+                                     equations_parabolic_d)
+
+        # p = rho R T, R = 1, rho = 1 => T = 1.0
+        @test @inferred temperature(u_cons, equations_parabolic_d) == 1.0
+
+        R_specific = 2.0
+        equations_parabolic = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                            mu = mu_ref,
+                                                                            Prandtl = prandtl_number(),
+                                                                            R = R_specific)
+
+        # p = rho R T, R = 2, rho = 1 => T = 0.5
+        @test @inferred temperature(u_cons, equations_parabolic) == 0.5
     end
 end

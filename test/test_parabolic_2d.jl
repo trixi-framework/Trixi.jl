@@ -1420,6 +1420,36 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic2D: elixir_navierstokes_sedov_limiter_liu_zhang.jl" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_sedov_limiter_liu_zhang.jl"),
+                        l2=[
+                            0.619534305,
+                            0.151273076,
+                            0.151273076,
+                            0.287352011
+                        ],
+                        linf=[
+                            2.60994082,
+                            0.938295064,
+                            0.938295064,
+                            1.21442985
+                        ],
+                        atol=5e-2, # limiters are not smooth, so we need bigger tolerances
+                        rtol=1e-2)
+
+    # the number of iterations evaluates to 67 locally and 68 on CI
+    @test length(global_limiter!.history_davis_yin_iterations) >= 67
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" setup=[
     Setup,
     Parabolic2D
@@ -1455,6 +1485,30 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
+                        l2=[
+                            4.37868326434923e-15,
+                            7.002449644031901e-16,
+                            1.0986677074164136e-14,
+                            1.213800745067394e-14
+                        ],
+                        linf=[
+                            2.531308496145357e-14,
+                            3.8367543336926215e-15,
+                            4.9960036108132044e-14,
+                            6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        gradient_variables=GradientVariablesEntropy(),
                         l2=[
                             4.37868326434923e-15,
                             7.002449644031901e-16,

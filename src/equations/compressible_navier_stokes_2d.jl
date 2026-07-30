@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion2D(equations; mu, Pr,
+    CompressibleNavierStokesDiffusion2D(equations; mu, Pr, R=1,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -16,12 +16,14 @@ the [`CompressibleEulerEquations2D`](@ref).
 - `equations`: instance of the [`CompressibleEulerEquations2D`](@ref)
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
+- `R`: specific gas constant (defaults to 1),
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to [`GradientVariablesPrimitive()`](@ref).
                         For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
 
-Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
-[``\mu``] = kg m⁻¹ s⁻¹.
+Fluid properties such as the specific gas constant ``R`` and the dynamic viscosity
+``\mu`` can be provided in any consistent unit system, e.g.,
+[``R``] = J kg⁻¹ K⁻¹ and [``\mu``] = kg m⁻¹ s⁻¹.
 The viscosity ``\mu`` may be a constant or a function of the current state, e.g.,
 depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
 In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
@@ -90,6 +92,7 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, Mu,
     # TODO: parabolic
     # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
+    R::RealT                   # specific gas constant
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fourier's law
@@ -101,11 +104,12 @@ end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquations2D;
-                                             mu, Prandtl,
+                                             mu, Prandtl, R = 1,
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
-    Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
+    Pr = promote_type(typeof(gamma), typeof(Prandtl), typeof(R))(Prandtl)
+    R = convert(typeof(Pr), R)
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
@@ -114,7 +118,7 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
 
     return CompressibleNavierStokesDiffusion2D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
-                                               typeof(equations)}(mu, Pr, kappa,
+                                               typeof(equations)}(R, mu, Pr, kappa,
                                                                   max(4 / 3, kappa),
                                                                   equations,
                                                                   gradient_variables)
@@ -132,6 +136,7 @@ function Base.similar(equations::CompressibleNavierStokesDiffusion2D,
                                                mu = mu,
                                                Prandtl = convert(NewRealT,
                                                                  equations.Pr),
+                                               R = convert(NewRealT, equations.R),
                                                gradient_variables = equations.gradient_variables)
 end
 
@@ -344,17 +349,16 @@ end
     temperature(u, equations::CompressibleNavierStokesDiffusion2D)
 
 Compute the temperature from the conservative variables `u`.
-In particular, this assumes a specific gas constant ``R = 1``:
 ```math
-T = \\frac{p}{\\rho}
+T = \\frac{p}{R \\rho}
 ```
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e_total = u
-    @unpack gamma = equations
+    @unpack gamma, R = equations
 
     p = (gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
-    T = p / rho # Corresponds to a specific gas constant R = 1
+    T = p / (rho * R)
     return T
 end
 
@@ -424,6 +428,7 @@ end
     return SVector(u_inner[1], v1, v2, u_inner[4])
 end
 
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
@@ -431,7 +436,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+                                                                                      equations::CompressibleNavierStokesDiffusion2D)
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -459,6 +464,7 @@ end
     return SVector(u_inner[1], v1, v2, T)
 end
 
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        u_inner,
@@ -466,11 +472,11 @@ end
                                                                                        x,
                                                                                        t,
                                                                                        operator_type::Divergence,
-                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+                                                                                       equations::CompressibleNavierStokesDiffusion2D)
     return flux_inner
 end
 
-# specialized BC impositions for GradientVariablesEntropy.
+# specialized BC impositions for GradientVariablesEntropy (Gradient operator only).
 
 # This should return a SVector containing the boundary values of entropy variables.
 # Here, `w_inner` are the transformed variables (e.g., entropy variables).
@@ -494,26 +500,6 @@ end
                    negative_rho_inv_p)
 end
 
-# this is actually identical to the specialization for GradientVariablesPrimitive, but included for completeness.
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
-                                                                        <:Adiabatic})(flux_inner,
-                                                                                      w_inner,
-                                                                                      normal::AbstractVector,
-                                                                                      x,
-                                                                                      t,
-                                                                                      operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
-                                                                                                           t,
-                                                                                                           equations)
-    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
-                                                                                    t,
-                                                                                    equations)
-    _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
-    normal_energy_flux = v1 * tau_1n + v2 * tau_2n + normal_heat_flux
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], normal_energy_flux)
-end
-
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
                                                                         <:Isothermal})(flux_inner,
                                                                                        w_inner,
@@ -531,17 +517,6 @@ end
     # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w4. Similarly for w3
     w4 = -1 / T
     return SVector(w_inner[1], -v1 * w4, -v2 * w4, w4)
-end
-
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
-                                                                        <:Isothermal})(flux_inner,
-                                                                                       w_inner,
-                                                                                       normal::AbstractVector,
-                                                                                       x,
-                                                                                       t,
-                                                                                       operator_type::Divergence,
-                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
 end
 
 # Computes the mirror velocity across a symmetry plane which enforces
@@ -578,6 +553,7 @@ end
 end
 
 # Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
@@ -585,7 +561,7 @@ end
                                                                                       x,
                                                                                       t,
                                                                                       operator_type::Divergence,
-                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+                                                                                      equations::CompressibleNavierStokesDiffusion2D)
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -596,6 +572,25 @@ end
     #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
     # DOI: 10.1016/j.jcp.2021.110723
     return SVector(flux_inner[1], 0, 0, normal_heat_flux)
+end
+
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      w_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
+    negative_rho_inv_p = w_inner[4] # w_4 = -rho / p
+    v1 = -w_inner[2] / negative_rho_inv_p
+    v2 = -w_inner[3] / negative_rho_inv_p
+    v1_outer, v2_outer = velocity_symmetry_plane(normal, v1, v2)
+
+    return SVector(w_inner[1], -v1_outer * negative_rho_inv_p,
+                   -v2_outer * negative_rho_inv_p,
+                   negative_rho_inv_p)
 end
 
 # Dirichlet Boundary Condition for e.g. P4est mesh
@@ -612,12 +607,13 @@ end
     return cons2prim(u_boundary, equations)
 end
 
+# The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
-                                                                  equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+                                                                  equations::CompressibleNavierStokesDiffusion2D)
     # for Dirichlet boundary conditions, we do not impose any conditions on the parabolic fluxes
     return flux_inner
 end

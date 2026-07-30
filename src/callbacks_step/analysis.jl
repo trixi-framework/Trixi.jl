@@ -110,7 +110,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           analysis_integrals = union(default_analysis_integrals(equations),
                                                      extra_analysis_integrals),
                           RealT = real(solver),
-                          uEltype = eltype(cache.elements),
+                          uEltype = solution_eltype(solver, cache),
                           kwargs...)
     # Decide when the callback is activated.
     # With error-based step size control, some steps can be rejected. Thus,
