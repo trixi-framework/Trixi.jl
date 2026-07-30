@@ -213,7 +213,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # In summary, the internal workings of `semidiscretize` with brief descriptions can be presented
 # as follows.
 
-# ![semidiscretize_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/491eddc4-aadb-4e29-8c76-a7c821d0674e)
+# ![semidiscretize_structure](https://github.com/user-attachments/assets/be0642ec-e9d2-44cf-a942-da745d8e32c5)
 
 # ## Functions `solve` and `rhs_hyperbolic!`
 
@@ -249,7 +249,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01;
 
 # Path from the `solve` function call to the appropriate `rhs_hyperbolic!` function call:
 
-# ![rhs_structure](https://github.com/trixi-framework/Trixi.jl/assets/119304909/dbea9a0e-25a4-4afa-855e-01f1ad619982)
+# ![rhs_structure](https://github.com/user-attachments/assets/c99bcd52-ae46-4f75-aaab-e6146634f982)
 
 # Computed solution:
 
