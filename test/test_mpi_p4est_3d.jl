@@ -300,3 +300,25 @@ end
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
+
+@testitem "P4estMesh MPI 3D: elixir_advection_limiter_liu_zhang.jl" setup=[
+    Setup,
+    MPIP4estMesh3D
+] tags=[:mpi, :mpi_skip_windows] begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_limiter_liu_zhang.jl"),
+                        mesh=P4estMesh((4, 4, 4), polydeg = 3,
+                                       coordinates_min = (-1.0, -1.0, -1.0),
+                                       coordinates_max = (1.0, 1.0, 1.0),
+                                       initial_refinement_level = 1,
+                                       periodicity = true),
+                        # loosen tolerance since limiters can be sensitive
+                        l2=[0.3917747509079011],
+                        linf=[1.3569114615249707],
+                        atol=5e-3, rtol=1e-2)
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-3,) up to a tolerance
+    @test minimum(u) > 1e-3 - Trixi.euler_arithmetic_tol(1e-3, 1e-3)
+    @test length(global_limiter!.history_davis_yin_iterations) > 0
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
