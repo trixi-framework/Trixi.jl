@@ -5,6 +5,7 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
 ## Changes when updating to v0.17 from v0.16.x
 
 #### Added
@@ -19,6 +20,9 @@ for human readability.
 #### Deprecated
 
 #### Removed
+
+- The unnecessary method of `flux_nonconservative_chan_etal` accepting two normal directions was removed ([#3147]).
+  The other methods are still there and unchanged.
 
 
 ## Changes in the v0.16 lifecycle
