@@ -728,8 +728,10 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
 
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(nothing, surface_flux_values,
-                                   typeof(mesh), equations_parabolic, typeof(dg), neighbor_ids, node_indices, mortar,
-                                   mortar_l2.reverse_lower, mortar_l2.reverse_upper, index_range, fstar, fstar, u_buffer)
+                                   typeof(mesh), equations_parabolic, typeof(dg),
+                                   neighbor_ids, node_indices, mortar,
+                                   mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+                                   index_range, fstar, fstar, u_buffer)
     end
 
     return nothing
