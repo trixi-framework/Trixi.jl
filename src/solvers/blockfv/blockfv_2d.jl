@@ -214,9 +214,9 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 # Arguments:
-#   idx         - the fine-element node index, 1 <= idx <= nnodes
+#   idx         - the fine-element node index, 1 <= idx <= n_nodes
 #   lower_upper - 0 = lower/left child, 1 = upper/right child
-#   n_nodes      - number of FV cells per element per direction
+#   n_nodes     - number of FV cells per element per direction
 #
 # Returns: the coarse-element node index that `idx` on the given child
 # corresponds to.
@@ -235,11 +235,11 @@ end
         @assert lower_upper == 0 || lower_upper == 1
     end
 
-    if lower_upper == 0                  # left or bottom child
+    if lower_upper == 0    # left or bottom child
         return (idx + 1) ÷ 2
-    elseif iseven(n_nodes)              # right or top child (even)
+    elseif iseven(n_nodes) # right or top child (even)
         return (idx + 1) ÷ 2 + n_nodes ÷ 2
-    else                          # right or top child (odd)
+    else                   # right or top child (odd)
         return idx ÷ 2 + 1 + n_nodes ÷ 2
     end
 end
@@ -252,7 +252,7 @@ end
 
     # Project the solution from the large element to the two small mortar sides
     # by duplicating each large-element node
-    n_nodes = size(u_large, 2) # number of nodes 
+    n_nodes = size(u_large, 2) # number of nodes
     for i in 1:n_nodes
         # Copy values to the lower small element
         mortars.u_lower[leftright, :, i, mortar] = view(u_large, :,
