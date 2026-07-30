@@ -5,11 +5,25 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-## Changes when updating to v0.16 from v0.15.x
+
+## Changes when updating to v0.17 from v0.16.x
+
+#### Added
+
+#### Changed
+- The `NonConservativeJump` terms now require `normal_direction_ll` and
+  `normal_direction_rr` as function arguments instead of the previous averaged `normal_direction`. 
+  This is necessary because the averaged `normal_direction` did not yield a consistent jump term. ([#2890])
+- The internal ODE right-hand side functions such as `rhs!` and `rhs_parabolic!` now dispatch additionally
+  on the backend type ([#3113]). The public interface `rhs!(du_ode, u_ode, semi, t)` is unchanged.
+
+#### Deprecated
 
 #### Removed
+
 - The unnecessary method of `flux_nonconservative_chan_etal` accepting two normal directions was removed ([#3147]).
   The other methods are still there and unchanged.
+
 
 ## Changes in the v0.16 lifecycle
 
