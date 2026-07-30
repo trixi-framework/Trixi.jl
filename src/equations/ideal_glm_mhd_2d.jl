@@ -1977,7 +1977,7 @@ end
 end
 
 # Calculate the magnetic energy for a conservative state `cons`.
-#  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
+#  Note: For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations2D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
