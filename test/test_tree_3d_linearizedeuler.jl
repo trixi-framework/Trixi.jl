@@ -5,7 +5,7 @@ end
 @testitem "TreeMesh3D LinearizedEuler: elixir_linearizedeuler_gauss_wall.jl" setup=[
     Setup,
     TreeMesh3DLinearizedEuler
-] tags=[:tree_part5] begin
+] tags=[:tree_part4] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_linearizedeuler_gauss_wall.jl"),
                         l2=[
                             0.020380328336745232, 0.027122442311921492,
