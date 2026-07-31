@@ -225,8 +225,8 @@ end
 
 """
     TreeMesh(; coordinates_min, coordinates_max, refinement_level,
-               n_cells_max = nothing, periodicity = false,
-               refinement_patches = (), coarsening_patches = (), RealT = Float64)
+               periodicity = false, refinement_patches = (),
+               coarsening_patches = (), RealT = Float64)
 
 Create a [`TreeMesh`](@ref) using keyword arguments only, for easy mesh-type swapping
 with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
@@ -238,9 +238,6 @@ with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
   Must have the same length as `coordinates_min`.
 - `refinement_level::Integer`: number of uniform refinements;
   yields `2^refinement_level` cells per dimension.
-- `n_cells_max`: initial capacity of the mesh data structures. If `nothing`
-  (default), the capacity is derived from `refinement_level`. The mesh grows
-  automatically beyond the initial capacity when AMR requires more cells.
 - `periodicity`: either a `Bool` applied to all dimensions or an `NTuple{NDIMS, Bool}`
   specifying periodicity per dimension. Default: `false`.
 - `refinement_patches`: regions to additionally refine. Default: `()`.
@@ -250,7 +247,6 @@ with [`StructuredMesh`](@ref), [`P4estMesh`](@ref), and [`T8codeMesh`](@ref).
 function TreeMesh(; coordinates_min,
                   coordinates_max,
                   refinement_level,
-                  n_cells_max = nothing,
                   periodicity = false,
                   refinement_patches = (),
                   coarsening_patches = (),
@@ -260,7 +256,6 @@ function TreeMesh(; coordinates_min,
     end
     return TreeMesh(coordinates_min, coordinates_max;
                     initial_refinement_level = refinement_level,
-                    n_cells_max = n_cells_max,
                     periodicity = periodicity,
                     refinement_patches = refinement_patches,
                     coarsening_patches = coarsening_patches,

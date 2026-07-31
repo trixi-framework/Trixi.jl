@@ -135,7 +135,7 @@ end
 
         # Keyword-only constructor
         mesh_ref = TreeMesh((-1.0, -1.0), (1.0, 1.0);
-                            initial_refinement_level = 2, n_cells_max = 10_000)
+                            initial_refinement_level = 2)
         mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
                            coordinates_max = (1.0, 1.0),
                            refinement_level = 2)
@@ -449,7 +449,7 @@ end
         coordinates_max = (1.0,)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -486,7 +486,7 @@ end
         coordinates_max = (1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -523,7 +523,7 @@ end
         coordinates_max = (1.0, 1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -4119,7 +4119,7 @@ end
     end
 end
 
-@testitem "Unit: load_mesh n_cells_max compatibility" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: load_mesh derives TreeMesh capacity from n_cells" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     mktempdir() do dir
         mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
                         initial_refinement_level = 2)
