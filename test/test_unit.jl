@@ -4226,5 +4226,3 @@ end
         @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
     end
 end
-
-end #module
