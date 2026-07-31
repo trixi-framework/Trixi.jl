@@ -20,7 +20,8 @@ for human readability.
   which has separate hyperbolic and parabolic right-hand sides and thus lacks a single
   default right-hand side function ([#2921]).
 - The internal ODE right-hand side functions such as `rhs_hyperbolic!` and `rhs_parabolic!` now dispatch additionally
-  on the backend type ([#3113]). The public interface `rhs!(du_ode, u_ode, semi, t)` is unchanged.
+  on the backend type ([#3113]).
+  The public interface `rhs_hyperbolic!(du_ode, u_ode, semi, t)` is unchanged.
 
 
 #### Deprecated
