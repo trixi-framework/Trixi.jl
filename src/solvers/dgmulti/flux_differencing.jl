@@ -511,7 +511,10 @@ end
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
-function rhs_hyperbolic!(du, u, t, mesh, equations, boundary_conditions::BC,
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC,
                          source_terms::Source, dg::DGMultiFluxDiff,
                          cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
@@ -557,7 +560,9 @@ end
 # integral, e.g., an entropy conservative/stable discretization. The implementation of `rhs_hyperbolic!`
 # for such schemes is very similar to the implementation of `rhs_hyperbolic!` for standard DG methods,
 # but specializes `calc_volume_integral`.
-function rhs_hyperbolic!(du, u, t, mesh, equations,
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
                          boundary_conditions::BC, source_terms::Source,
                          dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)

@@ -789,7 +789,9 @@ function calc_sources!(du, u, t, source_terms,
     return nothing
 end
 
-function rhs_hyperbolic!(du, u, t, mesh, equations,
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
                          boundary_conditions::BC, source_terms::Source,
                          dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)

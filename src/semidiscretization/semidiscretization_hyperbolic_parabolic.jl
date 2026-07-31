@@ -306,8 +306,8 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
         # but we stick to the lean direct in-place functions `rhs_parabolic!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return SplitODEProblem{iip}(rhs_parabolic!, rhs_hyperbolic!, u0_ode, tspan,
-                                    semi)
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs_hyperbolic!,
+                                    u0_ode, tspan, semi)
     end
 end
 
@@ -369,8 +369,8 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
         # but we stick to the lean direct in-place function `rhs_parabolic!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return SplitODEProblem{iip}(rhs_parabolic!, rhs_hyperbolic!, u0_ode, tspan,
-                                    semi)
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs_hyperbolic!,
+                                    u0_ode, tspan, semi)
     end
 end
 
@@ -383,8 +383,9 @@ function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabo
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "rhs_hyperbolic!" rhs_hyperbolic!(du, u, t, mesh,
-                                                                        equations,
+    @trixi_timeit_ext backend timer() "rhs_hyperbolic!" rhs_hyperbolic!(backend,
+                                                                        du, u, t,
+                                                                        mesh, equations,
                                                                         boundary_conditions,
                                                                         source_terms,
                                                                         solver, cache)

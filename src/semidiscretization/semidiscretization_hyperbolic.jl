@@ -584,8 +584,9 @@ function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "rhs_hyperbolic!" rhs_hyperbolic!(du, u, t, mesh,
-                                                                        equations,
+    @trixi_timeit_ext backend timer() "rhs_hyperbolic!" rhs_hyperbolic!(backend,
+                                                                        du, u, t,
+                                                                        mesh, equations,
                                                                         boundary_conditions,
                                                                         source_terms,
                                                                         solver, cache)

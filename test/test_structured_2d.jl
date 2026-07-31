@@ -910,8 +910,9 @@ end
 
     # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type,
-                                                             tspan[1])
+    rhs_wrapped! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+    end
 
     @test_nowarn jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 end
