@@ -868,6 +868,41 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    rho, v1, v2, v3, p = 2.0, 0.1, 0.2, 0.3, 4.0
+    mu, Prandtl = 0.01, 0.72
+
+    let equations_hyperbolic = CompressibleEulerEquations1D(1.4)
+        equations = CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations2D(1.4)
+        equations = CompressibleNavierStokesDiffusion2D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations3D(1.4)
+        equations = CompressibleNavierStokesDiffusion3D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, v3, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+end
+
 @testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
     Setup,
     UnitTests

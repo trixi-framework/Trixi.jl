@@ -1213,7 +1213,7 @@ end
         u_1d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(4.0)), equations_1d)
         w_1d = cons2entropy(u_1d, equations_parabolic_1d)
         @test Trixi.entropy2velocity_temperature(w_1d, equations_parabolic_1d) ≈
-              cons2prim(u_1d, equations_parabolic_1d)[2:end]
+              cons2prim_temperature(u_1d, equations_parabolic_1d)[2:end]
         @test length(Trixi.entropy2velocity_temperature(w_1d, equations_parabolic_1d)) ==
               2
 
@@ -1226,7 +1226,7 @@ end
                          equations_2d)
         w_2d = cons2entropy(u_2d, equations_parabolic_2d)
         @test Trixi.entropy2velocity_temperature(w_2d, equations_parabolic_2d) ≈
-              cons2prim(u_2d, equations_parabolic_2d)[2:end]
+              cons2prim_temperature(u_2d, equations_parabolic_2d)[2:end]
         @test length(Trixi.entropy2velocity_temperature(w_2d, equations_parabolic_2d)) ==
               3
 
@@ -1239,7 +1239,7 @@ end
                                  RealT(4.0)), equations_3d)
         w_3d = cons2entropy(u_3d, equations_parabolic_3d)
         @test Trixi.entropy2velocity_temperature(w_3d, equations_parabolic_3d) ≈
-              cons2prim(u_3d, equations_parabolic_3d)[2:end]
+              cons2prim_temperature(u_3d, equations_parabolic_3d)[2:end]
         @test length(Trixi.entropy2velocity_temperature(w_3d, equations_parabolic_3d)) ==
               4
     end
