@@ -42,6 +42,14 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
 
     performance_counter::PerformanceCounterList{2}
 end
+
+# Reject a single default RHS for split hyperbolic-parabolic problems
+@inline function default_rhs(::SemidiscretizationHyperbolicParabolic)
+    throw(ArgumentError("`SemidiscretizationHyperbolicParabolic` has no single default " *
+                        "right-hand side; use `rhs_hyperbolic!` or `rhs_parabolic!` " *
+                        "explicitly."))
+end
+
 # We assume some properties of the fields of the semidiscretization, e.g.,
 # the `equations` and the `mesh` should have the same dimension. We check these
 # properties in the outer constructor defined below. While we could ensure
@@ -279,7 +287,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs_hyperbolic!
 
     # Check if Jacobian prototype is provided for sparse Jacobian
     if jac_prototype_parabolic !== nothing
@@ -293,12 +301,13 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
         # (potentially) stiffer parabolic function first.
-        return SplitODEProblem{iip}(parabolic_ode, rhs!, u0_ode, tspan, semi)
+        return SplitODEProblem{iip}(parabolic_ode, rhs_hyperbolic!, u0_ode, tspan, semi)
     else
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
         # but we stick to the lean direct in-place functions `rhs_parabolic!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs_hyperbolic!,
+                                    u0_ode, tspan, semi)
     end
 end
 
@@ -341,7 +350,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
-    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs_hyperbolic!
 
     # Check if Jacobian prototype is provided for sparse Jacobian
     if jac_prototype_parabolic !== nothing
@@ -355,16 +364,17 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
         # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
         # first function implicitly and the second one explicitly. Thus, we pass the
         # (potentially) stiffer parabolic function first.
-        return SplitODEProblem{iip}(parabolic_ode, rhs!, u0_ode, tspan, semi)
+        return SplitODEProblem{iip}(parabolic_ode, rhs_hyperbolic!, u0_ode, tspan, semi)
     else
         # We could also construct an `ODEFunction` explicitly without the Jacobian here,
         # but we stick to the lean direct in-place function `rhs_parabolic!` and
         # let OrdinaryDiffEq.jl handle the rest
-        return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+        return SplitODEProblem{iip}(rhs_parabolic!, rhs_hyperbolic!,
+                                    u0_ode, tspan, semi)
     end
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -373,9 +383,12 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "rhs!" rhs!(backend, du, u, t, mesh, equations,
-                                                  boundary_conditions, source_terms,
-                                                  solver, cache)
+    @trixi_timeit_ext backend timer() "rhs_hyperbolic!" rhs_hyperbolic!(backend,
+                                                                        du, u, t,
+                                                                        mesh, equations,
+                                                                        boundary_conditions,
+                                                                        source_terms,
+                                                                        solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
 
@@ -437,7 +450,7 @@ function linear_structure(semi::SemidiscretizationHyperbolicParabolic;
     dest_para = allocate_coefficients(mesh_equations_solver_cache(semi)...)
 
     apply_rhs! = function (dest, src)
-        rhs!(dest, src, semi, t0)
+        rhs_hyperbolic!(dest, src, semi, t0)
         rhs_parabolic!(dest_para, src, semi, t0)
         @. dest += dest_para
         return dest
@@ -453,7 +466,7 @@ function _jacobian_ad_forward(semi::SemidiscretizationHyperbolicParabolic, t0, u
     du_ode_hyp = Vector{eltype(config)}(undef, length(du_ode))
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         # Implementation of split ODE problem in OrdinaryDiffEq
-        rhs!(du_ode_hyp, u_ode, new_semi, t0)
+        rhs_hyperbolic!(du_ode_hyp, u_ode, new_semi, t0)
         rhs_parabolic!(du_ode, u_ode, new_semi, t0)
         return du_ode .+= du_ode_hyp
     end

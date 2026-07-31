@@ -276,7 +276,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                alpha = true)
     # No interpolation performed for general volume integral.
     # Instead, an element-wise entropy projection (`entropy_projection!`) is performed before, see
-    # `rhs!` for `DGMultiFluxDiff`, which populates `entropy_projected_u_values`
+    # `rhs_hyperbolic!` for `DGMultiFluxDiff`, which populates `entropy_projected_u_values`
     @threaded for element in eachelement(mesh, dg, cache)
         volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,
@@ -511,8 +511,12 @@ end
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
-function rhs!(backend::Nothing, du, u, t, mesh, equations, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC,
+                         source_terms::Source, dg::DGMultiFluxDiff,
+                         cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
@@ -553,12 +557,14 @@ function rhs!(backend::Nothing, du, u, t, mesh, equations, boundary_conditions::
 end
 
 # Specializes on SBP (e.g., nodal/collocation) DG methods with a flux differencing volume
-# integral, e.g., an entropy conservative/stable discretization. The implementation of `rhs!`
-# for such schemes is very similar to the implementation of `rhs!` for standard DG methods,
+# integral, e.g., an entropy conservative/stable discretization. The implementation of `rhs_hyperbolic!`
+# for such schemes is very similar to the implementation of `rhs_hyperbolic!` for standard DG methods,
 # but specializes `calc_volume_integral`.
-function rhs!(backend::Nothing, du, u, t, mesh, equations,
-              boundary_conditions::BC, source_terms::Source,
-              dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC, source_terms::Source,
+                         dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,

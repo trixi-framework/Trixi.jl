@@ -17,7 +17,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform.jl (EC)" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
@@ -41,7 +41,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform.jl (Hexahedral elements)" setup=[
@@ -68,7 +68,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" setup=[
@@ -92,7 +92,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, GaussSBP, flux differencing)" setup=[
@@ -113,7 +113,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform_periodic.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
@@ -130,7 +130,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (Hexahedral elements)" setup=[
@@ -157,7 +157,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (Hexahedral elements, SBP, EC)" setup=[
@@ -186,7 +186,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_taylor_green_vortex.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
@@ -208,7 +208,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_taylor_green_vortex.jl (GaussSBP)" setup=[
@@ -234,7 +234,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (FD SBP)" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
@@ -264,7 +264,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_weakform_periodic.jl (FD SBP, EC)" setup=[
@@ -299,7 +299,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti3D: elixir_euler_fdsbp_periodic.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
@@ -321,7 +321,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Test spectral analysis postprocessing
     _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
@@ -341,7 +341,7 @@ end
                         linf=[0.0006317952824828055])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Load the mesh file for code coverage.
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
@@ -360,7 +360,7 @@ end
                         atol=1e-10) # MacOS and Ubuntu differ here
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Load the mesh file for code coverage.
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
@@ -380,5 +380,5 @@ end
                             1.04524872e-01, 8.01212059e-01])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

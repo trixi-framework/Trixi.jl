@@ -31,7 +31,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_advection_amr.jl" setup=[Setup, MPIP4estMesh3D] tags=[
@@ -45,7 +45,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_advection_amr_unstructured_curved.jl" setup=[
@@ -60,7 +60,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_advection_restart.jl" setup=[Setup, MPIP4estMesh3D] tags=[
@@ -73,7 +73,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_advection_cubed_sphere.jl" setup=[Setup, MPIP4estMesh3D] tags=[
@@ -86,7 +86,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Compressible Euler
@@ -114,7 +114,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_euler_source_terms_nonperiodic.jl" setup=[
@@ -141,7 +141,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_euler_ec.jl" setup=[Setup, MPIP4estMesh3D] tags=[
@@ -167,7 +167,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_euler_source_terms_nonperiodic_hohqmesh.jl" setup=[
@@ -193,7 +193,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_mhd_alfven_wave_nonconforming.jl" setup=[
@@ -227,7 +227,7 @@ end
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Same test as above but with only one tree in the mesh
@@ -263,7 +263,7 @@ end
                         tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: combine_conservative_and_nonconservative_fluxes" setup=[
@@ -298,7 +298,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh MPI 3D: elixir_advection_limiter_liu_zhang.jl" setup=[
@@ -320,5 +320,5 @@ end
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - Trixi.euler_arithmetic_tol(1e-3, 1e-3)
     @test length(global_limiter!.history_davis_yin_iterations) > 0
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
