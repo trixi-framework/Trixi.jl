@@ -71,7 +71,7 @@ end
                         linf=[6.627000273229378e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_advection_nonconforming_flag.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -82,7 +82,7 @@ end
                         linf=[0.00030636069494005547])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_advection_unstructured_flag.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -92,7 +92,7 @@ end
                         linf=[0.007438525029884735])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_advection_amr_unstructured_flag.jl" setup=[
@@ -105,7 +105,7 @@ end
                         linf=[0.03542375961299987])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_advection_amr_solution_independent.jl" setup=[
@@ -120,7 +120,7 @@ end
                         linf=[0.0004867846262313763])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_advection_restart.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -130,7 +130,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_advection_restart_amr.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -140,7 +140,7 @@ end
                         linf=[3.8353423270964804e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
@@ -164,7 +164,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl (O2 inner reconstruction)" setup=[
@@ -192,7 +192,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_euler_free_stream.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -208,7 +208,7 @@ end
                         atol=2.0e-12)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_euler_shockcapturing_ec.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -229,7 +229,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_euler_sedov.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -251,7 +251,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_mhd_alfven_wave.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -269,7 +269,7 @@ end
                             1.4237578427628152e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_mhd_rotor.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -289,7 +289,7 @@ end
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh2D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
@@ -309,7 +309,7 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     # Check for conservation
     state_integrals = Trixi.integrate(sol.u[2], semi)
     initial_state_integrals = analysis_callback.affect!.initial_state_integrals

@@ -58,13 +58,13 @@ end
 # This function is valid for all conforming mesh types (except for `StructuredMesh`), i.e.,
 # all meshes that do not involve mortar operations.
 # Thus, we can use it for 1D `TreeMesh` and `UnstructuredMesh2D`.
-function rhs!(backend::Nothing, du, u, t,
-              mesh::Union{TreeMesh{1},
-                          UnstructuredMesh2D},
-              equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh::Union{TreeMesh{1},
+                                     UnstructuredMesh2D},
+                         equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 

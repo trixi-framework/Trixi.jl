@@ -21,7 +21,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Load the mesh file for code coverage
     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
@@ -49,7 +49,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (Quadrilateral elements)" setup=[
@@ -75,7 +75,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (EC) " setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -98,7 +98,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (SBP, EC)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -122,7 +122,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (Quadrilateral elements, SBP, EC)" setup=[
@@ -150,7 +150,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" setup=[
@@ -172,7 +172,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" setup=[
@@ -194,7 +194,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" setup=[
@@ -219,7 +219,7 @@ end
                         rtol=2 * sqrt(eps()))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_curved.jl (Triangular elements, Polynomial, weak formulation)" setup=[
@@ -244,7 +244,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" setup=[
@@ -266,7 +266,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (convergence)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -284,7 +284,7 @@ end
                    ], rtol = 0.05)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform_periodic.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -300,7 +300,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_triangulate_pkg_mesh.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -315,7 +315,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_gmsh_square_cylinder.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -342,7 +342,7 @@ end
                    ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_triangulate_scramjet.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -364,7 +364,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -386,7 +386,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability.jl (Quadrilateral elements, GaussSBP)" setup=[
@@ -412,7 +412,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_kelvin_helmholtz_instability_adaptive_vol_int.jl" setup=[
@@ -437,7 +437,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_rayleigh_taylor_instability.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -458,7 +458,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_brown_minion_vortex.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -478,7 +478,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_shockcapturing.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -498,7 +498,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_shockcapturing.jl (SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -519,7 +519,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_shockcapturing_curved.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -539,7 +539,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (FD SBP)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -569,7 +569,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_weakform.jl (FD SBP, EC)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -601,7 +601,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -616,7 +616,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Test Spectral Analysis Post Processing
     _, energy_spectrum = @inferred compute_kinetic_energy_spectrum(sol)
@@ -640,7 +640,7 @@ end
                             3.6081264672516156e-4, 3.4235010781946684e-4,
                             3.423501078176905e-4, 9.824814197632037e-4
                         ])
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" setup=[
@@ -664,7 +664,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl (arbitrary reference and physical domains)" setup=[
@@ -695,7 +695,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_euler_fdsbp_periodic.jl (CGSEM)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -724,7 +724,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_mhd_weak_blast_wave_fdsbp.jl" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -743,7 +743,7 @@ end
                             0.09557389384038739, 0.17186851619246546,
                             3.391485632737473e-15
                         ])
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_mhd_weak_blast_wave.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -761,7 +761,7 @@ end
                             0.005740591170062146])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_mhd_weak_blast_wave.jl (Tri)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -779,7 +779,7 @@ end
                             0.0029551359803035027])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti2D: elixir_mhd_weak_blast_wave_SBP.jl (Quad)" setup=[Setup, DGMulti2D] tags=[:unstructured_dgmulti] begin
@@ -850,5 +850,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

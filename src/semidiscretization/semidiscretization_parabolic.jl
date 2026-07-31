@@ -209,7 +209,7 @@ function linear_structure(semi::SemidiscretizationParabolic;
 end
 
 # For a purely parabolic semidiscretization, the right-hand side is `rhs_parabolic!`
-# instead of the default `rhs!`.
+# instead of the default `rhs_hyperbolic!`.
 @inline default_rhs(::SemidiscretizationParabolic) = rhs_parabolic!
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
