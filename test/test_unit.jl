@@ -3473,6 +3473,7 @@ end
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                                    normal_direction,
+                                                                   normal_direction,
                                                                    equations,
                                                                    Trixi.NonConservativeJump(),
                                                                    noncons)
@@ -3530,10 +3531,11 @@ end
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
 
-    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                   tspan[1])
+    rhs_jac_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+    end
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
@@ -3555,8 +3557,11 @@ end
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
-    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     tspan[1])
+    @test Trixi.default_rhs(semi_float_type) === Trixi.rhs_hyperbolic!
+
+    rhs_float_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_float_type, tspan[1])
+    end
 
     ###############################################################################
     ### sparsity-aware finite diff ###
@@ -3579,7 +3584,7 @@ end
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
         du_para = similar(du_ode) # This obviously allocates, but fine for this test
-        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
         Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
         Trixi.@threaded for i in eachindex(du_ode)
@@ -3624,6 +3629,8 @@ end
                                                                                  boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
 
+    @test_throws ArgumentError Trixi.default_rhs(semi_jac_type)
+
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
 
     # Call `semidiscretize` to create the ODE problem to have access to the
@@ -3655,7 +3662,7 @@ end
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
-    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
+    ### sparsity pattern detected on the combined hyperbolic-parabolic RHS ###
 
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
                                                                           u0_ode,
