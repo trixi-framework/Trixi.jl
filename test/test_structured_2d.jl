@@ -685,7 +685,7 @@ end
 ] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        l2=[
+                        l2=[# TODO
                             0.6403528328480915,
                             0.3068073114438902,
                             0.3140151910019577,
@@ -701,7 +701,6 @@ end
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    # Note: see comment https://github.com/trixi-framework/Trixi.jl/pull/3154#discussion_r3645247787
     @test maximum(deviations) <= 1.0e-13
 
     # Ensure that we do not have excessive memory allocations
@@ -719,11 +718,9 @@ end
 ] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        positivity_variables_cons=["rho"],
-                        positivity_variables_nonlinear=[pressure],
                         local_twosided_variables_cons=[],
                         local_onesided_variables_nonlinear=[],
-                        l2=[
+                        l2=[# TODO
                             0.7979084213982606,
                             0.3980284851419719,
                             0.4021949448633982,
