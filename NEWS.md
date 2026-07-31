@@ -11,7 +11,8 @@ for human readability.
 - The function `cons2prim` for `CompressibleNavierStokesDiffusion` has been changed.
   It now returns the primitive variables `(rho, v1, v2, v3, p)` (identical to the `CompressibleEulerEquations`)
   instead of `(rho, v1, v2, v3, T)`.
-  The latter functionality is now provided by `cons2prim_temperature` instead. ([#3125])
+  The latter functionality is now provided by `cons2prim_temperature` instead
+  (although it may change in future releases since it is labeled as experimental for now). ([#3125])
 
 ## Changes in the v0.16 lifecycle
 
