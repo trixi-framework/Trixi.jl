@@ -168,6 +168,8 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         TreeType = SerialTree{NDIMS, RealT}
     end
 
+    # Compute initial tree capacity for uniform refinement to the given `initial_refinement_level`.
+    # This is only the initial storage size: the tree grows it when required (e.g., AMR, restart).
     capacity = sum((2^NDIMS)^l for l in 0:initial_refinement_level)
 
     # Create mesh
