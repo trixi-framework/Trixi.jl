@@ -65,7 +65,7 @@ alive_callback = AliveCallback(alive_interval = 50)
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 analysis_interval = 10
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg),
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
                                      extra_analysis_integrals = (entropy,))

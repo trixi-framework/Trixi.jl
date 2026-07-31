@@ -155,6 +155,41 @@ function PositivityPreservingLimiterLiuZhang(local_limiter!,
                                                history_davis_yin_iterations)
 end
 
+function Base.show(io::IO, limiter::PositivityPreservingLimiterLiuZhang)
+    @nospecialize limiter # reduce precompilation time
+    (; global_limiter_tol, max_davis_yin_iterations, record_davis_yin_iterations,
+    history_davis_yin_iterations) = limiter
+
+    print(io, "PositivityPreservingLimiterLiuZhang(local_limiter!=",
+          Base.typename(typeof(limiter.local_limiter!)).name)
+    print(io, ", global_limiter_tol=", global_limiter_tol)
+    print(io, ", max_davis_yin_iterations=", max_davis_yin_iterations)
+    if record_davis_yin_iterations
+        print(io, ", history_davis_yin_iterations=", history_davis_yin_iterations)
+    end
+    print(io, ")")
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   limiter::PositivityPreservingLimiterLiuZhang)
+    @nospecialize limiter # reduce precompilation time
+    (; global_limiter_tol, max_davis_yin_iterations, record_davis_yin_iterations,
+    history_davis_yin_iterations) = limiter
+
+    if get(io, :compact, false)
+        show(io, limiter)
+    else
+        setup = Pair{String, Any}["local_limiter!" => Base.typename(typeof(limiter.local_limiter!)).name,
+                                  "global_limiter_tol" => global_limiter_tol,
+                                  "max_davis_yin_iterations" => max_davis_yin_iterations]
+        if record_davis_yin_iterations
+            push!(setup, "history_davis_yin_iterations" => history_davis_yin_iterations)
+        end
+        summary_box(io, "PositivityPreservingLimiterLiuZhang", setup)
+    end
+end
+
 function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrator,
                                                                 semi::AbstractSemidiscretization,
                                                                 t)
@@ -196,6 +231,12 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
             end
         end
 
+        # synchronize activation/skipping of the global limiter across ranks
+        if mpi_isparallel()
+            cell_average_bounds_violated = MPI.Allreduce!(Ref(cell_average_bounds_violated),
+                                                          |, mpi_comm())[]
+        end
+
         # if any cell average violates a positivity bound, apply the global limiter
         if cell_average_bounds_violated
 
@@ -209,6 +250,11 @@ function (global_limiter!::PositivityPreservingLimiterLiuZhang)(u_ode, integrato
                 cell_volume = get_cell_volume(e, mesh, equations, dg, cache)
                 sqrt_cell_volumes[e] = sqrt(cell_volume)
                 total_volume += cell_volume
+            end
+
+            # accumulate total volume calculations across all ranks
+            if mpi_isparallel()
+                total_volume = MPI.Allreduce!(Ref(total_volume), +, mpi_comm())[]
             end
 
             @trixi_timeit timer() "global cell-average limiter" begin
@@ -248,6 +294,11 @@ function global_cell_average_limiter!(u, cell_averages,
         cell_volume = sqrt_cell_volumes[element]^2
         # explicit a = a + b * c instead of a += b * c to enable @muladd
         global_integral = global_integral + cell_averages[element] * cell_volume
+    end
+
+    # accumulate global integrals of solutions across all ranks
+    if mpi_isparallel()
+        global_integral = MPI.Allreduce!(Ref(global_integral), +, mpi_comm())[]
     end
 
     # residual ||X^{k+1} - X^k||_{L^2} for the Davis-Yin iteration
@@ -308,13 +359,19 @@ function global_cell_average_limiter!(u, cell_averages,
         end
 
         # Step 2: calculate primal variable Y and conservation residual
-        global_integral_Y = zero(first(davis_yin_dual_vars))
+        global_integral_Y = zero(eltype(davis_yin_dual_vars))
         for element in eachelement(dg, cache)
             sqrt_cell_volume = sqrt_cell_volumes[element]
             u_weighted_target = cell_averages[element] * sqrt_cell_volume
             Y = projected_cell_averages[element] - davis_yin_dual_vars[element] +
                 u_weighted_target
             global_integral_Y = global_integral_Y + sqrt_cell_volume * Y
+        end
+
+        # Accumulate global integrals of primal variables across all ranks, which
+        # are used to calculate violations of the conservation constraint
+        if mpi_isparallel()
+            global_integral_Y = MPI.Allreduce!(Ref(global_integral_Y), +, mpi_comm())[]
         end
         conservation_residual = global_integral - global_integral_Y
 
@@ -336,12 +393,17 @@ function global_cell_average_limiter!(u, cell_averages,
             # calculate residual
             residual_squared += sum(abs2, X - P)
         end
+
+        # accumulate squared residual across all ranks 
+        if mpi_isparallel()
+            residual_squared = MPI.Allreduce!(Ref(residual_squared), +, mpi_comm())[]
+        end
         residual = sqrt(residual_squared)
 
         num_davis_yin_iterations += 1
     end
 
-    if num_davis_yin_iterations == max_davis_yin_iterations
+    if num_davis_yin_iterations == max_davis_yin_iterations && mpi_isroot()
         @warn "Davis-Yin iteration did not converge in $(max_davis_yin_iterations) iterations; " *
               "residual = $(residual) while tolerance = $(global_limiter_tol)."
     end

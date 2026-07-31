@@ -204,7 +204,7 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType <: AbstractVecto
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    const f::F # `rhs!` of the semidiscretization
+    const f::F # right-hand side of the semidiscretization
     const alg::PairedExplicitRK2
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience

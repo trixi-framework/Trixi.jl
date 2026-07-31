@@ -68,5 +68,5 @@ J = ForwardDiff.jacobian((du_ode, γ) -> begin
                              equations_inner = CompressibleEulerEquations2D(first(γ))
                              semi_inner = Trixi.remake(semi, equations = equations_inner,
                                                        uEltype = eltype(γ))
-                             Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
+                             Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_inner, 0.0)
                          end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`

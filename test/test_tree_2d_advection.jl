@@ -12,7 +12,7 @@ end
                         linf=[6.627000273229378e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_limiter_liu_zhang.jl" setup=[
@@ -30,7 +30,7 @@ end
     # check that the limiter was activated
     @test length(global_limiter!.history_davis_yin_iterations) > 0
 
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_extended.jl with polydeg=1" setup=[
@@ -43,7 +43,7 @@ end
                         polydeg=1)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_implicit_sparse_jacobian.jl" setup=[
@@ -55,7 +55,7 @@ end
                         l2=[0.003003253325111022], linf=[0.004256250998163846])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi_float_type, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_implicit_sparse_jacobian_restart.jl" setup=[
@@ -67,7 +67,7 @@ end
                         l2=[0.00972948620504335], linf=[0.013761951552254348])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi_float_type, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_implicit_sparse_jacobian_restart.jl (no colorvec)" setup=[
@@ -80,7 +80,7 @@ end
                         l2=[0.00972948620504335], linf=[0.013761951552254348])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi_float_type, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi_float_type, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_restart.jl" setup=[
@@ -129,7 +129,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -171,7 +171,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -191,7 +191,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -211,7 +211,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -260,7 +260,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -285,7 +285,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -311,7 +311,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -335,7 +335,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -360,7 +360,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -386,7 +386,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -399,7 +399,7 @@ end
                         linf=[6.627000273229378e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Coverage test for all initial conditions
@@ -414,7 +414,7 @@ end
                         initial_condition=Trixi.initial_condition_sin_sin)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_constant" setup=[
@@ -428,7 +428,7 @@ end
                         initial_condition=initial_condition_constant)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_linear_x_y" setup=[
@@ -444,7 +444,7 @@ end
                         periodicity=false)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_linear_x" setup=[
@@ -460,7 +460,7 @@ end
                         periodicity=false)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D Advection: elixir_advection_extended.jl with initial_condition_linear_y" setup=[
@@ -476,5 +476,5 @@ end
                         periodicity=false)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

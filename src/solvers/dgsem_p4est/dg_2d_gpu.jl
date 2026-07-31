@@ -5,6 +5,81 @@
 @muladd begin
 #! format: noindent
 
+function rhs_hyperbolic!(backend::Backend,
+                         du, u, t,
+                         mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
+                                     P4estMesh{3}, T8codeMesh{3}},
+                         equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
+
+    # Reset du
+    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+        set_zero!(du, dg, cache)
+    end
+
+    # Calculate volume integral
+    @trixi_timeit_ext backend timer() "volume integral" begin
+        calc_volume_integral!(backend, du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
+    end
+
+    # Prolong solution to interfaces
+    @trixi_timeit_ext backend timer() "prolong2interfaces" begin
+        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
+    end
+
+    # Calculate interface fluxes
+    @trixi_timeit_ext backend timer() "interface flux" begin
+        calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
+    end
+
+    # Prolong solution to boundaries
+    @trixi_timeit_ext backend timer() "prolong2boundaries" begin
+        prolong2boundaries!(backend, cache, u, mesh, equations, dg)
+    end
+
+    # Calculate boundary fluxes
+    @trixi_timeit_ext backend timer() "boundary flux" begin
+        calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg)
+    end
+
+    # Prolong solution to mortars
+    @trixi_timeit_ext backend timer() "prolong2mortars" begin
+        prolong2mortars!(backend, cache, u, mesh, equations,
+                         dg.mortar, dg)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit_ext backend timer() "mortar flux" begin
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
+    end
+
+    # Calculate surface integrals
+    @trixi_timeit_ext backend timer() "surface integral" begin
+        calc_surface_integral!(backend, du, u, mesh, equations,
+                               dg.surface_integral, dg, cache)
+    end
+
+    # Apply Jacobian from mapping to reference element
+    @trixi_timeit_ext backend timer() "Jacobian" begin
+        apply_jacobian!(backend, du, mesh, equations, dg, cache)
+    end
+
+    # Calculate source terms
+    @trixi_timeit_ext backend timer() "source terms" begin
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
+    end
+
+    return nothing
+end
+
 function prolong2interfaces!(backend::Backend, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                          T8codeMesh{2}},
@@ -93,6 +168,19 @@ function prolong2boundaries_per_boundary!(u,
     end
 
     return nothing
+end
+
+# For GPU backends mortars are not yet implemented
+function prolong2mortars!(backend::Backend, cache, u, mesh, equations, mortar, dg)
+    @assert isempty(eachmortar(dg, cache))
+    return nothing
+end
+
+# For GPU backends mortars are not yet implemented
+function calc_mortar_flux!(backend::Backend, surface_flux_values, mesh,
+                           have_nonconservative_terms, equations, mortar,
+                           surface_integral, dg, cache)
+    @assert isempty(eachmortar(dg, cache))
 end
 
 function calc_surface_integral!(backend::Backend, du, u,

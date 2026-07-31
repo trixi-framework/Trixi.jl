@@ -26,7 +26,7 @@ end
     # integrator which are not *recorded* for the methods from 
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh3D HypDiff: elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_godunov)" setup=[
@@ -53,7 +53,7 @@ end
     # integrator which are not *recorded* for the methods from 
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh3D HypDiff: elixir_hypdiff_nonperiodic.jl" setup=[
@@ -79,5 +79,5 @@ end
     # integrator which are not *recorded* for the methods from 
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end

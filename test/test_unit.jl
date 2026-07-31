@@ -703,6 +703,25 @@ end
     indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
                                               LobattoLegendreBasis(3))
     @test_nowarn show(stdout, indicator_ec)
+
+    # test Base.show for PositivityPreservingLimiterLiuZhang
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    solver = DGSEM(polydeg = 3)
+    mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                         variables = (first,))
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                          semi;
+                                                          record_davis_yin_iterations = true)
+    @test_nowarn show(stdout, global_limiter!)
+    @test_nowarn show(stdout, "text/plain", global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      global_limiter!)
 end
 
 @testitem "Unit: LBM 2D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -856,6 +875,41 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    rho, v1, v2, v3, p = 2.0, 0.1, 0.2, 0.3, 4.0
+    mu, Prandtl = 0.01, 0.72
+
+    let equations_hyperbolic = CompressibleEulerEquations1D(1.4)
+        equations = CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations2D(1.4)
+        equations = CompressibleNavierStokesDiffusion2D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations3D(1.4)
+        equations = CompressibleNavierStokesDiffusion3D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, v3, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+end
+
 @testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
     Setup,
     UnitTests
@@ -993,7 +1047,7 @@ end
     UnitTests
 ] tags=[:misc_part1] begin
     let equations = CompressibleEulerEquations1D(1.4)
-        # this state results in base < 0 in the implementation of 
+        # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
         u_inner = prim2cons(SVector(1.4, -6, 1), equations)
 
@@ -1004,12 +1058,12 @@ end
         flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
                                             surface_flux_function, equations)
 
-        # boundary_condition_slip_wall should return exactly zero                                            
+        # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 
     let equations = CompressibleEulerEquations2D(1.4)
-        # this state results in base < 0 in the implementation of 
+        # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
         u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
         normal_direction = SVector(1.0, 0.0)
@@ -1019,12 +1073,12 @@ end
         flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                             surface_flux_function, equations)
 
-        # boundary_condition_slip_wall should return exactly zero                                            
+        # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 
     let equations = CompressibleEulerEquations3D(1.4)
-        # this state results in base < 0 in the implementation of 
+        # this state results in base < 0 in the implementation of
         # boundary_condition_slip_wall.
         u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
         normal_direction = SVector(1.0, 0.0, 0.0)
@@ -1034,7 +1088,7 @@ end
         flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                             surface_flux_function, equations)
 
-        # boundary_condition_slip_wall should return exactly zero                                            
+        # boundary_condition_slip_wall should return exactly zero
         @test flux == zero(flux)
     end
 end
@@ -1992,6 +2046,25 @@ end
         @test flux_godunov(u, u, normal_direction, equation) ≈
               flux(u, normal_direction, equation)
     end
+end
+
+@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = InviscidBurgersEquation1D()
+    u_ll = SVector(2.0)
+    u_rr = SVector(-1.0)
+
+    for normal_direction in (SVector(1.0), SVector(-1.2))
+        @test flux_ec(u_ll, u_rr, normal_direction, equations) ≈
+              normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
+    end
+
+    u = SVector(42.0)
+    normal_direction = SVector(-1.2)
+    @test flux_ec(u, u, normal_direction, equations) ≈
+          flux(u, normal_direction, equations)
 end
 
 @testitem "Unit: Consistency check for Engquist-Osher flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -3405,6 +3478,7 @@ end
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                                    normal_direction,
+                                                                   normal_direction,
                                                                    equations,
                                                                    Trixi.NonConservativeJump(),
                                                                    noncons)
@@ -3462,10 +3536,11 @@ end
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
 
-    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                   tspan[1])
+    rhs_jac_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+    end
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
@@ -3487,8 +3562,11 @@ end
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
-    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     tspan[1])
+    @test Trixi.default_rhs(semi_float_type) === Trixi.rhs_hyperbolic!
+
+    rhs_float_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_float_type, tspan[1])
+    end
 
     ###############################################################################
     ### sparsity-aware finite diff ###
@@ -3511,7 +3589,7 @@ end
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
         du_para = similar(du_ode) # This obviously allocates, but fine for this test
-        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
         Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
         Trixi.@threaded for i in eachindex(du_ode)
@@ -3556,6 +3634,8 @@ end
                                                                                  boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
 
+    @test_throws ArgumentError Trixi.default_rhs(semi_jac_type)
+
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
 
     # Call `semidiscretize` to create the ODE problem to have access to the
@@ -3587,7 +3667,7 @@ end
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
-    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
+    ### sparsity pattern detected on the combined hyperbolic-parabolic RHS ###
 
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
                                                                           u0_ode,
@@ -4132,6 +4212,27 @@ end
 
         @test u_projected[1] > lower_bounds[1]
         @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
+    end
+
+    # this test failed without the rationalized approximation of
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang.
+    @testset "2D projection near zero momentum boundary" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.9376339560775117,
+                    1.353902558446827e-8,
+                    6.230911048510285e-9,
+                    -3.779101287247884)
+        lower_bounds = (1e-8, 2.5e-8)
+        variables = (density, energy_internal)
+
+        u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_proj[1]≈0.9376339560775118 rtol=1e-12
+        @test u_proj[2]≈6.637197729990257e-9 rtol=1e-12
+        @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
+        @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
+        @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
     end
 end
 
