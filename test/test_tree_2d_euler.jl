@@ -115,7 +115,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_convergence_gauss_legendre.jl" setup=[
@@ -187,7 +187,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15_000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_density_wave.jl with entropy correction" setup=[
@@ -607,7 +607,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (local limiting)" setup=[
@@ -638,7 +638,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (local limiting with bar states)" setup=[
@@ -671,7 +671,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_blast_wave_nonconforming_sc_subcell.jl (conservation)" setup=[
@@ -829,7 +829,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave_amr_sc_subcell.jl (local limiting with bar states)" setup=[
@@ -861,7 +861,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_sedov_adaptive_sc_subcell.jl" setup=[
@@ -1174,7 +1174,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15_000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl (local limiting)" setup=[
@@ -1366,7 +1366,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_astro_jet_amr.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
@@ -1436,7 +1436,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D Euler: elixir_euler_vortex.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
