@@ -29,8 +29,7 @@ inf_timing = @snoopi tmin=0.01 begin
   coordinates_min = (-5, -5)
   coordinates_max = ( 5,  5)
   mesh = TreeMesh(coordinates_min, coordinates_max,
-                  initial_refinement_level=4,
-                  n_cells_max=30_000)
+                  initial_refinement_level=4)
   show(stdout, mesh)
   show(stdout, MIME"text/plain"(), mesh)
 
@@ -223,24 +222,7 @@ function _precompile_manual_()
 
     # Constructors: mesh
     for RealT in (Int, Float64)
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      RealT, RealT})
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT}, Tuple{RealT}})
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT, RealT}, Tuple{RealT, RealT}})
-        @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
-                                      NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh},
-                                      Tuple{RealT, RealT, RealT},
-                                      Tuple{RealT, RealT, RealT}})
-        # New: n_cells_max omitted (uses default nothing)
+        # TreeMesh constructors: capacity derived from initial_refinement_level
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level,),
                                                  Tuple{Int}}, Type{TreeMesh},

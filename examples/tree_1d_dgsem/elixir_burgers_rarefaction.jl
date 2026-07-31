@@ -29,7 +29,6 @@ coordinate_max = 1.0
 # Make sure to turn periodicity explicitly off as special boundary conditions are specified
 mesh = TreeMesh(coordinate_min, coordinate_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 # Discontinuous initial condition (Riemann Problem) leading to a rarefaction fan.
