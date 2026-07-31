@@ -14,7 +14,6 @@ solver_parabolic = ParabolicFormulationLocalDG()
 # Create a uniformly refined mesh with nonperiodic boundaries
 mesh = TreeMesh(0.0, 1.0,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = false)
 
 function analytical_solution(x, t, equations)

@@ -137,8 +137,8 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
+# varnames(::typeof(cons2prim_temperature), ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
+# varnames(::typeof(cons2entropy),          ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion3D)
@@ -148,7 +148,7 @@ end
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    return cons2prim
+    return cons2prim_temperature
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
     return cons2entropy
@@ -274,8 +274,17 @@ and thus the largest absolute eigenvalue is
            equations_parabolic.max_4over3_kappa
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+"""
+    cons2prim_temperature(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Convert conservative variables `u` to primitive variables `(rho, v1, v2, v3, T)`.
+In contrast to [`cons2prim`](@ref), this function returns temperature as the last variable instead of pressure.
+
+!!! warning "Experimental code"
+    This function is experimental and may change in any future release.
+"""
+@inline function cons2prim_temperature(u,
+                                       equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
 
     v1 = rho_v1 / rho
@@ -360,10 +369,21 @@ end
                    T * T * gradient_entropy_vars[5])
 end
 
-# This routine is required because `prim2cons` is called in `initial_condition`, which
-# is called with `equations::CompressibleEulerEquations3D`. This means it is inconsistent
-# with `cons2prim(..., ::CompressibleNavierStokesDiffusion3D)` as defined above.
-# TODO: parabolic. Is there a way to clean this up?
+"""
+    cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`cons2prim(u, equations::CompressibleEulerEquations3D)`](@ref)
+to convert conservative variables to primitive variables.
+"""
+@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+    return cons2prim(u, equations.equations_hyperbolic)
+end
+"""
+    prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`prim2cons(u, equations::CompressibleEulerEquations3D)`](@ref)
+to convert primitive variables to conservative variables.
+"""
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
     return prim2cons(u, equations.equations_hyperbolic)
 end
@@ -640,7 +660,7 @@ end
     #  because the gradients are assumed to be with respect to the primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    return cons2prim(u_boundary, equations)
+    return cons2prim_temperature(u_boundary, equations)
 end
 
 # The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.

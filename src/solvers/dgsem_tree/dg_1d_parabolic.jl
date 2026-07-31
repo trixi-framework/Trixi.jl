@@ -26,7 +26,7 @@ end
 # will be discretized first order form as follows:
 #               1. compute grad(u)
 #               2. compute f(u, grad(u))
-#               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
+#               3. compute div(f(u, grad(u))) (i.e., the "regular" RHS call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
@@ -54,7 +54,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1},
                                equations_parabolic, dg, cache)
     end
 
-    # The remainder of this function is essentially a regular rhs! for
+    # The remainder of this function is essentially a regular RHS evaluation for
     # parabolic equations (i.e., it computes the divergence of the parabolic fluxes)
     #
     # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have

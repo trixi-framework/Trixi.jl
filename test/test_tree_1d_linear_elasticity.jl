@@ -19,7 +19,7 @@ end
                         linf=[0.0011507266875070855, 0.003249818227066381])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D LinearElasticity: elixir_linearelasticity_impact.jl" setup=[
@@ -31,5 +31,5 @@ end
                         linf=[0.01070558926301203, 999999.9958777003])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
