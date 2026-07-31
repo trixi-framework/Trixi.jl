@@ -188,8 +188,6 @@ end
                                    equations::CompressibleEulerEquationsQuasi1D)
     flux_nonconservative_chan_etal(u_ll, u_rr, normal_direction,
                                    equations::CompressibleEulerEquationsQuasi1D)
-    flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, normal_rr,
-                                   equations::CompressibleEulerEquationsQuasi1D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the pressure  [`CompressibleEulerEquationsQuasi1D`](@ref)
@@ -225,14 +223,6 @@ end
                                                 equations::CompressibleEulerEquationsQuasi1D)
     return normal_direction[1] *
            flux_nonconservative_chan_etal(u_ll, u_rr, 1, equations)
-end
-
-@inline function flux_nonconservative_chan_etal(u_ll, u_rr,
-                                                normal_ll::AbstractVector,
-                                                normal_rr::AbstractVector,
-                                                equations::CompressibleEulerEquationsQuasi1D)
-    # normal_ll should be equal to normal_rr in 1D
-    return flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll, equations)
 end
 
 """

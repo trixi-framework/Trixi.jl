@@ -95,8 +95,8 @@ Optional keyword arguments:
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
-- `storage_type` and `real_type`: Configure the underlying computational datastructures. 
-  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
+- `storage_type` and `real_type`: Configure the underlying computational datastructures.
+  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
@@ -559,7 +559,7 @@ end
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
-# - rhs!(du, u, t, mesh, equations, boundary_conditions, source_terms, solver, cache)
+# - rhs!(backend, du, u, t, mesh, equations, boundary_conditions, source_terms, solver, cache)
 #
 
 end # @muladd

@@ -1190,7 +1190,7 @@ end
 # Call this for coupled P4estMeshView simulations.
 # The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
 # the additional variable u_parent is needed, compared to non-coupled systems.
-function rhs!(du, u, t, u_parent, semis,
+function rhs!(backend::Nothing, du, u, t, u_parent, semis,
               mesh::P4estMeshView{2},
               equations,
               boundary_conditions, source_terms::Source,
