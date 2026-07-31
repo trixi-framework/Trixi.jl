@@ -13,7 +13,7 @@ for human readability.
 #### Changed
 - The `NonConservativeJump` terms now require `normal_direction_ll` and
   `normal_direction_rr` as function arguments instead of the previous averaged `normal_direction`.
-  This is necessary because the averaged `normal_direction` did not yield a consistent jump term. ([#2890])
+  This is necessary because the averaged `normal_direction` did not yield a consistent jump term ([#2890]).
 - Renamed the hyperbolic right-hand side function `rhs!` to `rhs_hyperbolic!` at
   the semidiscretization and solver levels for consistency with `rhs_parabolic!`.
   The internal `default_rhs` helper now rejects `SemidiscretizationHyperbolicParabolic`,
@@ -27,6 +27,11 @@ for human readability.
   Moreover, the `T8codeMesh` constructors gained the keyword argument
   `partition_allow_for_coarsening`, which keeps same-level sibling elements together
   during mesh partitioning to allow later coarsening.
+- The function `cons2prim` for `CompressibleNavierStokesDiffusion` has been changed ([#3125]).
+  It now returns the primitive variables `(rho, v1, v2, v3, p)` (identical to the `CompressibleEulerEquations`)
+  instead of `(rho, v1, v2, v3, T)`.
+  The latter functionality is now provided by `cons2prim_temperature` instead
+  (although it may change in future releases since it is labeled as experimental for now).
 
 
 #### Deprecated
