@@ -54,7 +54,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
@@ -69,5 +69,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
+sol = solve(ode, RDPK3SpFSAL35();
+            adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)

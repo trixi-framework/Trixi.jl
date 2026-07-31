@@ -57,8 +57,8 @@ volume_integral_stabilized = VolumeIntegralSubcellLimiting(limiter_idp;
 
 indicator = IndicatorHennemannGassner(equations, basis,
                                       alpha_max = 0.1, # irrelevant, only `alpha_min` is used for limiting activation
-                                      alpha_min = 0.001, # governs when subcell limiting is considered
-                                      alpha_smooth = true,
+                                      alpha_min = 0.05, # governs when subcell limiting is considered
+                                      alpha_smooth = false,
                                       variable = density_pressure)
 
 # Adaptive volume integral selects based on the heuristic (!) a priori `indicator`
@@ -110,5 +110,5 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
                    BoundsCheckCallback(save_errors = true, interval = 100))
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);

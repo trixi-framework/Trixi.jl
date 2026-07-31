@@ -1,21 +1,8 @@
-module TestExamplesT8codeMesh2D
+@testsnippet T8codeMesh2D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-mkdir(outdir)
-
-@testset "T8codeMesh2D" begin
-#! format: noindent
-
-@trixi_testset "test load mesh from path" begin
+@testitem "T8codeMesh2D: test load mesh from path" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     using Trixi: T8codeMesh
     mktempdir() do path
         @test_throws "Unknown file extension: .unknown_ext" begin
@@ -24,7 +11,7 @@ mkdir(outdir)
     end
 end
 
-@trixi_testset "test check_for_negative_volumes" begin
+@testitem "T8codeMesh2D: test check_for_negative_volumes" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test actually checks if a "negative volume" error is thrown.
     # Since t8code currently applies a correction on-the-fly this test
     # is kinda broken. The correction feature in t8code, however, is planned
@@ -46,7 +33,10 @@ end
     end
 end
 
-@trixi_testset "test t8code mesh from p4est connectivity" begin
+@testitem "T8codeMesh2D: test t8code mesh from p4est connectivity" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
     @test begin
         using Trixi: Trixi, T8codeMesh
         # Here we use the connectivity constructor from `P4est.jl` since the
@@ -59,7 +49,10 @@ end
     end
 end
 
-@trixi_testset "test t8code mesh from ABAQUS HOHQMesh file" begin
+@testitem "T8codeMesh2D: test t8code mesh from ABAQUS HOHQMesh file" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
     @test begin
         using Trixi: Trixi, T8codeMesh
         # Unstructured ABAQUS mesh file created with HOHQMesh..
@@ -70,7 +63,7 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_basic.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
@@ -78,10 +71,10 @@ end
                         linf=[6.627000273229378e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_nonconforming_flag.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_nonconforming_flag.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
@@ -89,30 +82,36 @@ end
                         linf=[0.00030636069494005547])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_unstructured_flag.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_unstructured_flag.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
                         l2=[0.0005379687442422346],
                         linf=[0.007438525029884735])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_amr_unstructured_flag.jl" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.002019623611753929],
                         linf=[0.03542375961299987])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_amr_solution_independent.jl" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_solution_independent.jl"),
@@ -121,30 +120,33 @@ end
                         linf=[0.0004867846262313763])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_restart.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_restart.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
                         linf=[6.21489667023134e-5])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_restart_amr.jl" begin
+@testitem "T8codeMesh2D: elixir_advection_restart_amr.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
                         linf=[3.8353423270964804e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+@testitem "T8codeMesh2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
@@ -162,10 +164,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl (O2 inner reconstruction)" begin
+@testitem "T8codeMesh2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl (O2 inner reconstruction)" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hll,
@@ -187,10 +192,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream.jl" begin
+@testitem "T8codeMesh2D: elixir_euler_free_stream.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
@@ -203,10 +208,10 @@ end
                         atol=2.0e-12)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
+@testitem "T8codeMesh2D: elixir_euler_shockcapturing_ec.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
                         l2=[
@@ -224,10 +229,10 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov.jl" begin
+@testitem "T8codeMesh2D: elixir_euler_sedov.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl` besides minor
     # deviations in the expected error norms.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
@@ -246,10 +251,10 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave.jl" begin
+@testitem "T8codeMesh2D: elixir_mhd_alfven_wave.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
@@ -264,10 +269,10 @@ end
                             1.4237578427628152e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_rotor.jl" begin
+@testitem "T8codeMesh2D: elixir_mhd_rotor.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     # This test is identical to the one in `test_p4est_2d.jl` besides minor
     # deviations in the expected error norms.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
@@ -284,10 +289,10 @@ end
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+@testitem "T8codeMesh2D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, T8codeMesh2D] tags=[:t8code_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
                             0.10823279736983638,
@@ -304,7 +309,7 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     # Check for conservation
     state_integrals = Trixi.integrate(sol.u[2], semi)
     initial_state_integrals = analysis_callback.affect!.initial_state_integrals
@@ -314,9 +319,20 @@ end
     @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
 end
+
+@testitem "T8codeMesh2D: Unified mesh constructor signatures (T8codeMesh)" setup=[
+    Setup,
+    T8codeMesh2D
+] tags=[:t8code_part1] begin
+    using Trixi: T8codeMesh
+    # polydeg = 1 at default for T8codeMesh
+    mesh_ref = T8codeMesh((4, 4);
+                          coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0))
+    mesh_kw = T8codeMesh(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                         refinement_level = 2)
+    @test mesh_kw isa T8codeMesh{2}
+    @test size(mesh_kw.tree_node_coordinates, ndims(mesh_kw) + 2) == 1
+    @test_throws ArgumentError T8codeMesh(; coordinates_min = (-1.0, -1.0),
+                                          coordinates_max = (1.0, 1.0, 1.0),
+                                          refinement_level = 2)
 end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end # module

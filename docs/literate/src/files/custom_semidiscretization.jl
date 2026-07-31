@@ -21,11 +21,11 @@
 # bundles an initial condition, a right-hand side (RHS) function, the time span,
 # and possible parameters. The `ODEProblem`s created by Trixi.jl use the semidiscretization
 # passed to [`semidiscretize`](@ref) as a parameter.
-# For a [`SemidiscretizationHyperbolic`](@ref), the `ODEProblem` wraps
-# `Trixi.rhs!` as ODE RHS.
-# For a [`SemidiscretizationHyperbolicParabolic`](@ref),  Trixi.jl
-# uses a `SplitODEProblem` combining `Trixi.rhs_parabolic!` for the
-# (potentially) stiff part and `Trixi.rhs!` for the other part.
+# For a [`SemidiscretizationHyperbolic`](@ref), the `ODEProblem` uses
+# `Trixi.rhs_hyperbolic!` as its ODE RHS. For a
+# [`SemidiscretizationHyperbolicParabolic`](@ref), Trixi.jl uses a `SplitODEProblem` with
+# `Trixi.rhs_parabolic!` for the potentially stiff parabolic part and `Trixi.rhs_hyperbolic!`
+# for the hyperbolic part.
 
 # ## Standard Trixi.jl setup
 
@@ -149,7 +149,7 @@ end
 
 function rhs_source_custom!(du_ode, u_ode, semi, t)
     GLOBAL_TIME[] = t
-    return Trixi.rhs!(du_ode, u_ode, semi, t)
+    return Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
 end
 
 # Next, we create an `ODEProblem` manually copying over the data from
@@ -218,11 +218,11 @@ end
 
 # We also create a custom ODE RHS to update the current global time
 # stored in the custom semidiscretization. We unpack the standard
-# semidiscretization created by Trixi.jl and pass it to `Trixi.rhs!`.
+# semidiscretization created by Trixi.jl and pass it to `Trixi.rhs_hyperbolic!`.
 
 function rhs_semi_custom!(du_ode, u_ode, semi_custom, t)
     semi_custom.t[] = t
-    return Trixi.rhs!(du_ode, u_ode, semi_custom.semi, t)
+    return Trixi.rhs_hyperbolic!(du_ode, u_ode, semi_custom.semi, t)
 end
 
 # Finally, we set up an `ODEProblem` and solve it numerically.

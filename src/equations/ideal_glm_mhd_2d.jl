@@ -68,6 +68,16 @@ function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
     return IdealGlmMhdEquations2D(gamma, c_h)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::IdealGlmMhdEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return IdealGlmMhdEquations2D(convert(NewRealT, equations.gamma),
+                                  convert(NewRealT, equations.c_h))
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
@@ -938,7 +948,8 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 end
 
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
-                                                                    normal_direction_avg::AbstractVector,
+                                                                    normal_direction_ll::AbstractVector,
+                                                                    normal_direction_rr::AbstractVector,
                                                                     equations::IdealGlmMhdEquations2D,
                                                                     nonconservative_type::NonConservativeJump,
                                                                     nonconservative_term::Integer)
@@ -947,10 +958,10 @@ end
 
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-        B1_jump = B1_rr - B1_ll
-        B2_jump = B2_rr - B2_ll
-        B_dot_n_jump = B1_jump * normal_direction_avg[1] +
-                       B2_jump * normal_direction_avg[2]
+        B1_jump = B1_rr * normal_direction_rr[1] - B1_ll * normal_direction_ll[1]
+        B2_jump = B2_rr * normal_direction_rr[2] - B2_ll * normal_direction_ll[2]
+
+        B_dot_n_jump = B1_jump + B2_jump
         f = SVector(0,
                     B_dot_n_jump,
                     B_dot_n_jump,
@@ -1965,7 +1976,7 @@ end
 end
 
 # Calculate the magnetic energy for a conservative state `cons`.
-#  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
+#  Note: For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations2D)
     return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end

@@ -52,7 +52,7 @@ D_map, _ = linear_structure_parabolic(semi)
 # Cannot directly construct `MatrixOperator` from `LinearMap`, need detour via sparse matrix
 D_op = MatrixOperator(sparse(D_map))
 
-split_func = SplitFunction(D_op, Trixi.rhs!)
+split_func = SplitFunction(D_op, Trixi.rhs_hyperbolic!)
 ode_operator = SplitODEProblem{true}(split_func, ode.u0, tspan, semi)
 
 ###############################################################################

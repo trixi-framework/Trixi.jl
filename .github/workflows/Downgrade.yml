@@ -69,7 +69,7 @@ jobs:
           # - threaded
           - downgrade
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
@@ -95,3 +95,5 @@ jobs:
           '
         env:
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          # Print every `@testitem` (with its run time) in the test summary.
+          TRIXI_TEST_VERBOSE: "true"

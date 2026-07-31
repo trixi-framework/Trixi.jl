@@ -19,7 +19,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
 # In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
 # Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
+# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
 solver = DGSEM(polydeg = 3, surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                volume_integral = VolumeIntegralWeakForm())
@@ -37,7 +37,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 #       and by the initial condition (which passes in `CompressibleEulerEquations3D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
-    # Constants. OBS! Must match those in `source_terms_navier_stokes_convergence_test`
+    # Constants. Note: Must match those in `source_terms_navier_stokes_convergence_test`
     c = 2.0
     A1 = 0.5
     A2 = 1.0
@@ -67,7 +67,7 @@ end
     Pr = prandtl_number()
     mu_ = mu()
 
-    # Constants. OBS! Must match those in `initial_condition_navier_stokes_convergence_test`
+    # Constants. Note: Must match those in `initial_condition_navier_stokes_convergence_test`
     c = 2.0
     A1 = 0.5
     A2 = 1.0

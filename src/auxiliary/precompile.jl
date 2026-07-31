@@ -94,7 +94,7 @@ inf_timing = @snoopi tmin=0.01 begin
 
   u_ode = copy(ode.u0)
   du_ode = similar(u_ode)
-  Trixi.rhs!(du_ode, u_ode, semi, first(tspan))
+  Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, first(tspan))
 
   # You could also include a `solve` stage to generate possibly more precompile statements.
   # sol = Trixi.solve(ode, Trixi.SimpleAlgorithm2N45(),

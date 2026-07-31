@@ -103,6 +103,17 @@ end
     return RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
+    return IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP,
+                                                NewRealT}(SVector{NCOMP, NewRealT}(eqs.gammas),
+                                                          SVector{NCOMP, NewRealT}(eqs.gas_constants))
+end
+
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations1D) = False()
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMulticomponentEquations1D)
@@ -207,7 +218,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e_total - kin_en - mag_en)
 
-    f_rho = densities(u, v1, equations)
+    f_rho = partial_momenta(u, v1, equations)
     f1 = rho_v1 * v1 + p + mag_en - B1^2
     f2 = rho_v1 * v2 - B1 * B2
     f3 = rho_v1 * v3 - B1 * B3
@@ -647,7 +658,9 @@ end
     return help1 / help2
 end
 
-@inline function densities(u, v, equations::IdealGlmMhdMulticomponentEquations1D)
+# `v` should be a scalar velocity component (i.e., `v1`)
+@inline function partial_momenta(u, v,
+                                 equations::IdealGlmMhdMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 7] * v
                                                             for i in eachcomponent(equations))
 end

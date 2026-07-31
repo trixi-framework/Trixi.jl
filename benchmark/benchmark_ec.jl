@@ -43,7 +43,7 @@ function benchmark_euler(; initial_refinement_level = 1, polydeg = 3)
     u0 = compute_coefficients(t0, semi)
     du = similar(u0)
 
-    @benchmark Trixi.rhs!($du, $u0, $semi, $t0)
+    @benchmark Trixi.rhs_hyperbolic!($du, $u0, $semi, $t0)
 end
 
 # versioninfo(verbose=true)

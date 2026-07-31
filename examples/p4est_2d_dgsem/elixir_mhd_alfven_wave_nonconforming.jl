@@ -25,7 +25,7 @@ mesh = P4estMesh(trees_per_dimension,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = true)
 
-# OBS! Workaround to add a refinement patch after mesh is constructed
+# Note: Workaround to add a refinement patch after mesh is constructed
 # Refine bottom left quadrant of each tree to level 4
 function refine_fn(p8est, which_tree, quadrant)
     quadrant_obj = unsafe_load(quadrant)
@@ -81,5 +81,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
