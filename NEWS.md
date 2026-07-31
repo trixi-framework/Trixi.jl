@@ -22,6 +22,11 @@ for human readability.
 - The internal ODE right-hand side functions such as `rhs_hyperbolic!` and `rhs_parabolic!` now dispatch additionally
   on the backend type ([#3113]).
   The public interface `rhs_hyperbolic!(du_ode, u_ode, semi, t)` is unchanged.
+- Trixi.jl now uses t8code v4 through T8code.jl v0.9 ([#2706]).
+  This results in some changes to the t8code API in examples and internally in Trixi.jl.
+  Moreover, the `T8codeMesh` constructors gained the keyword argument
+  `partition_allow_for_coarsening`, which keeps same-level sibling elements together
+  during mesh partitioning to allow later coarsening.
 
 
 #### Deprecated
