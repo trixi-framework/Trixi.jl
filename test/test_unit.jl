@@ -3524,12 +3524,6 @@ end
 
     @test Trixi.default_rhs(semi_float_type) === Trixi.rhs_hyperbolic!
 
-    du_hyperbolic = similar(u0_ode)
-    du_deprecated = similar(u0_ode)
-    Trixi.rhs_hyperbolic!(du_hyperbolic, u0_ode, semi_float_type, first(tspan))
-    @test_deprecated Trixi.rhs!(du_deprecated, u0_ode, semi_float_type, first(tspan))
-    @test du_deprecated == du_hyperbolic
-
     rhs_float_type! = function (du_ode, u0_ode)
         Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_float_type, tspan[1])
     end

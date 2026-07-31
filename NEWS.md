@@ -12,10 +12,16 @@ for human readability.
 
 #### Changed
 - The `NonConservativeJump` terms now require `normal_direction_ll` and
-  `normal_direction_rr` as function arguments instead of the previous averaged `normal_direction`. 
+  `normal_direction_rr` as function arguments instead of the previous averaged `normal_direction`.
   This is necessary because the averaged `normal_direction` did not yield a consistent jump term. ([#2890])
-- The internal ODE right-hand side functions such as `rhs!` and `rhs_parabolic!` now dispatch additionally
+- Renamed the hyperbolic right-hand side function `rhs!` to `rhs_hyperbolic!` at
+  the semidiscretization and solver levels for consistency with `rhs_parabolic!`.
+  The internal `default_rhs` helper now rejects `SemidiscretizationHyperbolicParabolic`,
+  which has separate hyperbolic and parabolic right-hand sides and thus lacks a single
+  default right-hand side function ([#2921]).
+- The internal ODE right-hand side functions such as `rhs_hyperbolic!` and `rhs_parabolic!` now dispatch additionally
   on the backend type ([#3113]). The public interface `rhs!(du_ode, u_ode, semi, t)` is unchanged.
+
 
 #### Deprecated
 
@@ -59,14 +65,10 @@ for human readability.
 - Added support for one-block periodic SBP operators (finite differences, CGSEM, etc.) on `DGMultiMesh`es with nonconservative terms ([#3144]).
 
 #### Changed
-- Renamed the hyperbolic right-hand side function `rhs!` to `rhs_hyperbolic!` at
-  the semidiscretization and solver levels for consistency with `rhs_parabolic!`.
-  The old name remains available as a deprecated forwarding function. The internal
-  `default_rhs` helper now rejects `SemidiscretizationHyperbolicParabolic`, which has
-  separate hyperbolic and parabolic right-hand sides and thus lacks a single default right-hand side function ([#2921]).
 - Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]).
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
 - Removed the requirement to pass `uEltype = real(dg)` to the `AnalysisCallback` for `DGMulti` solvers ([#3143]).
+
 
 ## Changes when updating to v0.16 from v0.15.x
 
