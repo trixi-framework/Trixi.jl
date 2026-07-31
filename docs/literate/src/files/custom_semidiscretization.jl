@@ -66,7 +66,6 @@ coordinates_min = (-1.0,)
 coordinates_max = (+1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max;
                 initial_refinement_level = 4,
-                n_cells_max = 10^4,
                 periodicity = true)
 
 # We wrap everything in in a semidiscretization and pass the source
