@@ -249,7 +249,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01;
 
 # Path from the `solve` function call to the appropriate `rhs_hyperbolic!` function call:
 
-# ![rhs_structure](https://github.com/user-attachments/assets/c99bcd52-ae46-4f75-aaab-e6146634f982)
+# ![rhs_structure](https://github.com/user-attachments/assets/a5fe936e-1a46-4452-9119-07ab8434dfb3)
 
 # Computed solution:
 
