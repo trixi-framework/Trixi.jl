@@ -118,7 +118,6 @@ end
 @inline function get_interface_values(u, equations, dg, neighbor_ids,
                                       node_indices, contravariant_vectors,
                                       index_range, i, interface)
-    n = length(index_range)
 
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
@@ -135,6 +134,7 @@ end
     secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
     secondary_direction = indices2direction(secondary_indices)
+
     i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
                                                                  index_range)
     j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
@@ -143,10 +143,11 @@ end
     i_secondary_node = delayed_index_2d(i_secondary_start, i_secondary_step, i)
     j_secondary_node = delayed_index_2d(j_secondary_start, j_secondary_step, i)
 
-    # Position along the secondary element's surface where the flux is stored.
-    # The primary index always runs forward, but the secondary index runs
-    # backwards for flipped sides.
-    i_secondary = ifelse(:i_backward in secondary_indices, n + 1 - i, i)
+    if i_secondary_step == 0
+        i_secondary = j_secondary_node
+    else
+        i_secondary = i_secondary_node
+    end
 
     u_ll = get_node_vars(u, equations, dg, i_primary, j_primary, primary_element)
     u_rr = get_node_vars(u, equations, dg, i_secondary_node, j_secondary_node,
