@@ -246,25 +246,14 @@ end
     end
 end
 
-function prolong2interfaces!(backend::Backend, cache, u,
-                             mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, dg::DG)
-    calc_interface_flux_fused!(backend, cache.elements.surface_flux_values, u,
-                               mesh,
-                               have_nonconservative_terms(equations), equations,
-                               dg.surface_integral, dg, cache)
-
-    return nothing
-end
-
-function calc_interface_flux_fused!(backend::Backend, surface_flux_values, u,
-                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                    have_nonconservative_terms, equations,
-                                    surface_integral, dg::DG, cache)
+function calc_interface_flux!(backend::Backend, surface_flux_values, u,
+                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                              have_nonconservative_terms, equations,
+                              surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
-    kernel! = calc_interface_flux_fused_KAkernel!(backend)
+    kernel! = calc_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
             surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
             index_range,
@@ -273,25 +262,25 @@ function calc_interface_flux_fused!(backend::Backend, surface_flux_values, u,
     return nothing
 end
 
-@kernel function calc_interface_flux_fused_KAkernel!(surface_flux_values, u, MeshT,
-                                                     have_nonconservative_terms,
-                                                     equations, surface_integral, dg,
-                                                     neighbor_ids, node_indices,
-                                                     contravariant_vectors, index_range)
+@kernel function calc_interface_flux_KAkernel!(surface_flux_values, u, MeshT,
+                                               have_nonconservative_terms,
+                                               equations, surface_integral, dg,
+                                               neighbor_ids, node_indices,
+                                               contravariant_vectors, index_range)
     i, j, interface = @index(Global, NTuple)
-    calc_interface_flux_fused_per_node!(surface_flux_values, u, MeshT,
-                                        have_nonconservative_terms, equations,
-                                        surface_integral, dg, neighbor_ids,
-                                        node_indices,
-                                        contravariant_vectors, index_range, i, j,
-                                        interface)
+    calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
+                                  have_nonconservative_terms, equations,
+                                  surface_integral, dg, neighbor_ids,
+                                  node_indices,
+                                  contravariant_vectors, index_range, i, j,
+                                  interface)
 end
 
 @inline function delayed_index_3d(start, step_i, step_j, i, j, n)
     return start + ((i - 1) + (j - 1) * n) * step_i + (j - 1) * step_j
 end
 
-@inline function fused_interface_node(u, equations, dg, neighbor_ids,
+@inline function get_interface_values(u, equations, dg, neighbor_ids,
                                       node_indices, contravariant_vectors,
                                       index_range, i, j, interface)
     n = length(index_range)
@@ -354,18 +343,18 @@ end
             i_secondary, j_secondary, secondary_direction, secondary_element)
 end
 
-@inline function calc_interface_flux_fused_per_node!(surface_flux_values, u,
-                                                     MeshT::Type{<:Union{P4estMesh{3},
-                                                                         T8codeMesh{3}}},
-                                                     have_nonconservative_terms::False,
-                                                     equations, surface_integral, dg,
-                                                     neighbor_ids, node_indices,
-                                                     contravariant_vectors, index_range,
-                                                     i, j, interface)
+@inline function calc_interface_flux_per_node!(surface_flux_values, u,
+                                               MeshT::Type{<:Union{P4estMesh{3},
+                                                                   T8codeMesh{3}}},
+                                               have_nonconservative_terms::False,
+                                               equations, surface_integral, dg,
+                                               neighbor_ids, node_indices,
+                                               contravariant_vectors, index_range,
+                                               i, j, interface)
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node(u,
+    i_secondary, j_secondary, secondary_direction, secondary_element = get_interface_values(u,
                                                                                             equations,
                                                                                             dg,
                                                                                             neighbor_ids,
@@ -385,37 +374,37 @@ end
     return nothing
 end
 
-@inline function calc_interface_flux_fused_per_node!(surface_flux_values, u,
-                                                     MeshT::Type{<:Union{P4estMesh{3},
-                                                                         T8codeMesh{3}}},
-                                                     have_nonconservative_terms::True,
-                                                     equations, surface_integral, dg,
-                                                     neighbor_ids, node_indices,
-                                                     contravariant_vectors, index_range,
-                                                     i, j, interface)
-    calc_interface_flux_fused_per_node!(surface_flux_values, u, MeshT,
-                                        have_nonconservative_terms,
-                                        combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
-                                                                                        equations),
-                                        equations, surface_integral, dg, neighbor_ids,
-                                        node_indices, contravariant_vectors,
-                                        index_range, i, j, interface)
+@inline function calc_interface_flux_per_node!(surface_flux_values, u,
+                                               MeshT::Type{<:Union{P4estMesh{3},
+                                                                   T8codeMesh{3}}},
+                                               have_nonconservative_terms::True,
+                                               equations, surface_integral, dg,
+                                               neighbor_ids, node_indices,
+                                               contravariant_vectors, index_range,
+                                               i, j, interface)
+    calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
+                                  have_nonconservative_terms,
+                                  combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                                  equations),
+                                  equations, surface_integral, dg, neighbor_ids,
+                                  node_indices, contravariant_vectors,
+                                  index_range, i, j, interface)
     return nothing
 end
 
-@inline function calc_interface_flux_fused_per_node!(surface_flux_values, u,
-                                                     MeshT::Type{<:Union{P4estMesh{3},
-                                                                         T8codeMesh{3}}},
-                                                     have_nonconservative_terms::True,
-                                                     combine_conservative_and_nonconservative_fluxes::True,
-                                                     equations, surface_integral, dg,
-                                                     neighbor_ids, node_indices,
-                                                     contravariant_vectors, index_range,
-                                                     i, j, interface)
+@inline function calc_interface_flux_per_node!(surface_flux_values, u,
+                                               MeshT::Type{<:Union{P4estMesh{3},
+                                                                   T8codeMesh{3}}},
+                                               have_nonconservative_terms::True,
+                                               combine_conservative_and_nonconservative_fluxes::True,
+                                               equations, surface_integral, dg,
+                                               neighbor_ids, node_indices,
+                                               contravariant_vectors, index_range,
+                                               i, j, interface)
     @unpack surface_flux = surface_integral
 
     u_ll, u_rr, normal_direction, primary_direction, primary_element,
-    i_secondary, j_secondary, secondary_direction, secondary_element = fused_interface_node(u,
+    i_secondary, j_secondary, secondary_direction, secondary_element = get_interface_values(u,
                                                                                             equations,
                                                                                             dg,
                                                                                             neighbor_ids,
@@ -432,17 +421,6 @@ end
         surface_flux_values[v, i_secondary, j_secondary, secondary_direction,
         secondary_element] = -flux_right[v]
     end
-    return nothing
-end
-
-function calc_interface_flux!(backend::Backend, surface_flux_values,
-                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                              have_nonconservative_terms,
-                              equations, surface_integral, dg::DG, cache)
-
-    # The interface fluxes are computed in a fused kernel when calling
-    # prolong2interface!.
-
     return nothing
 end
 

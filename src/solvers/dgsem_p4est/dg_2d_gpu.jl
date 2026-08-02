@@ -25,11 +25,6 @@ function rhs_hyperbolic!(backend::Backend,
                               dg.volume_integral, dg, cache)
     end
 
-    # Prolong solution to interfaces
-    @trixi_timeit_ext backend timer() "prolong2interfaces" begin
-        prolong2interfaces!(backend, cache, u, mesh, equations, dg)
-    end
-
     # Calculate interface fluxes
     @trixi_timeit_ext backend timer() "interface flux" begin
         calc_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
