@@ -43,12 +43,12 @@ are the following. Further documentation can be found in the
 - Hyperbolic-parabolic problems can be solved using IMEX (implicit-explicit) integrators.
   Available options from OrdinaryDiffEq.jl are [IMEX SDIRK](https://docs.sciml.ai/OrdinaryDiffEq/stable/implicit/SDIRK/#IMEX-SDIRK) (Single-Diagonal Implicit Runge-Kutta) methods and [IMEX BDF](https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF/#IMEX-Multistep) (Backwards Differentiation Formula) methods.
 
-!!! note "Number of `rhs!` calls"
+!!! note "Number of RHS evaluations"
     If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
-    the total number of `rhs!` calls can be (slightly) bigger than the number of steps times the number
-    of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
-    and error-based time step control. In general, you often should not need to worry about this if you
-    use Trixi.jl.
+    the total number of RHS evaluations can be (slightly) bigger than the number of steps times the
+    number of stages, e.g. to allow for interpolation (dense output), root-finding for continuous
+    callbacks, and error-based time step control. In general, you often should not need to worry
+    about this if you use Trixi.jl.
 
 ## Custom Optimized Schemes
 

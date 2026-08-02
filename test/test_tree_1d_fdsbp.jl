@@ -10,7 +10,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D FDSBP: elixir_advection_upwind_periodic.jl" setup=[
@@ -23,7 +23,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D FDSBP: elixir_burgers_basic.jl" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
@@ -34,7 +34,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # same tolerances as above since the methods should be identical (up to
@@ -63,7 +63,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
@@ -82,7 +82,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with splitting_vanleer_haenel" setup=[
@@ -105,7 +105,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D FDSBP: elixir_euler_convergence.jl with VolumeIntegralStrongForm" setup=[
@@ -129,7 +129,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D FDSBP: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
@@ -148,5 +148,5 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

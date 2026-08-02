@@ -26,7 +26,7 @@ end
                         linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -40,7 +40,7 @@ end
                         linf=[0.026527551737137167])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -50,7 +50,7 @@ end
                         linf=[0.016486952252155795])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl` besides minor
@@ -62,7 +62,7 @@ end
                         linf=[0.0007889950196294793])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl` besides minor
@@ -78,7 +78,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test differs from the one in `test_p4est_3d.jl` in the latitudinal and
@@ -89,7 +89,7 @@ end
                         linf=[0.027655117058380085])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -99,7 +99,7 @@ end
                         linf=[0.01840757696885409])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -126,7 +126,7 @@ end
                         tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -153,7 +153,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -176,7 +176,7 @@ end
                         tspan=(0.0, 0.03))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -199,7 +199,7 @@ end
                         tspan=(0.0, 0.1), atol=5.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -222,7 +222,7 @@ end
                         tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl` besides minor
@@ -246,7 +246,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh3D: elixir_euler_convergence_pure_fv.jl" setup=[Setup, T8codeMesh3D] tags=[:t8code_part2] begin
@@ -277,7 +277,7 @@ end
                                               stepsize_callback))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # This test is identical to the one in `test_p4est_3d.jl`.
@@ -303,7 +303,7 @@ end
                         abstol=1.0e-9, reltol=1.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh3D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, T8codeMesh3D] tags=[:t8code_part2] begin
@@ -325,7 +325,7 @@ end
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     # Check for conservation
     state_integrals = Trixi.integrate(sol.u[2], semi)
     initial_state_integrals = analysis_callback.affect!.initial_state_integrals
