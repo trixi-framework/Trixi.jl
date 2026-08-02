@@ -118,7 +118,6 @@ end
 @inline function get_interface_values(u, equations, dg, neighbor_ids,
                                       node_indices, contravariant_vectors,
                                       index_range, i, interface)
-
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
