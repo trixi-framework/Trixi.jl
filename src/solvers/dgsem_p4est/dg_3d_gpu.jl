@@ -252,6 +252,7 @@ function calc_interface_flux!(backend::Backend, surface_flux_values, u,
                               surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
+    ninterfaces(cache.interfaces) == 0 && return nothing
     index_range = eachnode(dg)
     kernel! = calc_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
