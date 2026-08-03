@@ -5,7 +5,7 @@ end
 @testitem "TreeMesh3D EulerGravity: elixir_eulergravity_convergence.jl" setup=[
     Setup,
     TreeMesh3DEulerGravity
-] tags=[:tree_part5] begin
+] tags=[:tree_part4] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
                             0.0004276779201667428,
