@@ -2,6 +2,20 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "dgmulti_1d")
 end
 
+@testitem "DGMulti1D: AnalysisCallback infers uEltype" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
+    equations = LinearScalarAdvectionEquation1D(1.0f0)
+    solver = DGMulti(polydeg = 1, element_type = Line())
+    mesh = DGMultiMesh(solver, (2,))
+    semi = SemidiscretizationHyperbolic(mesh, equations,
+                                        initial_condition_convergence_test, solver,
+                                        boundary_conditions = boundary_condition_periodic,
+                                        uEltype = Float32)
+
+    analysis_callback = AnalysisCallback(semi)
+
+    @test eltype(analysis_callback.affect!.initial_state_integrals) === Float32
+end
+
 @testitem "DGMulti1D: elixir_advection_gauss_sbp.jl " setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_gauss_sbp.jl"),
                         cells_per_dimension=(8,),
@@ -9,7 +23,7 @@ end
                         linf=[4.467840577382365e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_burgers_gauss_shock_capturing.jl " setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -20,7 +34,7 @@ end
                         linf=[0.74780611426038])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_flux_diff.jl " setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -39,7 +53,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_shu_osher_gauss_shock_capturing.jl " setup=[
@@ -52,7 +66,7 @@ end
                         linf=[3.2229821729393437, 10.702811890261692, 38.37413018581744])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_flux_diff.jl (convergence)" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -66,7 +80,7 @@ end
                    rtol = 0.05)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_flux_diff.jl (SBP) " setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -85,7 +99,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_flux_diff.jl (FD SBP)" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -112,7 +126,7 @@ end
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_modified_sod.jl" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -126,7 +140,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_fdsbp_periodic.jl" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -143,7 +157,7 @@ end
     show(stdout, MIME"text/plain"(), semi.solver.basis)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_cgsbp_periodic.jl" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -156,14 +170,14 @@ end
                             1.3094042977845888e-4, 1.2807952438143033e-4,
                             6.1275164883412e-5
                         ])
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_advection_cgsbp_nonperiodic.jl" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cgsbp_nonperiodic.jl"),
                         l2=[3.456207813727315e-4],
                         linf=[9.635542672389308e-4])
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: DGMulti with periodic SBP unit test" setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -200,7 +214,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "DGMulti1D: elixir_euler_quasi_1d.jl (Polynomial) " setup=[Setup, DGMulti1D] tags=[:unstructured_dgmulti] begin
@@ -221,5 +235,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

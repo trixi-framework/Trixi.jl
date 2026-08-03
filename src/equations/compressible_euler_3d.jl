@@ -303,6 +303,13 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
+The implementation is modified to ensure non-negativity of `p_star`. This modification 
+preserves entropy stability based on the analysis in the paper:  
+- F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
+  Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
+  [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
+
+
 Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
@@ -335,10 +342,14 @@ Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
     # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
     if v_normal <= 0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-        p_star = p_local *
-                 (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                               equations.gamma *
-                                                                               equations.inv_gamma_minus_one)
+        p_scaling_base = (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)
+        if p_scaling_base >= 0
+            p_star = p_local *
+                     p_scaling_base^(2 * equations.gamma *
+                                     equations.inv_gamma_minus_one)
+        else # avoid taking powers if p_scaling_base < 0
+            p_star = zero(p_local)
+        end
     else # v_normal > 0
         A = 2 / ((equations.gamma + 1) * rho_local)
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
@@ -1763,7 +1774,12 @@ end
     return abs(v1) + c, abs(v2) + c, abs(v3) + c
 end
 
-# Convert conservative variables to primitive
+"""
+    cons2prim(u, equations::CompressibleEulerEquations3D)
+
+Convert conservative variables `u = (rho, rho*v1, rho*v2, rho*v3, rho*e_total)` to
+primitive variables `(rho, v1, v2, v3, p)`.
+"""
 @inline function cons2prim(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
 
@@ -1845,7 +1861,12 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 
-# Convert primitive to conservative variables
+"""
+    prim2cons(prim, equations::CompressibleEulerEquations3D)
+
+Convert primitive variables `prim = (rho, v1, v2, v3, p)` to
+conservative variables `(rho, rho*v1, rho*v2, rho*v3, rho*e_total)`.
+"""
 @inline function prim2cons(prim, equations::CompressibleEulerEquations3D)
     rho, v1, v2, v3, p = prim
     rho_v1 = rho * v1

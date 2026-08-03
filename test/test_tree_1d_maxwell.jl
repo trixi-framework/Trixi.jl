@@ -12,7 +12,7 @@ end
                         linf=[21136.527033627033, 7.050386515528029e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Maxwell: elixir_maxwell_E_excitation.jl" setup=[
@@ -25,5 +25,5 @@ end
                         linf=[2.5804473693440557e6, 0.1304024464192847])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

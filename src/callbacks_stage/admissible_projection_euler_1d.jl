@@ -205,10 +205,15 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
         has_real_rho_candidates = discriminant_rho >= zero(discriminant_rho)
         if has_real_rho_candidates
             sqrt_discriminant_rho = sqrt(discriminant_rho)
-            for rho_candidate in (0.5f0 * (rho - sqrt_discriminant_rho),
+            for rho_candidate in (0.5f0 * a_minus_sqrt_b_rationalized(rho,
+                                                              discriminant_rho,
+                                                              sqrt_discriminant_rho),
                                   0.5f0 * (rho + sqrt_discriminant_rho))
-                discriminant_momentum = -8 * rho_candidate * rho_candidate +
-                                        8 * rho * rho_candidate + rho_v1 * rho_v1
+                # For rho_candidate = ½(ρ ± √Δ_ρ), the momentum discriminant reduces to
+                # -8ρ_c² + 8ρρ_c + ρv² = 2(ρ² - Δ_ρ) + ρv² (which is independent of 
+                # rho_candidate). 
+                discriminant_momentum = 2 * (rho^2 - discriminant_rho) +
+                                        rho_v1^2
                 # Roundoff can make discriminant_momentum slightly negative at the real-root
                 # boundary; treat as zero so the >= 0 check passes and sqrt is valid.
                 if discriminant_momentum < zero(discriminant_momentum) &&
@@ -226,12 +231,7 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                              0.5f0 *
                                              (rho_v1 + sqrt_discriminant_momentum))
                         # μ > 0 sign check (λ = 0 branch): candidate internal energy must
-                        # exceed the original. ρ_candidate = ½(ρ ± √Δ_ρ) can suffer
-                        # catastrophic cancellation when ρ and √Δ_ρ are opposite in sign
-                        # and similar in magnitude; the resulting error in ρ_candidate can
-                        # flip this comparison. Remedies: relax (1 - arithmetic_tol), e.g. to
-                        # sqrt(eps(RealT)), or detect cancellation and evaluate ρ_candidate
-                        # via a stable formula.
+                        # exceed the original.
                         candidate_energy_internal_times_rho = rho_e_floor *
                                                               rho_candidate +
                                                               0.5f0 * rho_v1_candidate *

@@ -127,17 +127,15 @@ end
         # 2D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
         # 3D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
 
         # Keyword-only constructor
         mesh_ref = TreeMesh((-1.0, -1.0), (1.0, 1.0);
-                            initial_refinement_level = 2, n_cells_max = 10_000)
+                            initial_refinement_level = 2)
         mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
                            coordinates_max = (1.0, 1.0),
                            refinement_level = 2)
@@ -157,7 +155,7 @@ end
             for ref_level in 0:2
                 mesh = TreeMesh(coords_min, coords_max,
                                 initial_refinement_level = ref_level,
-                                n_cells_max = 10_000, periodicity = true)
+                                periodicity = true)
 
                 @test @inferred(Trixi.ndims(mesh)) == ndims
                 @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
@@ -451,7 +449,7 @@ end
         coordinates_max = (1.0,)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -488,7 +486,7 @@ end
         coordinates_max = (1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -525,7 +523,7 @@ end
         coordinates_max = (1.0, 1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -698,6 +696,25 @@ end
     indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
                                               LobattoLegendreBasis(3))
     @test_nowarn show(stdout, indicator_ec)
+
+    # test Base.show for PositivityPreservingLimiterLiuZhang
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    solver = DGSEM(polydeg = 3)
+    mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                         variables = (first,))
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                          semi;
+                                                          record_davis_yin_iterations = true)
+    @test_nowarn show(stdout, global_limiter!)
+    @test_nowarn show(stdout, "text/plain", global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      global_limiter!)
 end
 
 @testitem "Unit: LBM 2D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -851,6 +868,41 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    rho, v1, v2, v3, p = 2.0, 0.1, 0.2, 0.3, 4.0
+    mu, Prandtl = 0.01, 0.72
+
+    let equations_hyperbolic = CompressibleEulerEquations1D(1.4)
+        equations = CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations2D(1.4)
+        equations = CompressibleNavierStokesDiffusion2D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations3D(1.4)
+        equations = CompressibleNavierStokesDiffusion3D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, v3, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+end
+
 @testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
     Setup,
     UnitTests
@@ -980,6 +1032,57 @@ end
         p = pressure(u, equations)
         rho_p = density_pressure(u, equations)
         @test rho * p ≈ rho_p
+    end
+end
+
+@testitem "Unit: hardened boundary_condition_slip_wall" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    let equations = CompressibleEulerEquations1D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 1), equations)
+
+        x, t = 0, 0
+        orientation = 1
+        direction = 2 # even direction: v_normal stays <= 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
     end
 end
 
@@ -1328,7 +1431,6 @@ end
     solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
-                    n_cells_max = 30_000,
                     periodicity = true)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
@@ -1936,6 +2038,25 @@ end
         @test flux_godunov(u, u, normal_direction, equation) ≈
               flux(u, normal_direction, equation)
     end
+end
+
+@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = InviscidBurgersEquation1D()
+    u_ll = SVector(2.0)
+    u_rr = SVector(-1.0)
+
+    for normal_direction in (SVector(1.0), SVector(-1.2))
+        @test flux_ec(u_ll, u_rr, normal_direction, equations) ≈
+              normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
+    end
+
+    u = SVector(42.0)
+    normal_direction = SVector(-1.2)
+    @test flux_ec(u, u, normal_direction, equations) ≈
+          flux(u, normal_direction, equations)
 end
 
 @testitem "Unit: Consistency check for Engquist-Osher flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -3349,6 +3470,7 @@ end
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                                    normal_direction,
+                                                                   normal_direction,
                                                                    equations,
                                                                    Trixi.NonConservativeJump(),
                                                                    noncons)
@@ -3378,7 +3500,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
@@ -3406,10 +3527,11 @@ end
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
 
-    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                   tspan[1])
+    rhs_jac_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+    end
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
@@ -3431,8 +3553,11 @@ end
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
-    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     tspan[1])
+    @test Trixi.default_rhs(semi_float_type) === Trixi.rhs_hyperbolic!
+
+    rhs_float_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_float_type, tspan[1])
+    end
 
     ###############################################################################
     ### sparsity-aware finite diff ###
@@ -3455,7 +3580,7 @@ end
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
         du_para = similar(du_ode) # This obviously allocates, but fine for this test
-        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
         Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
         Trixi.@threaded for i in eachindex(du_ode)
@@ -3479,7 +3604,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
 
     ###############################################################################
@@ -3499,6 +3623,8 @@ end
                                                           boundary_conditions = (boundary_condition_periodic,
                                                                                  boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    @test_throws ArgumentError Trixi.default_rhs(semi_jac_type)
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
 
@@ -3531,7 +3657,7 @@ end
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
-    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
+    ### sparsity pattern detected on the combined hyperbolic-parabolic RHS ###
 
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
                                                                           u0_ode,
@@ -3558,7 +3684,7 @@ end
     # 1D
     eq1d = LinearScalarAdvectionEquation1D(1.0)
     tree_mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh1d_periodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                 periodicity = true)
     for mesh1d_periodic in (tree_mesh1d_periodic,
@@ -3594,7 +3720,7 @@ end
     end
     # non-periodic mesh
     tree_mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh1d_nonperiodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                    periodicity = false)
     for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
@@ -3623,7 +3749,7 @@ end
     eq2d = LinearScalarAdvectionEquation2D((1.0, -1.0))
     tree_mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh2d_periodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                 periodicity = true)
     for mesh2d_periodic in (tree_mesh2d_periodic,
@@ -3669,7 +3795,7 @@ end
     # non-periodic mesh
     tree_mesh2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh2d_nonperiodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                    periodicity = false)
     for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
@@ -3703,7 +3829,6 @@ end
     # partially periodic
     tree_mesh2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (true, false))
     structured_mesh2d_partial_periodic = StructuredMesh((4, 4), (-1.0, -1.0),
                                                         (1.0, 1.0),
@@ -3744,7 +3869,7 @@ end
     eq3d = LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
     tree_mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh3d_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                 (1.0, 1.0, 1.0),
                                                 periodicity = true)
@@ -3798,7 +3923,7 @@ end
     # non-periodic mesh
     tree_mesh3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh3d_nonperiodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                    (1.0, 1.0, 1.0),
                                                    periodicity = false)
@@ -3840,7 +3965,6 @@ end
     # partially periodic
     tree_mesh3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (false, true, true))
     structured_mesh3d_partial_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                         (1.0, 1.0, 1.0),
@@ -3979,29 +4103,34 @@ end
                                            refinement_level = 2)
 end
 
-@testitem "Unit: TreeMesh without n_cells_max" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: TreeMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
         mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        expected_capacity = sum((2^NDIMS)^l for l in 0:2)
         @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
+        @test mesh.tree.capacity == expected_capacity
         @test mesh.tree.capacity >= mesh.tree.length
     end
 end
 
 @testitem "Unit: TreeMesh auto-growth matches large-capacity tree" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:2
-        coords_min = ntuple(_ -> -1.0, NDIMS)
-        coords_max = ntuple(_ -> 1.0, NDIMS)
+        RealT = Float64
+        TreeType = Trixi.SerialTree{NDIMS, RealT}
+        domain_center = SVector{NDIMS, RealT}(ntuple(_ -> 0.0, NDIMS))
+        domain_length = convert(RealT, 2.0)
 
         # Reference: large capacity, no growth needed
-        mesh_ref = TreeMesh(coords_min, coords_max;
-                            n_cells_max = 10_000,
-                            initial_refinement_level = 3)
-        # Test: starts tiny, must grow during construction and again during AMR
-        mesh_small = TreeMesh(coords_min, coords_max;
-                              n_cells_max = 2,
-                              initial_refinement_level = 3)
+        mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
+                                                    domain_length)
+        Trixi.initialize!(mesh_ref, 3, (), ())
+
+        # Small: deliberately tiny initial capacity, must grow
+        mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
+                                                      domain_length)
+        Trixi.initialize!(mesh_small, 3, (), ())
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
@@ -4023,6 +4152,39 @@ end
         @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
         @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
     end
+end
+
+@testitem "Unit: load_mesh derives TreeMesh capacity from n_cells" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mktempdir() do dir
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                        initial_refinement_level = 2)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test loaded.tree.capacity == mesh.tree.length
+        @test loaded.tree.length == mesh.tree.length
+        @test loaded.tree.parent_ids[1:(loaded.tree.length)] ==
+              mesh.tree.parent_ids[1:(mesh.tree.length)]
+        @test loaded.tree.child_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.child_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.neighbor_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.neighbor_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.levels[1:(loaded.tree.length)] ==
+              mesh.tree.levels[1:(mesh.tree.length)]
+        @test loaded.tree.coordinates[:, 1:(loaded.tree.length)] ≈
+              mesh.tree.coordinates[:, 1:(mesh.tree.length)]
+        @test loaded.tree.center_level_0 == mesh.tree.center_level_0
+        @test loaded.tree.length_level_0 == mesh.tree.length_level_0
+        @test loaded.tree.periodicity == mesh.tree.periodicity
+        @test loaded.current_filename == mesh_file
+        @test loaded.unsaved_changes == false
+    end
+end
+
+@testitem "Unit: removed TreeMesh capacity keyword is rejected" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    removed_kw = Symbol("n_cells", "_max")
+    kwargs = (; initial_refinement_level = 1, removed_kw => 10)
+    @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
 @testitem "Unit: Euler admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
@@ -4077,34 +4239,25 @@ end
         @test u_projected[1] > lower_bounds[1]
         @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
     end
-end
 
-@testset "load_mesh n_cells_max compatibility" begin
-    mktempdir() do dir
-        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
-                        initial_refinement_level = 2, n_cells_max = 1000)
-        mesh_file = Trixi.save_mesh_file(mesh, dir)
-        saved_cap = mesh.tree.capacity
+    # this test failed without the rationalized approximation of
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang.
+    @testset "2D projection near zero momentum boundary" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.9376339560775117,
+                    1.353902558446827e-8,
+                    6.230911048510285e-9,
+                    -3.779101287247884)
+        lower_bounds = (1e-8, 2.5e-8)
+        variables = (density, energy_internal)
 
-        # n_cells_max = nothing: use saved capacity
-        m1 = Trixi.load_mesh_serial(mesh_file; n_cells_max = nothing, RealT = Float64)
-        @test m1.tree.capacity == saved_cap
+        u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
 
-        # n_cells_max = 0: legacy alias, use saved capacity
-        m2 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 0, RealT = Float64)
-        @test m2.tree.capacity == saved_cap
-
-        # n_cells_max smaller than saved: still use saved capacity
-        m3 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 1, RealT = Float64)
-        @test m3.tree.capacity == saved_cap
-
-        # n_cells_max larger than saved: use provided value
-        m4 = Trixi.load_mesh_serial(mesh_file; n_cells_max = saved_cap + 500,
-                                    RealT = Float64)
-        @test m4.tree.capacity == saved_cap + 500
-
-        # negative value: rejected
-        @test_throws ArgumentError Trixi.load_mesh_serial(mesh_file; n_cells_max = -1,
-                                                          RealT = Float64)
+        @test u_proj[1]≈0.9376339560775118 rtol=1e-12
+        @test u_proj[2]≈6.637197729990257e-9 rtol=1e-12
+        @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
+        @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
+        @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
     end
 end
