@@ -87,7 +87,6 @@ refinement_patches = ((type = "box", coordinates_min = (-1 / sqrt(2), -1 / sqrt(
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
-                n_cells_max = 100_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

@@ -32,7 +32,6 @@ refinement_patches = ((type = "box", coordinates_min = (0.0, -0.5),
 initial_refinement_level = 4
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
-                n_cells_max = 10_000,
                 refinement_patches = refinement_patches,
                 periodicity = true)
 

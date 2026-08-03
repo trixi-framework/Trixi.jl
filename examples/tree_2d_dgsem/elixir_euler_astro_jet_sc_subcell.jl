@@ -201,8 +201,7 @@ refinement_patches = ntuple(_ -> box, Val(refinement_level - initial_refinement_
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
                 refinement_patches = refinement_patches,
-                periodicity = (false, true),
-                n_cells_max = 500_000)
+                periodicity = (false, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
