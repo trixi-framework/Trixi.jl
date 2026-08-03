@@ -118,7 +118,6 @@ end
 @inline function get_interface_values(u, equations, dg, neighbor_ids,
                                       node_indices, contravariant_vectors,
                                       index_range, i, interface)
-
     primary_element = neighbor_ids[1, interface]
     primary_indices = node_indices[1, interface]
     primary_direction = indices2direction(primary_indices)
@@ -264,6 +263,145 @@ function prolong2boundaries_per_boundary!(u,
         end
         i_node += i_node_step
         j_node += j_node_step
+    end
+
+    return nothing
+end
+
+@kernel function prolong2boundaries_kernel!(u,
+                                            MeshT::Type{<:Union{P4estMesh{2},
+                                                                P4estMeshView{2},
+                                                                T8codeMesh{2}}},
+                                            equations, dg, index_range,
+                                            u_boundaries, neighbor_ids, node_indices)
+    boundary = @index(Global)
+    prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
+                                     neighbor_ids, node_indices, boundary)
+end
+
+@inline function calc_boundary_flux_per_boundary!(u,
+                                                  surface_flux_values, t,
+                                                  boundary_condition,
+                                                  MeshT::Type{<:Union{P4estMesh{2},
+                                                                      P4estMeshView{2},
+                                                                      T8codeMesh{2}}},
+                                                  equations, surface_integral, dg,
+                                                  cache,
+                                                  boundary, neighbor_ids,
+                                                  node_indices_arr,
+                                                  index_range, node_coordinates,
+                                                  contravariant_vectors)
+
+    # Get information on the adjacent element, compute the surface fluxes,
+    # and store them
+    element = neighbor_ids[boundary]
+    node_indices = node_indices_arr[boundary]
+    direction = indices2direction(node_indices)
+
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
+    for i in eachnode(dg)
+        calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
+                            have_nonconservative_terms(equations), equations,
+                            surface_integral, dg, cache, i_node, j_node,
+                            i, direction, element, boundary, node_coordinates,
+                            contravariant_vectors)
+        i_node += i_node_step
+        j_node += j_node_step
+    end
+end
+
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(u, surface_flux_values, t, boundary_condition,
+                                     MeshT::Type{<:Union{P4estMesh{2},
+                                                         P4estMeshView{2},
+                                                         T8codeMesh{2}}},
+                                     have_nonconservative_terms::False, equations,
+                                     surface_integral, dg, cache,
+                                     i_index, j_index, node_index,
+                                     direction_index, element_index,
+                                     boundary_index, node_coordinates,
+                                     contravariant_vectors)
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
+
+    flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+end
+
+@inline function calc_boundary_flux!(u, surface_flux_values, t, boundary_condition,
+                                     MeshT::Type{<:Union{P4estMesh{2},
+                                                         P4estMeshView{2},
+                                                         T8codeMesh{2}}},
+                                     have_nonconservative_terms::True, equations,
+                                     surface_integral, dg, cache,
+                                     i_index, j_index, node_index,
+                                     direction_index, element_index,
+                                     boundary_index, node_coordinates,
+                                     contravariant_vectors)
+    calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
+                        have_nonconservative_terms,
+                        combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                        equations),
+                        equations,
+                        surface_integral, dg, cache,
+                        i_index, j_index, node_index,
+                        direction_index, element_index, boundary_index,
+                        node_coordinates, contravariant_vectors)
+    return nothing
+end
+
+@inline function calc_boundary_flux!(u, surface_flux_values, t, boundary_condition,
+                                     MeshT::Type{<:Union{P4estMesh{2},
+                                                         P4estMeshView{2},
+                                                         T8codeMesh{2}}},
+                                     have_nonconservative_terms::True,
+                                     combine_conservative_and_nonconservative_fluxes::True,
+                                     equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index, node_index,
+                                     direction_index, element_index,
+                                     boundary_index, node_coordinates,
+                                     contravariant_vectors)
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
+
+    # Call pointwise numerical flux functions for the conservative and nonconservative part
+    # in the normal direction on the boundary
+    flux = boundary_condition(u_inner, normal_direction, x, t,
+                              surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index,
+        direction_index, element_index] = flux[v]
     end
 
     return nothing
