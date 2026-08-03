@@ -12,7 +12,7 @@ end
                         linf=[0.004591951086623913])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Traffic-flow LWR: elixir_traffic_flow_lwr_trafficjam.jl" setup=[
@@ -23,5 +23,5 @@ end
                         l2=[0.1761758135539748], linf=[0.5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

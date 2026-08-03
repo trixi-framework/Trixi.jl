@@ -10,7 +10,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D: elixir_advection_basic.jl with less n_nodes and higher refinement" setup=[
@@ -25,7 +25,7 @@ end
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Compute with fewer volumes per macro cell.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -35,12 +35,41 @@ end
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Both setups have exactly the same degrees of freedom.
     # Thus, they should return the same errors (up to floating-point precision).
     @test res1.l2 ≈ res2.l2
     @test res1.linf ≈ res2.linf
+end
+
+@testitem "BlockFV 2D: elixir_advection_amr.jl with even n_nodes" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+                        l2=[2.23122321e-03],
+                        linf=[2.73842937e-02],
+                        tspan=(0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 2D: elixir_advection_amr.jl with odd n_nodes" setup=[
+    Setup,
+    TreeMesh2DBlockFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+                        l2=[1.79519028e-03],
+                        linf=[2.31327415e-02],
+                        tspan=(0.0, 0.5),
+                        n_nodes=5)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh2DBlockFV] tags=[:tree_part1] begin
@@ -61,7 +90,7 @@ end
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D: elixir_euler_vortex.jl" setup=[Setup, TreeMesh2DBlockFV] tags=[:tree_part1] begin
@@ -82,7 +111,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D: elixir_euler_convergence.jl" setup=[Setup, TreeMesh2DBlockFV] tags=[:tree_part1] begin
@@ -103,7 +132,7 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D: elixir_euler_source_term_nonperiodic.jl" setup=[
@@ -127,7 +156,7 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D: elixir_euler_vortex_mortar.jl, BlockFV vs DGSEM with polydeg=0" setup=[
@@ -143,7 +172,7 @@ end
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Compute with DGSEM solver with polynomial degree = 0, i.e., a first order finite volume solver.
     trixi_include(@__MODULE__,
@@ -160,7 +189,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test_broken (@allocated Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)) < 1000
     end
 
     # Both setups have exactly the same degrees of freedom.

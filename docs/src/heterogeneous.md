@@ -143,7 +143,7 @@ allowing for vendor-agnostic GPU code.
 
 ### Example
 
-Given the following Trixi.jl code, which would typically be called from within `rhs!`:
+Given the following Trixi.jl code, which would typically be called from within `rhs_hyperbolic!`:
 
 ```julia
 function trixi_rhs_fct(mesh, equations, solver, cache, args)

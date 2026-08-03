@@ -20,7 +20,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_euler_convergence.jl with polydeg=4" setup=[
@@ -43,7 +43,7 @@ end
                         polydeg=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_hypdiff_convergence.jl" setup=[Setup, PaperSelfGravity] tags=[:paper_self_gravitating_gas_dynamics] begin
@@ -60,7 +60,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_hypdiff_convergence.jl with polydeg=4" setup=[
@@ -81,7 +81,7 @@ end
                         polydeg=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl" setup=[
@@ -104,7 +104,7 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl with polydeg=4" setup=[
@@ -127,7 +127,7 @@ end
                         tspan=(0.0, 0.1), polydeg=4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl with 1st order RK3S*" setup=[
@@ -151,7 +151,7 @@ end
                         timestep_gravity=Trixi.timestep_gravity_erk51_3Sstar!)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_convergence.jl with 3rd order RK3S*" setup=[
@@ -175,7 +175,7 @@ end
                         timestep_gravity=Trixi.timestep_gravity_erk53_3Sstar!)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_jeans_instability.jl" setup=[
@@ -200,7 +200,7 @@ end
                         atol=4.0e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_jeans_instability.jl with RK3S*" setup=[
@@ -231,7 +231,7 @@ end
                                                           timestep_gravity = timestep_gravity_erk52_3Sstar!))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: Printing" setup=[Setup, PaperSelfGravity] tags=[:paper_self_gravitating_gas_dynamics] begin
@@ -252,7 +252,7 @@ end
     show(stdout, equations_euler)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_sedov_blast_wave.jl" setup=[
@@ -276,7 +276,7 @@ end
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "Paper SelfGravity: elixir_eulergravity_sedov_blast_wave.jl with ref-level=8 and no AMR" setup=[
@@ -301,5 +301,5 @@ end
                         amr_callback=TrivialCallback())
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
