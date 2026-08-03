@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion3D(equations; mu, Pr, R=1,
+    CompressibleNavierStokesDiffusion3D(equations; mu, Pr,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -16,14 +16,12 @@ the [`CompressibleEulerEquations3D`](@ref).
 - `equations`: instance of the [`CompressibleEulerEquations3D`](@ref)
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
-- `R`: specific gas constant (defaults to 1),
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to [`GradientVariablesPrimitive()`](@ref).
                         For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
 
-Fluid properties such as the specific gas constant ``R`` and the dynamic viscosity
-``\mu`` can be provided in any consistent unit system, e.g.,
-[``R``] = J kg⁻¹ K⁻¹ and [``\mu``] = kg m⁻¹ s⁻¹.
+Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
+[``\mu``] = kg m⁻¹ s⁻¹.
 The viscosity ``\mu`` may be a constant or a function of the current state, e.g.,
 depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
 In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
@@ -92,7 +90,6 @@ struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, Mu,
     # TODO: parabolic
     # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
-    R::RealT                   # specific gas constant
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fourier's law
@@ -104,12 +101,11 @@ end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquations3D;
-                                             mu, Prandtl, R = 1,
+                                             mu, Prandtl,
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
-    Pr = promote_type(typeof(gamma), typeof(Prandtl), typeof(R))(Prandtl)
-    R = convert(typeof(Pr), R)
+    Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
     # Under the assumption of constant Prandtl number the thermal conductivity
     # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
@@ -118,7 +114,7 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
-                                               typeof(equations)}(R, mu, Pr, kappa,
+                                               typeof(equations)}(mu, Pr, kappa,
                                                                   max(4 / 3, kappa),
                                                                   equations,
                                                                   gradient_variables)
@@ -136,14 +132,13 @@ function Base.similar(equations::CompressibleNavierStokesDiffusion3D,
                                                mu = mu,
                                                Prandtl = convert(NewRealT,
                                                                  equations.Pr),
-                                               R = convert(NewRealT, equations.R),
                                                gradient_variables = equations.gradient_variables)
 end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
+# varnames(::typeof(cons2prim_temperature), ::CompressibleNavierStokesDiffusion3D) = ("v1", "v2", "v3", "T")
+# varnames(::typeof(cons2entropy),          ::CompressibleNavierStokesDiffusion3D) = ("w2", "w3", "w4", "w5")
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion3D)
@@ -153,7 +148,7 @@ end
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    return cons2prim
+    return cons2prim_temperature
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
     return cons2entropy
@@ -279,8 +274,17 @@ and thus the largest absolute eigenvalue is
            equations_parabolic.max_4over3_kappa
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+"""
+    cons2prim_temperature(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Convert conservative variables `u` to primitive variables `(rho, v1, v2, v3, T)`.
+In contrast to [`cons2prim`](@ref), this function returns temperature as the last variable instead of pressure.
+
+!!! warning "Experimental code"
+    This function is experimental and may change in any future release.
+"""
+@inline function cons2prim_temperature(u,
+                                       equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
 
     v1 = rho_v1 / rho
@@ -365,10 +369,21 @@ end
                    T * T * gradient_entropy_vars[5])
 end
 
-# This routine is required because `prim2cons` is called in `initial_condition`, which
-# is called with `equations::CompressibleEulerEquations3D`. This means it is inconsistent
-# with `cons2prim(..., ::CompressibleNavierStokesDiffusion3D)` as defined above.
-# TODO: parabolic. Is there a way to clean this up?
+"""
+    cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`cons2prim(u, equations::CompressibleEulerEquations3D)`](@ref)
+to convert conservative variables to primitive variables.
+"""
+@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion3D)
+    return cons2prim(u, equations.equations_hyperbolic)
+end
+"""
+    prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`prim2cons(u, equations::CompressibleEulerEquations3D)`](@ref)
+to convert primitive variables to conservative variables.
+"""
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion3D)
     return prim2cons(u, equations.equations_hyperbolic)
 end
@@ -377,17 +392,18 @@ end
     temperature(u, equations::CompressibleNavierStokesDiffusion3D)
 
 Compute the temperature from the conservative variables `u`.
+In particular, this assumes a specific gas constant ``R = 1``:
 ```math
-T = \\frac{p}{R \\rho}
+T = \\frac{p}{\\rho}
 ```
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
-    @unpack gamma, R = equations
+    @unpack gamma = equations
 
     p = (gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
-    T = p / (rho * R)
+    T = p / rho # Corresponds to a specific gas constant R = 1
     return T
 end
 
@@ -644,7 +660,7 @@ end
     #  because the gradients are assumed to be with respect to the primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    return cons2prim(u_boundary, equations)
+    return cons2prim_temperature(u_boundary, equations)
 end
 
 # The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.

@@ -16,7 +16,7 @@ end
                             0.03475803619532364, 0.06951607239064728])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_ec.jl with flux_derigs_etal" setup=[
@@ -37,7 +37,7 @@ end
                         volume_flux=flux_derigs_etal)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_es.jl" setup=[Setup, TreeMesh1DMHDMulti] tags=[:tree_part1] begin
@@ -54,7 +54,7 @@ end
                             0.02992496752120033, 0.05984993504240066])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_convergence.jl" setup=[
@@ -74,7 +74,7 @@ end
                             0.00011382015948324664, 0.00022764031896649328])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D MHDMulti: elixir_mhdmulti_briowu_shock_tube.jl" setup=[
@@ -94,5 +94,5 @@ end
                             0.36403821817659104])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

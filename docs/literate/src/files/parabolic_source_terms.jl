@@ -68,7 +68,6 @@ end
 
 mesh = TreeMesh(-Float64(pi), Float64(pi);
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 boundary_conditions = boundary_condition_periodic

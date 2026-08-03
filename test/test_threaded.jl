@@ -23,7 +23,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 # This test covers some of the code paths for the old controller interface in OrdinaryDiffEqCore < v4,
@@ -87,7 +87,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded TreeMesh: elixir_advection_amr_coarsen_twice.jl" setup=[
@@ -101,7 +101,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded TreeMesh: elixir_euler_source_terms_nonperiodic.jl" setup=[
@@ -127,9 +127,9 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     if VERSION >= v"1.12"
-        @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 7500)
     else
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
     end
 end
 
@@ -151,7 +151,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded TreeMesh: elixir_euler_positivity.jl" setup=[Setup, ThreadedExamples] tags=[:threaded] begin
@@ -173,9 +173,9 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     if VERSION >= v"1.12"
-        @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 7500)
     else
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
     end
 end
 
@@ -190,7 +190,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded TreeMesh: FDSBP, elixir_advection_extended.jl" setup=[
@@ -205,7 +205,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded TreeMesh: FDSBP, elixir_euler_convergence.jl" setup=[
@@ -231,9 +231,9 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     if VERSION >= v"1.12"
-        @test_allocations(Trixi.rhs!, semi, sol, 15000)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
     else
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
     end
 end
 
@@ -251,7 +251,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded StructuredMesh: elixir_mhd_ec.jl" setup=[Setup, ThreadedExamples] tags=[:threaded] begin
@@ -271,7 +271,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded UnstructuredMesh: elixir_acoustics_gauss_wall.jl" setup=[
@@ -292,7 +292,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded P4estMesh: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
@@ -317,9 +317,9 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     if VERSION >= v"1.12"
-        @test_allocations(Trixi.rhs!, semi, sol, 7500)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 7500)
     else
-        @test_allocations(Trixi.rhs!, semi, sol, 5000)
+        @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
     end
 end
 
@@ -410,7 +410,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded DGMulti: elixir_euler_curved.jl with threaded time integration" setup=[
@@ -436,7 +436,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded DGMulti: elixir_euler_triangulate_pkg_mesh.jl" setup=[
@@ -460,7 +460,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded DGMulti: elixir_euler_fdsbp_periodic.jl (2D)" setup=[
@@ -484,7 +484,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 5000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 5000)
 end
 
 @testitem "Threaded DGMulti: elixir_euler_fdsbp_periodic.jl (3D)" setup=[
@@ -509,5 +509,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

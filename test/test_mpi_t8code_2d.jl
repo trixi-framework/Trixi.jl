@@ -27,7 +27,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh MPI 2D: elixir_advection_nonconforming_flag.jl" setup=[
@@ -41,7 +41,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh MPI 2D: elixir_advection_unstructured_flag.jl" setup=[
@@ -55,7 +55,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh MPI 2D: elixir_advection_amr_solution_independent.jl" setup=[
@@ -70,7 +70,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh MPI 2D: elixir_advection_amr_unstructured_flag.jl" setup=[
@@ -80,12 +80,11 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.002019623611753929],
-                        linf=[0.03542375961299987],
-                        dynamic_load_balancing=false)
+                        linf=[0.03542375961299987])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh MPI 2D: elixir_advection_restart.jl" setup=[Setup, MPIT8codeMesh2D] tags=[:mpi] begin
@@ -95,7 +94,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "T8codeMesh MPI 2D: elixir_euler_source_terms_nonconforming_unstructured_flag.jl" setup=[
@@ -119,5 +118,5 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

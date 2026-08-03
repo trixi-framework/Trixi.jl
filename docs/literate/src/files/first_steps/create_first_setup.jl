@@ -54,8 +54,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # [`TreeMesh`](@ref). The spatial domain used is ``[-1, 1] \times [-1, 1]``. We set an initial number
 # of elements in the mesh using `initial_refinement_level`, which describes the initial number of
 # hierarchical refinements. In this simple case, the total number of elements is `2^initial_refinement_level`
-# throughout the simulation. The variable `n_cells_max` is used to limit the number of elements in the mesh,
-# which cannot be exceeded when using [adaptive mesh refinement](@ref Adaptive-mesh-refinement).
+# throughout the simulation.
 
 # All minimum and all maximum coordinates must be combined into `Tuples`.
 
@@ -63,7 +62,6 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 # To approximate the solution of the defined model, we create a [`DGSEM`](@ref) solver.
