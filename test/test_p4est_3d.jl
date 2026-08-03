@@ -1,59 +1,68 @@
-module TestExamplesP4estMesh3D
+@testsnippet P4estMesh3D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "P4estMesh3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "P4estMesh3D: elixir_advection_basic.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_unstructured_curved.jl" begin
+@testitem "P4estMesh3D: elixir_advection_limiter_liu_zhang.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_limiter_liu_zhang.jl"),
+                        mesh=P4estMesh((4, 4, 4), polydeg = 3,
+                                       coordinates_min = (-1.0, -1.0, -1.0),
+                                       coordinates_max = (1.0, 1.0, 1.0),
+                                       initial_refinement_level = 1,
+                                       periodicity = true),
+                        l2=[0.3917747509079011],
+                        linf=[1.3569114615249707])
+    u = Trixi.wrap_array_native(sol.u[end], semi)
+    # matches thresholds = (1e-3,) up to a tolerance
+    @test minimum(u) > 1e-3 - 10 * eps()
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "P4estMesh3D: elixir_advection_unstructured_curved.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_unstructured_curved.jl"),
                         l2=[0.0004750004258546538],
                         linf=[0.026527551737137167])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_nonconforming.jl" begin
+@testitem "P4estMesh3D: elixir_advection_nonconforming.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
                         l2=[0.00253595715323843],
                         linf=[0.016486952252155795])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr.jl" begin
+@testitem "P4estMesh3D: elixir_advection_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[9.773852895157622e-6],
                         linf=[0.0005853874124926162])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
+@testitem "P4estMesh3D: elixir_advection_amr_unstructured_curved.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_curved.jl"),
                         l2=[1.6163120948209677e-5],
@@ -61,28 +70,31 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_cubed_sphere.jl" begin
+@testitem "P4estMesh3D: elixir_advection_cubed_sphere.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
                         l2=[0.002006918015656413],
                         linf=[0.027655117058380085])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_restart.jl" begin
+@testitem "P4estMesh3D: elixir_advection_restart.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.002590388934758452],
                         linf=[0.01840757696885409])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonconforming_unstructured_curved.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
                         l2=[
@@ -122,10 +134,10 @@ end
                         tspan=(0.0, 0.01))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonperiodic.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[
@@ -145,10 +157,10 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream.jl" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
                             5.162664597942288e-15,
@@ -167,10 +179,13 @@ end
                         tspan=(0.0, 0.03))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream.jl (VolumeIntegralPureLGLFiniteVolume)" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream.jl (VolumeIntegralPureLGLFiniteVolume)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         volume_integral=VolumeIntegralPureLGLFiniteVolume(flux_hllc),
                         cfl=1.0,
@@ -191,10 +206,10 @@ end
                         tspan=(0.0, 0.03))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_extruded.jl" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream_extruded.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                         l2=[
                             8.444868392439035e-16,
@@ -213,10 +228,13 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_extruded_fvO2.jl" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream_extruded_fvO2.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_extruded_fvO2.jl"),
                         l2=[
@@ -236,10 +254,10 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_boundaries.jl" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream_boundaries.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_boundaries.jl"),
                         l2=[
@@ -254,10 +272,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_boundaries_float32.jl" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream_boundaries_float32.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     # Expected errors are taken from elixir_euler_free_stream_boundaries.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_boundaries_float32.jl"),
@@ -278,10 +299,13 @@ end
                         RealT_for_test_tolerances=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_extruded.jl with HLLC FLux" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream_extruded.jl with HLLC FLux" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
                         l2=[
                             8.444868392439035e-16,
@@ -301,10 +325,10 @@ end
                         surface_flux=flux_hllc)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl" begin
+@testitem "P4estMesh3D: elixir_euler_ec.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.010380390326164493,
@@ -323,10 +347,10 @@ end
                         tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_ec.jl (flux_chandrashekar)" begin
+@testitem "P4estMesh3D: elixir_euler_ec.jl (flux_chandrashekar)" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
                             0.010368548525287055,
@@ -346,10 +370,10 @@ end
                         volume_flux=flux_chandrashekar)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov.jl" begin
+@testitem "P4estMesh3D: elixir_euler_sedov.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
                             7.82070951e-02,
@@ -368,10 +392,13 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell.jl (positivity bounds)" begin
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (positivity bounds)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         l2=[
                             0.19427117014566905,
@@ -394,10 +421,13 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds)" begin
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local bounds)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
@@ -424,10 +454,13 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_sedov_sc_subcell.jl (local bounds, nonperiodic)" begin
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local bounds, nonperiodic)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
                         local_onesided_variables_nonlinear=[(entropy_guermond_etal,
@@ -456,10 +489,10 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_sedov.jl (HLLE)" begin
+@testitem "P4estMesh3D: elixir_euler_sedov.jl (HLLE)" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
                             0.09946224487902565,
@@ -479,10 +512,13 @@ end
                         surface_flux=flux_hlle)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonconforming_earth.jl" begin
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonconforming_earth.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_earth.jl"),
                         l2=[
@@ -503,10 +539,13 @@ end
                         abstol=1.0e-11, reltol=1.0e-11)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_circular_wind_nonconforming.jl" begin
+@testitem "P4estMesh3D: elixir_euler_circular_wind_nonconforming.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_circular_wind_nonconforming.jl"),
                         l2=[
@@ -526,10 +565,10 @@ end
                         tspan=(0.0, 2e2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_baroclinic_instability.jl" begin
+@testitem "P4estMesh3D: elixir_euler_baroclinic_instability.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_baroclinic_instability.jl"),
                         l2=[
@@ -551,10 +590,13 @@ end
                         abstol=1.0e-9, reltol=1.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh.jl" begin
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonperiodic_hohqmesh.jl" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_hohqmesh.jl"),
                         l2=[
@@ -573,10 +615,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_tandem_spheres.jl" begin
+@testitem "P4estMesh3D: elixir_euler_tandem_spheres.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_tandem_spheres.jl"),
                         # Strict tols to avoid issues with different systems (CI vs local machines)
@@ -597,10 +639,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+@testitem "P4estMesh3D: elixir_euler_free_stream_hybrid_mesh.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_free_stream_hybrid_mesh.jl"),
                         l2=[
@@ -619,10 +661,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (positivity bounds)" begin
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (positivity bounds)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl"),
                         l2=[
@@ -646,10 +691,13 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (local bounds)" begin
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (local bounds)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl"),
                         local_twosided_variables_cons=["rho"],
@@ -677,10 +725,10 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_er.jl" begin
+@testitem "P4estMesh3D: elixir_mhd_alfven_wave_er.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_er.jl"),
                         l2=[
@@ -709,10 +757,10 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
+@testitem "P4estMesh3D: elixir_mhd_alfven_wave_nonconforming.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonconforming.jl"),
                         l2=[
@@ -740,10 +788,10 @@ end
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl" begin
+@testitem "P4estMesh3D: elixir_mhd_alfven_wave_nonperiodic.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_nonperiodic.jl"),
                         l2=[
@@ -771,10 +819,10 @@ end
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
+@testitem "P4estMesh3D: elixir_mhd_shockcapturing_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_amr.jl"),
                         l2=[
                             0.0062973565893792004,
@@ -801,10 +849,10 @@ end
                         tspan=(0.0, 0.04))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_mhd_shockcapturing_subcell.jl" begin
+@testitem "P4estMesh3D: elixir_mhd_shockcapturing_subcell.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
                             0.006729931970167595,
@@ -835,10 +883,10 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@trixi_testset "elixir_mhd_amr_entropy_bounded.jl" begin
+@testitem "P4estMesh3D: elixir_mhd_amr_entropy_bounded.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_amr_entropy_bounded.jl"),
                         l2=[
                             0.005430006338127661,
@@ -865,10 +913,10 @@ end
                         tspan=(0.0, 0.04))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_linearizedeuler_convergence.jl" begin
+@testitem "P4estMesh3D: elixir_linearizedeuler_convergence.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_convergence.jl"),
                         l2=[
@@ -882,10 +930,10 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+@testitem "P4estMesh3D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
                             0.01374649869395016,
@@ -904,7 +952,7 @@ end
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     # Check for conservation
     state_integrals = Trixi.integrate(sol.u[2], semi)
     initial_state_integrals = analysis_callback.affect!.initial_state_integrals
@@ -916,7 +964,7 @@ end
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 
-@trixi_testset "elixir_euler_ONERA_M6_wing.jl" begin
+@testitem "P4estMesh3D: elixir_euler_ONERA_M6_wing.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_ONERA_M6_wing.jl"),
                         l2=[
@@ -936,14 +984,7 @@ end
                         tspan=(0.0, 5e-8))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Multi-ion MHD tests
-include("test_p4est_3d_mhdmultiion.jl")
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end # module
