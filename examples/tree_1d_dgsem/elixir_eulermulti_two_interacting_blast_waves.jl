@@ -79,7 +79,6 @@ coordinates_min = (0.0,)
 coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 9,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

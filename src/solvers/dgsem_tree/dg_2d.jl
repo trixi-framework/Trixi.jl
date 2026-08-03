@@ -88,7 +88,8 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations,
-                      mortar_l2::LobattoLegendreMortarL2, uEltype)
+                      mortar_l2::Union{LobattoLegendreMortarL2,
+                                       UniformFiniteVolumeBasis}, uEltype)
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
                   uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -109,14 +110,14 @@ end
 # all meshes that do involve mortar operations.
 # Thus, we can use it for the serial (i.e., non-distributed memory parallelized)
 # 2D/3D `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es.
-function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
-                          TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-              equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
-
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2},
+                                     T8codeMesh{2},
+                                     TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
         set_zero!(du, dg, cache)
@@ -897,8 +898,9 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_l2::LobattoLegendreMortarL2,
-                          dg::DGSEM)
+                          mortar_l2::Union{LobattoLegendreMortarL2,
+                                           UniformFiniteVolumeBasis},
+                          dg::Union{DGSEM, BlockFV})
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -998,7 +1000,8 @@ end
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            have_nonconservative_terms::False, equations,
-                           mortar_l2::LobattoLegendreMortarL2,
+                           mortar_l2::Union{LobattoLegendreMortarL2,
+                                            UniformFiniteVolumeBasis},
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
@@ -1149,7 +1152,7 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, equations,
-                             surface_flux, dg::DGSEM,
+                             surface_flux, dg::Union{DGSEM, BlockFV},
                              u_interfaces, interface, orientation)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function

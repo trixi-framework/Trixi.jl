@@ -112,7 +112,7 @@ jobs:
             arch: x64
             trixi_test: threaded
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
@@ -131,6 +131,9 @@ jobs:
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          # Print every `@testitem` (with its run time) in the test summary, so per-testitem
+          # timings show up in the job logs.
+          TRIXI_TEST_VERBOSE: "true"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # for authenticated downloads without strict rate limits
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ !cancelled() }}
@@ -188,7 +191,7 @@ jobs:
       # Instead, we use the more tedious approach described above.
       # At first, we check out the repository and download all artifacts
       # (and list files for debugging).
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
       - run: ls -R
       # Next, we merge the individual coverage files and upload
