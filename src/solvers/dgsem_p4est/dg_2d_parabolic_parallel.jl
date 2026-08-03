@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent    
 function rhs_parabolic!(backend::Nothing, du, u, t,
-                        mesh::P4estMeshParallel{2}
+                        mesh::P4estMeshParallel{2},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
