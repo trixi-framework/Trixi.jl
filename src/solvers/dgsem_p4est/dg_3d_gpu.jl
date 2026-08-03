@@ -308,12 +308,12 @@ end
     k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
                                                                                  index_range)
 
-    i_primary = delayed_index_3d(i_primary_start, i_primary_step_i, i_primary_step_j, i,
-                                 j, n)
-    j_primary = delayed_index_3d(j_primary_start, j_primary_step_i, j_primary_step_j, i,
-                                 j, n)
-    k_primary = delayed_index_3d(k_primary_start, k_primary_step_i, k_primary_step_j, i,
-                                 j, n)
+    i_primary = delayed_index_3d(i_primary_start, i_primary_step_i, i_primary_step_j,
+                                 i, j, n)
+    j_primary = delayed_index_3d(j_primary_start, j_primary_step_i, j_primary_step_j,
+                                 i, j, n)
+    k_primary = delayed_index_3d(k_primary_start, k_primary_step_i, k_primary_step_j,
+                                 i, j, n)
 
     secondary_element = neighbor_ids[2, interface]
     secondary_indices = node_indices[2, interface]
