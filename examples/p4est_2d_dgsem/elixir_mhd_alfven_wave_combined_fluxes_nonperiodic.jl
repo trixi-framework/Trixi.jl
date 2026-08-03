@@ -1,6 +1,7 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 using Trixi: @muladd
+
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 #
@@ -17,7 +18,8 @@ using Trixi: @muladd
 #   flux_cons(u_ll, u_rr, normal_direction, equations)
 #     + 0.5f0 * flux_noncons(u_rr, u_ll, normal_direction, equations),
 #
-# as shown below.
+# as shown in the function below, which is equivalent to passing
+# `(flux_hindenlang_gassner, flux_nonconservative_powell)` as numerical flux.
 @muladd @inline function flux_hindenlang_gassner_nonconservative_powell(u_ll, u_rr,
                                                                         normal_direction::AbstractVector,
                                                                         equations::IdealGlmMhdEquations2D)
@@ -119,6 +121,9 @@ end
 @inline Trixi.combine_conservative_and_nonconservative_fluxes(::typeof(flux_hindenlang_gassner_nonconservative_powell),
 equations::IdealGlmMhdEquations2D) = Trixi.True()
 
+# Similar to `flux_hindenlang_gassner_nonconservative_powell` above, the
+# following function `flux_hlle_nonconservative_powell` is equivalent to
+# `(flux_hlle, flux_nonconservative_powell)`.
 @muladd @inline function flux_hlle_nonconservative_powell(u_ll, u_rr,
                                                           normal_direction::AbstractVector,
                                                           equations::IdealGlmMhdEquations2D)
