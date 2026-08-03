@@ -394,10 +394,10 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                      nonconservative_terms::False, equations,
                                      mortar_idp::LobattoLegendreMortarIDP,
                                      surface_integral, dg::DG, cache)
-    @unpack surface_flux = surface_integral
-    @unpack elements, mortars = cache
-    @unpack neighbor_ids, node_indices, u_large = mortars
-    @unpack contravariant_vectors = elements
+    (; surface_flux) = surface_integral
+    (; elements, mortars) = cache
+    (; neighbor_ids, node_indices, u_large) = mortars
+    (; contravariant_vectors) = elements
     (; mortar_weights, mortar_weights_sums) = mortar_idp
     index_range = eachnode(dg)
 
@@ -452,11 +452,11 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                     if !isapprox(factor, zero(typeof(factor)))
                         u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
 
+                        # TODO: Use normal vector of large element for actual curved elements
                         # normal_direction_large = get_normal_direction(large_direction,
                         #                                               contravariant_vectors,
                         #                                               i_large, j_large,
                         #                                               large_element)
-                        # TODO: What do I do with the normal_directions? Doesn't make sense right now. See theory.
 
                         flux = surface_flux(u_small_local, u_large_local,
                                             normal_direction_small, equations)

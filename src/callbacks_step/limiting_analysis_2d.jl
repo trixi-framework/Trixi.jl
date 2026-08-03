@@ -56,31 +56,21 @@ end
         large_element = neighbor_ids[3, mortar]
 
         if large_sides[mortar] == 1 # small elements on right side
-            if orientations[mortar] == 1
-                start_indices = (n_nodes, 1)
-                end_indices = (n_nodes, n_nodes)
-            else
-                start_indices = (1, n_nodes)
-                end_indices = (n_nodes, n_nodes)
-            end
+            index = n_nodes
         else # large_sides[mortar] == 2, small elements on left side
-            if orientations[mortar] == 1
-                start_indices = (1, 1)
-                end_indices = (1, n_nodes)
-            else
-                start_indices = (1, 1)
-                end_indices = (n_nodes, 1)
-            end
+            index = 1
         end
 
-        dx = (node_coordinates[1, end_indices..., large_element] -
-              node_coordinates[1, start_indices..., large_element])
-        dy = (node_coordinates[2, end_indices..., large_element] -
-              node_coordinates[2, start_indices..., large_element])
-        mortar_size = sqrt(dx^2 + dy^2)
+        if orientations[mortar] == 1
+            size = node_coordinates[2, index, end, large_element] -
+                   node_coordinates[2, index, 1, large_element]
+        else
+            size = node_coordinates[1, end, index, large_element] -
+                   node_coordinates[1, 1, index, large_element]
+        end
 
-        weighted_sum += limiting_factor[mortar] * mortar_size
-        total_weight += mortar_size
+        weighted_sum += limiting_factor[mortar] * size
+        total_weight += size
     end
 
     return weighted_sum / total_weight

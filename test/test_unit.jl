@@ -635,6 +635,18 @@ end
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
     end
+
+    @testset "ContainerBarStates" begin
+        container_2d = Trixi.ContainerBarStates2D{Float64}(0, 5, 4)
+        resize!(container_2d, 3)
+        @test container_2d isa Trixi.ContainerBarStates2D
+        @test size(container_2d.bar_states1) == (5, 5, 4, 3)
+        @test size(container_2d.bar_states2) == (5, 4, 5, 3)
+        @test size(container_2d.lambda1) == (5, 4, 3)
+        @test size(container_2d.lambda2) == (4, 5, 3)
+        @test Trixi.nvariables(container_2d) == 5
+        @test Trixi.nnodes(container_2d) == 4
+    end
 end
 
 @testitem "Unit: example elixirs" setup=[Setup, UnitTests] tags=[:misc_part1] begin

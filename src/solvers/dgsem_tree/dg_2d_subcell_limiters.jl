@@ -1112,10 +1112,11 @@ end
     return nothing
 end
 
-@inline function add_mortar_bar_states!(bar_states1, bar_states2, orientation,
-                                        equations, lambda_indices_large,
-                                        large_element, lambda_indices_small,
-                                        small_element, bar_state, weight,
+@inline function add_mortar_bar_states!(bar_states1, bar_states2,
+                                        orientation, equations,
+                                        lambda_indices_large, large_element,
+                                        lambda_indices_small, small_element,
+                                        bar_state, weight,
                                         weight_sum_large, weight_sum_small)
     if orientation == 1
         for v in eachvariable(equations)

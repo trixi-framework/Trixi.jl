@@ -125,8 +125,8 @@ end
     end
 
     # Provisional analysis of limiting factor
-    if nmortars(cache.mortars) > 0
-        @unpack limiting_factor = cache.mortars
+    if nmortars(cache.mortars) > 0 && dg.mortar isa LobattoLegendreMortarIDP
+        (; limiting_factor) = cache.mortars
         (; output_directory) = dg.mortar
         limiting_factor_avg = average_mortar_limiting_factor(limiting_factor, mesh,
                                                              dg, cache)

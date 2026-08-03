@@ -247,6 +247,14 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true,
                            limiter! = positivity_limiter)
 
+# old cfl number
+# function cfl(t)
+#     if t < 4.5e-7
+#         return 0.001
+#     else
+#         return 0.5
+#     end
+# end
 cfl(t) = t == 0.0 ? 0.001 : 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
 

@@ -530,7 +530,7 @@ end
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
-        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
@@ -564,7 +564,7 @@ end
         i_large = i_large_start
         j_large = j_large_start
         for i in eachnode(dg)
-            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1 (no limiting needed)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
 
             # Large element
             var_large = u[var_index, i_large, j_large, large_element]
@@ -597,12 +597,13 @@ end
                                                        large_element]
             flux_difference_large = factor *
                                     (flux_large_high_order - flux_large_low_order)
-            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                          mesh, i_large, j_large,
-                                                          large_element)
+
             Pp_large = max(0, flux_difference_large)
             Pm_large = min(0, flux_difference_large)
 
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, i_large, j_large,
+                                                          large_element)
             Pp_large = inverse_jacobian_large * Pp_large
             Pm_large = inverse_jacobian_large * Pm_large
 
@@ -621,9 +622,10 @@ end
 
             # small elements
             for small_element_index in 1:2
+                isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
                 small_element = neighbor_ids[small_element_index, mortar]
                 var_small = u[var_index, i_small, j_small, small_element]
-
                 if var_small < 0
                     error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
                 end
@@ -649,13 +651,12 @@ end
                 flux_difference_small = factor *
                                         (flux_small_high_order - flux_small_low_order)
 
-                inverse_jacobian_small = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                              mesh, i_small, j_small,
-                                                              small_element)
-
                 Pp_small = max(0, flux_difference_small)
                 Pm_small = min(0, flux_difference_small)
 
+                inverse_jacobian_small = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                              mesh, i_small, j_small,
+                                                              small_element)
                 Pp_small = inverse_jacobian_small * Pp_small
                 Pm_small = inverse_jacobian_small * Pm_small
 
@@ -709,7 +710,7 @@ end
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
-        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
@@ -833,7 +834,7 @@ end
     index_range = eachnode(dg)
 
     for mortar in eachmortar(dg, cache)
-        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
@@ -867,7 +868,7 @@ end
         i_large = i_large_start
         j_large = j_large_start
         for i in eachnode(dg)
-            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1 (no limiting needed)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
 
             # Large element
             var_large = u[var_index, i_large, j_large, large_element]
@@ -917,6 +918,8 @@ end
 
             # small elements
             for small_element_index in 1:2
+                isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
                 small_element = neighbor_ids[small_element_index, mortar]
                 var_small = u[var_index, i_small, j_small, small_element]
                 if var_small < 0
@@ -937,7 +940,6 @@ end
                 flux_difference_small = factor *
                                         (flux_small_high_order - flux_small_low_order)
 
-                # Minimum bound
                 var_min_small = var_min[i_small, j_small, small_element]
                 Qm_small = min(0, var_min_small - var_small)
                 Pm_small = min(0, flux_difference_small)
@@ -954,7 +956,6 @@ end
 
                 # Compute blending coefficient avoiding division by zero
                 # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-                eps_ = eps(typeof(Qm_small)) * 100
                 Qm_small = abs(Qm_small) / (abs(Pm_small) + eps_)
                 Qm = min(Qm, Qm_small)
             end
@@ -996,7 +997,7 @@ end
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
-        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1 (no limiting needed)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]

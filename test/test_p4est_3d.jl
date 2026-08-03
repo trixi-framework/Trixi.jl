@@ -395,7 +395,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (positivity bounds)" setup=[
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (positivity limiting)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
@@ -424,7 +424,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local bounds)" setup=[
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local limiting)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin
@@ -457,7 +457,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local bounds, nonperiodic)" setup=[
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (local limiting, nonperiodic)" setup=[
     Setup,
     P4estMesh3D
 ] tags=[:p4est_part2] begin

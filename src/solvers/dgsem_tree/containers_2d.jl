@@ -1619,7 +1619,6 @@ function reinitialize_containers!(mesh::Union{TreeMesh{2}, TreeMesh{3}}, equatio
 end
 
 # Container data structure (structure-of-arrays style) for variables used for subcell limiting using bar states
-# TODO: Use NDIMS for dimension independence
 mutable struct ContainerBarStates2D{uEltype <: Real}
     bar_states1::Array{uEltype, 4}            # [variable, i, j, element]
     bar_states2::Array{uEltype, 4}            # [variable, i, j, element]
