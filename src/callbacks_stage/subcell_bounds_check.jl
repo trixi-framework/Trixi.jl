@@ -36,7 +36,9 @@ end
 function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     mesh, equations, solver, cache = mesh_equations_solver_cache(integrator.p)
 
-    if ndims(equations) == 2 && solver.volume_integral.limiter.indicator !== nothing
+    if ndims(equations) == 2 &&
+       solver.volume_integral isa VolumeIntegralSubcellLimiting &&
+       solver.volume_integral.limiter.indicator !== nothing
         # When using a smoothness indicator, a convex combination of the limiting factors from
         # local and positivity limiting are used. However, the deviations are computed solely with
         # respect to the local bounds. Consequently, the resulting deviation statistics would not
@@ -166,7 +168,9 @@ end
         println("Note: The following deviations are only computed in elements where subcell limiting is active.")
         println("In other elements, the solution is not checked for bounds violations.")
     end
-    if ndims(semi.equations) == 2 && limiter.indicator !== nothing
+    if ndims(semi.equations) == 2 &&
+       semi.solver.volume_integral isa VolumeIntegralSubcellLimiting &&
+       limiter.indicator !== nothing
         println("Due to the use of a smoothness indicator, a convex combination of the limiting factors of local and")
         println("positivity limiting was employed. However, the deviations are computed solely with respect to the local")
         println("bounds. Consequently, the resulting deviation statistics may not be meaningful and can exceed zero.")
