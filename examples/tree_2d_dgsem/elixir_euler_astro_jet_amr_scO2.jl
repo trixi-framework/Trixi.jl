@@ -59,8 +59,7 @@ coordinates_max = (0.5, 0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 8,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
@@ -106,6 +105,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # run the simulation
 
 # use adaptive time stepping based on error estimates
-sol = solve(ode, SSPRK43(; stage_limiter! = stage_limiter!, thread = Trixi.True());
+sol = solve(ode, SSPRK43(; stage_limiter! = stage_limiter!, thread = Trixi.Threaded());
             controller = PIDController(0.55, -0.27, 0.05),
             ode_default_options()..., callback = callbacks);

@@ -450,13 +450,12 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
 
-function rhs!(du, u, t,
-              mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
-                          T8codeMeshParallel{2}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
-
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
+                                     T8codeMeshParallel{2}}, equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     # Start to receive MPI data
     @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 
@@ -501,12 +500,12 @@ function rhs!(du, u, t,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations, dg)
+        prolong2boundaries!(backend, cache, u, mesh, equations, dg)
     end
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+        calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
 
@@ -554,7 +553,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
 
     # Finish to send MPI data

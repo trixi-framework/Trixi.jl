@@ -208,7 +208,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "abstol" => integrator.opts.abstol,
               "reltol" => integrator.opts.reltol,
-              "controller" => integrator.opts.controller)
+              "controller" => get_controller(integrator))
     end
     summary_box(io, "Time integration", setup)
     println()
@@ -223,6 +223,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "#MPI ranks" => mpi_nranks())
     end
+    trixi_backend_info!(setup, trixi_backend(u))
     summary_box(io, "Environment information", setup)
     println()
 

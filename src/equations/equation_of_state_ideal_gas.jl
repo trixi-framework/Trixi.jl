@@ -33,6 +33,14 @@ function IdealGas(gamma = 1.4, R = 287)
     return IdealGas(promote(gamma, R, cv)...)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eos::IdealGas, ::Type{NewRealT}) where {NewRealT}
+    return IdealGas(convert(NewRealT, eos.gamma), convert(NewRealT, eos.R))
+end
+
 """
     pressure(V, T, eos::IdealGas)
 

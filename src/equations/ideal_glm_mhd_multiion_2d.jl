@@ -194,6 +194,25 @@ function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, gas_constants,
                                           initial_c_h = c_h)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT, EP, ET},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, RealT, EP, ET, NewRealT}
+    return IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, NewRealT, EP,
+                                          ET}(SVector{NCOMP, NewRealT}(eqs.gammas),
+                                              SVector{NCOMP, NewRealT}(eqs.charge_to_mass),
+                                              SVector{NCOMP, NewRealT}(eqs.gas_constants),
+                                              SVector{NCOMP, NewRealT}(eqs.molar_masses),
+                                              map(NewRealT,
+                                                  eqs.ion_ion_collision_constants),
+                                              SVector{NCOMP, NewRealT}(eqs.ion_electron_collision_constants),
+                                              eqs.electron_pressure,
+                                              eqs.electron_temperature,
+                                              convert(NewRealT, eqs.c_h))
+end
+
 @inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {
                                                                                          NVARS,
                                                                                          NCOMP,

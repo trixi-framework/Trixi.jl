@@ -103,7 +103,7 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -139,5 +139,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
+sol = solve(ode, CKLLSRK95_4S(),
+            adaptive = false,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

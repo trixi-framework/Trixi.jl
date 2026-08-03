@@ -72,8 +72,8 @@ struct t8_dhex_t
     # [...] # See `p8est.h` in `p4est` for more info.
 end
 
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(forest, ltreeid, tree_class, lelemntid, scheme, is_family,
+                        elements, user_data)
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if el.x == 0 && el.y == 0 && el.z == 0 && el.level < 2
@@ -120,5 +120,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

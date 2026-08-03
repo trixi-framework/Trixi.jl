@@ -70,7 +70,7 @@ refinement_patches = ((type = "box", coordinates_min = (-20.0, -10.0, -10.0),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 refinement_patches = refinement_patches,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -93,16 +93,25 @@ save_solution = SaveSolutionCallback(interval = 200,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-4, 1.0e-4),
+                                                         variables = (Trixi.density,
+                                                                      pressure))
+
 amr_indicator = IndicatorLöhner(semi,
                                 variable = Trixi.density)
+
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 1,
                                       med_level = 0, med_threshold = 0.1, # med_level = current level
                                       max_level = 6, max_threshold = 0.3)
+
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after 
+# coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 3,
                            adapt_initial_condition = false,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 stepsize_callback = StepsizeCallback(cfl = 1.7)
 
@@ -111,12 +120,11 @@ callbacks = CallbackSet(summary_callback,
                         save_solution,
                         amr_callback, stepsize_callback)
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-4, 1.0e-4),
-                                                     variables = (Trixi.density, pressure))
-
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode,
+            CarpenterKennedy2N54(; stage_limiter! = positivity_limiter,
+                                 williamson_condition = false);
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

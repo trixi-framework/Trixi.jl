@@ -115,14 +115,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true,
-                           dynamic_load_balancing = false)
-# We disable `dynamic_load_balancing` for now, since t8code does not support
-# partitioning for coarsening yet. That is, a complete family of elements always
-# stays on rank and is not split up due to partitioning. Without this feature
-# dynamic AMR simulations are not perfectly deterministic regarding to
-# convergent tests. Once this feature is available in t8code load balancing is
-# enabled again.
+                           adapt_initial_condition_only_refine = true)
 
 cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
@@ -141,5 +134,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
