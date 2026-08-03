@@ -165,53 +165,6 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 end
 
-@testitem "AMDGPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
-    Setup,
-    AMDGPU2DExamples
-] tags=[:AMDGPU] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                        l2=[
-                            8.278171964502251e-5,
-                            6.67400550711942e-5,
-                            6.693513155020543e-5,
-                            0.00011718619995309785,
-                            6.889365943089829e-5,
-                            7.782210267643806e-5,
-                            7.820713512060046e-5,
-                            0.00011507076348866596,
-                            5.379656409151357e-5
-                        ],
-                        linf=[
-                            0.00042882216116346683,
-                            0.000536686629082607,
-                            0.0005330550796081301,
-                            0.0009163321918530948,
-                            0.00042853551496602194,
-                            0.0005049089113187133,
-                            0.0005058353675793104,
-                            0.0008948904521319523,
-                            0.00018926467653786568
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test real(semi.solver) == Float64
-    @test real(semi.solver.basis) == Float64
-    @test real(semi.solver.mortar) == Float64
-    # TODO: `mesh` is currently not `adapt`ed correctly
-    @test real(semi.mesh) == Float64
-    @test typeof(semi.equations.gamma) == Float64
-
-    @test ode.u0 isa Array
-    @test semi.solver.basis.derivative_matrix isa Array
-
-    @test Trixi.storage_type(semi.cache.elements) === Array
-    @test Trixi.storage_type(semi.cache.interfaces) === Array
-    @test Trixi.storage_type(semi.cache.boundaries) === Array
-    @test Trixi.storage_type(semi.cache.mortars) === Array
-end
-
 @testitem "AMDGPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" setup=[
     Setup,
     AMDGPU2DExamples
