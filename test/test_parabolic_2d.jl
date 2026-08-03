@@ -1097,7 +1097,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach08.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
                         l2=[0.000186486564226516,
@@ -1145,7 +1145,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_NACA0012airfoil_mach085_restart.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_NACA0012airfoil_mach085_restart.jl"),
                         l2=[
@@ -1169,7 +1169,7 @@ end
 @testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_viscous_shock.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
@@ -1193,7 +1193,7 @@ end
 @testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_viscous_shock.jl (boundary_condition_do_nothing)" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         boundary_conditions_parabolic=(;
@@ -1220,7 +1220,7 @@ end
 @testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_viscous_shock_newton_krylov.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_viscous_shock_newton_krylov.jl"),
                         tspan=(0.0, 0.1),
@@ -1246,7 +1246,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_SD7003airfoil.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_SD7003airfoil.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
@@ -1271,7 +1271,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_SD7003airfoil.jl"),
                         l2=[
@@ -1297,7 +1297,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_RAE2822airfoil_separation.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_RAE2822airfoil_separation.jl"),
                         l2=[
@@ -1322,7 +1322,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl (Re=20)" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         tspan=(0.0, 0.5),
@@ -1351,7 +1351,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         l2=[
@@ -1376,7 +1376,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_vortex_street.jl (GradientVariablesEntropy)" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
                         gradient_variables=GradientVariablesEntropy(),
@@ -1399,7 +1399,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_poiseuille_flow.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_poiseuille_flow.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_poiseuille_flow.jl"),
                         l2=[
@@ -1423,7 +1423,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_sedov_limiter_liu_zhang.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_sedov_limiter_liu_zhang.jl"),
                         l2=[
@@ -1453,7 +1453,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
                         l2=[
@@ -1487,7 +1487,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         l2=[
@@ -1510,7 +1510,7 @@ end
 @testitem "Parabolic2D: elixir_navierstokes_freestream_symmetry.jl (GradientVariablesEntropy)" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         gradient_variables=GradientVariablesEntropy(),
@@ -1531,7 +1531,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_freestream_ldg.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_freestream_ldg.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_ldg.jl"),
                         tspan=(0.0, 0.2),
@@ -1553,7 +1553,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_couette_flow.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_couette_flow.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_couette_flow.jl"),
                         l2=[
@@ -1574,7 +1574,7 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
-@testitem "Parabolic2D: elixir_navierstokes_blast_reflective.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+@testitem "Parabolic2D: elixir_navierstokes_blast_reflective.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
@@ -1602,7 +1602,7 @@ end
 @testitem "Parabolic2D: TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" setup=[
     Setup,
     Parabolic2D
-] tags=[:parabolic_part1] begin
+] tags=[:parabolic_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_diffusion_steady_state_linear_map.jl"),
                         tspan=(0.0, 1.0e-4),
