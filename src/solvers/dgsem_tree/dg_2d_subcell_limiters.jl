@@ -95,8 +95,8 @@ function calc_mortar_weights!(equations::AbstractEquations{2},
     # We use piecewise constant basis functions on the LGL subgrid. So, only focus on interval,
     # where both basis functions are non-zero. `interval = [left_bound, right_bound]`.
     # `w_ij = int_S psi_i phi_j ds = int_{left_bound}^{right_bound} ds = right_bound - left_bound`.
-    # `right_bound = min(left_bound_large, left_bound_small)`
-    # `left_bound = max(right_bound_large, right_bound_small)`
+    # `left_bound = max(left_bound_large, left_bound_small)`
+    # `right_bound = min(right_bound_large, right_bound_small)`
     # If `right_bound <= left_bound`, i.e., both intervals don't overlap, then `w_ij = 0`.
 
     # Due to the LGL subgrid, the interval bounds are cumulative LGL quadrature weights.
@@ -104,8 +104,8 @@ function calc_mortar_weights!(equations::AbstractEquations{2},
     cum_weights_lower = 0.5f0 * cum_weights_large .- 0.5f0  # on [-1, 0]
     cum_weights_upper = cum_weights_lower .+ 1              # on [0, 1]
     # So, for `w_ij` we have
-    # `right_bound = min(cum_weights_large[i], cum_weights_small[j])`
-    # `left_bound = max(cum_weights_large[i+1], cum_weights_small[j+1])`
+    # `left_bound = max(cum_weights_large[i], cum_weights_small[j])`
+    # `right_bound = min(cum_weights_large[i+1], cum_weights_small[j+1])`
 
     for j in 1:n_nodes, i in 1:n_nodes
         # lower and large element element
@@ -845,7 +845,7 @@ function calc_mortar_flux!(surface_flux_values, mesh,
                                                                 nonconservative_terms,
                                                                 equations,
                                                                 mortar_idp.mortar_l2,
-                                                                dg.surface_integral, dg,
+                                                                surface_integral, dg,
                                                                 cache)
 
     return nothing

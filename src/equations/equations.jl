@@ -47,6 +47,8 @@ function varnames end
 function get_variable_index(varname, equations;
                             solution_variables = cons2cons)
     if varname == "first"
+        length(varnames(solution_variables, equations)) == 1 ||
+            throw(ArgumentError("The alias \"first\" is only valid for equations with a single variable."))
         return 1
     end
     index = findfirst(==(varname), varnames(solution_variables, equations))

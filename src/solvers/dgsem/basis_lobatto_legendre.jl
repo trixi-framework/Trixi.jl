@@ -267,7 +267,7 @@ function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
 
     print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
-          "limiter=", mortar.limiter, ", pure_low_order=", mortar.pure_low_order, ")")
+          ", limiter=", mortar.limiter, ", pure_low_order=", mortar.pure_low_order, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
