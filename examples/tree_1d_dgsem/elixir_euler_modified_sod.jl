@@ -45,7 +45,6 @@ coordinates_max = one(RealT)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6, RealT = RealT,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 # Dirichlet boundary condition is only valid for considered time interval.

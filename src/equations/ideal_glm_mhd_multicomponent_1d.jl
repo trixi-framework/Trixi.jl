@@ -218,7 +218,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e_total - kin_en - mag_en)
 
-    f_rho = densities(u, v1, equations)
+    f_rho = partial_momenta(u, v1, equations)
     f1 = rho_v1 * v1 + p + mag_en - B1^2
     f2 = rho_v1 * v2 - B1 * B2
     f3 = rho_v1 * v3 - B1 * B3
@@ -658,7 +658,9 @@ end
     return help1 / help2
 end
 
-@inline function densities(u, v, equations::IdealGlmMhdMulticomponentEquations1D)
+# `v` should be a scalar velocity component (i.e., `v1`)
+@inline function partial_momenta(u, v,
+                                 equations::IdealGlmMhdMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 7] * v
                                                             for i in eachcomponent(equations))
 end

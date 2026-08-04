@@ -102,8 +102,7 @@ coordinates_max = (domain_length / 2, domain_length / 2)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 
 ### Inviscid boundary conditions ###
 
