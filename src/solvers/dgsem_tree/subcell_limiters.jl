@@ -242,7 +242,7 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
     idp_bounds_delta_global = Dict{Symbol, real(basis)}()
     # Track whether all Newton solves converged within the iteration budget.
     # Set to `false` once the maximum number of iterations is reached.
-    idp_newton_converged = Ref(true)
+    idp_newton_converged = Threads.Atomic{Bool}(true)
     for key in bound_keys
         idp_bounds_delta_local[key] = zero(real(basis))
         idp_bounds_delta_global[key] = zero(real(basis))
