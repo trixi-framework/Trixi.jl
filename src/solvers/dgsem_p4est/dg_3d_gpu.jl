@@ -1,3 +1,4 @@
+using KernelAbstractions: @synchronize, @localmem
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -43,8 +44,8 @@ end
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
 
-    flux_local = KernelAbstractions.@localmem eltype(du) (NVARIABLES, NNODES, NNODES,
-                                                          NNODES)
+    flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES,
+                                       NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -96,12 +97,12 @@ end
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1[v]
         end
-        KernelAbstractions.@synchronize
+        @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[i, ii]) * fluxtilde1 +
                    (weight * alpha * derivative_split[i, iib]) *
                    get_node_flux(flux_local, Val(NVARIABLES), iib, j, k)
-        KernelAbstractions.@synchronize
+        @synchronize
     end
 
     # second coordinate direction: rotate the partner index along `j`
@@ -120,12 +121,12 @@ end
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
         end
-        KernelAbstractions.@synchronize
+        @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[j, jj]) * fluxtilde2 +
                    (weight * alpha * derivative_split[j, jjb]) *
                    get_node_flux(flux_local, Val(NVARIABLES), i, jjb, k)
-        KernelAbstractions.@synchronize
+        @synchronize
     end
 
     # third coordinate direction: rotate the partner index along `k`
@@ -144,12 +145,12 @@ end
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
         end
-        KernelAbstractions.@synchronize
+        @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[k, kk]) * fluxtilde3 +
                    (weight * alpha * derivative_split[k, kkb]) *
                    get_node_flux(flux_local, Val(NVARIABLES), i, j, kkb)
-        KernelAbstractions.@synchronize
+        @synchronize
     end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
@@ -170,8 +171,8 @@ end
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
 
-    flux_local = KernelAbstractions.@localmem eltype(du) (NVARIABLES, NNODES, NNODES,
-                                                          NNODES)
+    flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES,
+                                       NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -225,13 +226,13 @@ end
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1_right[v]
         end
-        KernelAbstractions.@synchronize
+        @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * alpha * derivative_split[i, ii]) * fluxtilde1_left +
                    (weight * alpha * derivative_split[i, iib]) *
                    get_node_flux(flux_local, Val(NVARIABLES), iib, j, k)
-        KernelAbstractions.@synchronize
+        @synchronize
     end
 
     # second coordinate direction: rotate the partner index along `j`
@@ -251,13 +252,13 @@ end
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2_right[v]
         end
-        KernelAbstractions.@synchronize
+        @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * alpha * derivative_split[j, jj]) * fluxtilde2_left +
                    (weight * alpha * derivative_split[j, jjb]) *
                    get_node_flux(flux_local, Val(NVARIABLES), i, jjb, k)
-        KernelAbstractions.@synchronize
+        @synchronize
     end
 
     # third coordinate direction: rotate the partner index along `k`
@@ -277,13 +278,13 @@ end
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3_right[v]
         end
-        KernelAbstractions.@synchronize
+        @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * alpha * derivative_split[k, kk]) * fluxtilde3_left +
                    (weight * alpha * derivative_split[k, kkb]) *
                    get_node_flux(flux_local, Val(NVARIABLES), i, j, kkb)
-        KernelAbstractions.@synchronize
+        @synchronize
     end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
