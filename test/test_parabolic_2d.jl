@@ -390,7 +390,11 @@ end
                         solver_parabolic=ParabolicFormulationLocalDG(),
                         tspan=(0.0, 0.01),
                         l2=[0.000684755734524055],
-                        linf=[0.01141444199847298])
+                        linf=[0.01141444199847298],
+                        # The AMR indicator and the adaptive time stepping react
+                        # sensitively to roundoff differences between environments and
+                        # package versions, so relax the error tolerances.
+                        rtol=1e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -403,7 +407,11 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_diffusion_imex_operator.jl"),
-                        l2=[7.542670562162156e-8], linf=[3.972014046560446e-7])
+                        l2=[7.542670562162156e-8], linf=[3.972014046560446e-7],
+                        # The implicit solution depends on the environment and the
+                        # package versions at the 1e-6 level, so relax the error
+                        # tolerances.
+                        rtol=1e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -890,7 +898,11 @@ end
                         solver_parabolic=ParabolicFormulationLocalDG(),
                         tspan=(0.0, 0.01),
                         l2=[0.0006847533999311489],
-                        linf=[0.01141430509080712])
+                        linf=[0.01141430509080712],
+                        # The AMR indicator and the adaptive time stepping react
+                        # sensitively to roundoff differences between environments and
+                        # package versions, so relax the error tolerances.
+                        rtol=1e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -1239,7 +1251,13 @@ end
                             0.0001405900207752664,
                             3.661971738081151e-16,
                             0.00014510700486747297
-                        ])
+                        ],
+                        # The GMRES solution depends on the LinearSolve.jl version and
+                        # the environment at the 1e-10 level. In particular, `rho_v2`
+                        # vanishes analytically for this one-dimensional setup, so its
+                        # errors are pure roundoff noise that is not reproduced bitwise.
+                        # Thus, relax the error tolerances.
+                        atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
