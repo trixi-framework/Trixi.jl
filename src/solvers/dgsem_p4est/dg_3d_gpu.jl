@@ -74,8 +74,8 @@ end
     #   with Non-Conservative Terms.
     #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
 
-    half_nnodes = div(NNODES, 2)
-    even_nodes = iseven(NNODES)
+    @uniform half_nnodes = div(NNODES, 2)
+    @uniform even_nodes = iseven(NNODES)
 
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
@@ -206,6 +206,8 @@ end
 
     half_nnodes = div(NNODES, 2)
     even_nodes = iseven(NNODES)
+    @uniform half_nnodes = div(NNODES, 2)
+    @uniform even_nodes = iseven(NNODES)
 
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
