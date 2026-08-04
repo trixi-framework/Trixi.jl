@@ -1170,7 +1170,13 @@ end
                             0.011904250984857088,
                             19.010794903791975
                         ],
-                        tspan=(0.0, 0.1))
+                        tspan=(0.0, 0.1),
+                        # The IMEX solution depends on the LinearSolve.jl version and the
+                        # environment at the 1e-7 level. Since the errors span several
+                        # orders of magnitude here, relax the relative error tolerance
+                        # (an absolute one would render the check on the first component
+                        # meaningless).
+                        rtol=1e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_stiff!, semi, sol, 1000)

@@ -1239,7 +1239,13 @@ end
                             0.0001405900207752664,
                             3.661971738081151e-16,
                             0.00014510700486747297
-                        ])
+                        ],
+                        # The GMRES solution depends on the LinearSolve.jl version and
+                        # the environment at the 1e-10 level. In particular, `rho_v2`
+                        # vanishes analytically for this one-dimensional setup, so its
+                        # errors are pure roundoff noise that is not reproduced bitwise.
+                        # Thus, relax the error tolerances.
+                        atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
