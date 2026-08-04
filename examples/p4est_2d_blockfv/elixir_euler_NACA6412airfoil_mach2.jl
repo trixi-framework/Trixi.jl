@@ -1,5 +1,5 @@
 using Trixi
-using OrdinaryDiffEqSSPRK
+using OrdinaryDiffEqLowOrderRK
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -73,7 +73,7 @@ summary_callback = SummaryCallback()
 analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 4.0)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -81,7 +81,7 @@ callbacks = CallbackSet(summary_callback,
 
 # Run the simulation
 ###############################################################################
-sol = solve(ode, SSPRK104(; thread = Trixi.Threaded());
+sol = solve(ode, Euler();
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()...,
             callback = callbacks);

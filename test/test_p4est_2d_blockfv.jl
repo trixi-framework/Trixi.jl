@@ -12,7 +12,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_advection_basic.jl (matches flat TreeMesh result)" setup=[
@@ -29,7 +29,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_advection_basic.jl with fewer n_nodes and higher refinement" setup=[
@@ -45,7 +45,7 @@ end
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Compute with fewer FV cells per macro element at higher mesh refinement.
     # trees=(8,8), level=2, n_nodes=2 -> 32 elements × 2 = 64 FV cells per direction.
@@ -56,7 +56,7 @@ end
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Both setups have exactly the same total number of FV cells.
     # On this mesh BlockFV must return the same errors (up to floating-point precision).
@@ -76,7 +76,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_euler_convergence.jl" setup=[
@@ -96,7 +96,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_euler_source_term_nonperiodic.jl" setup=[
@@ -121,7 +121,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_euler_free_stream.jl" setup=[
@@ -148,7 +148,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_euler_free_stream_hybrid_mesh.jl" setup=[
@@ -176,7 +176,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): elixir_euler_NACA6412airfoil_mach2.jl" setup=[
@@ -187,21 +187,21 @@ end
                                  "elixir_euler_NACA6412airfoil_mach2.jl"),
                         tspan=(0.0, 0.05),
                         l2=[
-                            0.12551526423101617,
-                            0.23887413592021908,
-                            0.12337892482500468,
-                            0.5512098368711069
+                            0.1257912392758344,
+                            0.23951632082414004,
+                            0.12365990082471959,
+                            0.5526135336754846
                         ],
                         linf=[
-                            1.9014019080875917,
-                            2.149705125094944,
-                            1.8958385441450623,
-                            7.573580681005854
+                            1.9012542584577492,
+                            2.147231652310891,
+                            1.8946722039151167,
+                            7.5709758185412
                         ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 2D (P4estMesh): PlotData2DTriangulated" setup=[

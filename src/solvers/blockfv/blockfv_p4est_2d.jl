@@ -20,33 +20,37 @@ end
 
 #####################################################################
 
-# Physical coordinates of the (n+1)×(n+1) cell corners per element,
+# Physical coordinates of the (n_nodes+1)×(n_nodes+1) cell corners per element,
 # obtained by mapping the equidistant boundary nodes in [-1,1] through the mesh geometry.
 
 function calc_fv_corner_coordinates(mesh::P4estMesh{2}, basis::UniformFiniteVolumeBasis)
-    n = nnodes(basis)
-    boundary_nodes = SVector{n + 1}(range(-1, 1, length = n + 1))
-    corners = Array{real(mesh)}(undef, 2, n + 1, n + 1, ncells(mesh))
+    n_nodes = nnodes(basis)
+    boundary_nodes = SVector{n_nodes + 1}(range(-1, 1, length = n_nodes + 1))
+    corners = Array{real(mesh)}(undef, 2, n_nodes + 1, n_nodes + 1, ncells(mesh))
     calc_node_coordinates!(corners, mesh, boundary_nodes)
     return corners
 end
 
-# `inverse_jacobian` is the exact reciprocal of each FV cell's
-# physical area, computed from its 4 corners.
+# In `init_elements!` below, `inverse_jacobian` is set to the exact
+# reciprocal of each FV cell's physical area, computed from its 4 corners.
 
 function init_elements!(elements, mesh::P4estMesh{2}, basis::UniformFiniteVolumeBasis)
     @unpack node_coordinates, inverse_jacobian = elements
     calc_node_coordinates!(node_coordinates, mesh, basis.nodes)
 
     corners = calc_fv_corner_coordinates(mesh, basis)
-    n = nnodes(basis)
+    n_nodes = nnodes(basis)
     for element in 1:ncells(mesh)
-        for j in 1:n, i in 1:n
+        for j in 1:n_nodes, i in 1:n_nodes
             x1, y1 = corners[1, i, j, element], corners[2, i, j, element]
             x2, y2 = corners[1, i + 1, j, element], corners[2, i + 1, j, element]
             x3, y3 = corners[1, i + 1, j + 1, element],
                      corners[2, i + 1, j + 1, element]
             x4, y4 = corners[1, i, j + 1, element], corners[2, i, j + 1, element]
+            # Area of a quadrilateral from its diagonals
+            # d1 = (x3,y3) - (x1,y1) and d2 = (x4,y4) - (x2,y2):
+            # area = (1/2) * (d1 x d2)
+            # See e.g. https://en.wikipedia.org/wiki/Quadrilateral#Vector_formulas
             volume = 0.5f0 * ((x3 - x1) * (y4 - y2) - (x4 - x2) * (y3 - y1))
             inverse_jacobian[i, j, element] = inv(volume)
         end
@@ -71,38 +75,40 @@ prolong2mortars!(_, _, ::P4estMesh{2}, _, ::UniformFiniteVolumeBasis, ::BlockFV)
 calc_mortar_flux!(_, ::P4estMesh{2}, _, _, ::UniformFiniteVolumeBasis, _, ::BlockFV, _) = nothing
 
 # create_cache computes and stores for every FV cell face the
-# scaled face-normal vector (`normal_x`/`normal_y`)
-# and the midpoint of the face (`midpoint_x`/`midpoint_y`,
+# scaled face-normal vector (`normal_x`/`normal_y`, scaled by the interface length)
+# and the midpoint of the face (`midpoint_x`/`midpoint_y`)
 
 function create_cache(mesh::P4estMesh{2}, equations,
                       volume_integral::VolumeIntegralFiniteVolume,
                       dg::BlockFV, cache_containers, uEltype)
-    n = nnodes(dg)
+    n_nodes = nnodes(dg)
     nv = nvariables(equations)
 
-    MA_x = MArray{Tuple{nv, n + 1, n}, uEltype, 3, nv * (n + 1) * n}
+    MA_x = MArray{Tuple{nv, n_nodes + 1, n_nodes}, uEltype, 3,
+                  nv * (n_nodes + 1) * n_nodes}
     fstar_x_threaded = [MA_x(undef) for _ in 1:Threads.maxthreadid()]
 
-    MA_y = MArray{Tuple{nv, n, n + 1}, uEltype, 3, nv * n * (n + 1)}
+    MA_y = MArray{Tuple{nv, n_nodes, n_nodes + 1}, uEltype, 3,
+                  nv * n_nodes * (n_nodes + 1)}
     fstar_y_threaded = [MA_y(undef) for _ in 1:Threads.maxthreadid()]
 
     for (fx, fy) in zip(fstar_x_threaded, fstar_y_threaded)
         fx[:, 1, :] .= zero(uEltype)
-        fx[:, n + 1, :] .= zero(uEltype)
+        fx[:, n_nodes + 1, :] .= zero(uEltype)
         fy[:, :, 1] .= zero(uEltype)
-        fy[:, :, n + 1] .= zero(uEltype)
+        fy[:, :, n_nodes + 1] .= zero(uEltype)
     end
 
     RealT = real(mesh)
     n_elements = nelements(dg, cache_containers)
     corners = calc_fv_corner_coordinates(mesh, dg.basis)
 
-    normal_x = Array{RealT}(undef, 2, n + 1, n, n_elements)
-    normal_y = Array{RealT}(undef, 2, n, n + 1, n_elements)
-    midpoint_x = Array{RealT}(undef, 2, n + 1, n, n_elements)
-    midpoint_y = Array{RealT}(undef, 2, n, n + 1, n_elements)
+    normal_x = Array{RealT}(undef, 2, n_nodes + 1, n_nodes, n_elements)
+    normal_y = Array{RealT}(undef, 2, n_nodes, n_nodes + 1, n_elements)
+    midpoint_x = Array{RealT}(undef, 2, n_nodes + 1, n_nodes, n_elements)
+    midpoint_y = Array{RealT}(undef, 2, n_nodes, n_nodes + 1, n_elements)
     for element in 1:n_elements
-        for j in 1:n, i in 1:(n + 1)
+        for j in 1:n_nodes, i in 1:(n_nodes + 1)
             normal_x[1, i, j, element] = corners[2, i, j + 1, element] -
                                          corners[2, i, j, element]
             normal_x[2, i, j, element] = corners[1, i, j, element] -
@@ -112,7 +118,7 @@ function create_cache(mesh::P4estMesh{2}, equations,
             midpoint_x[2, i, j, element] = 0.5f0 * (corners[2, i, j, element] +
                                             corners[2, i, j + 1, element])
         end
-        for j in 1:(n + 1), i in 1:n
+        for j in 1:(n_nodes + 1), i in 1:n_nodes
             normal_y[1, i, j, element] = corners[2, i, j, element] -
                                          corners[2, i + 1, j, element]
             normal_y[2, i, j, element] = corners[1, i + 1, j, element] -
@@ -146,32 +152,35 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     return nothing
 end
 
-@inline function get_fv_boundary_normal(direction, normal_x, normal_y, i, j, element, n)
+@inline function get_fv_boundary_normal(direction, normal_x, normal_y, i, j, element,
+                                        n_nodes)
     if direction == 1 # -x
         return SVector(-normal_x[1, 1, j, element], -normal_x[2, 1, j, element])
     elseif direction == 2 # +x
-        return SVector(normal_x[1, n + 1, j, element], normal_x[2, n + 1, j, element])
+        return SVector(normal_x[1, n_nodes + 1, j, element],
+                       normal_x[2, n_nodes + 1, j, element])
     elseif direction == 3 # -y
         return SVector(-normal_y[1, i, 1, element], -normal_y[2, i, 1, element])
     else # direction == 4, +y
-        return SVector(normal_y[1, i, n + 1, element], normal_y[2, i, n + 1, element])
+        return SVector(normal_y[1, i, n_nodes + 1, element],
+                       normal_y[2, i, n_nodes + 1, element])
     end
 end
 
 # Exact physical midpoint of an FV cell's face at an element boundary, taken
 # from `midpoint_x`/`midpoint_y` computed in `create_cache`.
 @inline function get_fv_boundary_midpoint(direction, midpoint_x, midpoint_y, i, j,
-                                          element, n)
+                                          element, n_nodes)
     if direction == 1 # -x
         return SVector(midpoint_x[1, 1, j, element], midpoint_x[2, 1, j, element])
     elseif direction == 2 # +x
-        return SVector(midpoint_x[1, n + 1, j, element],
-                       midpoint_x[2, n + 1, j, element])
+        return SVector(midpoint_x[1, n_nodes + 1, j, element],
+                       midpoint_x[2, n_nodes + 1, j, element])
     elseif direction == 3 # -y
         return SVector(midpoint_y[1, i, 1, element], midpoint_y[2, i, 1, element])
     else # direction == 4, +y
-        return SVector(midpoint_y[1, i, n + 1, element],
-                       midpoint_y[2, i, n + 1, element])
+        return SVector(midpoint_y[1, i, n_nodes + 1, element],
+                       midpoint_y[2, i, n_nodes + 1, element])
     end
 end
 
@@ -186,7 +195,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     @unpack normal_x, normal_y = cache
     index_range = eachnode(dg)
     index_end = last(index_range)
-    n = nnodes(dg)
+    n_nodes = nnodes(dg)
     MeshT = typeof(mesh)
     SolverT = typeof(dg)
 
@@ -220,7 +229,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
             normal_direction = get_fv_boundary_normal(primary_direction,
                                                       normal_x, normal_y,
                                                       i_primary, j_primary,
-                                                      primary_element, n)
+                                                      primary_element, n_nodes)
 
             calc_interface_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
                                  equations, surface_integral, SolverT,
@@ -254,12 +263,12 @@ end
 
     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
 
-    n = nnodes(dg)
+    n_nodes = nnodes(dg)
     normal_direction = get_fv_boundary_normal(direction_index, normal_x, normal_y,
-                                              i_index, j_index, element_index, n)
+                                              i_index, j_index, element_index, n_nodes)
 
     x = get_fv_boundary_midpoint(direction_index, midpoint_x, midpoint_y,
-                                 i_index, j_index, element_index, n)
+                                 i_index, j_index, element_index, n_nodes)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
@@ -284,7 +293,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
         fstar_x = fstar_x_threaded[Threads.threadid()]
         fstar_y = fstar_y_threaded[Threads.threadid()]
 
-        # x-direction: internal interfaces at i = 2, ..., n (between cells i-1, i)
+        # x-direction: internal interfaces at i = 2, ..., n_nodes (between cells i-1, i).
+        # `normal` is the scaled face-normal vector (scaled by the interface length).
         for j in eachnode(dg)
             for i in 2:nnodes(dg)
                 u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
@@ -295,7 +305,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
             end
         end
 
-        # y-direction: internal interfaces at j = 2, ..., n (between cells j-1, j)
+        # y-direction: internal interfaces at j = 2, ..., n_nodes (between cells j-1, j).
+        # `normal` is the scaled face-normal vector (scaled by the interface length).
         for j in 2:nnodes(dg)
             for i in eachnode(dg)
                 u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
@@ -310,6 +321,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
         for j in eachnode(dg)
             for i in eachnode(dg)
                 for v in eachvariable(equations)
+                    # We require `du` to be set to zero before this operation.
+                    # The numerical fluxes are computed using scaled normal
+                    # directions (scaled by the interface length) and the
+                    # division by the cell volume (Jacobian) is done later
+                    # when evaluating the semidiscretization (`rhs!`).
                     du[v, i, j, element] = (du[v, i, j, element] +
                                             (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
                                             (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
