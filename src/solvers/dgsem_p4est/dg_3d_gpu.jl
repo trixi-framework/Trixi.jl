@@ -672,62 +672,65 @@ function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
     return nothing
 end
 
-function prolong2mortars!(backend::KernelAbstractions.Backend, cache, u,
-                          mesh::Union{Trixi.P4estMesh{3}, P4estMeshView{3},
-                                      Trixi.T8codeMesh{3}},
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{3}, P4estMeshView{3},
+                                      T8codeMesh{3}},
                           equations,
-                          mortar_l2::Trixi.LobattoLegendreMortarL2,
-                          dg::Trixi.DGSEM{<:Trixi.LobattoLegendreBasis})
-    Trixi.nmortars(dg, cache) == 0 && return nothing
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
+    nmortars(dg, cache) == 0 && return nothing
 
     @unpack mortars = cache
     @unpack neighbor_ids, node_indices = cache.mortars
-    index_range = Trixi.eachnode(dg)
+    index_range = eachnode(dg)
 
-    N = Trixi.nnodes(dg)
-    T = eltype(u)
-    NVARS = Trixi.nvariables(equations)
+    _nnodes = nnodes(dg)
+    RealType = eltype(u)
+    NVARS = nvariables(equations)
 
-    L = NVARS * N * N
+    L = NVARS * _nnodes * _nnodes
 
     kernel! = prolong2mortars_KAkernel!(backend)
     kernel!(mortars.u, u, typeof(mesh), equations,
             neighbor_ids, node_indices, index_range,
             mortar_l2.forward_lower, mortar_l2.forward_upper,
-            Val(N), Val(NVARS), Val(T), Val(L);
-            ndrange = (Trixi.nmortars(dg, cache)))
+            Val(_nnodes), Val(NVARS), Val(RealType), Val(L);
+            ndrange = (_nnodes, _nnodes, nmortars(dg, cache)))
 
     return nothing
 end
 
 @kernel function prolong2mortars_KAkernel!(mortars_u, u,
-                                           MeshT::Type{<:Union{Trixi.P4estMesh{3},
-                                                               P4estMeshView{3},
-                                                               Trixi.T8codeMesh{3}}},
+                                           MeshT::Type{<:Union{P4estMesh{3},
+                                                                  P4estMeshView{3},
+                                                               T8codeMesh{3}}},
                                            equations,
                                            neighbor_ids, node_indices,
                                            index_range,
                                            forward_lower, forward_upper,
-                                           ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                           ::Val{L}) where {N, NVARS, T, L}
-    mortar = @index(Global)
-    prolong2mortars_per_mortar!(mortars_u, u, mortar, MeshT, equations,
+                                           ::Val{_nnodes}, ::Val{NVARS},
+                                           ::Val{RealType},
+                                           ::Val{L}) where {_nnodes, NVARS, RealType, L}
+    #for more parallelism changes from last approach of only 1 thread per mortar 
+    i, j, mortar = @index(Global, NTuple)
+    prolong2mortars_per_mortar!(mortars_u, u, i, j, mortar, MeshT, equations,
                                 neighbor_ids, node_indices, index_range,
                                 forward_lower, forward_upper,
-                                Val(N), Val(NVARS), Val(T), Val(L))
+                                Val(_nnodes), Val(NVARS), Val(RealType), Val(L))
 end
 
-@inline function prolong2mortars_per_mortar!(mortars_u, u, mortar,
+@inline function prolong2mortars_per_mortar!(mortars_u, u, i, j, mortar,
                                              MeshT, equations,
                                              neighbor_ids, node_indices,
                                              index_range,
                                              forward_lower, forward_upper,
-                                             ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                             ::Val{L}) where {N, NVARS, T, L}
+                                             ::Val{_nnodes}, ::Val{NVARS},
+                                             ::Val{RealType},
+                                             ::Val{L}) where {_nnodes, NVARS, RealType,
+                                                              L}
     @inbounds begin
 
-        # Copy solution data from the small elements using "delayed indexing" with
-        # a start value and two step sizes to get the correct face and orientation.
+        
         small_indices = node_indices[1, mortar]
 
         i_small_start, i_small_step_i,
@@ -740,37 +743,29 @@ end
         k_small_step_j = index_to_start_step_3d(small_indices[3],
                                                 index_range)
 
+        #per thread is directly calculating the required indices for the small element, so no need to loop over the small element nodes as there is a thread for each node in the small element
+        i_small = i_small_start + (i - 1) * i_small_step_i + (j - 1) * (_nnodes * i_small_step_i + i_small_step_j)
+        j_small = j_small_start + (i - 1) * j_small_step_i + (j - 1) * (_nnodes * j_small_step_i + j_small_step_j)
+        k_small = k_small_start + (i - 1) * k_small_step_i + (j - 1) * (_nnodes * k_small_step_i + k_small_step_j)
+
         for position in 1:4
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
             element = neighbor_ids[position, mortar]
-            for j in 1:N
-                for i in 1:N
-                    for v in Base.OneTo(NVARS)
-                        mortars_u[1, v, position, i, j, mortar] = u[v, i_small,
-                                                                    j_small,
-                                                                    k_small,
-                                                                    element]
-                    end
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
-                end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
-            end
+            for v in Base.OneTo(NVARS)
+                mortars_u[1, v, position, i, j, mortar] = u[v, i_small,
+                                                            j_small,
+                                                            k_small,
+                                                            element]
+            end           
         end
 
         # Buffer to copy solution values of the large element in the correct orientation
         # before interpolating
-        u_buffer = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        #u_buffer = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
         # temporary buffer for projections
-        fstar_tmp = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        #fstar_tmp = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
         #buffer for output
-        val_out = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        #val_out = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, L}(undef)
 
         # Copy solution of large element face to buffer in the
         # correct orientation
@@ -790,64 +785,77 @@ end
         j_large = j_large_start
         k_large = k_large_start
         element = neighbor_ids[5, mortar]
-        for j in 1:N
-            for i in 1:N
-                for v in Base.OneTo(NVARS)
-                    u_buffer[v, i, j] = u[v, i_large, j_large, k_large, element]
-                end
-                i_large += i_large_step_i
-                j_large += j_large_step_i
-                k_large += k_large_step_i
-            end
-            i_large += i_large_step_j
-            j_large += j_large_step_j
-            k_large += k_large_step_j
+        # for j in 1:_nnodes
+        #     for i in 1:_nnodes
+        #         for v in Base.OneTo(NVARS)
+        #             u_buffer[v, i, j] = u[v, i_large, j_large, k_large, element]
+        #         end
+        #         i_large += i_large_step_i
+        #         j_large += j_large_step_i
+        #         k_large += k_large_step_i
+        #     end
+        #     i_large += i_large_step_j
+        #     j_large += j_large_step_j
+        #     k_large += k_large_step_j
+        # end
+
+        for v in Base.OneTo(NVARS)
+            multiply_dimensionwise_node!(mortars_u, u, i, j, mortar, element, v,
+                                         i_large_start, i_large_step_i, i_large_step_j,
+                                         j_large_start, j_large_step_i, j_large_step_j,
+                                         k_large_start, k_large_step_i, k_large_step_j,
+                                         forward_lower, forward_upper, Val(_nnodes))
         end
 
-        # Interpolate large element face data from buffer to small face locations
-        multiply_dimensionwise!(val_out,
-                                forward_lower,
-                                forward_lower,
-                                u_buffer,
-                                fstar_tmp)
-
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 1, i, j, mortar] = val_out[v, i, j]
-        end
-
-        multiply_dimensionwise!(val_out,
-                                forward_upper,
-                                forward_lower,
-                                u_buffer,
-                                fstar_tmp)
-
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 2, i, j, mortar] = val_out[v, i, j]
-        end
-
-        multiply_dimensionwise!(val_out,
-                                forward_lower,
-                                forward_upper,
-                                u_buffer,
-                                fstar_tmp)
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 3, i, j, mortar] = val_out[v, i, j]
-        end
-
-        multiply_dimensionwise!(val_out,
-                                forward_upper,
-                                forward_upper,
-                                u_buffer,
-                                fstar_tmp)
-
-        for j in 1:N, i in 1:N, v in Base.OneTo(NVARS)
-            mortars_u[2, v, 4, i, j, mortar] = val_out[v, i, j]
-        end
     end #@inbounds
     return nothing
 end
 
-function calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_flux_values,
+
+
+@generated function multiply_dimensionwise_node!(mortars_u, u, i, j, mortar, element, v,
+                                                 i_large_start, i_large_step_i, i_large_step_j,
+                                                 j_large_start, j_large_step_i, j_large_step_j,
+                                                 k_large_start, k_large_step_i, k_large_step_j,
+                                                 forward_lower, forward_upper, ::Val{_nnodes}) where {_nnodes}
+    quote
+       
+        res1 = zero(eltype(u))
+        res2 = zero(eltype(u))
+        res3 = zero(eltype(u))
+        res4 = zero(eltype(u))
+
+        
+        Base.Cartesian.@nexprs $_nnodes jj -> begin
+            Base.Cartesian.@nexprs $_nnodes ii -> begin
+                
+                #similar to what done for small element, each thread calculates the required indices for the large element, so no need to loop over the large element nodes as there is a thread for each node in the large element
+                i_large = i_large_start + (ii - 1) * i_large_step_i + (jj - 1) * ($_nnodes * i_large_step_i + i_large_step_j)
+                j_large = j_large_start + (ii - 1) * j_large_step_i + (jj - 1) * ($_nnodes * j_large_step_i + j_large_step_j)
+                k_large = k_large_start + (ii - 1) * k_large_step_i + (jj - 1) * ($_nnodes * k_large_step_i + k_large_step_j)
+
+                u_val = u[v, i_large, j_large, k_large, element]
+
+                #directly doing instead of doing it per dimensions
+                #reduces the memory ( L1 memory throughput increases)
+                res1 += forward_lower[j, jj] * forward_lower[i, ii] * u_val
+                res2 += forward_lower[j, jj] * forward_upper[i, ii] * u_val
+                res3 += forward_upper[j, jj] * forward_lower[i, ii] * u_val
+                res4 += forward_upper[j, jj] * forward_upper[i, ii] * u_val
+            end
+        end
+
+        
+        mortars_u[2, v, 1, i, j, mortar] = res1
+        mortars_u[2, v, 2, i, j, mortar] = res2
+        mortars_u[2, v, 3, i, j, mortar] = res3
+        mortars_u[2, v, 4, i, j, mortar] = res4
+        
+        return nothing
+    end
+end
+
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                            have_nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -860,10 +868,10 @@ function calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_flux_val
     pure_surface_flux = surface_integral.surface_flux
     index_range = eachnode(dg)
 
-    N = nnodes(dg)
+    _nnodes = nnodes(dg)
     NVARS = nvariables(equations)
-    T = eltype(surface_flux_values)
-    L = N * N * NVARS
+    RealType = eltype(surface_flux_values)
+    L = _nnodes * _nnodes * NVARS
 
     kernel! = calc_mortar_flux_KAkernel!(backend)
 
@@ -871,283 +879,242 @@ function calc_mortar_flux!(backend::KernelAbstractions.Backend, surface_flux_val
             equations, pure_surface_flux, dg,
             mortars_u, neighbor_ids, node_indices, contravariant_vectors,
             mortar_l2.reverse_lower, mortar_l2.reverse_upper, index_range,
-            Val(N), Val(NVARS), Val(T), Val(L);
-            ndrange = nmortars(dg, cache))
+            Val(_nnodes), Val(NVARS), Val(RealType), Val(L);
+            ndrange = (_nnodes, _nnodes, nmortars(dg, cache)))
 
     return nothing
 end
 
 @kernel function calc_mortar_flux_KAkernel!(surface_flux_values,
-                                            MeshT::Type{<:Union{P4estMesh{3},
-                                                                T8codeMesh{3}}},
+                                            MeshT::Type{<:Union{P4estMesh{3}, T8codeMesh{3}}},
                                             have_nonconservative_terms, equations,
                                             pure_surface_flux, dg::DGSEM,
                                             mortars_u, neighbor_ids, node_indices,
                                             contravariant_vectors,
                                             reverse_lower, reverse_upper, index_range,
-                                            ::Val{N}, ::Val{NVARS}, ::Val{T},
-                                            ::Val{L}) where {N, NVARS, T, L}
-    mortar = @index(Global, Linear)
+                                            ::Val{_nnodes}, ::Val{NVARS},
+                                            ::Val{RealType}, ::Val{L}) where {_nnodes, NVARS, RealType, L}
+    i, j, mortar = @index(Global, NTuple)
 
     @inbounds begin
-        fstar_primary1 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_primary2 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_primary3 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_primary4 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-
-        fstar_secondary1 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_secondary2 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_secondary3 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-        fstar_secondary4 = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-
-        fstar_tmp = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
-
         small_indices = node_indices[1, mortar]
         small_direction = indices2direction(small_indices)
 
-        i_small_start, i_small_step_i,
-        i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                index_range)
-        j_small_start, j_small_step_i,
-        j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                index_range)
-        k_small_start, k_small_step_i,
-        k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                index_range)
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1], index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2], index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3], index_range)
+
+        i_small = i_small_start + (i - 1) * i_small_step_i + (j - 1) * (_nnodes * i_small_step_i + i_small_step_j)
+        j_small = j_small_start + (i - 1) * j_small_step_i + (j - 1) * (_nnodes * j_small_step_i + j_small_step_j)
+        k_small = k_small_start + (i - 1) * k_small_step_i + (j - 1) * (_nnodes * k_small_step_i + k_small_step_j)
 
         KernelAbstractions.Extras.@unroll for position in 1:4
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
             element = neighbor_ids[position, mortar]
-            for j in 1:N
-                for i in 1:N
-                    normal_direction = get_normal_direction(small_direction,
-                                                            contravariant_vectors,
-                                                            i_small, j_small, k_small,
-                                                            element)
+            normal_direction = get_normal_direction(small_direction, contravariant_vectors,
+                                                    i_small, j_small, k_small, element)
 
-                    gpu_calc_mortar_flux!(fstar_primary1, fstar_primary2,
-                                          fstar_primary3, fstar_primary4,
-                                          fstar_secondary1, fstar_secondary2,
-                                          fstar_secondary3, fstar_secondary4,
-                                          MeshT, have_nonconservative_terms, equations,
-                                          pure_surface_flux, dg, mortars_u, mortar,
-                                          position, normal_direction, i, j)
-
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
-                end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
-            end
+            gpu_calc_mortar_flux!(surface_flux_values, MeshT, have_nonconservative_terms,
+                                  equations, pure_surface_flux, dg, mortars_u, mortar,
+                                  position, normal_direction, i, j, small_direction, element, Val(NVARS))
         end
 
-        u_buffer = MArray{Tuple{NVARS, N, N}, T, 3, L}(undef)
+        large_element = neighbor_ids[5, mortar]
+        large_indices = node_indices[2, mortar]
+        large_direction = indices2direction(large_indices)
+        large_surface_indices = surface_indices(large_indices)
 
-        mortar_fluxes_to_elements!(surface_flux_values, neighbor_ids, node_indices,
-                                   index_range,
-                                   reverse_lower, reverse_upper, mortar,
-                                   fstar_primary1, fstar_primary2, fstar_primary3,
-                                   fstar_primary4,
-                                   fstar_secondary1, fstar_secondary2, fstar_secondary3,
-                                   fstar_secondary4,
-                                   u_buffer, fstar_tmp, N, NVARS)
+        i_large_start, i_large_step_i, i_large_step_j = index_to_start_step_3d(large_surface_indices[1], index_range)
+        j_large_start, j_large_step_i, j_large_step_j = index_to_start_step_3d(large_surface_indices[2], index_range)
+
+        i_write = i_large_start + (i - 1) * i_large_step_i + (j - 1) * (_nnodes * i_large_step_i + i_large_step_j)
+        j_write = j_large_start + (i - 1) * j_large_step_i + (j - 1) * (_nnodes * j_large_step_i + j_large_step_j)
+
+        mortar_fluxes_to_elements!(surface_flux_values, MeshT, have_nonconservative_terms, equations,
+                                   pure_surface_flux, dg, mortars_u, neighbor_ids, mortar, large_element,
+                                   large_direction, contravariant_vectors, small_direction,
+                                   i_small_start, i_small_step_i, i_small_step_j,
+                                   j_small_start, j_small_step_i, j_small_step_j,
+                                   k_small_start, k_small_step_i, k_small_step_j,
+                                   reverse_lower, reverse_upper, i, j, i_write, j_write, Val(_nnodes), Val(NVARS))
     end
 end
 
-@inline function gpu_calc_mortar_flux!(fstar_primary1, fstar_primary2, fstar_primary3,
-                                       fstar_primary4,
-                                       fstar_secondary1, fstar_secondary2,
-                                       fstar_secondary3, fstar_secondary4,
-                                       MeshT,
+@inline function gpu_calc_mortar_flux!(surface_flux_values, MeshT,
                                        have_nonconservative_terms::False, equations,
-                                       pure_surface_flux, dg::DGSEM, mortar_u,
-                                       mortar_index, position_index, normal_direction,
-                                       i_node_index, j_node_index)
-    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position_index,
-                                       i_node_index, j_node_index, mortar_index)
-
+                                       pure_surface_flux, dg, mortar_u, mortar_index,
+                                       position_index, normal_direction, i_node, j_node,
+                                       small_direction, element, ::Val{NVARS}) where {NVARS}
+    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position_index, i_node, j_node, mortar_index)
     flux = pure_surface_flux(u_ll, u_rr, normal_direction, equations)
+    set_node_vars!(surface_flux_values, flux, equations, dg, i_node, j_node, small_direction, element)
 
-    # Copy flux to buffer
-    if (position_index == 1)
-        set_node_vars!(fstar_primary1, flux, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary1, flux, equations, dg,
-                       i_node_index, j_node_index)
-    elseif (position_index == 2)
-        set_node_vars!(fstar_primary2, flux, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary2, flux, equations, dg,
-                       i_node_index, j_node_index)
-    elseif (position_index == 3)
-        set_node_vars!(fstar_primary3, flux, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary3, flux, equations, dg,
-                       i_node_index, j_node_index)
-    elseif (position_index == 4)
-        set_node_vars!(fstar_primary4, flux, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary4, flux, equations, dg,
-                       i_node_index, j_node_index)
-    end
     return nothing
 end
 
-@inline function gpu_calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                       MeshT,
+@inline function gpu_calc_mortar_flux!(surface_flux_values, MeshT,
                                        have_nonconservative_terms::True, equations,
-                                       pure_surface_flux, dg::DGSEM, mortar_u,
-                                       mortar_index, position_index, normal_direction,
-                                       i_node_index, j_node_index)
+                                       pure_surface_flux, dg, mortar_u, mortar_index,
+                                       position_index, normal_direction, i_node, j_node,
+                                       small_direction, element, ::Val{NVARS}) where {NVARS}
     surface_flux, nonconservative_flux = pure_surface_flux
-
-    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position_index,
-                                       i_node_index,
-                                       j_node_index, mortar_index)
-
-    # Compute conservative flux
+    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position_index, i_node, j_node, mortar_index)
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
-
-    # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
-    # the interpretation of global SBP operators coupled discontinuously via
-    # central fluxes/SATs
     noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
-    flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
-    flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
-
-    # Copy to buffer
-    if (position_index == 1)
-        set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                       i_node_index, j_node_index)
-    elseif (position_index == 2)
-        set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                       i_node_index, j_node_index)
-    elseif (position_index == 3)
-        set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                       i_node_index, j_node_index)
-    elseif (position_index == 4)
-        set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
-                       i_node_index, j_node_index)
-        set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
-                       i_node_index, j_node_index)
-    end
+    set_node_vars!(surface_flux_values, flux + 0.5f0 * noncons_primary, equations, dg, i_node, j_node, small_direction, element)
     return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            neighbor_ids, node_indices, index_range,
+@inline function mortar_fluxes_to_elements!(surface_flux_values, MeshT,
+                                            have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                            mortar_u, neighbor_ids, mortar_index, large_element, large_direction,
+                                            contravariant_vectors, small_direction,
+                                            i_small_start, i_small_step_i, i_small_step_j,
+                                            j_small_start, j_small_step_i, j_small_step_j,
+                                            k_small_start, k_small_step_i, k_small_step_j,
                                             reverse_lower, reverse_upper,
-                                            mortar,
-                                            fstar_p_1, fstar_p_2, fstar_p_3, fstar_p_4,
-                                            fstar_s_1, fstar_s_2, fstar_s_3, fstar_s_4,
-                                            u_buffer, fstar_tmp, N, NVARS)
+                                            i, j, i_write, j_write, ::Val{_nnodes}, ::Val{NVARS}) where {_nnodes, NVARS}
+    
+    @inbounds begin
 
-    # Copy solution small to small
-    small_indices = node_indices[1, mortar]
-    small_direction = indices2direction(small_indices)
+        element1 = neighbor_ids[1, mortar_index]
+        res = multiply_dimensionwise_node(reverse_lower, reverse_lower,
+                                          have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                          mortar_u, mortar_index, 1, element1,
+                                          contravariant_vectors, small_direction,
+                                          i_small_start, i_small_step_i, i_small_step_j,
+                                          j_small_start, j_small_step_i, j_small_step_j,
+                                          k_small_start, k_small_step_i, k_small_step_j,
+                                          i, j, Val(_nnodes), Val(NVARS))
 
-    for position in 1:4
-        element = neighbor_ids[position, mortar]
-        for j in 1:N, i in 1:N
-            for v in Base.OneTo(NVARS)
-                if (position == 1)
-                    surface_flux_values[v, i, j, small_direction,
-                                        element] = fstar_p_1[v,
-                                                             i,
-                                                             j]
-                elseif (position == 2)
-                    surface_flux_values[v, i, j, small_direction,
-                                        element] = fstar_p_2[v,
-                                                             i,
-                                                             j]
-                elseif (position == 3)
-                    surface_flux_values[v, i, j, small_direction,
-                                        element] = fstar_p_3[v,
-                                                             i,
-                                                             j]
-                elseif (position == 4)
-                    surface_flux_values[v, i, j, small_direction,
-                                        element] = fstar_p_4[v,
-                                                             i,
-                                                             j]
+        element2 = neighbor_ids[2, mortar_index]
+        res = add_multiply_dimensionwise_node(res, reverse_upper, reverse_lower,
+                                              have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                              mortar_u, mortar_index, 2, element2,
+                                              contravariant_vectors, small_direction,
+                                              i_small_start, i_small_step_i, i_small_step_j,
+                                              j_small_start, j_small_step_i, j_small_step_j,
+                                              k_small_start, k_small_step_i, k_small_step_j,
+                                              i, j, Val(_nnodes), Val(NVARS))
+
+
+        element3 = neighbor_ids[3, mortar_index]
+        res = add_multiply_dimensionwise_node(res, reverse_lower, reverse_upper,
+                                              have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                              mortar_u, mortar_index, 3, element3,
+                                              contravariant_vectors, small_direction,
+                                              i_small_start, i_small_step_i, i_small_step_j,
+                                              j_small_start, j_small_step_i, j_small_step_j,
+                                              k_small_start, k_small_step_i, k_small_step_j,
+                                              i, j, Val(_nnodes), Val(NVARS))
+
+
+        element4 = neighbor_ids[4, mortar_index]
+        res = add_multiply_dimensionwise_node(res, reverse_upper, reverse_upper,
+                                              have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                              mortar_u, mortar_index, 4, element4,
+                                              contravariant_vectors, small_direction,
+                                              i_small_start, i_small_step_i, i_small_step_j,
+                                              j_small_start, j_small_step_i, j_small_step_j,
+                                              k_small_start, k_small_step_i, k_small_step_j,
+                                              i, j, Val(_nnodes), Val(NVARS))
+
+        for v in 1:NVARS
+            surface_flux_values[v, i_write, j_write, large_direction, large_element] = -4 * res[v]
+        end
+    end
+
+    return nothing
+end
+
+@generated function multiply_dimensionwise_node(matrix1, matrix2,
+                                                have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                                mortar_u, mortar_index, position, element,
+                                                contravariant_vectors, small_direction,
+                                                i_small_start, i_small_step_i, i_small_step_j,
+                                                j_small_start, j_small_step_i, j_small_step_j,
+                                                k_small_start, k_small_step_i, k_small_step_j,
+                                                i, j, ::Val{_nnodes}, ::Val{NVARS}) where {_nnodes, NVARS}
+    quote
+        @inbounds begin
+
+            Base.Cartesian.@nexprs $NVARS v -> res_v = zero(eltype(matrix1))
+            
+
+            Base.Cartesian.@nexprs $_nnodes jj -> begin
+                Base.Cartesian.@nexprs $_nnodes ii -> begin
+                    
+                    i_small = i_small_start + (ii - 1) * i_small_step_i + (jj - 1) * ($_nnodes * i_small_step_i + i_small_step_j)
+                    j_small = j_small_start + (ii - 1) * j_small_step_i + (jj - 1) * ($_nnodes * j_small_step_i + j_small_step_j)
+                    k_small = k_small_start + (ii - 1) * k_small_step_i + (jj - 1) * ($_nnodes * k_small_step_i + k_small_step_j)
+                    
+                    normal_direction = get_normal_direction(small_direction, contravariant_vectors,
+                                                            i_small, j_small, k_small, element)
+                    
+                    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position, ii, jj, mortar_index)
+                    
+                    if have_nonconservative_terms === True()
+                        surface_flux, nonconservative_flux = pure_surface_flux
+                        flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+                        noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+                        sec_flux = flux .+ 0.5f0 .* noncons_secondary
+                    else
+                        sec_flux = pure_surface_flux(u_ll, u_rr, normal_direction, equations)
+                    end
+                    
+                    weight = matrix1[i, ii] * matrix2[j, jj]
+                    
+                    Base.Cartesian.@nexprs $NVARS v -> res_v += weight * sec_flux[v]
                 end
             end
+            
+            return Base.Cartesian.@ntuple $NVARS v -> res_v
         end
     end
+end
 
-    # Project small fluxes to large element.
-    multiply_dimensionwise!(u_buffer,
-                            reverse_lower, reverse_lower,
-                            fstar_s_1,
-                            fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
-                                reverse_upper, reverse_lower,
-                                fstar_s_2,
-                                fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
-                                reverse_lower, reverse_upper,
-                                fstar_s_3,
-                                fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
-                                reverse_upper, reverse_upper,
-                                fstar_s_4,
-                                fstar_tmp)
 
-    # The flux is calculated in the outward direction of the small elements,
-    # so the sign must be switched to get the flux in outward direction
-    # of the large element.
-    # The contravariant vectors of the large element (and therefore the normal
-    # vectors of the large element as well) are four times as large as the
-    # contravariant vectors of the small elements. Therefore, the flux needs
-    # to be scaled by a factor of 4 to obtain the flux of the large element.
-    u_buffer .*= -4
+@generated function add_multiply_dimensionwise_node(res_in, matrix1, matrix2,
+                                                    have_nonconservative_terms, equations, pure_surface_flux, dg,
+                                                    mortar_u, mortar_index, position, element,
+                                                    contravariant_vectors, small_direction,
+                                                    i_small_start, i_small_step_i, i_small_step_j,
+                                                    j_small_start, j_small_step_i, j_small_step_j,
+                                                    k_small_start, k_small_step_i, k_small_step_j,
+                                                    i, j, ::Val{_nnodes}, ::Val{NVARS}) where {_nnodes, NVARS}
+    quote
+        @inbounds begin
 
-    # Copy interpolated flux values from buffer to large element face in the
-    # correct orientation.
-    # Note that the index of the small sides will always run forward but
-    # the index of the large side might need to run backwards for flipped sides.
-    large_element = neighbor_ids[5, mortar]
-    large_indices = node_indices[2, mortar]
-    large_direction = indices2direction(large_indices)
-    large_surface_indices = surface_indices(large_indices)
-
-    i_large_start, i_large_step_i,
-    i_large_step_j = index_to_start_step_3d(large_surface_indices[1],
-                                            index_range)
-    j_large_start, j_large_step_i,
-    j_large_step_j = index_to_start_step_3d(large_surface_indices[2],
-                                            index_range)
-
-    # Note that the indices of the small sides will always run forward but
-    # the large indices might need to run backwards for flipped sides.
-    i_large = i_large_start
-    j_large = j_large_start
-    for j in 1:N
-        for i in 1:N
-            for v in Base.OneTo(NVARS)
-                surface_flux_values[v, i_large, j_large, large_direction,
-                                    large_element] = u_buffer[v,
-                                                              i,
-                                                              j]
+            Base.Cartesian.@nexprs $NVARS v -> res_v = res_in[v]
+            
+            Base.Cartesian.@nexprs $_nnodes jj -> begin
+                Base.Cartesian.@nexprs $_nnodes ii -> begin
+                    
+                    i_small = i_small_start + (ii - 1) * i_small_step_i + (jj - 1) * ($_nnodes * i_small_step_i + i_small_step_j)
+                    j_small = j_small_start + (ii - 1) * j_small_step_i + (jj - 1) * ($_nnodes * j_small_step_i + j_small_step_j)
+                    k_small = k_small_start + (ii - 1) * k_small_step_i + (jj - 1) * ($_nnodes * k_small_step_i + k_small_step_j)
+                    
+                    normal_direction = get_normal_direction(small_direction, contravariant_vectors,
+                                                            i_small, j_small, k_small, element)
+                    
+                    u_ll, u_rr = get_surface_node_vars(mortar_u, equations, dg, position, ii, jj, mortar_index)
+                    
+                    if have_nonconservative_terms === True()
+                        surface_flux, nonconservative_flux = pure_surface_flux
+                        flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+                        noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+                        sec_flux = flux .+ 0.5f0 .* noncons_secondary
+                    else
+                        sec_flux = pure_surface_flux(u_ll, u_rr, normal_direction, equations)
+                    end
+                    
+                    weight = matrix1[i, ii] * matrix2[j, jj]
+                    
+                    Base.Cartesian.@nexprs $NVARS v -> res_v += weight * sec_flux[v]
+                end
             end
-            i_large += i_large_step_i
-            j_large += j_large_step_i
+            
+            return Base.Cartesian.@ntuple $NVARS v -> res_v
         end
-        i_large += i_large_step_j
-        j_large += j_large_step_j
     end
-
-    return nothing
 end
 end #muladd

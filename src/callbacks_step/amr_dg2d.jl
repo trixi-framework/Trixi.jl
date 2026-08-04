@@ -515,10 +515,10 @@ end
 # Coarsen solution data u for four elements, using L2 projection
 @inline function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
                            old_u, old_element_id,
-                           #adaptor::LobattoLegendreAdaptorL2,
-                           reverse_upper, reverse_lower,
+                           adaptor::LobattoLegendreAdaptorL2,
+                           #reverse_upper, reverse_lower,
                             equations, dg)
-    #@unpack reverse_upper, reverse_lower = adaptor
+    @unpack reverse_upper, reverse_lower = adaptor
 
     # Store old element ids
     lower_left_id = old_element_id
@@ -526,18 +526,18 @@ end
     upper_left_id = old_element_id + 2
     upper_right_id = old_element_id + 3
 
-    # @boundscheck begin
-    #     @assert old_element_id >= 1
-    #     @assert size(old_u, 1) == nvariables(equations)
-    #     @assert size(old_u, 2) == nnodes(dg)
-    #     @assert size(old_u, 3) == nnodes(dg)
-    #     @assert size(old_u, 4) >= old_element_id + 3
-    #     @assert element_id >= 1
-    #     @assert size(u, 1) == nvariables(equations)
-    #     @assert size(u, 2) == nnodes(dg)
-    #     @assert size(u, 3) == nnodes(dg)
-    #     @assert size(u, 4) >= element_id
-    # end
+    @boundscheck begin
+        @assert old_element_id >= 1
+        @assert size(old_u, 1) == nvariables(equations)
+        @assert size(old_u, 2) == nnodes(dg)
+        @assert size(old_u, 3) == nnodes(dg)
+        @assert size(old_u, 4) >= old_element_id + 3
+        @assert element_id >= 1
+        @assert size(u, 1) == nvariables(equations)
+        @assert size(u, 2) == nnodes(dg)
+        @assert size(u, 3) == nnodes(dg)
+        @assert size(u, 4) >= element_id
+    end
 
     for j in eachnode(dg), i in eachnode(dg)
         acc = zero(get_node_vars(u, equations, dg, i, j, element_id))

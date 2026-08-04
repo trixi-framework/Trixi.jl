@@ -58,30 +58,72 @@ function init_element_structs!(backend::Nothing, elements, n_elements,
     end
 end
 
+# function init_element_structs!(backend::Backend, elements, n_elements,
+#                                basis::LobattoLegendreBasis)
+#     @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+#     @unpack derivative_matrix = basis
+
+#     kernel! = init_element_structs_KAkernel!(backend)
+#     kernel!(node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian,
+#             derivative_matrix, Val(nnodes(basis)),
+#             ndrange = n_elements)
+#     return nothing
+# end
+
+# @kernel function init_element_structs_KAkernel!(node_coordinates, jacobian_matrix,
+#                                                 contravariant_vectors, inverse_jacobian,
+#                                                 derivative_matrix, val_nnodes)
+#     element = @index(Global)
+
+#     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, derivative_matrix,
+#                           val_nnodes)
+
+#     calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+#                                 node_coordinates, derivative_matrix, val_nnodes)
+
+#     calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, val_nnodes)
+# end
+
 function init_element_structs!(backend::Backend, elements, n_elements,
                                basis::LobattoLegendreBasis)
     @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
     @unpack derivative_matrix = basis
+    _nnodes = nnodes(basis)
 
-    kernel! = init_element_structs_KAkernel!(backend)
-    kernel!(node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian,
-            derivative_matrix, Val(nnodes(basis)),
-            ndrange = n_elements)
+    jacobian_kernel! = init_jacobian_KAkernel!(backend)
+    jacobian_kernel!(jacobian_matrix, inverse_jacobian, node_coordinates,
+                     derivative_matrix, Val(_nnodes),
+                     ndrange = (_nnodes, _nnodes, _nnodes, n_elements))
+
+    contravariant_kernel! = init_contravariant_KAkernel!(backend)
+    contravariant_kernel!(contravariant_vectors, jacobian_matrix, node_coordinates,
+                          derivative_matrix, Val(_nnodes),
+                          ndrange = (_nnodes, _nnodes, _nnodes, n_elements))
+
     return nothing
 end
 
-@kernel function init_element_structs_KAkernel!(node_coordinates, jacobian_matrix,
-                                                contravariant_vectors, inverse_jacobian,
-                                                derivative_matrix, val_nnodes)
-    element = @index(Global)
 
-    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, derivative_matrix,
-                          val_nnodes)
+@kernel function init_jacobian_KAkernel!(jacobian_matrix, inverse_jacobian,
+                                         node_coordinates, derivative_matrix,
+                                         ::Val{_nnodes}) where {_nnodes}
+    i, j, k, element = @index(Global, NTuple)
 
-    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
-                                node_coordinates, derivative_matrix, val_nnodes)
+    calc_jacobian_matrix_node!(jacobian_matrix, element, i, j, k, node_coordinates,
+                               derivative_matrix, Val(_nnodes))
 
-    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, val_nnodes)
+    calc_inverse_jacobian_node!(inverse_jacobian, element, i, j, k, jacobian_matrix,
+                                Val(_nnodes))
+end
+
+@kernel function init_contravariant_KAkernel!(contravariant_vectors, jacobian_matrix,
+                                              node_coordinates, derivative_matrix,
+                                              ::Val{_nnodes}) where {_nnodes}
+    i, j, k, element = @index(Global, NTuple)
+
+    calc_contravariant_vectors_node!(contravariant_vectors, element, i, j, k,
+                                     jacobian_matrix, node_coordinates,
+                                     derivative_matrix, Val(_nnodes))
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
