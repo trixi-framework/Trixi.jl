@@ -105,10 +105,11 @@ end
         @synchronize
     end
 
-    # second coordinate direction: rotate the partner index along `j`
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
+
+        # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
         # pull the contravariant vectors and compute the average
@@ -129,10 +130,11 @@ end
         @synchronize
     end
 
-    # third coordinate direction: rotate the partner index along `k`
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
+
+        # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
         # pull the contravariant vectors and compute the average
@@ -152,6 +154,7 @@ end
                    get_node_flux(flux_local, Val(NVARIABLES), i, j, kkb)
         @synchronize
     end
+
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
@@ -206,11 +209,11 @@ end
 
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
-    # first coordinate direction: rotate the partner index along `i`
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
 
+        # first coordinate direction: rotate the partner index along `i`
         ii = mod(i - 1 + offset, NNODES) + 1
         u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
         # pull the contravariant vectors and compute the average
@@ -235,10 +238,11 @@ end
         @synchronize
     end
 
-    # second coordinate direction: rotate the partner index along `j`
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
+
+        # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
         # pull the contravariant vectors and compute the average
@@ -261,10 +265,11 @@ end
         @synchronize
     end
 
-    # third coordinate direction: rotate the partner index along `k`
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
         weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
+
+        # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
         # pull the contravariant vectors and compute the average
@@ -286,6 +291,7 @@ end
                    get_node_flux(flux_local, Val(NVARIABLES), i, j, kkb)
         @synchronize
     end
+
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
