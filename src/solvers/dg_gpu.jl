@@ -1,3 +1,5 @@
+using KernelAbstractions: @synchronize, @localmem, @uniform
+
 @inline function get_node_flux(flux_local, ::Val{NVARIABLES},
                                indices...) where {NVARIABLES}
     return SVector(ntuple(v -> (@inbounds flux_local[v, indices...]), Val(NVARIABLES)))
