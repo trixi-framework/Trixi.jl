@@ -102,8 +102,7 @@ coordinates_max = (domain_length / 2, domain_length / 2)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 
 ### Inviscid boundary conditions ###
 
@@ -185,5 +184,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
+sol = solve(ode, CKLLSRK95_4S(),
+            adaptive = false,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

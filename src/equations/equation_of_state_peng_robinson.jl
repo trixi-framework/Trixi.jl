@@ -15,8 +15,8 @@ p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e_{\text{internal}} 
 ```
 where ``V = \rho^{-1}`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
 ```math
-a(T) = a_0\left(1 + \kappa \left(1 - \sqrt{\frac{T}{T_0}}\right)\right)^2, \quad 
-K = \frac{1}{b 2\sqrt{2}} \log\left( \frac{V + (1 - b \sqrt{2})}{V + (1 + b\sqrt{2})}\right).
+a(T) = a_0\left(1 + \kappa \left(1 - \sqrt{\frac{T}{T_c}}\right)\right)^2, \quad 
+K = \frac{1}{2\sqrt{2}\, b} \log\left( \frac{V + (1 - \sqrt{2}) b}{V + (1 + \sqrt{2}) b}\right).
 ```
 Moreover, ``c_v = c_{v,0} - K T a''(T)``. 
 
@@ -64,6 +64,16 @@ function PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
                                     inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eos::PengRobinson, ::Type{NewRealT}) where {NewRealT}
+    return PengRobinson(convert(NewRealT, eos.a0), convert(NewRealT, eos.b),
+                        convert(NewRealT, eos.cv0), convert(NewRealT, eos.kappa),
+                        convert(NewRealT, eos.Tc), convert(NewRealT, eos.R))
+end
+
 """
     PengRobinson(; RealT = Float64)
 
@@ -107,19 +117,19 @@ end
     energy_internal_specific(V, T, eos::PengRobinson)
 
 Computes specific internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
-``e_{\text{internal}} = c_{v,0} T + K_1 (a(T) - T a'(T))``. 
+``e_{\text{internal}} = c_{v,0} T + K (a(T) - T a'(T))``. 
 """
 function energy_internal_specific(V, T, eos::PengRobinson)
     (; cv0) = eos
-    K1 = calc_K1(V, eos)
-    e_internal = cv0 * T + K1 * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
+    K = calc_K(V, eos)
+    e_internal = cv0 * T + K * (peng_robinson_a(T, eos) - T * peng_robinson_da(T, eos))
     return e_internal
 end
 
 @inline function heat_capacity_constant_volume(V, T, eos::PengRobinson)
     (; cv0) = eos
-    K1 = calc_K1(V, eos)
-    cv = cv0 - K1 * T * peng_robinson_d2a(T, eos)
+    K = calc_K(V, eos)
+    cv = cv0 - K * T * peng_robinson_d2a(T, eos)
     return cv
 end
 
@@ -128,8 +138,8 @@ function entropy_specific(V, T, eos::PengRobinson)
 
     # The specific entropy is defined up to some reference value s0, which is
     # arbitrarily set to zero here.
-    K1 = calc_K1(V, eos)
-    return cv0 * log(T) + R * log(V - b) - peng_robinson_da(T, eos) * K1
+    K = calc_K(V, eos)
+    return cv0 * log(T) + R * log(V - b) - peng_robinson_da(T, eos) * K
 end
 
 function speed_of_sound(V, T, eos::PengRobinson)
@@ -138,11 +148,11 @@ function speed_of_sound(V, T, eos::PengRobinson)
     dpdT_V, dpdV_T = calc_pressure_derivatives(V, T, eos)
 
     # calculate ratio of specific heats
-    K1 = calc_K1(V, eos)
+    K = calc_K(V, eos)
     d2aT = peng_robinson_d2a(T, eos)
     cp0 = cv0 + R
-    cv = cv0 - K1 * T * d2aT
-    cp = cp0 - R - K1 * T * d2aT - T * dpdT_V^2 / dpdV_T
+    cv = cv0 - K * T * d2aT
+    cp = cp0 - R - K * T * d2aT - T * dpdT_V^2 / dpdV_T
     gamma = cp / cv
 
     # calculate bulk modulus, which should be positive 
@@ -174,9 +184,9 @@ end
 @inline peng_robinson_d2a(T, eos) = ForwardDiff.derivative(T -> peng_robinson_da(T, eos),
                                                            T)
 
-@inline function calc_K1(V, eos::PengRobinson)
+@inline function calc_K(V, eos::PengRobinson)
     (; inv2sqrt2b, one_minus_sqrt2_b, one_plus_sqrt2_b) = eos
-    K1 = inv2sqrt2b * log((V + one_minus_sqrt2_b) / (V + one_plus_sqrt2_b))
-    return K1
+    K = inv2sqrt2b * log((V + one_minus_sqrt2_b) / (V + one_plus_sqrt2_b))
+    return K
 end
 end # @muladd

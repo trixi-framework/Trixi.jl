@@ -54,17 +54,13 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
+                                positivity_variables_cons = ["rho"],
+                                positivity_variables_nonlinear = [pressure],
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
-                                # Default parameters are not sufficient to fulfill bounds properly.
-                                max_iterations_newton = 40,
-                                newton_tolerances = (1.0e-13, 1.0e-15),
-                                positivity_variables_cons = [],
-                                positivity_variables_nonlinear = [],
+                                max_iterations_newton = 30,
                                 bar_states = false)
-# Variables for global limiting (`positivity_variables_cons` and
-# `positivity_variables_nonlinear`) are overwritten and used in the tests.
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -119,5 +115,5 @@ callbacks = CallbackSet(summary_callback,
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);

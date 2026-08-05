@@ -91,7 +91,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    const f::F # `rhs!` of the semidiscretization
+    const f::F # right-hand side of the semidiscretization
     const alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
@@ -124,6 +124,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithmSSP;
     du = similar(u)
     u_tmp = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
     integrator = SimpleIntegratorSSP(u, du, u_tmp, t, tdir, dt, dt, iter, ode.p,

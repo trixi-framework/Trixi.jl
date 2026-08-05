@@ -1,17 +1,13 @@
-module TestExamples2DIdealGlmMhdMultiIon
-
-using Test
-using Trixi
-
-include("test_trixi.jl")
+@testsnippet TreeMesh2DMHDMultiIon begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
+end
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
-@testset "MHD Multi-ion" begin
-#! format: noindent
-
-@trixi_testset "elixir_mhdmultiion_ec.jl" begin
+@testitem "TreeMesh2D MHDMultiIon: elixir_mhdmultiion_ec.jl" setup=[
+    Setup,
+    TreeMesh2DMHDMultiIon
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.018116158127836963,
@@ -47,7 +43,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -57,7 +53,10 @@ end
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
 # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-@trixi_testset "Provably entropy-stable LLF-type fluxes for multi-ion GLM-MHD" begin
+@testitem "TreeMesh2D MHDMultiIon: Provably entropy-stable LLF-type fluxes for multi-ion GLM-MHD" setup=[
+    Setup,
+    TreeMesh2DMHDMultiIon
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.017668017558288736,
@@ -96,7 +95,7 @@ end
                                       flux_nonconservative_ruedaramirez_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -106,7 +105,10 @@ end
 # To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
 # We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the 
 # `StepsizeCallback` (CFL-Condition) and less diffusion.
-@trixi_testset "elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" begin
+@testitem "TreeMesh2D MHDMultiIon: elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" setup=[
+    Setup,
+    TreeMesh2DMHDMultiIon
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.017668026737187294,
@@ -144,10 +146,13 @@ end
                                       flux_nonconservative_central))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "Multi-ion GLM-MHD collision source terms" begin
+@testitem "TreeMesh2D MHDMultiIon: Multi-ion GLM-MHD collision source terms" setup=[
+    Setup,
+    TreeMesh2DMHDMultiIon
+] tags=[:tree_part3] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_collisions.jl"),
                         l2=[
                             0.0,
@@ -183,8 +188,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-end # module

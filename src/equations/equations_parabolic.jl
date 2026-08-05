@@ -1,5 +1,10 @@
-# specify transformation of conservative variables prior to taking gradients.
-# specialize this function to compute gradients e.g., of primitive variables instead of conservative
+"""
+    gradient_variable_transformation(equations::AbstractEquationsParabolic)
+
+Return the mapping from conservative variables to the variables in which parabolic
+gradients are computed. Defaults to [`cons2cons`](@ref), may be specialized to [`cons2prim`](@ref) 
+or [`cons2entropy`](@ref) depending on the equation and type of `gradient_variables`. 
+"""
 gradient_variable_transformation(::AbstractEquationsParabolic) = cons2cons
 
 # By default, the gradients are taken with respect to the conservative variables.

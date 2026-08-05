@@ -31,6 +31,17 @@ function HyperbolicDiffusionEquations1D(; nu = 1.0, Lr = inv(2pi))
     return HyperbolicDiffusionEquations1D(promote(Lr, inv(Tr), nu)...)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::HyperbolicDiffusionEquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return HyperbolicDiffusionEquations1D(convert(NewRealT, equations.Lr),
+                                          convert(NewRealT, equations.inv_Tr),
+                                          convert(NewRealT, equations.nu))
+end
+
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 function default_analysis_errors(::HyperbolicDiffusionEquations1D)

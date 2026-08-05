@@ -336,8 +336,7 @@ function load_restart_file_on_root(mesh::Union{TreeMeshParallel, P4estMeshParall
 end
 
 # Store controller values for an adaptive time stepping scheme
-function save_adaptive_time_integrator(integrator,
-                                       controller, restart_callback)
+function save_adaptive_time_integrator(integrator, restart_callback)
     # Save only on root
     if mpi_isroot()
         @unpack output_directory = restart_callback
@@ -348,13 +347,8 @@ function save_adaptive_time_integrator(integrator,
 
         # Open file (preserve existing content)
         h5open(filename, "r+") do file
-            # Add context information as attributes both for PIController and PIDController
-            attributes(file)["time_integrator_qold"] = integrator.qold
             attributes(file)["time_integrator_dtpropose"] = integrator.dtpropose
-            # For PIDController is necessary to save additional parameters
-            if hasproperty(controller, :err) # Distinguish PIDController from PIController
-                attributes(file)["time_integrator_controller_err"] = controller.err
-            end
+            store_controller!(file, integrator)
         end
     end
 end

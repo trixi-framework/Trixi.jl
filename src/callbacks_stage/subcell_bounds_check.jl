@@ -168,7 +168,7 @@ end
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
-    (; idp_bounds_delta_global) = limiter.cache
+    (; idp_bounds_delta_global, idp_newton_converged) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
@@ -177,6 +177,9 @@ end
     if semi.solver.volume_integral isa VolumeIntegralAdaptive
         println("Note: The following deviations are only computed in elements where subcell limiting is active.")
         println("In other elements, the solution is not checked for bounds violations.")
+    end
+    if !idp_newton_converged[]
+        println("Note: Newton-bisection method reached the maximum number of iterations at least once.")
     end
     if local_twosided
         for v in limiter.local_twosided_variables_cons

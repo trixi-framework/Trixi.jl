@@ -54,5 +54,5 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, Feagin14();
             # Turn off adaptivity to avoid setting very small tolerances
             adaptive = false,
-            dt = 42, # `dt` does not need to be in higher precision
+            dt = 1, # `dt` does not need to be in higher precision
             ode_default_options()..., callback = callbacks);

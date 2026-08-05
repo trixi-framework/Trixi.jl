@@ -51,15 +51,14 @@ jobs:
           # - tree_part3
           # - tree_part4
           # - tree_part5
-          # - tree_part6
           # - structured
           # - p4est_part1
           # - p4est_part2
           # - t8code_part1
-          # - t8code_part2
           # - unstructured_dgmulti
           # - parabolic_part1
           # - parabolic_part2
+          # - parabolic_part3
           # - paper_self_gravitating_gas_dynamics
           # - misc_part1
           # - misc_part2
@@ -69,7 +68,7 @@ jobs:
           # - threaded
           - downgrade
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
@@ -95,3 +94,5 @@ jobs:
           '
         env:
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          # Print every `@testitem` (with its run time) in the test summary.
+          TRIXI_TEST_VERBOSE: "true"

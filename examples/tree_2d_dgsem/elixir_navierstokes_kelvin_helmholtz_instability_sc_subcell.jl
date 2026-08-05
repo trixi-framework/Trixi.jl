@@ -60,7 +60,7 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_condition_periodic,
@@ -100,6 +100,6 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),
 # `interval` is used when calling this elixir in the tests with `save_errors=true`.
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()...,
                   callback = callbacks);

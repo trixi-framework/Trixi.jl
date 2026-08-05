@@ -7,6 +7,9 @@
 
 abstract type AbstractVolumeIntegral end
 
+# Element type used to store the conservative variables in solver caches.
+@inline solution_eltype(solver, cache) = eltype(cache.elements)
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::AbstractVolumeIntegral, dg, cache)
     return nothing
@@ -1130,6 +1133,13 @@ include("dgsem/dgsem.jl")
 # functionality implemented for DGSEM.
 include("fdsbp_tree/fdsbp.jl")
 include("fdsbp_unstructured/fdsbp.jl")
+
+# Block-structured finite volume methods
+include("blockfv/blockfv.jl")
+include("blockfv/containers_1d.jl")
+include("blockfv/containers_2d.jl")
+include("blockfv/blockfv_1d.jl")
+include("blockfv/blockfv_2d.jl")
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).

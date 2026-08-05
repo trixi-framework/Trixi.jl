@@ -208,7 +208,6 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -230,11 +229,53 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
                                                      variables = (Trixi.density, pressure))
 
 sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 using Plots
 plot(sol)
+
+# # Positivity Preserving Limiter to stabilize AMR & Mortars
+
+# It is pretty evident from the plot above that large parts of the domain are essentially constant,
+# and only a narrow region contains all the changes.
+# Thus, to make the simulation more efficient, we might want to enable dynamic mesh adaptation by means of
+# Adaptive Mesh Refinement (AMR) (which actually also includes coarsening).
+
+# First, one needs an indicator that tells the AMR callback which cells to refine or coarsen.
+# We can re-use the `indicator_sc` from above for this.
+# Next, a so-called controller is required that specifies the different levels of refinement and 
+# refinement thresholds.
+amr_controller = ControllerThreeLevel(semi, indicator_sc,
+                                      base_level = 3,
+                                      med_level = 5, med_threshold = 0.01,
+                                      max_level = 7, max_threshold = 0.05)
+
+# Given the controller, we can now set up the actual callback.
+# The keyword `interval` determines the number of steps taken between checks for mesh adaption.
+# Although not strictly necessary in this example, we supply the `PositivityPreservingLimiterZhangShu` from
+# above to the `AMRCallback`.
+# This way, one can ensure that the projections and interpolations during coarsening and refinement maintain
+# positivity (given that the solution before mesh adaptation was positive).
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 5,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = stage_limiter!)
+
+# We add the `amr_callback` to the `CallbackSet` and run the simulation again:
+callbacks = CallbackSet(analysis_callback, amr_callback, stepsize_callback);
+
+sol = solve(ode, CarpenterKennedy2N54(; stage_limiter!, williamson_condition = false);
+            dt = 1,
+            ode_default_options()..., callback = callbacks);
+
+pd = PlotData2D(sol);
+plot_density = plot(pd["rho"]);
+plot_mesh = plot(getmesh(pd));
+
+# We can now look at the plot and the mesh
+combined_plot = plot(plot_density, plot_mesh, layout = (1, 2))
 
 # # Entropy bounded limiter
 
@@ -331,7 +372,6 @@ coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -364,7 +404,7 @@ stage_limiter! = EntropyBoundedLimiter()
 
 # We run the simulation with the SSPRK33 method and the entropy bounded limiter:
 sol = solve(ode, SSPRK33(; stage_limiter!);
-            dt = 1.0,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             callback = callbacks);
 
 using Plots

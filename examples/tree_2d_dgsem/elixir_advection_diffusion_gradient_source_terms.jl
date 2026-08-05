@@ -18,7 +18,6 @@ coordinates_max = (Float64(pi), Float64(pi))
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation2D)
@@ -78,5 +77,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL35(); adaptive = false, dt = stepsize_callback(ode),
+sol = solve(ode, RDPK3SpFSAL35();
+            adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks)
