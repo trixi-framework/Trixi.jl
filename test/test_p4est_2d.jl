@@ -345,7 +345,7 @@ end
                         atol=2.0e-12,)
 
     limiter = semi.solver.volume_integral.limiter
-    deviations = collect(values(limiter.cache.limiter.cache.mcl_bounds_delta_global))
+    deviations = collect(values(limiter.cache.mcl_bounds_delta_global))
     @test all(isfinite, deviations)
     @test maximum(deviations) <= 1.0e-13
 
