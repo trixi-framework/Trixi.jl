@@ -26,5 +26,5 @@ callbacks = CallbackSet(summary_callback,
                         save_restart, save_solution)
 
 sol = Trixi.solve(ode,
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
