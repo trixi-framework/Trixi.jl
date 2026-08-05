@@ -39,7 +39,7 @@ end
                             1.557903868998345e-5,
                             5.260532107742577e-5
                         ])
-    limiter = semi.solver.volume_integral.volume_integral_adaptive.limiter
+    limiter = semi.solver.volume_integral.volume_integral_stabilized.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
     @test maximum(deviations) <= 1.0e-13
@@ -618,7 +618,7 @@ end
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4)
-    limiter = semi.solver.volume_integral.volume_integral_adaptive.limiter
+    limiter = semi.solver.volume_integral.volume_integral_stabilized.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
     @test maximum(deviations) <= 1.0e-13
@@ -835,13 +835,13 @@ end
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
-    @test startswith(lines[end], "138")
+    @test startswith(lines[end], "381")
 
     # Test alphas.txt
     lines = readlines(joinpath("out", "alphas.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_max, alpha_avg"
-    @test startswith(lines[end], "138, 1.0, 1.0, 0.544") # TODO
+    @test startswith(lines[end], "381, 1.0, 1.0, 0.544")
     @test count(",", lines[end]) == 3
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
 

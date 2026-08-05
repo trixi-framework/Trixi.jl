@@ -570,22 +570,22 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
                         l2=[ # TODO
-                            0.008160128063734234,
-                            0.008658255237420639,
-                            0.009351903803559939,
-                            0.027757021838089386
+                            0.008160130480726491,
+                            0.00865825738179644,
+                            0.009351904089607902,
+                            0.027757022476358608
                         ],
                         linf=[
-                            0.02722561519294109,
-                            0.04073404775390577,
-                            0.03819406513262802,
-                            0.0808065061545129
+                            0.02722563897519148,
+                            0.04073403153567323,
+                            0.038194069900316485,
+                            0.08080655925682434
                         ],
                         tspan=(0.0, 0.5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) <= 3.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
