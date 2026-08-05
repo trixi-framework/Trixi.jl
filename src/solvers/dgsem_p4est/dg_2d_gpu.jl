@@ -59,17 +59,14 @@ function rhs_hyperbolic!(backend::Backend,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
-    # Calculate surface integrals
-    @trixi_timeit_ext backend timer() "surface integral" begin
-        calc_surface_integral!(backend, du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # Apply Jacobian from mapping to reference element 
+    # Calculate surface integrals, apply Jacobian from mapping to reference element
     # and calculate source terms
-    @trixi_timeit_ext backend timer() "Jacobian + source terms" begin
-        apply_jacobian_and_calc_sources!(backend, du, u, t, source_terms, mesh,
-                                         equations, dg, cache)
+    @trixi_timeit_ext backend timer() "surface integral + Jacobian + source terms" begin
+        calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend, du, u, t,
+                                                                   source_terms, mesh,
+                                                                   equations,
+                                                                   dg.surface_integral,
+                                                                   dg, cache)
     end
 
     return nothing
@@ -450,36 +447,50 @@ function calc_mortar_flux!(backend::Backend, surface_flux_values, mesh,
     @assert isempty(eachmortar(dg, cache))
 end
 
-function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2},
-                                            P4estMeshView{2}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM{<:LobattoLegendreBasis},
-                                cache)
+function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Backend,
+                                                                    du, u, t,
+                                                                    source_terms,
+                                                                    mesh::Union{P4estMesh{2},
+                                                                                T8codeMesh{2},
+                                                                                P4estMeshView{2}},
+                                                                    equations,
+                                                                    surface_integral::SurfaceIntegralWeakForm,
+                                                                    dg::DGSEM{<:LobattoLegendreBasis},
+                                                                    cache)
+    nelements(dg, cache) == 0 && return nothing
     @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
+    @unpack surface_flux_values, inverse_jacobian, node_coordinates = cache.elements
+    kernel_cache = kernel_filter_cache(cache)
     NNODES = nnodes(dg)
-    kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, inverse_weights[1],
-            Val(NNODES),
-            surface_flux_values,
+    kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
+    kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
+            inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
+            kernel_cache,
             ndrange = (NNODES, NNODES, nelements(dg, cache)))
 
     return nothing
 end
 
-@kernel function calc_surface_integral_KAkernel!(du,
-                                                 MeshT::Type{<:Union{P4estMesh{2},
-                                                                     P4estMeshView{2},
-                                                                     T8codeMesh{2}}},
-                                                 equations, factor, ::Val{NNODES},
-                                                 surface_flux_values) where {NNODES}
+@kernel function calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(du,
+                                                                                     u,
+                                                                                     t,
+                                                                                     source_terms,
+                                                                                     node_coordinates,
+                                                                                     MeshT::Type{<:Union{P4estMesh{2},
+                                                                                                         P4estMeshView{2},
+                                                                                                         T8codeMesh{2}}},
+                                                                                     equations::AbstractEquations{2},
+                                                                                     factor,
+                                                                                     ::Val{NNODES},
+                                                                                     surface_flux_values,
+                                                                                     dg::DGSEM,
+                                                                                     inverse_jacobian,
+                                                                                     cache) where {NNODES}
     i, j, element = @index(Global, NTuple)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
-    # and the missing "-" is taken care of by `apply_jacobian!`.
+    # and the missing "-" is taken care of by the Jacobian factor below.
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
@@ -491,62 +502,32 @@ end
     x_face = ifelse(i == 1, 1, 2)
     y_face = ifelse(j == 1, 3, 4)
     _zero = zero(eltype(du))
-    for v in eachvariable(equations)
-        x_contribution = ifelse(x_node_interface,
-                                surface_flux_values[v, j, x_face, element], _zero)
-        y_contribution = ifelse(y_node_interface,
-                                surface_flux_values[v, i, y_face, element], _zero)
-        du_node = x_contribution + y_contribution
-        du[v, i, j, element] = du[v, i, j, element] + du_node * factor
-    end
+    surface_node = SVector(ntuple(@inline(v->ifelse(x_node_interface,
+                                                    surface_flux_values[v, j, x_face,
+                                                                        element],
+                                                    _zero) +
+                                             ifelse(y_node_interface,
+                                                    surface_flux_values[v, i, y_face,
+                                                                        element], _zero)),
+                                  Val(nvariables(equations))))
+    source_node = calc_source_terms_node(u, t, source_terms, node_coordinates,
+                                         equations, dg, i, j, element)
+    jacobian_factor = -inverse_jacobian[i, j, element]
+    du_local = get_node_vars(du, equations, dg, i, j, element) + factor * surface_node
+    du_node = jacobian_factor * du_local + source_node
+    set_node_vars!(du, du_node, equations, dg, i, j, element)
 end
 
-function apply_jacobian_and_calc_sources!(backend::Backend, du, u, t, source_terms,
-                                          mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                                      T8codeMesh{2}},
-                                          equations, dg::DG, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack inverse_jacobian, node_coordinates = cache.elements
-    kernel_cache = kernel_filter_cache(cache)
-    kernel! = apply_jacobian_and_calc_sources_KAkernel!(backend)
-    kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations, dg,
-            inverse_jacobian, kernel_cache,
-            ndrange = (nnodes(dg), nnodes(dg), nelements(dg, cache)))
-end
-
-@kernel function apply_jacobian_and_calc_sources_KAkernel!(du, u, t, source_terms,
-                                                           node_coordinates,
-                                                           MeshT::Type{<:Union{P4estMesh{2},
-                                                                               P4estMeshView{2},
-                                                                               T8codeMesh{2}}},
-                                                           equations::AbstractEquations{2},
-                                                           dg::DG, inverse_jacobian,
-                                                           cache)
-    i, j, element = @index(Global, NTuple)
-
-    factor = -inverse_jacobian[i, j, element]
-
-    for v in eachvariable(equations)
-        du[v, i, j, element] *= factor
-    end
-    calc_sources_per_quadrature_node!(du, u, t, source_terms, node_coordinates,
-                                      equations, dg, i, j, element)
-end
-
-@inline function calc_sources_per_quadrature_node!(du, u, t, source_terms,
-                                                   node_coordinates, equations, dg::DG,
-                                                   indices...)
+@inline function calc_source_terms_node(u, t, source_terms, node_coordinates,
+                                        equations, dg::DG, indices...)
     u_local = get_node_vars(u, equations, dg, indices...)
     x_local = get_node_coords(node_coordinates, equations, dg, indices...)
 
-    du_local = source_terms(u_local, x_local, t, equations)
-
-    add_to_node_vars!(du, du_local, equations, dg, indices...)
+    return source_terms(u_local, x_local, t, equations)
 end
 
-@inline function calc_sources_per_quadrature_node!(du, u, t, source_terms::Nothing,
-                                                   node_coordinates, equations, dg::DG,
-                                                   indices...)
-    return nothing
+@inline function calc_source_terms_node(u, t, source_terms::Nothing, node_coordinates,
+                                        equations, dg::DG, indices...)
+    return zero(SVector{nvariables(equations), eltype(u)})
 end
 end #muladd
