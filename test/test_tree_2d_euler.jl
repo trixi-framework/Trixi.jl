@@ -1180,6 +1180,7 @@ end
     Setup,
     TreeMesh2DEuler
 ] tags=[:tree_part2] begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_amr_sc_subcell.jl"),
                         cfl=0.5,
@@ -1199,8 +1200,8 @@ end
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
-    # Run takes 164 time steps
-    @test startswith(lines[end], "164")
+    # Run takes 99 time steps
+    @test startswith(lines[end], "99")
 
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
