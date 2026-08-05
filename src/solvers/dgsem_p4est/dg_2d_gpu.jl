@@ -61,7 +61,7 @@ function rhs_hyperbolic!(backend::Backend,
 
     # Calculate surface integrals, apply Jacobian from mapping to reference element
     # and calculate source terms
-    @trixi_timeit_ext backend timer() "surface integral + Jacobian + source terms" begin
+    @trixi_timeit_ext backend timer() "surface, Jacobian + source terms" begin
         calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend, du, u, t,
                                                                    source_terms, mesh,
                                                                    equations,
