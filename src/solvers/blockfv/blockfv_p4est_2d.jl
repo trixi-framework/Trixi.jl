@@ -5,6 +5,18 @@
 @muladd begin
 #! format: noindent
 
+# BlockFV on a `P4estMesh` splits each `p4est` element into an
+# `n_nodes × n_nodes` grid of FV cells. We get the physical corners of these FV
+# cells by evaluating the mesh mapping - the same curved geometry DGSEM uses - at
+# equidistant points in reference space (see `calc_fv_corner_coordinates`/
+# `init_elements!` below).
+#
+# Past that, we don't use the curved geometry any further: each FV cell
+# is just a straight-sided quadrilateral spanned by its 4 corners, with a constant
+# volume and scaled face normals. So unlike DGSEM on
+# `P4estMesh` (which keeps the full curved geometry via `contravariant_vectors`),
+# curvature here is only resolved as well as this polygonal approximation allows.
+
 # BlockFV does not need a separate `normal_directions` array in the interface
 # container: face normals are looked up directly from `cache.normal_x`/`normal_y`
 # (computed once in `create_cache`)
@@ -60,9 +72,9 @@ function init_elements!(elements, mesh::P4estMesh{2}, basis::UniformFiniteVolume
 end
 
 # BlockFV uses its basis as `dg.mortar` (see blockfv.jl constructor).
-# The shared rhs! (TreeMesh/P4estMesh) calls create_cache, prolong2mortars!, and
+# The shared rhs_hyperbolic! (TreeMesh/P4estMesh) calls create_cache, prolong2mortars!, and
 # calc_mortar_flux! with dg.mortar. BlockFV on P4estMesh needs none of these,
-# since mortars are not yet supported
+# since mortars are not yet supported.
 function create_cache(mesh::P4estMesh{2}, ::Any, ::UniformFiniteVolumeBasis, ::Any)
     if count_required_surfaces(mesh).mortars > 0
         throw(ArgumentError("BlockFV on P4estMesh does not yet support non-conforming " *
@@ -325,7 +337,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
                     # The numerical fluxes are computed using scaled normal
                     # directions (scaled by the interface length) and the
                     # division by the cell volume (Jacobian) is done later
-                    # when evaluating the semidiscretization (`rhs!`).
+                    # when evaluating the semidiscretization (`rhs_hyperbolic!`).
                     du[v, i, j, element] = (du[v, i, j, element] +
                                             (fstar_x[v, i + 1, j] - fstar_x[v, i, j]) +
                                             (fstar_y[v, i, j + 1] - fstar_y[v, i, j]))
@@ -371,6 +383,20 @@ end
 # max_dt: the generic version (src/callbacks_step/stepsize_dg2d.jl) reads
 # `contravariant_vectors`, which BlockFV does not populate.
 #  CFL condition: dt = |Ω_ij| / max_face_speed.
+
+# The per-cell wave speed estimate for the CFL condition in `max_dt` below:
+# how fast a signal can cross cell (i, j)'s faces, scaled by their length.
+# We take the larger of the two opposing faces per direction (they can differ on a
+# curved mesh) and add both directions together.
+#
+# On a Cartesian grid this matches `TreeMesh`'s estimate: each face
+# normal points along a single axis with magnitude h, so `speed_x = h·λ1`,
+# `speed_y = h·λ2`, giving `max_face_speed = h·(λ1+λ2)`. Divided by `cell_volume =
+# h²` below, resulting in `dt = h / (λ1+λ2)` - the same CFL estimate as
+# `TreeMesh`'s version in `blockfv_2d.jl`.
+#
+# We use `Base.max` to prevent silent failures, as `max` from `@fastmath` doesn't propagate
+# `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
 @inline function max_face_speed(normal_x, normal_y, i, j, element, lambda1, lambda2)
     nx_l, ny_l = normal_x[1, i, j, element], normal_x[2, i, j, element]
     nx_r, ny_r = normal_x[1, i + 1, j, element], normal_x[2, i + 1, j, element]
@@ -417,6 +443,8 @@ function max_dt(u, t, mesh::P4estMesh{2}, constant_speed::True, equations,
         for j in eachnode(dg), i in eachnode(dg)
             speed = max_face_speed(normal_x, normal_y, i, j, element, lambda1, lambda2)
             cell_volume = abs(inv(inverse_jacobian[i, j, element]))
+            # Use `Base.max` to prevent silent failures, as `max` from `@fastmath`
+            # doesn't propagate `NaN`s properly. See https://github.com/trixi-framework/Trixi.jl/pull/2445#discussion_r2336812323
             max_scaled_speed = Base.max(max_scaled_speed, speed / cell_volume)
         end
     end
