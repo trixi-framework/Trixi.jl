@@ -686,18 +686,23 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.6403528328480915,
-                            0.3068073114438902,
-                            0.3140151910019577,
-                            1.2977732581465693
+                            0.6401790809469766,
+                            0.30665376287777196,
+                            0.31392947418333217,
+                            1.297784156450693
                         ],
                         linf=[
-                            2.239791987419344,
-                            1.5580885989144924,
-                            1.5392923786831547,
-                            6.2729281824590855
+                            2.247645842347004,
+                            1.554935338577008,
+                            1.5439591073963144,
+                            6.272642656315988
                         ],
                         tspan=(0.0, 0.5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -713,8 +718,6 @@ end
 ] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        positivity_variables_cons=["rho"],
-                        positivity_variables_nonlinear=[pressure],
                         local_twosided_variables_cons=[],
                         local_onesided_variables_nonlinear=[],
                         l2=[
@@ -730,6 +733,11 @@ end
                             6.316943647948965
                         ],
                         tspan=(0.0, 0.5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -1105,6 +1113,11 @@ end
                             1.5760984369383474e-6
                         ],
                         tspan=(0.0, 0.025))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
@@ -1149,6 +1162,11 @@ end
                         volume_flux=(flux_central,
                                      flux_nonconservative_powell_local_jump),
                         tspan=(0.0, 0.025))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
