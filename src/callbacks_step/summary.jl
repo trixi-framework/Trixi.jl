@@ -257,7 +257,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Cond
     # Always print the whole timer, even when the `displaysize` of the `IOContext` is small.
     print_timer(IOContext(io, :displaysize => (typemax(Int), typemax(Int))),
                 timer(), title = "Trixi.jl",
-                allocations = true, linechars = :unicode, compact = false)
+                allocations = true, linechars = :unicode, compact = false, bars = false)
     println(io)
     return nothing
 end
