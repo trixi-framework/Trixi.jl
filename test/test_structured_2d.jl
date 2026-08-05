@@ -569,7 +569,7 @@ end
 ] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
-                        l2=[
+                        l2=[ # TODO
                             0.008160128063734234,
                             0.008658255237420639,
                             0.009351903803559939,
