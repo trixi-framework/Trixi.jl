@@ -122,12 +122,11 @@ end
 function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
     rho, v1, v2, v3, T, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
-    # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, v3, T)
-    # either computed directly or reverse engineered from the gradient of the entropy variables
-    # by way of the `convert_gradient_variables` function.
 
     @unpack eta = equations
 
+    # Here, `convert_derivative_to_primitive`, converts the gradients stored in `gradients`
+    # to the gradients of the primitive variables (rho, v1, v2, v3, T)
     _, dv1dx, dv2dx, dv3dx, dTdx, dB1dx, dB2dx, dB3dx, _ = convert_derivative_to_primitive(u,
                                                                                            gradients[1],
                                                                                            equations)
