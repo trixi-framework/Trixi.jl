@@ -254,8 +254,10 @@ function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Cond
     mpi_isroot() || return nothing
 
     TimerOutputs.complement!(timer())
-    # Always print the whole timer, even when the `displaysize` of the `IOContext` is small.
-    print_timer(IOContext(io, :displaysize => (typemax(Int), typemax(Int))),
+    # Always print all timer rows and use the same width (100 characters)
+    # as the other terminal output.
+    print_timer(IOContext(io, :limit => true,
+                          :displaysize => (typemax(Int), 100)),
                 timer(), title = "Trixi.jl",
                 allocations = true, linechars = :unicode, compact = false, bars = false)
     println(io)
