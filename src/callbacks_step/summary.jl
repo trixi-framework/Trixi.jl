@@ -257,7 +257,7 @@ function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Cond
     # Always print all timer rows and use the same width (100 characters)
     # as the other terminal output.
     print_timer(IOContext(io, :limit => true,
-                         :displaysize => (typemax(Int), 100)),
+                          :displaysize => (typemax(Int), 100)),
                 timer(), title = "Trixi.jl",
                 allocations = true, linechars = :unicode, compact = false)
     println(io)
