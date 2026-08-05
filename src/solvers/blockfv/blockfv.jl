@@ -189,47 +189,4 @@ end
 
 # This hack is currently required for the SaveSolutionCallback.
 @inline polydeg(dg::BlockFV) = polydeg(dg.basis)
-
-"""
-    reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
-                           sc_interface_coords, node_index,
-                           limiter, dg::BlockFVO2)
-
-Returns the reconstructed values `u_lr, u_rl` for internal interface reconstruction at
-`node_index` for a [`BlockFVO2`](@ref) element. The interface coordinates are given by
-`sc_interface_coords[node_index - 1]`.
-"""
-@inline function reconstruction_O2(u_ll, u_lr, u_rl, u_rr,
-                                   sc_interface_coords, node_index,
-                                   limiter, dg::BlockFVO2)
-    @unpack nodes = dg.basis
-    x_lr = nodes[node_index - 1]
-    x_rl = nodes[node_index]
-
-    # Slope between "middle" nodes
-    s_m = (u_rl - u_lr) / (x_rl - x_lr)
-
-    if node_index == 2 # Catch case ll == lr
-        s_l = s_m # Use unlimited "central" slope
-    else
-        x_ll = nodes[node_index - 2]
-        # Slope between "left" nodes
-        s_lr = (u_lr - u_ll) / (x_lr - x_ll)
-        # Select slope between extrapolated (left) and crossing (middle) slope
-        s_l = limiter.(s_lr, s_m)
-    end
-
-    if node_index == nnodes(dg) # Catch case rl == rr
-        s_r = s_m # Use unlimited "central" slope
-    else
-        x_rr = nodes[node_index + 1]
-        # Slope between "right" nodes
-        s_rl = (u_rr - u_rl) / (x_rr - x_rl)
-        # Select slope between crossing (middle) and extrapolated (right) slope
-        s_r = limiter.(s_m, s_rl)
-    end
-
-    return reconstruction_linear(u_lr, u_rl, s_l, s_r,
-                                 x_lr, x_rl, sc_interface_coords, node_index)
-end
 end # @muladd
