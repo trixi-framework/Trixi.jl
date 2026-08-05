@@ -158,7 +158,7 @@ end
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
-    (; idp_bounds_delta_global) = limiter.cache
+    (; idp_bounds_delta_global, idp_newton_converged) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
@@ -176,6 +176,9 @@ end
         println("bounds. Consequently, the resulting deviation statistics may not be meaningful and can exceed zero.")
         println("─"^100 * "\n")
         return nothing
+    end
+    if !idp_newton_converged[]
+        println("Note: Newton-bisection method reached the maximum number of iterations at least once.")
     end
     if local_twosided
         for v in limiter.local_twosided_variables_cons
