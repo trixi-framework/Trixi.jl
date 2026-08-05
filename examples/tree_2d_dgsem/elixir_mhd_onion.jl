@@ -29,7 +29,6 @@ coordinates_min = (-3.0, -3.0)
 coordinates_max = (3.0, 3.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of

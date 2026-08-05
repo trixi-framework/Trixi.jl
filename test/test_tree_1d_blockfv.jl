@@ -9,7 +9,7 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 1D: elixir_advection_basic.jl with less n_nodes and higher refinement" setup=[
@@ -37,7 +37,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 1D: elixir_advection_basic.jl with same number of DOFs as tree_1d_dgsem/elixir_advection_finite_volume.jl" setup=[
@@ -51,7 +51,7 @@ end
     res1 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Compute with one volume per macro cell, DG with polydeg = 0.
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
@@ -61,7 +61,7 @@ end
     res2 = @inferred analysis_callback(sol)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Both setups have exactly the same degrees of freedom.
     # Thus, they should return the same errors (up to floating-point precision).
@@ -88,7 +88,7 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 1D: elixir_euler_fvO2.jl" setup=[Setup, TreeMesh1DBlockFV] tags=[:tree_part1] begin

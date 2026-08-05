@@ -38,12 +38,11 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
     return nothing
 end
 
-function rhs!(du, u, t,
-              mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
-
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
