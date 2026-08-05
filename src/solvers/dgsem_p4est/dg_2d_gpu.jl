@@ -65,14 +65,11 @@ function rhs_hyperbolic!(backend::Backend,
                                dg.surface_integral, dg, cache)
     end
 
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit_ext backend timer() "Jacobian" begin
-        apply_jacobian!(backend, du, mesh, equations, dg, cache)
-    end
-
-    # Calculate source terms
-    @trixi_timeit_ext backend timer() "source terms" begin
-        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
+    # Apply Jacobian from mapping to reference element 
+    # and calculate source terms
+    @trixi_timeit_ext backend timer() "Jacobian + source terms" begin
+        apply_jacobian_and_calc_sources!(backend, du, u, t, source_terms, mesh,
+                                         equations, dg, cache)
     end
 
     return nothing
@@ -504,53 +501,52 @@ end
     end
 end
 
-function apply_jacobian!(backend::Backend, du,
-                         mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                     T8codeMesh{2}},
-                         equations, dg::DG, cache)
+function apply_jacobian_and_calc_sources!(backend::Backend, du, u, t, source_terms,
+                                          mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                      T8codeMesh{2}},
+                                          equations, dg::DG, cache)
     nelements(dg, cache) == 0 && return nothing
-    @unpack inverse_jacobian = cache.elements
-    kernel! = apply_jacobian_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
+    @unpack inverse_jacobian, node_coordinates = cache.elements
+    kernel_cache = kernel_filter_cache(cache)
+    kernel! = apply_jacobian_and_calc_sources_KAkernel!(backend)
+    kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations, dg,
+            inverse_jacobian, kernel_cache,
             ndrange = (nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 
-@kernel function apply_jacobian_KAkernel!(du,
-                                          MeshT::Type{<:Union{P4estMesh{2},
-                                                              P4estMeshView{2},
-                                                              T8codeMesh{2}}},
-                                          equations, dg::DG, inverse_jacobian)
+@kernel function apply_jacobian_and_calc_sources_KAkernel!(du, u, t, source_terms,
+                                                           node_coordinates,
+                                                           MeshT::Type{<:Union{P4estMesh{2},
+                                                                               P4estMeshView{2},
+                                                                               T8codeMesh{2}}},
+                                                           equations::AbstractEquations{2},
+                                                           dg::DG, inverse_jacobian,
+                                                           cache)
     i, j, element = @index(Global, NTuple)
-    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian,
-                                        i, j, element)
+
+    factor = -inverse_jacobian[i, j, element]
+
+    for v in eachvariable(equations)
+        du[v, i, j, element] *= factor
+    end
+    calc_sources_per_quadrature_node!(du, u, t, source_terms, node_coordinates,
+                                      equations, dg, i, j, element)
 end
 
-@kernel function calc_sources_KAkernel!(du, u, t, source_terms,
-                                        node_coordinates,
-                                        equations::AbstractEquations{2}, dg, cache)
-    i, j, element = @index(Global, NTuple)
-    u_local = get_node_vars(u, equations, dg, i, j, element)
-    x_local = get_node_coords(node_coordinates, equations, dg, i, j, element)
+@inline function calc_sources_per_quadrature_node!(du, u, t, source_terms,
+                                                   node_coordinates, equations, dg::DG,
+                                                   indices...)
+    u_local = get_node_vars(u, equations, dg, indices...)
+    x_local = get_node_coords(node_coordinates, equations, dg, indices...)
 
     du_local = source_terms(u_local, x_local, t, equations)
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+    add_to_node_vars!(du, du_local, equations, dg, indices...)
 end
 
-function calc_sources!(backend::Backend, du, u, t, source_terms,
-                       equations::AbstractEquations{2}, dg::DG, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack node_coordinates = cache.elements
-    kernel_cache = kernel_filter_cache(cache)
-    kernel! = calc_sources_KAkernel!(backend)
-    kernel!(du, u, t, source_terms, node_coordinates, equations, dg, kernel_cache,
-            ndrange = (nnodes(dg), nnodes(dg), nelements(dg, cache)))
-
-    return nothing
-end
-
-function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{2}, dg::DG, cache)
+@inline function calc_sources_per_quadrature_node!(du, u, t, source_terms::Nothing,
+                                                   node_coordinates, equations, dg::DG,
+                                                   indices...)
     return nothing
 end
 end #muladd
