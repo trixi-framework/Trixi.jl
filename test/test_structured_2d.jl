@@ -370,13 +370,18 @@ end
                             0.02090111645397741
                         ],
                         tspan=(0.0, 0.5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_convergence_wavingflag_MCL.jl" setup=[Setup, StructuredMesh2D] tags=[:structured] begin
@@ -395,13 +400,18 @@ end
                             0.02090111645399162
                         ],
                         tspan=(0.0, 0.5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.mcl_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_source_terms.jl" setup=[Setup, StructuredMesh2D] tags=[:structured] begin
@@ -577,7 +587,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_source_terms_waving_flag.jl" setup=[
@@ -650,7 +660,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @trixi_testset "elixir_euler_free_stream_MCL.jl" begin
@@ -668,13 +678,18 @@ end
                             2.255973186038318e-13
                         ],
                         atol=7.0e-13)
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.mcl_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
@@ -735,13 +750,19 @@ end
     @test startswith(lines[end], "193, 0.05, 1.0, 0.31")
     @test count(",", lines[end]) == 3
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
+
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_double_mach_MCL.jl" setup=[
@@ -780,13 +801,19 @@ end
     @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
     @test count(",", lines[end]) == 9
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
+
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.mcl_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_shock_upstream_sc_subcell.jl" setup=[
@@ -820,7 +847,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_shock_upstream_MCL.jl" setup=[
@@ -842,13 +869,18 @@ end
                         ],
                         cells_per_dimension=(4, 6),
                         tspan=(0.0, 0.5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.mcl_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 10000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
 @testitem "StructuredMesh2D: elixir_euler_source_terms_nonperiodic.jl" setup=[
