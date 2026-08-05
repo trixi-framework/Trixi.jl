@@ -26,7 +26,7 @@ Together they constitute the compressible, viscous and resistive MHD equations w
 - `eta`: magnetic diffusion (resistivity)
 - `equations`: instance of the [`IdealGlmMhdEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
-Defaults to `GradientVariablesPrimitive()`.
+Currently, only `GradientVariablesPrimitive()` is supported.
 
 Fluid properties such as the dynamic viscosity $\mu$ and magnetic diffusion $\eta$
 can be provided in any consistent unit system, e.g.,
