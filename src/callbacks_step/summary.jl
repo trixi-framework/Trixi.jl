@@ -254,7 +254,9 @@ function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Cond
     mpi_isroot() || return nothing
 
     TimerOutputs.complement!(timer())
-    print_timer(io, timer(), title = "Trixi.jl",
+    # Always print the whole timer, even when the `displaysize` of the `IOContext` is small.
+    print_timer(IOContext(io, :displaysize => (typemax(Int), typemax(Int))),
+                timer(), title = "Trixi.jl",
                 allocations = true, linechars = :unicode, compact = false)
     println(io)
     return nothing
