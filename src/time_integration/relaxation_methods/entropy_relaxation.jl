@@ -68,6 +68,8 @@ end
         @views @. u_tmp_wrap[.., element] = u_wrap[.., element] +
                                             gamma * dir_wrap[.., element]
     end
+
+    return nothing
 end
 
 """

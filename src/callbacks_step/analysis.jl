@@ -40,7 +40,7 @@ See the developer comments about `Trixi.analyze`, `Trixi.pretty_form_utf`, and
 
 In addition, the analysis callback records and outputs a number of quantities that are useful for
 evaluating the computational performance, such as the total runtime, the performance index
-(time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
+(time/DOF/RHS), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
 """
 mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals,
@@ -110,7 +110,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           analysis_integrals = union(default_analysis_integrals(equations),
                                                      extra_analysis_integrals),
                           RealT = real(solver),
-                          uEltype = eltype(cache.elements),
+                          uEltype = solution_eltype(solver, cache),
                           kwargs...)
     # Decide when the callback is activated.
     # With error-based step size control, some steps can be rejected. Thus,
@@ -212,7 +212,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
     # Record current time for performance index computation
     analysis_callback.start_time_last_analysis = time_ns()
 
-    # Record current number of `rhs!` calls for performance index computation
+    # Record current number of RHS evaluations for performance index computation
     analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
 
     # Record total time spent in garbage collection so far using a high-resolution clock
@@ -248,7 +248,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
     # PID is an MPI-aware measure of how much time per global degree of freedom (i.e., over all ranks
-    # and threads) and per `rhs!` evaluation is required. MPI-aware means that it essentially adds up
+    # and threads) and per RHS evaluation is required. MPI-aware means that it essentially adds up
     # the time spent on each computing unit. Thus, in an ideally parallelized program, the PID should be constant
     # independent of the number of MPI ranks or threads used, since, e.g., using 4x the number of ranks should
     # divide the runtime on each rank by 4. See also the Trixi.jl docs ("Performance" section) for
@@ -266,10 +266,10 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # Compute the total runtime since the analysis callback has been initialized, in seconds
     runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
 
-    # Compute the relative runtime per thread as time spent in `rhs!` divided by the number of calls
-    # to `rhs!` and the number of local degrees of freedom
-    # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
-    #      will reset the number of calls to `rhs!`
+    # Compute the relative runtime per thread as time spent in the RHS evaluation divided by the
+    # number of RHS evaluations and the number of local degrees of freedom
+    # Note: This computation must happen *after* the PID computation above, since `take!(...)`
+    #      will reset the number of RHS evaluations
     runtime_relative = 1.0e-9 * take!(semi.performance_counter) * Threads.nthreads() /
                        ndofs(semi)
 
@@ -314,7 +314,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
         mpi_println(rpad(" sim. time:      " *
                          @sprintf("%10.8e (%5.3f%%)", t, sim_time_percentage), 46) *
-                    " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+                    " time/DOF/RHS:   " * @sprintf("%10.8e s", runtime_relative))
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
@@ -342,7 +342,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         end
 
         # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
-        # `integrator.f` is usually just a call to `rhs!`
+        # `integrator.f` is usually just a call to the semidiscretization RHS
         # However, we want to allow users to modify the ODE RHS outside of Trixi.jl
         # and allow us to pass a combined ODE RHS to OrdinaryDiffEq, e.g., for
         # hyperbolic-parabolic systems.
