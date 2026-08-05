@@ -763,7 +763,7 @@ function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
     meshfile_prefix, meshfile_suffix = splitext(meshfile.path)
 
     cmesh = t8_cmesh_new()
-    t8_cmesh_from_msh_file(Ref(cmesh), meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
+    t8_cmesh_from_msh_file(Ref(cmesh), meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 1)
 
     return T8codeMesh(cmesh; kwargs...)
 end
