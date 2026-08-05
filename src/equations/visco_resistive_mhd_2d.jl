@@ -48,7 +48,7 @@ in conservation form:
 where $\tau$ is the viscous stress tensor and $\overrightarrow{q} = \kappa \overrightarrow{\nabla} T$.
 For the induction term we have the usual Laplace operator on the magnetic field
 but we also include terms with `div(B)`.
-Divergence cleaning is done using the `\psi` field.
+Divergence cleaning is done using the $\psi$ field.
 
 For more details see e.g. [arXiv:2012.12040](https://arxiv.org/abs/2012.12040).
 """
