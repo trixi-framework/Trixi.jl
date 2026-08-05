@@ -354,7 +354,10 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "StructuredMesh2D: elixir_euler_convergence_wavingflag_IDP.jl" setup=[Setup, StructuredMesh2D] tags=[:structured] begin
+@testitem "StructuredMesh2D: elixir_euler_convergence_wavingflag_IDP.jl" setup=[
+    Setup,
+    StructuredMesh2D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_wavingflag_IDP.jl"),
                         l2=[
@@ -384,7 +387,10 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
 end
 
-@testitem "StructuredMesh2D: elixir_euler_convergence_wavingflag_MCL.jl" setup=[Setup, StructuredMesh2D] tags=[:structured] begin
+@testitem "StructuredMesh2D: elixir_euler_convergence_wavingflag_MCL.jl" setup=[
+    Setup,
+    StructuredMesh2D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_wavingflag_MCL.jl"),
                         l2=[

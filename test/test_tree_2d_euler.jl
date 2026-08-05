@@ -1418,7 +1418,10 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh2D Euler: elixir_euler_astro_jet_subcell.jl" setup=[Setup, TreeMesh2DEuler] tags=[:tree_part2] begin
+@testitem "TreeMesh2D Euler: elixir_euler_astro_jet_subcell.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_subcell.jl"),
                         l2=[
                             0.4186473232186195,
