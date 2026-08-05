@@ -512,9 +512,9 @@ end
                                   Val(nvariables(equations))))
     source_node = calc_source_terms_node(u, t, source_terms, node_coordinates,
                                          equations, dg, i, j, element)
-    jacobian_factor = -inverse_jacobian[i, j, element]
+    jacobian_factor = inverse_jacobian[i, j, element]
     du_local = get_node_vars(du, equations, dg, i, j, element) + factor * surface_node
-    du_node = jacobian_factor * du_local + source_node
+    du_node = source_node  - jacobian_factor * du_local
     set_node_vars!(du, du_node, equations, dg, i, j, element)
 end
 
