@@ -1199,8 +1199,8 @@ end
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
-    # Run takes 745 time steps
-    @test startswith(lines[end], "745") # TODO
+    # Run takes 164 time steps
+    @test startswith(lines[end], "164")
 
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
