@@ -706,7 +706,8 @@ end
                                   volume_flux_fv = flux_lax_friedrichs)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. Used with the limiters [`SubcellLimiterIDP`](@ref) and
+[`SubcellLimiterMCL`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is

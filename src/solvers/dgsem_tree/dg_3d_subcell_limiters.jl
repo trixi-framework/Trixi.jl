@@ -66,6 +66,7 @@ end
                                          MeshT::Type{<:Union{TreeMesh{3}, P4estMesh{3}}},
                                          nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralSubcellLimiting,
+                                         limiter::SubcellLimiterIDP,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of DG subcell sizes
     @unpack volume_flux_dg, volume_flux_fv, limiter = volume_integral
