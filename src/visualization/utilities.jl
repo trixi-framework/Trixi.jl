@@ -364,8 +364,8 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
         # Finite volume data (`polydeg = 0` DGSEM, or `BlockFV` with one or more
         # cells per element) consists of piecewise constant (mean) values, so there
         # is nothing to interpolate
-        if !(nvisnodes === nothing || nvisnodes == n_nodes)
-            throw(ArgumentError("For finite volume methods, `nvisnodes` must be `nothing` or the number of cells per element (=$n_nodes); got $nvisnodes."))
+        if !(nvisnodes === nothing || nvisnodes == 0 || nvisnodes == n_nodes)
+            throw(ArgumentError("For finite volume methods, `nvisnodes` must be `nothing`, `0`, or the number of cells per element (=$n_nodes); got $nvisnodes."))
         end
         max_nvisnodes = n_nodes
     elseif nvisnodes === nothing

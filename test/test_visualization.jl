@@ -1230,8 +1230,15 @@ end
     @trixi_test_nowarn Plots.plot(pd_fv)
 
     # `nvisnodes` cannot be chosen freely for finite volume data, since there is
-    # nothing to interpolate: only `nothing` or the native cell resolution are valid.
+    # nothing to interpolate: only `nothing`, `0`, or the native cell resolution are
+    # valid.
     @test_throws ArgumentError PlotData2D(sol; nvisnodes = 5)
+
+    # As for `point_values = true`, `nvisnodes = 0` is a synonym for the native
+    # resolution (i.e., the same as `nvisnodes = nothing`).
+    pd_fv_nvisnodes0 = PlotData2D(sol; nvisnodes = 0)
+    @test pd_fv_nvisnodes0.x == pd_fv.x
+    @test pd_fv_nvisnodes0.data == pd_fv.data
 
     # BlockFV with multiple finite volume cells per element
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
