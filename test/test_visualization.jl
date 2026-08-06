@@ -1120,6 +1120,19 @@ end
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
+
+    # FV (polydeg = 0): heatmap! must get length(x)+1 cell edges, not the
+    # length(x) centers in pd_fv.x/y (else only the inner region gets plotted).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        polydeg=0)
+    pd_fv = PlotData2D(sol)
+    @test !pd_fv.point_values
+
+    _, ax_fv, plt_fv = Makie.plot(pd_fv["scalar"])
+    @test length(plt_fv[1][]) == length(pd_fv.x) + 1
+    @test all(isapprox.(extrema(plt_fv[1][]), (-1, 1)))
+    @test all(isapprox.(extrema(plt_fv[2][]), (-1, 1)))
 end
 @testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[
     Setup,
