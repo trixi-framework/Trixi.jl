@@ -979,7 +979,6 @@ function calc_surface_integral!(backend::Nothing, du, u,
                                 dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
-    MeshT = typeof(mesh)
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
