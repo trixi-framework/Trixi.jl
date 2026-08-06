@@ -788,7 +788,7 @@ end
     jacobian_factor = inverse_jacobian[i, j, k, element]
     du_local = get_node_vars(du, equations, dg, i, j, k, element) +
                factor * surface_node
-    du_node = source_node  - jacobian_factor * du_local
+    du_node = source_node - jacobian_factor * du_local
     set_node_vars!(du, du_node, equations, dg, i, j, k, element)
 end
 end #muladd
