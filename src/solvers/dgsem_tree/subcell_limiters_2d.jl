@@ -539,7 +539,8 @@ end
 
     # negative xi direction
     if i > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
+        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+                             inverse_weights[i] *
                              get_node_vars(antidiffusive_flux1_R, equations, dg,
                                            i, j, element)
         newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
@@ -558,7 +559,8 @@ end
 
     # negative eta direction
     if j > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
+        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+                             inverse_weights[j] *
                              get_node_vars(antidiffusive_flux2_R, equations, dg,
                                            i, j, element)
         newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
