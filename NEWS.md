@@ -5,6 +5,53 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
+## Changes when updating to v0.17 from v0.16.x
+
+#### Added
+
+#### Changed
+- The `NonConservativeJump` terms now require `normal_direction_ll` and
+  `normal_direction_rr` as function arguments instead of the previous averaged
+  `normal_direction` ([#2890]).
+  This is necessary because the averaged `normal_direction` did not yield a consistent
+  jump term.
+- Renamed the hyperbolic right-hand side function `rhs!` to `rhs_hyperbolic!` at
+  the semidiscretization and solver levels for consistency with `rhs_parabolic!` ([#2921]).
+  The internal `default_rhs` helper now rejects `SemidiscretizationHyperbolicParabolic`,
+  which has separate hyperbolic and parabolic right-hand sides and thus lacks a single
+  default right-hand side function.
+- The internal ODE right-hand side functions such as `rhs_hyperbolic!` and
+  `rhs_parabolic!` now dispatch additionally on the backend type ([#3113]).
+  The public interface `rhs_hyperbolic!(du_ode, u_ode, semi, t)` is unchanged.
+- Trixi.jl now uses t8code v4 through T8code.jl v0.9 ([#2706]).
+  This results in some changes to the t8code API in examples and internally in Trixi.jl.
+  Moreover, the `T8codeMesh` constructors gained the keyword argument
+  `partition_allow_for_coarsening`, which keeps same-level sibling elements together
+  during mesh partitioning to allow later coarsening.
+- The function `cons2prim` for `CompressibleNavierStokesDiffusion` has been changed ([#3125]).
+  It now returns the primitive variables `(rho, v1, v2, v3, p)` (identical to the
+  `CompressibleEulerEquations`) instead of `(rho, v1, v2, v3, T)`.
+  The latter functionality is now provided by `cons2prim_temperature` instead
+  (although it may change in future releases since it is labeled as experimental for now).
+
+
+#### Deprecated
+
+#### Removed
+
+- The unnecessary method of `flux_nonconservative_chan_etal` accepting two normal
+  directions was removed ([#3147]). The other methods are still there and unchanged.
+- The keyword argument `n_cells_max` has been removed from the `TreeMesh`
+  constructor and from `load_mesh` ([#3021]). Previously it set the initial
+  capacity of the internal tree data structure; since `TreeMesh` now auto-resizes
+  as needed, the argument is no longer necessary. To migrate, simply remove any
+  `n_cells_max = ...` argument from existing code. `TreeMesh` mesh files no longer
+  store the internal `capacity` HDF5 attribute; new versions derive storage from
+  `n_cells` when loading, while older files that still contain `capacity` remain
+  readable.
+
+
 ## Changes in the v0.16 lifecycle
 
 #### Added
@@ -42,6 +89,7 @@ for human readability.
 - Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]).
 - For performance, `LaplaceDiffusionEntropyVariables` parabolic fluxes for `CompressibleEulerEquations1D`, `CompressibleEulerEquations2D`, and `CompressibleEulerEquations3D` now use explicit Jacobian formulas from Barth 1999 instead of AD ([#3028]). Other equation types continue to use an automatic differentiation fallback.
 - Removed the requirement to pass `uEltype = real(dg)` to the `AnalysisCallback` for `DGMulti` solvers ([#3143]).
+
 
 ## Changes when updating to v0.16 from v0.15.x
 

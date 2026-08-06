@@ -8,7 +8,7 @@ end
                         linf=[0.00016152468882624227])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Burgers: elixir_burgers_linear_stability.jl" setup=[
@@ -20,7 +20,7 @@ end
                         linf=[1.9352238038313998])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Burgers: elixir_burgers_shock.jl" setup=[Setup, TreeMesh1DBurgers] tags=[:tree_part1] begin
@@ -29,7 +29,7 @@ end
                         linf=[1.007778754747701])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Burgers: elixir_burgers_rarefaction.jl" setup=[
@@ -41,5 +41,5 @@ end
                         linf=[1.0049201454652736])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
