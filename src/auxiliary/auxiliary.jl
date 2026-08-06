@@ -260,6 +260,29 @@ macro threaded(expr)
 end
 
 """
+    @trixi_bounds expr
+
+TODO... decide if the default option should be inbounds or not.
+"""
+macro trixi_bounds(expr)
+    # The preference is a compile-time constant, so `@static if` bakes the choice into
+    # the compiled macro: with the preference enabled this expands to exactly
+    # `Base.@inbounds expr` (no runtime overhead), otherwise it is a plain pass-through.
+    expr = @static if _PREFERENCE_INBOUNDS
+        quote
+            $Base.@inbounds $(expr)
+        end
+    else
+        quote
+            $(expr)
+        end
+    end
+    # Use `esc(quote ... end)` for nested macro calls as suggested in
+    # https://github.com/JuliaLang/julia/issues/23221
+    return esc(expr)
+end
+
+"""
     @autoinfiltrate
     @autoinfiltrate condition::Bool
 

@@ -1043,7 +1043,8 @@ end
 # - https://github.com/trixi-framework/Trixi.jl/issues/87
 # - https://github.com/trixi-framework/Trixi.jl/issues/86
 @inline function get_node_coords(x, equations, solver::DG, indices...)
-    return SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
+    return SVector(ntuple(@inline(idx->@trixi_bounds(x[idx, indices...])),
+                          Val(ndims(equations))))
 end
 
 """
@@ -1071,7 +1072,8 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     # compiler for standard `Array`s but not necessarily for more
     # advanced array types such as `PtrArray`s, cf.
     # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
-    return SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
+    return SVector(ntuple(@inline(v->@trixi_bounds(u[v, indices...])),
+                          Val(nvariables(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
@@ -1080,27 +1082,31 @@ end
     # in Julia `v1.5`, leading to type instabilities if
     # more than ten variables are used. That's why we use
     # `Val(...)` below.
-    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
-    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    u_ll = SVector(ntuple(@inline(v->@trixi_bounds(u[1, v, indices...])),
+                          Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->@trixi_bounds(u[2, v, indices...])),
+                          Val(nvariables(equations))))
     return u_ll, u_rr
 end
 
 # As above but dispatches on an type argument
 @inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
-    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
-    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), Val(nvariables(equations))))
+    u_ll = SVector(ntuple(@inline(v->@trixi_bounds(u[1, v, indices...])),
+                          Val(nvariables(equations))))
+    u_rr = SVector(ntuple(@inline(v->@trixi_bounds(u[2, v, indices...])),
+                          Val(nvariables(equations))))
     return u_ll, u_rr
 end
 
 @inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
-    for v in eachvariable(equations)
+    @trixi_bounds for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end
     return nothing
 end
 
 @inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
-    for v in eachvariable(equations)
+    @trixi_bounds for v in eachvariable(equations)
         u[v, indices...] += u_node[v]
     end
     return nothing
@@ -1111,7 +1117,7 @@ end
 # See https://github.com/trixi-framework/Trixi.jl/pull/643
 @inline function multiply_add_to_node_vars!(u, factor, u_node, equations, solver::DG,
                                             indices...)
-    for v in eachvariable(equations)
+    @trixi_bounds for v in eachvariable(equations)
         u[v, indices...] = u[v, indices...] + factor * u_node[v]
     end
     return nothing
