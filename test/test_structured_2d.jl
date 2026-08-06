@@ -569,7 +569,7 @@ end
 ] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
-                        l2=[ # TODO
+                        l2=[
                             0.008160130480726491,
                             0.00865825738179644,
                             0.009351904089607902,
@@ -586,6 +586,41 @@ end
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
     @test maximum(deviations) <= 3.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 10000)
+end
+
+@testitem "StructuredMesh2D: elixir_euler_source_terms_sc_subcell.jl (bar state bounds)" setup=[
+    Setup,
+    StructuredMesh2D
+] tags=[:structured] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_sc_subcell.jl"),
+                        bar_states=true,
+                        cfl=0.9,
+                        l2=[ # TODO
+                            0.008160130480726491,
+                            0.00865825738179644,
+                            0.009351904089607902,
+                            0.027757022476358608
+                        ],
+                        linf=[
+                            0.02722563897519148,
+                            0.04073403153567323,
+                            0.038194069900316485,
+                            0.08080655925682434
+                        ],
+                        tspan=(0.0, 0.5))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test_broken maximum(deviations) <= 3.0e-13 # TODO
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
