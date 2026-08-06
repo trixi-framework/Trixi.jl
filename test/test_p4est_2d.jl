@@ -407,6 +407,11 @@ end
                             6.268843623142863
                         ],
                         tspan=(0.0, 0.3))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -677,6 +682,11 @@ end
                         ],
                         tspan=(0.0, 0.02),
                         atol=1e-7)
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -1170,7 +1180,13 @@ end
                             0.011904250984857088,
                             19.010794903791975
                         ],
-                        tspan=(0.0, 0.1))
+                        tspan=(0.0, 0.1),
+                        # The IMEX solution depends on the LinearSolve.jl version and the
+                        # environment at the 1e-7 level. Since the errors span several
+                        # orders of magnitude here, relax the relative error tolerance
+                        # (an absolute one would render the check on the first component
+                        # meaningless).
+                        rtol=1e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_stiff!, semi, sol, 1000)
