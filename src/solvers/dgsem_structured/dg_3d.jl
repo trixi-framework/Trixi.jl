@@ -934,7 +934,7 @@ function calc_boundary_flux!(cache, t,
     return nothing
 end
 
-function apply_jacobian!(du,
+function apply_jacobian!(backend::Nothing, du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
