@@ -1871,4 +1871,50 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
 
     return curve
 end
+
+#####################################################################
+# BlockFV plotting helpers for P4estMesh{2}.
+# Returns the physical (x,y) corners of all FV cells as two arrays of shape
+# (n+1, n+1, n_elements): one corner shared by up to 4 neighboring FV cells.
+
+function calc_fv_cell_corners(mesh::P4estMesh{2}, solver::BlockFV, cache)
+    n = nnodes(solver)
+    n_elements = nelements(solver, cache)
+    # n+1 equidistant boundary nodes in [-1,1] — the cell edges, not the cell centers.
+    boundary_nodes = SVector{n + 1}(range(-1, 1, length = n + 1))
+    corner_coordinates = Array{Float64}(undef, 2, n + 1, n + 1, n_elements)
+    calc_node_coordinates!(corner_coordinates, mesh, boundary_nodes)
+
+    return corner_coordinates[1, :, :, :], corner_coordinates[2, :, :, :]
+end
+
+# Edge segments for all FV cell boundaries.
+# Returns (x_face, y_face), each (2, n_faces): one column per edge segment.
+function calc_fv_grid_wireframe(corners_x, corners_y)
+    n_plus_1, _, n_elements = size(corners_x)
+    n = n_plus_1 - 1
+    n_faces = 4 * n^2 * n_elements
+    x_face = Array{Float64}(undef, 2, n_faces)
+    y_face = similar(x_face)
+
+    face = 0
+    for element in 1:n_elements
+        for j in 1:n, i in 1:n
+            corners_i = (i, i + 1, i + 1, i)
+            corners_j = (j, j, j + 1, j + 1)
+            for k in 1:4
+                k_next = k == 4 ? 1 : k + 1
+                face += 1
+                x_face[1, face] = corners_x[corners_i[k], corners_j[k], element]
+                x_face[2, face] = corners_x[corners_i[k_next], corners_j[k_next],
+                                            element]
+                y_face[1, face] = corners_y[corners_i[k], corners_j[k], element]
+                y_face[2, face] = corners_y[corners_i[k_next], corners_j[k_next],
+                                            element]
+            end
+        end
+    end
+
+    return x_face, y_face
+end
 end # @muladd
