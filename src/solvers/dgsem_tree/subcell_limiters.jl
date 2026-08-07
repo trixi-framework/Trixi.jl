@@ -358,10 +358,10 @@ end
     delta_u = dt * antidiffusive_flux
     u_curr = u + beta * delta_u
 
-    # If state is valid, perform initial check and return if correction is not needed
-    if isvalid(u_curr, equations)
-        goal = goal_function_newton_idp(variable, bound, u_curr, equations)
-
+    # Evaluate state validity and goal function (if valid)
+    is_valid, goal, state_data = newton_state_data(variable, bound, u_curr, equations)
+    if is_valid
+        # If state is valid, perform initial check and return if correction is not needed
         initial_check(min_or_max, bound, goal, newton_abstol) && return nothing
     end
 
@@ -373,8 +373,9 @@ end
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
-        if isvalid(u_curr, equations)
-            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, delta_u, equations)
+        if is_valid
+            dgoal_dbeta = newton_dgoal_dbeta(variable, u_curr, delta_u, equations,
+                                             state_data)
         else # Otherwise, perform a bisection step
             dgoal_dbeta = zero(beta)
         end
@@ -390,15 +391,16 @@ end
             beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
             u_curr = u + beta * delta_u
+            is_valid, goal, state_data = newton_state_data(variable, bound, u_curr,
+                                                           equations)
 
             # If the state is invalid, finish bisection step without checking tolerance and iterate further
-            if !isvalid(u_curr, equations)
+            if !is_valid
                 beta_R = beta
                 continue
             end
 
             # Check new beta for condition and update bounds
-            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
             if initial_check(min_or_max, bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
@@ -409,15 +411,14 @@ end
         else
             # Get new u
             u_curr = u + beta * delta_u
+            is_valid, goal, state_data = newton_state_data(variable, bound, u_curr,
+                                                           equations)
 
             # If the state is invalid, redefine right bound without checking tolerance and iterate further
-            if !isvalid(u_curr, equations)
+            if !is_valid
                 beta_R = beta
                 continue
             end
-
-            # Evaluate goal function
-            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
@@ -460,6 +461,23 @@ end
                                                                   variable(u, equations)
 @inline function dgoal_function_newton_idp(variable, u, delta_u, equations)
     return -dot(gradient_conservative(variable, u, equations), delta_u)
+end
+
+# Combined Newton data evaluation (state validity and goal function).
+# The default implementation reproduces the previous behavior and is specialized by dispatch.
+# For higher speed-up, use specialized version to avoid more unnecessary recomputations.
+@inline function newton_state_data(variable, bound, u, equations)
+    is_valid = isvalid(u, equations)
+    if is_valid
+        goal = goal_function_newton_idp(variable, bound, u, equations)
+        return is_valid, goal, nothing
+    end
+
+    return false, zero(bound), nothing
+end
+
+@inline function newton_dgoal_dbeta(variable, u, delta_u, equations, state_data)
+    return dgoal_function_newton_idp(variable, u, delta_u, equations)
 end
 
 # Final checks
