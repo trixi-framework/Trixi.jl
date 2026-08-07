@@ -355,10 +355,8 @@ end
 
     beta = 1 - alpha[indices...]
 
-    beta_L = zero(beta) # alpha = 1
-    beta_R = beta # No higher beta (lower alpha) than the current one
-
-    u_curr = u + beta * dt * antidiffusive_flux
+    delta_u = dt * antidiffusive_flux
+    u_curr = u + beta * delta_u
 
     # If state is valid, perform initial check and return if correction is not needed
     if isvalid(u_curr, equations)
@@ -367,14 +365,16 @@ end
         initial_check(min_or_max, bound, goal, newton_abstol) && return nothing
     end
 
+    beta_L = zero(beta) # alpha = 1
+    beta_R = beta # No higher beta (lower alpha) than the current one
+
     # Newton iterations
     for iter in 1:(limiter.max_iterations_newton)
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
         if isvalid(u_curr, equations)
-            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
-                                                    antidiffusive_flux, equations)
+            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, delta_u, equations)
         else # Otherwise, perform a bisection step
             dgoal_dbeta = zero(beta)
         end
@@ -389,7 +389,7 @@ end
             # Out of bounds, do a bisection step
             beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
-            u_curr = u + beta * dt * antidiffusive_flux
+            u_curr = u + beta * delta_u
 
             # If the state is invalid, finish bisection step without checking tolerance and iterate further
             if !isvalid(u_curr, equations)
@@ -408,7 +408,7 @@ end
             end
         else
             # Get new u
-            u_curr = u + beta * dt * antidiffusive_flux
+            u_curr = u + beta * delta_u
 
             # If the state is invalid, redefine right bound without checking tolerance and iterate further
             if !isvalid(u_curr, equations)
@@ -458,9 +458,8 @@ end
 # Goal and d(Goal)/d(u) function
 @inline goal_function_newton_idp(variable, bound, u, equations) = bound -
                                                                   variable(u, equations)
-@inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
-                                           equations)
-    return -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
+@inline function dgoal_function_newton_idp(variable, u, delta_u, equations)
+    return -dot(gradient_conservative(variable, u, equations), delta_u)
 end
 
 # Final checks
