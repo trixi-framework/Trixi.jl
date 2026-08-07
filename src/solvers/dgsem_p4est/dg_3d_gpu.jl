@@ -46,15 +46,15 @@ end
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES,
                                        NNODES)
 
-    @private u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
     # pull the contravariant vectors in each coordinate direction
-    @private Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k,
-                                                 element)
-    @private Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k,
-                                                 element)
-    @private Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k,
-                                                 element)
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k,
+                                        element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k,
+                                        element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k,
+                                        element)
 
     # All diagonal entries of `derivative_split` are zero. Thus, we can skip
     # the computation of the diagonal terms. In addition, we use the symmetry
@@ -180,15 +180,15 @@ end
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES,
                                        NNODES)
 
-    @private u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
     # pull the contravariant vectors in each coordinate direction
-    @private Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k,
-                                                 element)
-    @private Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k,
-                                                 element)
-    @private Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k,
-                                                 element)
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k,
+                                        element)
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k,
+                                        element)
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k,
+                                        element)
 
     # All diagonal entries of `derivative_split` are zero. Thus, we can skip
     # the computation of the diagonal terms. In addition, we use the symmetry

@@ -2,6 +2,15 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 end
 
+@testitem "AMDGPU 3D: testing" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    using AMDGPU
+    using Trixi
+    #    trixi_include(joinpath(EXAMPLES_DIR, "benchmark_all.jl"), storage_type = ROCArray)
+end
+
 @testitem "AMDGPU 3D: elixir_advection_basic.jl native" setup=[Setup, AMDGPU3DExamples] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!

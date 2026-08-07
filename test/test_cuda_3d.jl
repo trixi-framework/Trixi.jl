@@ -2,6 +2,16 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
 end
 
+@testitem "CUDA 3D: testing" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    using CUDA
+    using Trixi
+    #    trixi_include(joinpath(EXAMPLES_DIR, "benchmark_all.jl"), storage_type = CuArray)
+end
+
 @testitem "CUDA 3D: elixir_advection_basic.jl native" setup=[Setup, CUDA3DExamples] tags=[:CUDA] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!

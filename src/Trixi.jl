@@ -411,6 +411,8 @@ function __init__()
     register_error_hints()
 end
 
+include("../benchmark_gpu.jl")
+
 include("auxiliary/precompile.jl")
 _precompile_manual_()
 
