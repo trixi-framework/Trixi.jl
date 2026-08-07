@@ -739,6 +739,61 @@ function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
     return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x)
 end
 
+# PlotData2DTriangulated for BlockFV on P4estMesh{2}.
+# Each FV cell becomes a flat-colored quad (split into 2 triangles) so that
+# cell-to-cell jumps are visible rather than smoothed away by interpolation.
+function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
+                                solution_variables = nothing, kwargs...)
+    @assert ndims(mesh)==2 "Input must be two-dimensional."
+
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names = SVector(varnames(solution_variables_, equations))
+    nvars = length(variable_names)
+    uEltype = eltype(u)
+
+    n = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    n_cells = n^2 * n_elements
+
+    corners_x, corners_y = calc_fv_cell_corners(mesh, dg, cache)
+
+    x = Array{Float64}(undef, 4, n_cells)
+    y = similar(x)
+    data = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype, 4, n_cells),
+                                                       nvars))
+
+    cell = 0
+    for element in 1:n_elements
+        for j in 1:n, i in 1:n
+            cell += 1
+            x[1, cell] = corners_x[i, j, element]
+            x[2, cell] = corners_x[i + 1, j, element]
+            x[3, cell] = corners_x[i + 1, j + 1, element]
+            x[4, cell] = corners_x[i, j + 1, element]
+            y[1, cell] = corners_y[i, j, element]
+            y[2, cell] = corners_y[i + 1, j, element]
+            y[3, cell] = corners_y[i + 1, j + 1, element]
+            y[4, cell] = corners_y[i, j + 1, element]
+
+            u_node = solution_variables_(get_node_vars(u, equations, dg, i, j, element),
+                                         equations)
+            data[1, cell] = u_node
+            data[2, cell] = u_node
+            data[3, cell] = u_node
+            data[4, cell] = u_node
+        end
+    end
+
+    # Reference triangulation: split each quad (corners 1-2-3-4) into 2 triangles.
+    # The plotting recipe expands this to all cells.
+    t = [1 2 3; 1 3 4]
+
+    x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
+
+    return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
+                                  variable_names)
+end
+
 # unwrap u if it is VectorOfArray
 PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
                                                                                              mesh,
