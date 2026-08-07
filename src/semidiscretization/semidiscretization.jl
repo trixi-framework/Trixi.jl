@@ -102,7 +102,7 @@ Optional keyword arguments:
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
-                        reset_threads = true,
+                        reset_threads = true, threaded_broadcast_array = false,
                         storage_type = nothing,
                         real_type = nothing)
     # Optionally reset Polyester.jl threads. See
@@ -127,6 +127,10 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
     rhs_semi! = default_rhs(semi)
+
+    if threaded_broadcast_array
+        u0_ode = ThreadedBroadcastArray(u0_ode)
+    end
 
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
