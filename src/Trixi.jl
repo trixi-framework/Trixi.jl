@@ -322,7 +322,7 @@ export DG,
        IndicatorEntropyCorrection, IndicatorEntropyCorrectionShockCapturingCombined,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
-       MortarL2
+       MortarL2, MortarIDP
 
 export reconstruction_O2_inner, reconstruction_O2_full,
        reconstruction_constant,
@@ -330,7 +330,7 @@ export reconstruction_O2_inner, reconstruction_O2_full,
        koren, koren_flipped, koren_symmetric,
        central_slope
 
-export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback, LimitingAnalysisCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
