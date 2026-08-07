@@ -76,115 +76,94 @@ end
 rows = NamedTuple[]
 for case in cases,
     polydeg in polydegs,
-    initial_refinement_level in levels
+    initial_refinement_level in levels,
+    turbo in (false, true)
 
-    timings = Dict{Tuple{Bool, Int}, NTuple{2, Float64}}()
-    errors = Dict{Int, Float64}()
-    n_elements = 0
-    n_dofs = 0
-    failed = false
-
-    for turbo in (false, true)
-        GC.gc()
-        case_setup = try
-            setup_case(case, polydeg, initial_refinement_level, turbo)
-        catch err
-            message = sprint(showerror, err)
-            if occursin("out of memory", lowercase(message))
-                @printf("\n%s  polydeg %d  level %d : does not fit\n",
-                        case.name, polydeg, initial_refinement_level)
-            else
-                @printf("\n%s  polydeg %d  level %d : FAILED, not a memory limit\n",
-                        case.name, polydeg, initial_refinement_level)
-                println(message)
-            end
-            failed = true
-            break
-        end
-        n_elements = case_setup.n_elements
-        n_dofs = n_elements * (polydeg + 1)^3
-
-        du_reference = nothing
-        for version in versions
-            # warm up
-            launched = try
-                calc_volume_integral_version!(case_setup, version, turbo)
-                KernelAbstractions.synchronize(case_setup.backend)
-                true
-            catch
-                false
-            end
-            if !launched
-                continue
-            end
-
-            time_total = 0.0
-            time_min = Inf
-            for _ in 1:nouter
-                time_batch = @elapsed begin
-                    for _ in 1:nrep
-                        calc_volume_integral_version!(case_setup, version, turbo)
-                    end
-                    KernelAbstractions.synchronize(case_setup.backend)
-                end
-                time_total += time_batch
-                time_min = min(time_min, time_batch / nrep)
-            end
-            time_mean = time_total / (nouter * nrep)
-            timings[(turbo, version)] = (time_mean, time_min)
-
-            fill!(case_setup.du, zero(eltype(case_setup.du)))
-            calc_volume_integral_version!(case_setup, version, turbo)
-            KernelAbstractions.synchronize(case_setup.backend)
-            du_version = Array(case_setup.du)
-            if du_reference === nothing
-                du_reference = du_version
-            end
-            relative_error = maximum(abs.(du_version .- du_reference)) /
-                             maximum(abs, du_reference)
-            errors[version] = max(get(errors, version, 0.0), relative_error)
-        end
-        case_setup = nothing
+    GC.gc()
+    if turbo
+        case_label = case.name * " + FluxTurbo"
+    else
+        case_label = case.name
     end
-    if failed
+
+    case_setup = try
+        setup_case(case, polydeg, initial_refinement_level, turbo)
+    catch err
+        message = sprint(showerror, err)
+        if occursin("out of memory", lowercase(message))
+            @printf("\n%s  polydeg %d  level %d : does not fit\n",
+                    case_label, polydeg, initial_refinement_level)
+        else
+            @printf("\n%s  polydeg %d  level %d : FAILED, not a memory limit\n",
+                    case_label, polydeg, initial_refinement_level)
+            println(message)
+        end
         continue
     end
 
+    n_dofs = case_setup.n_elements * (polydeg + 1)^3
     @printf("\n=== %s   polydeg %d   %d elements   %.2fM DOF ===\n",
-            case.name, polydeg, n_elements, n_dofs/1e6)
-    println(rpad("version", 9), rpad("plain mean", 12), rpad("plain min", 12),
-            rpad("turbo mean", 12), rpad("turbo min", 12), rpad("turbo/plain", 13),
-            "max |du - du_v0|")
+            case_label, polydeg, case_setup.n_elements, n_dofs/1e6)
+    println(rpad("version", 10), rpad("mean [ns/dof]", 15), rpad("min [ns/dof]", 14),
+            rpad("vs v0", 10), "max |du - du_v0|")
+
+    du_reference = nothing
+    time_reference = NaN
     for version in versions
-        plain = get(timings, (false, version), nothing)
-        turbo_timing = get(timings, (true, version), nothing)
-        if plain === nothing && turbo_timing === nothing
-            @printf("%-9d%s\n", version, "  --  launch failed")
+        # warm up
+        launched = try
+            calc_volume_integral_version!(case_setup, version, turbo)
+            KernelAbstractions.synchronize(case_setup.backend)
+            true
+        catch
+            false
+        end
+        if !launched
+            @printf("%-10d%s\n", version, "  --  launch failed")
             continue
         end
-        speedup = "  --  "
-        if plain !== nothing && turbo_timing !== nothing
-            speedup = @sprintf("%.2fx", plain[1]/turbo_timing[1])
+
+        time_total = 0.0
+        time_min = Inf
+        for _ in 1:nouter
+            time_batch = @elapsed begin
+                for _ in 1:nrep
+                    calc_volume_integral_version!(case_setup, version, turbo)
+                end
+                KernelAbstractions.synchronize(case_setup.backend)
+            end
+            time_total += time_batch
+            time_min = min(time_min, time_batch / nrep)
         end
-        show_time(t) = t === nothing ? "  --  " : @sprintf("%.2f", t * 1e9/n_dofs)
-        @printf("%-9d%-12s%-12s%-12s%-12s%-13s%.2e\n", version,
-                show_time(plain === nothing ? nothing : plain[1]),
-                show_time(plain === nothing ? nothing : plain[2]),
-                show_time(turbo_timing === nothing ? nothing : turbo_timing[1]),
-                show_time(turbo_timing === nothing ? nothing : turbo_timing[2]),
-                speedup, get(errors, version, NaN))
-        for (turbo, timing) in ((false, plain), (true, turbo_timing))
-            timing === nothing && continue
-            label = turbo ? case.name * " + FluxTurbo" : case.name
-            push!(rows,
-                  (case = label, polydeg = polydeg,
-                   level = initial_refinement_level, elements = n_elements,
-                   version = version, time = timing[1], time_min = timing[2],
-                   ns_per_dof = timing[1] * 1e9 / n_dofs,
-                   ns_per_dof_min = timing[2] * 1e9 / n_dofs,
-                   relative_error = get(errors, version, NaN)))
+        time_mean = time_total / (nouter * nrep)
+
+        fill!(case_setup.du, zero(eltype(case_setup.du)))
+        calc_volume_integral_version!(case_setup, version, turbo)
+        KernelAbstractions.synchronize(case_setup.backend)
+        du_version = Array(case_setup.du)
+        if du_reference === nothing
+            du_reference = du_version
+            time_reference = time_mean
         end
+        relative_error = maximum(abs.(du_version .- du_reference)) /
+                         maximum(abs, du_reference)
+
+        push!(rows,
+              (case = case_label, polydeg = polydeg,
+               level = initial_refinement_level,
+               elements = case_setup.n_elements, version = version,
+               time = time_mean, time_min = time_min,
+               ns_per_dof = time_mean * 1e9 / n_dofs,
+               ns_per_dof_min = time_min * 1e9 / n_dofs,
+               vs_v0 = time_reference / time_mean,
+               relative_error = relative_error))
+        @printf("%-10d%-15.2f%-14.2f%-10s%.2e\n", version,
+                time_mean * 1e9/n_dofs,
+                time_min * 1e9/n_dofs,
+                @sprintf("%.2fx", time_reference/time_mean),
+                relative_error)
     end
+    case_setup = nothing
 end
 
 mkpath(outdir)
