@@ -12,5 +12,5 @@ Trixi = {path = "../.."}
 AMDGPU = "2.3"
 JSON = "1.4.0"
 OrdinaryDiffEqLowStorageRK = "1.12.0"
-TimerOutputs = "0.5.25, 1"
+TimerOutputs = "0.5.25, 1.1.1"
 Trixi = "0.17"
