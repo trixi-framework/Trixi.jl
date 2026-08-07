@@ -604,22 +604,24 @@ end
                                  "elixir_euler_source_terms_sc_subcell.jl"),
                         bar_states=true,
                         cfl=0.9,
-                        l2=[ # TODO
-                            0.008160130480726491,
-                            0.00865825738179644,
-                            0.009351904089607902,
-                            0.027757022476358608
+                        l2=[
+                            0.007050260170792767,
+                            0.005281938990317053,
+                            0.006451220452593299,
+                            0.01829082115660338
                         ],
                         linf=[
-                            0.02722563897519148,
-                            0.04073403153567323,
-                            0.038194069900316485,
-                            0.08080655925682434
+                            0.029443047251148435,
+                            0.02877159585953115,
+                            0.0287615090647364,
+                            0.0755876804347948
                         ],
                         tspan=(0.0, 0.5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
+    # The bar states bounds should be considering the source terms. This is currently not implemented.
+    # Therefore, this tests is broken.
     @test_broken maximum(deviations) <= 3.0e-13 # TODO
 
     # Ensure that we do not have excessive memory allocations
