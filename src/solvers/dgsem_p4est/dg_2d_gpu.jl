@@ -1,4 +1,4 @@
-using KernelAbstractions: @synchronize, @localmem 
+using KernelAbstractions: @synchronize, @localmem
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
