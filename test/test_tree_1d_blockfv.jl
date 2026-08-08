@@ -91,6 +91,44 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "BlockFV 1D: elixir_euler_fvO2.jl" setup=[Setup, TreeMesh1DBlockFV] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        l2=[
+                            0.00017170000368369232,
+                            0.00017695136133033884,
+                            0.0005490514030400933
+                        ],
+                        linf=[
+                            0.0006228589670183027,
+                            0.0005996662214733384,
+                            0.0013619534679571998
+                        ])
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 1D: elixir_euler_fvO2.jl with n_nodes=1" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
+    #covers the single-cell surface reconstruction n_nodes=1 case
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        n_nodes=1,
+                        tspan=(0.0, 0.1))
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 1D: elixir_euler_fvO2.jl (convergence)" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
+    using Trixi: convergence_test
+    eocs, _ = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                               3)
+    mean_convergence = Trixi.calc_mean_convergence(eocs)
+    @test isapprox(mean_convergence[:l2], [2.0, 2.0, 2.0], rtol = 0.05)
+    @test isapprox(mean_convergence[:linf], [2.0, 2.0, 2.0], rtol = 0.05)
+end
+
 @testitem "BlockFV 1D: UniformFiniteVolumeBasis and VolumeIntegralFiniteVolume" setup=[Setup] tags=[:tree_part1] begin
     basis = UniformFiniteVolumeBasis(4)
     @test Trixi.polydeg(basis) == 0
@@ -100,4 +138,10 @@ end
                       integral)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       integral)
+
+    integral_o2 = VolumeIntegralFiniteVolumeO2(4, flux_lax_friedrichs)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      integral_o2)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      integral_o2)
 end

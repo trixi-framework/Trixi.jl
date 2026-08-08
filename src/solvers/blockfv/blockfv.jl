@@ -66,6 +66,55 @@ function Base.show(io::IO, ::MIME"text/plain",
     summary_box(io, "VolumeIntegralFiniteVolume", setup)
 end
 
+"""
+    VolumeIntegralFiniteVolumeO2(n_nodes, surface_flux;
+                                 slope_limiter = minmod,
+                                 cons2recon = cons2prim,
+                                 recon2cons = prim2cons,
+                                 RealT = Float64)
+
+Second-order volume integral for [`BlockFVO2`](@ref) with higher order reconstruction.
+"""
+struct VolumeIntegralFiniteVolumeO2{InterfaceCoords, SurfaceFlux,
+                                    Limiter, Cons2Recon, Recon2Cons} <:
+       AbstractVolumeIntegral
+    sc_interface_coords::InterfaceCoords
+    surface_flux::SurfaceFlux
+    slope_limiter::Limiter
+    cons2recon::Cons2Recon
+    recon2cons::Recon2Cons
+end
+
+function VolumeIntegralFiniteVolumeO2(n_nodes::Integer, surface_flux;
+                                      slope_limiter = minmod,
+                                      cons2recon = cons2prim,
+                                      recon2cons = prim2cons,
+                                      RealT = Float64)
+    sc_interface_coords = SVector{n_nodes - 1, RealT}(ntuple(i -> -1 +
+                                                                  2 * RealT(i) /
+                                                                  RealT(n_nodes),
+                                                             n_nodes - 1))
+    return VolumeIntegralFiniteVolumeO2{typeof(sc_interface_coords),
+                                        typeof(surface_flux),
+                                        typeof(slope_limiter),
+                                        typeof(cons2recon),
+                                        typeof(recon2cons)}(sc_interface_coords,
+                                                            surface_flux,
+                                                            slope_limiter,
+                                                            cons2recon,
+                                                            recon2cons)
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::VolumeIntegralFiniteVolumeO2)
+    @nospecialize integral
+    setup = ["surface flux" => integral.surface_flux,
+        "Slope limiter" => integral.slope_limiter,
+        "cons2recon" => integral.cons2recon,
+        "recon2cons" => integral.recon2cons]
+    summary_box(io, "VolumeIntegralFiniteVolumeO2", setup)
+end
+
 # Type alias: BlockFV is a DG solver whose basis is a UniformFiniteVolumeBasis
 """
     BlockFV(; n_nodes::Integer,
@@ -90,9 +139,47 @@ function BlockFV(; n_nodes::Integer,
     return DG(basis, basis, surface_integral, volume_integral)
 end
 
+"""
+    BlockFVO2(; n_nodes::Integer,
+                surface_flux,
+                slope_limiter = minmod,
+                cons2recon = cons2prim,
+                recon2cons = prim2cons,
+                RealT = Float64)
+
+Create a second-order block finite volume solver with high-order volume reconstruction.
+See [`VolumeIntegralFiniteVolumeO2`](@ref).
+
+!!! warning "Experimental code"
+    This code is experimental and may change in any future release.
+"""
+const BlockFVO2 = DG{Basis, Mortar, SurfaceIntegral,
+                     VolumeIntegral} where {
+                                            Basis <: UniformFiniteVolumeBasis,
+                                            Mortar,
+                                            SurfaceIntegral,
+                                            VolumeIntegral <:
+                                            VolumeIntegralFiniteVolumeO2}
+
+function BlockFVO2(; n_nodes::Integer,
+                   surface_flux,
+                   slope_limiter = minmod,
+                   cons2recon = cons2prim,
+                   recon2cons = prim2cons,
+                   RealT = Float64)
+    basis = UniformFiniteVolumeBasis(RealT, n_nodes)
+    volume_integral = VolumeIntegralFiniteVolumeO2(n_nodes, surface_flux;
+                                                   slope_limiter = slope_limiter,
+                                                   cons2recon = cons2recon,
+                                                   recon2cons = recon2cons,
+                                                   RealT = RealT)
+    surface_integral = SurfaceIntegralWeakForm(surface_flux)
+    return DG(basis, basis, surface_integral, volume_integral)
+end
+
 function Base.show(io::IO, mime::MIME"text/plain", dg::BlockFV)
     @nospecialize dg
-    summary_header(io, "BlockFV")
+    summary_header(io, dg isa BlockFVO2 ? "BlockFVO2" : "BlockFV")
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar method", dg.mortar)
     summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
