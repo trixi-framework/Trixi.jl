@@ -12,6 +12,7 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    set_zero!(backend, du, dg, cache)
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,

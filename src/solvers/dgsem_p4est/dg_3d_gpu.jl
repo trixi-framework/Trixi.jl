@@ -10,6 +10,7 @@
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralFluxDifferencing,
                                        dg::DGSEM, cache)
+    set_zero!(nothing, du, dg, cache)
     return calc_volume_integral!(nothing, du, u, mesh, have_nonconservative_terms,
                                  equations, volume_integral, dg, cache)
 end
@@ -19,6 +20,7 @@ end
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralFluxDifferencing{<:FluxTurbo},
                                        dg::DGSEM, cache)
+    set_zero!(nothing, du, dg, cache)
     return calc_volume_integral!(nothing, du, u, mesh, have_nonconservative_terms,
                                  equations, volume_integral, dg, cache)
 end
@@ -118,7 +120,7 @@ end
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -182,7 +184,7 @@ end
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @inline function calc_volume_integral!(backend::Backend, du, u,
@@ -279,7 +281,7 @@ end
                    (alpha * derivative_split[k, kk]) * SVector{NVARIABLES}(fluxtilde3)
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -357,7 +359,7 @@ end
                    SVector{NVARIABLES}(fluxtilde3_left)
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,

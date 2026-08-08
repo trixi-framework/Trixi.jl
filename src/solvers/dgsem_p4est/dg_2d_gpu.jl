@@ -15,11 +15,6 @@ function rhs_hyperbolic!(backend::Backend,
                          boundary_conditions, source_terms::Source,
                          dg::DG, cache) where {Source}
 
-    # Reset du
-    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
-        set_zero!(du, dg, cache)
-    end
-
     # Calculate volume integral
     @trixi_timeit_ext backend timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
