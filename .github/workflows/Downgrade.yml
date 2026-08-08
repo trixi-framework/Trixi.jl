@@ -26,6 +26,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   downgrade_test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
@@ -75,6 +79,18 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v3
+        with:
+          # Do not save cache files when the job failed. We have observed several
+          # failing CI jobs likely due to corrupted caches. In this case, we must
+          # not save the corrupted files to the cache, which would lead to the same
+          # issues again in the next run.
+          save-always: 'false'
+      - name: Remove cached Julia precompile locks
+        # At this stage, no Julia process should be running. Thus, we can remove
+        # stale files created by Julia to indicate a running precompilation job.
+        # We have observed that such stale files lead to unsuccessful CI jobs.
+        run: |
+          find ~/.julia/compiled -type f -name '*.pidfile' -print -delete
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
