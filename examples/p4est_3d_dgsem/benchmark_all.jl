@@ -6,6 +6,8 @@ using Printf
 
 polydegs = (2, 3, 4, 5, 6)
 versions = (0, 1, 2, 3, 4, 5, 6, 7, 8)
+polydegs = (3, 4, 5, 6, 7)
+versions = (0, 1, 2, 5)
 trees_per_dimension = (4, 4, 4)
 levels = (3, 4)
 cases = ((name = "Euler / flux_ranocha",
@@ -75,9 +77,9 @@ end
 
 rows = NamedTuple[]
 for case in cases,
-    polydeg in polydegs,
-    initial_refinement_level in levels,
     turbo in (false, true)
+    initial_refinement_level in levels,
+    polydeg in polydegs
 
     GC.gc()
     if turbo

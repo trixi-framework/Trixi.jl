@@ -8,7 +8,7 @@ end
 ] tags=[:AMDGPU] begin
     using AMDGPU
     using Trixi
-    #    trixi_include(joinpath(EXAMPLES_DIR, "benchmark_all.jl"), storage_type = ROCArray)
+    trixi_include(joinpath(EXAMPLES_DIR, "benchmark_all.jl"), storage_type = ROCArray)
 end
 
 @testitem "AMDGPU 3D: elixir_advection_basic.jl native" setup=[Setup, AMDGPU3DExamples] tags=[:AMDGPU] begin

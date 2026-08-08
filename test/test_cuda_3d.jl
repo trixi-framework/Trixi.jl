@@ -9,7 +9,7 @@ end
     # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using CUDA
     using Trixi
-    #    trixi_include(joinpath(EXAMPLES_DIR, "benchmark_all.jl"), storage_type = CuArray)
+    trixi_include(joinpath(EXAMPLES_DIR, "benchmark_all.jl"), storage_type = CuArray)
 end
 
 @testitem "CUDA 3D: elixir_advection_basic.jl native" setup=[Setup, CUDA3DExamples] tags=[:CUDA] begin
