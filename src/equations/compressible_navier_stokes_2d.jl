@@ -634,4 +634,59 @@ end
     # for Dirichlet boundary conditions, we do not impose any conditions on the parabolic fluxes
     return flux_inner
 end
+
+struct RadiativeEquilibriumHeatFluxContainer2D{uEltype <: Real}
+    heat_flux_values::Array{uEltype, 3} # [i, direction, elements]
+        # internal `resize!`able storage
+    _heat_flux_values::Vector{uEltype}
+end
+
+function init_radiative_equilibrium_heat_flux_container(boundary_container::Union{TreeBoundaryContainer2D, P4estBoundaryContainer{2}})
+    _, _, n_nodes, capacity = size(boundary_container.u)
+
+    _heat_flux_values = fill(nan_uEltype, n_nodes * 2 * 2 * capacity)
+    heat_flux_values = unsafe_wrap(Array, pointer(_heat_flux_values),
+                                   (n_nodes, 2 * 2, capacity))
+
+    return RadiativeEquilibriumHeatFluxContainer2D(heat_flux_values, _heat_flux_values)
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
+                                                                        <:RadiativeEquilibriumOneWay})(flux_inner,
+                                                                                                       u_inner,
+                                                                                                       normal::AbstractVector,
+                                                                                                       x,
+                                                                                                       t,
+                                                                                                       operator_type::Gradient,
+                                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    v1, v2 = boundary_condition.boundary_condition_velocity.boundary_value_function(x,
+                                                                                    t,
+                                                                                    equations)
+
+    mu = dynamic_viscosity(u_inner, equations)
+    _, tau_1n, tau_2n, normal_energy_flux = flux_inner
+
+    # For moving walls one needs to remove the kinetic energy from the total energy.
+    # For stationary walls, this could be omitted.
+    normal_heat_flux = normal_energy_flux - (v1 * tau_1n + v2 * tau_2n) * mu
+
+    rad_eq_bc = boundary_condition.boundary_condition_heat_flux
+
+    T_w = solve_radiative_equilibrium_temperature(normal_heat_flux,
+                                                  rad_eq_bc)
+
+    return SVector(u_inner[1], v1, v2, T_w)
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
+                                                                        <:RadiativeEquilibriumOneWay})(flux_inner,
+                                                                                                       u_inner,
+                                                                                                       normal::AbstractVector,
+                                                                                                       x,
+                                                                                                       t,
+                                                                                                       operator_type::Divergence,
+                                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    # Same as no-slip isothermal
+    return flux_inner
+end
 end # @muladd
