@@ -77,8 +77,7 @@ end
 
 rows = NamedTuple[]
 for case in cases,
-    turbo in (false, true)
-
+    turbo in (false, true),
     initial_refinement_level in levels,
     polydeg in polydegs
 
