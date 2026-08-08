@@ -455,8 +455,10 @@ end
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     for v in eachvariable(equations)
-        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
-        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_[v]
+        surface_flux_values[v, primary_node_index, primary_direction_index,
+                            primary_element_index] = flux_[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index,
+                            secondary_element_index] = -flux_[v]
     end
 
     return nothing
@@ -515,12 +517,14 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v] +
-                                                                                                     0.5f0 *
-                                                                                                     noncons_primary[v]
-        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -(flux_[v] +
-                                                                                                             0.5f0 *
-                                                                                                             noncons_secondary[v])
+        surface_flux_values[v, primary_node_index, primary_direction_index,
+                            primary_element_index] = flux_[v] +
+                                                     0.5f0 *
+                                                     noncons_primary[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index,
+                            secondary_element_index] = -(flux_[v] +
+                                                         0.5f0 *
+                                                         noncons_secondary[v])
     end
 
     return nothing
@@ -545,8 +549,10 @@ end
     flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     for v in eachvariable(equations)
-        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_left[v]
-        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_right[v]
+        surface_flux_values[v, primary_node_index, primary_direction_index,
+                            primary_element_index] = flux_left[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index,
+                            secondary_element_index] = -flux_right[v]
     end
 
     return nothing
@@ -799,7 +805,7 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     return nothing
 end
 
-function prolong2mortars!(cache, u,
+function prolong2mortars!(backend::Nothing, cache, u,
                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                           equations,
                           mortar_l2::LobattoLegendreMortarL2,
@@ -867,7 +873,7 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(backend::Nothing, surface_flux_values,
                            mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                            have_nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -875,7 +881,7 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1010,8 +1016,9 @@ end
         element = neighbor_ids[position, mortar]
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v,
-                                                                                              i]
+                surface_flux_values[v, i, small_direction,
+                                    element] = fstar_primary[position][v,
+                                                                       i]
             end
         end
     end
@@ -1041,8 +1048,9 @@ end
     if :i_backward in large_indices
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
-                                                                                               i]
+                surface_flux_values[v, end + 1 - i, large_direction,
+                                    large_element] = u_buffer[v,
+                                                              i]
             end
         end
     else
@@ -1199,13 +1207,13 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
+        prolong2mortars!(backend, cache, u, mesh, equations,
                          dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end

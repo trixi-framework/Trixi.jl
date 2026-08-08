@@ -286,17 +286,19 @@ end
 
 function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, mpi_mortars, nvars,
                          nnodes, uEltype)
-    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(elements,
-                                                                                                       mpi_interfaces,
-                                                                                                       mpi_mortars,
-                                                                                                       mesh)
+    mpi_neighbor_ranks, mpi_neighbor_interfaces,
+    mpi_neighbor_mortars = init_mpi_neighbor_connectivity(elements,
+                                                          mpi_interfaces,
+                                                          mpi_mortars,
+                                                          mesh)
 
-    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                                                                        mpi_neighbor_mortars,
-                                                                                                        ndims(mesh),
-                                                                                                        nvars,
-                                                                                                        nnodes,
-                                                                                                        uEltype)
+    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests,
+    mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                 mpi_neighbor_mortars,
+                                                 ndims(mesh),
+                                                 nvars,
+                                                 nnodes,
+                                                 uEltype)
 
     # Determine local and total number of elements
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
@@ -511,13 +513,13 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u, mesh, equations,
+        prolong2mortars!(backend, cache, u, mesh, equations,
                          dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
@@ -772,7 +774,8 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mpi_mortars
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+            fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
