@@ -350,6 +350,9 @@ end
                               equations, dt, limiter, antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
+    isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
+    iszero(antidiffusive_flux) && return nothing # Skip if antidiffusive flux vanishes
+
     beta = 1 - alpha[indices...]
 
     beta_L = 0 # alpha = 1
