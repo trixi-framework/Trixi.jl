@@ -3,6 +3,11 @@
     return SVector(ntuple(v -> (@inbounds flux_local[v, indices...]), Val(NVARIABLES)))
 end
 
+@inline function get_node_turbo(turbo_local, ::Val{NAUX},
+                                indices...) where {NAUX}
+    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
+end
+
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
