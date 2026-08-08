@@ -265,12 +265,21 @@ end
     return nothing
 end
 
-function prolong2boundaries_per_boundary!(u,
-                                          MeshT::Type{<:Union{P4estMesh{2},
-                                                              P4estMeshView{2},
-                                                              T8codeMesh{2}}},
-                                          equations, dg::DG, index_range, u_boundaries,
-                                          neighbor_ids, node_indices, boundary)
+# Number of surface nodes of a single boundary. Together with the number of
+# boundaries this makes up the `ndrange` of the boundary kernels below, i.e.,
+# every surface node is handled by its own GPU thread.
+@inline function boundary_node_ndrange(mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                   T8codeMesh{2}}, dg)
+    return (nnodes(dg),)
+end
+
+@inline function prolong2boundaries_per_node!(u,
+                                              MeshT::Type{<:Union{P4estMesh{2},
+                                                                  P4estMeshView{2},
+                                                                  T8codeMesh{2}}},
+                                              equations, dg::DG, index_range,
+                                              u_boundaries,
+                                              neighbor_ids, node_indices, i, boundary)
     # Copy solution data from the element using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
     element = neighbor_ids[boundary]
@@ -279,15 +288,11 @@ function prolong2boundaries_per_boundary!(u,
     i_node_start, i_node_step = index_to_start_step_2d(node_index[1], index_range)
     j_node_start, j_node_step = index_to_start_step_2d(node_index[2], index_range)
 
-    i_node = i_node_start
-    j_node = j_node_start
-    for i in eachnode(dg)
-        for v in eachvariable(equations)
-            u_boundaries[v, i, boundary] = u[v, i_node, j_node, element]
-        end
-        i_node += i_node_step
-        j_node += j_node_step
-    end
+    i_node = delayed_index_2d(i_node_start, i_node_step, i)
+    j_node = delayed_index_2d(j_node_start, j_node_step, i)
+
+    u_node = get_node_vars(u, equations, dg, i_node, j_node, element)
+    set_node_vars!(u_boundaries, u_node, equations, dg, i, boundary)
 
     return nothing
 end
@@ -298,26 +303,26 @@ end
                                                                 T8codeMesh{2}}},
                                             equations, dg, index_range,
                                             u_boundaries, neighbor_ids, node_indices)
-    boundary = @index(Global)
-    prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
-                                     neighbor_ids, node_indices, boundary)
+    i, boundary = @index(Global, NTuple)
+    prolong2boundaries_per_node!(u, MeshT, equations, dg, index_range, u_boundaries,
+                                 neighbor_ids, node_indices, i, boundary)
 end
 
-@inline function calc_boundary_flux_per_boundary!(u,
-                                                  surface_flux_values, t,
-                                                  boundary_condition,
-                                                  MeshT::Type{<:Union{P4estMesh{2},
-                                                                      P4estMeshView{2},
-                                                                      T8codeMesh{2}}},
-                                                  equations, surface_integral, dg,
-                                                  cache,
-                                                  boundary, neighbor_ids,
-                                                  node_indices_arr,
-                                                  index_range, node_coordinates,
-                                                  contravariant_vectors)
+@inline function calc_boundary_flux_per_node!(u,
+                                              surface_flux_values, t,
+                                              boundary_condition,
+                                              MeshT::Type{<:Union{P4estMesh{2},
+                                                                  P4estMeshView{2},
+                                                                  T8codeMesh{2}}},
+                                              equations, surface_integral, dg,
+                                              cache,
+                                              boundary, neighbor_ids,
+                                              node_indices_arr,
+                                              index_range, node_coordinates,
+                                              contravariant_vectors, i)
 
-    # Get information on the adjacent element, compute the surface fluxes,
-    # and store them
+    # Get information on the adjacent element, compute the surface flux,
+    # and store it
     element = neighbor_ids[boundary]
     node_indices = node_indices_arr[boundary]
     direction = indices2direction(node_indices)
@@ -325,16 +330,45 @@ end
     i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
     j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
 
-    i_node = i_node_start
-    j_node = j_node_start
-    for i in eachnode(dg)
-        calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
-                            have_nonconservative_terms(equations), equations,
-                            surface_integral, dg, cache, i_node, j_node,
-                            i, direction, element, boundary, node_coordinates,
-                            contravariant_vectors)
-        i_node += i_node_step
-        j_node += j_node_step
+    i_node = delayed_index_2d(i_node_start, i_node_step, i)
+    j_node = delayed_index_2d(j_node_start, j_node_step, i)
+
+    calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
+                        have_nonconservative_terms(equations), equations,
+                        surface_integral, dg, cache, i_node, j_node,
+                        i, direction, element, boundary, node_coordinates,
+                        contravariant_vectors)
+
+    return nothing
+end
+
+@kernel function calc_boundary_flux_kernel!(u,
+                                            surface_flux_values,
+                                            boundary_condition_indices,
+                                            neighbor_ids,
+                                            node_indices_arr,
+                                            t,
+                                            boundary_condition,
+                                            index_range,
+                                            MeshT::Type{<:Union{P4estMesh{2},
+                                                                P4estMeshView{2},
+                                                                T8codeMesh{2}}},
+                                            equations,
+                                            surface_integral,
+                                            dg,
+                                            cache, node_coordinates,
+                                            contravariant_vectors)
+    i, local_index = @index(Global, NTuple)
+
+    if local_index <= length(boundary_condition_indices)
+        boundary = boundary_condition_indices[local_index]
+
+        calc_boundary_flux_per_node!(u,
+                                     surface_flux_values, t, boundary_condition,
+                                     MeshT, equations, surface_integral, dg, cache,
+                                     boundary, neighbor_ids, node_indices_arr,
+                                     index_range, node_coordinates,
+                                     contravariant_vectors, i)
     end
 end
 
