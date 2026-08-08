@@ -408,18 +408,32 @@ function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); plot_mesh = false)
     return FigureAndAxes(fig, axes)
 end
 
+# For cell (mean) values (finite volume / `polydeg = 0`), `x`/`y` are cell centers,
+# so we turn them into `N + 1` cell edges here.
+function _cartesian_plot_coordinates(x, point_values)
+    if point_values
+        return x
+    else
+        dx = (x[end] - x[begin]) / (length(x) - 1)
+        return collect(range(x[begin] - dx / 2, x[end] + dx / 2,
+                             length = length(x) + 1))
+    end
+end
+
 # Makie recipe for 2D PlotDataSeries
 function Makie.convert_arguments(::Type{<:Makie.Plot},
                                  pds::PlotDataSeries{<:PlotData2DCartesian})
     @unpack plot_data, variable_id = pds
-    @unpack x, y, data = plot_data
-    return (x, y, permutedims(data[variable_id])) # permutedims to match the axis convention of Plots.jl
+    @unpack x, y, data, point_values = plot_data
+    x_plot = _cartesian_plot_coordinates(x, point_values)
+    y_plot = _cartesian_plot_coordinates(y, point_values)
+    return (x_plot, y_plot, permutedims(data[variable_id])) # permutedims to match the axis convention of Plots.jl
 end
 
 function Makie.plot(pds::PlotDataSeries{<:PlotData2DCartesian},
                     fig = Makie.Figure(); kwargs...)
     @unpack plot_data, variable_id = pds
-    @unpack x, y, variable_names = plot_data
+    @unpack x, y, variable_names, point_values = plot_data
     ax = Makie.Axis(fig[1, 1],
                     title = variable_names[variable_id],
                     xlabel = _makie_guide(plot_data.orientation_x),
@@ -427,8 +441,10 @@ function Makie.plot(pds::PlotDataSeries{<:PlotData2DCartesian},
     plt = Makie.heatmap!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
     Makie.Colorbar(fig[1, 2], plt)
     ax.aspect = Makie.DataAspect()
-    Makie.xlims!(ax, x[begin], x[end])
-    Makie.ylims!(ax, y[begin], y[end])
+    x_plot = _cartesian_plot_coordinates(x, point_values)
+    y_plot = _cartesian_plot_coordinates(y, point_values)
+    Makie.xlims!(ax, x_plot[begin], x_plot[end])
+    Makie.ylims!(ax, y_plot[begin], y_plot[end])
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
@@ -450,7 +466,7 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
     axes = Matrix{Makie.Axis}(undef, rows, cols)
     for (i, (variable_name, pds)) in enumerate(pd)
         row, col = cld(i, cols), mod1(i, cols)
-        @unpack x, y, mesh_vertices_x, mesh_vertices_y = pds.plot_data
+        @unpack x, y, mesh_vertices_x, mesh_vertices_y, point_values = pds.plot_data
         ax = Makie.Axis(fig[row, col],
                         title = variable_name,
                         xlabel = _makie_guide(pd.orientation_x),
@@ -459,8 +475,10 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
         plt = Makie.heatmap!(ax, pds; colormap)
         Makie.Colorbar(fig[row, col][1, 2], plt)
         ax.aspect = Makie.DataAspect()
-        Makie.xlims!(ax, x[begin], x[end])
-        Makie.ylims!(ax, y[begin], y[end])
+        x_plot = _cartesian_plot_coordinates(x, point_values)
+        y_plot = _cartesian_plot_coordinates(y, point_values)
+        Makie.xlims!(ax, x_plot[begin], x_plot[end])
+        Makie.ylims!(ax, y_plot[begin], y_plot[end])
         if plot_mesh
             Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
                          color = :grey, linewidth = 1)
