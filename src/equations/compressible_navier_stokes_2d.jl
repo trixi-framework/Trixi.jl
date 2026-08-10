@@ -111,10 +111,10 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
     Pr = promote_type(typeof(gamma), typeof(Prandtl), typeof(R))(Prandtl)
     R = convert(typeof(Pr), R)
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ / ((gamma-1) Prandtl).
+    # constant is kappa = gamma μ R / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Pr
+    kappa = gamma * inv_gamma_minus_one * R / Pr
 
     return CompressibleNavierStokesDiffusion2D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
