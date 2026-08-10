@@ -23,7 +23,6 @@ coordinates_max = (100.0, 200.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 """

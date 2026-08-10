@@ -2,7 +2,7 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
 end
 
-@testitem "TreeMesh3D: Additional tests in 3D (compressible Euler)" setup=[Setup] tags=[:tree_part5] begin
+@testitem "TreeMesh3D: Additional tests in 3D (compressible Euler)" setup=[Setup] tags=[:tree_part4] begin
     using Trixi: CompressibleEulerEquations3D, energy_total, energy_kinetic,
                  energy_internal
     eqn = CompressibleEulerEquations3D(1.4)
@@ -12,13 +12,13 @@ end
     @test isapprox(energy_internal([1.0, 2.0, 3.0, 4.0, 20], eqn), 5.5)
 end
 
-@testitem "TreeMesh3D: Additional tests in 3D (hyperbolic diffusion)" setup=[Setup] tags=[:tree_part5] begin
+@testitem "TreeMesh3D: Additional tests in 3D (hyperbolic diffusion)" setup=[Setup] tags=[:tree_part4] begin
     using Trixi: HyperbolicDiffusionEquations3D
     @test_nowarn HyperbolicDiffusionEquations3D(nu = 1.0)
     eqn = HyperbolicDiffusionEquations3D(nu = 1.0)
 end
 
-@testitem "TreeMesh3D: Additional tests in 3D (ideal GLM MHD)" setup=[Setup] tags=[:tree_part6] begin
+@testitem "TreeMesh3D: Additional tests in 3D (ideal GLM MHD)" setup=[Setup] tags=[:tree_part5] begin
     using Trixi: Trixi, IdealGlmMhdEquations3D, density, pressure, density_pressure,
                  energy_total, energy_kinetic, energy_magnetic, energy_internal,
                  entropy, entropy_math, entropy_thermodynamic,
@@ -42,7 +42,7 @@ end
     @test isapprox(cross_helicity(u, eqn), 2.0)
 end
 
-@testitem "TreeMesh3D: Displaying components 3D" setup=[Setup, TreeMesh3DMisc] tags=[:tree_part5] begin
+@testitem "TreeMesh3D: Displaying components 3D" setup=[Setup, TreeMesh3DMisc] tags=[:tree_part4] begin
     @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
 
     # test both short and long printing formats

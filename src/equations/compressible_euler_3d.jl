@@ -1774,7 +1774,12 @@ end
     return abs(v1) + c, abs(v2) + c, abs(v3) + c
 end
 
-# Convert conservative variables to primitive
+"""
+    cons2prim(u, equations::CompressibleEulerEquations3D)
+
+Convert conservative variables `u = (rho, rho*v1, rho*v2, rho*v3, rho*e_total)` to
+primitive variables `(rho, v1, v2, v3, p)`.
+"""
 @inline function cons2prim(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
 
@@ -1856,7 +1861,12 @@ end
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e_total)
 end
 
-# Convert primitive to conservative variables
+"""
+    prim2cons(prim, equations::CompressibleEulerEquations3D)
+
+Convert primitive variables `prim = (rho, v1, v2, v3, p)` to
+conservative variables `(rho, rho*v1, rho*v2, rho*v3, rho*e_total)`.
+"""
 @inline function prim2cons(prim, equations::CompressibleEulerEquations3D)
     rho, v1, v2, v3, p = prim
     rho_v1 = rho * v1
