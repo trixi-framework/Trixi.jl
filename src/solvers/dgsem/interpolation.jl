@@ -114,6 +114,11 @@ end
 # 1D version
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::AbstractMatrix,
                                  data_in::AbstractArray{<:Any, 2})
+    multiply_dimensionwise!(nothing, data_out, matrix, data_in)
+end
+function multiply_dimensionwise!(backend::Nothing, data_out::AbstractArray{<:Any, 2},
+                                 matrix::AbstractMatrix,
+                                 data_in::AbstractArray{<:Any, 2})
     # @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
     @turbo for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
@@ -126,12 +131,13 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::Abst
     return nothing
 end
 
-@inline function multiply_dimensionwise!(data_out::MArray,
-                                         matrix::AbstractMatrix,
-                                         data_in::MArray)
-    @inbounds for i in axes(data_out, 2), v in axes(data_out, 1)
+# 1D GPU version
+function multiply_dimensionwise!(backend::Backend, data_out::AbstractArray{<:Any, 2},
+                                 matrix::AbstractMatrix,
+                                 data_in::AbstractArray{<:Any, 2})
+    for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
-        for ii in axes(data_in, 2)
+        for ii in axes(matrix, 2)
             res += matrix[i, ii] * data_in[v, ii]
         end
         data_out[v, i] = res
@@ -158,7 +164,14 @@ function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 1},
 end
 
 # 1D version, apply matrixJ to data_inJ
-function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::AbstractMatrix,
+function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2},
+                                 matrix1::AbstractMatrix,
+                                 data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
+                                 data_in2::AbstractArray{<:Any, 2})
+    multiply_dimensionwise!(nothing, data_out, matrix1, data_in1, matrix2, data_in2)
+end
+function multiply_dimensionwise!(backend::Nothing, data_out::AbstractArray{<:Any, 2},
+                                 matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
                                  data_in2::AbstractArray{<:Any, 2})
     # @tullio threads=false data_out[v, i] = matrix1[i, ii] * data_in1[v, ii] + matrix2[i, ii] * data_in2[v, ii]
@@ -185,26 +198,19 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::Abs
     return nothing
 end
 
-# 1D version, apply matrixJ to data_inJ
-@inline function multiply_dimensionwise!(data_out::MArray,
-                                         matrix1::AbstractMatrix,
-                                         data_in1::MArray,
-                                         matrix2::AbstractMatrix,
-                                         data_in2::MArray)
-    # @tullio threads=false data_out[v, i] = matrix1[i, ii] * data_in1[v, ii] + matrix2[i, ii] * data_in2[v, ii]
-    # TODO: LoopVectorization upgrade
-    #   We would like to use `@turbo` for the outermost loop possibly fuse both inner
-    #   loops, but that does currently not work because of limitations of
-    #   LoopVectorizationjl. However, Chris Elrod is planning to address this in
-    #   the future, cf. https://github.com/JuliaSIMD/LoopVectorization.jl/issues/230#issuecomment-810632972
-    @inbounds for i in axes(data_out, 2), v in axes(data_out, 1)
+# 1D GPU version, apply matrixJ to data_inJ
+function multiply_dimensionwise!(backend::Backend, data_out::AbstractArray{<:Any, 2},
+                                 matrix1::AbstractMatrix,
+                                 data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
+                                 data_in2::AbstractArray{<:Any, 2})
+    for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
         for ii in axes(matrix1, 2)
             res += matrix1[i, ii] * data_in1[v, ii]
         end
         data_out[v, i] = res
     end
-    @inbounds for i in axes(data_out, 2), v in axes(data_out, 1)
+    for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
         for ii in axes(matrix2, 2)
             res += matrix2[i, ii] * data_in2[v, ii]

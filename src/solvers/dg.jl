@@ -7,6 +7,9 @@
 
 abstract type AbstractVolumeIntegral end
 
+# Element type used to store the conservative variables in solver caches.
+@inline solution_eltype(solver, cache) = eltype(cache.elements)
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::AbstractVolumeIntegral, dg, cache)
     return nothing
@@ -1090,6 +1093,14 @@ end
 end
 
 @inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
+    for v in eachvariable(equations)
+        u[v, indices...] = u_node[v]
+    end
+    return nothing
+end
+
+# As above but dispatches on an type argument
+@inline function set_node_vars!(u, u_node, equations, ::Type{<:DG}, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end

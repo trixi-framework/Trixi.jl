@@ -119,7 +119,7 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 callbacks = CallbackSet(summary_callback, alive_callback,
                         analysis_callback)
