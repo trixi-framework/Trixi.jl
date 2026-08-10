@@ -1305,7 +1305,7 @@ end
                                                       T8codeMesh{3}}},
                                   have_nonconservative_terms::False,
                                   dg::DGSEM,
-                                  numerical_flux,
+                                  numerical_flux::NumericalFlux,
                                   ::Val{NNODES},
                                   ::Val{NVARIABLES},
                                   ::Val{NAUX},
@@ -1313,7 +1313,7 @@ end
                                   contravariant_vectors,
                                   alpha = true) where {NNODES,
                                                        NVARIABLES,
-                                                       NAUX}
+                                                       NAUX, NumericalFlux}
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -1443,7 +1443,7 @@ end
                                                       T8codeMesh{3}}},
                                   have_nonconservative_terms::True,
                                   dg::DGSEM,
-                                  numerical_flux,
+                                  numerical_flux::NumericalFlux,
                                   ::Val{NNODES},
                                   ::Val{NVARIABLES},
                                   ::Val{NAUX},
@@ -1451,7 +1451,7 @@ end
                                   contravariant_vectors,
                                   alpha = true) where {NNODES,
                                                        NVARIABLES,
-                                                       NAUX}
+                                                       NAUX, NumericalFlux}
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
