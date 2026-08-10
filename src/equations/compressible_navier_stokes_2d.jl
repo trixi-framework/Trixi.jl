@@ -299,10 +299,11 @@ from the entropy variables via
 
 """
 @inline function entropy2velocity_temperature(w,
-                                              ::AbstractCompressibleNavierStokesDiffusion{2,
-                                                                                          4})
+                                              equations::AbstractCompressibleNavierStokesDiffusion{2,
+                                                                                                   4})
     inv_w4 = inv(w[4])
-    T = -inv_w4
+    # T = p / (R * rho) = -1/(R * w4) for w4 = -rho/p
+    T = -inv_w4 / equations.R
     v1 = -w[2] * inv_w4
     v2 = -w[3] * inv_w4
     return SVector(v1, v2, T)
@@ -340,11 +341,13 @@ end
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
                                                  equations::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
     v1, v2, T = entropy2velocity_temperature(w, equations)
+    RT = equations.R * T
 
+    # Derivatives derived from w use factors of -1/w4 = p/rho = R * T, so we need to include R here
     return SVector(gradient_entropy_vars[1],
-                   T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # grad(u) = T*(grad(w_2)+v1*grad(w_4))
-                   T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # grad(v) = T*(grad(w_3)+v2*grad(w_4))
-                   T * T * gradient_entropy_vars[4])
+                   RT * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[4]), # dv1dx = R * T * (grad(w2) + v1 * grad(w4))
+                   RT * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[4]), # dv2dx = R * T * (grad(w3) + v2 * grad(w4))
+                   RT * T * gradient_entropy_vars[4]) # dTdx = R * T * T * grad(w4)
 end
 
 """
@@ -535,8 +538,8 @@ end
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
 
-    # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w4. Similarly for w3
-    w4 = -1 / T
+    # w4 = -rho/p = -1/(R * T)
+    w4 = -1 / (equations.R * T)
     return SVector(w_inner[1], -v1 * w4, -v2 * w4, w4)
 end
 

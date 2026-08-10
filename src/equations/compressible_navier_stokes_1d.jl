@@ -276,10 +276,12 @@ from the entropy variables via
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 """
 @inline function entropy2velocity_temperature(w,
-                                              ::AbstractCompressibleNavierStokesDiffusion{1,
-                                                                                          3})
+                                              equations::AbstractCompressibleNavierStokesDiffusion{1,
+                                                                                                   3})
     inv_w3 = inv(w[3])
-    T = -inv_w3
+    # Convert to temperature T = p/(R * rho).
+    # Since w3 = -rho/p, we have p/rho = -1/w3, so T = -1/(R * w3).
+    T = -inv_w3 / equations.R
     v1 = -w[2] * inv_w3
     return SVector(v1, T)
 end
@@ -316,10 +318,13 @@ end
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
                                                  equations::CompressibleNavierStokesDiffusion1D{GradientVariablesEntropy})
     v1, T = entropy2velocity_temperature(w, equations)
+    RT = equations.R * T
 
+    # entropy2velocity_temperature now returns the temperature T = p/(R rho).
+    # Derivatives derived from w use factors of -1/w3 = p/rho = R * T, so we need to include R here
     return SVector(gradient_entropy_vars[1],
-                   T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[3]), # grad(u) = T*(grad(w_2)+v1*grad(w_3))
-                   T * T * gradient_entropy_vars[3])
+                   RT * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[3]), # dv1dx = R * T * (grad(w2) + v1 * grad(w3))
+                   RT * T * gradient_entropy_vars[3]) # dTdx = R * T * T * grad(w3)
 end
 
 """
@@ -482,8 +487,8 @@ end
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
 
-    # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w3.
-    w3 = -1 / T
+    # w3 = -rho/p = -1/(R * T)
+    w3 = -1 / (equations.R * T)
     return SVector(w_inner[1], -v1 * w3, w3)
 end
 

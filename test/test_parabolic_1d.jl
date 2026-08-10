@@ -412,6 +412,34 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_convergence_walls_amr.jl: GradientVariablesEntropy, R = 42" setup=[
+    Setup,
+    Parabolic1D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_walls_amr.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                R = 42,
+                                                                                Prandtl = prandtl_number(),
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        l2=[
+                            2.4593521887223632e-5,
+                            2.3928212900127102e-5,
+                            0.00011252332663824173
+                        ],
+                        linf=[
+                            0.00011850494672183132,
+                            0.00018987676556476442,
+                            0.0009597423024825247
+                        ],
+                        atol=1e-8)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic1D: TreeMesh1D: elixir_navierstokes_viscous_shock.jl" setup=[
     Setup,
     Parabolic1D
