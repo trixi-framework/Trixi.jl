@@ -679,103 +679,116 @@ function prolong2mortars!(backend::Nothing, cache, u,
     @threaded for mortar in eachmortar(dg, cache)
         # Copy solution data from the small elements using "delayed indexing" with
         # a start value and two step sizes to get the correct face and orientation.
-        small_indices = node_indices[1, mortar]
-
-        i_small_start, i_small_step_i,
-        i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                index_range)
-        j_small_start, j_small_step_i,
-        j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                index_range)
-        k_small_start, k_small_step_i,
-        k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                index_range)
-
-        for position in 1:4
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
-            element = neighbor_ids[position, mortar]
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    for v in eachvariable(equations)
-                        cache.mortars.u[1, v, position, i, j, mortar] = u[v, i_small,
-                                                                          j_small,
-                                                                          k_small,
-                                                                          element]
-                    end
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
-                end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
-            end
-        end
-
-        # Buffer to copy solution values of the large element in the correct orientation
-        # before interpolating
         u_buffer = cache.u_threaded[Threads.threadid()]
         # temporary buffer for projections
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
-        # Copy solution of large element face to buffer in the
-        # correct orientation
-        large_indices = node_indices[2, mortar]
-
-        i_large_start, i_large_step_i,
-        i_large_step_j = index_to_start_step_3d(large_indices[1],
-                                                index_range)
-        j_large_start, j_large_step_i,
-        j_large_step_j = index_to_start_step_3d(large_indices[2],
-                                                index_range)
-        k_large_start, k_large_step_i,
-        k_large_step_j = index_to_start_step_3d(large_indices[3],
-                                                index_range)
-
-        i_large = i_large_start
-        j_large = j_large_start
-        k_large = k_large_start
-        element = neighbor_ids[5, mortar]
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                for v in eachvariable(equations)
-                    u_buffer[v, i, j] = u[v, i_large, j_large, k_large, element]
-                end
-                i_large += i_large_step_i
-                j_large += j_large_step_i
-                k_large += k_large_step_i
-            end
-            i_large += i_large_step_j
-            j_large += j_large_step_j
-            k_large += k_large_step_j
-        end
-
-        # Interpolate large element face data from buffer to small face locations
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, :, mortar),
-                                mortar_l2.forward_lower,
-                                mortar_l2.forward_lower,
-                                u_buffer,
-                                fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, :, mortar),
-                                mortar_l2.forward_upper,
-                                mortar_l2.forward_lower,
-                                u_buffer,
-                                fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 3, :, :, mortar),
-                                mortar_l2.forward_lower,
-                                mortar_l2.forward_upper,
-                                u_buffer,
-                                fstar_tmp)
-        multiply_dimensionwise!(view(cache.mortars.u, 2, :, 4, :, :, mortar),
-                                mortar_l2.forward_upper,
-                                mortar_l2.forward_upper,
-                                u_buffer,
-                                fstar_tmp)
+        prolong2mortars_per_mortar!(backend, cache.mortars.u, u, mortar, typeof(mesh),
+                                    equations,
+                                    neighbor_ids, node_indices, index_range,
+                                    mortar_l2.forward_lower, mortar_l2.forward_upper,
+                                    u_buffer, fstar_tmp)
     end
 
     return nothing
+end
+
+
+@inline function prolong2mortars_per_mortar!(backend, mortars_u, u, mortar,
+                                             MeshT::Type{<:Union{P4estMesh{3},
+                                                                 T8codeMesh{3}}},
+                                             equations,
+                                             neighbor_ids, node_indices,
+                                             index_range,
+                                             forward_lower,
+                                             forward_upper,
+                                             u_buffer, fstar_tmp)
+    small_indices = node_indices[1, mortar]
+
+    i_small_start, i_small_step_i,
+    i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                            index_range)
+    j_small_start, j_small_step_i,
+    j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                            index_range)
+    k_small_start, k_small_step_i,
+    k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                            index_range)
+
+    for position in 1:4
+        i_small = i_small_start
+        j_small = j_small_start
+        k_small = k_small_start
+        element = neighbor_ids[position, mortar]
+        for j in index_range
+            for i in index_range
+                for v in eachvariable(equations)
+                    mortars_u[1, v, position, i, j, mortar] = u[v, i_small,
+                                                                        j_small,
+                                                                        k_small,
+                                                                        element]
+                end
+                i_small += i_small_step_i
+                j_small += j_small_step_i
+                k_small += k_small_step_i
+            end
+            i_small += i_small_step_j
+            j_small += j_small_step_j
+            k_small += k_small_step_j
+        end
+    end
+
+    large_indices = node_indices[2, mortar]
+
+    i_large_start, i_large_step_i,
+    i_large_step_j = index_to_start_step_3d(large_indices[1],
+                                            index_range)
+    j_large_start, j_large_step_i,
+    j_large_step_j = index_to_start_step_3d(large_indices[2],
+                                            index_range)
+    k_large_start, k_large_step_i,
+    k_large_step_j = index_to_start_step_3d(large_indices[3],
+                                            index_range)
+
+    i_large = i_large_start
+    j_large = j_large_start
+    k_large = k_large_start
+    element = neighbor_ids[5, mortar]
+    for j in index_range
+        for i in index_range
+            for v in eachvariable(equations)
+                u_buffer[v, i, j] = u[v, i_large, j_large, k_large, element]
+            end
+            i_large += i_large_step_i
+            j_large += j_large_step_i
+            k_large += k_large_step_i
+        end
+        i_large += i_large_step_j
+        j_large += j_large_step_j
+        k_large += k_large_step_j
+    end
+
+    # Interpolate large element face data from buffer to small face locations
+    multiply_dimensionwise!(backend, view(mortars_u, 2, :, 1, :, :, mortar),
+                            forward_lower,
+                            forward_lower,
+                            u_buffer,
+                            fstar_tmp)
+    multiply_dimensionwise!(backend, view(mortars_u, 2, :, 2, :, :, mortar),
+                            forward_upper,
+                            forward_lower,
+                            u_buffer,
+                            fstar_tmp)
+    multiply_dimensionwise!(backend, view(mortars_u, 2, :, 3, :, :, mortar),
+                            forward_lower,
+                            forward_upper,
+                            u_buffer,
+                            fstar_tmp)
+    multiply_dimensionwise!(backend, view(mortars_u, 2, :, 4, :, :, mortar),
+                            forward_upper,
+                            forward_upper,
+                            u_buffer,
+                            fstar_tmp)
 end
 
 function calc_mortar_flux!(backend::Nothing, surface_flux_values,
@@ -793,6 +806,31 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
         fstar_primary = fstar_primary_threaded[Threads.threadid()]
         fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        u_buffer = cache.u_threaded[Threads.threadid()]
+
+        calc_mortar_flux_per_mortar!(backend, mortar, surface_flux_values, typeof(mesh),
+                                     have_nonconservative_terms, equations,
+                                     surface_integral.surface_flux, typeof(dg),
+                                     cache.mortars.u, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortar_l2.reverse_lower,
+                                     mortar_l2.reverse_upper, index_range,
+                                     fstar_primary, fstar_secondary,
+                                     u_buffer, fstar_tmp)
+    end
+
+    return nothing
+end
+
+@inline function calc_mortar_flux_per_mortar!(backend, mortar, surface_flux_values,
+                                              MeshT::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                              have_nonconservative_terms, equations,
+                                              surface_flux, SolverT::Type{<:DGSEM},
+                                              mortars_u, neighbor_ids, node_indices,
+                                              contravariant_vectors,
+                                              reverse_lower, reverse_upper, index_range,
+                                              fstar_primary, fstar_secondary,
+                                              u_buffer, fstar_tmp)
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -813,21 +851,18 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
             j_small = j_small_start
             k_small = k_small_start
             element = neighbor_ids[position, mortar]
-            for j in eachnode(dg)
-                for i in eachnode(dg)
-                    # Get the normal direction on the small element.
-                    # Note, contravariant vectors at interfaces in negative coordinate direction
-                    # are pointing inwards. This is handled by `get_normal_direction`.
+            for j in index_range
+                for i in index_range
                     normal_direction = get_normal_direction(small_direction,
                                                             contravariant_vectors,
                                                             i_small, j_small, k_small,
                                                             element)
 
-                    calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
-                                      have_nonconservative_terms, equations,
-                                      surface_integral, dg, cache,
-                                      mortar, position, normal_direction,
-                                      i, j)
+                    calc_mortar_flux_per_node!(fstar_primary, fstar_secondary, MeshT,
+                                               have_nonconservative_terms, equations,
+                                               surface_flux, SolverT, mortars_u,
+                                               mortar, position, normal_direction,
+                                               i, j)
 
                     i_small += i_small_step_i
                     j_small += j_small_step_i
@@ -839,98 +874,80 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
             end
         end
 
-        # Buffer to interpolate flux values of the large element to before
-        # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
-
-        # in calc_interface_flux!, the interface flux is computed once over each
-        # interface using the normal from the "primary" element. The result is then
-        # passed back to the "secondary" element, flipping the sign to account for the
-        # change in the normal direction. For mortars, this sign flip occurs in
-        # "mortar_fluxes_to_elements!" instead.
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar_primary, fstar_secondary, u_buffer,
-                                   fstar_tmp)
-    end
-
-    return nothing
+        mortar_fluxes_to_elements!(backend, surface_flux_values, MeshT, equations,
+                               reverse_lower, reverse_upper, SolverT,
+                               neighbor_ids, node_indices, index_range,
+                               mortar, fstar_primary, fstar_secondary,
+                               u_buffer, fstar_tmp)
 end
 
-# Inlined version of the mortar flux computation on small elements for conservation fluxes
-@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   have_nonconservative_terms::False, equations,
-                                   surface_integral, dg::DG, cache,
-                                   mortar_index, position_index, normal_direction,
-                                   i_node_index, j_node_index)
-    @unpack u = cache.mortars
-    @unpack surface_flux = surface_integral
-
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+@inline function calc_mortar_flux_per_node!(fstar_primary, fstar_secondary,
+                                            MeshT::Type{<:Union{P4estMesh{3},
+                                                                T8codeMesh{3}}},
+                                            have_nonconservative_terms::False, equations,
+                                            surface_flux, SolverT::Type{<:DGSEM},
+                                            mortars_u,
+                                            mortar_index, position_index,
+                                            normal_direction,
+                                            i_node_index, j_node_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
                                        i_node_index, j_node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    # Copy flux to buffer
-    set_node_vars!(fstar_primary, flux, equations, dg,
+    set_node_vars!(fstar_primary, flux, equations, SolverT,
                    i_node_index, j_node_index, position_index)
-    set_node_vars!(fstar_secondary, flux, equations, dg,
+    set_node_vars!(fstar_secondary, flux, equations, SolverT,
                    i_node_index, j_node_index, position_index)
 
     return nothing
 end
 
-# Inlined version of the mortar flux computation on small elements for conservation fluxes
-# with nonconservative terms
-@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
-                                   mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   have_nonconservative_terms::True, equations,
-                                   surface_integral, dg::DG, cache,
-                                   mortar_index, position_index, normal_direction,
-                                   i_node_index, j_node_index)
-    @unpack u = cache.mortars
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
+@inline function calc_mortar_flux_per_node!(fstar_primary, fstar_secondary,
+                                            MeshT::Type{<:Union{P4estMesh{3},
+                                                                T8codeMesh{3}}},
+                                            have_nonconservative_terms::True, equations,
+                                            surface_flux_tuple, SolverT::Type{<:DGSEM},
+                                            mortars_u,
+                                            mortar_index, position_index,
+                                            normal_direction,
+                                            i_node_index, j_node_index)
+    surface_flux, nonconservative_flux = surface_flux_tuple
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
-                                       j_node_index, mortar_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       i_node_index, j_node_index, mortar_index)
 
-    # Compute conservative flux
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
-    # the interpretation of global SBP operators coupled discontinuously via
-    # central fluxes/SATs
     noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
     noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
 
-    # Copy to buffer
-    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
+    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, SolverT,
                    i_node_index, j_node_index, position_index)
-    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
+    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, SolverT,
                    i_node_index, j_node_index, position_index)
 
     return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values,
-                                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+@inline function mortar_fluxes_to_elements!(backend, surface_flux_values,
+                                            MeshT::Type{<:Union{P4estMesh{3},
+                                                                T8codeMesh{3}}},
                                             equations,
-                                            mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar_primary,
+                                            reverse_lower, reverse_upper,
+                                            SolverT::Type{<:DGSEM},
+                                            neighbor_ids, node_indices, index_range,
+                                            mortar, fstar_primary,
                                             fstar_secondary, u_buffer, fstar_tmp)
-    @unpack neighbor_ids, node_indices = cache.mortars
-    index_range = eachnode(dg)
-
     # Copy solution small to small
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
     for position in 1:4
         element = neighbor_ids[position, mortar]
-        for j in eachnode(dg), i in eachnode(dg)
+        for j in index_range, i in index_range
             for v in eachvariable(equations)
                 surface_flux_values[v, i, j, small_direction,
                                     element] = fstar_primary[v,
@@ -942,22 +959,18 @@ end
     end
 
     # Project small fluxes to large element.
-    multiply_dimensionwise!(u_buffer,
-                            mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-                            view(fstar_secondary, .., 1),
-                            fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
-                                mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-                                view(fstar_secondary, .., 2),
-                                fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
-                                mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-                                view(fstar_secondary, .., 3),
-                                fstar_tmp)
-    add_multiply_dimensionwise!(u_buffer,
-                                mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-                                view(fstar_secondary, .., 4),
-                                fstar_tmp)
+    multiply_dimensionwise!(backend, u_buffer,
+                            reverse_lower, reverse_lower,
+                            view(fstar_secondary, .., 1), fstar_tmp)
+    add_multiply_dimensionwise!(backend, u_buffer,
+                                reverse_upper, reverse_lower,
+                                view(fstar_secondary, .., 2), fstar_tmp)
+    add_multiply_dimensionwise!(backend, u_buffer,
+                                reverse_lower, reverse_upper,
+                                view(fstar_secondary, .., 3), fstar_tmp)
+    add_multiply_dimensionwise!(backend, u_buffer,
+                                reverse_upper, reverse_upper,
+                                view(fstar_secondary, .., 4), fstar_tmp)
 
     # The flux is calculated in the outward direction of the small elements,
     # so the sign must be switched to get the flux in outward direction
@@ -988,8 +1001,8 @@ end
     # the large indices might need to run backwards for flipped sides.
     i_large = i_large_start
     j_large = j_large_start
-    for j in eachnode(dg)
-        for i in eachnode(dg)
+    for j in index_range
+        for i in index_range
             for v in eachvariable(equations)
                 surface_flux_values[v, i_large, j_large, large_direction,
                                     large_element] = u_buffer[v,
