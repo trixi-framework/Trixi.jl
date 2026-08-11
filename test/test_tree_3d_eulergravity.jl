@@ -5,7 +5,7 @@ end
 @testitem "TreeMesh3D EulerGravity: elixir_eulergravity_convergence.jl" setup=[
     Setup,
     TreeMesh3DEulerGravity
-] tags=[:tree_part5] begin
+] tags=[:tree_part4] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_convergence.jl"),
                         l2=[
                             0.0004276779201667428,
@@ -24,5 +24,5 @@ end
                         resid_tol=1.0e-4, tspan=(0.0, 0.2))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

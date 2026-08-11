@@ -26,6 +26,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   downgrade_test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
@@ -51,15 +55,14 @@ jobs:
           # - tree_part3
           # - tree_part4
           # - tree_part5
-          # - tree_part6
           # - structured
           # - p4est_part1
           # - p4est_part2
           # - t8code_part1
-          # - t8code_part2
           # - unstructured_dgmulti
           # - parabolic_part1
           # - parabolic_part2
+          # - parabolic_part3
           # - paper_self_gravitating_gas_dynamics
           # - misc_part1
           # - misc_part2
@@ -76,6 +79,12 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v3
+        with:
+          # Do not save cache files when the job failed. We have observed several
+          # failing CI jobs likely due to corrupted caches. In this case, we must
+          # not save the corrupted files to the cache, which would lead to the same
+          # issues again in the next run.
+          save-always: 'false'
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random

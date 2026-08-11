@@ -35,7 +35,7 @@ end
     q_rr = SVector(0.2, -0.3, 2.0, 1.9, 2.1)
     u_ll, u_rr = prim2cons.((q_ll, q_rr), equations)
 
-    # check that `flux_chandrashekar` is entropy conservative 
+    # check that `flux_chandrashekar` is entropy conservative
     v_ll, v_rr = cons2entropy.((u_ll, u_rr), equations)
     jump_entropy_potential_x = entropy_potential(u_rr, 1, equations) -
                                entropy_potential(u_ll, 1, equations)
@@ -81,7 +81,7 @@ end
                         tspan=(0.0, 0.001))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" setup=[
@@ -112,13 +112,19 @@ end
     @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
     # Runs 15 time steps.
     @test startswith(lines[end], "15")
+
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl" setup=[
@@ -143,13 +149,18 @@ end
                         ],
                         initial_refinement_level=3,
                         tspan=(0.0, 0.001))
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl" setup=[
@@ -171,7 +182,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_es.jl" setup=[
@@ -199,7 +210,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_ec.jl" setup=[
@@ -223,7 +234,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_es.jl" setup=[
@@ -247,7 +258,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_convergence_es.jl with flux_chandrashekar" setup=[
@@ -272,7 +283,7 @@ end
                         volume_flux=flux_chandrashekar)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh2D EulerMulti: elixir_eulermulti_ec.jl with boundary_condition_slip_wall" setup=[
@@ -297,5 +308,5 @@ end
                         tspan=(0.0, 0.001))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
