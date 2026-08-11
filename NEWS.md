@@ -5,20 +5,20 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
+  When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
+  toggles the bars visualizing the fraction of time and allocations spent in
+  each section of the timer output of the `SummaryCallback`. The bars are
+  disabled by default.
 - The low-order fv scheme of `VolumeIntegralSubcellLimiting` can now be customized via
   `volume_integral_blend_low_order`. It defaults to the first-order subcell finite volume scheme,
   while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
 
-#### Changed
-
 
 ## Changes when updating to v0.17 from v0.16.x
-
-#### Added
 
 #### Changed
 - The `NonConservativeJump` terms now require `normal_direction_ll` and
