@@ -1450,8 +1450,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     init_boundary_node_indices!(boundaries, iface, boundary_id)
 
+                    itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest, itree)
+
                     # One-based indexing.
-                    boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
+                    boundaries.name[boundary_id] = boundary_names[iface + 1, itree_in_cmesh + 1]
 
                     # Interface or mortar.
                 else
