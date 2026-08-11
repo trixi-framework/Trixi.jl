@@ -703,10 +703,14 @@ end
 """
     VolumeIntegralSubcellLimiting(limiter;
                                   volume_flux_dg = flux_central,
-                                  volume_flux_fv = flux_lax_friedrichs)
+                                  volume_flux_fv = flux_lax_friedrichs,
+                                  volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv))
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. The low-order method can be selected with `volume_integral_blend_low_order`;
+by default, the first-order subcell finite volume scheme [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+is used, while [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref) provides a second-order alternative.
+Used with limiter [`SubcellLimiterIDP`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
