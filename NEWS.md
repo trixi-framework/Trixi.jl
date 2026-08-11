@@ -6,6 +6,16 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes in the v0.17 lifecycle
+
+#### Added
+- The low-order fv scheme of `VolumeIntegralSubcellLimiting` can now be customized via
+  `volume_integral_blend_low_order`. It defaults to the first-order subcell finite volume scheme,
+  while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
+
+#### Changed
+
+
 ## Changes when updating to v0.17 from v0.16.x
 
 #### Added
