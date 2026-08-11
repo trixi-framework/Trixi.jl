@@ -714,8 +714,10 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
 """
-struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
+struct VolumeIntegralSubcellLimiting{VolumeIntegralBlendLowOrder, VolumeFluxDG,
+                                     VolumeFluxFV, Limiter} <:
        AbstractVolumeIntegralSubcell
+    volume_integral_blend_low_order::VolumeIntegralBlendLowOrder
     volume_flux_dg::VolumeFluxDG
     volume_flux_fv::VolumeFluxFV
     limiter::Limiter
@@ -723,9 +725,12 @@ end
 
 function VolumeIntegralSubcellLimiting(limiter;
                                        volume_flux_dg = flux_central,
-                                       volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                         typeof(limiter)}(volume_flux_dg,
+                                       volume_flux_fv = flux_lax_friedrichs,
+                                       volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv))
+    return VolumeIntegralSubcellLimiting{typeof(volume_integral_blend_low_order),
+                                         typeof(volume_flux_dg), typeof(volume_flux_fv),
+                                         typeof(limiter)}(volume_integral_blend_low_order,
+                                                          volume_flux_dg,
                                                           volume_flux_fv,
                                                           limiter)
 end
@@ -738,6 +743,9 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(io, integral)
     else
         summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume integral blend low order",
+                     integral.volume_integral_blend_low_order |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.volume_integral_blend_low_order)
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
         summary_line(io, "volume flux FV", integral.volume_flux_fv)
         summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
