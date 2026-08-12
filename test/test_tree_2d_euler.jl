@@ -694,7 +694,6 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
-
 @testitem "TreeMesh2D Euler: elixir_euler_sedov_adaptive_sc_subcell.jl" setup=[
     Setup,
     TreeMesh2DEuler
