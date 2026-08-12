@@ -51,13 +51,13 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 # unreconstructed. The resulting low-order update is not guaranteed to be
 # positivity preserving, which is required by the IDP subcell limiter.
 reconstruction_mode = reconstruction_O2_inner
-volume_integral_blend_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
-                                                                      reconstruction_mode = reconstruction_mode,
-                                                                      volume_flux_fv = surface_flux)
+volume_integral_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
+                                                                reconstruction_mode = reconstruction_mode,
+                                                                volume_flux_fv = surface_flux)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux,
-                                                volume_integral_blend_low_order = volume_integral_blend_low_order)
+                                                volume_integral_low_order = volume_integral_low_order)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 

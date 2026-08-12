@@ -14,7 +14,7 @@ for human readability.
   each section of the timer output of the `SummaryCallback`. The bars are
   disabled by default.
 - The low-order fv scheme of `VolumeIntegralSubcellLimiting` can now be customized via
-  `volume_integral_blend_low_order`. It defaults to the first-order subcell finite volume scheme,
+  `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
   while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
 
 

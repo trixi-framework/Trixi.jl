@@ -89,7 +89,7 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fv!(volume_integral.volume_integral_blend_low_order,
+    calcflux_fv!(volume_integral.volume_integral_low_order,
                  fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                  have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
@@ -626,11 +626,11 @@ end
                         element, cache)
 end
 
-@inline function calcflux_fv!(volume_integral_blend_low_order::VolumeIntegralPureLGLFiniteVolumeO2,
+@inline function calcflux_fv!(volume_integral_low_order::VolumeIntegralPureLGLFiniteVolumeO2,
                               fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                               have_nonconservative_terms, equations, volume_flux_fv, dg,
                               element, cache)
-    (; sc_interface_coords, reconstruction_mode, slope_limiter, cons2recon, recon2cons) = volume_integral_blend_low_order
+    (; sc_interface_coords, reconstruction_mode, slope_limiter, cons2recon, recon2cons) = volume_integral_low_order
     return calcflux_fvO2!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                           have_nonconservative_terms, equations, volume_flux_fv, dg,
                           element, cache,
