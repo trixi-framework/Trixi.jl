@@ -202,6 +202,19 @@ end
                             0.00036195501456059986,
                             0.0016147729485886941
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0))
+    @test_broken sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -277,6 +290,20 @@ end
                             0.0003616694320713876,
                             0.0016147339542413874
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_periodic.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -327,6 +354,20 @@ end
                             0.012941793735691931
                         ],
                         atol=1e-9)
+    reference_solution = copy(sol.u[end])
+
+    # At an isothermal wall, the last entropy variable is -1 / (R * T).
+    # Therefore, changing R changes the prescribed temperature but must not
+    # change the solution in conserved variables.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_1d_dgsem",
+                                 "elixir_navierstokes_convergence_walls.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion1D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test_broken sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -750,7 +791,7 @@ end
                                                                    solver_parabolic = solver_parabolic,
                                                                    boundary_conditions = (boundary_conditions,
                                                                                           boundary_conditions)))
-    # Check if the solutions for `SemidiscretizationParabolic` match those from 
+    # Check if the solutions for `SemidiscretizationParabolic` match those from
     # `SemidiscretizationHyperbolicParabolic` using the same Float64 tolerance defaults as
     # `@test_trixi_include` in TrixiTest.jl.
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))
