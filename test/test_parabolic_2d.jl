@@ -472,7 +472,7 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 2.0))
-    @test_broken sol.u[end] ≈ reference_solution
+    @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -592,7 +592,7 @@ end
                                                                                                                                               t,
                                                                                                                                               equations),
                                                                                              equations)))
-    @test_broken sol.u[end] ≈ reference_solution
+    @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
