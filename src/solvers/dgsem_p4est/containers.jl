@@ -645,7 +645,9 @@ end
 
 # Create mortar container and initialize mortar data.
 function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
-                      basis, elements, mortar::LobattoLegendreMortarL2)
+                      basis, elements,
+                      mortar::Union{LobattoLegendreMortarL2, UniformFiniteVolumeBasis,
+                                    Nothing})
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
