@@ -1226,16 +1226,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl"),
                         l2=[
-                            0.011454420371144533,
-                            0.020903548103080687,
-                            0.02153303511793841,
-                            0.1148676335639754
+                            0.011454250151498143,
+                            0.02090263825576875,
+                            0.021533186358669385,
+                            0.11486583583620952
                         ],
                         linf=[
                             0.30997407561599366,
-                            0.4891155873417419,
-                            0.4397493472598343,
-                            2.3824640619465263
+                            0.4890733555206387,
+                            0.4397401375725119,
+                            2.382292817119373
                         ])
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
