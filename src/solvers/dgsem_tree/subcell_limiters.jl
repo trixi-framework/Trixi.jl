@@ -355,7 +355,7 @@ end
 
     beta = 1 - alpha[indices...]
 
-    beta_L = 0 # alpha = 1
+    beta_L = zero(beta) # alpha = 1
     beta_R = beta # No higher beta (lower alpha) than the current one
 
     u_curr = u + beta * dt * antidiffusive_flux
@@ -376,7 +376,7 @@ end
             dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
                                                     antidiffusive_flux, equations)
         else # Otherwise, perform a bisection step
-            dgoal_dbeta = 0
+            dgoal_dbeta = zero(beta)
         end
 
         if dgoal_dbeta != 0

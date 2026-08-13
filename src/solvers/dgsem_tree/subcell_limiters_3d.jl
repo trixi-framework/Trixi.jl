@@ -609,6 +609,7 @@ end
     (; gamma_constant_newton) = limiter
 
     indices = (i, j, k, element)
+    isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
 
     # negative xi direction
     if i > 1
@@ -619,6 +620,7 @@ end
         newton_loop!(alpha, bound, u, indices, variable, min_or_max,
                      initial_check, final_check, equations, dt, limiter,
                      antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
     end
 
     # positive xi direction
@@ -630,6 +632,7 @@ end
         newton_loop!(alpha, bound, u, indices, variable, min_or_max,
                      initial_check, final_check, equations, dt, limiter,
                      antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
     end
 
     # negative eta direction
@@ -641,6 +644,7 @@ end
         newton_loop!(alpha, bound, u, indices, variable, min_or_max,
                      initial_check, final_check, equations, dt, limiter,
                      antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
     end
 
     # positive eta direction
@@ -652,6 +656,7 @@ end
         newton_loop!(alpha, bound, u, indices, variable, min_or_max,
                      initial_check, final_check, equations, dt, limiter,
                      antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
     end
 
     # negative zeta direction
@@ -663,6 +668,7 @@ end
         newton_loop!(alpha, bound, u, indices, variable, min_or_max,
                      initial_check, final_check, equations, dt, limiter,
                      antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
     end
 
     # positive zeta direction
