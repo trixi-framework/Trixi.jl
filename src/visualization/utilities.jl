@@ -367,6 +367,16 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
         if !(nvisnodes === nothing || nvisnodes == 0 || nvisnodes == n_nodes)
             throw(ArgumentError("For finite volume methods, `nvisnodes` must be `nothing`, `0`, or the number of cells per element (=$n_nodes); got $nvisnodes."))
         end
+        if n_nodes > max_available_nodes_per_finest_element
+            # Unlike point values, cell (mean) values cannot be downsampled by
+            # (polynomial) interpolation, so the native resolution must fit within
+            # what `max_supported_level` allows at the finest level in the mesh.
+            min_max_supported_level = max_level + ceil(Int, log2(n_nodes))
+            throw(ArgumentError("The native resolution (`n_nodes = $n_nodes`) at refinement level $max_level " *
+                                "exceeds the resolution supported by `max_supported_level = $max_supported_level` " *
+                                "(allows only $max_available_nodes_per_finest_element cells per element at this level). " *
+                                "Increase `max_supported_level` to at least $min_max_supported_level."))
+        end
         max_nvisnodes = n_nodes
     elseif nvisnodes === nothing
         max_nvisnodes = 2 * n_nodes
@@ -406,26 +416,20 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
                                               levels, resolution, nvisnodes_per_level;
                                               point_values = point_values)
 
+    # `xs`/`ys` always have `resolution + 1` entries spanning the full domain.
+    # Point-value `data` is brought up to that size by `cell2node` below; cell-value
+    # `data` is left at `resolution`, so `xs`/`ys` become its cell edges instead.
+    xs = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
+         center_level_0[1]
+    ys = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
+         center_level_0[2]
+
     if point_values
         # Interpolate cell-centered values to node-centered values
         data = cell2node(structured_data)
-
-        # Determine axis coordinates for contour plot
-        xs = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
-             center_level_0[1]
-        ys = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
-             center_level_0[2]
     else
-        # Keep the piecewise constant cell (mean) values as-is and report cell-center
-        # coordinates, so that the plotting recipe can draw flat cells instead of
-        # interpolating between neighboring values.
+        # Keep the piecewise constant cell (mean) values as-is.
         data = structured_data
-
-        dx = 2 / resolution
-        xs = collect(range(-1 + dx / 2, 1 - dx / 2, length = resolution)) .*
-             length_level_0 / 2 .+ center_level_0[1]
-        ys = collect(range(-1 + dx / 2, 1 - dx / 2, length = resolution)) .*
-             length_level_0 / 2 .+ center_level_0[2]
     end
 
     # Determine element vertices to plot grid lines

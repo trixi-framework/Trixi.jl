@@ -1121,16 +1121,16 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
 
-    # FV (polydeg = 0): heatmap! must get length(x)+1 cell edges, not the
-    # length(x) centers in pd_fv.x/y (else only the inner region gets plotted).
+    # FV (polydeg = 0): `pd_fv.x`/`.y` are the `length(data)+1` cell edges.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
                         polydeg=0)
     pd_fv = PlotData2D(sol)
     @test !pd_fv.point_values
+    @test length(pd_fv.x) == size(pd_fv.data[1], 1) + 1
 
     _, ax_fv, plt_fv = Makie.plot(pd_fv["scalar"])
-    @test length(plt_fv[1][]) == length(pd_fv.x) + 1
+    @test collect(plt_fv[1][]) == pd_fv.x
     @test all(isapprox.(extrema(plt_fv[1][]), (-1, 1)))
     @test all(isapprox.(extrema(plt_fv[2][]), (-1, 1)))
 end
@@ -1249,6 +1249,13 @@ end
     @test !pd_blockfv.point_values
     @test !isempty(pd_blockfv.data)
     @trixi_test_nowarn Plots.plot(pd_blockfv)
+
+    # Unlike point values, cell (mean) values cannot be downsampled by interpolation,
+    # so the native resolution (`n_nodes`) must fit within what `max_supported_level`
+    # allows at the finest refinement level (here: level 4, so `max_supported_level`
+    # must be at least 5 to fit the `n_nodes = 2` cells per element).
+    @test_throws ArgumentError PlotData2D(sol; max_supported_level = 4)
+    @test PlotData2D(sol; max_supported_level = 5) isa Trixi.PlotData2DCartesian
 end
 
 @testitem "Visualization: PlotData2D elixir_advection_finite_volume.jl" setup=[

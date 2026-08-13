@@ -197,6 +197,12 @@ maximum allowed refinement level in the solution. `nvisnodes` specifies the numb
 nodes to be used. If it is `nothing`, twice the number of solution DG nodes are used for
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
+Finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or `BlockFV`) is piecewise constant, so
+there is nothing to interpolate: `nvisnodes` is ignored, and cells are always drawn with as
+many cells as the solver actually has (`n_nodes`). Make sure `max_supported_level` is large enough 
+to fit it at the finest level (`2^(max_supported_level - level) >= n_nodes`), or you will get an 
+error telling you to increase it.
+
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.

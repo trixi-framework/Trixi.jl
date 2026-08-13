@@ -10,26 +10,9 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     @unpack plot_data, variable_id = pds
     @unpack x, y, data, variable_names, orientation_x, orientation_y = plot_data
 
-    # For point values (default, DG), `x`/`y` already are the plotting
-    # coordinates. For cell (mean) values (finite volume / `polydeg = 0`),
-    # `x`/`y` are cell centers; expand to cell edges so that the data is
-    # drawn as flat cells instead of being interpolated between neighbors.
-    if plot_data.point_values
-        x_edges = x
-        y_edges = y
-    else
-        dx = (x[end] - x[begin]) / (length(x) - 1)
-        dy = (y[end] - y[begin]) / (length(y) - 1)
-
-        x_edges = collect(range(x[begin] - dx / 2, x[end] + dx / 2,
-                                length = length(x) + 1))
-        y_edges = collect(range(y[begin] - dy / 2, y[end] + dy / 2,
-                                length = length(y) + 1))
-    end
-
     # Set geometric properties
-    xlims --> (x_edges[begin], x_edges[end])
-    ylims --> (y_edges[begin], y_edges[end])
+    xlims --> (x[begin], x[end])
+    ylims --> (y[begin], y[end])
     aspect_ratio --> :equal
 
     # Set annotation properties
@@ -43,7 +26,7 @@ RecipesBase.@recipe function f(pds::PlotDataSeries{<:AbstractPlotData{2}})
     seriestype --> :heatmap
 
     # Return data for plotting
-    return x_edges, y_edges, data[variable_id]
+    return x, y, data[variable_id]
 end
 
 # Visualize the mesh in a 2D plot
