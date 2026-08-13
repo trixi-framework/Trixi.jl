@@ -539,10 +539,10 @@ function prolong2mortars_divergence!(cache, flux_parabolic,
 
         # Buffer to copy solution values of the large element in the correct orientation
         # before interpolating
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = cache.u_threaded.u[Threads.threadid()]
 
         # temporary buffer for projections
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        fstar_tmp = fstar_tmp_threaded.u[Threads.threadid()]
 
         # Copy solution of large element face to buffer in the
         # correct orientation
@@ -632,8 +632,8 @@ function calc_mortar_flux_divergence!(surface_flux_values,
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = fstar_primary_threaded[Threads.threadid()]
-        fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
+        fstar = fstar_primary_threaded.u[Threads.threadid()]
+        fstar_tmp = fstar_tmp_threaded.u[Threads.threadid()]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -685,7 +685,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
 
         # Buffer to interpolate flux values of the large element to before
         # copying in the correct orientation
-        u_buffer = cache.u_threaded[Threads.threadid()]
+        u_buffer = cache.u_threaded.u[Threads.threadid()]
 
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(surface_flux_values, mesh,
