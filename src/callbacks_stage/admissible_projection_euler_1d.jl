@@ -40,15 +40,6 @@
     return 10 * eps(T)
 end
 
-# Stable evaluation of a - sqrt(b) via (a^2 - b) / (a + sqrt(b)).
-# If a ≈ sqrt(b), catastrophic cancellation can occur when 
-# evaluating a - sqrt(b) directly. 
-# See for example the section on Catastrophic Cancellation in:
-# https://acme.byu.edu/00000179-d4cb-d26e-a37b-fffb577b0000/conditioning-stability-pdf
-@inline function a_minus_sqrt_b_rationalized(a, b, sqrt_b)
-    return (a * a - b) / (a + sqrt_b)
-end
-
 # Return (best_dist_squared, best_u, has_candidate) updated when u_candidate 
 # is closer to u than the current best; otherwise return the current best.
 @inline function update_best_candidate!(best_dist_squared, best_u,

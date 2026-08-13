@@ -23,7 +23,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
@@ -48,7 +48,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
@@ -64,7 +64,7 @@ end
                         linf=[0.14186297438393505])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
@@ -80,7 +80,7 @@ end
                         linf=[0.008154128363741964])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
@@ -128,7 +128,7 @@ end
     # (e.g., from type instabilities)
     # We move these tests here to avoid modifying values used
     # to compute the drag/lift coefficients above.
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
 
@@ -145,6 +145,6 @@ end
                         atol=1e-8,
                         rtol=1e-8)
     # Ensure that we do not have excessive memory allocations
-    @test_allocations(Trixi.rhs!, semi, sol, 1500)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1500)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1500)
 end
