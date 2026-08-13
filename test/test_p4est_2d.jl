@@ -1219,23 +1219,23 @@ end
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
 end
 
-@testitem "P4estMesh2D: IDP mortars with rotated orientation" setup=[
+@testitem "P4estMesh2D: elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl" setup=[
     Setup,
     P4estMesh2D
 ] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl"),
-                        l2=[ # TODO
-                            0.007894873889280406,
-                            0.019070999753855393,
-                            0.019809000890605447,
-                            0.12501350162149583
+                        l2=[
+                            0.011454420371144533,
+                            0.020903548103080687,
+                            0.02153303511793841,
+                            0.1148676335639754
                         ],
                         linf=[
-                            0.1888182728307215,
-                            0.4150356500329356,
-                            0.4079883416556661,
-                            2.2012581162794533
+                            0.30997407561599366,
+                            0.4891155873417419,
+                            0.4397493472598343,
+                            2.3824640619465263
                         ])
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
