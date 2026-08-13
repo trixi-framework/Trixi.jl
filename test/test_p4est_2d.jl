@@ -1219,6 +1219,47 @@ end
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-12)
 end
 
+@testitem "P4estMesh2D: IDP mortars with rotated orientation" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl"),
+                        l2=[ # TODO
+                            0.007894873889280406,
+                            0.019070999753855393,
+                            0.019809000890605447,
+                            0.12501350162149583
+                        ],
+                        linf=[
+                            0.1888182728307215,
+                            0.4150356500329356,
+                            0.4079883416556661,
+                            2.2012581162794533
+                        ])
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that this test actually exercises mortars whose large-element face
+    # is traversed in the opposite direction of the mortar nodes.
+    dg = semi.solver
+    cache = semi.cache
+    flipped_mortars = filter(Trixi.eachmortar(dg, cache)) do mortar
+        :i_backward in cache.mortars.node_indices[2, mortar]
+    end
+    @test !isempty(flipped_mortars)
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
 @testitem "P4estMesh2D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
