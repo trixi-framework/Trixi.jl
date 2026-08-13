@@ -567,6 +567,9 @@ end
             isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
 
             # Large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
             var_large = u[var_index, i_large, j_large, large_element]
             if var_large < 0
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
@@ -585,7 +588,8 @@ end
             Qm_large = min(0, (var_min_large - var_large) / dt)
 
             # Compute flux differences
-            flux_large_high_order = surface_flux_values_high_order[var_index, i,
+            flux_large_high_order = surface_flux_values_high_order[var_index,
+                                                                   large_node,
                                                                    large_direction,
                                                                    large_element]
             # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
@@ -593,8 +597,8 @@ end
                 limiting_factor[mortar] = 1
                 break
             end
-            flux_large_low_order = surface_flux_values[var_index, i, large_direction,
-                                                       large_element]
+            flux_large_low_order = surface_flux_values[var_index, large_node,
+                                                       large_direction, large_element]
             flux_difference_large = factor *
                                     (flux_large_high_order - flux_large_low_order)
 
@@ -778,19 +782,24 @@ end
             end
 
             # Large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
             u_large = get_node_vars(u, equations, dg, i_large, j_large, large_element)
             bound_large = var_minmax[i_large, j_large, large_element]
 
             flux_large_high_order = get_node_vars(surface_flux_values_high_order,
                                                   equations, dg,
-                                                  i, large_direction, large_element)
+                                                  large_node, large_direction,
+                                                  large_element)
             # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
             if !all(isfinite, flux_large_high_order)
                 limiting_factor[mortar] = 1
                 break
             end
             flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
-                                                 i, large_direction, large_element)
+                                                 large_node, large_direction,
+                                                 large_element)
             inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                           mesh, i_large, j_large,
                                                           large_element)
@@ -871,13 +880,17 @@ end
             isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
 
             # Large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
             var_large = u[var_index, i_large, j_large, large_element]
             if var_large < 0
                 error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
             end
 
             # Calculate Pm
-            flux_large_high_order = surface_flux_values_high_order[var_index, i,
+            flux_large_high_order = surface_flux_values_high_order[var_index,
+                                                                   large_node,
                                                                    large_direction,
                                                                    large_element]
             # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
@@ -885,8 +898,8 @@ end
                 limiting_factor[mortar] = 1
                 break
             end
-            flux_large_low_order = surface_flux_values[var_index, i, large_direction,
-                                                       large_element]
+            flux_large_low_order = surface_flux_values[var_index, large_node,
+                                                       large_direction, large_element]
             flux_difference_large = factor *
                                     (flux_large_high_order - flux_large_low_order)
 
@@ -1068,6 +1081,9 @@ end
             end
 
             # Large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
             u_large = get_node_vars(u, equations, dg, i_large, j_large, large_element)
 
             # Minimum bound
@@ -1075,14 +1091,16 @@ end
 
             flux_large_high_order = get_node_vars(surface_flux_values_high_order,
                                                   equations, dg,
-                                                  i, large_direction, large_element)
+                                                  large_node, large_direction,
+                                                  large_element)
             # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
             if !all(isfinite, flux_large_high_order)
                 limiting_factor[mortar] = 1
                 break
             end
             flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
-                                                 i, large_direction, large_element)
+                                                 large_node, large_direction,
+                                                 large_element)
 
             inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                           mesh, i_large, j_large,

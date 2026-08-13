@@ -477,7 +477,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                                    factor /
                                                    mortar_weights_sums[i_mortar, 1],
                                                    flux, equations, dg,
-                                                   i, small_direction, small_element)
+                                                   i_mortar, small_direction,
+                                                   small_element)
                         # Add flux to large element
                         # The flux is calculated in the outward direction of the small elements,
                         # so the sign must be switched to get the flux in outward direction
@@ -490,7 +491,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                                    -2 * factor /
                                                    mortar_weights_sums[j_mortar, 2],
                                                    flux, equations, dg,
-                                                   j, large_direction, large_element)
+                                                   j_mortar, large_direction,
+                                                   large_element)
                     end
                     i_large += i_large_step
                     j_large += j_large_step

@@ -226,15 +226,20 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
         j_large = j_large_start
         for i in eachnode(dg)
             # large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
             inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                           mesh, i_large, j_large,
                                                           large_element)
 
             flux_large_high_order = get_node_vars(surface_flux_values_high_order,
                                                   equations, dg,
-                                                  i, large_direction, large_element)
+                                                  large_node, large_direction,
+                                                  large_element)
             flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
-                                                 i, large_direction, large_element)
+                                                 large_node, large_direction,
+                                                 large_element)
             flux_difference_large = factor *
                                     (flux_large_high_order .- flux_large_low_order)
 
