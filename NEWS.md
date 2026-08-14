@@ -5,10 +5,17 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-
-## Changes when updating to v0.17 from v0.16.x
+## Changes in the v0.17 lifecycle
 
 #### Added
+- TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
+  When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
+  toggles the bars visualizing the fraction of time and allocations spent in
+  each section of the timer output of the `SummaryCallback`. The bars are
+  disabled by default.
+
+
+## Changes when updating to v0.17 from v0.16.x
 
 #### Changed
 - The `NonConservativeJump` terms now require `normal_direction_ll` and
@@ -60,6 +67,7 @@ for human readability.
 - Added `PositivityPreservingLimiterLiuZhang` for `TreeMesh`, which enforces global positivity of cell averages through an iterative algorithm ([#3063]). Currently only implemented for `LinearScalarAdvectionEquation`.
 - Added experimental support for block-structured finite volume methods on 1D and 2D `TreeMesh`es via the new `BlockFV` solver, `UniformFiniteVolumeBasis`, and `VolumeIntegralFiniteVolume`, together with example elixirs ([#3067]). Check the progress in <https://github.com/trixi-framework/Trixi.jl/issues/3068>.
 - The `BlockFV` solver now supports mortars on the `TreeMesh` in 2D ([#3104]).
+- The `BlockFV` solver now supports conforming `P4estMesh`es in 2D ([#3128]).
 - Added support for plotting 1D solutions with Makie.jl, matching the existing Plots.jl interface ([#3035]).
 - `VolumeIntegralAdaptive` is now also available with `VolumeIntegralSubcellLimiting` for `TreeMesh` in 2D and 3D using the heuristic a-priori indicator `IndicatorHennemannGassner` ([#2924], [#2986]).
 - A new EOS type `AbstractHelmholtzEOS`, with concrete implementation `HelmholtzIdealGas`. This implementation roughly follows Klein et al.'s approach in
