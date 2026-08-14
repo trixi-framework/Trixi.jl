@@ -23,4 +23,5 @@ include("containers_2d.jl")
 include("sort_boundary_conditions.jl")
 include("dg_2d.jl")
 include("indicators_2d.jl")
+include("fdsbp_flux.jl")
 end # @muladd
