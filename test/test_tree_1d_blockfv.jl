@@ -103,7 +103,7 @@ end
                             0.0005996662214733384,
                             0.0013619534679571998
                         ])
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 1D: elixir_euler_fvO2.jl with n_nodes=1" setup=[
@@ -114,7 +114,19 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
                         n_nodes=1,
                         tspan=(0.0, 0.1))
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "BlockFV 1D: elixir_euler_fvO2.jl with reconstruction_O2_inner" setup=[
+    Setup,
+    TreeMesh1DBlockFV
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fvO2.jl"),
+                        reconstruction_mode=reconstruction_O2_inner,
+                        tspan=(0.0, 0.5))
+    @test solver.volume_integral isa VolumeIntegralFiniteVolumeO2
+    @test solver.volume_integral.reconstruction_mode === reconstruction_O2_inner
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "BlockFV 1D: elixir_euler_fvO2.jl (convergence)" setup=[
@@ -139,7 +151,9 @@ end
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       integral)
 
-    integral_o2 = VolumeIntegralFiniteVolumeO2(4, flux_lax_friedrichs)
+    integral_o2 = VolumeIntegralFiniteVolumeO2(4, flux_lax_friedrichs;
+                                               reconstruction_mode = reconstruction_O2_full)
+    @test integral_o2.reconstruction_mode === reconstruction_O2_full
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
                       integral_o2)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),

@@ -69,8 +69,8 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::TreeMesh{1},
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFiniteVolumeO2,
-                               dg::BlockFVO2, cache)
-    @unpack (sc_interface_coords, surface_flux, slope_limiter,
+                               dg::BlockFV, cache)
+    @unpack (sc_interface_coords, surface_flux, reconstruction_mode, slope_limiter,
     cons2recon, recon2cons) = volume_integral
     @unpack fstar_threaded = cache
     inv_h = nnodes(dg) * one(eltype(u)) / 2
@@ -78,7 +78,7 @@ function calc_volume_integral!(backend::Nothing, du, u,
     @threaded for element in eachelement(dg, cache)
         fstar = fstar_threaded[Threads.threadid()]
 
-        # Each BlockFVO2 element is split into n equal FV cells on [-1, 1].
+        # Each BlockFV element is split into n equal FV cells on [-1, 1].
         # Cell averages live at the cell centers; numerical fluxes are stored
         # in fstar at the n+1 faces (element boundaries + internal faces).
         # Schematic for n_nodes = 4:
@@ -115,9 +115,9 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                             min(nnodes(dg), i + 1), element),
                               equations)
 
-            u_l, u_r = reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
-                                              sc_interface_coords, i,
-                                              slope_limiter, dg)
+            u_l, u_r = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                           sc_interface_coords, i,
+                                           slope_limiter, dg)
 
             f = surface_flux(recon2cons(u_l, equations),
                              recon2cons(u_r, equations), 1, equations)
@@ -137,12 +137,12 @@ function calc_volume_integral!(backend::Nothing, du, u,
 end
 
 #####################################################################
-# Surface reconstruction for BlockFVO2 interfaces or boundaries.
-# Reconstruct to element face ξ = +/- 1 using reconstruction_O2_full,
+# Surface reconstruction for BlockFV with VolumeIntegralFiniteVolumeO2.
+# Reconstruct to element face ξ = +/- 1 using `reconstruction_mode`,
 # then extrapolate from the near-boundary internal face
-@inline function reconstruct_element_face(u, equations, dg::BlockFVO2, element, face,
-                                          volume_integral)
-    @unpack sc_interface_coords, slope_limiter,
+@inline function reconstruct_element_face(u, equations, dg::BlockFV, element, face,
+                                          volume_integral::VolumeIntegralFiniteVolumeO2)
+    @unpack sc_interface_coords, reconstruction_mode, slope_limiter,
     cons2recon, recon2cons = volume_integral
     nodes = dg.basis.nodes
     n = nnodes(dg)
@@ -170,8 +170,8 @@ end
         u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, element), equations)
         u_rl = cons2recon(get_node_vars(u, equations, dg, i, element), equations)
         u_rr = u_rl
-        _, u_face = reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
-                                           sc_interface_coords, i, slope_limiter, dg)
+        _, u_face = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        sc_interface_coords, i, slope_limiter, dg)
         x_c = nodes[i]
         return recon2cons(u_rl +
                           (u_face - u_rl) / (sc_interface_coords[i - 1] - x_c) *
@@ -184,8 +184,8 @@ end
         u_rl = cons2recon(get_node_vars(u, equations, dg, 2, element), equations)
         u_rr = cons2recon(get_node_vars(u, equations, dg, min(n, 3), element),
                           equations)
-        u_face, _ = reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
-                                           sc_interface_coords, i, slope_limiter, dg)
+        u_face, _ = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
+                                        sc_interface_coords, i, slope_limiter, dg)
         x_c = nodes[i - 1]
         return recon2cons(u_lr +
                           (u_face - u_lr) / (sc_interface_coords[i - 1] - x_c) *
@@ -194,7 +194,11 @@ end
 end
 
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{1}, equations, dg::BlockFVO2)
+                             mesh::TreeMesh{1}, equations,
+                             dg::DG{<:UniformFiniteVolumeBasis, Mortar, SurfaceIntegral,
+                                    <:VolumeIntegralFiniteVolumeO2}) where {Mortar,
+                                                                            SurfaceIntegral
+                                                                            }
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -218,7 +222,11 @@ function prolong2interfaces!(cache, u,
 end
 
 function prolong2boundaries!(backend::Nothing, cache, u,
-                             mesh::TreeMesh{1}, equations, dg::BlockFVO2)
+                             mesh::TreeMesh{1}, equations,
+                             dg::DG{<:UniformFiniteVolumeBasis, Mortar, SurfaceIntegral,
+                                    <:VolumeIntegralFiniteVolumeO2}) where {Mortar,
+                                                                            SurfaceIntegral
+                                                                            }
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
     volume_integral = dg.volume_integral

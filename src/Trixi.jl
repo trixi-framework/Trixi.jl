@@ -311,7 +311,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
 export DG,
        DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
-       BlockFV, BlockFVO2, UniformFiniteVolumeBasis,
+       BlockFV, UniformFiniteVolumeBasis,
        VolumeIntegralFiniteVolume, VolumeIntegralFiniteVolumeO2,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,

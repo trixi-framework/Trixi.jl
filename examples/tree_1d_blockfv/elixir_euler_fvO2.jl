@@ -8,9 +8,10 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-# Standard 2nd order block FV setup with a less dissipative reconstruction limiter 
-solver = BlockFVO2(n_nodes = 4, surface_flux = flux_hllc,
-                   slope_limiter = monotonized_central)
+# Standard 2nd order block FV setup with a less dissipative reconstruction limiter
+solver = BlockFV(n_nodes = 4, surface_flux = flux_hllc,
+                 reconstruction_mode = reconstruction_O2_full,
+                 slope_limiter = monotonized_central)
 
 coordinates_min = (0.0,)
 coordinates_max = (2.0,)
