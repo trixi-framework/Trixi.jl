@@ -1,6 +1,3 @@
-# !!! warning "Experimental implementation (upwind SBP)"
-#     This is an experimental feature and may change in future releases.
-
 using OrdinaryDiffEqSSPRK
 using Trixi
 
@@ -37,9 +34,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_errors = (:l2_error_primitive,
-                                                              :linf_error_primitive))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
