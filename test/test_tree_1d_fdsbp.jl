@@ -154,6 +154,36 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh1D FDSBP: elixir_euler_convergence_flux_diff.jl with periodic operators" setup=[
+    Setup,
+    TreeMesh1DFDSBP
+] tags=[:tree_part1] begin
+    using Trixi: periodic_derivative_operator
+    global D = periodic_derivative_operator(derivative_order = 1,
+                                            accuracy_order = 4,
+                                            xmin = -1.0,
+                                            xmax = 1.0,
+                                            N = 32)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_flux_diff.jl"),
+                        l2=[
+                            5.939694965727664e-6,
+                            1.2628337006905111e-5,
+                            2.7386792502816747e-5
+                        ],
+                        linf=[
+                            9.644587635193602e-6,
+                            1.9052057385726684e-5,
+                            4.341662828366566e-5
+                        ],
+                        D_SBP=D,
+                        initial_refinement_level=0,
+                        tspan=(0.0, 0.5))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh1D FDSBP: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh1DFDSBP] tags=[:tree_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[

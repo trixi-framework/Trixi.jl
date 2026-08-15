@@ -51,6 +51,9 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
 
     D = sparse(dg.basis)
     M = SummationByPartsOperators.mass_matrix(dg.basis)
+    if M isa UniformScaling
+        M = M(nnodes(dg))
+    end
     inv_weights = diag(inv(M))
     # We multiply by the mass matrix to exploit the skew-symmetry property, where Q = M D
     derivative_split_weighted = 2 .* M * D
@@ -320,6 +323,14 @@ end
 # Periodic FDSBP operators need to use a single element without boundaries
 function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh2D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
+                                dg::PeriodicFDSBP, cache)
+    @assert nelements(dg, cache) == 1
+    return nothing
+end
+
+# Periodic FDSBP operators need to use a single element without boundaries
+function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh2D,
+                                equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::PeriodicFDSBP, cache)
     @assert nelements(dg, cache) == 1
     return nothing
