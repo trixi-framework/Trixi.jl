@@ -26,11 +26,9 @@ const _PREFERENCE_TIMER_BARS = @load_preference("timer_bars", false)
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Adjoint, UpperTriangular, Diagonal, diag, dot, eigvals,
-                     mul!, norm,
-                     cross,
-                     normalize, I,
-                     UniformScaling, det
+using LinearAlgebra: LinearAlgebra, Adjoint, UpperTriangular, Diagonal,
+                     I, UniformScaling
+                     det, diag, dot, eigvals, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
                     rowvals, nzrange, nonzeros, dropzeros!
