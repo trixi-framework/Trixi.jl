@@ -33,14 +33,28 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
                                                                                    ndims(mesh))...)
-    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
 
-    D = Matrix(dg.basis)
+    if !(typeof(dg.surface_integral) <: SurfaceIntegralWeakForm)
+        throw(ArgumentError("Invalid surface integral type: $(dg.surface_integral). Please use SurfaceIntegralWeakForm(surface_flux)."))
+    end
+
+    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
+    D = sparse(dg.basis)
     M = SummationByPartsOperators.mass_matrix(dg.basis)
-    derivative_split = 2 .* D
-    derivative_split[1, 1] += 1 / M[1, 1] # B[1, 1] = -1
-    derivative_split[end, end] -= 1 / M[end, end] # B[end, end] = 1
-    return (; f_threaded, derivative_split)
+    inv_weights = diag(inv(M))
+    # We multiply by the mass matrix to exploit the skew-symmetry property
+    # Q = M D
+    derivative_split_weighted = 2 .* M * D
+    # We subtract the B operator
+    derivative_split_weighted[1, 1] = 0
+    derivative_split_weighted[end, end] = 0
+    # We have to loop over rows, but sparse matrices in julia are column major, therefore we permute the dimensions.
+    derivative_split_weighted = permutedims(derivative_split_weighted)
+    # Since the matrix is skew symmetric, we avoid looping over the lower triangular part of the matrix.
+    derivative_split_weighted = sparse(UpperTriangular(derivative_split_weighted))
+    dropzeros!(derivative_split_weighted)
+
+    return (; f_threaded, derivative_split_weighted, inv_weights)
 end
 
 # 2D volume integral contributions for `VolumeIntegralFluxDifferencing`
@@ -49,6 +63,71 @@ function calc_volume_integral!(backend, du, u,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::FDSBP, cache)
+    Q = cache.derivative_split_weighted # SBP derivative operator
+    inv_weights = cache.inv_weights
+    @unpack contravariant_vectors = cache.elements
+    @unpack volume_flux = volume_integral
+
+    if nvariables(equations) == 1
+        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
+                            nnodes(dg), nnodes(dg), nelements(dg, cache))
+    else
+        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
+    end
+
+    Q_base, row_ids, rows, vals = sparse_operator_data(Q)
+
+    @threaded for element in eachelement(dg, cache)
+        u_element = view(u_vectors, :, :, element)
+        @inbounds for j in eachnode(dg), i in eachnode(dg)
+            u_node = u_element[i, j]
+            Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+            Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+
+            for id in nzrange(Q_base, i)
+                ii = rows[id]
+                Q_ij = vals[id]
+                u_node_ii = u_element[ii, j]
+                Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
+                                                       element)
+                Ja1_avg = (Ja1_node + Ja1_node_ii) * 0.5f0
+
+                fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+
+                @inbounds for v in eachvariable(equations)
+                    du[v, i, j, element] += Q_ij * fluxtilde1[v] * inv_weights[i]
+                    du[v, ii, j, element] -= Q_ij * fluxtilde1[v] * inv_weights[ii]
+                end
+            end
+
+            for id in nzrange(Q_base, j)
+                jj = rows[id]
+                Q_ij = vals[id]
+
+                u_node_jj = u_element[i, jj]
+                Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
+                                                       element)
+                Ja2_avg = (Ja2_node + Ja2_node_jj) * 0.5f0
+
+                fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+
+                @inbounds for v in eachvariable(equations)
+                    du[v, i, j, element] += Q_ij * fluxtilde2[v] * inv_weights[j]
+                    du[v, i, jj, element] -= Q_ij * fluxtilde2[v] * inv_weights[jj]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+# 2D volume integral contributions for `VolumeIntegralFluxDifferencing`
+function calc_volume_integral_baseline!(backend, du, u,
+                                        mesh::UnstructuredMesh2D,
+                                        have_nonconservative_terms::False, equations,
+                                        volume_integral::VolumeIntegralFluxDifferencing,
+                                        dg::FDSBP, cache)
     D = cache.derivative_split # SBP derivative operator
     @unpack contravariant_vectors = cache.elements
     @unpack volume_flux = volume_integral
