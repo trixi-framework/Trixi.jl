@@ -75,7 +75,7 @@ function calc_volume_integral!(backend, du, u,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::FDSBP, cache)
-    Q_split = cache.derivative_split_weighted # SBP derivative operator
+    Q_split = cache.derivative_split_weighted # SBP derivative operator weighted by mass matrix
     inv_weights = cache.inv_weights
     @unpack volume_flux = volume_integral
 
@@ -358,42 +358,36 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{3},
         for m in eachnode(dg), l in eachnode(dg)
             # surface at -x
             u_node = get_node_vars(u, equations, dg, 1, l, m, element)
-            f_node = flux(u_node, 1, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 1, element)
             multiply_add_to_node_vars!(du, inv_weight_left, -f_num,
                                        equations, dg, 1, l, m, element)
 
             # surface at +x
             u_node = get_node_vars(u, equations, dg, nnodes(dg), l, m, element)
-            f_node = flux(u_node, 1, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 2, element)
             multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
                                        equations, dg, nnodes(dg), l, m, element)
 
             # surface at -y
             u_node = get_node_vars(u, equations, dg, l, 1, m, element)
-            f_node = flux(u_node, 2, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 3, element)
             multiply_add_to_node_vars!(du, inv_weight_left, -f_num,
                                        equations, dg, l, 1, m, element)
 
             # surface at +y
             u_node = get_node_vars(u, equations, dg, l, nnodes(dg), m, element)
-            f_node = flux(u_node, 2, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 4, element)
             multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
                                        equations, dg, l, nnodes(dg), m, element)
 
             # surface at -z
             u_node = get_node_vars(u, equations, dg, l, m, 1, element)
-            f_node = flux(u_node, 3, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 5, element)
             multiply_add_to_node_vars!(du, inv_weight_left, -f_num,
                                        equations, dg, l, m, 1, element)
 
             # surface at +z
             u_node = get_node_vars(u, equations, dg, l, m, nnodes(dg), element)
-            f_node = flux(u_node, 3, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 6, element)
             multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
                                        equations, dg, l, m, nnodes(dg), element)

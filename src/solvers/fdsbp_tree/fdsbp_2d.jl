@@ -75,7 +75,7 @@ function calc_volume_integral!(backend, du, u,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::FDSBP, cache)
-    Q_split = cache.derivative_split_weighted # SBP derivative operator
+    Q_split = cache.derivative_split_weighted # SBP derivative operator weighted by mass matrix
     inv_weights = cache.inv_weights
     @unpack volume_flux = volume_integral
 
@@ -315,7 +315,6 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{2},
 
             # surface at +y
             u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
-            f_node = flux(u_node, 2, equations)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
             multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
                                        equations, dg, l, nnodes(dg), element)
