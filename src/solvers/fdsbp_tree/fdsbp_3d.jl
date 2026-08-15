@@ -346,7 +346,7 @@ end
 function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{3},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::FDSBP, cache)
-    inv_weight_left = inv(left_boundary_weight(dg.basis))
+    inv_weight_left = -inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
 
@@ -355,37 +355,37 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{3},
             # surface at -x
             u_node = get_node_vars(u, equations, dg, 1, l, m, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 1, element)
-            multiply_add_to_node_vars!(du, inv_weight_left, -f_num,
+            multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, 1, l, m, element)
 
             # surface at +x
             u_node = get_node_vars(u, equations, dg, nnodes(dg), l, m, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 2, element)
-            multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
+            multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, nnodes(dg), l, m, element)
 
             # surface at -y
             u_node = get_node_vars(u, equations, dg, l, 1, m, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 3, element)
-            multiply_add_to_node_vars!(du, inv_weight_left, -f_num,
+            multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, l, 1, m, element)
 
             # surface at +y
             u_node = get_node_vars(u, equations, dg, l, nnodes(dg), m, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 4, element)
-            multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
+            multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, l, nnodes(dg), m, element)
 
             # surface at -z
             u_node = get_node_vars(u, equations, dg, l, m, 1, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 5, element)
-            multiply_add_to_node_vars!(du, inv_weight_left, -f_num,
+            multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, l, m, 1, element)
 
             # surface at +z
             u_node = get_node_vars(u, equations, dg, l, m, nnodes(dg), element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, m, 6, element)
-            multiply_add_to_node_vars!(du, inv_weight_right, +f_num,
+            multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, l, m, nnodes(dg), element)
         end
     end
