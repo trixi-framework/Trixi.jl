@@ -131,40 +131,4 @@
 
         return nothing
     end
-
-    @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                         mesh::UnstructuredMesh2D,
-                                         have_nonconservative_terms::True, equations,
-                                         surface_integral::SurfaceIntegralWeakForm,
-                                         dg::FDSBP,
-                                         cache,
-                                         node_index, side_index, element_index,
-                                         boundary_index)
-        @unpack normal_directions = cache.elements
-        @unpack u, node_coordinates = cache.boundaries
-
-        # pull the inner solution state from the boundary u values on the boundary element
-        u_inner = get_node_vars(u, equations, dg, node_index, boundary_index)
-
-        # pull the outward pointing (normal) directional vector
-        outward_direction = get_surface_normal(normal_directions, node_index, side_index,
-                                               element_index)
-
-        # get the external solution values from the prescribed external state
-        x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
-
-        # Call pointwise numerical flux functions for the conservative and nonconservative part
-        # in the normal direction on the boundary
-        flux = boundary_condition(u_inner, outward_direction, x, t,
-                                  surface_integral.surface_flux, equations)
-
-        for v in eachvariable(equations)
-            # Note the factor 0.5 necessary for the nonconservative fluxes based on
-            # the interpretation of global SBP operators coupled discontinuously via
-            # central fluxes/SATs
-            surface_flux_values[v, node_index, side_index, element_index] = flux[v]
-        end
-
-        return nothing
-    end
 end
