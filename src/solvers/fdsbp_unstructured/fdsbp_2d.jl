@@ -308,33 +308,21 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             # surface at -x
-            u_node = get_node_vars(u, equations, dg, 1, l, element)
-            # compute internal flux in normal direction on side 4
-            outward_direction = get_surface_normal(normal_directions, l, 4, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
             multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, 1, l, element)
 
             # surface at +x
-            u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
-            # compute internal flux in normal direction on side 2
-            outward_direction = get_surface_normal(normal_directions, l, 2, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
             multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, nnodes(dg), l, element)
 
             # surface at -y
-            u_node = get_node_vars(u, equations, dg, l, 1, element)
-            # compute internal flux in normal direction on side 1
-            outward_direction = get_surface_normal(normal_directions, l, 1, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
             multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, l, 1, element)
 
             # surface at +y
-            u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
-            # compute internal flux in normal direction on side 3
-            outward_direction = get_surface_normal(normal_directions, l, 3, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
             multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, l, nnodes(dg), element)

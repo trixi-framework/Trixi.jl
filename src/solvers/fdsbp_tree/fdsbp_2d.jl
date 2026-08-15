@@ -1,6 +1,3 @@
-# !!! warning "Experimental implementation (upwind SBP)"
-#     This is an experimental feature and may change in future releases.
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -82,12 +79,12 @@ function calc_volume_integral!(backend, du, u,
     Q_split_base, row_ids, rows, vals = sparse_operator_data(Q_split)
 
     @threaded for element in eachelement(dg, cache)
-        @inbounds for j in eachnode(dg), i in eachnode(dg)
+        for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
 
             # We are looping over the columns of the permuted derivative split weighted operator, 
             # which corresponds to looping over the rows of the derivative split weighted operator.
-            @inbounds for id in nzrange(Q_split_base, i)
+            for id in nzrange(Q_split_base, i)
                 ii = rows[id]
                 Q_split_i_ii = vals[id]
 
@@ -104,7 +101,7 @@ function calc_volume_integral!(backend, du, u,
 
             # We are looping over the columns of the permuted derivative split weighted operator, 
             # which corresponds to looping over the rows of the derivative split weighted operator.
-            @inbounds for id in nzrange(Q_split_base, j)
+            for id in nzrange(Q_split_base, j)
                 jj = rows[id]
                 Q_split_j_jj = vals[id]
 
@@ -296,25 +293,21 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{2},
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             # surface at -x
-            u_node = get_node_vars(u, equations, dg, 1, l, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
             multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, 1, l, element)
 
             # surface at +x
-            u_node = get_node_vars(u, equations, dg, nnodes(dg), l, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
             multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, nnodes(dg), l, element)
 
             # surface at -y
-            u_node = get_node_vars(u, equations, dg, l, 1, element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
             multiply_add_to_node_vars!(du, inv_weight_left, f_num,
                                        equations, dg, l, 1, element)
 
             # surface at +y
-            u_node = get_node_vars(u, equations, dg, l, nnodes(dg), element)
             f_num = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
             multiply_add_to_node_vars!(du, inv_weight_right, f_num,
                                        equations, dg, l, nnodes(dg), element)

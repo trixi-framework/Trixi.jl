@@ -318,14 +318,12 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{1},
 
     @threaded for element in eachelement(dg, cache)
         # surface at -x
-        u_node = get_node_vars(u, equations, dg, 1, element)
         f_node = splitting(u_node, Val{:plus}(), 1, equations)
         f_num = get_node_vars(surface_flux_values, equations, dg, 1, element)
         multiply_add_to_node_vars!(du, inv_weight_left, -(f_num - f_node),
                                    equations, dg, 1, element)
 
         # surface at +x
-        u_node = get_node_vars(u, equations, dg, nnodes(dg), element)
         f_node = splitting(u_node, Val{:minus}(), 1, equations)
         f_num = get_node_vars(surface_flux_values, equations, dg, 2, element)
         multiply_add_to_node_vars!(du, inv_weight_right, +(f_num - f_node),
