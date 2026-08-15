@@ -45,10 +45,6 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
         throw(ArgumentError("Invalid surface integral type: $(dg.surface_integral). Please use SurfaceIntegralWeakForm(surface_flux)."))
     end
 
-    prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
-                                                                            ntuple(_ -> nnodes(dg),
-                                                                                   ndims(mesh))...)
-
     D = sparse(dg.basis)
     M = SummationByPartsOperators.mass_matrix(dg.basis)
     if M isa UniformScaling
