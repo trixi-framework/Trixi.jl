@@ -757,13 +757,13 @@ function apply_jacobian!(backend::Nothing, du,
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-       @trixi_bounds for j in eachnode(dg), i in eachnode(dg)
+        @trixi_bounds for j in eachnode(dg), i in eachnode(dg)
             # Negative sign included to account for the negated surface and volume terms,
             # see e.g. the computation of `derivative_hat` in the basis setup and
             # the comment in `calc_surface_integral!`.
             factor = -inverse_jacobian[i, j, element]
 
-          @trixi_bounds  for v in eachvariable(equations)
+            @trixi_bounds for v in eachvariable(equations)
                 du[v, i, j, element] *= factor
             end
         end

@@ -990,8 +990,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
     #
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-       @trixi_bounds for m in eachnode(dg), l in eachnode(dg)
-           @trixi_bounds for v in eachvariable(equations)
+        @trixi_bounds for m in eachnode(dg), l in eachnode(dg)
+            @trixi_bounds for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, m, element] = (du[v, 1, l, m, element] +
                                            surface_flux_values[v, l, m, 1,

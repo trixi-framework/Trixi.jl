@@ -1074,8 +1074,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # into FMAs (see comment at the top of the file).
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-       @trixi_bounds for l in eachnode(dg)
-          @trixi_bounds  for v in eachvariable(equations)
+        @trixi_bounds for l in eachnode(dg)
+            @trixi_bounds for v in eachvariable(equations)
                 # surface at -x
                 du[v, 1, l, element] = (du[v, 1, l, element] +
                                         surface_flux_values[v, l, 1, element] *
@@ -1117,8 +1117,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     @threaded for element in eachelement(dg, cache)
-       @trixi_bounds for l in eachnode(dg)
-           @trixi_bounds for v in eachvariable(equations)
+        @trixi_bounds for l in eachnode(dg)
+            @trixi_bounds for v in eachvariable(equations)
                 # Aliases for repeatedly accessed variables
                 surface_flux_minus_x = surface_flux_values[v, l, 1, element]
                 surface_flux_plus_x = surface_flux_values[v, l, 2, element]
