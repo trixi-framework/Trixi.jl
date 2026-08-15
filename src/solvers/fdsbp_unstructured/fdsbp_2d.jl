@@ -26,95 +26,62 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
     return cache
 end
 
-# This method is specialized for FDSBP operators and creates the appropriate flux-differencing operator
-function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
-                      volume_integral::VolumeIntegralFluxDifferencing,
-                      dg::FDSBP, cache_containers, uEltype)
-    prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
-                                                                            ntuple(_ -> nnodes(dg),
-                                                                                   ndims(mesh))...)
-
-    if !(typeof(dg.surface_integral) <: SurfaceIntegralWeakForm)
-        throw(ArgumentError("Invalid surface integral type: $(dg.surface_integral). Please use SurfaceIntegralWeakForm(surface_flux)."))
-    end
-
-    f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
-    D = sparse(dg.basis)
-    M = SummationByPartsOperators.mass_matrix(dg.basis)
-    inv_weights = diag(inv(M))
-    # We multiply by the mass matrix to exploit the skew-symmetry property
-    # Q = M D
-    derivative_split_weighted = 2 .* M * D
-    # We subtract the B operator
-    derivative_split_weighted[1, 1] = 0
-    derivative_split_weighted[end, end] = 0
-    # We have to loop over rows, but sparse matrices in julia are column major, therefore we permute the dimensions.
-    derivative_split_weighted = permutedims(derivative_split_weighted)
-    # Since the matrix is skew symmetric, we avoid looping over the lower triangular part of the matrix.
-    derivative_split_weighted = sparse(UpperTriangular(derivative_split_weighted))
-    dropzeros!(derivative_split_weighted)
-
-    return (; f_threaded, derivative_split_weighted, inv_weights)
-end
-
 # 2D volume integral contributions for `VolumeIntegralFluxDifferencing`
 function calc_volume_integral!(backend, du, u,
                                mesh::UnstructuredMesh2D,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::FDSBP, cache)
-    Q = cache.derivative_split_weighted # SBP derivative operator
+    Q_split = cache.derivative_split_weighted # SBP derivative operator
     inv_weights = cache.inv_weights
     @unpack contravariant_vectors = cache.elements
     @unpack volume_flux = volume_integral
 
-    if nvariables(equations) == 1
-        u_vectors = reshape(reinterpret(SVector{nvariables(equations), eltype(u)}, u),
-                            nnodes(dg), nnodes(dg), nelements(dg, cache))
-    else
-        u_vectors = reinterpret(reshape, SVector{nvariables(equations), eltype(u)}, u)
-    end
-
-    Q_base, row_ids, rows, vals = sparse_operator_data(Q)
+    Q_split_base, row_ids, rows, vals = sparse_operator_data(Q_split)
 
     @threaded for element in eachelement(dg, cache)
-        u_element = view(u_vectors, :, :, element)
-        @inbounds for j in eachnode(dg), i in eachnode(dg)
-            u_node = u_element[i, j]
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
             Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
             Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
 
-            for id in nzrange(Q_base, i)
+            # We are looping over the columns of the permuted derivative split weighted operator, 
+            # which corresponds to looping over the rows of the derivative split weighted operator.
+            for id in nzrange(Q_split_base, i)
                 ii = rows[id]
-                Q_ij = vals[id]
-                u_node_ii = u_element[ii, j]
+                Q_split_i_ii = vals[id]
+                u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
                 Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
                                                        element)
                 Ja1_avg = (Ja1_node + Ja1_node_ii) * 0.5f0
 
                 fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
 
-                @inbounds for v in eachvariable(equations)
-                    du[v, i, j, element] += Q_ij * fluxtilde1[v] * inv_weights[i]
-                    du[v, ii, j, element] -= Q_ij * fluxtilde1[v] * inv_weights[ii]
-                end
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D. 
+                multiply_add_to_node_vars!(du, Q_split_i_ii * inv_weights[i],
+                                           fluxtilde1, equations, dg, i, j, element)
+                multiply_add_to_node_vars!(du, -Q_split_i_ii * inv_weights[ii],
+                                           fluxtilde1, equations, dg, ii, j, element)
             end
 
-            for id in nzrange(Q_base, j)
+            # We are looping over the columns of the permuted derivative split weighted operator, 
+            # which corresponds to looping over the rows of the derivative split weighted operator.
+            for id in nzrange(Q_split_base, j)
                 jj = rows[id]
-                Q_ij = vals[id]
+                Q_split_j_jj = vals[id]
 
-                u_node_jj = u_element[i, jj]
+                u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
                 Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
                                                        element)
                 Ja2_avg = (Ja2_node + Ja2_node_jj) * 0.5f0
 
                 fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
 
-                @inbounds for v in eachvariable(equations)
-                    du[v, i, j, element] += Q_ij * fluxtilde2[v] * inv_weights[j]
-                    du[v, i, jj, element] -= Q_ij * fluxtilde2[v] * inv_weights[jj]
-                end
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D. 
+                multiply_add_to_node_vars!(du, Q_split_j_jj * inv_weights[j],
+                                           fluxtilde2, equations, dg, i, j, element)
+                multiply_add_to_node_vars!(du, -Q_split_j_jj * inv_weights[jj],
+                                           fluxtilde2, equations, dg, i, jj, element)
             end
         end
     end
