@@ -7,22 +7,21 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
-source_terms = source_terms_convergence_test
 
 D_SBP = derivative_operator(SummationByPartsOperators.MattssonAlmquistVanDerWeide2018Accurate(),
                             derivative_order = 1, accuracy_order = 4,
-                            xmin = -1.0, xmax = 1.0, N = 16)
+                            xmin = -1.0, xmax = 1.0, N = 32)
 solver = FDSBP(D_SBP,
                surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
-coordinates_min = (-1.0, -1.0)
-coordinates_max = (1.0, 1.0)
+coordinates_min = 0.0
+coordinates_max = 2.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 1,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -37,24 +36,24 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (energy_total,))
+                                     extra_analysis_errors = (:l2_error_primitive,
+                                                              :linf_error_primitive))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 1000,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        save_solution,
-                        alive_callback)
+                        analysis_callback, alive_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(); abstol = 1.0e-9, reltol = 1.0e-9,
+sol = solve(ode, SSPRK43(); abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks)

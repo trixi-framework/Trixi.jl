@@ -1,40 +1,36 @@
+# !!! warning "Experimental implementation (upwind SBP)"
+#     This is an experimental feature and may change in future releases.
+
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+equations = CompressibleEulerEquations3D(1.4)
 
-equations = CompressibleEulerEquations2D(5 / 3)
-
-initial_condition = initial_condition_weak_blast_wave
-
-###############################################################################
-# Get the DG approximation space
+initial_condition = initial_condition_convergence_test
 
 D_SBP = derivative_operator(SummationByPartsOperators.MattssonAlmquistVanDerWeide2018Accurate(),
                             derivative_order = 1, accuracy_order = 4,
-                            xmin = -1.0, xmax = 1.0, N = 22)
-
-solver = FDSBP(D_SBP, surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
+                            xmin = -1.0, xmax = 1.0, N = 16)
+solver = FDSBP(D_SBP,
+               surface_integral = SurfaceIntegralWeakForm(flux_ranocha),
                volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
-###############################################################################
-# Get the curved quad mesh from a file
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-                           joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh"))
-
-mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
-
-###############################################################################
-# create the semi discretization object
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (2.0, 2.0, 2.0)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 1,
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_terms_convergence_test,
                                     boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -46,13 +42,13 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
-                                     save_final_solution = true)
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 1.1)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

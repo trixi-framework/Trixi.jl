@@ -85,6 +85,32 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "TreeMesh3D FDSBP: elixir_euler_convergence_flux_diff.jl" setup=[
+    Setup,
+    TreeMesh3DFDSBP
+] tags=[:tree_part5] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_flux_diff.jl"),
+                        l2=[
+                            4.617574976884586e-5,
+                            5.140630408704788e-5,
+                            5.1406304087053236e-5,
+                            5.14063040870456e-5,
+                            0.00010870158969570203
+                        ],
+                        linf=[
+                            0.0001678969210368031,
+                            0.00018693879386177947,
+                            0.00018693879386955103,
+                            0.00018693879386066925,
+                            0.0003989521965306331
+                        ],
+                        tspan=(0.0, 0.2))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "TreeMesh3D FDSBP: elixir_euler_taylor_green_vortex.jl" setup=[
     Setup,
     TreeMesh3DFDSBP
