@@ -1,30 +1,21 @@
-module TestExamplesStructuredMesh1D
+@testsnippet StructuredMesh1D begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "structured_1d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "structured_1d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "StructuredMesh1D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl" begin
+@testitem "StructuredMesh1D: elixir_advection_basic.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[6.0388296447998465e-6],
                         linf=[3.217887726258972e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_basic.jl (Gauss-Legendre)" begin
+@testitem "StructuredMesh1D: elixir_advection_basic.jl (Gauss-Legendre)" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
                                      surface_flux = flux_godunov),
@@ -34,55 +25,61 @@ end
                         linf=[8.660338936650191e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_nonperiodic.jl" begin
+@testitem "StructuredMesh1D: elixir_advection_nonperiodic.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
                         l2=[5.641921365468918e-5],
                         linf=[0.00021049780975179733])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_nonuniform.jl" begin
+@testitem "StructuredMesh1D: elixir_advection_nonuniform.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonuniform.jl"),
                         l2=[0.0006665846145698006], linf=[0.00643334347367408])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_shockcapturing.jl" begin
+@testitem "StructuredMesh1D: elixir_advection_shockcapturing.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
                         l2=[0.08015029105233593],
                         linf=[0.610709468736576],
                         atol=1.0e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_advection_float128.jl" begin
+@testitem "StructuredMesh1D: elixir_advection_float128.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     using Quadmath: Float128
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float128.jl"),
                         l2=Float128[6.49879312655540217059228636803492411e-09],
                         linf=Float128[5.35548407857266390181158920649552284e-08])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Testing the third-order paired explicit Runge-Kutta (PERK) method with its optimal CFL number
-@trixi_testset "elixir_burgers_perk3.jl" begin
+@testitem "StructuredMesh1D: elixir_burgers_perk3.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
                         l2=[3.8156922097242205e-6],
                         linf=[2.1962957979626552e-5],
                         atol=1.0e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 
     # Test `resize!`
     integrator = Trixi.init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
@@ -95,7 +92,10 @@ end
 end
 
 # Testing the third-order paired explicit Runge-Kutta (PERK) method without stepsize callback
-@trixi_testset "elixir_burgers_perk3.jl(fixed time step)" begin
+@testitem "StructuredMesh1D: elixir_burgers_perk3.jl(fixed time step)" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
                         dt=2.0e-3,
                         tspan=(0.0, 2.0),
@@ -107,10 +107,13 @@ end
                         atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 end
 
-@trixi_testset "elixir_euler_convergence_nonuniform.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_convergence_nonuniform.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_nonuniform.jl"),
                         l2=[
@@ -125,20 +128,23 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_sedov.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
                         linf=[1.58971947e+00, 1.59812384e+00, 1.94732969e+00],
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_sedov_hll_davis.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_sedov_hll_davis.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[1.278661029299215, 0.0663853410742763, 0.9585741943783386],
                         linf=[
@@ -150,10 +156,13 @@ end
                         surface_flux=FluxHLL(min_max_speed_davis))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_shu_osher_nonuniform_fvO2.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_shu_osher_nonuniform_fvO2.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shu_osher_nonuniform_fvO2.jl"),
                         abstol=1e-11, reltol=1e-11,
@@ -162,10 +171,10 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_source_terms.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[
@@ -180,10 +189,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_source_terms_nonperiodic.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[
@@ -198,10 +210,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" begin
+@testitem "StructuredMesh1D: elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         solver=DGSEM(polydeg = 3, basis_type = GaussLegendreBasis,
@@ -219,10 +234,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_source_terms_nonperiodic_fvO2.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
                         l2=[
@@ -237,13 +255,13 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Test/cover `:compact` printing
     show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), volume_integral)
 end
 
-@trixi_testset "elixir_euler_weak_blast_er.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_weak_blast_er.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_er.jl"),
                         analysis_interval=100,
@@ -259,7 +277,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 
     # test both short and long printing formats
     @test_nowarn show(relaxation_solver)
@@ -271,27 +289,36 @@ end
     show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), relaxation_solver)
 end
 
-@trixi_testset "elixir_linearizedeuler_characteristic_system.jl" begin
+@testitem "StructuredMesh1D: elixir_linearizedeuler_characteristic_system.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_characteristic_system.jl"),
                         l2=[2.9318078842789714e-6, 0.0, 0.0],
                         linf=[4.291208715723194e-5, 0.0, 0.0])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_traffic_flow_lwr_greenlight.jl" begin
+@testitem "StructuredMesh1D: elixir_traffic_flow_lwr_greenlight.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_traffic_flow_lwr_greenlight.jl"),
                         l2=[0.2005523261652845],
                         linf=[0.5052827913468407])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
+@testitem "StructuredMesh1D: elixir_euler_convergence_pure_fv.jl" setup=[
+    Setup,
+    StructuredMesh1D
+] tags=[:structured] begin
     using Trixi: Trixi
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_1d_dgsem"),
                                  "elixir_euler_convergence_pure_fv.jl"),
@@ -308,11 +335,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
-end
-
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
-
-end # module

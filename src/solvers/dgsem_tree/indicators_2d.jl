@@ -138,7 +138,8 @@ end
 # this method is directly used when the indicator is constructed as for shock-capturing volume integrals
 # and by the dimension-independent method called for AMR
 function create_cache(::Union{Type{IndicatorLöhner}, Type{IndicatorMax}},
-                      equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+                      equations::AbstractEquations{2},
+                      basis::Union{LobattoLegendreBasis, UniformFiniteVolumeBasis})
     uEltype = real(basis)
     alpha = Vector{uEltype}()
 
@@ -193,7 +194,8 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any, 4},
 end
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 4},
-                                       mesh, equations, dg::DGSEM, cache;
+                                       mesh, equations, dg::Union{DGSEM, BlockFV},
+                                       cache;
                                        kwargs...)
     @unpack alpha, indicator_threaded = indicator_max.cache
     resize!(alpha, nelements(dg, cache))

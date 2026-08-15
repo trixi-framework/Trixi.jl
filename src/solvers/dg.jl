@@ -7,6 +7,9 @@
 
 abstract type AbstractVolumeIntegral end
 
+# Element type used to store the conservative variables in solver caches.
+@inline solution_eltype(solver, cache) = eltype(cache.elements)
+
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::AbstractVolumeIntegral, dg, cache)
     return nothing
@@ -1325,4 +1328,5 @@ include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
 include("dgsem_t8code/dg.jl")
+include("blockfv/blockfv_p4est_2d.jl")
 end # @muladd

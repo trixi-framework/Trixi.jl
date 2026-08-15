@@ -59,8 +59,7 @@ coordinates_max = (0.5, 0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 8,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
