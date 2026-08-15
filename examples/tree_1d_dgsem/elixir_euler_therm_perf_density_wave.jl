@@ -43,8 +43,8 @@ eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
 
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# The default amplitude and frequency k are consistent with initial_condition_density_wave 
-# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
+# The default amplitude and frequency k are consistent with initial_condition_density_wave
+# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible
 # solution states for all non-ideal equations of state!
 function Trixi.initial_condition_density_wave(x, t,
                                               equations::NonIdealCompressibleEulerEquations1D;

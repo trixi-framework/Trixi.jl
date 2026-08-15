@@ -43,7 +43,7 @@ struct SemidiscretizationHyperbolicSplit{Mesh,
 end
 
 """
-	SemidiscretizationHyperbolicSplit(mesh, equations::Tuple, 
+	SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                       initial_condition,
                                       solvers::Tuple;
                                       source_terms=(nothing, nothing),

@@ -695,7 +695,7 @@ end
                                                                    solver_parabolic = solver_parabolic,
                                                                    boundary_conditions = (boundary_conditions,
                                                                                           boundary_conditions)))
-    # Check if the solutions for `SemidiscretizationParabolic` match those from 
+    # Check if the solutions for `SemidiscretizationParabolic` match those from
     # `SemidiscretizationHyperbolicParabolic` using the same Float64 tolerance defaults as
     # `@test_trixi_include` in TrixiTest.jl.
     @test sol.u[end]≈reference_solution atol=500 * eps(Float64) rtol=sqrt(eps(Float64))

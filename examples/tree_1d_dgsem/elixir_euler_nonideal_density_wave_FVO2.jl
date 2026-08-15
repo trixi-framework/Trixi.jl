@@ -7,7 +7,7 @@ using Trixi
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# Reduce amplitude of the density wave to avoid crashes due to 
+# Reduce amplitude of the density wave to avoid crashes due to
 # overshoots at `reconstruction_O2_full`
 function Trixi.initial_condition_density_wave(x, t,
                                               equations::NonIdealCompressibleEulerEquations1D;
