@@ -97,9 +97,9 @@ function calc_volume_integral!(backend, du, u,
 
                 #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D. 
                 multiply_add_to_node_vars!(du, Q_split_i_ii * inv_weights[i], flux1,
-                                           equations, dg, i, j, element)
+                                           equations, dg, i, j, k, element)
                 multiply_add_to_node_vars!(du, -Q_split_i_ii * inv_weights[ii], flux1,
-                                           equations, dg, ii, j, element)
+                                           equations, dg, ii, j, k, element)
             end
 
             # We are looping over the columns of the permuted derivative split weighted operator, 
@@ -133,7 +133,7 @@ function calc_volume_integral!(backend, du, u,
                 multiply_add_to_node_vars!(du, Q_split_k_kk * inv_weights[k], flux3,
                                            equations, dg, i, j, k, element)
                 multiply_add_to_node_vars!(du, -Q_split_k_kk * inv_weights[kk], flux3,
-                                           equations, dg, i, j, k, element)
+                                           equations, dg, i, j, kk, element)
             end
         end
     end
@@ -349,7 +349,7 @@ end
 
 function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{3},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DG, cache)
+                                dg::FDSBP, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements

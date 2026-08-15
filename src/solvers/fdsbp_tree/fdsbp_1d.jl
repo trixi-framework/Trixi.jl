@@ -235,7 +235,7 @@ end
 
 function calc_surface_integral!(backend::Nothing, du, u, mesh::TreeMesh{1},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DG, cache)
+                                dg::FDSBP, cache)
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
