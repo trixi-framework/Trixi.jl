@@ -73,9 +73,9 @@
     function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
                           volume_integral::VolumeIntegralFluxDifferencing,
                           dg::FDSBP, cache_containers, uEltype)
-        prototype = Trixi.Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
-                                                                                      ntuple(_ -> Trixi.nnodes(dg),
-                                                                                             ndims(mesh))...)
+        prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
+                                                                                ntuple(_ -> nnodes(dg),
+                                                                                       ndims(mesh))...)
         f_threaded = [similar(prototype) for _ in 1:Threads.maxthreadid()]
 
         D = Matrix(dg.basis)
@@ -88,7 +88,7 @@
 
     function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2D,
                                     equations, surface_integral::SurfaceIntegralWeakForm,
-                                    dg::DG, cache)
+                                    dg::FDSBP, cache)
         inv_weight_left = inv(left_boundary_weight(dg.basis))
         inv_weight_right = inv(right_boundary_weight(dg.basis))
         @unpack normal_directions, surface_flux_values = cache.elements
@@ -135,7 +135,8 @@
     @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                          mesh::UnstructuredMesh2D,
                                          have_nonconservative_terms::True, equations,
-                                         surface_integral::SurfaceIntegralWeakForm, dg::DG,
+                                         surface_integral::SurfaceIntegralWeakForm,
+                                         dg::FDSBP,
                                          cache,
                                          node_index, side_index, element_index,
                                          boundary_index)
