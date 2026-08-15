@@ -3065,6 +3065,22 @@ end
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
 end
 
+@testitem "Unit: Printing DGMulti" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial())
+    @test summary(dg) == "DGMulti(polydeg=3)"
+
+    # For SBP operators from SummationByPartsOperators.jl, the accuracy order of the
+    # operator is printed instead of the misleading polynomial degree, see
+    # https://github.com/trixi-framework/Trixi.jl/issues/3190
+    global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
+                                   derivative_order = 1,
+                                   accuracy_order = 4,
+                                   xmin = 0.0, xmax = 1.0,
+                                   N = 10)
+    dg_fdsbp = DGMulti(element_type = Quad(), approximation_type = D)
+    @test summary(dg_fdsbp) == "DGMulti(DerivativeOperator(derivative:1, accuracy:4))"
+end
+
 @testitem "Unit: 1D non-periodic DGMultiMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
     dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
