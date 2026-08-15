@@ -302,6 +302,7 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
+
     @threaded for element in eachelement(dg, cache)
         for l in eachnode(dg)
             # surface at -x
