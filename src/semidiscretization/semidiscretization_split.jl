@@ -6,7 +6,7 @@
 #! format: noindent
 
 """
-	SemidiscretizationHyperbolicSplit
+    SemidiscretizationHyperbolicSplit
 
 A struct containing everything needed to describe a spatial semidiscretization
 of a split-RHS corresponding to a hyperbolic conservation/balance law.
@@ -43,7 +43,7 @@ struct SemidiscretizationHyperbolicSplit{Mesh,
 end
 
 """
-	SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
+    SemidiscretizationHyperbolicSplit(mesh, equations::Tuple,
                                       initial_condition,
                                       solvers::Tuple;
                                       source_terms=(nothing, nothing),
