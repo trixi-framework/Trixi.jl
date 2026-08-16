@@ -806,49 +806,49 @@ end
                                               fstar_primary, fstar_secondary,
                                               u_buffer, fstar_tmp)
 
-        # Get index information on the small elements
-        small_indices = node_indices[1, mortar]
-        small_direction = indices2direction(small_indices)
+    # Get index information on the small elements
+    small_indices = node_indices[1, mortar]
+    small_direction = indices2direction(small_indices)
 
-        i_small_start, i_small_step_i,
-        i_small_step_j = index_to_start_step_3d(small_indices[1],
-                                                index_range)
-        j_small_start, j_small_step_i,
-        j_small_step_j = index_to_start_step_3d(small_indices[2],
-                                                index_range)
-        k_small_start, k_small_step_i,
-        k_small_step_j = index_to_start_step_3d(small_indices[3],
-                                                index_range)
+    i_small_start, i_small_step_i,
+    i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                            index_range)
+    j_small_start, j_small_step_i,
+    j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                            index_range)
+    k_small_start, k_small_step_i,
+    k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                            index_range)
 
-        for position in 1:4
-            i_small = i_small_start
-            j_small = j_small_start
-            k_small = k_small_start
-            element = neighbor_ids[position, mortar]
-            for j in index_range
-                for i in index_range
-                    normal_direction = get_normal_direction(small_direction,
-                                                            contravariant_vectors,
-                                                            i_small, j_small, k_small,
-                                                            element)
+    for position in 1:4
+        i_small = i_small_start
+        j_small = j_small_start
+        k_small = k_small_start
+        element = neighbor_ids[position, mortar]
+        for j in index_range
+            for i in index_range
+                normal_direction = get_normal_direction(small_direction,
+                                                        contravariant_vectors,
+                                                        i_small, j_small, k_small,
+                                                        element)
 
-                    calc_mortar_flux_per_node!(fstar_primary, fstar_secondary, MeshT,
-                                               have_nonconservative_terms, equations,
-                                               surface_flux, SolverT, mortars_u,
-                                               mortar, position, normal_direction,
-                                               i, j)
+                calc_mortar_flux_per_node!(fstar_primary, fstar_secondary, MeshT,
+                                           have_nonconservative_terms, equations,
+                                           surface_flux, SolverT, mortars_u,
+                                           mortar, position, normal_direction,
+                                           i, j)
 
-                    i_small += i_small_step_i
-                    j_small += j_small_step_i
-                    k_small += k_small_step_i
-                end
-                i_small += i_small_step_j
-                j_small += j_small_step_j
-                k_small += k_small_step_j
+                i_small += i_small_step_i
+                j_small += j_small_step_i
+                k_small += k_small_step_i
             end
+            i_small += i_small_step_j
+            j_small += j_small_step_j
+            k_small += k_small_step_j
         end
+    end
 
-        mortar_fluxes_to_elements!(backend, surface_flux_values, MeshT, equations,
+    mortar_fluxes_to_elements!(backend, surface_flux_values, MeshT, equations,
                                reverse_lower, reverse_upper, SolverT,
                                neighbor_ids, node_indices, index_range,
                                mortar, fstar_primary, fstar_secondary,
@@ -858,18 +858,22 @@ end
 @inline function calc_mortar_flux_per_node!(fstar_primary, fstar_secondary,
                                             MeshT::Type{<:Union{P4estMesh{3},
                                                                 T8codeMesh{3}}},
-                                            have_nonconservative_terms::False, equations,
+                                            have_nonconservative_terms::False,
+                                            equations,
                                             surface_flux, SolverT::Type{<:DGSEM},
                                             mortars_u,
                                             mortar_index, position_index,
                                             normal_direction,
                                             i_node_index, j_node_index)
-    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index, i_node_index, j_node_index, mortar_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       i_node_index, j_node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
-    set_node_vars!(fstar_primary, flux, equations, SolverT, i_node_index, j_node_index, position_index)
-    set_node_vars!(fstar_secondary, flux, equations, SolverT, i_node_index, j_node_index, position_index)
+    set_node_vars!(fstar_primary, flux, equations, SolverT, i_node_index, j_node_index,
+                   position_index)
+    set_node_vars!(fstar_secondary, flux, equations, SolverT, i_node_index,
+                   j_node_index, position_index)
 
     return nothing
 end
@@ -885,7 +889,8 @@ end
                                             i_node_index, j_node_index)
     surface_flux, nonconservative_flux = surface_flux_tuple
 
-    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index, i_node_index, j_node_index, mortar_index)
+    u_ll, u_rr = get_surface_node_vars(mortars_u, equations, SolverT, position_index,
+                                       i_node_index, j_node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -894,8 +899,10 @@ end
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
 
-    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, SolverT, i_node_index, j_node_index, position_index)
-    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, SolverT, i_node_index, j_node_index, position_index)
+    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, SolverT,
+                   i_node_index, j_node_index, position_index)
+    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, SolverT,
+                   i_node_index, j_node_index, position_index)
 
     return nothing
 end

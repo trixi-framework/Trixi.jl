@@ -460,7 +460,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, surface_node,
-                                    local_direction, local_element] = orientation_factor * flux_[v]
+                local_direction, local_element] = orientation_factor * flux_[v]
             end
 
             i_element += i_element_step
@@ -480,7 +480,7 @@ function calc_mpi_mortar_flux_gradient!(surface_flux_values,
                                         mortar_l2::LobattoLegendreMortarL2,
                                         dg::DG, parabolic_scheme, cache)
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     @unpack u = cache.mpi_mortars
     @threaded for mortar in eachmpimortar(dg, cache)
         fstar_primary = (fstar_primary_lower_threaded[Threads.threadid()],
@@ -527,7 +527,7 @@ end
                                                          fstar_primary, fstar_secondary,
                                                          u_buffer)
     @unpack local_neighbor_ids, local_neighbor_positions,
-            node_indices = cache.mpi_mortars
+    node_indices = cache.mpi_mortars
     index_range = eachnode(dg)
     index_end = last(index_range)
 
@@ -554,13 +554,15 @@ end
             if :i_backward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, index_end + 1 - i, large_direction, element] = u_buffer[v, i]
+                        surface_flux_values[v, index_end + 1 - i, large_direction, element] = u_buffer[v,
+                                                                                                       i]
                     end
                 end
             else
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, i, large_direction, element] = u_buffer[v, i]
+                        surface_flux_values[v, i, large_direction, element] = u_buffer[v,
+                                                                                       i]
                     end
                 end
             end

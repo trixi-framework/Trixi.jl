@@ -826,8 +826,10 @@ end
                                                                    RealType}
     mortar = @index(Global)
 
-    u_buffer = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, NVARS * _nnodes * _nnodes}(undef)
-    fstar_tmp = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3, NVARS * _nnodes * _nnodes}(undef)
+    u_buffer = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3,
+                      NVARS * _nnodes * _nnodes}(undef)
+    fstar_tmp = MArray{Tuple{NVARS, _nnodes, _nnodes}, RealType, 3,
+                       NVARS * _nnodes * _nnodes}(undef)
 
     prolong2mortars_per_mortar!(backend, mortars_u, u, mortar, MeshT, equations,
                                 neighbor_ids, node_indices, index_range,

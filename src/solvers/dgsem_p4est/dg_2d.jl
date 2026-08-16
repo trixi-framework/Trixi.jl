@@ -984,7 +984,8 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, SolverT, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT,
+                   node_index)
 
     return nothing
 end
@@ -1016,8 +1017,10 @@ end
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
 
     # Copy to buffer
-    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations, SolverT, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary, equations, SolverT, node_index)
+    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations,
+                   SolverT, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary,
+                   equations, SolverT, node_index)
 
     return nothing
 end
