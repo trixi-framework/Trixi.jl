@@ -388,7 +388,8 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                                    equations_parabolic, parabolic_scheme)
 
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, surface_node, local_direction, local_element] = flux_[v]
+                surface_flux_values[v, surface_node,
+                local_direction, local_element] = flux_[v]
             end
 
             # Increment local element indices to pull the normal direction
@@ -526,8 +527,7 @@ end
                                                          dg::DGSEM, cache, mortar,
                                                          fstar_primary, fstar_secondary,
                                                          u_buffer)
-    @unpack local_neighbor_ids, local_neighbor_positions,
-    node_indices = cache.mpi_mortars
+    @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     index_range = eachnode(dg)
     index_end = last(index_range)
 
@@ -554,15 +554,15 @@ end
             if :i_backward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, index_end + 1 - i, large_direction, element] = u_buffer[v,
-                                                                                                       i]
+                        surface_flux_values[v, index_end + 1 - i,
+                        large_direction, element] = u_buffer[v, i]
                     end
                 end
             else
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, i, large_direction, element] = u_buffer[v,
-                                                                                       i]
+                        surface_flux_values[v, i,
+                        large_direction, element] = u_buffer[v, i]
                     end
                 end
             end

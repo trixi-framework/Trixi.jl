@@ -984,8 +984,7 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, SolverT, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT,
-                   node_index)
+    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT, node_index)
 
     return nothing
 end
