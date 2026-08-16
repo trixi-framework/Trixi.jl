@@ -71,7 +71,7 @@ function calc_volume_integral!(backend, du, u,
                                have_nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::FDSBP, cache)
-    Q_split = cache.derivative_split_weighted # SBP derivative operator weighted by mass matrix
+    Q_split = cache.derivative_split_weighted # SBP split derivative operator weighted by mass matrix
     inv_weights = cache.inv_weights
     @unpack volume_flux = volume_integral
 
