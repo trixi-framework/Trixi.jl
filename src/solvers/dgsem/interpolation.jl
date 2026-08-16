@@ -133,10 +133,10 @@ function multiply_dimensionwise!(backend::Nothing,
 end
 
 # 1D GPU version
-function multiply_dimensionwise!(backend::Backend,
-                                 data_out::AbstractArray{<:Any, 2},
-                                 matrix::AbstractMatrix,
-                                 data_in::AbstractArray{<:Any, 2})
+@inline function multiply_dimensionwise!(backend::Backend,
+                                         data_out::AbstractArray{<:Any, 2},
+                                         matrix::AbstractMatrix,
+                                         data_in::AbstractArray{<:Any, 2})
     @inbounds for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
         for ii in axes(matrix, 2)
@@ -202,10 +202,12 @@ function multiply_dimensionwise!(backend::Nothing,
 end
 
 # 1D GPU version, apply matrixJ to data_inJ
-function multiply_dimensionwise!(backend::Backend,
-                                 data_out::AbstractArray{<:Any, 2}, matrix1::AbstractMatrix,
-                                 data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
-                                 data_in2::AbstractArray{<:Any, 2})
+@inline function multiply_dimensionwise!(backend::Backend,
+                                         data_out::AbstractArray{<:Any, 2},
+                                         matrix1::AbstractMatrix,
+                                         data_in1::AbstractArray{<:Any, 2},
+                                         matrix2::AbstractMatrix,
+                                         data_in2::AbstractArray{<:Any, 2})
     @inbounds for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
         for ii in axes(matrix1, 2)
@@ -324,11 +326,11 @@ function multiply_dimensionwise!(backend::Nothing,
 end
 
 # 2D GPU version, apply matrixJ to dimension J of data_in
-function multiply_dimensionwise!(backend::Backend,
-                                 data_out::AbstractArray{<:Any, 3},
-                                 matrix1::AbstractMatrix, matrix2::AbstractMatrix,
-                                 data_in::AbstractArray{<:Any, 3},
-                                 tmp1)
+@inline function multiply_dimensionwise!(backend::Backend,
+                                         data_out::AbstractArray{<:Any, 3},
+                                         matrix1::AbstractMatrix, matrix2::AbstractMatrix,
+                                         data_in::AbstractArray{<:Any, 3},
+                                         tmp1)
     @inbounds for j in axes(tmp1, 3), i in axes(tmp1, 2), v in axes(tmp1, 1)
         res = zero(eltype(tmp1))
         for ii in axes(matrix1, 2)
@@ -387,11 +389,12 @@ function add_multiply_dimensionwise!(backend::Nothing,
 end
 
 # 2D GPU version, apply matrixJ to dimension J of data_in and add the result to data_out
-function add_multiply_dimensionwise!(backend::Backend,
-                                     data_out::AbstractArray{<:Any, 3},
-                                     matrix1::AbstractMatrix, matrix2::AbstractMatrix,
-                                     data_in::AbstractArray{<:Any, 3},
-                                     tmp1)
+@inline function add_multiply_dimensionwise!(backend::Backend,
+                                             data_out::AbstractArray{<:Any, 3},
+                                             matrix1::AbstractMatrix,
+                                             matrix2::AbstractMatrix,
+                                             data_in::AbstractArray{<:Any, 3},
+                                             tmp1)
     @inbounds for j in axes(tmp1, 3), i in axes(tmp1, 2), v in axes(tmp1, 1)
         res = zero(eltype(tmp1))
         for ii in axes(matrix1, 2)
@@ -425,6 +428,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
     # @tullio threads=false tmp1[v, i, j, k]     = matrix[i, ii] * data_in[v, ii, j, k]
     @turbo for k in axes(tmp1, 4), j in axes(tmp1, 3), i in axes(tmp1, 2),
                v in axes(tmp1, 1)
+
         res = zero(eltype(tmp1))
         for ii in axes(matrix, 2)
             res += matrix[i, ii] * data_in[v, ii, j, k]
@@ -436,6 +440,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
     # @tullio threads=false tmp2[v, i, j, k]     = matrix[j, jj] * tmp1[v, i, jj, k]
     @turbo for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2),
                v in axes(tmp2, 1)
+
         res = zero(eltype(tmp2))
         for jj in axes(matrix, 2)
             res += matrix[j, jj] * tmp1[v, i, jj, k]
@@ -447,6 +452,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
     # @tullio threads=false data_out[v, i, j, k] = matrix[k, kk] * tmp2[v, i, j, kk]
     @turbo for k in axes(data_out, 4), j in axes(data_out, 3), i in axes(data_out, 2),
                v in axes(data_out, 1)
+
         res = zero(eltype(data_out))
         for kk in axes(matrix, 2)
             res += matrix[k, kk] * tmp2[v, i, j, kk]
@@ -533,6 +539,7 @@ function multiply_dimensionwise!(backend::Nothing,
     # @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
     @turbo for k in axes(tmp1, 4), j in axes(tmp1, 3), i in axes(tmp1, 2),
                v in axes(tmp1, 1)
+
         res = zero(eltype(tmp1))
         for ii in axes(matrix1, 2)
             res += matrix1[i, ii] * data_in[v, ii, j, k]
@@ -544,7 +551,9 @@ function multiply_dimensionwise!(backend::Nothing,
     # @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
     @turbo for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2),
                v in axes(tmp2, 1)
+
         res = zero(eltype(tmp1))
+
         for jj in axes(matrix2, 2)
             res += matrix2[j, jj] * tmp1[v, i, jj, k]
         end
@@ -555,6 +564,7 @@ function multiply_dimensionwise!(backend::Nothing,
     # @tullio threads=false data_out[v, i, j, k] = matrix3[k, kk] * tmp2[v, i, j, kk]
     @turbo for k in axes(data_out, 4), j in axes(data_out, 3), i in axes(data_out, 2),
                v in axes(data_out, 1)
+
         res = zero(eltype(data_out))
         for kk in axes(matrix3, 2)
             res += matrix3[k, kk] * tmp2[v, i, j, kk]
@@ -581,7 +591,8 @@ end
     # Interpolate in x-direction
     # @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
     @inbounds for k in axes(tmp1, 4), j in axes(tmp1, 3), i in axes(tmp1, 2),
-               v in axes(tmp1, 1)
+                  v in axes(tmp1, 1)
+
         res = zero(eltype(tmp1))
         for ii in axes(matrix1, 2)
             res += matrix1[i, ii] * data_in[v, ii, j, k]
@@ -592,7 +603,8 @@ end
     # Interpolate in y-direction
     # @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
     @inbounds for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2),
-               v in axes(tmp2, 1)
+                  v in axes(tmp2, 1)
+
         res = zero(eltype(tmp1))
         for jj in axes(matrix2, 2)
             res += matrix2[j, jj] * tmp1[v, i, jj, k]
@@ -603,7 +615,8 @@ end
     # Interpolate in z-direction
     # @tullio threads=false data_out[v, i, j, k] = matrix3[k, kk] * tmp2[v, i, j, kk]
     @inbounds for k in axes(data_out, 4), j in axes(data_out, 3), i in axes(data_out, 2),
-               v in axes(data_out, 1)
+                  v in axes(data_out, 1)
+
         res = zero(eltype(data_out))
         for kk in axes(matrix3, 2)
             res += matrix3[k, kk] * tmp2[v, i, j, kk]
@@ -646,6 +659,7 @@ function add_multiply_dimensionwise!(backend::Nothing,
     # @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
     @turbo for k in axes(tmp1, 4), j in axes(tmp1, 3), i in axes(tmp1, 2),
                v in axes(tmp1, 1)
+
         res = zero(eltype(tmp1))
         for ii in axes(matrix1, 2)
             res += matrix1[i, ii] * data_in[v, ii, j, k]
@@ -657,6 +671,7 @@ function add_multiply_dimensionwise!(backend::Nothing,
     # @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
     @turbo for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2),
                v in axes(tmp2, 1)
+
         res = zero(eltype(tmp1))
         for jj in axes(matrix2, 2)
             res += matrix2[j, jj] * tmp1[v, i, jj, k]
@@ -668,6 +683,7 @@ function add_multiply_dimensionwise!(backend::Nothing,
     # @tullio threads=false data_out[v, i, j, k] += matrix3[k, kk] * tmp2[v, i, j, kk]
     @turbo for k in axes(data_out, 4), j in axes(data_out, 3), i in axes(data_out, 2),
                v in axes(data_out, 1)
+
         res = zero(eltype(data_out))
         for kk in axes(matrix3, 2)
             res += matrix3[k, kk] * tmp2[v, i, j, kk]
@@ -681,20 +697,26 @@ end
 # 3D version, apply matrixJ to dimension J of data_in and add the result to data_out
 @inline function add_multiply_dimensionwise!(backend::Backend,
                                              data_out::AbstractArray{<:Any, 4},
-                                             matrix1::AbstractMatrix, matrix2::AbstractMatrix,
+                                             matrix1::AbstractMatrix,
+                                             matrix2::AbstractMatrix,
                                              matrix3::AbstractMatrix,
                                              data_in::AbstractArray{<:Any, 4},
-                                             tmp1 = zeros(eltype(data_out), size(data_out, 1),
-                                                          size(matrix1, 1), size(matrix1, 2),
+                                             tmp1 = zeros(eltype(data_out),
+                                                          size(data_out, 1),
+                                                          size(matrix1, 1),
+                                                          size(matrix1, 2),
                                                           size(matrix1, 2)),
-                                             tmp2 = zeros(eltype(data_out), size(data_out, 1),
-                                                          size(matrix1, 1), size(matrix1, 1),
+                                             tmp2 = zeros(eltype(data_out),
+                                                          size(data_out, 1),
+                                                          size(matrix1, 1),
+                                                          size(matrix1, 1),
                                                           size(matrix1, 2)))
 
     # Interpolate in x-direction
     # @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
     @inbounds for k in axes(tmp1, 4), j in axes(tmp1, 3), i in axes(tmp1, 2),
-               v in axes(tmp1, 1)
+                  v in axes(tmp1, 1)
+
         res = zero(eltype(tmp1))
         for ii in axes(matrix1, 2)
             res += matrix1[i, ii] * data_in[v, ii, j, k]
@@ -705,7 +727,8 @@ end
     # Interpolate in y-direction
     # @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
     @inbounds for k in axes(tmp2, 4), j in axes(tmp2, 3), i in axes(tmp2, 2),
-               v in axes(tmp2, 1)
+                  v in axes(tmp2, 1)
+
         res = zero(eltype(tmp1))
         for jj in axes(matrix2, 2)
             res += matrix2[j, jj] * tmp1[v, i, jj, k]
@@ -716,7 +739,8 @@ end
     # Interpolate in z-direction
     # @tullio threads=false data_out[v, i, j, k] += matrix3[k, kk] * tmp2[v, i, j, kk]
     @inbounds for k in axes(data_out, 4), j in axes(data_out, 3), i in axes(data_out, 2),
-               v in axes(data_out, 1)
+                  v in axes(data_out, 1)
+
         res = zero(eltype(data_out))
         for kk in axes(matrix3, 2)
             res += matrix3[k, kk] * tmp2[v, i, j, kk]
