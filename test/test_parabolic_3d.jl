@@ -502,7 +502,6 @@ end
                                               StepsizeCallback(cfl = 2.3,
                                                                cfl_parabolic = 0.2)),
                         adaptive=false, # respect CFL
-                        ode_alg=CKLLSRK95_4S(),
                         l2=[
                             0.00010224058587038077,
                             0.0495497587993557,
