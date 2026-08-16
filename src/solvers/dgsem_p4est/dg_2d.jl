@@ -455,10 +455,8 @@ end
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     for v in eachvariable(equations)
-        surface_flux_values[v, primary_node_index, primary_direction_index,
-                            primary_element_index] = flux_[v]
-        surface_flux_values[v, secondary_node_index, secondary_direction_index,
-                            secondary_element_index] = -flux_[v]
+        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_[v]
     end
 
     return nothing
@@ -517,14 +515,12 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, primary_node_index, primary_direction_index,
-                            primary_element_index] = flux_[v] +
-                                                     0.5f0 *
-                                                     noncons_primary[v]
-        surface_flux_values[v, secondary_node_index, secondary_direction_index,
-                            secondary_element_index] = -(flux_[v] +
-                                                         0.5f0 *
-                                                         noncons_secondary[v])
+        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v] +
+                                                                                                     0.5f0 *
+                                                                                                     noncons_primary[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -(flux_[v] +
+                                                                                                             0.5f0 *
+                                                                                                             noncons_secondary[v])
     end
 
     return nothing
@@ -549,10 +545,8 @@ end
     flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     for v in eachvariable(equations)
-        surface_flux_values[v, primary_node_index, primary_direction_index,
-                            primary_element_index] = flux_left[v]
-        surface_flux_values[v, secondary_node_index, secondary_direction_index,
-                            secondary_element_index] = -flux_right[v]
+        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_left[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_right[v]
     end
 
     return nothing
@@ -892,7 +886,7 @@ function calc_mortar_flux!(backend::Nothing, surface_flux_values,
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-             fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -990,8 +984,7 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, SolverT, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT,
-                   node_index)
+    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT, node_index)
 
     return nothing
 end
@@ -1023,10 +1016,8 @@ end
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
 
     # Copy to buffer
-    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations,
-                   SolverT, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary,
-                   equations, SolverT, node_index)
+    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations, SolverT, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary, equations, SolverT, node_index)
 
     return nothing
 end
@@ -1048,15 +1039,15 @@ end
         element = neighbor_ids[position, mortar]
         for i in index_range
             for v in eachvariable(equations)
-                surface_flux_values[v, i, small_direction,
-                                    element] = fstar_primary[position][v,
-                                                                       i]
+                surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v,
+                                                                                              i]
             end
         end
     end
 
     # Project small fluxes to large element.
-    multiply_dimensionwise!(backend, u_buffer,
+    multiply_dimensionwise!(backend,
+                            u_buffer,
                             reverse_upper, fstar_secondary[2],
                             reverse_lower, fstar_secondary[1])
 
@@ -1080,9 +1071,8 @@ end
     if :i_backward in large_indices
         for i in index_range
             for v in eachvariable(equations)
-                surface_flux_values[v, end + 1 - i, large_direction,
-                                    large_element] = u_buffer[v,
-                                                              i]
+                surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
+                                                                                               i]
             end
         end
     else

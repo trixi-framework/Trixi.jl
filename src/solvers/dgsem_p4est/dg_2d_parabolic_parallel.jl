@@ -327,10 +327,9 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                 # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
                 # Thus, the `orientation_factor` changes the logic such that the
                 # flux which enters side 1 leaves side 2. 
-                cache.mpi_interfaces.u[local_side, v, i,
-                                       interface] = orientation_factor *
-                                                    dot(flux_visc,
-                                                        normal_direction)
+                cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
+                                                                      dot(flux_visc,
+                                                                          normal_direction)
             end
 
             i_elem += i_step
@@ -389,8 +388,7 @@ function calc_mpi_interface_flux_gradient!(surface_flux_values,
                                    equations_parabolic, parabolic_scheme)
 
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, surface_node,
-                                    local_direction, local_element] = flux_[v]
+                surface_flux_values[v, surface_node, local_direction, local_element] = flux_[v]
             end
 
             # Increment local element indices to pull the normal direction
@@ -446,12 +444,11 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
                                                     i_element, j_element,
                                                     local_element)
 
-            parabolic_flux_normal_ll,
-            parabolic_flux_normal_rr = get_surface_node_vars(u,
-                                                             equations_parabolic,
-                                                             dg,
-                                                             i,
-                                                             interface)
+            parabolic_flux_normal_ll, parabolic_flux_normal_rr = get_surface_node_vars(u,
+                                                                                       equations_parabolic,
+                                                                                       dg,
+                                                                                       i,
+                                                                                       interface)
 
             # Sign flip for `local_side = 2` required for divergence calculation since
             # the divergence interface flux involves the normal direction.
@@ -463,8 +460,7 @@ function calc_mpi_interface_flux_divergence!(surface_flux_values,
 
             for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, surface_node,
-                                    local_direction,
-                                    local_element] = orientation_factor * flux_[v]
+                                    local_direction, local_element] = orientation_factor * flux_[v]
             end
 
             i_element += i_element_step
@@ -558,15 +554,13 @@ end
             if :i_backward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, index_end + 1 - i,
-                                            large_direction, element] = u_buffer[v, i]
+                        surface_flux_values[v, index_end + 1 - i, large_direction, element] = u_buffer[v, i]
                     end
                 end
             else
                 for i in eachnode(dg)
                     for v in eachvariable(equations_parabolic)
-                        surface_flux_values[v, i,
-                                            large_direction, element] = u_buffer[v, i]
+                        surface_flux_values[v, i, large_direction, element] = u_buffer[v, i]
                     end
                 end
             end
@@ -575,8 +569,7 @@ end
             for i in eachnode(dg)
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i,
-                                        small_direction,
-                                        element] = fstar_primary[position][v, i]
+                    small_direction, element] = fstar_primary[position][v, i]
                 end
             end
         end

@@ -652,8 +652,7 @@ end
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, i_node_index, j_node_index, direction_index,
-                            element_index] = flux_[v]
+        surface_flux_values[v, i_node_index, j_node_index, direction_index, element_index] = flux_[v]
     end
 end
 
@@ -710,8 +709,7 @@ end
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
-        surface_flux_values[v, i_node_index, j_node_index,
-                            direction_index, element_index] = flux[v]
+        surface_flux_values[v, i_node_index, j_node_index, direction_index, element_index] = flux[v]
     end
 
     return nothing
