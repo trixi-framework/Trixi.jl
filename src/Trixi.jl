@@ -310,6 +310,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
 
 export DG,
        DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
+       CGSEM,
        FDSBP,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
@@ -323,6 +324,7 @@ export DG,
        IndicatorEntropyCorrection, IndicatorEntropyCorrectionShockCapturingCombined,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
+       DirectStiffnessSummation,
        MortarL2
 
 export reconstruction_O2_inner, reconstruction_O2_full,

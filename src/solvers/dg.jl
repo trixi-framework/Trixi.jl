@@ -1126,6 +1126,10 @@ AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 # DGSEM (discontinuous Galerkin spectral element method)
 include("dgsem/dgsem.jl")
 
+# General structs for the CGSEM (continuous Galerkin spectral element method),
+# which shares most of its building blocks with the DGSEM
+include("cgsem/cgsem.jl")
+
 # Finite difference methods using summation by parts (SBP) operators
 # These methods are very similar to DG methods since they also impose interface
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
@@ -1318,6 +1322,7 @@ end
 # and was the first mesh in Trixi.jl.
 # The order of the other mesh types is the same as the include order below.
 include("dgsem_tree/dg.jl")
+include("cgsem_tree/cg.jl")
 include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
