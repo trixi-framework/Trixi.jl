@@ -500,22 +500,22 @@ end
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
                                               StepsizeCallback(cfl = 2.3,
-                                                               cfl_parabolic = 0.4)),
+                                                               cfl_parabolic = 0.2)),
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.0001022410497625877,
-                            0.04954975879887512,
-                            0.049549758798875056,
-                            0.005853983721675305,
-                            0.09161121143324424
+                            0.00010224058587038077,
+                            0.0495497587993557,
+                            0.049549758799355706,
+                            0.005853982640046797,
+                            0.0916112529095154
                         ],
                         linf=[
-                            0.00039284994602417633,
-                            0.14026307274342587,
-                            0.14026307274350203,
-                            0.017003338595870714,
-                            0.2823457296549634
+                            0.0003928487183817442,
+                            0.14026305742660394,
+                            0.14026305742644074,
+                            0.01700334211890316,
+                            0.28234595971707677
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
