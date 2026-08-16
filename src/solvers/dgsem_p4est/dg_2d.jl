@@ -933,7 +933,7 @@ end
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                          index_range)
 
-    for position in 1:2
+    Base.Cartesian.@nexprs 2 position->begin
         i_small = i_small_start
         j_small = j_small_start
         element = neighbor_ids[position, mortar]
@@ -984,7 +984,8 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar_primary[position_index], flux, equations, SolverT, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux, equations, SolverT,
+                   node_index)
 
     return nothing
 end
@@ -1037,7 +1038,7 @@ end
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
-    for position in 1:2
+    Base.Cartesian.@nexprs 2 position->begin
         element = neighbor_ids[position, mortar]
         for i in index_range
             for v in eachvariable(equations)
