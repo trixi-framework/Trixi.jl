@@ -345,4 +345,36 @@ function max_dt(u, t, mesh::T8codeMeshParallel{2},
 
     return dt
 end
+
+@inline function node_indices_2d(idx, n_nodes)
+    idx0 = idx - 1
+    i = idx0 % n_nodes + 1
+    idx0 = idx0 ÷ n_nodes
+    j = idx0 % n_nodes + 1
+    element = idx0 ÷ n_nodes + 1
+    return i, j, element
+end
+
+@inline function max_scaled_speed_per_node(u,
+                                           ::Type{<:Union{StructuredMesh{2},
+                                                          UnstructuredMesh2D,
+                                                          P4estMesh{2},
+                                                          P4estMeshView{2},
+                                                          T8codeMesh{2},
+                                                          StructuredMeshView{2}}},
+                                           constant_speed::True, equations, dg::DG,
+                                           contravariant_vectors, inverse_jacobian,
+                                           i, j, element)
+    max_lambda1, max_lambda2 = max_abs_speeds(equations)
+
+    Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+    lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2)
+    Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+    lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2)
+
+    inv_jacobian = abs(inverse_jacobian[i, j, element])
+
+    return inv_jacobian * (lambda1_transformed + lambda2_transformed)
+end
+
 end # @muladd

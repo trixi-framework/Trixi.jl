@@ -236,4 +236,36 @@ end
 
     return mortars
 end
+
+function init_element_structs!(backend::Backend,
+                               elements::P4estElementContainer{2},
+                               n_elements, basis::LobattoLegendreBasis)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+    @unpack derivative_matrix = basis
+
+    NNODES = nnodes(basis)
+
+    kernel! = init_element_structs_2d_KAkernel!(backend)
+    kernel!(node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian,
+            derivative_matrix, Val(NNODES),
+            ndrange = (NNODES, NNODES, n_elements))
+    return nothing
+end
+
+@kernel function init_element_structs_2d_KAkernel!(node_coordinates, jacobian_matrix,
+                                                   contravariant_vectors,
+                                                   inverse_jacobian,
+                                                   derivative_matrix,
+                                                   val_nnodes)
+    i, j, element = @index(Global, NTuple)
+
+    calc_jacobian_matrix_node!(jacobian_matrix, i, j, element, node_coordinates,
+                               derivative_matrix, val_nnodes)
+
+    calc_contravariant_vectors_node!(contravariant_vectors, i, j, element,
+                                     jacobian_matrix)
+
+    calc_inverse_jacobian_node!(inverse_jacobian, i, j, element, jacobian_matrix)
+end
+
 end # @muladd

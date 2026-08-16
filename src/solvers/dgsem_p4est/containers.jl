@@ -79,10 +79,17 @@ function Base.resize!(elements::P4estElementContainer, capacity)
                                                      ntuple(_ -> n_nodes, n_dims)...,
                                                      capacity))
 
-    resize!(_contravariant_vectors, length(_jacobian_matrix))
+    # resize!(_contravariant_vectors, length(_jacobian_matrix))
+    # elements.contravariant_vectors = unsafe_wrap_or_alloc(ArrayType,
+    #                                                       _contravariant_vectors,
+    #                                                       size(elements.jacobian_matrix))
+
+    resize!(_contravariant_vectors, n_dims^2 * n_nodes^n_dims * capacity)
     elements.contravariant_vectors = unsafe_wrap_or_alloc(ArrayType,
                                                           _contravariant_vectors,
-                                                          size(elements.jacobian_matrix))
+                                                          (n_dims, n_dims,
+                                                           ntuple(_ -> n_nodes, n_dims)...,
+                                                           capacity))
 
     resize!(_inverse_jacobian, n_nodes^n_dims * capacity)
     elements.inverse_jacobian = unsafe_wrap_or_alloc(ArrayType,
@@ -99,6 +106,30 @@ function Base.resize!(elements::P4estElementContainer, capacity)
                                                                 n_dims - 1)...,
                                                          n_dims * 2, capacity))
 
+    return nothing
+end
+
+"""
+    free_jacobian_matrix!(elements)
+
+Release the storage of `elements.jacobian_matrix`.
+
+`jacobian_matrix` is only needed to compute `contravariant_vectors` and
+`inverse_jacobian` in `init_element_structs!`; it is not read by any solver,
+right-hand side, time step or AMR routine. `resize!(elements, capacity)`
+reallocates it before it is used again at the next adaptation, so releasing it
+here is safe.
+
+On a 3D `P4estMesh` this is `ndims^2 * nnodes^ndims * nelements` entries —
+609 MiB at 138k elements with `polydeg = 3`.
+"""
+function free_jacobian_matrix!(elements::P4estElementContainer)
+    # Replace the wrapper first: it was created by `unsafe_wrap` on the flat
+    # vector's pointer and does not keep that memory alive.
+    elements.jacobian_matrix = similar(elements.jacobian_matrix,
+                                       ntuple(_ -> 0,
+                                              ndims(elements.jacobian_matrix)))
+    elements._jacobian_matrix = similar(elements._jacobian_matrix, 0)
     return nothing
 end
 
@@ -182,8 +213,11 @@ function Adapt.adapt_structure(to,
                                             size(elements.node_coordinates))
     jacobian_matrix = unsafe_wrap_or_alloc(to, _jacobian_matrix,
                                            size(elements.jacobian_matrix))
+    # contravariant_vectors = unsafe_wrap_or_alloc(to, _contravariant_vectors,
+    #                                              size(jacobian_matrix))
     contravariant_vectors = unsafe_wrap_or_alloc(to, _contravariant_vectors,
-                                                 size(jacobian_matrix))
+                                                 size(elements.contravariant_vectors))
+                                                 
     inverse_jacobian = unsafe_wrap_or_alloc(to, _inverse_jacobian,
                                             size(elements.inverse_jacobian))
     surface_flux_values = unsafe_wrap_or_alloc(to, _surface_flux_values,
@@ -702,34 +736,64 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     elementT = eltype(interfaces.u)
     # TODO GPU
     # mesh lives on the CPU -> move data arrays to CPU
+    # if backend !== nothing
+    #     interfaces = trixi_adapt(Array, elementT, interfaces)
+    #     boundaries = trixi_adapt(Array, elementT, boundaries)
+    #     mortars = trixi_adapt(Array, elementT, mortars)
+    # end
+
     if backend !== nothing
-        interfaces = trixi_adapt(Array, elementT, interfaces)
-        boundaries = trixi_adapt(Array, elementT, boundaries)
-        mortars = trixi_adapt(Array, elementT, mortars)
+        interfaces, boundaries, mortars = @trixi_timeit timer() "containers D2H" begin
+            (trixi_adapt(Array, elementT, interfaces),
+             trixi_adapt(Array, elementT, boundaries),
+             trixi_adapt(Array, elementT, mortars))
+        end
     end
 
-    # resize interfaces container
-    resize!(interfaces, required.interfaces)
+    # # resize interfaces container
+    # resize!(interfaces, required.interfaces)
 
-    # resize boundaries container
-    resize!(boundaries, required.boundaries)
+    # # resize boundaries container
+    # resize!(boundaries, required.boundaries)
 
-    # re-initialize mortars container
-    resize!(mortars, required.mortars)
+    # # re-initialize mortars container
+    # resize!(mortars, required.mortars)
+
+    @trixi_timeit timer() "containers resize" begin
+        resize!(interfaces, required.interfaces)
+        resize!(boundaries, required.boundaries)
+        resize!(mortars, required.mortars)
+    end
 
     # re-initialize containers together to reduce
     # the number of iterations over the mesh in `p4est`
-    init_surfaces!(interfaces, mortars, boundaries, mesh)
+
+    # init_surfaces!(interfaces, mortars, boundaries, mesh)
+
+    @trixi_timeit timer() "init_surfaces" init_surfaces!(interfaces, mortars, boundaries,
+                                                         mesh)
 
     # TODO GPU
+    # if backend !== nothing
+    #     copyfields!(cache.interfaces, trixi_adapt(storageT, elementT, interfaces))
+    #     copyfields!(cache.boundaries, trixi_adapt(storageT, elementT, boundaries))
+    #     copyfields!(cache.mortars, trixi_adapt(storageT, elementT, mortars))
+    # end
+
     if backend !== nothing
-        copyfields!(cache.interfaces, trixi_adapt(storageT, elementT, interfaces))
-        copyfields!(cache.boundaries, trixi_adapt(storageT, elementT, boundaries))
-        copyfields!(cache.mortars, trixi_adapt(storageT, elementT, mortars))
+        @trixi_timeit timer() "containers H2D" begin
+            copyfields!(cache.interfaces, trixi_adapt(storageT, elementT, interfaces))
+            copyfields!(cache.boundaries, trixi_adapt(storageT, elementT, boundaries))
+            copyfields!(cache.mortars, trixi_adapt(storageT, elementT, mortars))
+        end
     end
 
     # init_normal_directions! requires that `node_indices` have been initialized
-    init_normal_directions!(interfaces, dg.basis, elements)
+    #init_normal_directions!(interfaces, dg.basis, elements)
+
+    @trixi_timeit timer() "init_normal_directions" init_normal_directions!(interfaces,
+                                                                            dg.basis,
+                                                                            elements)
 
     return nothing
 end

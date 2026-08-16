@@ -148,6 +148,55 @@ end
     return nothing
 end
 
+# Per-node version of `calc_jacobian_matrix!` above.
+@inline function calc_jacobian_matrix_node!(jacobian_matrix::AbstractArray{<:Any, 5},
+                                            i, j, element,
+                                            node_coordinates, derivative_matrix,
+                                            ::Val{_nnodes}) where {_nnodes}
+    for xy in 1:2
+        # x_ξ, y_ξ
+        result = zero(eltype(jacobian_matrix))
+        for ii in 1:_nnodes
+            result += derivative_matrix[i, ii] * node_coordinates[xy, ii, j, element]
+        end
+        jacobian_matrix[xy, 1, i, j, element] = result
+
+        # x_η, y_η
+        result = zero(eltype(jacobian_matrix))
+        for jj in 1:_nnodes
+            result += derivative_matrix[j, jj] * node_coordinates[xy, i, jj, element]
+        end
+        jacobian_matrix[xy, 2, i, j, element] = result
+    end
+
+    return nothing
+end
+
+# Per-node version of `calc_contravariant_vectors!` above.
+@inline function calc_contravariant_vectors_node!(contravariant_vectors::AbstractArray{<:Any,
+                                                                                       5},
+                                                  i, j, element, jacobian_matrix)
+    # First contravariant vector Ja^1
+    contravariant_vectors[1, 1, i, j, element] = jacobian_matrix[2, 2, i, j, element]
+    contravariant_vectors[2, 1, i, j, element] = -jacobian_matrix[1, 2, i, j, element]
+
+    # Second contravariant vector Ja^2
+    contravariant_vectors[1, 2, i, j, element] = -jacobian_matrix[2, 1, i, j, element]
+    contravariant_vectors[2, 2, i, j, element] = jacobian_matrix[1, 1, i, j, element]
+
+    return nothing
+end
+
+# Per-node version of `calc_inverse_jacobian!` above.
+@inline function calc_inverse_jacobian_node!(inverse_jacobian::AbstractArray{<:Any, 3},
+                                             i, j, element, jacobian_matrix)
+    inverse_jacobian[i, j, element] = inv(jacobian_matrix[1, 1, i, j, element] *
+                                          jacobian_matrix[2, 2, i, j, element] -
+                                          jacobian_matrix[1, 2, i, j, element] *
+                                          jacobian_matrix[2, 1, i, j, element])
+    return nothing
+end
+
 # Save id of left neighbor of every element
 function initialize_left_neighbor_connectivity!(left_neighbors,
                                                 mesh::Union{StructuredMesh{2},

@@ -11,18 +11,20 @@ advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_gauss
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+#solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
+               volume_integral = VolumeIntegralFluxDifferencing(flux_central))
 
 coordinates_min = (-5.0, -5.0, -5.0)
 coordinates_max = (5.0, 5.0, 5.0)
-trees_per_dimension = (1, 1, 1)
+trees_per_dimension = (3, 3, 3)
 
 # Note that it is not necessary to use mesh polydeg lower than the solver polydeg
 # on a Cartesian mesh.
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 4,
+                 initial_refinement_level = 3,
                  periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

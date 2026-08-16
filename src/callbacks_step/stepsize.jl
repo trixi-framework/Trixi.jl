@@ -238,6 +238,61 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
     return max_scaled_speed
 end
 
+# GPU path for `constant_speed::True`: reduce over NODES rather than elements.
+#
+# The element-level quantity is a plain `max` over that element's nodes, so a flat
+# reduction over all nodes yields exactly the same result. Reducing over elements
+# gives every thread a stride of `nnodes^3` between its loads, which makes the
+# reads of `contravariant_vectors` fully uncoalesced.
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed::True,
+                               equations, dg, cache) where {MeshT <:
+                                                            Union{StructuredMesh{3},
+                                                                  P4estMesh{3},
+                                                                  T8codeMesh{3}}}
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    n_nodes = nnodes(dg)
+    num_nodes_total = nelements(dg, cache) * n_nodes^3
+    init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
+
+    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_nodes_total,
+                                                    backend; init, neutral) do idx
+        i, j, k, element = node_indices_3d(idx, n_nodes)
+        max_scaled_speed_per_node(u, MeshT, constant_speed,
+                                  equations, dg,
+                                  contravariant_vectors,
+                                  inverse_jacobian,
+                                  i, j, k, element)
+    end
+
+    return max_scaled_speed
+end
+
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed::True,
+                               equations, dg, cache) where {MeshT <:
+                                                            Union{StructuredMesh{2},
+                                                                  UnstructuredMesh2D,
+                                                                  P4estMesh{2},
+                                                                  P4estMeshView{2},
+                                                                  T8codeMesh{2},
+                                                                  StructuredMeshView{2}}}
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+
+    n_nodes = nnodes(dg)
+    num_nodes_total = nelements(dg, cache) * n_nodes^2
+    init = neutral = AcceleratedKernels.neutral_element(Base.max, eltype(u))
+
+    max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_nodes_total,
+                                                    backend; init, neutral) do idx
+        i, j, element = node_indices_2d(idx, n_nodes)
+        max_scaled_speed_per_node(u, MeshT, constant_speed, equations, dg,
+                                  contravariant_vectors, inverse_jacobian,
+                                  i, j, element)
+    end
+
+    return max_scaled_speed
+end
+
 include("stepsize_dg1d.jl")
 include("stepsize_dg2d.jl")
 include("stepsize_dg3d.jl")

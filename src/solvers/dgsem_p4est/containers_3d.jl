@@ -18,16 +18,16 @@ function init_elements!(elements,
     backend = trixi_backend(node_coordinates)
     storageT = storage_type(node_coordinates)
     if backend !== nothing
-        node_coordinates = trixi_adapt(Array, eltype(node_coordinates),
+        node_coordinates = @trixi_timeit timer() "node_coords D2H" trixi_adapt(Array, eltype(node_coordinates),
                                        node_coordinates)
     end
 
-    calc_node_coordinates!(node_coordinates, mesh, basis)
+    @trixi_timeit timer() "calc_node_coordinates" calc_node_coordinates!(node_coordinates, mesh, basis)
 
     # TODO GPU
     # copy back to elements struct on GPU
     if backend !== nothing
-        elements.node_coordinates = trixi_adapt(storageT, eltype(node_coordinates),
+        elements.node_coordinates = @trixi_timeit timer() "node_coords H2D" trixi_adapt(storageT, eltype(node_coordinates),
                                                 node_coordinates)
     end
 
@@ -35,8 +35,12 @@ function init_elements!(elements,
     # - introduced backend to launch kernels for element-wise computation of remaining struct 
     #   members. 
     # - @turbo temporily removed in inner loops
-    init_element_structs!(backend, elements, ncells(mesh), basis)
+    #init_element_structs!(backend, elements, ncells(mesh), basis)
 
+    @trixi_timeit timer() "init_element_structs" init_element_structs!(backend, elements,
+                                                                        ncells(mesh),
+                                                                        basis)
+    free_jacobian_matrix!(elements)
     return nothing
 end
 
@@ -84,7 +88,7 @@ end
 #     calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, val_nnodes)
 # end
 
-function init_element_structs!(backend::Backend, elements, n_elements,
+function init_element_structs!(backend::Backend, elements::P4estElementContainer{3}, n_elements,
                                basis::LobattoLegendreBasis)
     @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
     @unpack derivative_matrix = basis
