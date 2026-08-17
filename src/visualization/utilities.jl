@@ -221,14 +221,14 @@ end
 
 function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Tri})
     # this assumes that the nodes of the first face on the reference element correspond to a face where
-    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis. 
+    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis.
     @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
     return reshape(basis.r[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
 end
 
 function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Quad})
     # this assumes that the nodes of the first face on the reference element correspond to a face where
-    # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis. 
+    # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis.
     # For quadrilateral elements, this is true since the faces are ordered r = ±1, s = ±1.
     @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
     return reshape(basis.s[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
@@ -244,12 +244,12 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
     # note that since `ScalarPlotData2D` is restricted to Tri and Quad types, this should always be true.
     num_face_points = size(Fmask, 1) ÷ num_faces(rd.element_type)
 
-    # extract a set of interpolation nodes for the face nodes. For Polynomial approximations, 
-    # these are usually just (N+1) Gauss-Lobatto nodes. For SBP approximation types, these can 
-    # be more general, with length(face_nodes_1D) ≥ N+1 for certain configurations. 
+    # extract a set of interpolation nodes for the face nodes. For Polynomial approximations,
+    # these are usually just (N+1) Gauss-Lobatto nodes. For SBP approximation types, these can
+    # be more general, with length(face_nodes_1D) ≥ N+1 for certain configurations.
     face_nodes_1D = extract_face_nodes_1D(dg.basis)
 
-    # Construct 1D plotting interpolation matrix `Vp1D` for a single face. 
+    # Construct 1D plotting interpolation matrix `Vp1D` for a single face.
     # Since num_face_points may be larger than N+1, this is doing a least squares projection
     vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, face_nodes_1D)
     rplot = LinRange(-1, 1, nvisnodes)
@@ -1702,14 +1702,14 @@ function reference_node_coordinates_2d(dg::Union{DGSEM, FDSBP})
 end
 
 function plotting_interpolation_matrix(dg::FDSBP; kwargs...)
-    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
-    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points.
+    # However, since FDSBP already has equally spaced nodes, we skip this step
     return I
 end
 
 function face_plotting_interpolation_matrix(dg::FDSBP; kwargs...)
-    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
-    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points.
+    # However, since FDSBP already has equally spaced nodes, we skip this step
     return I
 end
 
