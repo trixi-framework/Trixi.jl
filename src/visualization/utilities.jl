@@ -363,10 +363,7 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
     if !point_values
         # Finite volume data (`polydeg = 0` DGSEM, or `BlockFV` with one or more
         # cells per element) consists of piecewise constant (mean) values, so there
-        # is nothing to interpolate
-        if !(nvisnodes === nothing || nvisnodes == 0 || nvisnodes == n_nodes)
-            throw(ArgumentError("For finite volume methods, `nvisnodes` must be `nothing`, `0`, or the number of cells per element (=$n_nodes); got $nvisnodes."))
-        end
+        # is nothing to interpolate. Thus, we ignore `nvisnodes`.
         if n_nodes > max_available_nodes_per_finest_element
             # Unlike point values, cell (mean) values cannot be downsampled by
             # (polynomial) interpolation, so the native resolution must fit within

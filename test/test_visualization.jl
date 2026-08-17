@@ -1229,16 +1229,38 @@ end
     @test !isempty(pd_fv.data)
     @trixi_test_nowarn Plots.plot(pd_fv)
 
-    # `nvisnodes` cannot be chosen freely for finite volume data, since there is
-    # nothing to interpolate: only `nothing`, `0`, or the native cell resolution are
-    # valid.
-    @test_throws ArgumentError PlotData2D(sol; nvisnodes = 5)
+    # `nvisnodes` has no effect on finite volume data (nothing to interpolate): every
+    # value gives the native-resolution result
 
-    # As for `point_values = true`, `nvisnodes = 0` is a synonym for the native
-    # resolution (i.e., the same as `nvisnodes = nothing`).
-    pd_fv_nvisnodes0 = PlotData2D(sol; nvisnodes = 0)
-    @test pd_fv_nvisnodes0.x == pd_fv.x
-    @test pd_fv_nvisnodes0.data == pd_fv.data
+    for value in (0, 1, 5, 100)
+        pd_fv_other_nvisnodes = PlotData2D(sol; nvisnodes = value)
+        @test pd_fv_other_nvisnodes.x == pd_fv.x
+        @test pd_fv_other_nvisnodes.data == pd_fv.data
+    end
+
+    # The mesh overlay should cover the full domain, not just the region between the
+    # first and last cell center.
+    plt_fv_mesh = Plots.plot(pd_fv)
+    Plots.plot!(plt_fv_mesh, getmesh(pd_fv))
+    @test Plots.xlims(plt_fv_mesh) == (-1.0, 1.0)
+    @test Plots.ylims(plt_fv_mesh) == (-1.0, 1.0)
+
+    # A `TreeMesh` with just a single cell (`initial_refinement_level = 0`)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=0, polydeg=0)
+    pd_single_cell = PlotData2D(sol)
+    @test pd_single_cell.x == [-1.0, 1.0]
+    @test pd_single_cell.y == [-1.0, 1.0]
+    @trixi_test_nowarn Plots.plot(pd_single_cell)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        initial_refinement_level=0)
+    pd_single_cell_blockfv = PlotData2D(sol)
+    @test extrema(pd_single_cell_blockfv.x) == (-1.0, 1.0)
+    @test extrema(pd_single_cell_blockfv.y) == (-1.0, 1.0)
+    @trixi_test_nowarn Plots.plot(pd_single_cell_blockfv)
 
     # BlockFV with multiple finite volume cells per element
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_blockfv",
