@@ -60,7 +60,7 @@ checks elsewhere.
 """
 function set_inbounds!(toggle::Bool; force = true)
     set_preferences!(TRIXI_UUID, "inbounds" => toggle, force = force)
-    @info "Please restart Julia and reload Trixi.jl for the `inbounds` change to take effect"
+    @info "Please restart Julia and reload Trixi.jl for the inbounds change to take effect."
 end
 
 """
