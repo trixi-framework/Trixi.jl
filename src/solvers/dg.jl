@@ -1042,7 +1042,7 @@ end
 # - https://github.com/trixi-framework/Trixi.jl/issues/88
 # - https://github.com/trixi-framework/Trixi.jl/issues/87
 # - https://github.com/trixi-framework/Trixi.jl/issues/86
-@Base.propagate_inbounds function get_node_coords(x, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_node_coords(x, equations, solver::DG, indices...)
     return SVector(ntuple(@inline(idx->@trixi_bounds(x[idx, indices...])),
                           Val(ndims(equations))))
 end
