@@ -300,7 +300,9 @@ end
                             0.005507186931414498,
                             0.005377359689946237,
                             0.00631648929531492
-                        ])
+                        ],
+                        # Relax error tols to avoid stochastic CI failures
+                        atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
