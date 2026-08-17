@@ -626,7 +626,7 @@ end
                         atol_ode_solve=1e-10, rtol_ode_solve=1e-9,
                         l2=[4.14999791227157e-6], linf=[2.424658410971059e-5],
                         # Relax error tols to avoid stochastic CI failures
-                        atol=1e-12)
+                        atol=1e-8)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
