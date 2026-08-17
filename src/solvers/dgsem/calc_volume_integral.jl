@@ -180,9 +180,14 @@ end
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    @boundscheck begin
+        check_axes(u, equations, solver, cache)
+        check_axes(du, equations, solver, cache)
+    end
+
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, MeshT,
+        @inbounds volume_integral_kernel!(du, u, element, MeshT,
                                 have_nonconservative_terms, equations,
                                 volume_integral, dg, cache)
     end
