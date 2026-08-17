@@ -210,6 +210,51 @@ end
     return max_scaled_speed
 end
 
+# Map a flat node index `idx ∈ 1:(nnodes^3 * nelements)` to `(i, j, k, element)`.
+# The ordering matches the column-major layout of `inverse_jacobian[i, j, k, element]`,
+# so consecutive `idx` differ in `i` and consecutive GPU threads read adjacent memory.
+@inline function node_indices_3d(idx, n_nodes)
+    idx0 = idx - 1
+    i = idx0 % n_nodes + 1
+    idx0 = idx0 ÷ n_nodes
+    j = idx0 % n_nodes + 1
+    idx0 = idx0 ÷ n_nodes
+    k = idx0 % n_nodes + 1
+    element = idx0 ÷ n_nodes + 1
+    return i, j, k, element
+end
+
+# Per-node version of `max_scaled_speed_per_element` for `constant_speed::True`.
+# The element-level result is `max` over the nodes of this quantity, so reducing
+# over all nodes globally gives exactly the same value.
+@inline function max_scaled_speed_per_node(u,
+                                           ::Type{<:Union{StructuredMesh{3},
+                                                          P4estMesh{3},
+                                                          T8codeMesh{3}}},
+                                           constant_speed::True, equations, dg::DG,
+                                           contravariant_vectors, inverse_jacobian,
+                                           i, j, k, element)
+    max_lambda1, max_lambda2, max_lambda3 = max_abs_speeds(equations)
+
+    Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                i, j, k, element)
+    lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2 +
+                              Ja13 * max_lambda3)
+    Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors,
+                                                i, j, k, element)
+    lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2 +
+                              Ja23 * max_lambda3)
+    Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                i, j, k, element)
+    lambda3_transformed = abs(Ja31 * max_lambda1 + Ja32 * max_lambda2 +
+                              Ja33 * max_lambda3)
+
+    inv_jacobian = abs(inverse_jacobian[i, j, k, element])
+
+    return inv_jacobian * (lambda1_transformed + lambda2_transformed +
+            lambda3_transformed)
+end
+
 function max_dt(u, t,
                 mesh::P4estMesh{3}, # Parabolic terms currently only for `TreeMesh` and `P4estMesh`
                 constant_diffusivity::True, equations,
