@@ -1231,7 +1231,6 @@ end
 
     # `nvisnodes` has no effect on finite volume data (nothing to interpolate): every
     # value gives the native-resolution result
-
     for value in (0, 1, 5, 100)
         pd_fv_other_nvisnodes = PlotData2D(sol; nvisnodes = value)
         @test pd_fv_other_nvisnodes.x == pd_fv.x
