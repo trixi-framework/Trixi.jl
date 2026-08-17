@@ -38,12 +38,11 @@ function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeri
     return nothing
 end
 
-function rhs!(du, u, t,
-              mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = trixi_backend(u)
-
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh::Union{StructuredMesh, StructuredMeshView{2}}, equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
@@ -66,7 +65,7 @@ function rhs!(du, u, t,
                              dg.surface_integral, dg, cache)
     end
 
-    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values 
+    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values
     # are stored in the interface datastructure (`interfaces_u`),
     # so we can directly calculate the boundary fluxes without prolongation.
 

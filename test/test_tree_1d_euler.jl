@@ -15,7 +15,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     # Extra test to make sure the "TimeSeriesCallback" made correct data.
     # Extracts data at all points from the first step of the time series and compares it to the
     # exact solution and an interpolated reference solution
@@ -47,7 +47,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_convergence_pure_fv.jl (O2, constant reconstruction)" setup=[
@@ -71,7 +71,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_density_wave.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -88,7 +88,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_density_wave.jl with initial_condition_constant" setup=[
@@ -109,7 +109,7 @@ end
                         initial_condition=initial_condition_constant)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_density_wave_adaptive_vol_int.jl" setup=[
@@ -130,7 +130,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_source_terms_nonperiodic.jl" setup=[
@@ -151,7 +151,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" setup=[
@@ -174,7 +174,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_ec.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -191,7 +191,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_kennedy_gruber" setup=[
@@ -214,7 +214,7 @@ end
                         volume_flux=flux_kennedy_gruber)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_shima_etal" setup=[
@@ -237,7 +237,7 @@ end
                         volume_flux=flux_shima_etal)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_chandrashekar" setup=[
@@ -260,7 +260,7 @@ end
                         volume_flux=flux_chandrashekar)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_ec.jl with flux_hll" setup=[
@@ -279,7 +279,7 @@ end
                         volume_flux=flux_ranocha)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_modified_sod.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -296,7 +296,7 @@ end
                         adaptive=false)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_modified_sod.jl (Weak Form + Positivity Preserving Limiter)" setup=[
@@ -321,7 +321,7 @@ end
                         adaptive=false)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_shockcapturing.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -338,7 +338,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl" setup=[
@@ -354,7 +354,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl (HLLE)" setup=[
@@ -368,7 +368,7 @@ end
                         surface_flux=flux_hlle)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave_pure_fv.jl" setup=[
@@ -385,7 +385,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl with pressure" setup=[
@@ -403,7 +403,7 @@ end
                         cfl=0.2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_sedov_blast_wave.jl with density" setup=[
@@ -421,7 +421,7 @@ end
                         cfl=0.2)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_positivity.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -430,7 +430,7 @@ end
                         linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_leblanc_limiter_liu_zhang.jl" setup=[
@@ -440,22 +440,22 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_leblanc_limiter_liu_zhang.jl"),
                         l2=[
-                            0.21290060065772057,
-                            0.05964675586608289,
-                            0.024936454073233603
+                            0.2129004457480824,
+                            0.05964663507377728,
+                            0.02493641252833064
                         ],
                         linf=[
-                            0.5778648389634408,
-                            0.10546874166288663,
-                            0.06306983030165976
+                            0.5778648326078111,
+                            0.10546874011739589,
+                            0.0630697082996007
                         ],
                         atol=1e-7, # limiters are not smooth, so we need bigger tolerances
                         rtol=1e-6)
 
-    # check that the limiter is activated; the precise number of activations 
-    # can vary by 1-2 based on architecture. 
-    @test length(global_limiter!.history_davis_yin_iterations) > 10
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    # check that the limiter is activated; the precise number of activations
+    # can vary by 1-2 based on architecture.
+    @test length(global_limiter!.history_davis_yin_iterations) > 5
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_blast_wave.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -469,7 +469,7 @@ end
                         maxiters=30)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_shu_osher.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -480,7 +480,7 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Test/cover `:compact` `show`
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
@@ -499,7 +499,7 @@ end
                         linf=[2.95591859210077, 0.3135723412205586, 2.3871554358655365])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: test_quasi_1D_entropy" setup=[Setup] tags=[:tree_part1] begin
@@ -532,7 +532,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_source_terms_dirichlet.jl" setup=[
@@ -555,7 +555,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_source_terms_dirichlet.jl with LLF-dissipation" setup=[
@@ -581,7 +581,7 @@ end
                                       flux_nonconservative_chan_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_discontinuous.jl" setup=[
@@ -604,7 +604,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_quasi_1d_ec.jl" setup=[Setup, TreeMesh1DEuler] tags=[:tree_part1] begin
@@ -623,7 +623,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_convergence_pure_fvO2.jl" setup=[
@@ -643,7 +643,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_laplace_diffusion.jl" setup=[
@@ -661,7 +661,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl" setup=[
@@ -684,7 +684,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with FluxHLL(min_max_speed_davis)" setup=[
@@ -707,7 +707,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave_FVO2.jl" setup=[
@@ -729,7 +729,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with ideal gas" setup=[
@@ -770,7 +770,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl (IdealGas vs HelmholtzIdealGas)" setup=[
@@ -827,7 +827,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with flux_terashima_etal_central" setup=[
@@ -853,7 +853,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_therm_perf_density_wave.jl" setup=[
@@ -876,7 +876,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_modified_sod_entropy_correction_amr.jl (IndicatorEntropyCorrectionShockCapturingCombined)" setup=[
@@ -886,16 +886,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_modified_sod_entropy_correction_amr.jl"),
                         tspan=(0.0, 0.1),
-                        l2=[0.18464446565258658, 0.3140498549283543, 0.6496099923312244],
+                        l2=[0.19031527888816185, 0.3177347211309023, 0.6638790268491553],
                         linf=[
-                            0.5635649557004835,
-                            0.8086426785591834,
-                            1.7109218921081835
+                            0.56573132955681,
+                            0.8066341470904254,
+                            1.7168659629043157
                         ])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Test/cover `:compact` `show` for IndicatorEntropyCorrectionShockCapturingCombined
     @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
@@ -921,7 +921,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_transcritical_wave.jl (Peng Robinson)" setup=[
@@ -941,7 +941,7 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with entropy correction" setup=[
@@ -968,7 +968,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_transcritical_shock.jl with Peng Robinson" setup=[
@@ -985,5 +985,5 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

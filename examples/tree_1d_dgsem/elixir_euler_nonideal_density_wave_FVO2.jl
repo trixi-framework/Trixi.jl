@@ -7,7 +7,7 @@ using Trixi
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# Reduce amplitude of the density wave to avoid crashes due to 
+# Reduce amplitude of the density wave to avoid crashes due to
 # overshoots at `reconstruction_O2_full`
 function Trixi.initial_condition_density_wave(x, t,
                                               equations::NonIdealCompressibleEulerEquations1D;
@@ -47,7 +47,7 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)

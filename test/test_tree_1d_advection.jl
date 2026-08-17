@@ -8,7 +8,7 @@ end
                         linf=[3.217887726258972e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_gauss_legendre.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -16,7 +16,7 @@ end
                         l2=[2.515203865524688e-6], linf=[8.660338936650191e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_limiter_liu_zhang.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -27,7 +27,7 @@ end
     u = Trixi.wrap_array_native(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_limiter_liu_zhang_amr.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -37,7 +37,7 @@ end
     u = Trixi.wrap_array_native(sol.u[end], semi)
     # matches thresholds = (1e-3,) up to a tolerance
     @test minimum(u) > 1e-3 - 10 * eps()
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_basic.jl (max_abs_speed)" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -47,7 +47,7 @@ end
                         linf=[3.217887726258972e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_amr.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -56,7 +56,7 @@ end
                         linf=[0.9999896603382347])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_amr_nonperiodic.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -65,7 +65,7 @@ end
                         linf=[3.235356127918171e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_basic.jl (No errors)" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -74,7 +74,7 @@ end
                                                            analysis_errors = Symbol[]))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_convergence_fvO2.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -82,7 +82,7 @@ end
                         l2=[0.0024544920169555706], linf=[0.007837347144210138])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_finite_volume.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -91,7 +91,7 @@ end
                         linf=[0.01647256923710194])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "elixir_advection_perk2.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -104,7 +104,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 end
 
 # Testing the second-order paired explicit Runge-Kutta (PERK) method without stepsize callback
@@ -123,7 +123,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 end
 
 # Testing the second-order paired explicit Runge-Kutta (PERK) method with the optimal CFL number
@@ -137,7 +137,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 end
 
 @testitem "elixir_advection_doublefloat.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
@@ -147,5 +147,15 @@ end
                         linf=Double64[5.82834770064525291688100323411704252e-10])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "elixir_advection_multifloats.jl" setup=[Setup, TreeMesh1DAdvection] tags=[:tree_part1] begin
+    using MultiFloats: Float64x2
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_multifloats.jl"),
+                        l2=[Float64x2(6.80895929885700039832943251427357703e-11)],
+                        linf=[Float64x2(5.82834770064525291688100323411704252e-10)])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

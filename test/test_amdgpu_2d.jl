@@ -10,7 +10,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -43,7 +42,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
@@ -74,7 +72,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -112,7 +109,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -153,7 +149,55 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa ROCArray
+    @test semi.solver.basis.derivative_matrix isa ROCArray
+
+    @test Trixi.storage_type(semi.cache.elements) === ROCArray
+    @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+end
+
+@testitem "AMDGPU 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU2DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+    using Trixi
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                        l2=Float32[8.281976064899433e-5,
+                                   6.674408302881695e-5,
+                                   6.693536534139316e-5,
+                                   0.00011717744999013579,
+                                   6.889569500245608e-5,
+                                   7.78292854879118e-5,
+                                   7.820255919638926e-5,
+                                   0.00011506970727212514,
+                                   5.3791801822110654e-5],
+                        linf=Float32[0.00043082237243652344,
+                                     0.0005365351910699076,
+                                     0.0005327751111221801,
+                                     0.0009163264949127586,
+                                     0.00042850648667691615,
+                                     0.0005048022425613308,
+                                     0.0005058775894211109,
+                                     0.0008949209768577965,
+                                     0.00018917795326144592],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=ROCArray)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32

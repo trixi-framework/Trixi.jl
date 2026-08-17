@@ -16,13 +16,12 @@ coordinates_max = convert(Float64, pi) # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 # Define initial condition if it is not defined already.
-# For CI, the function is defined externally avoid "world age" issues that arise 
-# when running `Trixi.convergence_test`. The `isdefined` check is to allow the 
-# elixir to also be run outside of CI. 
+# For CI, the function is defined externally avoid "world age" issues that arise
+# when running `Trixi.convergence_test`. The `isdefined` check is to allow the
+# elixir to also be run outside of CI.
 function initial_condition_pure_diffusion_1d_convergence_test(x, t,
                                                               equation)
     nu = diffusivity()
@@ -68,6 +67,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-# For CI purposes, we use fixed time-stepping for this elixir. 
+# For CI purposes, we use fixed time-stepping for this elixir.
 sol = solve(ode, RDPK3SpFSAL35(); dt = 1.0e-3, adaptive = false,
             ode_default_options()..., callback = callbacks)
