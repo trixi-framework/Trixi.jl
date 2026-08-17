@@ -3,7 +3,8 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-#! format: noindent    
+#! format: noindent
+
 function rhs_parabolic!(backend::Nothing, du, u, t,
                         mesh::P4estMeshParallel{2},
                         equations_parabolic::AbstractEquationsParabolic,
@@ -305,7 +306,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
         local_indices = node_indices[interface]
         local_direction = indices2direction(local_indices)
         local_side = local_sides[interface]
-        # store the normal flux with respect to the primary normal direction, 
+        # store the normal flux with respect to the primary normal direction,
         # which is the negative of the secondary normal direction
         orientation_factor = local_side == 1 ? 1 : -1
 
@@ -326,7 +327,7 @@ function prolong2mpiinterfaces!(cache, flux_parabolic::Tuple,
                                     flux_parabolic_y[v, i_elem, j_elem, local_element])
                 # Side 1 and 2 must be consistent, i.e., with their outward-pointing normals.
                 # Thus, the `orientation_factor` changes the logic such that the
-                # flux which enters side 1 leaves side 2. 
+                # flux which enters side 1 leaves side 2.
                 cache.mpi_interfaces.u[local_side, v, i, interface] = orientation_factor *
                                                                       dot(flux_visc,
                                                                           normal_direction)
@@ -720,7 +721,7 @@ function calc_mpi_mortar_flux_divergence!(surface_flux_values,
 
         u_buffer = cache.u_threaded[Threads.threadid()]
 
-        # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D 
+        # Reuse hyperbolic MPI mortar-to-element transfer, same as local 2D
         mpi_mortar_fluxes_to_elements!(surface_flux_values, mesh,
                                        equations_parabolic, mortar_l2, dg, cache,
                                        mortar, fstar, fstar, u_buffer)

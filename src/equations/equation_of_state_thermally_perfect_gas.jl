@@ -1,3 +1,10 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 @doc raw"""
     ThermallyPerfectGas9PolyFit{R_specific,
                                 TemperatureBounds,
@@ -75,12 +82,13 @@ end
 Construct a [`ThermallyPerfectGas9PolyFit`](@ref) equation of state with NASA 9-coefficient polynomial data.
 The default values correspond to air, see
 https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf page 276/284
-for the coefficient data and 
+for the coefficient data and
 page 2/10 for the reference temperature (298.15 K) and pressure (1 bar = 100000 Pa).
 """
 function ThermallyPerfectGas9PolyFit(;
                                      R_specific = 287.0509010514002,
-                                     temperature_bounds = SVector(200.0, 1000.0, 6000.0),
+                                     temperature_bounds = SVector(200.0, 1000.0,
+                                                                  6000.0),
                                      coefficients = coefficients_air_9polyfit(temperature_bounds),
                                      p_ref = 100000.0, T_ref = 298.15)
     @assert size(coefficients, 1)==9 "Current implementation is restricted to NASA 9-coefficient polynomials"
@@ -102,7 +110,8 @@ end
 # this allows to move semidiscretizations and their components including
 # the equations to GPUs and adapt the floating point type, e.g.,
 # to `Float32` to improve performance on GPUs.
-function Base.similar(eos::ThermallyPerfectGas9PolyFit, ::Type{NewRealT}) where {NewRealT}
+function Base.similar(eos::ThermallyPerfectGas9PolyFit,
+                      ::Type{NewRealT}) where {NewRealT}
     R_specific_conv = convert(NewRealT, eos.R_specific)
     temperature_bounds_conv = convert.(NewRealT, eos.temperature_bounds)
     coefficients_conv = convert.(NewRealT, eos.coefficients)
@@ -254,3 +263,4 @@ end
 end
 
 eos_initial_temperature(V, e_internal, eos::ThermallyPerfectGas9PolyFit) = eos.T_ref # [K]
+end # @muladd

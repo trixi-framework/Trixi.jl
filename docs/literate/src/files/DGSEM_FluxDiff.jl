@@ -91,7 +91,7 @@
 # (split form DGSEM) ([Gassner, Winters, Kopriva (2016)](https://doi.org/10.1016/j.jcp.2016.09.013)).
 # The above manipulations are possible due to the "telescoping" property of the derivative matrix ``D``, see
 # [Fisher, Carpenter (2013)](https://doi.org/10.1016/j.jcp.2013.06.014).
-# In particular, we can check that every row sum ``\sum_j D_{i,j}`` is zero, which makes the 
+# In particular, we can check that every row sum ``\sum_j D_{i,j}`` is zero, which makes the
 # above manipulations possible:
 using Trixi
 
