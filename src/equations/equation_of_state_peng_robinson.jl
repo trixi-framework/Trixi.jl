@@ -13,12 +13,12 @@ given by the pressure and internal energy relations
 ```math
 p = \frac{R T}{V - b} - \frac{a(T)}{V^2 + 2bV - b^2}, \quad e_{\text{internal}} = c_{v,0} T + K(a(T) - Ta'(T))
 ```
-where ``V = \rho^{-1}`` and auxiliary expressions for ``a(T)`` and ``K`` are given by 
+where ``V = \rho^{-1}`` and auxiliary expressions for ``a(T)`` and ``K`` are given by
 ```math
-a(T) = a_0\left(1 + \kappa \left(1 - \sqrt{\frac{T}{T_c}}\right)\right)^2, \quad 
+a(T) = a_0\left(1 + \kappa \left(1 - \sqrt{\frac{T}{T_c}}\right)\right)^2, \quad
 K = \frac{1}{2\sqrt{2}\, b} \log\left( \frac{V + (1 - \sqrt{2}) b}{V + (1 + \sqrt{2}) b}\right).
 ```
-Moreover, ``c_v = c_{v,0} - K T a''(T)``. 
+Moreover, ``c_v = c_{v,0} - K T a''(T)``.
 
 All expressions used here are taken from the following references:
 
@@ -27,7 +27,7 @@ All expressions used here are taken from the following references:
   [DOI: 10.1016/j.jcp.2017.03.022](https://doi.org/10.1016/j.jcp.2017.03.022)
 
 - V. Michel-Dansac, A. Thomann (2024)
-  Towards a fully well-balanced and entropy-stable scheme for the Euler equations with 
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations with
   gravity: preserving isentropic steady solutions
   [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 
@@ -47,12 +47,12 @@ end
 """
     PengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
 
-Initializes a Peng-Robinson equation of state given values for physical constants. 
-Here, `R` is the universal gas constant, and the constants `a0, b, cv0, kappa, Tc` 
+Initializes a Peng-Robinson equation of state given values for physical constants.
+Here, `R` is the universal gas constant, and the constants `a0, b, cv0, kappa, Tc`
 follow the naming conventions in Section 2.2 of the following reference:
 
 - V. Michel-Dansac, A. Thomann (2025)
-  Towards a fully well-balanced and entropy-stable scheme for the Euler equations 
+  Towards a fully well-balanced and entropy-stable scheme for the Euler equations
   with gravity: General equations of state
   [DOI: 10.1016/j.compfluid.2025.106853](https://doi.org/10.1016/j.compfluid.2025.106853)
 """
@@ -77,8 +77,8 @@ end
 """
     PengRobinson(; RealT = Float64)
 
-By default, the units for the Peng-Robinson parameters are in mass basis 
-(such as kg / m^3) as opposed to molar basis units (such as kg / mol). 
+By default, the units for the Peng-Robinson parameters are in mass basis
+(such as kg / m^3) as opposed to molar basis units (such as kg / mol).
 
 The default parameters are for N2.
 """
@@ -97,7 +97,7 @@ function PengRobinson(; RealT = Float64)
 end
 
 # the default tolerance of 10 * eps() does not converge for most Peng-Robinson examples,
-# so we choose a looser tolerance here. Researchers at the US Naval Research Lab noted 
+# so we choose a looser tolerance here. Researchers at the US Naval Research Lab noted
 # that they typically just use 8 fixed Newton iterations for Peng-Robinson.
 eos_newton_tol(eos::PengRobinson) = 1e-8
 
@@ -117,7 +117,7 @@ end
     energy_internal_specific(V, T, eos::PengRobinson)
 
 Computes specific internal energy for a Peng-Robinson gas from specific volume `V` and temperature `T` as
-``e_{\text{internal}} = c_{v,0} T + K (a(T) - T a'(T))``. 
+``e_{\text{internal}} = c_{v,0} T + K (a(T) - T a'(T))``.
 """
 function energy_internal_specific(V, T, eos::PengRobinson)
     (; cv0) = eos
@@ -155,7 +155,7 @@ function speed_of_sound(V, T, eos::PengRobinson)
     cp = cp0 - R - K * T * d2aT - T * dpdT_V^2 / dpdV_T
     gamma = cp / cv
 
-    # calculate bulk modulus, which should be positive 
+    # calculate bulk modulus, which should be positive
     # for admissible thermodynamic states.
     inv_kappa_T = -(V * dpdV_T)
     c2 = gamma * V * inv_kappa_T

@@ -3,11 +3,11 @@
     LaplaceDiffusionEntropyVariables2D(equations)
     LaplaceDiffusionEntropyVariables3D(equations)
 
-This represent a symmetrized Laplacian diffusion 
-``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``, 
-where ``w(u)`` denotes the mapping between conservative and entropy variables. 
+This represent a symmetrized Laplacian diffusion
+``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``,
+where ``w(u)`` denotes the mapping between conservative and entropy variables.
 Compared with `LaplaceDiffusion` (see [`LaplaceDiffusion1D`](@ref),
-[`LaplaceDiffusion2D`](@ref), and [`LaplaceDiffusion3D`](@ref)), `LaplaceDiffusionEntropyVariables` is 
+[`LaplaceDiffusion2D`](@ref), and [`LaplaceDiffusion3D`](@ref)), `LaplaceDiffusionEntropyVariables` is
 guaranteed to dissipate entropy.
 """
 struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
@@ -34,7 +34,7 @@ end
 
 # Jacobian-vector product for LaplaceDiffusionEntropyVariables parabolic fluxes.
 # Calls either a specialized `apply_jacobian_entropy2cons` for specific equations
-# or an AD fallback. 
+# or an AD fallback.
 function apply_jacobian_entropy2cons(dw, w,
                                      equations_parabolic::LaplaceDiffusionEntropyVariables)
     return apply_jacobian_entropy2cons(dw, w, equations_parabolic.equations_hyperbolic)
@@ -61,8 +61,8 @@ function Base.similar(equations::LaplaceDiffusionEntropyVariables{NDIMS},
 end
 
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
-# Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any 
-# spatial dimension. 
+# Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any
+# spatial dimension.
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
