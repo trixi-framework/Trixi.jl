@@ -74,20 +74,29 @@ end
     return u_inner
 end
 
-@inline function Trixi.get_boundary_outer_state(u_inner, t,
-                                                boundary_condition::typeof(boundary_condition_slip_wall),
-                                                normal_direction::AbstractVector,
-                                                mesh::P4estMesh{2},
-                                                equations::CompressibleEulerEquations2D,
-                                                dg, cache, indices...)
-    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
-    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+# In `compressible_euler_2d.jl`
+# @inline function Trixi.get_boundary_outer_state(u_inner, t,
+#                                                 boundary_condition::typeof(boundary_condition_slip_wall),
+#                                                 normal_direction::AbstractVector,
+#                                                 mesh::P4estMesh{2},
+#                                                 equations::CompressibleEulerEquations2D,
+#                                                 dg, cache, indices...)
+#     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+#     u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
 
-    return SVector(u_inner[1],
-                   u_inner[2] - 2 * u_normal[1],
-                   u_inner[3] - 2 * u_normal[2],
-                   u_inner[4])
-end
+#     return SVector(u_inner[1],
+#                    u_inner[2] - 2 * u_normal[1],
+#                    u_inner[3] - 2 * u_normal[2],
+#                    u_inner[4])
+# end
+
+# boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_condition)
+
+# boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
+#                            :Circle => boundary_condition_slip_wall,
+#                            :Top => boundary_condition_slip_wall,
+#                            :Right => boundary_condition_inflow_outflow,
+#                            :Left => boundary_condition_inflow_outflow)
 
 boundary_conditions = (; Bottom = boundary_condition_slip_wall,
                        Circle = boundary_condition_slip_wall,
@@ -111,7 +120,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 50) # Default value of 10 iterations is too low to fulfill bounds.
+                                max_iterations_newton = 50, # Default value of 10 iterations is too low to fulfill bounds.
+                                bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,

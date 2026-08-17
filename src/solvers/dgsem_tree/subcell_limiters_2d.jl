@@ -325,7 +325,9 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    if !limiter.bar_states
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    end
 
     @threaded for element in eachelement(dg, semi.cache)
 
@@ -387,10 +389,12 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
-    calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    if !limiter.bar_states
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    end
 
     # Perform Newton's bisection method to find new alpha
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
@@ -493,6 +497,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
+    # TODO
     @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
@@ -568,5 +573,33 @@ end
                  final_check, equations, dt, limiter, antidiffusive_flux)
 
     return nothing
+end
+
+###############################################################################
+# Monolithic Convex Limiting
+###############################################################################
+
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, positivity_limiter_pressure)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)}(0,
+                                                                                   nvariables(equations),
+                                                                                   nnodes(basis))
+    container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                   nvariables(equations),
+                                                                   nnodes(basis))
+
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Local variable contains the maximum deviation since the last export.
+    # [min / max, variable]
+    mcl_bounds_delta_local = zeros(real(basis), 2,
+                                   nvariables(equations) + positivity_limiter_pressure)
+    # Global variable contains the total maximum deviation.
+    # [min / max, variable]
+    mcl_bounds_delta_global = zeros(real(basis), 2,
+                                    nvariables(equations) + positivity_limiter_pressure)
+
+    return (; subcell_limiter_coefficients, container_bar_states,
+            mcl_bounds_delta_local, mcl_bounds_delta_global)
 end
 end # @muladd
