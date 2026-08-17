@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleNavierStokesDiffusion3D(equations; mu, Pr,
+    CompressibleNavierStokesDiffusion3D(equations; mu, Pr, R=1,
                                         gradient_variables=GradientVariablesPrimitive())
 
 Contains the diffusion (i.e. parabolic) terms applied
@@ -16,12 +16,14 @@ the [`CompressibleEulerEquations3D`](@ref).
 - `equations`: instance of the [`CompressibleEulerEquations3D`](@ref)
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
+- `R`: specific gas constant (defaults to 1),
 - `gradient_variables`: which variables the gradients are taken with respect to.
                         Defaults to [`GradientVariablesPrimitive()`](@ref).
                         For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
 
-Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
-[``\mu``] = kg m⁻¹ s⁻¹.
+Fluid properties such as the specific gas constant ``R`` and the dynamic viscosity
+``\mu`` can be provided in any consistent unit system, e.g.,
+[``R``] = J kg⁻¹ K⁻¹ and [``\mu``] = kg m⁻¹ s⁻¹.
 The viscosity ``\mu`` may be a constant or a function of the current state, e.g.,
 depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
 In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
@@ -90,6 +92,7 @@ struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, Mu,
     # TODO: parabolic
     # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
+    R::RealT                   # specific gas constant
     mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fourier's law
@@ -101,20 +104,21 @@ end
 
 # default to primitive gradient variables
 function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquations3D;
-                                             mu, Prandtl,
+                                             mu, Prandtl, R = 1,
                                              gradient_variables = GradientVariablesPrimitive())
     @unpack gamma, inv_gamma_minus_one = equations
 
-    Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
+    Pr = promote_type(typeof(gamma), typeof(Prandtl), typeof(R))(Prandtl)
+    R = convert(typeof(Pr), R)
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ / ((gamma-1) Prandtl).
+    # constant is kappa = gamma μ R / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Pr
+    kappa = gamma * inv_gamma_minus_one * R / Pr
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
-                                               typeof(equations)}(mu, Pr, kappa,
+                                               typeof(equations)}(R, mu, Pr, kappa,
                                                                   max(4 / 3, kappa),
                                                                   equations,
                                                                   gradient_variables)
@@ -132,6 +136,7 @@ function Base.similar(equations::CompressibleNavierStokesDiffusion3D,
                                                mu = mu,
                                                Prandtl = convert(NewRealT,
                                                                  equations.Pr),
+                                               R = convert(NewRealT, equations.R),
                                                gradient_variables = equations.gradient_variables)
 end
 
@@ -311,7 +316,7 @@ end
 
 This directly converts entropy variables `w` to velocity and temperature, which are computed 
 from the entropy variables via 
-``T = -1/w_5``, ``v_1 = -w_2/w_5``, ``v_2 = -w_3/w_5``, and ``v_3 = -w_4/w_5``, where ``w_5 = -\\rho/p`` following
+``T = -1/(w_5 R)``, ``v_1 = -w_2/w_5``, ``v_2 = -w_3/w_5``, and ``v_3 = -w_4/w_5``, where ``w_5 = -\\rho/p`` following
 
 - Hughes, Franca, Mallet (1986) 
   A new finite element formulation for CFD
@@ -319,10 +324,11 @@ from the entropy variables via
 
 """
 @inline function entropy2velocity_temperature(w,
-                                              ::AbstractCompressibleNavierStokesDiffusion{3,
-                                                                                          5})
+                                              equations::AbstractCompressibleNavierStokesDiffusion{3,
+                                                                                                   5})
     inv_w5 = inv(w[5])
-    T = -inv_w5
+    # temperature T = p/(R * rho) = -1/(R * w5) for w5 = -rho/p
+    T = -inv_w5 / equations.R
     v1 = -w[2] * inv_w5
     v2 = -w[3] * inv_w5
     v3 = -w[4] * inv_w5
@@ -361,12 +367,14 @@ end
 @inline function convert_derivative_to_primitive(w, gradient_entropy_vars,
                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
     v1, v2, v3, T = entropy2velocity_temperature(w, equations)
+    RT = equations.R * T
 
+    # Derivatives derived from w use factors of -1/w5 = p/rho = R * T, so we need to include R here
     return SVector(gradient_entropy_vars[1],
-                   T * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[5]), # grad(u) = T*(grad(w_2)+v1*grad(w_5))
-                   T * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[5]), # grad(v) = T*(grad(w_3)+v2*grad(w_5))
-                   T * (gradient_entropy_vars[4] + v3 * gradient_entropy_vars[5]), # grad(v) = T*(grad(w_4)+v3*grad(w_5))
-                   T * T * gradient_entropy_vars[5])
+                   RT * (gradient_entropy_vars[2] + v1 * gradient_entropy_vars[5]), # dv1dx = R * T * (grad(w2) + v1 * grad(w5))
+                   RT * (gradient_entropy_vars[3] + v2 * gradient_entropy_vars[5]), # dv2dx = R * T * (grad(w3) + v2 * grad(w5))
+                   RT * (gradient_entropy_vars[4] + v3 * gradient_entropy_vars[5]), # dv3dx = R * T * (grad(w4) + v3 * grad(w5))
+                   RT * T * gradient_entropy_vars[5]) # dTdx = R * T * T * grad(w5)
 end
 
 """
@@ -392,18 +400,17 @@ end
     temperature(u, equations::CompressibleNavierStokesDiffusion3D)
 
 Compute the temperature from the conservative variables `u`.
-In particular, this assumes a specific gas constant ``R = 1``:
 ```math
-T = \\frac{p}{\\rho}
+T = \\frac{p}{R \\rho}
 ```
 """
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
-    @unpack gamma = equations
+    @unpack gamma, R = equations
 
     p = (gamma - 1) *
         (rho_e_total - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
-    T = p / rho # Corresponds to a specific gas constant R = 1
+    T = p / (rho * R)
     return T
 end
 
@@ -568,8 +575,8 @@ end
     T = boundary_condition.boundary_condition_heat_flux.boundary_value_function(x, t,
                                                                                 equations)
 
-    # the entropy variables w2 = rho * v1 / p = v1 / T = -v1 * w5. Similarly for w3 and w4
-    w5 = -1 / T
+    # w5 = -rho/p = -1/(R * T)
+    w5 = -1 / (equations.R * T)
     return SVector(w_inner[1], -v1 * w5, -v2 * w5, -v3 * w5, w5)
 end
 
