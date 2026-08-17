@@ -199,8 +199,8 @@ visualization, and if set to `0`, exactly the number of nodes in the DG elements
 
 Finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or `BlockFV`) is piecewise constant, so
 there is nothing to interpolate: `nvisnodes` is ignored, and cells are always drawn with as
-many cells as the solver actually has (`n_nodes`). Make sure `max_supported_level` is large enough 
-to fit it at the finest level (`2^(max_supported_level - level) >= n_nodes`), or you will get an 
+many cells as the solver actually has (`n_nodes`). Make sure `max_supported_level` is large enough
+to fit it at the finest level (`2^(max_supported_level - level) >= n_nodes`), or you will get an
 error telling you to increase it.
 
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
