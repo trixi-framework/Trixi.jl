@@ -679,6 +679,70 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (positivity bounds)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl"),
+                        l2=[
+                            0.0010625880666563514,
+                            0.0011220178360278588,
+                            0.001175570902488149,
+                            0.0013866847769005606,
+                            0.002942603300074813
+                        ],
+                        linf=[
+                            0.019666290518305374,
+                            0.019355047676718584,
+                            0.02588920954597862,
+                            0.022936612741258244,
+                            0.04983574326863449
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
+end
+
+@testitem "P4estMesh3D: elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl (local bounds)" setup=[
+    Setup,
+    P4estMesh3D
+] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_hohqmesh_sc_subcell.jl"),
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(entropy_guermond_etal,
+                                                             min)],
+                        max_iterations_newton=30,
+                        l2=[
+                            0.01573068932681815,
+                            0.01591679096422271,
+                            0.015795998889146637,
+                            0.01746834678809081,
+                            0.06766354772185222
+                        ],
+                        linf=[
+                            0.06511438601036024,
+                            0.09961666854491202,
+                            0.10474759248351417,
+                            0.07545726460168245,
+                            0.26949807234431944
+                        ],
+                        tspan=(0.0, 0.3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
+end
+
 @testitem "P4estMesh3D: elixir_mhd_alfven_wave_er.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_er.jl"),
