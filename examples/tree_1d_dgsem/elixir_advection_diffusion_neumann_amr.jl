@@ -15,8 +15,7 @@ coordinates_min = (-1.0,)
 coordinates_max = (1.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 # BC types
 boundary_condition_left = BoundaryConditionDirichlet((x, t, equations_parabolic) -> 1.0)
@@ -26,7 +25,7 @@ boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations_para
 boundary_conditions = (; x_neg = boundary_condition_left,
                        x_pos = boundary_condition_do_nothing)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
                                  x_pos = boundary_condition_neumann_zero)
 

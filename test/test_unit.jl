@@ -1,39 +1,79 @@
-module TestUnit
+@testsnippet UnitTests begin
+    using LinearAlgebra: norm, dot
+    using SparseArrays
+    using DelimitedFiles: readdlm
+    using ForwardDiff
+    using Convex: Convex
+    using ECOS: Optimizer
+    using NLsolve: nlsolve
+    import SparseConnectivityTracer: TracerSparsityDetector, jacobian_eltype,
+                                     jacobian_sparsity
+    import SparseMatrixColorings: ColoringProblem, GreedyColoringAlgorithm, coloring,
+                                  column_colors
+    import FiniteDiff: finite_difference_jacobian!
+end
 
-using Test
-using Trixi
+@testitem "Unit: Spectral analysis" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    @testset "compute_kinetic_energy_spectrum" begin
+        rho_2d = ones(4, 4)
+        velocity_1_2d = ones(4, 4)
+        velocity_2_2d = zeros(4, 4)
 
-using LinearAlgebra: norm, dot
-using SparseArrays
-using DelimitedFiles: readdlm
+        wavenumbers_2d, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(velocity_1_2d,
+                                                                                   velocity_2_2d)
+        @test wavenumbers_2d == 0:3
+        @test energy_spectrum_2d[1] ≈ 0.5
+        @test all(isapprox.(energy_spectrum_2d[2:end], 0, atol = 100 * eps()))
 
-using ForwardDiff
+        velocity_1_2d .= [sin(2 * pi * (i - 1) / size(rho_2d, 1))
+                          for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
+        velocity_2_2d .= [cos(2 * pi * (j - 1) / size(rho_2d, 2))
+                          for i in axes(rho_2d, 1), j in axes(rho_2d, 2)]
+        _, energy_spectrum_2d = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_2d) .*
+                                                                      velocity_1_2d,
+                                                                      sqrt.(rho_2d) .*
+                                                                      velocity_2_2d)
+        mean_kinetic_energy_2d = sum(@. 0.5 * rho_2d *
+                                        (velocity_1_2d^2 + velocity_2_2d^2)) /
+                                 length(rho_2d)
+        @test sum(energy_spectrum_2d) ≈ mean_kinetic_energy_2d
 
-# Use Convex and ECOS to load the extension that extends functions for testing
-# PERK Single p2 Constructors
-using Convex: Convex
-using ECOS: Optimizer
+        rho_3d = ones(4, 4, 4)
+        velocity_1_3d = ones(4, 4, 4)
+        velocity_2_3d = zeros(4, 4, 4)
+        velocity_3_3d = zeros(4, 4, 4)
 
-# Use NLsolve to load the extension that extends functions for testing
-# PERK Single p3 Constructors
-using NLsolve: nlsolve
+        wavenumbers_3d, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(velocity_1_3d,
+                                                                                   velocity_2_3d,
+                                                                                   velocity_3_3d)
+        @test wavenumbers_3d == 0:3
+        @test energy_spectrum_3d[1] ≈ 0.5
+        @test all(isapprox.(energy_spectrum_3d[2:end], 0, atol = 100 * eps()))
 
-import SparseConnectivityTracer: TracerSparsityDetector, jacobian_eltype, jacobian_sparsity
-import SparseMatrixColorings: ColoringProblem, GreedyColoringAlgorithm, coloring,
-                              column_colors
-import FiniteDiff: finite_difference_jacobian!
+        velocity_1_3d .= [sin(2 * pi * (i - 1) / size(rho_3d, 1))
+                          for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
+                              k in axes(rho_3d, 3)]
+        velocity_2_3d .= [cos(2 * pi * (j - 1) / size(rho_3d, 2))
+                          for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
+                              k in axes(rho_3d, 3)]
+        velocity_3_3d .= [sin(2 * pi * (k - 1) / size(rho_3d, 3))
+                          for i in axes(rho_3d, 1), j in axes(rho_3d, 2),
+                              k in axes(rho_3d, 3)]
+        _, energy_spectrum_3d = Trixi.compute_kinetic_energy_spectrum(sqrt.(rho_3d) .*
+                                                                      velocity_1_3d,
+                                                                      sqrt.(rho_3d) .*
+                                                                      velocity_2_3d,
+                                                                      sqrt.(rho_3d) .*
+                                                                      velocity_3_3d)
+        mean_kinetic_energy_3d = sum(@. 0.5 * rho_3d *
+                                        (velocity_1_3d^2 + velocity_2_3d^2 +
+                                         velocity_3_3d^2)) /
+                                 length(rho_3d)
+        @test sum(energy_spectrum_3d) ≈ mean_kinetic_energy_3d
+    end
+end
 
-include("test_trixi.jl")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-# Run various unit (= non-elixir-triggered) tests
-@testset "Unit tests" begin
-#! format: noindent
-
-@timed_testset "SerialTree" begin
+@testitem "Unit: SerialTree" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "constructors" begin
         @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0, true)
         @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0, true)
@@ -64,7 +104,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
-@timed_testset "ParallelTree" begin
+@testitem "Unit: ParallelTree" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "constructors" begin
         @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0, true)
         @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0, true)
@@ -77,22 +117,32 @@ end
     end
 end
 
-@timed_testset "TreeMesh" begin
+@testitem "Unit: TreeMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0, true) isa
-              TreeMesh
+        mesh = @inferred TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0,
+                                                                            true)
+        @test mesh isa TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
         # 3D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
+
+        # Keyword-only constructor
+        mesh_ref = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                            initial_refinement_level = 2)
+        mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
+                           coordinates_max = (1.0, 1.0),
+                           refinement_level = 2)
+        @test Trixi.ncells(mesh_kw) == Trixi.ncells(mesh_ref)
+        @test_throws ArgumentError TreeMesh(; coordinates_min = (-1.0, -1.0),
+                                            coordinates_max = (1.0, 1.0, 1.0),
+                                            refinement_level = 2)
     end
 
     @testset "helper functions" begin
@@ -105,21 +155,21 @@ end
             for ref_level in 0:2
                 mesh = TreeMesh(coords_min, coords_max,
                                 initial_refinement_level = ref_level,
-                                n_cells_max = 10_000, periodicity = true)
+                                periodicity = true)
 
-                @test Trixi.ndims(mesh) == ndims
-                @test Trixi.ncells(mesh) == (2^ndims)^ref_level
+                @test @inferred(Trixi.ndims(mesh)) == ndims
+                @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
             end
         end
     end
 end
 
-@timed_testset "TreeMeshParallel" begin
+@testitem "Unit: TreeMeshParallel" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "partition!" begin
         @testset "mpi_nranks() = 2" begin
             Trixi.mpi_nranks() = 2
             let
-                @test Trixi.mpi_nranks() == 2
+                @test @inferred(Trixi.mpi_nranks()) == 2
 
                 mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
                                                                             (0.0, 0.0),
@@ -259,7 +309,7 @@ end
     end
 end
 
-@timed_testset "curved mesh" begin
+@testitem "Unit: curved mesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "calc_jacobian_matrix" begin
         @testset "identity map" begin
             basis = LobattoLegendreBasis(5)
@@ -299,7 +349,7 @@ end
     end
 end
 
-@timed_testset "interpolation" begin
+@testitem "Unit: interpolation" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "nodes and weights" begin
         @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
 
@@ -352,7 +402,7 @@ end
     end
 end
 
-@timed_testset "L2 projection" begin
+@testitem "Unit: L2 projection" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @testset "calc_reverse_upper for LGL" begin
         @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)),
                        [[0.25, 0.25] [0.0, 0.5]])
@@ -363,7 +413,7 @@ end
     end
 end
 
-@timed_testset "GaussLegendreBasis" begin
+@testitem "Unit: GaussLegendreBasis" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     basis = GaussLegendreBasis(3)
     @test nnodes(basis) == 4
     @test_nowarn show(stdout, "text/plain", basis)
@@ -373,7 +423,138 @@ end
     @test_nowarn show(stdout, "text/plain", solution_analyzer)
 end
 
-@testset "containers" begin
+@testitem "Unit: Positivity limiter for AMRCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Initial condition with simple discontinuity
+    @inline function initial_condition_discontinuity(x, t, equations)
+        if x[1] < -0.5
+            scalar = 1.0e-4
+        else
+            scalar = 1.0
+        end
+
+        return SVector(scalar)
+    end
+
+    # Set up variables used for 1D, 2D and 3D tests
+    solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
+
+    adaptor = Trixi.AdaptorL2(solver.basis)
+    limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
+                                                   variables = (first,))
+
+    @testset "1D" begin
+        equations = LinearScalarAdvectionEquation1D(1.0)
+
+        coordinates_min = (-1.0,)
+        coordinates_max = (1.0,)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:2)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "2D" begin
+        equations = LinearScalarAdvectionEquation2D((0.2, -0.7))
+
+        coordinates_min = (-1.0, -1.0)
+        coordinates_max = (1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:4)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+
+    @testset "3D" begin
+        equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+
+        coordinates_min = (-1.0, -1.0, -1.0)
+        coordinates_max = (1.0, 1.0, 1.0)
+        mesh = TreeMesh(coordinates_min, coordinates_max,
+                        initial_refinement_level = 0,
+                        periodicity = true)
+
+        semi = SemidiscretizationHyperbolic(mesh, equations,
+                                            initial_condition_discontinuity, solver,
+                                            boundary_conditions = boundary_condition_periodic)
+
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        # Refinement
+        elements_to_refine = [1]
+        Trixi.refine!(mesh.tree, elements_to_refine)
+
+        Trixi.refine!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                      elements_to_refine, limiter!)
+
+        @test all(u_ode .>= 0.0)
+
+        # Coarsening
+        u_ode = compute_coefficients(initial_condition_discontinuity, 0.0, semi)
+
+        parents_to_coarsen = [1]
+        Trixi.coarsen!(mesh.tree, parents_to_coarsen)
+
+        elements_to_coarsen = collect(1:8)
+        Trixi.coarsen!(u_ode, adaptor, mesh, equations, solver, semi.cache,
+                       elements_to_coarsen, limiter!)
+
+        @test all(u_ode .>= 0.0)
+    end
+end
+
+@testitem "Unit: containers" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
         data::Vector{Int}
@@ -456,26 +637,29 @@ end
     end
 end
 
-@timed_testset "example elixirs" begin
+@testitem "Unit: example elixirs" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
     @test endswith(default_example(), "elixir_advection_basic.jl")
 end
 
-@timed_testset "HLL flux with vanishing wave speed estimates (#502)" begin
+@testitem "Unit: HLL flux with vanishing wave speed estimates (#502)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.0, 0.0, 0.0)
     @test !any(isnan, flux_hll(u, u, 1, equations))
 end
 
-@timed_testset "DG L2 mortar container debug output" begin
+@testitem "Unit: DG L2 mortar container debug output" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     c2d = Trixi.TreeL2MortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
     c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
 end
 
-@timed_testset "TreeContainer1D nnodes(container)" begin
+@testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     capacity = 42
     n_variables = 9
 
@@ -487,8 +671,8 @@ end
     @test nnodes(boundary_container) == 1
 end
 
-@timed_testset "Printing indicators/controllers" begin
-    # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
+@testitem "Unit: Printing indicators/controllers" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Note: Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
 
     c = ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary",
@@ -512,9 +696,28 @@ end
     indicator_ec = IndicatorEntropyCorrection(CompressibleEulerEquations1D(1.4),
                                               LobattoLegendreBasis(3))
     @test_nowarn show(stdout, indicator_ec)
+
+    # test Base.show for PositivityPreservingLimiterLiuZhang
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    solver = DGSEM(polydeg = 3)
+    mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 1, periodicity = true)
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant,
+                                        solver;
+                                        boundary_conditions = boundary_condition_periodic)
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
+                                                         variables = (first,))
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!,
+                                                          semi;
+                                                          record_davis_yin_iterations = true)
+    @test_nowarn show(stdout, global_limiter!)
+    @test_nowarn show(stdout, "text/plain", global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(),
+                      global_limiter!)
+    @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
+                      global_limiter!)
 end
 
-@timed_testset "LBM 2D constructor" begin
+@testitem "Unit: LBM 2D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
@@ -532,7 +735,7 @@ end
           LatticeBoltzmannEquations2D
 end
 
-@timed_testset "LBM 3D constructor" begin
+@testitem "Unit: LBM 3D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
@@ -550,7 +753,7 @@ end
           LatticeBoltzmannEquations3D
 end
 
-@timed_testset "LBM 2D functions" begin
+@testitem "Unit: LBM 2D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, equation)
@@ -560,7 +763,7 @@ end
     @test isapprox(Trixi.velocity(u, 2, equation), 3)
 end
 
-@timed_testset "LBM 3D functions" begin
+@testitem "Unit: LBM 3D functions" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
@@ -571,7 +774,7 @@ end
     @test isapprox(velocity(u, 3, equation), 4)
 end
 
-@timed_testset "LBMCollisionCallback" begin
+@testitem "Unit: LBMCollisionCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
     @test_nowarn show(stdout, callback)
@@ -580,7 +783,7 @@ end
     println()
 end
 
-@timed_testset "Acoustic perturbation 2D varnames" begin
+@testitem "Unit: Acoustic perturbation 2D varnames" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     v_mean_global = (0.0, 0.0)
     c_mean_global = 1.0
     rho_mean_global = 1.0
@@ -593,7 +796,10 @@ end
           ("v1_mean", "v2_mean", "c_mean", "rho_mean")
 end
 
-@timed_testset "Euler conversion between conservative/entropy variables" begin
+@testitem "Unit: Euler conversion between conservative/entropy variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
     let equations = CompressibleEulerEquations1D(1.4)
@@ -662,12 +868,75 @@ end
     end
 end
 
+@testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    rho, v1, v2, v3, p = 2.0, 0.1, 0.2, 0.3, 4.0
+    mu, Prandtl = 0.01, 0.72
+
+    let equations_hyperbolic = CompressibleEulerEquations1D(1.4)
+        equations = CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations2D(1.4)
+        equations = CompressibleNavierStokesDiffusion2D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations3D(1.4)
+        equations = CompressibleNavierStokesDiffusion3D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, v3, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+end
+
+@testitem "Unit: LaplaceDiffusionEntropyVariables apply_jacobian_entropy2cons" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    rho, v1, v2, v3, p = 1.0, 0.1, -0.2, 0.3, 2.0
+
+    for (equations_parabolic, prim, dw) in ((LaplaceDiffusionEntropyVariables1D(0.01,
+                                                                                CompressibleEulerEquations1D(1.4)),
+                                             SVector(rho, v1, p),
+                                             SVector(1.0, 0.1, 2.0)),
+                                            (LaplaceDiffusionEntropyVariables2D(0.01,
+                                                                                CompressibleEulerEquations2D(1.4)),
+                                             SVector(rho, v1, v2, p),
+                                             SVector(1.0, 0.1, -0.2, 2.0)),
+                                            (LaplaceDiffusionEntropyVariables3D(0.01,
+                                                                                CompressibleEulerEquations3D(1.4)),
+                                             SVector(rho, v1, v2, v3, p),
+                                             SVector(1.0, 0.1, -0.2, 0.3, 2.0)))
+        equations = equations_parabolic.equations_hyperbolic
+        w = cons2entropy(prim2cons(prim, equations), equations)
+        jvp_specialized = Trixi.apply_jacobian_entropy2cons(dw, w, equations_parabolic)
+        jvp_ad = invoke(Trixi.apply_jacobian_entropy2cons,
+                        Tuple{typeof(dw), typeof(w), Trixi.AbstractEquations},
+                        dw, w, equations)
+        @test jvp_specialized ≈ jvp_ad
+    end
+end
+
 # It is for many equations possible to compute ρ ⋅ p more efficiently
 # than computing the pressure (and density if needed) separately and then multiplying.
 # This is due to the computation of the kinetic energy term, which usually involves
 # dividing the squared momenta by the density, an operation that can be avoided
 # when computing the product ρ ⋅ p directly.
-@timed_testset "Test density_pressure" begin
+@testitem "Unit: Test density_pressure" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     let equations = CompressibleEulerEquations1D(5 / 3)
         u = initial_condition_density_wave(SVector(1.0), 3.0, equations)
         rho = density(u, equations)
@@ -766,7 +1035,94 @@ end
     end
 end
 
-@timed_testset "boundary_condition_do_nothing" begin
+@testitem "Unit: hardened boundary_condition_slip_wall" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    let equations = CompressibleEulerEquations1D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 1), equations)
+
+        x, t = 0, 0
+        orientation = 1
+        direction = 2 # even direction: v_normal stays <= 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+        # this state results in base < 0 in the implementation of
+        # boundary_condition_slip_wall.
+        u_inner = prim2cons(SVector(1.4, -6, 0, 0, 1), equations)
+        normal_direction = SVector(1.0, 0.0, 0.0)
+
+        x, t = 0, 0
+        surface_flux_function = flux_lax_friedrichs
+        flux = boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                                            surface_flux_function, equations)
+
+        # boundary_condition_slip_wall should return exactly zero
+        @test flux == zero(flux)
+    end
+end
+
+@testitem "Unit: Helmholtz ideal gas equation of state (AD vs analytical)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # Closed forms for ideal gas from Klein et al., Appendix E (E.1), in (V, T) variables
+    function ideal_gas_analytical_helmholtz(V, T, eos::HelmholtzIdealGas)
+        alpha = inv(eos.gamma - 1)
+        p = eos.R * T / V
+        s = eos.R * (1 + alpha + log((T^alpha) * V))
+        e = eos.R * T * alpha
+        return (; p, s, e)
+    end
+
+    rho = 1.225
+    T = 300.15
+    V = inv(rho)
+    eos = HelmholtzIdealGas()
+    ref = ideal_gas_analytical_helmholtz(V, T, eos)
+    @test isapprox(pressure(V, T, eos), ref.p)
+    @test isapprox(Trixi.entropy_specific(V, T, eos), ref.s)
+    @test isapprox(energy_internal_specific(V, T, eos), ref.e)
+
+    ig = IdealGas(1.4, eos.R)
+    @test Trixi.speed_of_sound(V, T, eos) ≈ Trixi.speed_of_sound(V, T, ig)
+    c_direct = Trixi.speed_of_sound(V, T, eos)
+    c_fallback = invoke(Trixi.speed_of_sound,
+                        Tuple{typeof(V), typeof(T), Trixi.AbstractHelmholtzEOS},
+                        V, T, eos)
+    @test c_direct ≈ c_fallback
+    @test temperature(V, ref.e, eos) ≈ T
+    e_h = energy_internal_specific(V, T, eos)
+    p_h = pressure(V, T, eos)
+    s_h = Trixi.entropy_specific(V, T, eos)
+    @test Trixi.gibbs_free_energy(V, T, eos) ≈ e_h + p_h * V - T * s_h
+end
+
+@testitem "Unit: boundary_condition_do_nothing" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     rho, v1, v2, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
     let equations = CompressibleEulerEquations2D(1.4)
@@ -788,7 +1144,7 @@ end
     end
 end
 
-@timed_testset "boundary_condition_do_nothing_non_conservative" begin
+@testitem "Unit: boundary_condition_do_nothing_non_conservative" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
                                           40.0 / sqrt(4.0 * pi), 0.0, 0.0
 
@@ -821,7 +1177,61 @@ end
     end
 end
 
-@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" begin
+@testitem "Unit: Reproducing ideal gas with ThermallyPerfectGas9PolyFit" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    R_specific = 287.0509010514002 # [J/(kg*K)]
+    p_ref = 100000.0 # [Pa]
+    T_ref = 298.15 # [K]
+
+    gamma_target = 1.4
+    cp_over_R = gamma_target / (gamma_target - 1)
+
+    temp_bounds = SVector(eps(Float64), typemax(Float64))  # single wide interval, avoid eps/typemax edge cases
+    a = Trixi.SMatrix{9, 1}([0.0, 0.0, cp_over_R, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    eos = ThermallyPerfectGas9PolyFit(R_specific = R_specific,
+                                      temperature_bounds = temp_bounds,
+                                      coefficients = a,
+                                      p_ref = p_ref,
+                                      T_ref = T_ref)
+
+    rho = 1.255 # [kg/m^3]
+    V = 1 / rho
+
+    # 1. cp, cv, gamma match the ideal-gas properties
+    cp = Trixi.heat_capacity_constant_pressure(T_ref, eos)
+    cv = Trixi.heat_capacity_constant_volume(V, T_ref, eos)
+    @test cp ≈ gamma_target / (gamma_target - 1) * R_specific
+    @test cv ≈ 1 / (gamma_target - 1) * R_specific
+    @test cp / cv ≈ gamma_target
+
+    # 2. pressure matches ideal gas law
+    @test pressure(V, T_ref, eos) ≈ rho * R_specific * T_ref
+
+    # 3. internal energy matches u = cv * T (calorically perfect gas, up to a reference offset)
+    T_test = 400.0
+    e_internal1 = Trixi.energy_internal_specific(V, T_ref, eos)
+    e_internal2 = Trixi.energy_internal_specific(V, T_test, eos)
+    @test (e_internal2 - e_internal1) ≈ cv * (T_test - T_ref)
+
+    # 4. entropy difference matches ideal-gas relation
+    #    Δs = cp*ln(T2/T1) - R_specific*ln(p2/p1)
+    p1 = pressure(V, T_ref, eos)
+    p2 = pressure(V, T_test, eos)  # same V, different T -> different p
+    s1 = Trixi.entropy_specific(V, T_ref, eos)
+    s2 = Trixi.entropy_specific(V, T_test, eos)
+    @test (s2 - s1) ≈ cp * log(T_test / T_ref) - R_specific * log(p2 / p1)
+
+    # 5. check speed of sound
+    @test Trixi.speed_of_sound(V, T_ref, eos) ≈
+          sqrt(gamma_target * pressure(V, T_ref, eos) * V)
+end
+
+@testitem "Unit: Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations1D(eos)
     @test Trixi.get_name(equations) ==
@@ -860,9 +1270,32 @@ end
     @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+
+    eos = ThermallyPerfectGas9PolyFit()
+
+    equations = NonIdealCompressibleEulerEquations1D(eos)
+
+    # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
+    rho = 2.22e-8 # [kg/m^3]
+    V = inv(rho) # [m^3/kg]
+
+    a = 380.4 # [m/s]
+    v1 = 26 * a # [m/s]
+    T = 360 # [K]
+    q = SVector(V, v1, T)
+    u = thermo2cons(q, equations)
+
+    @test flux_lax_friedrichs(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
+
+    @test flux_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
+    @test flux_central_terashima_etal(u, u, 1, equations) ≈ flux(u, 1, equations)
 end
 
-@timed_testset "Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" begin
+@testitem "Unit: Test consistency (fluxes, entropy/cons2entropy) for NonIdealCompressibleEulerEquations2D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     eos = VanDerWaals(; a = 10, b = 0.01, R = 287, gamma = 1.4)
     equations = NonIdealCompressibleEulerEquations2D(eos)
     q = SVector(2.0, 0.1, 0.2, 10.0)
@@ -920,8 +1353,8 @@ end
                                            flux_lax_friedrichs, equations)
     end
 
-    # check that the fallback temperature and specialized temperature 
-    # return the same value 
+    # check that the fallback temperature and specialized temperature
+    # return the same value
     V, v1, v2, T = cons2thermo(u, equations)
     e = energy_internal_specific(V, T, eos)
     @test temperature(V, e, eos) ≈
@@ -934,9 +1367,38 @@ end
     @test Trixi.calc_pressure_derivatives(V, T, eos)[2] ≈
           invoke(Trixi.calc_pressure_derivatives,
                  Tuple{Any, Any, Trixi.AbstractEquationOfState}, V, T, eos)[2]
+
+    eos = ThermallyPerfectGas9PolyFit()
+
+    equations = NonIdealCompressibleEulerEquations2D(eos)
+
+    # Mach 26 at 120km altitude, data from US Standard Atmosphere 1976
+    rho = 2.22e-8 # [kg/m^3]
+    V = inv(rho) # [m^3/kg]
+
+    a = 380.4 # [m/s]
+
+    aoa = deg2rad(40.0) # angle of attack
+
+    v1 = 26 * a * cos(aoa) # [m/s]
+    v2 = 26 * a * sin(aoa) # [m/s]
+    T = 360 # [K]
+    q = SVector(V, v1, v2, T)
+    u = thermo2cons(q, equations)
+
+    for orientation in (1, 2)
+        @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_hll(u, u, orientation, equations) ≈ flux(u, orientation, equations)
+
+        @test flux_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+        @test flux_central_terashima_etal(u, u, orientation, equations) ≈
+              flux(u, orientation, equations)
+    end
 end
 
-@timed_testset "StepsizeCallback" begin
+@testitem "Unit: StepsizeCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Ensure a proper error is thrown if used with adaptive time integration schemes
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
@@ -946,7 +1408,7 @@ end
                                      callback = StepsizeCallback(cfl = 1.0))
 end
 
-@timed_testset "TimeSeriesCallback" begin
+@testitem "Unit: TimeSeriesCallback" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_acoustics_gaussian_source.jl"),
@@ -964,12 +1426,11 @@ end
     @test_throws ArgumentError TimeSeriesCallback(semi, [1.0 1.0 1.0; 2.0 2.0 2.0])
 end
 
-@timed_testset "resize! RelaxationIntegrators" begin
+@testitem "Unit: resize! RelaxationIntegrators" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     equations = LinearScalarAdvectionEquation1D(42.0)
     solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
-                    n_cells_max = 30_000,
                     periodicity = true)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
@@ -999,7 +1460,7 @@ end
     @test length(integrator.direction) == 42
 end
 
-@timed_testset "Consistency check for single point flux: CEMCE" begin
+@testitem "Unit: Consistency check for single point flux: CEMCE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
                                                            gas_constants = (0.4, 0.4))
     u = SVector(0.1, -0.5, 1.0, 1.0, 2.0)
@@ -1011,7 +1472,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux (naive): CEE" begin
+@testitem "Unit: Consistency check for HLL flux (naive): CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
     # Set up equations and dummy conservative variables state
@@ -1040,7 +1501,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for flux_chan_etal: CEEQ" begin
+@testitem "Unit: Consistency check for flux_chan_etal: CEEQ" setup=[Setup, UnitTests] tags=[:misc_part1] begin
 
     # Set up equations and dummy conservative variables state
     equations = CompressibleEulerEquationsQuasi1D(1.4)
@@ -1053,7 +1514,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux (naive): LEE" begin
+@testitem "Unit: Consistency check for HLL flux (naive): LEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
     equations = LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
@@ -1075,7 +1536,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux (naive): MHD" begin
+@testitem "Unit: Consistency check for HLL flux (naive): MHD" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
     equations = IdealGlmMhdEquations1D(1.4)
@@ -1126,7 +1587,10 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: CEE" begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     # Set up equations and dummy conservative variables state
@@ -1176,7 +1640,10 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: Polytropic CEE" begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: Polytropic CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     gamma = 1.4
@@ -1200,7 +1667,10 @@ end
     end
 end
 
-@timed_testset "Consistency check for Winters flux: Polytropic CEE" begin
+@testitem "Unit: Consistency check for Winters flux: Polytropic CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     for gamma in [1.4, 1.0, 5 / 3]
         kappa = 0.5     # Scaling factor for the pressure.
         equations = PolytropicEulerEquations2D(gamma, kappa)
@@ -1224,7 +1694,10 @@ end
     end
 end
 
-@timed_testset "Consistency check for Lax-Friedrich flux: Polytropic CEE" begin
+@testitem "Unit: Consistency check for Lax-Friedrich flux: Polytropic CEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     for gamma in [1.4, 1.0, 5 / 3]
         kappa = 0.5     # Scaling factor for the pressure.
         equations = PolytropicEulerEquations2D(gamma, kappa)
@@ -1248,7 +1721,10 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: LEE" begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: LEE" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     equations = LinearizedEulerEquations2D(SVector(1.0, 1.0), 1.0, 1.0)
@@ -1270,7 +1746,10 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLL flux with Davis wave speed estimates: MHD" begin
+@testitem "Unit: Consistency check for HLL flux with Davis wave speed estimates: MHD" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
     equations = IdealGlmMhdEquations1D(1.4)
@@ -1321,7 +1800,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLLE flux: CEE" begin
+@testitem "Unit: Consistency check for HLLE flux: CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
     equations = CompressibleEulerEquations1D(1.4)
     u = SVector(1.1, 2.34, 5.5)
@@ -1369,7 +1848,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLLE flux: MHD" begin
+@testitem "Unit: Consistency check for HLLE flux: MHD" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     equations = IdealGlmMhdEquations1D(1.4)
     u_values = [SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1),
         SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2)]
@@ -1419,7 +1898,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for HLLC flux: CEE" begin
+@testitem "Unit: Consistency check for HLLC flux: CEE" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
     equations = CompressibleEulerEquations2D(1.4)
     u = SVector(1.1, -0.5, 2.34, 5.5)
@@ -1478,7 +1957,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for Godunov flux" begin
+@testitem "Unit: Consistency check for Godunov flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
 
@@ -1561,7 +2040,26 @@ end
     end
 end
 
-@timed_testset "Consistency check for Engquist-Osher flux" begin
+@testitem "Unit: Consistency check for entropy-conserving Burgers flux" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    equations = InviscidBurgersEquation1D()
+    u_ll = SVector(2.0)
+    u_rr = SVector(-1.0)
+
+    for normal_direction in (SVector(1.0), SVector(-1.2))
+        @test flux_ec(u_ll, u_rr, normal_direction, equations) ≈
+              normal_direction[1] * flux_ec(u_ll, u_rr, 1, equations)
+    end
+
+    u = SVector(42.0)
+    normal_direction = SVector(-1.2)
+    @test flux_ec(u, u, normal_direction, equations) ≈
+          flux(u, normal_direction, equations)
+end
+
+@testitem "Unit: Consistency check for Engquist-Osher flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
     equation = InviscidBurgersEquation1D()
     u_values = [SVector(42.0), SVector(-42.0)]
@@ -1582,7 +2080,10 @@ end
     end
 end
 
-@timed_testset "Flux consistency checks LinearElasticityEquations1D" begin
+@testitem "Unit: Flux consistency checks LinearElasticityEquations1D" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     rho = 7800.0 # kg/m³
     lambda = 9.3288e10
     mu = lambda
@@ -1601,7 +2102,10 @@ end
           flux(u, orientation, equations)
 end
 
-@testset "Consistency check for `gradient_conservative` routine" begin
+@testitem "Unit: Consistency check for `gradient_conservative` routine" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     # Set up conservative variables, equations
     u = [
         0.5011914484393387,
@@ -1621,7 +2125,7 @@ end
           Trixi.gradient_conservative(pressure, u, equations)
 end
 
-@testset "Equivalent Fluxes" begin
+@testitem "Unit: Equivalent Fluxes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # Set up equations and dummy conservative variables state
     # Burgers' Equation
 
@@ -1688,7 +2192,7 @@ end
     end
 end
 
-@timed_testset "Consistency check for LMARS flux" begin
+@testitem "Unit: Consistency check for LMARS flux" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     equations = CompressibleEulerEquations2D(1.4)
     flux_lmars = FluxLMARS(340)
 
@@ -1731,7 +2235,7 @@ end
     end
 end
 
-@testset "FluxRotated vs. direct implementation" begin
+@testitem "Unit: FluxRotated vs. direct implementation" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
         equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.4),
                                                                gas_constants = (0.4,
@@ -1858,7 +2362,10 @@ end
     end
 end
 
-@timed_testset "DissipationMatrixWintersEtal entropy dissipation and consistency tests" begin
+@testitem "Unit: DissipationMatrixWintersEtal entropy dissipation and consistency tests" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     equations = CompressibleEulerEquations1D(1.4)
     dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
 
@@ -1957,7 +2464,7 @@ end
                                           equations)
 end
 
-@testset "Equivalent Wave Speed Estimates" begin
+@testitem "Unit: Equivalent Wave Speed Estimates" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @timed_testset "Linearized Euler 3D" begin
         equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, 0.7),
                                                c_mean_global = 1.0,
@@ -2030,7 +2537,10 @@ end
     end
 end
 
-@testset "Equivalent Wave Speed Estimates: max_abs_speed(naive)" begin
+@testitem "Unit: Equivalent Wave Speed Estimates: max_abs_speed(naive)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     @timed_testset "AcousticPerturbationEquations2D" begin
         equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
                                                     c_mean_global = 2.0,
@@ -2525,7 +3035,7 @@ end
     end
 end
 
-@testset "SimpleKronecker" begin
+@testitem "Unit: SimpleKronecker" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     N = 3
 
     NDIMS = 2
@@ -2544,7 +3054,7 @@ end
     @test b ≈ b_kron
 end
 
-@testset "SummationByPartsOperators + StartUpDG" begin
+@testitem "Unit: SummationByPartsOperators + StartUpDG" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     global D = derivative_operator(SummationByPartsOperators.MattssonNordström2004(),
                                    derivative_order = 1,
                                    accuracy_order = 4,
@@ -2555,7 +3065,7 @@ end
     @test StartUpDG.inverse_trace_constant(dg.basis) ≈ 50.8235294117647
 end
 
-@testset "1D non-periodic DGMultiMesh" begin
+@testitem "Unit: 1D non-periodic DGMultiMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     # checks whether or not boundary faces are initialized correctly for DGMultiMesh in 1D
     dg = DGMulti(polydeg = 1, element_type = Line(), approximation_type = Polynomial(),
                  surface_integral = SurfaceIntegralWeakForm(flux_central),
@@ -2566,7 +3076,7 @@ end
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
-@testset "PERK Single p2 Constructors" begin
+@testitem "Unit: PERK Single p2 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
                    joinpath(path_coeff_file, "gamma_6.txt"))
@@ -2599,7 +3109,7 @@ end
                     0.13942836392866081 0.3605716360713392], atol = 1e-13)
 end
 
-@testset "PERK Single p3 Constructors" begin
+@testitem "Unit: PERK Single p3 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
                    joinpath(path_coeff_file, "a_8.txt"))
@@ -2635,7 +3145,7 @@ end
                     0.31168238866709846 0.18831761133290154], atol = 1e-8)
 end
 
-@testset "PERK Single p4 Constructors" begin
+@testitem "Unit: PERK Single p4 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
                    joinpath(path_coeff_file, "spectrum.txt"))
@@ -2656,7 +3166,7 @@ end
                     0.7722324105428290 0.2277675894571710], atol = 1e-13)
 end
 
-@testset "Sutherlands Law" begin
+@testitem "Unit: Sutherlands Law" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     function mu(u, equations)
         T_ref = 291.15
 
@@ -2686,6 +3196,8 @@ end
     equations = CompressibleEulerEquations2D(gamma)
     equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                               Prandtl = prandtl_number())
+    @test equations_parabolic.gamma == gamma
+    @test :gamma in @inferred(propertynames(equations_parabolic))
 
     # Flow at rest
     u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
@@ -2695,7 +3207,7 @@ end
                    1.803e-5, atol = 5e-8)
 end
 
-@testset "Slope Limiters" begin
+@testitem "Unit: Slope Limiters" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     sl = 1.0
     sr = -1.0
 
@@ -2769,7 +3281,7 @@ end
 end
 
 # Velocity functions are present in many equations and are tested here
-@testset "Velocity functions for different equations" begin
+@testitem "Unit: Velocity functions for different equations" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     gamma = 1.4
     rho = pi * pi
     pres = sqrt(pi)
@@ -2872,14 +3384,14 @@ end
     end
 end
 
-@testset "Pretty_form output for lake_at_rest_error" begin
+@testitem "Unit: Pretty_form output for lake_at_rest_error" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @test Trixi.pretty_form_utf(lake_at_rest_error) == "∑|H₀-(h+b)|"
     @test Trixi.pretty_form_ascii(lake_at_rest_error) == "|H0-(h+b)|"
 end
 
 # Ensure consistency for nonconservative fluxes used in the subcell-limiting. Specifically, test
 # that flux_noncons_local_structured = flux_noncons_local * flux_noncons_structured.
-@testset "Nonconservative fluxes for subcell-limiting" begin
+@testitem "Unit: Nonconservative fluxes for subcell-limiting" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     equations = IdealGlmMhdEquations2D(1.4)
     u_ll = SVector(1.0, 0.4, -0.5, 0.1, 1.0, 0.1, -0.2, 0.1, 0.0)
     u_rr = SVector(1.5, -0.2, 0.1, 0.2, 5.0, -0.1, 0.1, 0.2, 0.2)
@@ -2958,6 +3470,7 @@ end
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                                    normal_direction,
+                                                                   normal_direction,
                                                                    equations,
                                                                    Trixi.NonConservativeJump(),
                                                                    noncons)
@@ -2972,7 +3485,7 @@ end
     end
 end
 
-@testset "SparseConnectivityTracer FiniteDiff Jacobian" begin
+@testitem "Unit: SparseConnectivityTracer FiniteDiff Jacobian" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     ###############################################################################
     ### equations, solver, mesh ###
 
@@ -2987,7 +3500,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
@@ -3015,10 +3527,11 @@ end
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
 
-    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                   tspan[1])
+    rhs_jac_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+    end
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
@@ -3040,8 +3553,11 @@ end
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
-    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     tspan[1])
+    @test Trixi.default_rhs(semi_float_type) === Trixi.rhs_hyperbolic!
+
+    rhs_float_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_float_type, tspan[1])
+    end
 
     ###############################################################################
     ### sparsity-aware finite diff ###
@@ -3058,13 +3574,13 @@ end
     @test isapprox(sparse(jac_finite_diff), jac_sparse_finite_diff; rtol = 5e-8)
 end
 
-@testset "Parabolic-Hyperbolic Problem Sparsity Pattern" begin
+@testitem "Unit: Parabolic-Hyperbolic Problem Sparsity Pattern" setup=[Setup, UnitTests] tags=[:misc_part1] begin
 
     # Poor-mans rebuild of `SplitODEProblem` from SciML
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
         du_para = similar(du_ode) # This obviously allocates, but fine for this test
-        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
         Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
         Trixi.@threaded for i in eachindex(du_ode)
@@ -3088,7 +3604,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
 
     ###############################################################################
@@ -3108,6 +3623,8 @@ end
                                                           boundary_conditions = (boundary_condition_periodic,
                                                                                  boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    @test_throws ArgumentError Trixi.default_rhs(semi_jac_type)
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
 
@@ -3140,7 +3657,7 @@ end
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
-    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
+    ### sparsity pattern detected on the combined hyperbolic-parabolic RHS ###
 
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
                                                                           u0_ode,
@@ -3156,7 +3673,10 @@ end
     @test jac_prototype_parabolic == jac_prototype_hyperbolic_parabolic
 end
 
-@testset "TreeMesh and StructuredMesh boundary condition argument checks" begin
+@testitem "Unit: TreeMesh and StructuredMesh boundary condition argument checks" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
     solver = DGSEM(polydeg = 1)
     ic = initial_condition_convergence_test
     bc = boundary_condition_periodic
@@ -3164,7 +3684,7 @@ end
     # 1D
     eq1d = LinearScalarAdvectionEquation1D(1.0)
     tree_mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh1d_periodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                 periodicity = true)
     for mesh1d_periodic in (tree_mesh1d_periodic,
@@ -3200,7 +3720,7 @@ end
     end
     # non-periodic mesh
     tree_mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh1d_nonperiodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                    periodicity = false)
     for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
@@ -3229,7 +3749,7 @@ end
     eq2d = LinearScalarAdvectionEquation2D((1.0, -1.0))
     tree_mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh2d_periodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                 periodicity = true)
     for mesh2d_periodic in (tree_mesh2d_periodic,
@@ -3275,7 +3795,7 @@ end
     # non-periodic mesh
     tree_mesh2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh2d_nonperiodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                    periodicity = false)
     for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
@@ -3309,7 +3829,6 @@ end
     # partially periodic
     tree_mesh2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (true, false))
     structured_mesh2d_partial_periodic = StructuredMesh((4, 4), (-1.0, -1.0),
                                                         (1.0, 1.0),
@@ -3350,7 +3869,7 @@ end
     eq3d = LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
     tree_mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh3d_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                 (1.0, 1.0, 1.0),
                                                 periodicity = true)
@@ -3404,7 +3923,7 @@ end
     # non-periodic mesh
     tree_mesh3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh3d_nonperiodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                    (1.0, 1.0, 1.0),
                                                    periodicity = false)
@@ -3446,7 +3965,6 @@ end
     # partially periodic
     tree_mesh3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (false, true, true))
     structured_mesh3d_partial_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                         (1.0, 1.0, 1.0),
@@ -3489,6 +4007,257 @@ end
                                                                                        z_pos = bc_dn))
     end
 end
+
+@testitem "Unit: ndims function for SemidiscretizaionHyperbolicSplit" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    gamma = 1004 / 717
+    equations = CompressibleEulerEquations2D(gamma)
+
+    polydeg = 2
+    basis = LobattoLegendreBasis(polydeg)
+
+    volume_integral_explicit = VolumeIntegralFluxDifferencing(flux_ranocha)
+    solver_explicit = DGSEM(basis, flux_ranocha, volume_integral_explicit)
+
+    volume_integral_implicit = VolumeIntegralFluxDifferencing(flux_ranocha)
+    solver_implicit = DGSEM(basis, flux_ranocha, volume_integral_implicit)
+
+    coordinates_min = (0.0, 0.0)
+    coordinates_max = (20_000.0, 10_000.0)
+    trees_per_dimension = (16, 8)
+    mesh = P4estMesh(trees_per_dimension; polydeg = polydeg,
+                     coordinates_min = coordinates_min,
+                     coordinates_max = coordinates_max,
+                     periodicity = (true, false), initial_refinement_level = 0)
+
+    boundary_conditions = (; y_neg = boundary_condition_slip_wall,
+                           y_pos = boundary_condition_slip_wall)
+
+    initial_condition = initial_condition_convergence_test
+
+    semi = SemidiscretizationHyperbolicSplit(mesh,
+                                             (equations, equations),
+                                             initial_condition,
+                                             (solver_implicit, solver_explicit);
+                                             boundary_conditions = (boundary_conditions,
+                                                                    boundary_conditions),
+                                             source_terms = (nothing, nothing),)
+
+    @test Trixi.ndims(semi) == 2
 end
 
-end #module
+@testitem "Unit: Unified mesh constructor signatures (StructuredMesh)" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    # 1D: keyword interface (2^2 = 4 cells per dimension)
+    mesh_1d_ref = StructuredMesh((4,), (-1.0,), (1.0,))
+    mesh_1d_kw = StructuredMesh(; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                                refinement_level = 2)
+    @test mesh_1d_ref.cells_per_dimension == mesh_1d_kw.cells_per_dimension
+
+    # 2D: keyword interface
+    mesh_2d_ref = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0))
+    mesh_2d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                coordinates_max = (1.0, 1.0),
+                                refinement_level = 2)
+    @test mesh_2d_ref.cells_per_dimension == mesh_2d_kw.cells_per_dimension
+
+    # 3D: keyword interface
+    mesh_3d_ref = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
+    mesh_3d_kw = StructuredMesh(; coordinates_min = (-1.0, -1.0, -1.0),
+                                coordinates_max = (1.0, 1.0, 1.0),
+                                refinement_level = 2)
+    @test mesh_3d_ref.cells_per_dimension == mesh_3d_kw.cells_per_dimension
+    @test_throws ArgumentError StructuredMesh(; coordinates_min = (-1.0, -1.0),
+                                              coordinates_max = (1.0, 1.0, 1.0),
+                                              refinement_level = 2)
+end
+
+@testitem "Unit: Unified mesh constructor signatures (DGMultiMesh)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    dg_1d = DGMulti(polydeg = 2, element_type = Line(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 1D: keyword interface (2^2 = 4 elements)
+    mesh_1d_ref = DGMultiMesh(dg_1d, (4,))
+    mesh_1d_kw = DGMultiMesh(dg_1d; coordinates_min = (-1.0,), coordinates_max = (1.0,),
+                             refinement_level = 2)
+    @test mesh_1d_ref.md.num_elements == mesh_1d_kw.md.num_elements
+
+    dg_2d = DGMulti(polydeg = 2, element_type = Quad(),
+                    approximation_type = Polynomial(),
+                    surface_integral = SurfaceIntegralWeakForm(flux_central),
+                    volume_integral = VolumeIntegralFluxDifferencing(flux_central))
+
+    # 2D: keyword interface
+    mesh_2d_ref = DGMultiMesh(dg_2d, (4, 4))
+    mesh_2d_kw = DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                             coordinates_max = (1.0, 1.0), refinement_level = 2)
+    @test mesh_2d_ref.md.num_elements == mesh_2d_kw.md.num_elements
+    @test_throws ArgumentError DGMultiMesh(dg_2d; coordinates_min = (-1.0, -1.0),
+                                           coordinates_max = (1.0, 1.0, 1.0),
+                                           refinement_level = 2)
+end
+
+@testitem "Unit: TreeMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    for NDIMS in 1:3
+        coords_min = ntuple(_ -> -1.0, NDIMS)
+        coords_max = ntuple(_ -> 1.0, NDIMS)
+        mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        expected_capacity = sum((2^NDIMS)^l for l in 0:2)
+        @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
+        @test mesh.tree.capacity == expected_capacity
+        @test mesh.tree.capacity >= mesh.tree.length
+    end
+end
+
+@testitem "Unit: TreeMesh auto-growth matches large-capacity tree" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    for NDIMS in 1:2
+        RealT = Float64
+        TreeType = Trixi.SerialTree{NDIMS, RealT}
+        domain_center = SVector{NDIMS, RealT}(ntuple(_ -> 0.0, NDIMS))
+        domain_length = convert(RealT, 2.0)
+
+        # Reference: large capacity, no growth needed
+        mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
+                                                    domain_length)
+        Trixi.initialize!(mesh_ref, 3, (), ())
+
+        # Small: deliberately tiny initial capacity, must grow
+        mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
+                                                      domain_length)
+        Trixi.initialize!(mesh_small, 3, (), ())
+
+        # Post-construction AMR: refine all leaf cells once on both trees
+        Trixi.refine!(mesh_ref.tree)
+        Trixi.refine!(mesh_small.tree)
+
+        tr = mesh_ref.tree
+        ts = mesh_small.tree
+
+        @test ts.length == tr.length
+        @test ts.capacity >= ts.length
+        @test ts.parent_ids[1:(ts.length)] == tr.parent_ids[1:(tr.length)]
+        @test ts.child_ids[:, 1:(ts.length)] == tr.child_ids[:, 1:(tr.length)]
+        @test ts.neighbor_ids[:, 1:(ts.length)] == tr.neighbor_ids[:, 1:(tr.length)]
+        @test ts.levels[1:(ts.length)] == tr.levels[1:(tr.length)]
+        @test ts.coordinates[:, 1:(ts.length)] ≈ tr.coordinates[:, 1:(tr.length)]
+        @test ts.original_cell_ids[1:(ts.length)] == tr.original_cell_ids[1:(tr.length)]
+        # Wrapped matrix sizes must match current capacity
+        @test size(ts.child_ids) == (2^NDIMS, ts.capacity + 1)
+        @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
+        @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
+    end
+end
+
+@testitem "Unit: load_mesh derives TreeMesh capacity from n_cells" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mktempdir() do dir
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                        initial_refinement_level = 2)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test loaded.tree.capacity == mesh.tree.length
+        @test loaded.tree.length == mesh.tree.length
+        @test loaded.tree.parent_ids[1:(loaded.tree.length)] ==
+              mesh.tree.parent_ids[1:(mesh.tree.length)]
+        @test loaded.tree.child_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.child_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.neighbor_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.neighbor_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.levels[1:(loaded.tree.length)] ==
+              mesh.tree.levels[1:(mesh.tree.length)]
+        @test loaded.tree.coordinates[:, 1:(loaded.tree.length)] ≈
+              mesh.tree.coordinates[:, 1:(mesh.tree.length)]
+        @test loaded.tree.center_level_0 == mesh.tree.center_level_0
+        @test loaded.tree.length_level_0 == mesh.tree.length_level_0
+        @test loaded.tree.periodicity == mesh.tree.periodicity
+        @test loaded.current_filename == mesh_file
+        @test loaded.unsaved_changes == false
+    end
+end
+
+@testitem "Unit: removed TreeMesh capacity keyword is rejected" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    removed_kw = Symbol("n_cells", "_max")
+    kwargs = (; initial_refinement_level = 1, removed_kw => 10)
+    @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
+end
+
+@testitem "Unit: Euler admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    @testset "1D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations1D(1.4)
+        u = SVector(0.5, 1.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] >= lower_bounds[1]
+        @test energy_internal(u_projected, equations) >= lower_bounds[2] - arithmetic_tol
+
+        @test u_projected[1] ≈ 1.0
+        @test u_projected[2]≈0.7709169970592479 rtol=1e-12
+        @test u_projected[3]≈0.39715650817742415 rtol=1e-12
+    end
+
+    @testset "Consistency between 1D and 2D projections when v2 = 0" begin
+        equations_1d = CompressibleEulerEquations1D(1.4)
+        equations_2d = CompressibleEulerEquations2D(1.4)
+        u_1d = SVector(0.5, 1.0, 0.1)
+        u_2d = SVector(0.5, 1.0, 0.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected_1d = Trixi.project_to_admissible_set(u_1d, lower_bounds, variables,
+                                                         equations_1d)
+        u_projected_2d = Trixi.project_to_admissible_set(u_2d, lower_bounds, variables,
+                                                         equations_2d)
+
+        @test u_projected_2d[1] ≈ u_projected_1d[1]
+        @test u_projected_2d[2] ≈ u_projected_1d[2]
+        @test u_projected_2d[4] ≈ u_projected_1d[3]
+        @test u_projected_2d[3] == 0.0
+    end
+
+    @testset "2D projection with different density and internal energy floors" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.5, 1.0, -2.0, 0.1)
+        lower_bounds = (1.0, 0.1)
+        variables = (density, energy_internal)
+
+        u_projected = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_projected[1] > lower_bounds[1]
+        @test energy_internal(u_projected, equations) > lower_bounds[2] - arithmetic_tol
+    end
+
+    # this test failed without the rationalized approximation of
+    # 0.5 * (rho - sqrt_discriminant_rho) in PositivityPreservingLimiterLiuZhang.
+    @testset "2D projection near zero momentum boundary" begin
+        equations = CompressibleEulerEquations2D(1.4)
+        u = SVector(0.9376339560775117,
+                    1.353902558446827e-8,
+                    6.230911048510285e-9,
+                    -3.779101287247884)
+        lower_bounds = (1e-8, 2.5e-8)
+        variables = (density, energy_internal)
+
+        u_proj = Trixi.project_to_admissible_set(u, lower_bounds, variables, equations)
+        arithmetic_tol = Trixi.euler_arithmetic_tol(lower_bounds[1], lower_bounds[2])
+
+        @test u_proj[1]≈0.9376339560775118 rtol=1e-12
+        @test u_proj[2]≈6.637197729990257e-9 rtol=1e-12
+        @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
+        @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
+        @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
+    end
+end

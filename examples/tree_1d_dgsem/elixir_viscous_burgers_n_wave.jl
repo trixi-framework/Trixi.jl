@@ -16,7 +16,6 @@ coordinates_max = 0.2
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 5,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 # This solution comprises a compression wave followed by a rarefaction wave
@@ -53,8 +52,8 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
-# Timestep is limited by standard/advective/convective CFL
-stepsize_callback = StepsizeCallback(cfl = 0.6, cfl_diffusive = 0.1)
+# Timestep is limited by the hyperbolic CFL
+stepsize_callback = StepsizeCallback(cfl = 0.6, cfl_parabolic = 0.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -64,5 +63,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

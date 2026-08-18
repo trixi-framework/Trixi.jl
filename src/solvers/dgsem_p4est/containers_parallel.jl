@@ -252,8 +252,10 @@ end
 
 # Overload init! function for regular interfaces, regular mortars and boundaries since they must
 # call the appropriate init_surfaces! function for parallel p4est meshes
-function init_interfaces!(interfaces, mesh::P4estMeshParallel)
+function init_interfaces!(interfaces, elements,
+                          mesh::P4estMeshParallel, basis)
     init_surfaces!(interfaces, nothing, nothing, nothing, nothing, mesh)
+    init_normal_directions!(interfaces, basis, elements)
 
     return interfaces
 end
@@ -312,6 +314,9 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # the number of iterations over the mesh in p4est
     init_surfaces!(interfaces, mortars, boundaries, mpi_interfaces, mpi_mortars, mesh)
 
+    # init_normal_directions! requires that `node_indices` have been initialized
+    init_normal_directions!(interfaces, dg.basis, elements)
+
     # re-initialize MPI cache
     @unpack mpi_cache = cache
     init_mpi_cache!(mpi_cache, mesh, mpi_interfaces, mpi_mortars,
@@ -320,7 +325,9 @@ function reinitialize_containers!(mesh::P4estMeshParallel, equations, dg::DGSEM,
     # re-initialize and distribute normal directions of MPI mortars; requires MPI communication, so
     # the MPI cache must be re-initialized before
     init_normal_directions!(mpi_mortars, dg.basis, elements)
-    return exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+    exchange_normal_directions!(mpi_mortars, mpi_cache, mesh, nnodes(dg))
+
+    return nothing
 end
 
 # A helper struct used in initialization methods below

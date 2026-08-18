@@ -26,39 +26,48 @@
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
 mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
-    const capacity::Int
+    capacity::Int
     length::Int
 
-    parent_ids::Vector{Int}
-    child_ids::Matrix{Int}
-    neighbor_ids::Matrix{Int}
-    levels::Vector{Int}
-    coordinates::Matrix{RealT}
-    original_cell_ids::Vector{Int}
+    parent_ids        :: Vector{Int}
+    child_ids         :: Matrix{Int}    # unsafe_wrap view of _child_ids
+    neighbor_ids      :: Matrix{Int}    # unsafe_wrap view of _neighbor_ids
+    levels            :: Vector{Int}
+    coordinates       :: Matrix{RealT}  # unsafe_wrap view of _coordinates
+    original_cell_ids :: Vector{Int}
 
-    center_level_0::SVector{NDIMS, RealT}
-    length_level_0::RealT
-    periodicity::NTuple{NDIMS, Bool}
+    # Resizable backing stores (flat 1-D vectors)
+    _child_ids    :: Vector{Int}
+    _neighbor_ids :: Vector{Int}
+    _coordinates  :: Vector{RealT}
+
+    center_level_0 :: SVector{NDIMS, RealT}
+    length_level_0 :: RealT
+    periodicity    :: NTuple{NDIMS, Bool}
 
     function SerialTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
         @assert NDIMS isa Integer
 
         parent_ids = fill(typemin(Int), capacity + 1)
-        child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
-        neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
+        _child_ids = fill(typemin(Int), 2^NDIMS * (capacity + 1))
+        child_ids = unsafe_wrap(Array, pointer(_child_ids), (2^NDIMS, capacity + 1))
+        _neighbor_ids = fill(typemin(Int), 2 * NDIMS * (capacity + 1))
+        neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                                   (2 * NDIMS, capacity + 1))
         levels = fill(typemin(Int), capacity + 1)
-        coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1)
+        _coordinates = fill(convert(RealT, NaN), NDIMS * (capacity + 1))
+        coordinates = unsafe_wrap(Array, pointer(_coordinates), (NDIMS, capacity + 1))
         original_cell_ids = fill(typemin(Int), capacity + 1)
 
         center_level_0 = SVector(ntuple(_ -> convert(RealT, NaN), NDIMS))
         length_level_0 = convert(RealT, NaN)
         periodicity = ntuple(_ -> false, NDIMS)
 
-        return new(capacity, 0, # length
+        return new(capacity, 0, #= length =#
                    parent_ids, child_ids, neighbor_ids,
                    levels, coordinates, original_cell_ids,
-                   center_level_0, length_level_0,
-                   periodicity)
+                   _child_ids, _neighbor_ids, _coordinates,
+                   center_level_0, length_level_0, periodicity)
     end
 end
 
@@ -203,14 +212,39 @@ function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int
                       destination)
 end
 
+# Physically grow or shrink all storage arrays to hold new_capacity + 1 elements.
+# Existing entries at indices 1:length(t) are preserved; new slots are uninitialized.
+function resize_storage!(t::SerialTree{NDIMS, RealT}, new_capacity) where {NDIMS, RealT}
+    @assert new_capacity >= length(t)
+    @assert new_capacity >= 0
+    resize!(t.parent_ids, new_capacity + 1)
+    resize!(t._child_ids, 2^NDIMS * (new_capacity + 1))
+    t.child_ids = unsafe_wrap(Array, pointer(t._child_ids),
+                              (2^NDIMS, new_capacity + 1))
+    resize!(t._neighbor_ids, 2 * NDIMS * (new_capacity + 1))
+    t.neighbor_ids = unsafe_wrap(Array, pointer(t._neighbor_ids),
+                                 (2 * NDIMS, new_capacity + 1))
+    resize!(t.levels, new_capacity + 1)
+    resize!(t._coordinates, NDIMS * (new_capacity + 1))
+    t.coordinates = unsafe_wrap(Array, pointer(t._coordinates),
+                                (NDIMS, new_capacity + 1))
+    resize!(t.original_cell_ids, new_capacity + 1)
+    t.capacity = new_capacity
+    return nothing
+end
+
 # Reset data structures by recreating all internal storage containers and invalidating all elements
 function reset_data_structures!(t::SerialTree{NDIMS, RealT}) where {NDIMS, RealT <:
                                                                            Real}
     t.parent_ids = Vector{Int}(undef, t.capacity + 1)
-    t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
-    t.neighbor_ids = Matrix{Int}(undef, 2 * NDIMS, t.capacity + 1)
+    resize!(t._child_ids, 2^NDIMS * (t.capacity + 1))
+    t.child_ids = unsafe_wrap(Array, pointer(t._child_ids), (2^NDIMS, t.capacity + 1))
+    resize!(t._neighbor_ids, 2 * NDIMS * (t.capacity + 1))
+    t.neighbor_ids = unsafe_wrap(Array, pointer(t._neighbor_ids),
+                                 (2 * NDIMS, t.capacity + 1))
     t.levels = Vector{Int}(undef, t.capacity + 1)
-    t.coordinates = Matrix{RealT}(undef, NDIMS, t.capacity + 1)
+    resize!(t._coordinates, NDIMS * (t.capacity + 1))
+    t.coordinates = unsafe_wrap(Array, pointer(t._coordinates), (NDIMS, t.capacity + 1))
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
     return invalidate!(t, 1, capacity(t) + 1)

@@ -16,7 +16,6 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 mesh = TreeMesh((-Float64(pi), -Float64(pi), -Float64(pi)),
                 (Float64(pi), Float64(pi), Float64(pi));
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation3D)
@@ -49,7 +48,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;
-                                             solver_parabolic = ViscousFormulationLocalDG(),
+                                             solver_parabolic = ParabolicFormulationLocalDG(),
                                              source_terms = source_terms,
                                              source_terms_parabolic = source_terms_parabolic,
                                              boundary_conditions = (boundary_conditions,
@@ -67,10 +66,10 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
-cfl_advective = 0.5  # Not restrictive for this example
-cfl_diffusive = 0.01 # Restricts the timestep
-stepsize_callback = StepsizeCallback(cfl = cfl_advective,
-                                     cfl_diffusive = cfl_diffusive)
+cfl_hyperbolic = 0.5  # Not restrictive for this example
+cfl_parabolic = 0.01 # Restricts the timestep
+stepsize_callback = StepsizeCallback(cfl = cfl_hyperbolic,
+                                     cfl_parabolic = cfl_parabolic)
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
 

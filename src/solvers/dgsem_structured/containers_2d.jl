@@ -60,7 +60,7 @@ end
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix, element,
                                node_coordinates::AbstractArray{<:Any, 4},
-                               basis::LobattoLegendreBasis)
+                               basis::AbstractBasisSBP)
     @unpack derivative_matrix = basis
 
     # The code below is equivalent to the following matrix multiplications, which
@@ -283,7 +283,7 @@ function calc_normalvectors_subcell_fv!(normal_vectors_1, normal_vectors_2,
     return nothing
 end
 
-# Used for both fixed (`StructuredMesh{2}` or `UnstructuredMesh2D`) 
+# Used for both fixed (`StructuredMesh{2}` or `UnstructuredMesh2D`)
 # and adaptive meshes (`P4estMesh{2}` or `T8codeMesh{2}`)
 mutable struct NormalVectorContainer2D{RealT <: Real} <:
                AbstractNormalVectorContainer

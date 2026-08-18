@@ -117,7 +117,6 @@ boundary_conditions = (; x_neg = boundary_condition_zero,
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -153,5 +152,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks)

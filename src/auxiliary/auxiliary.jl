@@ -83,6 +83,26 @@ end
 end
 
 """
+    @trixi_timeit_ext backend timer() "some label" expression
+
+This macro is an extension of [`@trixi_timeit`](@ref) that also synchronizes the given `backend` after executing the given `expression`.
+This is useful to get accurate timing measurements for GPU backends, where the execution of kernels is asynchronous.
+The synchronization ensures that all GPU operations are completed before the timer is stopped.
+
+See also [`@trixi_timeit`](@ref).
+"""
+macro trixi_timeit_ext(backend, timer_output, label, expr)
+    expr = quote
+        local val = $(esc(expr))
+        if $(esc(backend)) !== nothing && $(TrixiBase).timeit_debug_enabled()
+            $(KernelAbstractions.synchronize)($(esc(backend)))
+        end
+        val
+    end
+    return :(@trixi_timeit($(esc(timer_output)), $(esc(label)), $(expr)))
+end
+
+"""
     examples_dir()
 
 Return the directory where the example files provided with Trixi.jl are located. If Trixi.jl is
@@ -335,7 +355,13 @@ function download(src_url, file_path)
             if token !== nothing
                 push!(headers, "authorization" => "Bearer $token")
             end
-            Downloads.download(src_url, file_path; headers)
+            try
+                Downloads.download(src_url, file_path; headers)
+            catch exc
+                # Turn exception into something like a warning;
+                # otherwise the other ranks will wait indefinitely at the barrier below.
+                @error "Failed to download $src_url to $file_path" exception=exc
+            end
         end
     end
 

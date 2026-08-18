@@ -10,7 +10,7 @@
 
 A struct used to bundle multiple semidiscretizations.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
-Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
+Each call of `rhs_hyperbolic!` will call `rhs_hyperbolic!` for each semidiscretization individually.
 The semidiscretizations can be coupled by gluing meshes together using [`BoundaryConditionCoupled`](@ref).
 
 !!! warning "Experimental code"
@@ -175,7 +175,7 @@ end
     return foreach_enumerate(func, remaining_collection, index + 1)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     @unpack u_indices = semi
 
     time_start = time_ns()
@@ -187,11 +187,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
         end
     end
 
-    # Call rhs! for each semidiscretization
+    # Call rhs_hyperbolic! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        return rhs!(du_loc, u_loc, semi_, t)
+        return rhs_hyperbolic!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -357,11 +357,12 @@ end
 ### StepsizeCallback
 ################################################################################
 # In case of coupled system, use minimum timestep over all systems
-function calculate_dt(u_ode, t, cfl_advective, cfl_diffusive,
+function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
                       semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
-        return calculate_dt(u_ode_slice, t, cfl_advective, cfl_diffusive, semi.semis[i])
+        return calculate_dt(u_ode_slice, t, cfl_hyperbolic, cfl_parabolic,
+                            semi.semis[i])
     end
 
     return dt

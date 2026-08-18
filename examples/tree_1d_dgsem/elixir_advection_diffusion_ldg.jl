@@ -18,7 +18,6 @@ coordinates_max = convert(Float64, pi) # maximum coordinate
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 function x_trans_periodic(x, domain_length = SVector(oftype(x[1], 2 * pi)),
@@ -54,7 +53,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;
-                                             solver_parabolic = ViscousFormulationLocalDG(),
+                                             solver_parabolic = ParabolicFormulationLocalDG(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -86,6 +85,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-# For CI purposes, we use fixed time-stepping for this elixir. 
+# For CI purposes, we use fixed time-stepping for this elixir.
 sol = solve(ode, RDPK3SpFSAL35(); dt = 1.0e-3, adaptive = false,
             ode_default_options()..., callback = callbacks)

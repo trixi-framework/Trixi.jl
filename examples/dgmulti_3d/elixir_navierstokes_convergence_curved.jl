@@ -45,7 +45,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension, mapping; periodicity = (true, false,
 #       and by the initial condition (which passes in `CompressibleEulerEquations3D`).
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 function initial_condition_navier_stokes_convergence_test(x, t, equations)
-    # Constants. OBS! Must match those in `source_terms_navier_stokes_convergence_test`
+    # Constants. Note: Must match those in `source_terms_navier_stokes_convergence_test`
     c = 2.0
     A1 = 0.5
     A2 = 1.0
@@ -68,14 +68,14 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
 end
 
 @inline function source_terms_navier_stokes_convergence_test(u, x, t, equations)
+    @unpack gamma, inv_gamma_minus_one = equations
     # TODO: parabolic
     # we currently need to hardcode these parameters until we fix the "combined equation" issue
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
-    inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
     mu_ = mu()
 
-    # Constants. OBS! Must match those in `initial_condition_navier_stokes_convergence_test`
+    # Constants. Note: Must match those in `initial_condition_navier_stokes_convergence_test`
     c = 2.0
     A1 = 0.5
     A2 = 1.0
@@ -156,8 +156,8 @@ end
     E_y = p_y * inv_gamma_minus_one + 1.5 * rho_y * v1^2 + 3.0 * rho * v1 * v1_y
     E_z = p_z * inv_gamma_minus_one + 1.5 * rho_z * v1^2 + 3.0 * rho * v1 * v1_z
 
-    # Divergence of Fick's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
-    kappa = equations.gamma * inv_gamma_minus_one / Pr
+    # Divergence of Fourier's law ∇⋅∇q = kappa ∇⋅∇T; simplifies because p = rho², so T = p/rho = rho
+    kappa = gamma * inv_gamma_minus_one / Pr
     q_xx = kappa * rho_xx # kappa T_xx
     q_yy = kappa * rho_yy # kappa T_yy
     q_zz = kappa * rho_zz # kappa T_zz
@@ -249,7 +249,7 @@ boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_to
 # define inviscid boundary conditions
 boundary_conditions = (; top_bottom = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; top_bottom = boundary_condition_top_bottom)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
@@ -268,7 +268,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)

@@ -22,7 +22,7 @@ refinement_patches = ((type = "box", coordinates_min = (-1.0, -0.5, -0.5),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 refinement_patches = refinement_patches,
-                n_cells_max = 100_000, periodicity = false)
+                periodicity = false)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -55,7 +55,7 @@ boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationBassiRebay1(),
+                                             solver_parabolic = ParabolicFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 

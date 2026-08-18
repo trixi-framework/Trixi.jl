@@ -5,13 +5,10 @@
 @muladd begin
 #! format: noindent
 
-function calc_bounds_twosided_interface!(var_min, var_max, variable,
-                                         u, t, semi, mesh::StructuredMesh{2}, equations)
+function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
+                                         semi, mesh::StructuredMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
-    (; contravariant_vectors) = cache.elements
 
-    # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids
         left = cache.elements.left_neighbors[1, element]
@@ -47,10 +44,18 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
         end
     end
 
-    # Calc bounds at physical boundaries
+    return nothing
+end
+
+@inline function calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::StructuredMesh{2},
+                                                equations, dg, cache)
     if isperiodic(mesh)
         return nothing
     end
+    (; contravariant_vectors) = cache.elements
+
     linear_indices = LinearIndices(size(mesh))
     if !isperiodic(mesh, 1)
         # - xi direction
@@ -132,13 +137,10 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable,
     return nothing
 end
 
-function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi,
-                                         mesh::StructuredMesh{2})
+function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
+                                         semi, mesh::StructuredMesh{2})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; boundary_conditions) = semi
-    (; contravariant_vectors) = cache.elements
 
-    # Calc bounds at interfaces and periodic boundaries
     for element in eachelement(dg, cache)
         # Get neighboring element ids
         left = cache.elements.left_neighbors[1, element]
@@ -171,10 +173,18 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
         end
     end
 
-    # Calc bounds at physical boundaries
+    return nothing
+end
+
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::StructuredMesh{2},
+                                                equations, dg, cache)
     if isperiodic(mesh)
         return nothing
     end
+    (; contravariant_vectors) = cache.elements
+
     linear_indices = LinearIndices(size(mesh))
     if !isperiodic(mesh, 1)
         # - xi direction

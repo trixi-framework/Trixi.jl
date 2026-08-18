@@ -48,6 +48,16 @@ struct PolytropicEulerEquations2D{RealT <: Real} <:
     end
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::PolytropicEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return PolytropicEulerEquations2D(convert(NewRealT, equations.gamma),
+                                      convert(NewRealT, equations.kappa))
+end
+
 function varnames(::typeof(cons2cons), ::PolytropicEulerEquations2D)
     return ("rho", "rho_v1", "rho_v2")
 end

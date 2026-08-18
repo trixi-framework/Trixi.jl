@@ -97,6 +97,10 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
 
     # Copy relevant entries from parent mesh
     @views interfaces.u .= interfaces_parent.u[.., mask]
+    if interfaces.normal_directions !== nothing # Needed for Gauss-Legendre basis
+        @views interfaces.normal_directions .= interfaces_parent.normal_directions[..,
+                                                                                   mask]
+    end
     @views interfaces.node_indices .= interfaces_parent.node_indices[.., mask]
     @views neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
 

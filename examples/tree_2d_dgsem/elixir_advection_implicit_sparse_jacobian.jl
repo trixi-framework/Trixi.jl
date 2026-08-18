@@ -1,7 +1,7 @@
 using Trixi
 using SparseConnectivityTracer # For obtaining the Jacobian sparsity pattern
 using SparseMatrixColorings # For obtaining the coloring vector
-using OrdinaryDiffEqSDIRK, OrdinaryDiffEqDifferentiation
+using OrdinaryDiffEqSDIRK
 using ADTypes
 
 ###############################################################################
@@ -17,7 +17,7 @@ coordinates_max = (1.0, 1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, periodicity = true)
+                periodicity = true)
 
 ###############################################################################
 ### semidiscretization for sparsity detection ###
@@ -44,9 +44,11 @@ du_ode = similar(u0_ode)
 ###############################################################################
 ### Compute the Jacobian sparsity pattern ###
 
-# Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+# Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
 # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-rhs_wrapped! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type, tspan[1])
+rhs_wrapped! = function (du_ode, u0_ode)
+    Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+end
 
 jac_prototype = jacobian_sparsity(rhs_wrapped!, du_ode, u0_ode, jac_detector)
 

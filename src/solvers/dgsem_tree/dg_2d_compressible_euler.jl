@@ -65,7 +65,7 @@ end # muladd
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{2},
+                                           element, MeshT::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_shima_etal_turbo),
@@ -76,13 +76,13 @@ end # muladd
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations))))
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
@@ -227,7 +227,7 @@ end # muladd
 end
 
 @inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{2},
+                                           element, MeshT::Type{<:TreeMesh{2}},
                                            have_nonconservative_terms::False,
                                            equations::CompressibleEulerEquations2D,
                                            volume_flux::typeof(flux_ranocha_turbo),
@@ -238,7 +238,7 @@ end
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
     du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(MeshT))...,
                                       StaticInt(nvariables(equations))))
 
     # Convert conserved to primitive variables on the given `element`. In addition
@@ -247,7 +247,7 @@ end
     # values.
     u_prim = StrideArray{eltype(u_cons)}(undef,
                                          (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
+                                                 ndims(MeshT))...,
                                           StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
 
     @turbo for j in eachnode(dg), i in eachnode(dg)

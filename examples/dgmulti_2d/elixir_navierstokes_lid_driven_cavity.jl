@@ -51,7 +51,7 @@ boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity
 boundary_conditions = (; top = boundary_condition_slip_wall,
                        rest_of_boundary = boundary_condition_slip_wall)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; top = boundary_condition_lid,
                                  rest_of_boundary = boundary_condition_cavity)
 
@@ -70,7 +70,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)

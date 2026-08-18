@@ -230,7 +230,7 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
-    # and resize it later while initializing the time integration method in `methods_SSP.jl`.
+    # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys)
@@ -240,13 +240,22 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
     idp_bounds_delta_local = Dict{Symbol, real(basis)}()
     # Global variable contains the total maximum deviation.
     idp_bounds_delta_global = Dict{Symbol, real(basis)}()
+    # Track whether all Newton solves converged within the iteration budget.
+    # Set to `false` once the maximum number of iterations is reached.
+    idp_newton_converged = Threads.Atomic{Bool}(true)
     for key in bound_keys
         idp_bounds_delta_local[key] = zero(real(basis))
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
     return (; subcell_limiter_coefficients, idp_bounds_delta_local,
-            idp_bounds_delta_global)
+            idp_bounds_delta_global, idp_newton_converged)
+end
+
+function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
+    resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    return nothing
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
@@ -255,8 +264,18 @@ end
 # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
 # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
 # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralAdaptive)
+    return get_node_variable(Val(:limiting_coefficient),
+                             volume_integral.volume_integral_stabilized)
+end
+
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
-    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+    return get_node_variable(Val(:limiting_coefficient), dg.volume_integral)
 end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
@@ -406,6 +425,10 @@ end
         # Check absolute tolerance
         if final_check(bound, goal, newton_abstol)
             break
+        end
+
+        if iter == limiter.max_iterations_newton
+            limiter.cache.idp_newton_converged[] = false
         end
     end
 

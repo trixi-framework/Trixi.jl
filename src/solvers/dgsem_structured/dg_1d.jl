@@ -115,14 +115,14 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple,
     return nothing
 end
 
-function apply_jacobian!(du, mesh::StructuredMesh{1},
+function apply_jacobian!(backend::Nothing, du, mesh::StructuredMesh{1},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
             # Negative sign included to account for the negated surface and volume terms,
-            # see e.g. the computation of `derivative_hat` in the basis setup and 
+            # see e.g. the computation of `derivative_hat` in the basis setup and
             # the comment in `calc_surface_integral!`.
             factor = -inverse_jacobian[i, element]
 

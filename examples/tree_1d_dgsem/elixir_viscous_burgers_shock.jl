@@ -16,7 +16,6 @@ coordinates_max = 0.75
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 # This initial condition is a simplification/analogy to the
@@ -51,8 +50,8 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 
 alive_callback = AliveCallback(analysis_interval = 100)
 
-# Timestep is limited by diffusive CFL
-stepsize_callback = StepsizeCallback(cfl = 0.8, cfl_diffusive = 0.15)
+# Timestep is limited by parabolic CFL
+stepsize_callback = StepsizeCallback(cfl = 0.8, cfl_parabolic = 0.15)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -62,5 +61,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, RDPK3Sp510();
-            adaptive = false, dt = 1.0,
+            adaptive = false,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

@@ -5,7 +5,7 @@ using Trixi, LinearAlgebra, ForwardDiff
 equations = CompressibleEulerEquations2D(1.4)
 
 mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0),
-                initial_refinement_level = 2, n_cells_max = 10^5, periodicity = true)
+                initial_refinement_level = 2, periodicity = true)
 
 # Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
 # `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
@@ -68,5 +68,5 @@ J = ForwardDiff.jacobian((du_ode, γ) -> begin
                              equations_inner = CompressibleEulerEquations2D(first(γ))
                              semi_inner = Trixi.remake(semi, equations = equations_inner,
                                                        uEltype = eltype(γ))
-                             Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
+                             Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_inner, 0.0)
                          end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`

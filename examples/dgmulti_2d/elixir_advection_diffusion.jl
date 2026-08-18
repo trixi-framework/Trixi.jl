@@ -34,7 +34,7 @@ boundary_conditions = (; left = boundary_condition_left,
                        top = boundary_condition_do_nothing,
                        right = boundary_condition_do_nothing)
 
-# define viscous boundary conditions
+# define parabolic boundary conditions
 boundary_conditions_parabolic = (; left = boundary_condition_left,
                                  bottom = boundary_condition_zero,
                                  top = boundary_condition_zero,
@@ -51,7 +51,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)

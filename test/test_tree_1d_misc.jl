@@ -1,0 +1,259 @@
+@testsnippet TreeMesh1DMisc begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "tree_1d_dgsem")
+end
+
+# Coverage test for all initial conditions
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_sin" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[0.00017373554109980247],
+                        linf=[0.0006021275678165239],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_sin,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_constant" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[2.441369287653687e-16],
+                        linf=[4.440892098500626e-16],
+                        maxiters=1,
+                        initial_condition=initial_condition_constant,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_linear_x" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[1.9882464973192864e-16],
+                        linf=[1.4432899320127035e-15],
+                        maxiters=1,
+                        initial_condition=Trixi.initial_condition_linear_x,
+                        boundary_conditions=Trixi.boundary_condition_linear_x,
+                        periodicity=false,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: elixir_advection_extended.jl with initial_condition_convergence_test" setup=[
+    Setup,
+    TreeMesh1DMisc
+] tags=[:tree_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        l2=[6.1803596620800215e-6],
+                        linf=[2.4858560899509996e-5],
+                        maxiters=1,
+                        initial_condition=initial_condition_convergence_test,
+                        boundary_conditions=BoundaryConditionDirichlet(initial_condition_convergence_test),
+                        periodicity=false,
+                        visualization=TrivialCallback())
+end
+
+@testitem "TreeMesh1D: Displaying components 1D" setup=[Setup, TreeMesh1DMisc] tags=[:tree_part1] begin
+    @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
+
+    # test both short and long printing formats
+    @test_nowarn show(mesh)
+    println()
+    @test_nowarn println(mesh)
+    @test_nowarn display(mesh)
+
+    @test_nowarn show(equations)
+    println()
+    @test_nowarn println(equations)
+    @test_nowarn display(equations)
+
+    @test_nowarn show(solver)
+    println()
+    @test_nowarn println(solver)
+    @test_nowarn display(solver)
+
+    @test_nowarn show(solver.basis)
+    println()
+    @test_nowarn println(solver.basis)
+    @test_nowarn display(solver.basis)
+
+    @test_nowarn show(solver.mortar)
+    println()
+    @test_nowarn println(solver.mortar)
+    @test_nowarn display(solver.mortar)
+
+    @test_nowarn show(solver.volume_integral)
+    println()
+    @test_nowarn println(solver.volume_integral)
+    @test_nowarn display(solver.volume_integral)
+
+    @test_nowarn show(semi)
+    println()
+    @test_nowarn println(semi)
+    @test_nowarn display(semi)
+
+    @test_nowarn show(summary_callback)
+    println()
+    @test_nowarn println(summary_callback)
+    @test_nowarn display(summary_callback)
+
+    @test_nowarn show(amr_controller)
+    println()
+    @test_nowarn println(amr_controller)
+    @test_nowarn display(amr_controller)
+
+    @test_nowarn show(amr_callback)
+    println()
+    @test_nowarn println(amr_callback)
+    @test_nowarn display(amr_callback)
+
+    @test_nowarn show(stepsize_callback)
+    println()
+    @test_nowarn println(stepsize_callback)
+    @test_nowarn display(stepsize_callback)
+
+    @test_nowarn show(save_solution)
+    println()
+    @test_nowarn println(save_solution)
+    @test_nowarn display(save_solution)
+
+    @test_nowarn show(analysis_callback)
+    println()
+    @test_nowarn println(analysis_callback)
+    @test_nowarn display(analysis_callback)
+
+    @test_nowarn show(alive_callback)
+    println()
+    @test_nowarn println(alive_callback)
+    @test_nowarn display(alive_callback)
+
+    @test_nowarn println(callbacks)
+
+    # Check whether all output is suppressed if the summary, analysis and alive
+    # callbacks are set to the TrivialCallback(). Modelled using `@test_nowarn`
+    # as basis.
+    let fname = tempname()
+        try
+            open(fname, "w") do f
+                redirect_stderr(f) do
+                    trixi_include(joinpath(EXAMPLES_DIR,
+                                           "elixir_advection_extended.jl"),
+                                  visualization = TrivialCallback(),
+                                  summary_callback = TrivialCallback(),
+                                  analysis_callback = TrivialCallback(),
+                                  alive_callback = TrivialCallback())
+                    return nothing
+                end
+            end
+            output = read(fname, String)
+            output = replace(output,
+                             "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n" => "")
+            @test isempty(output)
+        finally
+            rm(fname, force = true)
+        end
+    end
+end
+
+@testitem "TreeMesh1D: Additional tests in 1D (compressible Euler)" setup=[Setup] tags=[:tree_part1] begin
+    eqn = CompressibleEulerEquations1D(1.4)
+
+    @test isapprox(entropy_thermodynamic([1.0, 2.0, 20.0], eqn),
+                   1.9740810260220094)
+    @test isapprox(entropy_math([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+    @test isapprox(entropy([1.0, 2.0, 20.0], eqn), -4.935202565055024)
+
+    @test isapprox(energy_total([1.0, 2.0, 20.0], eqn), 20.0)
+    @test isapprox(energy_kinetic([1.0, 2.0, 20.0], eqn), 2.0)
+    @test isapprox(energy_internal([1.0, 2.0, 20.0], eqn), 18.0)
+end
+
+@testitem "TreeMesh1D: Nonconservative terms in 1D (linear advection)" setup=[Setup] tags=[:tree_part1] begin
+    # Same setup as docs/src/adding_new_equations/nonconservative_advection.md
+
+    # Define new physics
+    using Trixi
+    using Trixi: AbstractEquations, get_node_vars
+
+    # Since there is no native support for variable coefficients, we use two
+    # variables: one for the basic unknown `u` and another one for the coefficient `a`
+    struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, #= spatial dimension =#
+                                                                       2} #= two variables (u,a) =#
+    end
+
+    Trixi.varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = ("scalar",
+                                                                                     "advection_velocity")
+
+    Trixi.default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
+
+    # The conservative part of the flux is zero
+    Trixi.flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
+
+    # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+    function Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                                       ::NonconservativeLinearAdvectionEquation)
+        _, advection_velocity_ll = u_ll
+        _, advection_velocity_rr = u_rr
+
+        return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
+    end
+
+    # We use nonconservative terms
+    Trixi.have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
+
+    function flux_nonconservative(u_mine, u_other, orientation,
+                                  equations::NonconservativeLinearAdvectionEquation)
+        _, advection_velocity = u_mine
+        scalar, _ = u_other
+
+        return SVector(advection_velocity * scalar, zero(scalar))
+    end
+
+    # Create a simulation setup
+    using Trixi
+    using OrdinaryDiffEqTsit5
+
+    equation = NonconservativeLinearAdvectionEquation()
+
+    # You can derive the exact solution for this setup using the method of
+    # characteristics
+    function initial_condition_sine(x, t,
+                                    equation::NonconservativeLinearAdvectionEquation)
+        x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
+        scalar = sin(x0)
+        advection_velocity = 2 + cos(x[1])
+        return SVector(scalar, advection_velocity)
+    end
+
+    # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
+    mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
+                    initial_refinement_level = 4,
+                    periodicity = true)
+
+    # Create a DGSEM solver with polynomials of degree `polydeg`
+    volume_flux = (flux_central, flux_nonconservative)
+    surface_flux = (FluxLaxFriedrichs(max_abs_speed_naive), flux_nonconservative)
+    solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
+                   volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+
+    # Setup the spatial semidiscretization containing all ingredients
+    semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
+                                        boundary_conditions = boundary_condition_periodic)
+
+    # Create an ODE problem with given time span
+    tspan = (0.0, 1.0)
+    ode = semidiscretize(semi, tspan)
+
+    summary_callback = SummaryCallback()
+    analysis_callback = AnalysisCallback(semi, interval = 50)
+    callbacks = CallbackSet(summary_callback, analysis_callback)
+
+    # OrdinaryDiffEq's `solve` method evolves the solution in time and executes
+    # the passed callbacks
+    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+                ode_default_options()..., callback = callbacks)
+
+    @test analysis_callback(sol).l2 ≈ [0.00029609575838969394, 5.5681704039507985e-6]
+end

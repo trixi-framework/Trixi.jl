@@ -5,12 +5,10 @@ function LaplaceDiffusionEntropyVariables1D(diffusivity, equations_hyperbolic)
                                                                  equations_hyperbolic)
 end
 
-# Note that here, `u` should be the transformed entropy variables, and 
+# Note that here, `u` should be the transformed entropy variables, and
 # not the conservative variables.
 function flux(u, gradients, orientation::Integer,
               equations::LaplaceDiffusionEntropyVariables{1})
     dudx, = gradients # Extract first (and only) component from gradients
-    diffusivity = jacobian_entropy2cons(u, equations)
-    # if orientation == 1
-    return SVector(diffusivity * dudx)
+    return equations.diffusivity * apply_jacobian_entropy2cons(dudx, u, equations)
 end

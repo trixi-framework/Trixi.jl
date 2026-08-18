@@ -20,7 +20,7 @@ In 2D, the freestream-normal unit vector ``\psi_L`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the the to-be-computed variables (for instance `LiftCoefficientPressure2D`) 
+which stores the the to-be-computed variables (for instance `LiftCoefficientPressure2D`)
 and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
@@ -54,7 +54,7 @@ In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
 where ``\alpha`` is the angle of attack.
 
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the the to-be-computed variables (for instance `DragCoefficientPressure2D`) 
+which stores the the to-be-computed variables (for instance `DragCoefficientPressure2D`)
 and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
@@ -83,7 +83,7 @@ In 2D, the freestream-normal unit vector ``\psi_L`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the the to-be-computed variables (for instance `LiftCoefficientShearStress2D`) 
+which stores the the to-be-computed variables (for instance `LiftCoefficientShearStress2D`)
 and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
@@ -116,7 +116,7 @@ In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the the to-be-computed variables (for instance `DragCoefficientShearStress2D`) 
+which stores the the to-be-computed variables (for instance `DragCoefficientShearStress2D`)
 and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
@@ -135,7 +135,9 @@ end
 # This is required for drag and lift coefficients based on shear stress,
 # as well as for the non-integrated quantities such as
 # skin friction coefficient (to be added).
-function viscous_stress_tensor(u, normal_direction, equations_parabolic,
+# NOTE: This function is only valid for the compressible Navier-Stokes diffusion operator with
+# `gradient_variables = GradientVariablesPrimitive()`.
+function viscous_stress_tensor(u, equations_parabolic,
                                gradients_1, gradients_2)
     _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients_1,
                                                          equations_parabolic)
@@ -163,8 +165,7 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
     #  Normalize normal direction, should point *into* the fluid => *(-1)
     n_normal = -normal_direction / norm(normal_direction)
 
-    tau_11, tau_12, tau_22 = viscous_stress_tensor(u, normal_direction,
-                                                   equations_parabolic,
+    tau_11, tau_12, tau_22 = viscous_stress_tensor(u, equations_parabolic,
                                                    gradients_1, gradients_2)
 
     # Viscous stress vector: Stress tensor * normal vector
@@ -200,7 +201,7 @@ function (drag_coefficient::DragCoefficientShearStress{RealT, 2})(u, normal_dire
            (0.5f0 * rho_inf * u_inf^2 * l_inf)
 end
 
-# 2D version of the `analyze` function for `AnalysisSurfaceIntegral`, i.e., 
+# 2D version of the `analyze` function for `AnalysisSurfaceIntegral`, i.e.,
 # `LiftCoefficientPressure` and `DragCoefficientPressure`.
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{2},
@@ -250,6 +251,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
             j_node += j_node_step
         end
     end
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
+    end
     return surface_integral
 end
 
@@ -261,7 +265,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
                  mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache, semi,
-                 cache_parabolic) where {Variable <: VariableViscous}
+                 cache_parabolic) where {Variable <: VariableParabolic}
     @unpack boundaries = cache
     @unpack node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
@@ -271,8 +275,8 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
     boundary_indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
     # Additions for parabolic
-    @unpack viscous_container = cache_parabolic
-    @unpack gradients = viscous_container
+    @unpack parabolic_container = cache_parabolic
+    @unpack gradients = parabolic_container
 
     gradients_x, gradients_y = gradients
 
@@ -319,6 +323,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
             i_node += i_node_step
             j_node += j_node_step
         end
+    end
+    if mpi_isparallel()
+        surface_integral = MPI.Allreduce!(Ref(surface_integral), +, mpi_comm())[]
     end
     return surface_integral
 end

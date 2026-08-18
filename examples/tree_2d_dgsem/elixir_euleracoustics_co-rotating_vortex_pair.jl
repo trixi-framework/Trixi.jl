@@ -227,11 +227,9 @@ refinement_patches = ((type = "sphere", center = (0.0, 0.0), radius = 85.0 * r0)
                       (type = "sphere", center = (0.0, 0.0), radius = 10.0 * r0),
                       (type = "sphere", center = (0.0, 0.0), radius = 5.0 * r0))
 initial_refinement_level = 7
-n_cells_max = 500_000
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
                 refinement_patches = refinement_patches,
-                n_cells_max = n_cells_max, # set maximum capacity of tree data structure
                 periodicity = false)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -340,7 +338,7 @@ callbacks_averaging = CallbackSet(summary_callback, alive_callback, averaging_ca
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol_averaging = solve(ode_averaging, CarpenterKennedy2N54(williamson_condition = false);
-                      dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                      dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                       ode_default_options()..., callback = callbacks_averaging);
 
 ###############################################################################
@@ -387,5 +385,5 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, sav
                         save_restart, euler_acoustics_coupling)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

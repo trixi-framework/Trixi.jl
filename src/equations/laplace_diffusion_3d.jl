@@ -15,6 +15,17 @@ function LaplaceDiffusion3D(diffusivity, equations_hyperbolic)
                               typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LaplaceDiffusion3D, ::Type{NewRealT}) where {NewRealT}
+    diffusivity = equations.diffusivity isa AbstractFloat ?
+                  convert(NewRealT, equations.diffusivity) : equations.diffusivity
+    return LaplaceDiffusion3D(diffusivity,
+                              similar(equations.equations_hyperbolic, NewRealT))
+end
+
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion3D)
     return varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
@@ -35,7 +46,7 @@ end
 # The penalization depends on the solver, but also depends explicitly on physical parameters,
 # and would probably need to be specialized for every different equation.
 function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion3D,
-                 dg::ViscousFormulationLocalDG)
+                 dg::ParabolicFormulationLocalDG)
     return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity
 end
 

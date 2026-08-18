@@ -64,6 +64,7 @@ installation and postprocessing procedures. Its features include:
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Shallow water equations via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl)
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
+  * Linear diffusion/heat equation
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
@@ -300,6 +301,7 @@ Participating research groups in alphabetical order:
   ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120"><!--
   NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/5325103c-ae81-4747-b87c-c6e4a1b1d7a8" height="120"><!--
   DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120"><!--
+  M3ODEL   --><img align="middle" src="https://github.com/user-attachments/assets/dc903573-244f-4674-a0d4-019fef24bd4d" height="120"><!--
   NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120"><!--
   -->
 </p>
@@ -345,5 +347,8 @@ through the project grant "High-Fidelity Laboratory for the Simulation of Celest
 This project has benefited from funding by the Spanish
 [Ministry of Science, Innovation, and Universities](https://www.ciencia.gob.es/en/)
 through the "Beatriz Galindo" grant no. BG23-00062.
+
+This project has benefited from funding by the
+[Mainz Institute of Multiscale Modeling (M³ODEL)](https://model.uni-mainz.de/).
 
 Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.

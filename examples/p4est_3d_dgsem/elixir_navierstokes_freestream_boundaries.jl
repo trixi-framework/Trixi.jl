@@ -19,7 +19,7 @@ initial_condition = initial_condition_const
 
 polydeg = 3
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
-solver_parabolic = ViscousFormulationBassiRebay1()
+solver_parabolic = ParabolicFormulationBassiRebay1()
 
 mu() = 0.5
 prandtl_number() = 0.72

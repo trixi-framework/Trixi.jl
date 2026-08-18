@@ -76,6 +76,12 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
+# Not yet implemented and needed for 3D
+function init_normal_directions!(interfaces::P4estInterfaceContainer{3},
+                                 basis::LobattoLegendreBasis, elements)
+    return nothing
+end
+
 # Initialize node_indices of interface container
 @inline function init_interface_node_indices!(interfaces::P4estInterfaceContainer{3},
                                               faces, orientation, interface_id)
