@@ -284,11 +284,11 @@ end
 """
     entropy2velocity_temperature(w, equations::AbstractCompressibleNavierStokesDiffusion{2, 4})
 
-This directly converts entropy variables `w` to velocity and temperature, which are computed 
-from the entropy variables via 
+This directly converts entropy variables `w` to velocity and temperature, which are computed
+from the entropy variables via
 ``T = -1/w_4``, ``v_1 = -w_2/w_4``, and ``v_2 = -w_3/w_4``, where ``w_4 = -\\rho/p`` following
 
-- Hughes, Franca, Mallet (1986) 
+- Hughes, Franca, Mallet (1986)
   A new finite element formulation for CFD
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 

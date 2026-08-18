@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# Adaptive semidiscretization of the pure diffusion equation with mixed 
+# Adaptive semidiscretization of the pure diffusion equation with mixed
 # Dirichlet-Neumann BCs and an initial condition with a boundary layer.
 
 diffusivity() = 0.25
@@ -62,8 +62,8 @@ stepsize_callback = StepsizeCallback(cfl_parabolic = 0.05)
 # specify extra node variables to be saved in the `SaveSolutionCallback`
 extra_node_variables = (:dudx,)
 
-# note that using `get_node_variable` to access the gradient exposes Trixi.jl internals 
-# that are not part of the public API, so this usage is not guaranteed to be stable across 
+# note that using `get_node_variable` to access the gradient exposes Trixi.jl internals
+# that are not part of the public API, so this usage is not guaranteed to be stable across
 # releases
 function Trixi.get_node_variable(::Val{:dudx}, u, mesh, equations, dg, cache,
                                  cache_parabolic)

@@ -65,7 +65,7 @@ function rhs_hyperbolic!(backend::Nothing,
                              dg.surface_integral, dg, cache)
     end
 
-    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values 
+    # `prolong2boundaries!` is not required for `StructuredMesh` since boundary values
     # are stored in the interface datastructure (`interfaces_u`),
     # so we can directly calculate the boundary fluxes without prolongation.
 
