@@ -1,29 +1,29 @@
-# The main algorithm in this file is `project_to_admissible_set`, which is based on the 
+# The main algorithm in this file is `project_to_admissible_set`, which is based on the
 # algorithm in Appendix B.2 of Liu, Milesis, Shu, Zhang (2026). `project_to_admissible_set`
-# takes an arbitrary state and returns the closest state in the admissible set (e.g., which 
-# satisfies rho >= rho_floor and rho_e >= rho_e_floor). If a state is admissible, the 
-# projection just returns the state itself. 
+# takes an arbitrary state and returns the closest state in the admissible set (e.g., which
+# satisfies rho >= rho_floor and rho_e >= rho_e_floor). If a state is admissible, the
+# projection just returns the state itself.
 #
-# The projection is done by minimizing the ℓ² distance to the input state subject to admissibility 
-# constraints. The minimizer is unique and can be determined by forming the Lagrangian and using 
-# the KKT conditions. The algorithm itself enumerates all possible candidate states that satisfy 
-# the KKT conditions and returns the one that has the smallest ℓ² distance to the input state. 
-# 
-# The candidate states correspond to mu = 0 or mu > 0, and lambda = 0 or lambda > 0, where 
-# mu and lambda are Lagrange multipliers corresponding to the two admissibility constraints. 
+# The projection is done by minimizing the ℓ² distance to the input state subject to admissibility
+# constraints. The minimizer is unique and can be determined by forming the Lagrangian and using
+# the KKT conditions. The algorithm itself enumerates all possible candidate states that satisfy
+# the KKT conditions and returns the one that has the smallest ℓ² distance to the input state.
+#
+# The candidate states correspond to mu = 0 or mu > 0, and lambda = 0 or lambda > 0, where
+# mu and lambda are Lagrange multipliers corresponding to the two admissibility constraints.
 # This results in 4 cases, each generating 1 or more candidate states:
 #   • μ = 0, λ = 0 — no candidate; return u if admissible
 #   • μ = 0, λ > 0  — up to 1 candidate (ρ pinned to ρ_floor)
 #   • μ > 0, λ > 0  — up to 1 (momentum ≈ 0) or ≤ 3 (cubic in momentum) candidates
 #   • μ > 0, λ = 0  — up to 1 (momentum ≈ 0) or ≤ 4 (ρ/momentum root pairs) candidates
-# Branches are separate `if` blocks and may all contribute candidates. The current best candidate 
-# is updated by `update_best_candidate!`, and after all cases are considered, a candidate 
+# Branches are separate `if` blocks and may all contribute candidates. The current best candidate
+# is updated by `update_best_candidate!`, and after all cases are considered, a candidate
 # is returned if one was found.
 #
-# If no candidate was found, we throw an error. In the examples tested, this has typically 
-# corresponded to either NaN input values or extreme catastrophic cancellation (e.g., if 
-# internal energy is extremely small but kinetic and total energy are very large), and has 
-# been due to issues independent of the projection algorithm.  
+# If no candidate was found, we throw an error. In the examples tested, this has typically
+# corresponded to either NaN input values or extreme catastrophic cancellation (e.g., if
+# internal energy is extremely small but kinetic and total energy are very large), and has
+# been due to issues independent of the projection algorithm.
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -32,15 +32,15 @@
 @muladd begin
 #! format: noindent
 
-# for compressible Euler, we introduce a small tolerance close to machine 
-# precision to relax constraints. This is intended to account for roundoff 
-# in intermediate calculations within project_to_admissible_set. 
+# for compressible Euler, we introduce a small tolerance close to machine
+# precision to relax constraints. This is intended to account for roundoff
+# in intermediate calculations within project_to_admissible_set.
 @inline function euler_arithmetic_tol(rho_floor, rho_e_floor)
     T = promote_type(typeof(rho_floor), typeof(rho_e_floor))
     return 10 * eps(T)
 end
 
-# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate 
+# Return (best_dist_squared, best_u, has_candidate) updated when u_candidate
 # is closer to u than the current best; otherwise return the current best.
 @inline function update_best_candidate!(best_dist_squared, best_u,
                                         has_candidate,
@@ -49,8 +49,8 @@ end
                                                          CompressibleEulerEquations2D})
     dist_squared = sum(abs2, u_candidate - u)
 
-    # if the new candidate is closer than the current best candidate (or if there is no 
-    # current best candidate), return the new candidate state. 
+    # if the new candidate is closer than the current best candidate (or if there is no
+    # current best candidate), return the new candidate state.
     if !has_candidate || dist_squared < best_dist_squared
         return dist_squared, u_candidate, true
     end
@@ -58,7 +58,7 @@ end
 end
 
 # Used in the μ > 0, λ > 0 branch of Appendix B.2 of Liu, Milesis, Shu, Zhang (2026).
-# Here, rho_v1 comes from the solution of a cubic equation. 
+# Here, rho_v1 comes from the solution of a cubic equation.
 @inline function cubic_momentum_root_satisfies_kkt(rho_v1, rho_v1_orig, rho_orig,
                                                    rho_floor)
     momentum_sign_complementarity = (rho_v1 > zero(rho_v1) && rho_v1_orig > rho_v1) ||
@@ -115,10 +115,10 @@ Implements Appendix B.2 of
 
 Given an out-of-bounds solution state, this returns the closest point in the admissible set.
 This is possible by noting that there are only a finite number of possible candidate states
-that satisfy the KKT conditions. This implementation enumerates all candidates and returns 
-the one that is closest to the input state. 
+that satisfy the KKT conditions. This implementation enumerates all candidates and returns
+the one that is closest to the input state.
 
-This code was translated in part using AI tools from private code shared by Prof. Chen Liu. 
+This code was translated in part using AI tools from private code shared by Prof. Chen Liu.
 """
 function project_to_admissible_set(cell_average, lower_bounds, variables,
                                    equations::CompressibleEulerEquations1D)
@@ -210,8 +210,8 @@ function project_to_admissible_set(cell_average, lower_bounds, variables,
                                                               sqrt_discriminant_rho),
                                   0.5f0 * (rho + sqrt_discriminant_rho))
                 # For rho_candidate = ½(ρ ± √Δ_ρ), the momentum discriminant reduces to
-                # -8ρ_c² + 8ρρ_c + ρv² = 2(ρ² - Δ_ρ) + ρv² (which is independent of 
-                # rho_candidate). 
+                # -8ρ_c² + 8ρρ_c + ρv² = 2(ρ² - Δ_ρ) + ρv² (which is independent of
+                # rho_candidate).
                 discriminant_momentum = 2 * (rho^2 - discriminant_rho) +
                                         rho_v1^2
                 # Roundoff can make discriminant_momentum slightly negative at the real-root

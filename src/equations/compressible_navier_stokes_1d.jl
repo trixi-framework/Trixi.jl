@@ -262,11 +262,11 @@ end
 """
     entropy2velocity_temperature(w, equations::AbstractCompressibleNavierStokesDiffusion{1, 3})
 
-This directly converts entropy variables `w` to velocity and temperature, which are computed 
-from the entropy variables via 
+This directly converts entropy variables `w` to velocity and temperature, which are computed
+from the entropy variables via
 ``T = -1/w_3`` and ``v_1 = -w_2/w_3``, where ``w_3 = -\\rho/p`` following
 
-- Hughes, Franca, Mallet (1986) 
+- Hughes, Franca, Mallet (1986)
   A new finite element formulation for CFD
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 """
@@ -283,7 +283,7 @@ end
     convert_transformed_to_velocity_temperature(u_transformed, equations::CompressibleNavierStokesDiffusion1D)
 
 Convert transformed gradient variables from [`gradient_variable_transformation`](@ref) to `(v_1, T)`. For
-[`CompressibleNavierStokesDiffusion1D`](@ref), gradients are always converted to gradients of primitive variables, 
+[`CompressibleNavierStokesDiffusion1D`](@ref), gradients are always converted to gradients of primitive variables,
 so the parabolic fluxes only require velocity and temperature to evaluate.
 """
 @inline function convert_transformed_to_velocity_temperature(u_transformed,
