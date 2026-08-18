@@ -808,7 +808,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "P4estMesh2D: elixir_mhd_alfven_wave.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin

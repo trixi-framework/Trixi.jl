@@ -540,7 +540,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
 @testitem "P4estMesh3D: elixir_euler_sedov.jl (HLLE)" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
