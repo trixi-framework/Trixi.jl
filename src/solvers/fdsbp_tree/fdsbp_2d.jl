@@ -81,7 +81,7 @@ function calc_volume_integral!(backend, du, u,
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
 
-            # We are looping over the columns of the permuted derivative split weighted operator, 
+            # We are looping over the columns of the permuted derivative split weighted operator,
             # which corresponds to looping over the rows of the derivative split weighted operator.
             for id in nzrange(Q_split_base, i)
                 ii = rows[id]
@@ -91,14 +91,14 @@ function calc_volume_integral!(backend, du, u,
 
                 flux1 = volume_flux(u_node, u_node_ii, 1, equations)
 
-                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D. 
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D.
                 multiply_add_to_node_vars!(du, Q_split_i_ii * inv_weights[i], flux1,
                                            equations, dg, i, j, element)
                 multiply_add_to_node_vars!(du, -Q_split_i_ii * inv_weights[ii], flux1,
                                            equations, dg, ii, j, element)
             end
 
-            # We are looping over the columns of the permuted derivative split weighted operator, 
+            # We are looping over the columns of the permuted derivative split weighted operator,
             # which corresponds to looping over the rows of the derivative split weighted operator.
             for id in nzrange(Q_split_base, j)
                 jj = rows[id]
@@ -108,7 +108,7 @@ function calc_volume_integral!(backend, du, u,
 
                 flux2 = volume_flux(u_node, u_node_jj, 2, equations)
 
-                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D. 
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D.
                 multiply_add_to_node_vars!(du, Q_split_j_jj * inv_weights[j], flux2,
                                            equations, dg, i, j, element)
                 multiply_add_to_node_vars!(du, -Q_split_j_jj * inv_weights[jj], flux2,

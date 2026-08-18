@@ -81,7 +81,7 @@ function calc_volume_integral!(backend, du, u,
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
 
-            # We are looping over the columns of the permuted derivative split weighted operator, 
+            # We are looping over the columns of the permuted derivative split weighted operator,
             # which corresponds to looping over the rows of the derivative split weighted operator.
             for id in nzrange(Q_split_base, i)
                 ii = rows[id]
@@ -91,7 +91,7 @@ function calc_volume_integral!(backend, du, u,
 
                 flux1 = volume_flux(u_node, u_node_ii, 1, equations)
 
-                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D. 
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D.
                 multiply_add_to_node_vars!(du, Q_split_i_ii * inv_weights[i], flux1,
                                            equations, dg, i, element)
                 multiply_add_to_node_vars!(du, -Q_split_i_ii * inv_weights[ii], flux1,
