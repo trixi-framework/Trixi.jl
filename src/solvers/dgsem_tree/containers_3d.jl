@@ -6,15 +6,21 @@
 #! format: noindent
 
 # Container data structure (structure-of-arrays style) for DG elements
-mutable struct TreeElementContainer3D{RealT <: Real, uEltype <: Real} <:
+mutable struct TreeElementContainer3D{RealT <: Real, uEltype <: Real,
+                                      SurfaceFluxValues <:
+                                      DenseArray{uEltype, 5}} <:
                AbstractTreeElementContainer
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 5}      # [orientation, i, j, k, elements]
-    surface_flux_values::Array{uEltype, 5} # [variables, i, j, direction, elements]
+    surface_flux_values::SurfaceFluxValues # [variables, i, j, direction, elements]
     cell_ids::Vector{Int}                  # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
     _surface_flux_values::Vector{uEltype}
+end
+
+@inline function nnodes(elements::TreeElementContainer3D)
+    return static_size(elements.surface_flux_values)[2]
 end
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
@@ -32,12 +38,13 @@ function Base.resize!(elements::TreeElementContainer3D, capacity)
 
     resize!(_node_coordinates, 3 * n_nodes * n_nodes * n_nodes * capacity)
     elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                            (3, n_nodes, n_nodes, n_nodes, capacity))
+                                            (3, Int(n_nodes), Int(n_nodes),
+                                             Int(n_nodes), capacity))
 
     resize!(_surface_flux_values, n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
-    elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                               (n_variables, n_nodes, n_nodes, 2 * 3,
-                                                capacity))
+    elements.surface_flux_values = PtrArray(pointer(_surface_flux_values),
+                                            (n_variables, n_nodes, n_nodes,
+                                             StaticInt(2 * 3), capacity))
 
     resize!(cell_ids, capacity)
 
@@ -55,19 +62,23 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
 
     _node_coordinates = fill(nan_RealT, 3 * n_nodes * n_nodes * n_nodes * capacity)
     node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
-                                   (3, n_nodes, n_nodes, n_nodes, capacity))
+                                   (3, Int(n_nodes), Int(n_nodes), Int(n_nodes),
+                                    capacity))
 
     _surface_flux_values = fill(nan_uEltype,
                                 n_variables * n_nodes * n_nodes * 2 * 3 * capacity)
-    surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
-                                      (n_variables, n_nodes, n_nodes, 2 * 3, capacity))
+    surface_flux_values = PtrArray(pointer(_surface_flux_values),
+                                   (n_variables, n_nodes, n_nodes, StaticInt(2 * 3),
+                                    capacity))
 
     cell_ids = fill(typemin(Int), capacity)
 
-    return TreeElementContainer3D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                                  surface_flux_values, cell_ids,
-                                                  _node_coordinates,
-                                                  _surface_flux_values)
+    return TreeElementContainer3D{RealT, uEltype, typeof(surface_flux_values)}(inverse_jacobian,
+                                                                               node_coordinates,
+                                                                               surface_flux_values,
+                                                                               cell_ids,
+                                                                               _node_coordinates,
+                                                                               _surface_flux_values)
 end
 
 # Create element container and initialize element data
@@ -77,8 +88,9 @@ function init_elements(cell_ids, mesh::TreeMesh3D,
                        ::Type{uEltype}) where {RealT <: Real, uEltype <: Real}
     # Initialize container
     n_elements = length(cell_ids)
-    elements = TreeElementContainer3D{RealT, uEltype}(n_elements, nvariables(equations),
-                                                      nnodes(basis))
+    elements = TreeElementContainer3D{RealT, uEltype}(n_elements,
+                                                      StaticInt(nvariables(equations)),
+                                                      StaticInt(nnodes(basis)))
 
     init_elements!(elements, cell_ids, mesh, basis)
     return elements
@@ -133,9 +145,10 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, basis)
 end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-mutable struct TreeInterfaceContainer3D{uEltype <: Real} <:
+mutable struct TreeInterfaceContainer3D{uEltype <: Real,
+                                        UArray <: DenseArray{uEltype, 5}} <:
                AbstractTreeInterfaceContainer
-    u::Array{uEltype, 5}      # [leftright, variables, i, j, interfaces]
+    u::UArray                 # [leftright, variables, i, j, interfaces]
     neighbor_ids::Matrix{Int} # [leftright, interfaces]
     orientations::Vector{Int} # [interfaces]
     # internal `resize!`able storage
@@ -150,8 +163,8 @@ function Base.resize!(interfaces::TreeInterfaceContainer3D, capacity)
     @unpack _u, _neighbor_ids, orientations = interfaces
 
     resize!(_u, 2 * n_variables * n_nodes * n_nodes * capacity)
-    interfaces.u = unsafe_wrap(Array, pointer(_u),
-                               (2, n_variables, n_nodes, n_nodes, capacity))
+    interfaces.u = PtrArray(pointer(_u),
+                            (StaticInt(2), n_variables, n_nodes, n_nodes, capacity))
 
     resize!(_neighbor_ids, 2 * capacity)
     interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
@@ -168,8 +181,8 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     # Initialize fields with defaults
     _u = fill(nan, 2 * n_variables * n_nodes * n_nodes * capacity)
-    u = unsafe_wrap(Array, pointer(_u),
-                    (2, n_variables, n_nodes, n_nodes, capacity))
+    u = PtrArray(pointer(_u),
+                 (StaticInt(2), n_variables, n_nodes, n_nodes, capacity))
 
     _neighbor_ids = fill(typemin(Int), 2 * capacity)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
@@ -177,8 +190,8 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return TreeInterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
-                                             _u, _neighbor_ids)
+    return TreeInterfaceContainer3D{uEltype, typeof(u)}(u, neighbor_ids, orientations,
+                                                        _u, _neighbor_ids)
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -354,8 +367,8 @@ function init_boundaries(cell_ids, mesh::TreeMesh3D,
     # Initialize container
     n_boundaries = count_required_boundaries(mesh, cell_ids)
     boundaries = TreeBoundaryContainer3D{real(elements), eltype(elements)}(n_boundaries,
-                                                                           nvariables(elements),
-                                                                           nnodes(elements))
+                                                                           Int(nvariables(elements)),
+                                                                           Int(nnodes(elements)))
 
     # Connect elements with boundaries
     init_boundaries!(boundaries, elements, mesh, basis)
@@ -615,8 +628,9 @@ function init_mortars(cell_ids, mesh::TreeMesh3D,
                       mortar::LobattoLegendreMortarL2)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = TreeL2MortarContainer3D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                        nnodes(elements))
+    mortars = TreeL2MortarContainer3D{eltype(elements)}(n_mortars,
+                                                        Int(nvariables(elements)),
+                                                        Int(nnodes(elements)))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
