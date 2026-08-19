@@ -25,13 +25,6 @@ macro test_trixi_include(expr, args...)
         r"┌ Warning: Passing `stage_limiter!` to the algorithm constructor is deprecated; pass `stage_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n",
         r"┌ Warning: Passing `step_limiter!` to the algorithm constructor is deprecated; pass `step_limiter` as a keyword argument to `solve`/`init` instead\.\n│   caller = .+\n└ @ Core .+\n"
     ]
-    # if `maxiters` is set in tests, it is usually set to a small number to
-    # run only a few steps - ignore possible warnings coming from that
-    if any(expr.args[1] == (:maxiters) for expr in args)
-        push!(add_to_additional_ignore_content,
-              r"┌ Warning: Verbosity toggle: max_iters \n│  Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n",
-              r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n")
-    end
     args = append_to_kwargs(args, :additional_ignore_content,
                             add_to_additional_ignore_content)
     ex = quote
