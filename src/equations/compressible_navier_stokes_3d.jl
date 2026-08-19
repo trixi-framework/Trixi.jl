@@ -248,7 +248,7 @@ end
 
 # Returns
 - `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
-where `max_visc_cond = max(4/3, kappa)` is computed in the constructor.
+where `max_visc_cond = max(4/3, gamma)_over_Pr` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
