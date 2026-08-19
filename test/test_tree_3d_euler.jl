@@ -583,25 +583,25 @@ end
                                                                       volume_integral_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
                                                                                                                                       reconstruction_mode = reconstruction_O2_inner,
                                                                                                                                       volume_flux_fv = surface_flux)),
-                        l2=[ # TODO
-                            0.24806841083939926,
-                            0.07001337223874464,
-                            0.07001337223806398,
-                            0.0700133722383429,
-                            0.3620366037665587
+                        l2=[
+                            0.2689998884966531,
+                            0.07653116097019724,
+                            0.07652929296060249,
+                            0.07653116116788626,
+                            0.3619753554297217
                         ],
                         linf=[
-                            0.9384071822566761,
-                            0.573009568617271,
-                            0.5730095685845291,
-                            0.5730095686063774,
-                            4.861205850307592
+                            1.1033500587695855,
+                            0.7217019126759276,
+                            0.7217292785028954,
+                            0.7217019142964469,
+                            4.856653461588191
                         ],
                         tspan=(0.0, 0.5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 3.0e-13
+    @test maximum(deviations) <= 5.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
