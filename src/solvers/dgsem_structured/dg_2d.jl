@@ -430,7 +430,7 @@ end
 end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              ::Type{<:Union{StructuredMesh{2}, StructuredMesh{2},
+                              ::Type{<:Union{StructuredMesh{2}, StructuredMeshView{2},
                                              UnstructuredMesh2D,
                                              P4estMesh{2}, T8codeMesh{2}}},
                               have_nonconservative_terms::True, equations,
