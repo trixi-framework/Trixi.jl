@@ -69,7 +69,8 @@ end
                                          volume_integral::VolumeIntegralSubcellLimiting,
                                          dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis # Plays role of inverse DG-subcell sizes
-    @unpack volume_flux_dg, volume_flux_fv, limiter = volume_integral
+    @unpack volume_integral_low_order, volume_flux_dg, limiter = volume_integral
+    @unpack volume_flux_fv = volume_integral_low_order
 
     # high-order DG fluxes
     @unpack fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded = cache
@@ -89,7 +90,7 @@ end
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
-    calcflux_fv!(volume_integral.volume_integral_low_order,
+    calcflux_fv!(volume_integral_low_order,
                  fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, MeshT,
                  have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
