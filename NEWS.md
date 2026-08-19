@@ -13,6 +13,8 @@ for human readability.
   toggles the bars visualizing the fraction of time and allocations spent in
   each section of the timer output of the `SummaryCallback`. The bars are
   disabled by default.
+- `TreeMesh` and `UnstructuredMesh2D` now support flux-differencing volume
+  kernel with FDSBP operators for conservative hyperbolic systems ([#3187]).
 - The low-order FV scheme of `VolumeIntegralSubcellLimiting` can now be customized via
   `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
   while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
