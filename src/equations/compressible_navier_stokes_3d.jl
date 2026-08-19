@@ -264,7 +264,7 @@ for the compressible Navier-Stokes equations see for instance
   https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
 
-The eigenvalues of the diffusivity matrix in 3D are (for unity gas constant R = 1)
+The eigenvalues of the diffusivity matrix in 3D are
 ``-\frac{\mu}{\rho} \{0, 4/3, 1, 1, \gamma/Pr\}``
 and thus the largest absolute eigenvalue is
 ``\frac{\mu}{\rho} \max(4/3, \gamma/Pr)``.
