@@ -173,8 +173,6 @@ function calc_error_norms(func, u, t, analyzer,
 
         # Calculate errors at each analysis node
         for j in eachnode(analyzer), i in eachnode(analyzer)
-            #u_exact = Base.invokelatest(initial_condition,
-            #                            get_node_coords(x_local, equations, dg, i, j),
             u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j),
                                         t, equations)
             diff = func(u_exact, equations) -
