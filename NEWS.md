@@ -15,6 +15,9 @@ for human readability.
   disabled by default.
 - `TreeMesh` and `UnstructuredMesh2D` now support flux-differencing volume
   kernel with FDSBP operators for conservative hyperbolic systems ([#3187]).
+- The low-order FV scheme of `VolumeIntegralSubcellLimiting` can now be customized via
+  `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
+  while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
 
 
 ## Changes when updating to v0.17 from v0.16.x
