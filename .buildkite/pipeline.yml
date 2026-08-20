@@ -1,3 +1,20 @@
+# The AMDGPU tests are *not* run automatically for every push or pull request, since they
+# are not essential for the vast majority of pull requests and the AMD GPU agent is a scarce
+# resource. Therefore, it can take quite a while for them to start. They only run if
+#   * they were explicitly requested by commenting `/amdgpu` on a pull request, or
+#   * the build is for the default branch (`main`), i.e., after a pull request was merged,
+#     or
+#   * the build was started manually from the Buildkite web interface or via the REST API.
+# The CUDA tests run for every other build. They are skipped for comment-triggered
+# builds, since they have already run for the very same commit.
+#
+# The comment trigger relies on the following Buildkite pipeline settings (GitHub section),
+# which cannot be configured from this repository:
+#   * The GitHub webhook must deliver both the `Pull requests` and the `Issue comments`
+#     events.
+#   * Under `Issue comments`, the command word must be set to `/amdgpu`.
+# See https://buildkite.com/docs/pipelines/source-control/github for details.
+
 env:
 
 steps:
@@ -16,7 +33,9 @@ steps:
       TRIXI_TEST_VERBOSE: "true"
     agents:
       queue: "cuda"
-    if: build.message !~ /\[skip ci\]/
+    if: >
+      build.message !~ /\[skip ci\]/ &&
+      build.source_event != "issue_comment"
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
@@ -35,7 +54,12 @@ steps:
       TRIXI_TEST_VERBOSE: "true"
     agents:
       queue: "rocm"
-    if: build.message !~ /\[skip ci\]/
+    if: >
+      build.message !~ /\[skip ci\]/ &&
+      (build.source_event == "issue_comment" ||
+      build.branch == pipeline.default_branch ||
+      build.source == "ui" ||
+      build.source == "api")
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
