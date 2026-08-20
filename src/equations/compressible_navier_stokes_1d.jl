@@ -178,9 +178,9 @@ function flux(u, gradients, orientation::Integer,
     # Viscous stress (tensor) with general formula (see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
     # tau = mu * (grad(v) + grad(v)^T - 2/3 div(v) I)
     # Thus, in 1D we have tau_11 = mu * (2 dv1/dx - 2/3 dv1/dx) = 4/3 mu dv1/dx.
-    # For more details, see e.g. equation (5-1) in 
+    # For more details, see e.g. equation (5-1) in
     # - Wallace D. Hayes (1960) Gasdynamic Discontinuities https://www.jstor.org/stable/j.ctt183pmwn
-    tau_11 = 4/3 * dv1dx
+    tau_11 = 4 / 3 * dv1dx
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal conductivity constant kappa = gamma μ R / ((gamma-1) Pr)
