@@ -26,8 +26,7 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                periodicity = true,
-                n_cells_max = 10_000) # set maximum capacity of tree data structure
+                periodicity = true)
 
 # Test case proposed by Bohm (2018), Section 5.2 (https://arxiv.org/pdf/1802.07341).
 function initial_condition_bohm_2d(x, t, equations)

@@ -14,7 +14,6 @@ coordinates_max = (90.0, 90.0, 90.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 # Initialize density and pressure perturbation with a Gaussian bump

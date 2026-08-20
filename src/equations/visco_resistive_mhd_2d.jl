@@ -26,7 +26,7 @@ Together they constitute the compressible, viscous and resistive MHD equations w
 - `eta`: magnetic diffusion (resistivity)
 - `equations`: instance of the [`IdealGlmMhdEquations2D`](@ref)
 - `gradient_variables`: which variables the gradients are taken with respect to.
-Defaults to `GradientVariablesPrimitive()`.
+Currently, only `GradientVariablesPrimitive()` is supported.
 
 Fluid properties such as the dynamic viscosity $\mu$ and magnetic diffusion $\eta$
 can be provided in any consistent unit system, e.g.,
@@ -48,7 +48,7 @@ in conservation form:
 where $\tau$ is the viscous stress tensor and $\overrightarrow{q} = \kappa \overrightarrow{\nabla} T$.
 For the induction term we have the usual Laplace operator on the magnetic field
 but we also include terms with `div(B)`.
-Divergence cleaning is done using the `\psi` field.
+Divergence cleaning is done using the $\psi$ field.
 
 For more details see e.g. [arXiv:2012.12040](https://arxiv.org/abs/2012.12040).
 """
@@ -122,12 +122,11 @@ end
 function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
     rho, v1, v2, v3, T, B1, B2, B3, psi = convert_transformed_to_primitive(u, equations)
-    # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, v3, T)
-    # either computed directly or reverse engineered from the gradient of the entropy variables
-    # by way of the `convert_gradient_variables` function.
 
     @unpack eta = equations
 
+    # Here, `convert_derivative_to_primitive`, converts the gradients stored in `gradients`
+    # to the gradients of the primitive variables (rho, v1, v2, v3, T)
     _, dv1dx, dv2dx, dv3dx, dTdx, dB1dx, dB2dx, dB3dx, _ = convert_derivative_to_primitive(u,
                                                                                            gradients[1],
                                                                                            equations)
@@ -138,8 +137,8 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D
     # Components of viscous stress tensor
 
     # Diagonal parts
-    tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy
-    tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
+    tau_11 = 4.0f0 / 3.0f0 * dv1dx - 2.0f0 / 3.0f0 * dv2dy
+    tau_22 = 4.0f0 / 3.0f0 * dv2dy - 2.0f0 / 3.0f0 * dv1dx
 
     # Off diagonal parts, exploit that stress tensor is symmetric
     # ((v1)_y + (v2)_x)

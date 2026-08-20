@@ -1,6 +1,5 @@
 using OrdinaryDiffEqLowStorageRK
 using Trixi
-using Trixi: ForwardDiff
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -8,8 +7,8 @@ using Trixi: ForwardDiff
 eos = VanDerWaals(; a = 10, b = 1e-2, gamma = 1.4, R = 287)
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# The default amplitude and frequency k are consistent with initial_condition_density_wave 
-# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible 
+# The default amplitude and frequency k are consistent with initial_condition_density_wave
+# for CompressibleEulerEquations1D. Note that this initial condition may not define admissible
 # solution states for all non-ideal equations of state!
 function Trixi.initial_condition_density_wave(x, t,
                                               equations::NonIdealCompressibleEulerEquations1D;
@@ -23,20 +22,9 @@ function Trixi.initial_condition_density_wave(x, t,
 
     V = inv(rho)
 
-    # invert for temperature given p, V
-    T = 1
-    tol = 100 * eps(RealT)
-    dp = pressure(V, T, eos) - p
-    iter = 1
-    while abs(dp) / abs(p) > tol && iter < 100
-        dp = pressure(V, T, eos) - p
-        dpdT_V = ForwardDiff.derivative(T -> pressure(V, T, eos), T)
-        T = max(tol, T - dp / dpdT_V)
-        iter += 1
-    end
-    if iter == 100
-        @warn "Solver for temperature(V, p) did not converge"
-    end
+    # invert for temperature given V, p.
+    T = temperature_given_Vp(V, p, eos; initial_T = one(RealT),
+                             tol = 100 * eps(RealT), maxiter = 100)
 
     return thermo2cons(SVector(V, v1, T), equations)
 end
@@ -48,7 +36,7 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
