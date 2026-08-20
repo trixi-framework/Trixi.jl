@@ -87,7 +87,11 @@ initial_condition = initial_condition_viscous_shock
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 equations = CompressibleEulerEquations1D(gamma())
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_bar(),
+
+# Trixi implements the stress tensor in deviatoric form, thus we need to
+# convert the "isotropic viscosity" to the "deviatoric viscosity"
+mu_deviatoric() = mu_bar() * 3 / 4
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 

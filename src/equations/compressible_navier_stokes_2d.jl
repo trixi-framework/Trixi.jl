@@ -174,7 +174,8 @@ function flux(u, gradients, orientation::Integer,
     _, dv1dx, dv2dx, dTdx = convert_derivative_to_primitive(u, gradients[1], equations)
     _, dv1dy, dv2dy, dTdy = convert_derivative_to_primitive(u, gradients[2], equations)
 
-    # Components of viscous stress tensor
+    # Components of viscous stress tensor with general formula (see e.g. https://en.wikipedia.org/wiki/Newtonian_fluid#General_compressible_case)
+    # tau = mu * (grad(v) + grad(v)^T - 2/3 div(v) I)
 
     # (4 * (v1)_x / 3 - 2 * (v2)_y / 3)
     tau_11 = (4 * dv1dx - 2 * dv2dy) / 3
