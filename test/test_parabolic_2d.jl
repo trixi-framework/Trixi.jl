@@ -750,9 +750,9 @@ end
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
                             2.817640352994614e-5,
-                            1.3827801939742e-5,
+                            1.3827802177935697e-5,
                             3.1001993851549174e-17,
-                            1.7535689010948764e-5
+                            1.753568238029073e-5
                         ],
                         linf=[
                             0.0002185837290411552,
@@ -775,18 +775,17 @@ end
                         solver=DGSEM(polydeg = 3, surface_flux = flux_hlle,
                                      basis_type = GaussLegendreBasis),
                         solver_parabolic=ParabolicFormulationLocalDG(),
-                        cfl_parabolic=0.04,
                         l2=[
-                            6.599006355897759e-6,
-                            4.514805201434994e-6,
-                            6.54834144833621e-17,
-                            4.882545625516753e-6
+                            6.599006356353962e-6,
+                            4.51480519387225e-6,
+                            6.589047152614131e-17,
+                            4.882545505551843e-6
                         ],
                         linf=[
-                            3.7580718253771295e-5,
-                            2.6691756676799905e-5,
-                            3.560074538214949e-16,
-                            2.989434893274634e-5
+                            3.7580718257101964e-5,
+                            2.6691756677132972e-5,
+                            4.978990988213157e-16,
+                            2.9894348934300652e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -1390,20 +1389,20 @@ end
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback,
                                               StepsizeCallback(cfl = 2.3,
-                                                               cfl_parabolic = 1.0)),
+                                                               cfl_parabolic = 0.2)),
                         adaptive=false, # respect CFL
                         ode_alg=CKLLSRK95_4S(),
                         l2=[
-                            0.011916725799140692,
-                            0.027926098816747836,
-                            0.01902700347912797,
-                            0.11793406377747188
+                            0.011916730125703542,
+                            0.02792610689451856,
+                            0.019027000629638774,
+                            0.11793409419172704
                         ],
                         linf=[
-                            0.3546113252441576,
-                            1.0152021857472098,
-                            0.5811488174143082,
-                            3.207373092525428
+                            0.3546114905832565,
+                            1.0152021588892746,
+                            0.5811487555005529,
+                            3.2073743136053725
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
