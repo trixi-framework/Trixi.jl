@@ -709,7 +709,7 @@ end
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
 with a low-order FV method. The low-order method can be selected with `volume_integral_low_order`;
 by default, the first-order subcell finite volume scheme [`VolumeIntegralPureLGLFiniteVolume`](@ref)
-is used, while [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref) provides a second-order alternative.
+with [`FluxLaxFriedrichs`](@ref) is used, while [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref) provides a second-order alternative.
 Used with limiter [`SubcellLimiterIDP`](@ref).
 
 !!! note
