@@ -175,7 +175,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 # (which is overly restrictive for this problem),
 # the parabolic CFL restricts the timestep for this problem.
 stepsize_callback = StepsizeCallback(cfl = 0.2,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.025)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)
