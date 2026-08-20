@@ -17,7 +17,7 @@ for human readability.
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed.
   The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
-  Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4` 
+  Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
   a reduction factor of `2.5`.
 
 
