@@ -115,6 +115,8 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
     # See eq (3.25) from https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
     # and the relation (gamma - 1) * kappa = gamma * mu / Pr (assuming R = 1)
     gamma_over_Pr = gamma / Pr
+    # In 1D, only pure shear stress is modeled, i.e., there is no bulk viscosity correction.
+    # Thus, we use tau_xx = mu dv1/dx instead of tau_xx = 4/3 mu dv1/dx
     max_visc_cond = max(1, gamma_over_Pr)
 
     return CompressibleNavierStokesDiffusion1D{typeof(gradient_variables),
