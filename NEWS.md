@@ -13,6 +13,8 @@ for human readability.
   toggles the bars visualizing the fraction of time and allocations spent in
   each section of the timer output of the `SummaryCallback`. The bars are
   disabled by default.
+- `TreeMesh` and `UnstructuredMesh2D` now support flux-differencing volume
+  kernel with FDSBP operators for conservative hyperbolic systems ([#3187]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
