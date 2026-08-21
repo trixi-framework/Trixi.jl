@@ -36,6 +36,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
 
+    backend = trixi_backend(u)
+
     # Convert conservative variables to a form more suitable for parabolic flux calculations
     @trixi_timeit timer() "transform variables" begin
         transform_variables!(u_transformed, u, mesh, equations_parabolic,
@@ -113,7 +115,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     # This calls the specialized version for the parabolic fluxes from
     # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, flux_parabolic, mesh, equations_parabolic,
+        prolong2mortars!(nothing, cache, flux_parabolic, mesh, equations_parabolic,
                          dg.mortar, dg)
     end
 
@@ -121,7 +123,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     # This calls the specialized version from
     # `dg_2d_parabolic.jl` or `dg_3d_parabolic.jl`.
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values,
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values,
                           mesh, equations_parabolic, dg.mortar, dg.surface_integral,
                           dg, parabolic_scheme, Divergence(), cache)
     end
@@ -719,7 +721,7 @@ end
 # Specialization `flux_parabolic::Tuple` needed to
 # avoid amibiguity with the hyperbolic version of `prolong2mortars!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
-function prolong2mortars!(cache, flux_parabolic::Tuple,
+function prolong2mortars!(backend::Nothing, cache, flux_parabolic::Tuple,
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2,
@@ -829,7 +831,7 @@ end
 # NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
-function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
+function calc_mortar_flux!(backend::Nothing, surface_flux_values, mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG,
@@ -862,7 +864,7 @@ function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
 end
 
 # For Gauss-Legendre DGSEM mortars are not yet implemented
-function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{2},
+function calc_mortar_flux!(backend::Nothing, surface_flux_values, mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar::Nothing,
                            surface_integral, dg::DGSEM{<:GaussLegendreBasis},
@@ -1204,13 +1206,13 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
     # Prolong solution to mortars.
     # This reuses `prolong2mortars` for the purely hyperbolic case.
     @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
+        prolong2mortars!(backend, cache, u_transformed, mesh, equations_parabolic,
                          dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(surface_flux_values, mesh, equations_parabolic,
+        calc_mortar_flux!(backend, surface_flux_values, mesh, equations_parabolic,
                           dg.mortar, dg.surface_integral, dg,
                           parabolic_scheme, Gradient(), cache)
     end
