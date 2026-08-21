@@ -1,19 +1,11 @@
-# The AMDGPU tests are *not* run automatically for every push or pull request, since they
-# are not essential for the vast majority of pull requests and the AMD GPU agent is a scarce
+# The GPU tests are *not* run automatically for every push or pull request, since they are
+# not essential for the vast majority of pull requests and the GPU machines are a scarce
 # resource. Therefore, it can take quite a while for them to start. They only run if
-#   * they were explicitly requested by commenting `/amdgpu` on a pull request, or
+#   * they were explicitly requested by commenting `/run_gpu_tests` on a pull request,
+#     which triggers a build via `.github/workflows/TriggerGPUTests.yml`, or
 #   * the build is for the default branch (`main`), i.e., after a pull request was merged,
 #     or
-#   * the build was started manually from the Buildkite web interface or via the REST API.
-# The CUDA tests run for every other build. They are skipped for comment-triggered
-# builds, since they have already run for the very same commit.
-#
-# The comment trigger relies on the following Buildkite pipeline settings (GitHub section),
-# which cannot be configured from this repository:
-#   * The GitHub webhook must deliver both the `Pull requests` and the `Issue comments`
-#     events.
-#   * Under `Issue comments`, the command word must be set to `/amdgpu`.
-# See https://buildkite.com/docs/pipelines/source-control/github for details.
+#   * the build was started manually from the Buildkite web interface.
 
 env:
 
@@ -35,7 +27,9 @@ steps:
       queue: "cuda"
     if: >
       build.message !~ /\[skip ci\]/ &&
-      build.source_event != "issue_comment"
+      (build.source == "api" ||
+      build.branch == pipeline.default_branch ||
+      build.source == "ui")
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
@@ -56,10 +50,9 @@ steps:
       queue: "rocm"
     if: >
       build.message !~ /\[skip ci\]/ &&
-      (build.source_event == "issue_comment" ||
+      (build.source == "api" ||
       build.branch == pipeline.default_branch ||
-      build.source == "ui" ||
-      build.source == "api")
+      build.source == "ui")
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
