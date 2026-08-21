@@ -1,0 +1,38 @@
+name: Trigger GPU Tests
+
+# The GPU tests run on dedicated machines with actual GPUs, which are provided via
+# Buildkite (see `.buildkite/pipeline.yml`). Since they are irrelevant for the vast
+# majority of pull requests and the GPU machines are a scarce resource, they are not run
+# automatically. Instead, they are requested explicitly by commenting `/run_gpu_tests` on
+# a pull request, which is what this workflow reacts to.
+
+on:
+  issue_comment:
+    types:
+      - created
+
+# This workflow only talks to the Buildkite API, using the token below.
+permissions: {}
+
+jobs:
+  trigger_buildkite:
+    # Only react to comments on pull requests (not on issues), and only if they were
+    # written by someone who can be trusted to have reviewed the code. Without the
+    # `author_association` check, anyone could run arbitrary code from a forked pull
+    # request on the GPU machines.
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/run_gpu_tests') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+      github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Buildkite pipeline
+        uses: buildkite/trigger-pipeline-action@v2.5.0
+        with:
+          buildkite_api_access_token: ${{ secrets.TRIGGER_BK_BUILD_TOKEN }}
+          pipeline: "julialang/trixi-dot-jl"
+          branch: "refs/pull/${{ github.event.issue.number }}/head"
+          message: >-
+            GPU tests requested by @${{ github.event.comment.user.login }}
+            on PR #${{ github.event.issue.number }}
