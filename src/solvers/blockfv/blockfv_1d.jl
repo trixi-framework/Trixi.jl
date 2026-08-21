@@ -37,11 +37,11 @@ function calc_volume_integral!(backend::Nothing, du, u,
                                dg::BlockFV, cache)
     @unpack surface_flux = volume_integral
     @unpack fstar_threaded = cache
+
+    fstar = fstar_threaded[Threads.threadid()]
     inv_h = nnodes(dg) * one(eltype(u)) / 2  # = 1 / h_ref
 
     @threaded for element in eachelement(dg, cache)
-        fstar = fstar_threaded[Threads.threadid()]
-
         # Fluxes at internal interfaces i + 1/2 for i = 1, ..., n-1
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, element)
