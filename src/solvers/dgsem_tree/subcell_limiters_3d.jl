@@ -80,10 +80,12 @@ end
                                                  semi, mesh::TreeMesh3D, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, orientations) = cache.interfaces
+
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left_element = cache.interfaces.neighbor_ids[1, interface]
-        right_element = cache.interfaces.neighbor_ids[2, interface]
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
 
         if perform_subcell_limiting(dg.volume_integral, left_element) ||
            perform_subcell_limiting(dg.volume_integral, right_element)
@@ -93,7 +95,7 @@ end
             continue
         end
 
-        orientation = cache.interfaces.orientations[interface]
+        orientation = orientations[interface]
 
         for j in eachnode(dg), i in eachnode(dg)
             # Define node indices for left and right element based on the interface orientation
@@ -264,10 +266,12 @@ end
                                                  semi, mesh::TreeMesh{3})
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
+    (; neighbor_ids, orientations) = cache.interfaces
+
     for interface in eachinterface(dg, cache)
         # Get neighboring element ids
-        left_element = cache.interfaces.neighbor_ids[1, interface]
-        right_element = cache.interfaces.neighbor_ids[2, interface]
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
 
         if perform_subcell_limiting(dg.volume_integral, left_element) ||
            perform_subcell_limiting(dg.volume_integral, right_element)
@@ -277,7 +281,7 @@ end
             continue
         end
 
-        orientation = cache.interfaces.orientations[interface]
+        orientation = orientations[interface]
 
         for j in eachnode(dg), i in eachnode(dg)
             # Define node indices for left and right element based on the interface orientation
@@ -391,8 +395,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, k, element)
+            isone(alpha[i, j, k, element]) && continue # Skip if alpha is already 1
+
             var = u[variable, i, j, k, element]
             # Real Zalesak type limiter
             #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -415,25 +419,26 @@ end
                                   antidiffusive_flux2_L[variable, i, j + 1, k, element]
             val_flux3_local = inverse_weights[k] *
                               antidiffusive_flux3_R[variable, i, j, k, element]
-            val_flux3_local_jp1 = -inverse_weights[k] *
+            val_flux3_local_kp1 = -inverse_weights[k] *
                                   antidiffusive_flux3_L[variable, i, j, k + 1, element]
 
             Pp = max(0, val_flux1_local) + max(0, val_flux1_local_ip1) +
                  max(0, val_flux2_local) + max(0, val_flux2_local_jp1) +
-                 max(0, val_flux3_local) + max(0, val_flux3_local_jp1)
+                 max(0, val_flux3_local) + max(0, val_flux3_local_kp1)
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1) +
-                 min(0, val_flux3_local) + min(0, val_flux3_local_jp1)
+                 min(0, val_flux3_local) + min(0, val_flux3_local_kp1)
 
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, k, element)
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
             # Compute blending coefficient avoiding division by zero
             # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qp = abs(Qp) /
-                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, k, element]))
-            Qm = abs(Qm) /
-                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, k, element]))
+            eps_ = eps(typeof(Qp)) * 100 * abs(var_max[i, j, k, element])
+            Qp = abs(Qp) / (abs(Pp) + eps_)
+            Qm = abs(Qm) / (abs(Pm) + eps_)
 
             # Calculate alpha at nodes
             alpha[i, j, k, element] = max(alpha[i, j, k, element], 1 - min(1, Qp, Qm))
@@ -461,6 +466,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            isone(alpha[i, j, k, element]) && continue # Skip if alpha is already 1
+
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, k, element)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
@@ -496,8 +503,6 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, k, element)
             var = u[variable, i, j, k, element]
             if var < 0
                 error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
@@ -512,6 +517,8 @@ end
                 continue
             end
             var_min[i, j, k, element] = positivity_correction_factor * var
+
+            isone(alpha[i, j, k, element]) && continue # Skip if alpha is already 1
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -538,6 +545,9 @@ end
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1) +
                  min(0, val_flux3_local) + min(0, val_flux3_local_jp1)
+
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, k, element)
             Pm = inverse_jacobian * Pm
 
             # Compute blending coefficient avoiding division by zero
@@ -595,7 +605,7 @@ end
 end
 
 ###############################################################################
-# Newton-bisection method
+# Auxiliary functions for Newton-bisection method
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, k, element,
                                      variable, min_or_max,
@@ -609,6 +619,7 @@ end
     (; gamma_constant_newton) = limiter
 
     indices = (i, j, k, element)
+    isone(alpha[indices...]) && return # Skip if alpha is already 1
 
     # negative xi direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian *

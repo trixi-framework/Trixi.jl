@@ -537,7 +537,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh3D Euler: elixir_euler_sedov_blast_wave_sc_subcell.jl" setup=[
+@testitem "TreeMesh3D Euler: elixir_euler_sedov_blast_wave_sc_subcell.jl (local limiting)" setup=[
     Setup,
     TreeMesh3DEuler
 ] tags=[:tree_part4] begin

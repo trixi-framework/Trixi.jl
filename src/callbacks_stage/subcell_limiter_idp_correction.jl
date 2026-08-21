@@ -51,14 +51,37 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
+    (; indicator) = limiter
+    if indicator !== nothing
+        alpha_indicator = indicator(u, semi.mesh, equations, solver, semi.cache)
+    end
+
     # Calculate blending factor alpha in [0,1]
     # f_ij = alpha_ij * f^(FV)_ij + (1 - alpha_ij) * f^(DG)_ij
     #      = f^(FV)_ij + (1 - alpha_ij) * f^(antidiffusive)_ij
-    @trixi_timeit timer() "blending factors" limiter(u, semi, equations, solver,
-                                                     t, dt)
+    @trixi_timeit timer() "blending factors" if indicator === nothing
+        limiter(u, semi, equations, solver, t, dt)
+    else
+        limiter(u, semi, equations, solver, t, dt, alpha_indicator)
+    end
 
     perform_idp_correction!(u, dt, mesh, equations, solver,
                             solver.volume_integral, cache)
+
+    if solver.mortar isa Trixi.LobattoLegendreMortarIDP &&
+       !(solver.mortar.pure_low_order)
+        @trixi_timeit timer() "mortar blending factors" if indicator === nothing
+            calc_mortar_limiting_factor!(u, semi, t, dt)
+        else
+            calc_mortar_limiting_factor!(u, semi, t, dt, alpha_indicator)
+        end
+
+        @trixi_timeit timer() "mortar correction" perform_idp_mortar_correction(u, dt,
+                                                                                mesh,
+                                                                                equations,
+                                                                                solver,
+                                                                                cache)
+    end
 
     return nothing
 end
