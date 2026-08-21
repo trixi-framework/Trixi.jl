@@ -21,6 +21,15 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
         secondary_element = neighbor_ids[2, interface]
         secondary_indices = node_indices[2, interface]
 
+        # detect if subcell limiting is necessary
+        if perform_subcell_limiting(dg.volume_integral, primary_element) ||
+           perform_subcell_limiting(dg.volume_integral, secondary_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
+
         # Create the local i,j,k indexing
         i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
                                                                                      index_range)
@@ -116,6 +125,10 @@ end
     foreach_enumerate(boundary_condition_types) do (i, boundary_condition)
         for boundary in boundary_indices[i]
             element = boundaries.neighbor_ids[boundary]
+
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(dg.volume_integral, element) || continue
+
             node_indices = boundaries.node_indices[boundary]
             direction = indices2direction(node_indices)
 
@@ -185,6 +198,15 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
         # Get element and side index information on the secondary element
         secondary_element = neighbor_ids[2, interface]
         secondary_indices = node_indices[2, interface]
+
+        # detect if subcell limiting is necessary
+        if perform_subcell_limiting(dg.volume_integral, primary_element) ||
+           perform_subcell_limiting(dg.volume_integral, secondary_element)
+            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+        else
+            # Subcell limiting is not necessary for both elements => Skip this interface
+            continue
+        end
 
         # Create the local i,j,k indexing
         i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
@@ -273,6 +295,10 @@ end
     foreach_enumerate(boundary_condition_types) do (i, boundary_condition)
         for boundary in boundary_indices[i]
             element = boundaries.neighbor_ids[boundary]
+
+            # detect if subcell limiting is necessary
+            perform_subcell_limiting(dg.volume_integral, element) || continue
+
             node_indices = boundaries.node_indices[boundary]
             direction = indices2direction(node_indices)
 
