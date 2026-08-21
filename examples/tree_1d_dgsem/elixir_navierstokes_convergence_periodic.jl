@@ -2,7 +2,7 @@ using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 prandtl_number() = 0.72
-mu() = 4.6875e-4 # equivalent to Re = 2133.333...
+mu() = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations1D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
@@ -101,7 +101,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 3,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
