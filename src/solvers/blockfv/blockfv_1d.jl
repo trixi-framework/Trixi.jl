@@ -169,6 +169,8 @@ end
                           equations)
         u_lr = cons2recon(get_node_vars(u, equations, dg, i - 1, element), equations)
         u_rl = cons2recon(get_node_vars(u, equations, dg, i, element), equations)
+        # There's no cell to the right of the last one, so reuse u_rl.
+        # The reconstruction mode already handles this (node_index == n) and so does not use u_rr to compute a slope
         u_rr = u_rl
         _, u_face = reconstruction_mode(u_ll, u_lr, u_rl, u_rr,
                                         sc_interface_coords, i, slope_limiter, dg)
@@ -179,6 +181,8 @@ end
     else
         # Left face ξ = -1
         i = 2
+        # No cell to the left of the first one, so reuse u_lr.
+        # Same idea as above for node_index == 2.
         u_ll = cons2recon(get_node_vars(u, equations, dg, 1, element), equations)
         u_lr = u_ll
         u_rl = cons2recon(get_node_vars(u, equations, dg, 2, element), equations)

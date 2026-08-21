@@ -57,7 +57,7 @@ end
                            limiter, dg::Union{DGSEM, BlockFV})
 
 Returns the reconstructed values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
-Computes limited (linear) slopes on the subcells for a [`DGSEM`](@ref) or [`BlockFVO2`](@ref) element.
+Computes limited (linear) slopes on the subcells for a [`DGSEM`](@ref) or [`BlockFV`](@ref) element.
 Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref)
 or [`VolumeIntegralFiniteVolumeO2`](@ref).
 
@@ -119,7 +119,7 @@ end
 """
     reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
                             sc_interface_coords, node_index,
-                            limiter, dg::Union{DGSEM, BlockFVO2})
+                            limiter, dg::Union{DGSEM, BlockFV})
 
 Returns the reconstructed values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
 Computes limited (linear) slopes on the *inner* subcells for a DGSEM element.
