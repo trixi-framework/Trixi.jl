@@ -47,6 +47,23 @@ function set_loop_vectorization!(toggle::Bool; force = true)
 end
 
 """
+    Trixi.set_inbounds!(toggle::Bool; force = true)
+
+Toggle the usage of `@inbounds` (via the [`Trixi.@trixi_bounds`](@ref) macro) in the
+hot loops of Trixi.jl. By default, `@inbounds` is enabled for performance. Disabling it
+keeps array bounds checks active in Trixi.jl's solvers, which can be useful for debugging
+out-of-bounds accesses without globally affecting other packages as `--check-bounds=yes`
+would.
+
+This only controls Trixi.jl's internal use of `@inbounds`; it does not affect bounds
+checks elsewhere.
+"""
+function set_inbounds!(toggle::Bool; force = true)
+    set_preferences!(TRIXI_UUID, "inbounds" => toggle, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the inbounds change to take effect."
+end
+
+"""
     Trixi.set_sqrt_type!(type; force = true)
 
 Set the `type` of the square root function to be used in Trixi.jl.

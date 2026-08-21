@@ -105,8 +105,8 @@ end
                             dg, element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             du[v, i, j, k, element] += inverse_weights[i] *
                                        (fstar1_L[v, i + 1, j, k] - fstar1_R[v, i, j, k]) +
                                        inverse_weights[j] *
@@ -144,7 +144,7 @@ end
     # Split form volume flux in orientation 1: x direction
     flux_temp .= zero(eltype(flux_temp))
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
@@ -162,8 +162,8 @@ end
     end
 
     # FV-form flux `fhat` in x direction
-    for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in 1:(nnodes(dg) - 1)
+        @trixi_bounds for v in eachvariable(equations)
             fhat1_L[v, i + 1, j, k] = fhat1_L[v, i, j, k] +
                                       weights[i] * flux_temp[v, i, j, k]
             fhat1_R[v, i + 1, j, k] = fhat1_L[v, i + 1, j, k]
@@ -173,7 +173,7 @@ end
     # Split form volume flux in orientation 2: y direction
     flux_temp .= zero(eltype(flux_temp))
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
@@ -186,8 +186,8 @@ end
     end
 
     # FV-form flux `fhat` in y direction
-    for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in 1:(nnodes(dg) - 1), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             fhat2_L[v, i, j + 1, k] = fhat2_L[v, i, j, k] +
                                       weights[j] * flux_temp[v, i, j, k]
             fhat2_R[v, i, j + 1, k] = fhat2_L[v, i, j + 1, k]
@@ -197,7 +197,7 @@ end
     # Split form volume flux in orientation 3: z direction
     flux_temp .= zero(eltype(flux_temp))
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
         for kk in (k + 1):nnodes(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
@@ -210,8 +210,8 @@ end
     end
 
     # FV-form flux `fhat` in z direction
-    for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in 1:(nnodes(dg) - 1), j in eachnode(dg), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             fhat3_L[v, i, j, k + 1] = fhat3_L[v, i, j, k] +
                                       weights[k] * flux_temp[v, i, j, k]
             fhat3_R[v, i, j, k + 1] = fhat3_L[v, i, j, k + 1]
@@ -263,8 +263,8 @@ end
     # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
     # `antidiffusive_flux1_R` and analogously for the other two directions.
 
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        @trixi_bounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
                                                          fstar1_L[v, i, j, k]
             antidiffusive_flux1_R[v, i, j, k, element] = antidiffusive_flux1_L[v,
@@ -272,8 +272,8 @@ end
                                                                                element]
         end
     end
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             antidiffusive_flux2_L[v, i, j, k, element] = fhat2_L[v, i, j, k] -
                                                          fstar2_L[v, i, j, k]
             antidiffusive_flux2_R[v, i, j, k, element] = antidiffusive_flux2_L[v,
@@ -281,8 +281,8 @@ end
                                                                                element]
         end
     end
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             antidiffusive_flux3_L[v, i, j, k, element] = fhat3_L[v, i, j, k] -
                                                          fstar3_L[v, i, j, k]
             antidiffusive_flux3_R[v, i, j, k, element] = antidiffusive_flux3_L[v,
@@ -314,24 +314,24 @@ end
     # This applies to the indices `i=1` and `i=nnodes(dg)+1` for `antidiffusive_flux1_L` and
     # `antidiffusive_flux1_R` and analogously for the other two directions.
 
-    for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in eachnode(dg), i in 2:nnodes(dg)
+        @trixi_bounds for v in eachvariable(equations)
             antidiffusive_flux1_L[v, i, j, k, element] = fhat1_L[v, i, j, k] -
                                                          fstar1_L[v, i, j, k]
             antidiffusive_flux1_R[v, i, j, k, element] = fhat1_R[v, i, j, k] -
                                                          fstar1_R[v, i, j, k]
         end
     end
-    for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in eachnode(dg), j in 2:nnodes(dg), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             antidiffusive_flux2_L[v, i, j, k, element] = fhat2_L[v, i, j, k] -
                                                          fstar2_L[v, i, j, k]
             antidiffusive_flux2_R[v, i, j, k, element] = fhat2_R[v, i, j, k] -
                                                          fstar2_R[v, i, j, k]
         end
     end
-    for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
-        for v in eachvariable(equations)
+    @trixi_bounds for k in 2:nnodes(dg), j in eachnode(dg), i in eachnode(dg)
+        @trixi_bounds for v in eachvariable(equations)
             antidiffusive_flux3_L[v, i, j, k, element] = fhat3_L[v, i, j, k] -
                                                          fstar3_L[v, i, j, k]
             antidiffusive_flux3_R[v, i, j, k, element] = fhat3_R[v, i, j, k] -
