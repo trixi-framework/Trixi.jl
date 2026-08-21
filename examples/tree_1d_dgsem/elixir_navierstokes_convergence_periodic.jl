@@ -101,7 +101,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
 coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 4,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
