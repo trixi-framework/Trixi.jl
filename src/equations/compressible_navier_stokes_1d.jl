@@ -125,7 +125,8 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
 
     return CompressibleNavierStokesDiffusion1D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
-                                               typeof(equations)}(R, mu, Pr, kappa_over_mu,
+                                               typeof(equations)}(R, mu, Pr,
+                                                                  kappa_over_mu,
                                                                   max_visc_cond,
                                                                   equations,
                                                                   gradient_variables)
@@ -273,7 +274,7 @@ end
 """
     entropy2velocity_temperature(w, equations::AbstractCompressibleNavierStokesDiffusion{1, 3})
 
-This directly converts entropy variables `w` to velocity and temperature, which are computed 
+This directly converts entropy variables `w` to velocity and temperature, which are computed
 from the entropy variables via 
 ``T = -1/(w_3 R)`` and ``v_1 = -w_2/w_3``, where ``w_3 = -\\rho/p`` following
 
