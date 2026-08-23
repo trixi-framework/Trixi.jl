@@ -902,20 +902,20 @@ end
                                                                                 mu = mu_deviatoric(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 42.0),
-                        # Not exactly the same errors as above due to changed diffusive CFL, which depends on R through scaled kappa (heat cond.)
+                        # Exact same errors as for the R = 1 case above
                         l2=[
-                            0.00025762356614190713,
-                            0.00014336911515809575,
+                            0.0002576235757916208,
+                            0.00014336914033937938,
                             3.361746364570895e-17,
                             3.1399702631471645e-17,
-                            0.0001736985108794003
+                            0.00017369856897561295
                         ],
                         linf=[
-                            0.0016731996698962082,
-                            0.0010638561371555388,
+                            0.0016731997562187129,
+                            0.0010638567566626511,
                             1.733671234158084e-16,
                             1.9060786274399122e-16,
-                            0.00114951767935223
+                            0.001149518946967798
                         ])
 end
 
