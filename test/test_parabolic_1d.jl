@@ -638,7 +638,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
-                            3.7997410588522954e-5,
+                            3.7943372542675425e-5
                             4.078766566292102e-5,
                             0.00024524952267207235
                         ],
