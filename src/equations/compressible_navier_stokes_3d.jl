@@ -92,14 +92,14 @@ struct CompressibleNavierStokesDiffusion3D{GradientVariables, RealT <: Real, Mu,
     # TODO: parabolic
     # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
-    R::RealT                   # specific gas constant
-    mu::Mu                     # viscosity
-    Pr::RealT                  # Prandtl number
-    kappa::RealT               # thermal diffusivity for Fourier's law
-    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic cfl => `max_diffusivity`
+    R::RealT                # specific gas constant
+    mu::Mu                  # viscosity
+    Pr::RealT               # Prandtl number
+    kappa_over_mu::RealT    # modified thermal conductivity for Fourier's law
+    max_visc_cond::RealT    # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
 
-    equations_hyperbolic::E    # CompressibleEulerEquations3D
-    gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
+    equations_hyperbolic::E # `CompressibleEulerEquations3D`
+    gradient_variables::GradientVariables # `GradientVariablesPrimitive` or `GradientVariablesEntropy`
 end
 
 # default to primitive gradient variables
@@ -111,15 +111,20 @@ function CompressibleNavierStokesDiffusion3D(equations::CompressibleEulerEquatio
     Pr = promote_type(typeof(gamma), typeof(Prandtl), typeof(R))(Prandtl)
     R = convert(typeof(Pr), R)
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ R / ((gamma-1) Prandtl).
+    # constant is kappa = gamma μ * R / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one * R / Pr
+    kappa_over_mu = gamma * inv_gamma_minus_one * R / Pr
+
+    # See eq (3.25) from https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+    # and the relation (gamma - 1) * kappa = gamma * mu / Pr (assuming R = 1)
+    gamma_over_Pr = gamma / Pr
+    max_visc_cond = max(4 / 3, gamma_over_Pr)
 
     return CompressibleNavierStokesDiffusion3D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
-                                               typeof(equations)}(R, mu, Pr, kappa,
-                                                                  max(4 / 3, kappa),
+                                               typeof(equations)}(R, mu, Pr, kappa_over_mu,
+                                                                  max_visc_cond,
                                                                   equations,
                                                                   gradient_variables)
 end
@@ -197,12 +202,12 @@ function flux(u, gradients, orientation::Integer,
     tau_23 = dv2dz + dv3dy # = tau_32
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
-    # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
+    # with thermal conductivity constant kappa = gamma μ R / ((gamma-1) Pr)
     # Note, the gas constant cancels under this formulation, so it is not present
     # in the implementation
-    q1 = equations.kappa * dTdx
-    q2 = equations.kappa * dTdy
-    q3 = equations.kappa * dTdz
+    q1 = equations.kappa_over_mu * dTdx
+    q2 = equations.kappa_over_mu * dTdy
+    q3 = equations.kappa_over_mu * dTdz
 
     # In the simplest cases, the user passed in `mu` or `mu()`
     # (which returns just a constant) but
@@ -247,8 +252,8 @@ end
     max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion3D)
 
 # Returns
-- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_4over3_kappa`
-where `max_4over3_kappa = max(4/3, kappa)` is computed in the constructor.
+- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
+where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
@@ -265,9 +270,9 @@ for the compressible Navier-Stokes equations see for instance
   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
 
 The eigenvalues of the diffusivity matrix in 3D are
-``-\frac{\mu}{\rho} \{0, 4/3, 1, 1, \kappa\}``
+``-\frac{\mu}{\rho} \{0, 4/3, 1, 1, \gamma/Pr\}``
 and thus the largest absolute eigenvalue is
-``\frac{\mu}{\rho} \max(4/3, \kappa)``.
+``\frac{\mu}{\rho} \max(4/3, \gamma/Pr)``.
 """
 @inline function max_diffusivity(u,
                                  equations_parabolic::CompressibleNavierStokesDiffusion3D)
@@ -276,7 +281,7 @@ and thus the largest absolute eigenvalue is
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
     return dynamic_viscosity(u, equations_parabolic) / u[1] *
-           equations_parabolic.max_4over3_kappa
+           equations_parabolic.max_visc_cond
 end
 
 """
@@ -318,7 +323,7 @@ This directly converts entropy variables `w` to velocity and temperature, which 
 from the entropy variables via 
 ``T = -1/(w_5 R)``, ``v_1 = -w_2/w_5``, ``v_2 = -w_3/w_5``, and ``v_3 = -w_4/w_5``, where ``w_5 = -\\rho/p`` following
 
-- Hughes, Franca, Mallet (1986) 
+- Hughes, Franca, Mallet (1986)
   A new finite element formulation for CFD
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 
