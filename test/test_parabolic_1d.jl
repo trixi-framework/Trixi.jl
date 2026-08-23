@@ -542,7 +542,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "dgmulti_1d",
                                  "elixir_navierstokes_convergence_periodic.jl"),
                         l2=[
-                            3.7943372542675425e-5,
+                            3.7997410588522954e-5,
                             4.073450293422761e-5,
                             0.0002457472085334219
                         ],
@@ -554,6 +554,7 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
 @testitem "Parabolic1D: DGMulti: elixir_navierstokes_convergence_periodic.jl (Diff. CFL)" setup=[
@@ -568,7 +569,7 @@ end
                                                                cfl_parabolic = 0.1)),
                         adaptive=false,
                         l2=[
-                            3.804624387162836e-5,
+                            3.809534312886433e-5,
                             4.072173289891623e-5,
                             0.0002457652905319161
                         ],
