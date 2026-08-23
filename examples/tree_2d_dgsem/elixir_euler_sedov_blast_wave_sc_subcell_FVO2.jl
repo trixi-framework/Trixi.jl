@@ -35,14 +35,7 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 end
 initial_condition = initial_condition_sedov_blast_wave
 
-# Up to version 0.13.0, `max_abs_speed_naive` was used as the default wave speed estimate of
-# `const flux_lax_friedrichs = FluxLaxFriedrichs(), i.e., `FluxLaxFriedrichs(max_abs_speed = max_abs_speed_naive)`.
-# In the `StepsizeCallback`, though, the less diffusive `max_abs_speeds` is employed which is consistent with `max_abs_speed`.
-# Thus, we exchanged in PR#2458 the default wave speed used in the LLF flux to `max_abs_speed`.
-# To ensure that every example still runs we specify explicitly `FluxLaxFriedrichs(max_abs_speed_naive)`.
-# We remark, however, that the now default `max_abs_speed` is in general recommended due to compliance with the
-# `StepsizeCallback` (CFL-Condition) and less diffusion.
-surface_flux = FluxLaxFriedrichs(max_abs_speed_naive)
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
@@ -52,9 +45,18 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 # Default parameter is not sufficient to fulfill bounds properly.
                                 max_iterations_newton = 30)
+
+# Use the inner reconstruction because the full reconstruction applies an
+# unlimited slope to boundary subcells while the element-interface flux remains
+# unreconstructed. The resulting low-order update is not guaranteed to be
+# positivity preserving, which is required by the IDP subcell limiter.
+reconstruction_mode = reconstruction_O2_inner
+volume_integral_low_order = VolumeIntegralPureLGLFiniteVolumeO2(basis;
+                                                                reconstruction_mode = reconstruction_mode,
+                                                                volume_flux_fv = surface_flux)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+                                                volume_integral_low_order = volume_integral_low_order)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
@@ -95,10 +97,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = false, interval = 100))
-# `interval` is used when calling this elixir in the tests with `save_errors=true`.
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  ode_default_options()..., callback = callbacks);
+                  callback = callbacks);

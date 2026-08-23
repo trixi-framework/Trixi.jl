@@ -13,6 +13,17 @@ for human readability.
   toggles the bars visualizing the fraction of time and allocations spent in
   each section of the timer output of the `SummaryCallback`. The bars are
   disabled by default.
+- `TreeMesh` and `UnstructuredMesh2D` now support flux-differencing volume
+  kernel with FDSBP operators for conservative hyperbolic systems ([#3187]).
+- The low-order FV scheme of `VolumeIntegralSubcellLimiting` can now be customized via
+  `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
+  while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
+
+#### Changed
+- The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
+  The new estimate for the heat conduction eigenvalue does not involve the term 1/(gamma - 1).
+  Thus, the `cfl_parabolic` might need to be reduced by this factor, which is for `gamma = 1.4`
+  a reduction factor of `2.5`.
 
 
 ## Changes when updating to v0.17 from v0.16.x
