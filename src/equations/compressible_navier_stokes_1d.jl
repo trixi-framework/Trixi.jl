@@ -275,7 +275,7 @@ end
     entropy2velocity_temperature(w, equations::AbstractCompressibleNavierStokesDiffusion{1, 3})
 
 This directly converts entropy variables `w` to velocity and temperature, which are computed
-from the entropy variables via 
+from the entropy variables via
 ``T = -1/(w_3 R)`` and ``v_1 = -w_2/w_3``, where ``w_3 = -\\rho/p`` following
 
 - Hughes, Franca, Mallet (1986)
