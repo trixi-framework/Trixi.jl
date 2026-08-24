@@ -379,13 +379,13 @@ end
             dgoal_dbeta = zero(beta)
         end
 
-        if dgoal_dbeta != 0
+        if !iszero(dgoal_dbeta)
             # Update beta with Newton's method
             beta = beta - goal / dgoal_dbeta
         end
 
         # Check bounds
-        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
+        if (beta < beta_L) || (beta > beta_R) || iszero(dgoal_dbeta) || isnan(beta)
             # Out of bounds, do a bisection step
             beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
