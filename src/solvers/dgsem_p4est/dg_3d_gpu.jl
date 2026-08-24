@@ -468,7 +468,7 @@ function prolong2boundaries!(backend::Backend, cache, u,
     index_range = eachnode(dg)
     kernel! = prolong2boundaries_kernel!(backend)
     kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids,
-            node_indices, ndrange = (boundarys_node_ndrange(mesh, dg)..., nboundaries))
+            node_indices, ndrange = (boundary_node_ndrange(mesh, dg)..., nboundaries))
     return nothing
 end
 
