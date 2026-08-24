@@ -573,7 +573,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
             surface_integral,
             dg,
             kernel_cache, node_coordinates, contravariant_vectors;
-            ndrange = (boundary_node_ndrand(mesh, dg)..., n_boundaries))
+            ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
 
     calc_boundary_flux_by_type!(backend, cache, t,
                                 Base.tail(BCs),
