@@ -573,7 +573,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
             surface_integral,
             dg,
             kernel_cache, node_coordinates, contravariant_vectors;
-            ndrange = n_boundaries)
+            ndrange = (boundary_node_ndrand(mesh, dg)..., n_boundaries))
 
     calc_boundary_flux_by_type!(backend, cache, t,
                                 Base.tail(BCs),
@@ -598,37 +598,38 @@ end
                                             dg,
                                             cache, node_coordinates,
                                             contravariant_vectors)
-    local_index = @index(Global, Linear)
+    i, j, local_index = @index(Global, NTuple)
 
     if local_index <= length(boundary_condition_indices)
         boundary = boundary_condition_indices[local_index]
 
-        calc_boundary_flux_per_boundary!(u,
-                                         surface_flux_values, t, boundary_condition,
-                                         MeshT, equations, surface_integral, dg, cache,
-                                         boundary, neighbor_ids, node_indices_arr,
-                                         index_range, node_coordinates,
-                                         contravariant_vectors)
+        calc_boundary_flux_per_node!(u,
+                                     surface_flux_values, t, boundary_condition,
+                                     MeshT, equations, surface_integral, dg, cache,
+                                     boundary, neighbor_ids, node_indices_arr,
+                                     index_range, node_coordinates,
+                                     contravariant_vectors, i, j)
     end
 end
 
-@inline function calc_boundary_flux_per_boundary!(u,
-                                                  surface_flux_values, t,
-                                                  boundary_condition,
-                                                  MeshT::Type{<:Union{P4estMesh{3},
-                                                                      T8codeMesh{3}}},
-                                                  equations, surface_integral, dg,
-                                                  cache,
-                                                  boundary, neighbor_ids,
-                                                  node_indices_arr,
-                                                  index_range, node_coordinates,
-                                                  contravariant_vectors)
+@inline function calc_boundary_flux_per_node!(u,
+                                              surface_flux_values, t,
+                                              boundary_condition,
+                                              MeshT::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                              equations, surface_integral, dg,
+                                              cache,
+                                              boundary, neighbor_ids,
+                                              node_indices_arr,
+                                              index_range, node_coordinates,
+                                              contravariant_vectors, i, j)
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them
     element = neighbor_ids[boundary]
     node_indices = node_indices_arr[boundary]
     direction = indices2direction(node_indices)
+    n = length(index_range)
 
     i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
                                                                         index_range)
@@ -636,25 +637,15 @@ end
                                                                         index_range)
     k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
                                                                         index_range)
+    i_node = delayed_index_3d(i_node_start, i_node_step_i, i_node_step_j, i, j, n)
+    j_node = delayed_index_3d(j_node_start, j_node_step_i, j_node_step_j, i, j, n)
+    k_node = delayed_index_3d(k_node_start, k_node_step_i, k_node_step_j, i, j, n)
 
-    i_node = i_node_start
-    j_node = j_node_start
-    k_node = k_node_start
-    for j in eachnode(dg)
-        for i in eachnode(dg)
-            calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
-                                have_nonconservative_terms(equations), equations,
-                                surface_integral, dg, cache, i_node, j_node, k_node,
-                                i, j, direction, element, boundary, node_coordinates,
-                                contravariant_vectors)
-            i_node += i_node_step_i
-            j_node += j_node_step_i
-            k_node += k_node_step_i
-        end
-        i_node += i_node_step_j
-        j_node += j_node_step_j
-        k_node += k_node_step_j
-    end
+    calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
+                        have_nonconservative_terms(equations), equations,
+                        surface_integral, dg, cache, i_node, j_node, k_node,
+                        i, j, direction, element, boundary, node_coordinates,
+                        contravariant_vectors)
 end
 
 # inlined version of the boundary flux calculation along a physical interface
