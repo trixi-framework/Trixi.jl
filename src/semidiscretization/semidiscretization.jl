@@ -128,7 +128,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         end
     end
 
-    if storage_type !== nothing || flux_differencing_kernel_type !== nothing
+    if storage_type !== nothing || flux_differencing_kernel_type !== nothing ||
+       _PREFERENCE_THREADING === :kernelabstractions
         if flux_differencing_kernel_type === nothing
             flux_differencing_kernel_type = HalfSweep()
         end
