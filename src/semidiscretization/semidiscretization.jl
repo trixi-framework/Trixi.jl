@@ -98,13 +98,16 @@ Optional keyword arguments:
 - `storage_type` and `real_type`: Configure the underlying computational datastructures.
   `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
+- `flux_differencing_kernel_type`: Select the GPU kernel used for the flux differencing
+  volume integral, either [`HalfSweep`](@ref) or [`FullSweep`](@ref).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true,
                         storage_type = nothing,
-                        real_type = nothing)
+                        real_type = nothing,
+                        flux_differencing_kernel_type = nothing)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -123,6 +126,13 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         if eltype(tspan) !== real_type
             tspan = convert.(real_type, tspan)
         end
+    end
+
+    if storage_type !== nothing || flux_differencing_kernel_type !== nothing
+        if flux_differencing_kernel_type === nothing
+            flux_differencing_kernel_type = HalfSweep()
+        end
+        @reset semi.cache = (; semi.cache..., flux_differencing_kernel_type)
     end
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition

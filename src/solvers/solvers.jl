@@ -28,6 +28,29 @@ function set_zero!(::Backend, du, dg, cache)
     return nothing
 end
 
+"""
+    HalfSweep()
+
+Selects the "half sweep" GPU kernel for the flux differencing volume integral,
+see [`semidiscretize`](@ref).
+
+Since the two-point volume fluxes are symmetric, every unordered pair of nodes
+needs to be evaluated only once.
+"""
+struct HalfSweep end
+
+"""
+    FullSweep()
+
+Selects the "full sweep" GPU kernel for the flux differencing volume integral,
+see [`semidiscretize`](@ref).
+
+This kernel avoids atomic operations and computes two times the two-point fluxes per node pair.
+
+See also [`HalfSweep`](@ref).
+"""
+struct FullSweep end
+
 # define types for parabolic solvers
 include("solvers_parabolic.jl")
 

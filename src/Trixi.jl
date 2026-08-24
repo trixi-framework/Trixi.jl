@@ -68,7 +68,8 @@ using FillArrays: Ones, Zeros
 using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Backend
+using KernelAbstractions: KernelAbstractions, @index, @kernel, @localmem,
+                          @synchronize, get_backend, Backend
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
@@ -313,6 +314,7 @@ export DG,
        BlockFV, UniformFiniteVolumeBasis, VolumeIntegralFiniteVolume,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
+       HalfSweep, FullSweep,
        VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, VolumeIntegralShockCapturingRRG,
        VolumeIntegralShockCapturingHGType,
