@@ -268,42 +268,42 @@ end
     return nothing
 end
 
-function prolong2boundaries_per_boundary!(u,
-                                          MeshT::Type{<:Union{P4estMesh{2},
-                                                              P4estMeshView{2},
-                                                              T8codeMesh{2}}},
-                                          equations, dg::DG, index_range, u_boundaries,
-                                          neighbor_ids, node_indices, boundary)
-    # Copy solution data from the element using "delayed indexing" with
-    # a start value and a step size to get the correct face and orientation.
-    element = neighbor_ids[boundary]
-    node_index = node_indices[boundary]
-
-    i_node_start, i_node_step = index_to_start_step_2d(node_index[1], index_range)
-    j_node_start, j_node_step = index_to_start_step_2d(node_index[2], index_range)
-
-    i_node = i_node_start
-    j_node = j_node_start
-    for i in eachnode(dg)
-        for v in eachvariable(equations)
-            u_boundaries[v, i, boundary] = u[v, i_node, j_node, element]
-        end
-        i_node += i_node_step
-        j_node += j_node_step
-    end
-
-    return nothing
-end
-
 @kernel function prolong2boundaries_kernel!(u,
                                             MeshT::Type{<:Union{P4estMesh{2},
                                                                 P4estMeshView{2},
                                                                 T8codeMesh{2}}},
                                             equations, dg, index_range,
                                             u_boundaries, neighbor_ids, node_indices)
-    boundary = @index(Global)
-    prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
-                                     neighbor_ids, node_indices, boundary)
+    i, boundary = @index(Global, NTuple)
+    prolong2boundaries_per_node!(u, MeshT, equations, dg, index_range, u_boundaries,
+                                 neighbor_ids, node_indices, i, boundary)
+end
+
+@inline function boundary_node_ndrange(mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                   T8codeMesh{2}}, dg)
+    return (nnodes(dg),)
+end
+
+@inline function prolong2boundaries_per_node!(u,
+                                              MeshT::Type{<:Union{P4estMesh{2},
+                                                                  P4estMeshView{2},
+                                                                  T8codeMesh{2}}},
+                                              equations, dg::DG, index_range,
+                                              u_boundaries,
+                                              neighbor_ids, node_indices, i, boundary)
+    element = neighbor_ids[boundary]
+    node_index = node_indices[boundary]
+
+    i_node_start, i_node_step = index_to_start_step_2d(node_index[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_index[2], index_range)
+
+    i_node = delayed_index_2d(i_node_start, i_node_step, i)
+    j_node = delayed_index_2d(j_node_start, j_node_step, i)
+
+    u_node = get_node_vars(u, equations, dg, i_node, j_node, element)
+    set_node_vars!(u_boundaries, u_node, equations, dg, i, boundary)
+
+    return nothing
 end
 
 @inline function calc_boundary_flux_per_boundary!(u,

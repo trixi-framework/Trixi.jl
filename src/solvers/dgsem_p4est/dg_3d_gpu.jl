@@ -454,6 +454,10 @@ end
     return nothing
 end
 
+@inline function boundary_node_ndrange(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, dg)
+    return (nnodes(dg), nnodes(dg))
+end
+
 function prolong2boundaries!(backend::Backend, cache, u,
                              mesh::Union{P4estMesh, T8codeMesh},
                              equations, dg::DG)
@@ -464,7 +468,7 @@ function prolong2boundaries!(backend::Backend, cache, u,
     index_range = eachnode(dg)
     kernel! = prolong2boundaries_kernel!(backend)
     kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids,
-            node_indices, ndrange = nboundaries)
+            node_indices, ndrange = (boundarys_node_ndrange(mesh, dg)..., nboundaries))
     return nothing
 end
 
@@ -473,9 +477,37 @@ end
                                                                 T8codeMesh{3}}},
                                             equations, dg, index_range,
                                             u_boundaries, neighbor_ids, node_indices)
-    boundary = @index(Global)
-    prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
-                                     neighbor_ids, node_indices, boundary)
+    i, j, boundary = @index(Global, NTuple)
+    prolong2boundaries_per_node!(u, MeshT, equations, dg, index_range, u_boundaries,
+                                 neighbor_ids, node_indices, i, j, boundary)
+end
+
+@inline function prolong2boundaries_per_node!(u,
+                                              MeshT::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                              equations, dg::DG, index_range,
+                                              u_boundaries,
+                                              neighbor_ids, node_indices, i, j,
+                                              boundary)
+    element = neighbor_ids[boundary]
+    node_index = node_indices[boundary]
+    n = length(index_range)
+
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_index[1],
+                                                                        index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_index[2],
+                                                                        index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_index[3],
+                                                                        index_range)
+
+    i_node = delayed_index_3d(i_node_start, i_node_step_i, i_node_step_j, i, j, n)
+    j_node = delayed_index_3d(j_node_start, j_node_step_i, j_node_step_j, i, j, n)
+    k_node = delayed_index_3d(k_node_start, k_node_step_i, k_node_step_j, i, j, n)
+
+    u_node = get_node_vars(u, equations, dg, i_node, j_node, k_node, element)
+    set_node_vars!(u_boundaries, u_node, equations, dg, i, j, boundary)
+
+    return nothing
 end
 
 function calc_boundary_flux!(backend::Backend, cache, t::Real,
