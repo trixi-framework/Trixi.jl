@@ -489,6 +489,8 @@ end
                                               u_boundaries,
                                               neighbor_ids, node_indices, i, j,
                                               boundary)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
     element = neighbor_ids[boundary]
     node_index = node_indices[boundary]
     n = length(index_range)
