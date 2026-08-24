@@ -163,9 +163,12 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, ::Type{<:TreeMesh{3}},
-                                           have_nonconservative_terms::False, equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function flux_differencing_kernel!(du, u, element,
+                                                            ::Type{<:TreeMesh{3}},
+                                                            have_nonconservative_terms::False,
+                                                            equations,
+                                                            volume_flux, dg::DGSEM,
+                                                            cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_split = dg.basis
