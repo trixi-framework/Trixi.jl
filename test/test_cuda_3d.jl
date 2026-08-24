@@ -274,6 +274,7 @@ end
                   storage_type = CuArray,
                   flux_differencing_kernel_type = HalfSweep())
     @test ode.p.cache.flux_differencing_kernel_type === HalfSweep()
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
     trixi_include(@__MODULE__,
