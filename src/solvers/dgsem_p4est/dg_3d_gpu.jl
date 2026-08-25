@@ -286,7 +286,7 @@ end
     end
     @synchronize
 
-    u_node = get_node_flux(u_local, Val(NVARIABLES), i, j, k)
+    u_node = get_node_vars_local(u_local, Val(NVARIABLES), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -298,7 +298,8 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node,
-                                 get_node_flux(u_local, Val(NVARIABLES), ii, j, k),
+                                 get_node_vars_local(u_local, Val(NVARIABLES), ii, j,
+                                                     k),
                                  Ja1_avg, equations)
         du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1
     end
@@ -309,7 +310,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2 = volume_flux(u_node,
-                                 get_node_flux(u_local, Val(NVARIABLES), i, jj, k),
+                                 get_node_vars_local(u_local, Val(NVARIABLES), i, jj,
+                                                     k),
                                  Ja2_avg, equations)
         du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2
     end
@@ -320,7 +322,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3 = volume_flux(u_node,
-                                 get_node_flux(u_local, Val(NVARIABLES), i, j, kk),
+                                 get_node_vars_local(u_local, Val(NVARIABLES), i, j,
+                                                     kk),
                                  Ja3_avg, equations)
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
     end
@@ -354,7 +357,7 @@ end
     end
     @synchronize
 
-    u_node = get_node_flux(u_local, Val(NVARIABLES), i, j, k)
+    u_node = get_node_vars_local(u_local, Val(NVARIABLES), i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -363,8 +366,8 @@ end
                    get_contravariant_vector(1, contravariant_vectors,
                                             ii, j, k, element))
         fluxtilde1_left, _ = volume_flux(u_node,
-                                         get_node_flux(u_local, Val(NVARIABLES),
-                                                       ii, j, k),
+                                         get_node_vars_local(u_local, Val(NVARIABLES),
+                                                             ii, j, k),
                                          Ja1_avg, equations)
         du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1_left
     end
@@ -375,8 +378,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2_left, _ = volume_flux(u_node,
-                                         get_node_flux(u_local, Val(NVARIABLES),
-                                                       i, jj, k),
+                                         get_node_vars_local(u_local, Val(NVARIABLES),
+                                                             i, jj, k),
                                          Ja2_avg, equations)
         du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2_left
     end
@@ -387,8 +390,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3_left, _ = volume_flux(u_node,
-                                         get_node_flux(u_local, Val(NVARIABLES),
-                                                       i, j, kk),
+                                         get_node_vars_local(u_local, Val(NVARIABLES),
+                                                             i, j, kk),
                                          Ja3_avg, equations)
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
     end

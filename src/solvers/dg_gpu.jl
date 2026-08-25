@@ -12,8 +12,8 @@ using Atomix: @atomic
     return nothing
 end
 
-@inline function get_node_flux(flux_local, ::Val{NVARIABLES},
-                               indices...) where {NVARIABLES}
+@inline function get_node_vars_local(flux_local, ::Val{NVARIABLES},
+                                     indices...) where {NVARIABLES}
     return SVector(ntuple(v -> (@inbounds flux_local[v, indices...]), Val(NVARIABLES)))
 end
 
