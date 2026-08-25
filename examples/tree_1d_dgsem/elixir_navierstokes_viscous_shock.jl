@@ -137,8 +137,8 @@ boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic)
 
 # We use by default the Bassi-Rebay 1 scheme.
-# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence. 
-# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes. 
+# Since this is a diffusion-dominated problem, using the LDG scheme should achieve optimal rates of convergence.
+# In contrast, BR-1 may achieve suboptimal rates of convergence in diffusion-dominated regimes.
 # The LDG scheme can be used by specifying the keyword
 # solver_parabolic = ParabolicFormulationLocalDG()
 # in the semidiscretization call below.

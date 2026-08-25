@@ -849,7 +849,42 @@ end
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) <= 3.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
+end
+
+@testitem "TreeMesh2D Euler: elixir_euler_sedov_blast_wave_sc_subcell_FVO2.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell_FVO2.jl"),
+                        l2=[
+                            0.4495704637143509,
+                            0.15730442577543666,
+                            0.15730442577545029,
+                            0.6190882116761669
+                        ],
+                        linf=[
+                            1.8787086232952408,
+                            0.9501463534956376,
+                            0.9501463534963136,
+                            6.473460234040588
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=4)
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 3.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

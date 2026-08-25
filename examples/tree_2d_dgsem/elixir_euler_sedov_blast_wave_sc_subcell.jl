@@ -51,8 +51,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                                                        min)],
                                 positivity_variables_nonlinear = [pressure],
                                 bar_states = true,
-                                # Default parameters are not sufficient to fulfill bounds properly.
-                                max_iterations_newton = 60)
+                                # Default parameter is not sufficient to fulfill bounds properly.
+                                max_iterations_newton = 30)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,

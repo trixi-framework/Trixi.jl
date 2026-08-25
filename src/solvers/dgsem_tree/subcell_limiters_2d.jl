@@ -541,36 +541,50 @@ end
     (; gamma_constant_newton) = limiter
 
     indices = (i, j, element)
+    isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
 
     # negative xi direction
-    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
-                         get_node_vars(antidiffusive_flux1_R, equations, dg,
-                                       i, j, element)
-    newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
-                 final_check, equations, dt, limiter, antidiffusive_flux)
+    if i > 1
+        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+                             inverse_weights[i] *
+                             get_node_vars(antidiffusive_flux1_R, equations, dg,
+                                           i, j, element)
+        newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
+                     final_check, equations, dt, limiter, antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
+    end
 
     # positive xi direction
-    antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
-                         inverse_weights[i] *
-                         get_node_vars(antidiffusive_flux1_L, equations, dg,
-                                       i + 1, j, element)
-    newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
-                 final_check, equations, dt, limiter, antidiffusive_flux)
+    if i < nnodes(dg)
+        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+                             inverse_weights[i] *
+                             get_node_vars(antidiffusive_flux1_L, equations, dg,
+                                           i + 1, j, element)
+        newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
+                     final_check, equations, dt, limiter, antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
+    end
 
     # negative eta direction
-    antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
-                         get_node_vars(antidiffusive_flux2_R, equations, dg,
-                                       i, j, element)
-    newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
-                 final_check, equations, dt, limiter, antidiffusive_flux)
+    if j > 1
+        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+                             inverse_weights[j] *
+                             get_node_vars(antidiffusive_flux2_R, equations, dg,
+                                           i, j, element)
+        newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
+                     final_check, equations, dt, limiter, antidiffusive_flux)
+        isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
+    end
 
     # positive eta direction
-    antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
-                         inverse_weights[j] *
-                         get_node_vars(antidiffusive_flux2_L, equations, dg,
-                                       i, j + 1, element)
-    newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
-                 final_check, equations, dt, limiter, antidiffusive_flux)
+    if j < nnodes(dg)
+        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+                             inverse_weights[j] *
+                             get_node_vars(antidiffusive_flux2_L, equations, dg,
+                                           i, j + 1, element)
+        newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
+                     final_check, equations, dt, limiter, antidiffusive_flux)
+    end
 
     return nothing
 end
