@@ -684,4 +684,68 @@ end
 
     return nothing
 end
+
+# Specialization for the modified specific entropy of Guermond et al. (2019) in 3D Euler equations.
+# Passes the state data to avoid recomputation in the derivative evaluation.
+@inline function newton_state_data(variable::typeof(entropy_guermond_etal), bound, u,
+                                   equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
+
+    if rho <= 0 # State is invalid
+        return false, zero(bound), nothing
+    end
+
+    # Computation along u(beta) = u + beta * delta_u for Guermond entropy in Euler 3D:
+    # E_kin = 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho,
+    # e_int = rho_e_total - E_kin,
+    kinetic_energy = 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+    internal_energy = rho_e_total - kinetic_energy
+
+    # For Euler with gamma > 1, positivity of internal energy is equivalent
+    # to positivity of pressure.
+    if internal_energy <= 0
+        return false, zero(bound), nothing
+    end
+
+    # Modified specific entropy of Guermond et al. (2019)
+    # s = e_int * rho^(-gamma),
+    # goal = bound - s,
+    rho_to_minus_gamma = (1 / rho)^equations.gamma
+    s = internal_energy * rho_to_minus_gamma
+    goal = bound - s
+
+    state_data = (; rho, rho_v1, rho_v2, rho_v3, kinetic_energy,
+                  internal_energy, rho_to_minus_gamma)
+
+    return true, goal, state_data
+end
+
+# Specialization for the modified specific entropy of Guermond et al. (2019) in 3D Euler equations.
+# Receive the state data to avoid recomputation in the derivative evaluation.
+@inline function newton_dgoal_dbeta(::typeof(entropy_guermond_etal),
+                                    u, delta_u,
+                                    equations::CompressibleEulerEquations3D,
+                                    state_data)
+    (; rho, rho_v1, rho_v2, rho_v3, kinetic_energy,
+    internal_energy, rho_to_minus_gamma) = state_data
+
+    # Derivative along u(beta) = u + beta * delta_u:
+    # s(beta) = e_int(beta) * rho(beta)^(-gamma)
+    # ds/d(beta) = rho^(-gamma) *
+    #              (de_int/d(beta) - gamma * e_int * (d(rho)/d(beta)) / rho)
+    # d(goal)/d(beta) = -ds/d(beta), since goal = bound - s.
+
+    delta_rho, delta_rho_v1, delta_rho_v2, delta_rho_v3, delta_rho_e_total = delta_u
+
+    internal_energy_derivative = delta_rho_e_total -
+                                 (rho_v1 * delta_rho_v1 + rho_v2 * delta_rho_v2 +
+                                  rho_v3 * delta_rho_v3) / rho +
+                                 kinetic_energy * delta_rho / rho
+
+    entropy_derivative = rho_to_minus_gamma *
+                         (internal_energy_derivative -
+                          equations.gamma * internal_energy * delta_rho / rho)
+
+    return -entropy_derivative
+end
 end # @muladd
