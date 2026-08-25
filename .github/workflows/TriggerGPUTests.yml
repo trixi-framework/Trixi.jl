@@ -11,8 +11,9 @@ on:
     types:
       - created
 
-# This workflow only talks to the Buildkite API, using the token below.
-permissions: {}
+permissions:
+  # Required to look up whether the author of the comment has write access, see below.
+  contents: read
 
 jobs:
   trigger_buildkite:
@@ -20,9 +21,8 @@ jobs:
     # command. Matching it anywhere in the comment would also trigger on comments that
     # merely mention it, e.g., "Do not run /run_gpu_tests before the CPU tests are green"
     # or a quote of the documentation.
-    # The `author_association` check restricts this to people who can be trusted to have
-    # reviewed the code. Without it, anyone could run arbitrary code from a forked pull
-    # request on the GPU machines.
+    # The `author_association` check is only a cheap pre-filter to avoid starting a job
+    # for arbitrary users; the authoritative permission check happens in the first step.
     if: >
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/run_gpu_tests') &&
@@ -30,6 +30,31 @@ jobs:
       github.event.comment.author_association)
     runs-on: ubuntu-latest
     steps:
+      # A `/run_gpu_tests` comment causes the code of the pull request to be executed on
+      # the GPU machines, so it must be restricted to people who can be trusted to have
+      # reviewed that code first. We require write access to this repository, which is the
+      # same bar GitHub uses for approving workflow runs of forked pull requests.
+      # Note that `author_association` alone is not sufficient for this: it reports
+      # `MEMBER` for everyone in the `trixi-framework` organization, including people who
+      # only have read access to this repository.
+      - name: Check that the author of the comment has write access
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const user = context.payload.comment.user.login;
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: user
+            });
+            // `permission` is one of "admin", "write", "read", "none", where the
+            // "maintain" role is mapped to "write" and "triage" is mapped to "read".
+            if (!["admin", "write"].includes(data.permission)) {
+              core.setFailed(`@${user} does not have write access to this repository ` +
+                             `(permission: "${data.permission}"), so the GPU tests are ` +
+                             `not started. Please ask a maintainer to request them.`);
+            }
+
       - name: Trigger Buildkite pipeline
         uses: buildkite/trigger-pipeline-action@v2.5.0
         with:

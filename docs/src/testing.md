@@ -91,16 +91,18 @@ scarce resource, these tests do **not** run automatically. Instead, they are onl
   ```
   /run_gpu_tests
   ```
-  on the pull request. This runs both the CUDA and the AMDGPU tests. The comment must be
-  written by an owner, member, or collaborator of the repository,
+  on the pull request. This runs both the CUDA and the AMDGPU tests. The comment must be written by someone
+  with write access to this repository,
 * automatically for every push to `main`, i.e., after a pull request has been merged, and
 * when a build is started manually from the Buildkite web interface.
 
 The comment is picked up by
 [`.github/workflows/TriggerGPUTests.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/TriggerGPUTests.yml),
-which asks Buildkite to build the *current* head commit of the pull request. Hence, you
-need to comment again after pushing further changes. If you modify GPU code, please
-request a GPU run before merging.
+which first verifies that the author of the comment has write access and then asks
+Buildkite to build the *current* head commit of the pull request. Hence, you need to
+comment again after pushing further changes. If you modify GPU code, please request a GPU
+run before merging. If you do not have write access, the workflow fails with a
+corresponding message; please ask a maintainer to request the GPU tests for you.
 
 
 ## Adding new tests
