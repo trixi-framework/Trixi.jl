@@ -20,8 +20,7 @@
 end
 
 @inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms,
-                                         equations,
+                                         have_nonconservative_terms, equations,
                                          volume_integral::VolumeIntegralFluxDifferencing,
                                          dg, cache, alpha = true)
     @unpack volume_flux = volume_integral # Volume integral specific data
