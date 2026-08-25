@@ -19,13 +19,13 @@ end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    @unpack flux_differencing_kernel_type = cache
+    @unpack flux_differencing_kernel = cache
     kernel! = flux_differencing_KAkernel!(backend,
-                                          flux_differencing_workgroupsize(flux_differencing_kernel_type,
+                                          flux_differencing_workgroupsize(flux_differencing_kernel,
                                                                           Val(NNODES))...)
     kernel!(du, u, equations,
             typeof(mesh),
-            flux_differencing_kernel_type,
+            flux_differencing_kernel,
             have_nonconservative_terms,
             combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
                                                             equations),

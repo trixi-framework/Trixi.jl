@@ -19,7 +19,7 @@ for human readability.
   `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
   while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
 - The GPU kernel of `VolumeIntegralFluxDifferencing` on `P4estMesh{3}`/`T8codeMesh{3}`
-  can now be chosen via the new keyword argument `flux_differencing_kernel_type` of
+  can now be chosen via the new keyword argument `flux_differencing_kernel` of
   `semidiscretize`, either `HalfSweep()` or `FullSweep()`.
 
 #### Changed

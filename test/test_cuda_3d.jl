@@ -241,8 +241,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel_type = HalfSweep())
-    @test ode.p.cache.flux_differencing_kernel_type === HalfSweep()
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
     @test Trixi.storage_type(ode.p.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
@@ -252,8 +252,8 @@ end
                   tspan = (0.0, 0.5),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel_type = FullSweep())
-    @test ode.p.cache.flux_differencing_kernel_type === FullSweep()
+                  flux_differencing_kernel = FullSweep())
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
     @test u_half_sweep ≈ u_full_sweep
@@ -272,8 +272,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel_type = HalfSweep())
-    @test ode.p.cache.flux_differencing_kernel_type === HalfSweep()
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
     @test Trixi.storage_type(ode.p.cache.elements) === CuArray
     u_half_sweep = Array(sol.u[end])
 
@@ -283,8 +283,8 @@ end
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = CuArray,
-                  flux_differencing_kernel_type = FullSweep())
-    @test ode.p.cache.flux_differencing_kernel_type === FullSweep()
+                  flux_differencing_kernel = FullSweep())
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
     @test u_half_sweep ≈ u_full_sweep
