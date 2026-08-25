@@ -144,7 +144,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    cache_variable_values = local_onesided && ndims(equations) == 2
+    cache_variable_values = local_onesided
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
                          cache_variable_values)
 

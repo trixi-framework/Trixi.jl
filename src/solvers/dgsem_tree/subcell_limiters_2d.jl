@@ -241,27 +241,28 @@ end
             end
 
             if limit_right
-                if limit_left
-                    value_left = variable_values[index_left..., left_element]
+                # Use cached value if available, otherwise compute it
+                var_left = if limit_left
+                    variable_values[index_left..., left_element]
                 else
-                    value_left = variable(get_node_vars(u, equations, dg, index_left...,
-                                                        left_element), equations)
+                    variable(get_node_vars(u, equations, dg, index_left...,
+                                           left_element), equations)
                 end
                 var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
                                                                                   right_element],
-                                                                       value_left)
+                                                                       var_left)
             end
             if limit_left
-                if limit_right
-                    value_right = variable_values[index_right..., right_element]
+                # Use cached value if available, otherwise compute it
+                var_right = if limit_right
+                    variable_values[index_right..., right_element]
                 else
-                    value_right = variable(get_node_vars(u, equations, dg,
-                                                         index_right..., right_element),
-                                           equations)
+                    variable(get_node_vars(u, equations, dg, index_right...,
+                                           right_element), equations)
                 end
                 var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
                                                                                 left_element],
-                                                                     value_right)
+                                                                     var_right)
             end
         end
     end
