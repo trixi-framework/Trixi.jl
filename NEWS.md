@@ -20,7 +20,9 @@ for human readability.
   while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
 - The GPU kernel of `VolumeIntegralFluxDifferencing` on `P4estMesh{3}`/`T8codeMesh{3}`
   can now be chosen via the new keyword argument `flux_differencing_kernel` of
-  `semidiscretize`, either `HalfSweep()` or `FullSweep()`.
+  `semidiscretize`, either `HalfSweep()` (default, previously available)
+  or `FullSweep()` ([#3206]).
+>>>>>>> cc5adebdd8ca355038802ea5a25383de12309c73
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
