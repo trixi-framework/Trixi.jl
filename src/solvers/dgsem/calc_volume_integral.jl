@@ -19,14 +19,14 @@
     return nothing
 end
 
-Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+@inline function volume_integral_kernel!(du, u, element, MeshT,
                                                           have_nonconservative_terms,
                                                           equations,
                                                           volume_integral::VolumeIntegralFluxDifferencing,
                                                           dg, cache, alpha = true)
     @unpack volume_flux = volume_integral # Volume integral specific data
 
-    flux_differencing_kernel!(du, u, element, MeshT,
+    @inbounds flux_differencing_kernel!(du, u, element, MeshT,
                               have_nonconservative_terms, equations,
                               volume_flux, dg, cache, alpha)
 
@@ -187,7 +187,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     end
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        @inbounds volume_integral_kernel!(du, u, element, MeshT,
+        volume_integral_kernel!(du, u, element, MeshT,
                                           have_nonconservative_terms, equations,
                                           volume_integral, dg, cache)
     end
