@@ -87,7 +87,7 @@ machines with NVIDIA (`TRIXI_TEST=CUDA`) and AMD (`TRIXI_TEST=AMDGPU`) GPUs, con
 
 Since most pull requests do not touch any GPU-related code and the GPU machines are a
 scarce resource, these tests do **not** run automatically. Instead, they are only run
-* on demand, by writing a comment containing
+* on demand, by writing a comment starting with
   ```
   /run_gpu_tests
   ```

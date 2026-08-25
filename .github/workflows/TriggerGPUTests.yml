@@ -16,13 +16,16 @@ permissions: {}
 
 jobs:
   trigger_buildkite:
-    # Only react to comments on pull requests (not on issues), and only if they were
-    # written by someone who can be trusted to have reviewed the code. Without the
-    # `author_association` check, anyone could run arbitrary code from a forked pull
+    # Only react to comments on pull requests (not on issues) that *start* with the
+    # command. Matching it anywhere in the comment would also trigger on comments that
+    # merely mention it, e.g., "Do not run /run_gpu_tests before the CPU tests are green"
+    # or a quote of the documentation.
+    # The `author_association` check restricts this to people who can be trusted to have
+    # reviewed the code. Without it, anyone could run arbitrary code from a forked pull
     # request on the GPU machines.
     if: >
       github.event.issue.pull_request &&
-      contains(github.event.comment.body, '/run_gpu_tests') &&
+      startsWith(github.event.comment.body, '/run_gpu_tests') &&
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
       github.event.comment.author_association)
     runs-on: ubuntu-latest
