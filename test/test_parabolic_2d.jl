@@ -1057,7 +1057,7 @@ end
     # At an isothermal wall, the last entropy variable is -1 / (R * T).
     # Therefore, changing R changes the prescribed temperature but must not
     # change the solution in conserved variables.
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.5),
                         equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
