@@ -60,8 +60,8 @@ struct ViscoResistiveMhd2D{GradientVariables, RealT <: Real,
     mu::RealT                  # viscosity
     Pr::RealT                  # Prandtl number
     eta::RealT                 # magnetic diffusion
-    kappa::RealT               # thermal diffusivity for Fick's law
-    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic CFL => `max_diffusivity`
+    kappa_over_mu::RealT    # modified thermal conductivity for Fourier's law
+    max_visc_cond::RealT    # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
     equations_hyperbolic::E    # IdealGlmMhdEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
 end
@@ -75,18 +75,23 @@ function ViscoResistiveMhd2D(equations::IdealGlmMhdEquations2D;
     μ, Pr, eta = promote(mu, Prandtl, eta)
 
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ / ((gamma-1) Pr).
+    # constant is kappa = gamma μ / ((gamma-1) Prandtl) (assuming R = 1).
     # Important note! Factor of μ is accounted for later in `flux`.
-    kappa = gamma * inv_gamma_minus_one / Pr
-    max_4over3_kappa = max(4 / 3, kappa)
+    # This avoids recomputation of kappa for non-constant μ.
+    kappa_over_mu = gamma * inv_gamma_minus_one / Pr
+
+    # See eq (3.25) from https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+    # and the relation (gamma - 1) * kappa = gamma * mu / Pr (assuming R = 1)
+    gamma_over_Pr = gamma / Pr
+    max_visc_cond = max(4 / 3, gamma_over_Pr)
 
     ViscoResistiveMhd2D{typeof(gradient_variables), typeof(gamma), typeof(equations)}(gamma,
                                                                                       inv_gamma_minus_one,
                                                                                       μ,
                                                                                       Pr,
                                                                                       eta,
-                                                                                      kappa,
-                                                                                      max_4over3_kappa,
+                                                                                      gamma_over_Pr,
+                                                                                      max_visc_cond,
                                                                                       equations,
                                                                                       gradient_variables)
 end
@@ -209,14 +214,15 @@ end
 @doc raw"""
     max_diffusivity(u, equations::ViscoResistiveMhd2D)
 
-Returns the maximum diffusivity for the parabolic CFL condition. This is the
-larger of the viscous diffusivity ``\frac{\mu}{\rho} \max(4/3, \kappa)`` and
-the magnetic diffusivity ``\eta``.
+    # Returns
+    - `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
+    where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
-For the viscous eigenvalue estimate see e.g. Section 3.5 of
-- Krais et al. (2021)
-  FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
-  [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
+    For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
+    as suggested in Section 3.5 of
+    - Krais et al. (2021)
+    FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+    [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
 """
 @inline function max_diffusivity(u, equations::ViscoResistiveMhd2D)
     rho = u[1]
