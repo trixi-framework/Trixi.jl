@@ -85,13 +85,10 @@ end
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
 
-        if perform_subcell_limiting(dg.volume_integral, left_element) ||
-           perform_subcell_limiting(dg.volume_integral, right_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
-        else
-            # Subcell limiting is not necessary for both elements => Skip this interface
-            continue
-        end
+        # Skip interface if subcell limiting is not necessary for both elements
+        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+        (limit_left || limit_right) || continue
 
         orientation = cache.interfaces.orientations[interface]
 
@@ -111,7 +108,7 @@ end
                 index_right = (i, j, 1)
             end
 
-            if perform_subcell_limiting(dg.volume_integral, right_element)
+            if limit_right
                 var_left = u[variable, index_left..., left_element]
                 var_min[index_right..., right_element] = min(var_min[index_right...,
                                                                      right_element],
@@ -121,7 +118,7 @@ end
                                                              var_left)
             end
 
-            if perform_subcell_limiting(dg.volume_integral, left_element)
+            if limit_left
                 var_right = u[variable, index_right..., right_element]
                 var_min[index_left..., left_element] = min(var_min[index_left...,
                                                                    left_element],

@@ -89,7 +89,8 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
                                                     bound_keys,
                                                     cache_variable_values = false) where {
                                                                                           NDIMS,
-                                                                                          uEltype
+                                                                                          uEltype <:
+                                                                                          Real
                                                                                           }
     nan_uEltype = convert(uEltype, NaN)
 
@@ -99,6 +100,7 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
                         (ntuple(_ -> n_nodes, NDIMS)..., capacity))
 
     if cache_variable_values
+        # Initialize caching variable for the computation of the bounds of nonlinear variables
         _variable_values = fill(nan_uEltype,
                                 prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
         variable_values = unsafe_wrap(Array, pointer(_variable_values),
