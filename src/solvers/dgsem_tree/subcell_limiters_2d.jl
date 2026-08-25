@@ -595,8 +595,6 @@ end
     end
 
     # Computation along u(beta) = u + beta * delta_u for Guermond entropy in Euler 2D:
-    # E_kin = 0.5 * (rho_v1^2 + rho_v2^2) / rho,
-    # e_int = rho_e_total - E_kin,
     kinetic_energy = 0.5f0 * (rho_v1^2 + rho_v2^2) / rho
     internal_energy = rho_e_total - kinetic_energy
 
@@ -613,8 +611,7 @@ end
     s = internal_energy * rho_to_minus_gamma
     goal = bound - s
 
-    state_data = (; rho, rho_v1, rho_v2, kinetic_energy,
-                  internal_energy, rho_to_minus_gamma)
+    state_data = (; kinetic_energy, internal_energy, rho_to_minus_gamma)
 
     return true, goal, state_data
 end
@@ -625,8 +622,8 @@ end
                                     u, delta_u,
                                     equations::CompressibleEulerEquations2D,
                                     state_data)
-    (; rho, rho_v1, rho_v2, kinetic_energy,
-    internal_energy, rho_to_minus_gamma) = state_data
+    rho, rho_v1, rho_v2, _ = u
+    (; kinetic_energy, internal_energy, rho_to_minus_gamma) = state_data
 
     # Derivative along u(beta) = u + beta * delta_u:
     # s(beta) = e_int(beta) * rho(beta)^(-gamma)
