@@ -20,15 +20,15 @@
 end
 
 @inline function volume_integral_kernel!(du, u, element, MeshT,
-                                                          have_nonconservative_terms,
-                                                          equations,
-                                                          volume_integral::VolumeIntegralFluxDifferencing,
-                                                          dg, cache, alpha = true)
+                                         have_nonconservative_terms,
+                                         equations,
+                                         volume_integral::VolumeIntegralFluxDifferencing,
+                                         dg, cache, alpha = true)
     @unpack volume_flux = volume_integral # Volume integral specific data
 
     @inbounds flux_differencing_kernel!(du, u, element, MeshT,
-                              have_nonconservative_terms, equations,
-                              volume_flux, dg, cache, alpha)
+                                        have_nonconservative_terms, equations,
+                                        volume_flux, dg, cache, alpha)
 
     return nothing
 end
@@ -188,8 +188,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         volume_integral_kernel!(du, u, element, MeshT,
-                                          have_nonconservative_terms, equations,
-                                          volume_integral, dg, cache)
+                                have_nonconservative_terms, equations,
+                                volume_integral, dg, cache)
     end
 
     return nothing
