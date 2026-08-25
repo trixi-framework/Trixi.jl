@@ -10,9 +10,7 @@
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
                                   Trixi.StartUpDG.MeshData],),
                   # exception necessary because StableRNGs.jl is only used in an extension
-                  # TODO: Remove TrixiTest again once the temporary TrixiTest.jl
-                  #       branch in `.github/workflows/CI.yml` is gone.
-                  stale_deps = (ignore = [:StableRNGs, :TrixiTest],))
+                  stale_deps = (ignore = [:StableRNGs],))
     @test isnothing(check_no_implicit_imports(Trixi,
                                               skip = (Core, Base, Trixi.P4est, Trixi.T8code,
                                                       Trixi.EllipsisNotation)))

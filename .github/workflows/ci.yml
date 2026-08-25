@@ -123,16 +123,6 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
-      # TODO: Remove this step again (and `:TrixiTest` in the `stale_deps` ignore list of
-      #       `test/test_aqua.jl`) once trixi-framework/TrixiTest.jl#38 is merged and released.
-      - name: Use branch `ef/fix-macro` of TrixiTest.jl
-        shell: julia --project="." --color=yes {0}
-        run: |
-          using Pkg
-          Pkg.add(PackageSpec(url = "https://github.com/trixi-framework/TrixiTest.jl",
-                              rev = "ef/fix-macro"))
-          # only needed to keep the compat check of Aqua.jl happy
-          Pkg.compat("TrixiTest", "0.2")
       - name: Run tests
         uses: julia-actions/julia-runtest@v1
         with:
