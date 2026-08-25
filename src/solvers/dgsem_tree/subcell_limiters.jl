@@ -144,7 +144,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
+    cache_variable_values = local_onesided && ndims(equations) == 2
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
+                         cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -228,12 +230,14 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+                      basis::LobattoLegendreBasis, bound_keys,
+                      cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
-                                                                                        bound_keys)
+                                                                                        bound_keys,
+                                                                                        cache_variable_values)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -256,6 +260,14 @@ function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
     return nothing
+end
+
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients
+end
+
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralAdaptive)
+    return subcell_limiter_coefficients(volume_integral.volume_integral_stabilized)
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
