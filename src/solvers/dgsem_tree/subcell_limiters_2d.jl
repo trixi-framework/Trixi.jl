@@ -255,7 +255,7 @@ end
                 end
                 var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
                                                                                   right_element],
-                                                                       value_left)
+                                                                       var_left)
             end
             if limit_left
                 # Use cached value if available, otherwise compute it
@@ -267,7 +267,7 @@ end
                 end
                 var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
                                                                                 left_element],
-                                                                     value_right)
+                                                                     var_right)
             end
         end
     end
