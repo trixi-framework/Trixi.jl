@@ -170,7 +170,8 @@ end
                                          limiter::SubcellLimiterMCL,
                                          dg::DGSEM, cache)
     (; inverse_weights) = dg.basis
-    (; volume_flux_dg, volume_flux_fv) = volume_integral
+    (; volume_integral_low_order, volume_flux_dg) = volume_integral
+    (; volume_flux_fv) = volume_integral_low_order
 
     # high-order DG fluxes
     (; fhat1_L_threaded, fhat1_R_threaded, fhat2_L_threaded, fhat2_R_threaded) = cache
