@@ -85,6 +85,8 @@ jobs:
         run: |
           using Pkg
           Pkg.develop(PackageSpec(path="."))
+          Pkg.add(PackageSpec(url = "https://github.com/trixi-framework/TrixiBase.jl",
+                              rev = "jl/pass-symbols-as-values"))
           Pkg.update()
       - name: Run downstream tests (without coverage)
         shell: julia --color=yes --project=downstream {0}
