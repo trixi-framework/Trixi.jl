@@ -11,8 +11,8 @@ abstract type AbstractViscoResistiveMhd{NDIMS, NVARS, GradientVariables} <:
 
 @doc raw"""
     ViscoResistiveMhd2D(gamma, inv_gamma_minus_one,
-                               μ, Pr, eta, kappa,
-                               equations, gradient_variables)
+                        μ, Pr, eta, kappa,
+                        equations, gradient_variables)
 
 These equations contain the viscous Navier-Stokes equations coupled to
 the magnetic field together with the magnetic diffusion applied
@@ -60,8 +60,8 @@ struct ViscoResistiveMhd2D{GradientVariables, RealT <: Real,
     mu::RealT                  # viscosity
     Pr::RealT                  # Prandtl number
     eta::RealT                 # magnetic diffusion
-    kappa_over_mu::RealT    # modified thermal conductivity for Fourier's law
-    max_visc_cond::RealT    # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
+    kappa_over_mu::RealT      # modified thermal conductivity for Fourier's law
+    max_visc_cond::RealT      # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
     equations_hyperbolic::E    # IdealGlmMhdEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
 end
