@@ -1063,8 +1063,7 @@ end
                         equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
                                                                                 mu = mu,
                                                                                 Prandtl = prandtl_number(),
-                                                                                R = 1.0,
-                                                                                gradient_variables = GradientVariablesEntropy()))
+                                                                                R = 1.0))
     @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
