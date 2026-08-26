@@ -587,7 +587,11 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 6.7,
-                                                                                gradient_variables=GradientVariablesEntropy()))
+                                                                                gradient_variables=GradientVariablesEntropy()),
+                        heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                              t,
+                                                                                                                                              equations),
+                                                                                             equations))
     @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
