@@ -60,8 +60,8 @@ struct ViscoResistiveMhd2D{GradientVariables, RealT <: Real,
     mu::RealT                  # viscosity
     Pr::RealT                  # Prandtl number
     eta::RealT                 # magnetic diffusion
-    kappa_over_mu::RealT    # modified thermal conductivity for Fourier's law
-    max_visc_cond::RealT    # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
+    kappa_over_mu::RealT       # modified thermal conductivity for Fourier's law
+    max_visc_cond::RealT       # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
     equations_hyperbolic::E    # IdealGlmMhdEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
 end
@@ -90,7 +90,7 @@ function ViscoResistiveMhd2D(equations::IdealGlmMhdEquations2D;
                                                                                       μ,
                                                                                       Pr,
                                                                                       eta,
-                                                                                      gamma_over_Pr,
+                                                                                      kappa_over_mu,
                                                                                       max_visc_cond,
                                                                                       equations,
                                                                                       gradient_variables)
@@ -157,8 +157,8 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
     # Note, the gas constant cancels under this formulation, so it is not present
     # in the implementation
-    q1 = equations.kappa * dTdx
-    q2 = equations.kappa * dTdy
+    q1 = equations.kappa_over_mu * dTdx
+    q2 = equations.kappa_over_mu * dTdy
 
     # Constant dynamic viscosity is copied to a variable for readability.
     # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
@@ -226,7 +226,7 @@ end
 """
 @inline function max_diffusivity(u, equations::ViscoResistiveMhd2D)
     rho = u[1]
-    return max(equations.mu / rho * equations.max_4over3_kappa, equations.eta)
+    return max(equations.mu / rho * equations.max_visc_cond, equations.eta)
 end
 
 # Calculate the magnetic energy for a conservative state `cons'.
