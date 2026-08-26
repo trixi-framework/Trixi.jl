@@ -60,8 +60,8 @@ struct ViscoResistiveMhd2D{GradientVariables, RealT <: Real,
     mu::RealT                  # viscosity
     Pr::RealT                  # Prandtl number
     eta::RealT                 # magnetic diffusion
-    kappa_over_mu::RealT      # modified thermal conductivity for Fourier's law
-    max_visc_cond::RealT      # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
+    kappa_over_mu::RealT       # modified thermal conductivity for Fourier's law
+    max_visc_cond::RealT       # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
     equations_hyperbolic::E    # IdealGlmMhdEquations2D
     gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
 end
