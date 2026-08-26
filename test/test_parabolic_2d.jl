@@ -575,6 +575,21 @@ end
                             0.025099598505644406,
                             0.11795616324985403
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # At an isothermal wall, the last entropy variable is -1 / (R * T).
+    # Therefore, changing R changes the prescribed temperature but must not
+    # change the solution in conserved variables.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 6.7,
+                                                                                gradient_variables=GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -1053,18 +1068,6 @@ end
                             1.4846907331004786
                         ])
     reference_solution = copy(sol.u[end])
-
-    # At an isothermal wall, the last entropy variable is -1 / (R * T).
-    # Therefore, changing R changes the prescribed temperature but must not
-    # change the solution in conserved variables.
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                                 "elixir_navierstokes_lid_driven_cavity.jl"),
-                        initial_refinement_level=2, tspan=(0.0, 0.5),
-                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
-                                                                                mu = mu,
-                                                                                Prandtl = prandtl_number(),
-                                                                                R = 1.0))
-    @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
