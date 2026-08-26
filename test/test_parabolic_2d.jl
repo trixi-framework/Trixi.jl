@@ -587,7 +587,7 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number(),
                                                                                 R = 6.7,
-                                                                                gradient_variables=GradientVariablesEntropy()))
+                                                                                gradient_variables = GradientVariablesEntropy()))
     @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
