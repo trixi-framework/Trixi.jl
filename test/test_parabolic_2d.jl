@@ -591,7 +591,7 @@ end
                         heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
                                                                                                                                               t,
                                                                                                                                               equations),
-                                                                                             equations))
+                                                                                             equations)))
     @test sol.u[end] ≈ reference_solution
 
     # Ensure that we do not have excessive memory allocations
