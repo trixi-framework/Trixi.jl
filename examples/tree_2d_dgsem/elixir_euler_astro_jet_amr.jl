@@ -64,8 +64,7 @@ coordinates_max = (0.5, 0.5)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
@@ -104,7 +103,7 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               max_level = 8, max_threshold = 0.003,
                                               max_threshold_secondary = indicator_sc.alpha_max)
 
-# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
 # coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,

@@ -208,7 +208,6 @@ coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -245,7 +244,7 @@ plot(sol)
 
 # First, one needs an indicator that tells the AMR callback which cells to refine or coarsen.
 # We can re-use the `indicator_sc` from above for this.
-# Next, a so-called controller is required that specifies the different levels of refinement and 
+# Next, a so-called controller is required that specifies the different levels of refinement and
 # refinement thresholds.
 amr_controller = ControllerThreeLevel(semi, indicator_sc,
                                       base_level = 3,
@@ -373,7 +372,6 @@ coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

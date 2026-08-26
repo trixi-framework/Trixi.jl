@@ -9,7 +9,7 @@ end
                         linf=[3.217887726258972e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_advection_basic.jl (Gauss-Legendre)" setup=[
@@ -25,7 +25,7 @@ end
                         linf=[8.660338936650191e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_advection_nonperiodic.jl" setup=[
@@ -37,7 +37,7 @@ end
                         linf=[0.00021049780975179733])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_advection_nonuniform.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
@@ -45,7 +45,7 @@ end
                         l2=[0.0006665846145698006], linf=[0.00643334347367408])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_advection_shockcapturing.jl" setup=[
@@ -58,17 +58,17 @@ end
                         atol=1.0e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_advection_float128.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
     using Quadmath: Float128
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float128.jl"),
-                        l2=Float128[6.49879312655540217059228636803492411e-09],
-                        linf=Float128[5.35548407857266390181158920649552284e-08])
+                        l2=Float128[6.4987931105253158144700690718532668e-09],
+                        linf=Float128[5.355484252740692483311667337799588e-08])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # Testing the third-order paired explicit Runge-Kutta (PERK) method with its optimal CFL number
@@ -79,7 +79,7 @@ end
                         atol=1.0e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 
     # Test `resize!`
     integrator = Trixi.init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
@@ -107,7 +107,7 @@ end
                         atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 8000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 8000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_convergence_nonuniform.jl" setup=[
@@ -128,7 +128,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_sedov.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
@@ -138,7 +138,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_sedov_hll_davis.jl" setup=[
@@ -156,7 +156,7 @@ end
                         surface_flux=FluxHLL(min_max_speed_davis))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_shu_osher_nonuniform_fvO2.jl" setup=[
@@ -171,7 +171,7 @@ end
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_source_terms.jl" setup=[Setup, StructuredMesh1D] tags=[:structured] begin
@@ -189,7 +189,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_source_terms_nonperiodic.jl" setup=[
@@ -210,7 +210,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_source_terms_nonperiodic.jl (Gauss-Legendre)" setup=[
@@ -234,7 +234,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_source_terms_nonperiodic_fvO2.jl" setup=[
@@ -255,7 +255,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 
     # Test/cover `:compact` printing
     show(IOContext(IOBuffer(), :compact => true), MIME"text/plain"(), volume_integral)
@@ -277,7 +277,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 
     # test both short and long printing formats
     @test_nowarn show(relaxation_solver)
@@ -299,7 +299,7 @@ end
                         linf=[4.291208715723194e-5, 0.0, 0.0])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_traffic_flow_lwr_greenlight.jl" setup=[
@@ -312,7 +312,7 @@ end
                         linf=[0.5052827913468407])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "StructuredMesh1D: elixir_euler_convergence_pure_fv.jl" setup=[
@@ -335,5 +335,5 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

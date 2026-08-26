@@ -26,7 +26,6 @@ end
 
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 6,
-                        n_cells_max = 30_000,
                         RealT = RealT, periodicity = true)
 
         @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
@@ -36,7 +35,6 @@ end
 
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 5,
-                        n_cells_max = 30_000,
                         RealT = RealT, periodicity = true)
 
         @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
@@ -48,7 +46,6 @@ end
 
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 4,
-                        n_cells_max = 30_000,
                         RealT = RealT, periodicity = true)
 
         @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
@@ -773,7 +770,7 @@ end
         t = zero(RealT)
         u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT), one(RealT))
         orientation = 1
-        normal_direction = normal_ll = normal_rr = SVector(one(RealT))
+        normal_direction = SVector(one(RealT))
 
         @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
               RealT
@@ -786,9 +783,6 @@ end
         @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr,
                                                               normal_direction,
                                                               equations)) ==
-              RealT
-        @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll,
-                                                              normal_rr, equations)) ==
               RealT
         @test eltype(@inferred flux_chan_etal(u_ll, u_rr, orientation, equations)) ==
               RealT
@@ -928,7 +922,8 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion1D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
-        @test typeof(adapted.kappa) == Float32
+        @test typeof(adapted.kappa_over_mu) == Float32
+        @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations1D{Float32}
     end
 end
@@ -1060,7 +1055,8 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion2D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
-        @test typeof(adapted.kappa) == Float32
+        @test typeof(adapted.kappa_over_mu) == Float32
+        @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations2D{Float32}
     end
 end
@@ -1198,7 +1194,8 @@ end
         @test adapted isa CompressibleNavierStokesDiffusion3D
         @test typeof(adapted.mu) == Float32
         @test typeof(adapted.Pr) == Float32
-        @test typeof(adapted.kappa) == Float32
+        @test typeof(adapted.kappa_over_mu) == Float32
+        @test typeof(adapted.max_visc_cond) == Float32
         @test adapted.equations_hyperbolic isa CompressibleEulerEquations3D{Float32}
     end
 end
@@ -1219,7 +1216,7 @@ end
         u_1d = prim2cons(SVector(RealT(2.0), RealT(0.1), RealT(4.0)), equations_1d)
         w_1d = cons2entropy(u_1d, equations_parabolic_1d)
         @test Trixi.entropy2velocity_temperature(w_1d, equations_parabolic_1d) ≈
-              cons2prim(u_1d, equations_parabolic_1d)[2:end]
+              cons2prim_temperature(u_1d, equations_parabolic_1d)[2:end]
         @test length(Trixi.entropy2velocity_temperature(w_1d, equations_parabolic_1d)) ==
               2
 
@@ -1232,7 +1229,7 @@ end
                          equations_2d)
         w_2d = cons2entropy(u_2d, equations_parabolic_2d)
         @test Trixi.entropy2velocity_temperature(w_2d, equations_parabolic_2d) ≈
-              cons2prim(u_2d, equations_parabolic_2d)[2:end]
+              cons2prim_temperature(u_2d, equations_parabolic_2d)[2:end]
         @test length(Trixi.entropy2velocity_temperature(w_2d, equations_parabolic_2d)) ==
               3
 
@@ -1245,7 +1242,7 @@ end
                                  RealT(4.0)), equations_3d)
         w_3d = cons2entropy(u_3d, equations_parabolic_3d)
         @test Trixi.entropy2velocity_temperature(w_3d, equations_parabolic_3d) ≈
-              cons2prim(u_3d, equations_parabolic_3d)[2:end]
+              cons2prim_temperature(u_3d, equations_parabolic_3d)[2:end]
         @test length(Trixi.entropy2velocity_temperature(w_3d, equations_parabolic_3d)) ==
               4
     end

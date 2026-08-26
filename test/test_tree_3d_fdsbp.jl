@@ -2,20 +2,20 @@
     EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_fdsbp")
 end
 
-@testitem "TreeMesh3D FDSBP: elixir_advection_extended.jl" setup=[Setup, TreeMesh3DFDSBP] tags=[:tree_part6] begin
+@testitem "TreeMesh3D FDSBP: elixir_advection_extended.jl" setup=[Setup, TreeMesh3DFDSBP] tags=[:tree_part5] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[0.005355755365412444],
                         linf=[0.01856044696350767])
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh3D FDSBP: elixir_advection_extended.jl with periodic operators" setup=[
     Setup,
     TreeMesh3DFDSBP
-] tags=[:tree_part6] begin
+] tags=[:tree_part5] begin
     using Trixi: periodic_derivative_operator
     global D = periodic_derivative_operator(derivative_order = 1,
                                             accuracy_order = 4,
@@ -31,10 +31,10 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
-@testitem "TreeMesh3D FDSBP: elixir_euler_convergence.jl" setup=[Setup, TreeMesh3DFDSBP] tags=[:tree_part6] begin
+@testitem "TreeMesh3D FDSBP: elixir_euler_convergence.jl" setup=[Setup, TreeMesh3DFDSBP] tags=[:tree_part5] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
                             2.247522803543667e-5,
@@ -54,13 +54,13 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh3D FDSBP: elixir_euler_convergence.jl with VolumeIntegralStrongForm" setup=[
     Setup,
     TreeMesh3DFDSBP
-] tags=[:tree_part6] begin
+] tags=[:tree_part5] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
                             4.084919840272202e-5,
@@ -82,13 +82,73 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh3D FDSBP: elixir_euler_convergence_flux_diff.jl" setup=[
+    Setup,
+    TreeMesh3DFDSBP
+] tags=[:tree_part5] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_flux_diff.jl"),
+                        l2=[
+                            4.617574976884586e-5,
+                            5.140630408704788e-5,
+                            5.1406304087053236e-5,
+                            5.14063040870456e-5,
+                            0.00010870158969570203
+                        ],
+                        linf=[
+                            0.0001678969210368031,
+                            0.00018693879386177947,
+                            0.00018693879386955103,
+                            0.00018693879386066925,
+                            0.0003989521965306331
+                        ],
+                        tspan=(0.0, 0.2))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "TreeMesh3D FDSBP: elixir_euler_convergence_flux_diff.jl with periodic operators" setup=[
+    Setup,
+    TreeMesh3DFDSBP
+] tags=[:tree_part5] begin
+    using Trixi: periodic_derivative_operator
+    global D = periodic_derivative_operator(derivative_order = 1,
+                                            accuracy_order = 4,
+                                            xmin = -1.0,
+                                            xmax = 1.0,
+                                            N = 10)
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_flux_diff.jl"),
+                        l2=[
+                            0.000550843793878837,
+                            0.0007312196177580572,
+                            0.0007312196177580807,
+                            0.00073121961775807,
+                            0.002725645380976316
+                        ],
+                        linf=[
+                            0.0009618642534174882,
+                            0.0010513262976499238,
+                            0.0010513262976499238,
+                            0.0010513262976519222,
+                            0.004076171754552327
+                        ],
+                        D_SBP=D,
+                        initial_refinement_level=0,
+                        tspan=(0.0, 0.2))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "TreeMesh3D FDSBP: elixir_euler_taylor_green_vortex.jl" setup=[
     Setup,
     TreeMesh3DFDSBP
-] tags=[:tree_part6] begin
+] tags=[:tree_part5] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
                         l2=[
                             3.529693407280806e-6,
@@ -108,5 +168,5 @@ end
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

@@ -70,7 +70,7 @@ refinement_patches = ((type = "box", coordinates_min = (-20.0, -10.0, -10.0),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 refinement_patches = refinement_patches,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -105,7 +105,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level = 0, med_threshold = 0.1, # med_level = current level
                                       max_level = 6, max_threshold = 0.3)
 
-# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after 
+# Set `limiter! = positivity_limiter` to apply the positivity-preserving limiter after
 # coarsening and refinement steps.
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 3,

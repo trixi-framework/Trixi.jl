@@ -102,8 +102,7 @@ coordinates_max = (domain_length / 2, domain_length / 2)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 
 ### Inviscid boundary conditions ###
 
@@ -176,7 +175,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 # (which is overly restrictive for this problem),
 # the parabolic CFL restricts the timestep for this problem.
 stepsize_callback = StepsizeCallback(cfl = 0.2,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.025)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)

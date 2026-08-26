@@ -90,13 +90,13 @@ struct CompressibleNavierStokesDiffusion2D{GradientVariables, RealT <: Real, Mu,
     # TODO: parabolic
     # Add NGRADS as a type parameter here and in AbstractEquationsParabolic, add `ngradients(...)` accessor function
 
-    mu::Mu                     # viscosity
-    Pr::RealT                  # Prandtl number
-    kappa::RealT               # thermal diffusivity for Fourier's law
-    max_4over3_kappa::RealT    # max(4/3, kappa) used for parabolic cfl => `max_diffusivity`
+    mu::Mu                  # viscosity
+    Pr::RealT               # Prandtl number
+    kappa_over_mu::RealT    # modified thermal conductivity for Fourier's law
+    max_visc_cond::RealT    # max(4/3, gamma/Pr) used for parabolic cfl => `max_diffusivity`
 
-    equations_hyperbolic::E    # CompressibleEulerEquations2D
-    gradient_variables::GradientVariables # GradientVariablesPrimitive or GradientVariablesEntropy
+    equations_hyperbolic::E # `CompressibleEulerEquations2D`
+    gradient_variables::GradientVariables # `GradientVariablesPrimitive` or `GradientVariablesEntropy`
 end
 
 # default to primitive gradient variables
@@ -107,15 +107,20 @@ function CompressibleNavierStokesDiffusion2D(equations::CompressibleEulerEquatio
 
     Pr = promote_type(typeof(gamma), typeof(Prandtl))(Prandtl)
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ / ((gamma-1) Prandtl).
+    # constant is kappa = gamma μ / ((gamma-1) Prandtl) (assuming R = 1).
     # Important note! Factor of μ is accounted for later in `flux`.
     # This avoids recomputation of kappa for non-constant μ.
-    kappa = gamma * inv_gamma_minus_one / Pr
+    kappa_over_mu = gamma * inv_gamma_minus_one / Pr
+
+    # See eq (3.25) from https://elib.dlr.de/50794/1/rdwight-PhDThesis-ImplicitAndAdjoint.pdf
+    # and the relation (gamma - 1) * kappa = gamma * mu / Pr (assuming R = 1)
+    gamma_over_Pr = gamma / Pr
+    max_visc_cond = max(4 / 3, gamma_over_Pr)
 
     return CompressibleNavierStokesDiffusion2D{typeof(gradient_variables),
                                                typeof(Pr), typeof(mu),
-                                               typeof(equations)}(mu, Pr, kappa,
-                                                                  max(4 / 3, kappa),
+                                               typeof(equations)}(mu, Pr, kappa_over_mu,
+                                                                  max_visc_cond,
                                                                   equations,
                                                                   gradient_variables)
 end
@@ -137,8 +142,8 @@ end
 
 # TODO: parabolic
 # This is the flexibility a user should have to select the different gradient variable types
-# varnames(::typeof(cons2prim)   , ::CompressibleNavierStokesDiffusion2D) = ("v1", "v2", "T")
-# varnames(::typeof(cons2entropy), ::CompressibleNavierStokesDiffusion2D) = ("w2", "w3", "w4")
+# varnames(::typeof(cons2prim_temperature), ::CompressibleNavierStokesDiffusion2D) = ("v1", "v2", "T")
+# varnames(::typeof(cons2entropy),          ::CompressibleNavierStokesDiffusion2D) = ("w2", "w3", "w4")
 
 function varnames(variable_mapping,
                   equations_parabolic::CompressibleNavierStokesDiffusion2D)
@@ -148,7 +153,7 @@ end
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
-    return cons2prim
+    return cons2prim_temperature
 end
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion2D{GradientVariablesEntropy})
     return cons2entropy
@@ -180,11 +185,11 @@ function flux(u, gradients, orientation::Integer,
     tau_22 = (4 * dv2dy - 2 * dv1dx) / 3
 
     # Fourier's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
-    # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
+    # with thermal conductivity constant kappa = gamma μ R / ((gamma-1) Pr)
     # Note, the gas constant cancels under this formulation, so it is not present
     # in the implementation
-    q1 = equations.kappa * dTdx
-    q2 = equations.kappa * dTdy
+    q1 = equations.kappa_over_mu * dTdx
+    q2 = equations.kappa_over_mu * dTdy
 
     # In the simplest cases, the user passed in `mu` or `mu()`
     # (which returns just a constant) but
@@ -217,8 +222,8 @@ end
     max_diffusivity(u, equations_parabolic::CompressibleNavierStokesDiffusion2D)
 
 # Returns
-- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_4over3_kappa`
-where `max_4over3_kappa = max(4/3, kappa)` is computed in the constructor.
+- `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
+where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
 For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
 as suggested in Section 3.5 of
@@ -235,9 +240,9 @@ for the compressible Navier-Stokes equations see for instance
   See especially equations (2.79), (3.24), and (3.25) from Chapter 3.2.3
 
 The eigenvalues of the diffusivity matrix in 2D are
-``-\frac{\mu}{\rho} \{0, 4/3, 1, \kappa\}``
+``-\frac{\mu}{\rho} \{0, 4/3, 1, \gamma/Pr\}``
 and thus the largest absolute eigenvalue is
-``\frac{\mu}{\rho} \max(4/3, \kappa)``.
+``\frac{\mu}{\rho} \max(4/3, \gamma/Pr)``.
 """
 @inline function max_diffusivity(u,
                                  equations_parabolic::CompressibleNavierStokesDiffusion2D)
@@ -246,11 +251,21 @@ and thus the largest absolute eigenvalue is
     #
     # Accordingly, the spectral radius/largest absolute eigenvalue can be computed as:
     return dynamic_viscosity(u, equations_parabolic) / u[1] *
-           equations_parabolic.max_4over3_kappa
+           equations_parabolic.max_visc_cond
 end
 
-# Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion2D)
+# Convert conservative variables to primitive, with temperature instead of pressure
+"""
+    cons2prim_temperature(u, equations::CompressibleNavierStokesDiffusion2D)
+
+Convert conservative variables `u` to primitive variables `(rho, v1, v2, T)`.
+In contrast to [`cons2prim`](@ref), this function returns temperature as the last variable instead of pressure.
+
+!!! warning "Experimental code"
+    This function is experimental and may change in any future release.
+"""
+@inline function cons2prim_temperature(u,
+                                       equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, _ = u
 
     v1 = rho_v1 / rho
@@ -274,11 +289,11 @@ end
 """
     entropy2velocity_temperature(w, equations::AbstractCompressibleNavierStokesDiffusion{2, 4})
 
-This directly converts entropy variables `w` to velocity and temperature, which are computed 
-from the entropy variables via 
+This directly converts entropy variables `w` to velocity and temperature, which are computed
+from the entropy variables via
 ``T = -1/w_4``, ``v_1 = -w_2/w_4``, and ``v_2 = -w_3/w_4``, where ``w_4 = -\\rho/p`` following
 
-- Hughes, Franca, Mallet (1986) 
+- Hughes, Franca, Mallet (1986)
   A new finite element formulation for CFD
   [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
 
@@ -332,10 +347,21 @@ end
                    T * T * gradient_entropy_vars[4])
 end
 
-# This routine is required because `prim2cons` is called in `initial_condition`, which
-# is called with `equations::CompressibleEulerEquations2D`. This means it is inconsistent
-# with `cons2prim(..., ::CompressibleNavierStokesDiffusion2D)` as defined above.
-# TODO: parabolic. Is there a way to clean this up?
+"""
+    cons2prim(u, equations::CompressibleNavierStokesDiffusion2D)
+
+Forwards to [`cons2prim(u, equations::CompressibleEulerEquations2D)`](@ref)
+to convert conservative variables to primitive variables.
+"""
+@inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion2D)
+    return cons2prim(u, equations.equations_hyperbolic)
+end
+"""
+    prim2cons(u, equations::CompressibleNavierStokesDiffusion2D)
+
+Forwards to [`prim2cons(u, equations::CompressibleEulerEquations2D)`](@ref)
+to convert primitive variables to conservative variables.
+"""
 @inline function prim2cons(u, equations::CompressibleNavierStokesDiffusion2D)
     return prim2cons(u, equations.equations_hyperbolic)
 end
@@ -600,7 +626,7 @@ end
     #  because the gradients are assumed to be with respect to the primitive variables
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
-    return cons2prim(u_boundary, equations)
+    return cons2prim_temperature(u_boundary, equations)
 end
 
 # The BC imposition is the same for both `GradientVariablesPrimitive` and `GradientVariablesEntropy`.
