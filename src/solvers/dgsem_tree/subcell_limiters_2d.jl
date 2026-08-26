@@ -73,7 +73,7 @@ end
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
 
-        # Skip interface if subcell limiting is not necessary for both elements
+        # detect if subcell limiting is necessary for one of the elements
         limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
         limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
         (limit_left || limit_right) || continue
@@ -220,7 +220,7 @@ end
         left_element = cache.interfaces.neighbor_ids[1, interface]
         right_element = cache.interfaces.neighbor_ids[2, interface]
 
-        # Skip interface if subcell limiting is not necessary for both elements
+        # detect if subcell limiting is necessary for one of the elements
         limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
         limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
         (limit_left || limit_right) || continue

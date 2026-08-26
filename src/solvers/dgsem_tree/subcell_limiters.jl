@@ -144,6 +144,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
+    # Only cache the variable values when they are needed for the limiter.
+    # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
                          cache_variable_values)
@@ -262,6 +264,7 @@ function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     return nothing
 end
 
+# The following functions are used to access the subcell limiter coefficients from the volume integral.
 @inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralSubcellLimiting)
     return volume_integral.limiter.cache.subcell_limiter_coefficients
 end
