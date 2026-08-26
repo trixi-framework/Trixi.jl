@@ -186,7 +186,6 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-
 @testitem "P4estMesh2D: elixir_euler_subsonic_constant.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_subsonic_constant.jl"),
