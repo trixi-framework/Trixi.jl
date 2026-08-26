@@ -80,6 +80,7 @@ end
         @test getmesh(pd) == Trixi.PlotMesh(pd)
         @test getmesh(pd).plot_data == pd
         @trixi_test_nowarn show(stdout, getmesh(pd))
+        @trixi_test_nowarn plot(mesh)
         println(stdout)
 
         @testset "2D plot recipes" begin
