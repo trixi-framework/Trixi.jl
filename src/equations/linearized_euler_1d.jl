@@ -25,7 +25,7 @@ Linearized Euler equations in one space dimension. The equations are given by
 \end{pmatrix}
 ```
 The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
-The unknowns are the perturbation quantities of the acoustic velocity ``v_1'``, the pressure ``p'`` 
+The unknowns are the perturbation quantities of the acoustic velocity ``v_1'``, the pressure ``p'``
 and the density ``\rho'``.
 """
 struct LinearizedEulerEquations1D{RealT <: Real} <:
@@ -52,6 +52,17 @@ function LinearizedEulerEquations1D(; v_mean_global::Real,
                                     c_mean_global::Real, rho_mean_global::Real)
     return LinearizedEulerEquations1D(v_mean_global, c_mean_global,
                                       rho_mean_global)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearizedEulerEquations1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearizedEulerEquations1D(convert(NewRealT, equations.v_mean_global),
+                                      convert(NewRealT, equations.c_mean_global),
+                                      convert(NewRealT, equations.rho_mean_global))
 end
 
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations1D)

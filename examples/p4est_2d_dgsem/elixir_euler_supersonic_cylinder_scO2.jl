@@ -133,6 +133,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-
 # We supply a small initial timestep to be able to use a larger AMR interval (3 instead of 1) throughout the simulation.
 # This pays off almost immediately as only the first couple timesteps use this timestep before it is ramped up.
 dt0 = 1e-8
-sol = solve(ode, SSPRK43(stage_limiter! = stage_limiter!, thread = Trixi.True());
+sol = solve(ode, SSPRK43(; stage_limiter! = stage_limiter!, thread = Trixi.Threaded());
             adaptive = true, dt = dt0,
             ode_default_options()..., callback = callbacks);

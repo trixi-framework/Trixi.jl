@@ -240,13 +240,16 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
     idp_bounds_delta_local = Dict{Symbol, real(basis)}()
     # Global variable contains the total maximum deviation.
     idp_bounds_delta_global = Dict{Symbol, real(basis)}()
+    # Track whether all Newton solves converged within the iteration budget.
+    # Set to `false` once the maximum number of iterations is reached.
+    idp_newton_converged = Threads.Atomic{Bool}(true)
     for key in bound_keys
         idp_bounds_delta_local[key] = zero(real(basis))
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
     return (; subcell_limiter_coefficients, idp_bounds_delta_local,
-            idp_bounds_delta_global)
+            idp_bounds_delta_global, idp_newton_converged)
 end
 
 function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
@@ -261,8 +264,18 @@ end
 # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
 # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
 # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient},
+                           volume_integral::VolumeIntegralAdaptive)
+    return get_node_variable(Val(:limiting_coefficient),
+                             volume_integral.volume_integral_stabilized)
+end
+
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
-    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+    return get_node_variable(Val(:limiting_coefficient), dg.volume_integral)
 end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
@@ -337,9 +350,12 @@ end
                               equations, dt, limiter, antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
+    isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
+    iszero(antidiffusive_flux) && return nothing # Skip if antidiffusive flux vanishes
+
     beta = 1 - alpha[indices...]
 
-    beta_L = 0 # alpha = 1
+    beta_L = zero(beta) # alpha = 1
     beta_R = beta # No higher beta (lower alpha) than the current one
 
     u_curr = u + beta * dt * antidiffusive_flux
@@ -360,16 +376,16 @@ end
             dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
                                                     antidiffusive_flux, equations)
         else # Otherwise, perform a bisection step
-            dgoal_dbeta = 0
+            dgoal_dbeta = zero(beta)
         end
 
-        if dgoal_dbeta != 0
+        if !iszero(dgoal_dbeta)
             # Update beta with Newton's method
             beta = beta - goal / dgoal_dbeta
         end
 
         # Check bounds
-        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
+        if (beta < beta_L) || (beta > beta_R) || iszero(dgoal_dbeta) || isnan(beta)
             # Out of bounds, do a bisection step
             beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
@@ -412,6 +428,10 @@ end
         # Check absolute tolerance
         if final_check(bound, goal, newton_abstol)
             break
+        end
+
+        if iter == limiter.max_iterations_newton
+            limiter.cache.idp_newton_converged[] = false
         end
     end
 

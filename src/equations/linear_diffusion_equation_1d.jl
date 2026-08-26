@@ -12,12 +12,21 @@ The linear diffusion equation (or heat equation) in one space dimension with con
 ```math
 \partial_t u = \partial_1 \left( \kappa \partial_1 u \right).
 ```
-Unlike [`LaplaceDiffusion1D`](@ref), which represents the parabolic part of a 
+Unlike [`LaplaceDiffusion1D`](@ref), which represents the parabolic part of a
 hyperbolic-parabolic equation, `LinearDiffusionEquation1D` represents a purely parabolic
 equation without any hyperbolic part.
 """
 struct LinearDiffusionEquation1D{RealT <: Real} <: AbstractLaplaceDiffusion{1, 1}
     diffusivity::RealT
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearDiffusionEquation1D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearDiffusionEquation1D(convert(NewRealT, equations.diffusivity))
 end
 
 varnames(::typeof(cons2cons), ::LinearDiffusionEquation1D) = ("scalar",)

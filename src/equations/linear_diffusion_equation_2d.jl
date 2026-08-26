@@ -13,12 +13,21 @@ The linear diffusion equation (or heat equation) in two space dimensions with co
 \partial_t u = \partial_1 \left( \kappa \partial_1 u \right)
              + \partial_2 \left( \kappa \partial_2 u \right).
 ```
-Unlike [`LaplaceDiffusion2D`](@ref), which represents the parabolic part of a 
+Unlike [`LaplaceDiffusion2D`](@ref), which represents the parabolic part of a
 hyperbolic-parabolic equation, `LinearDiffusionEquation2D` represents a purely parabolic
 equation without any hyperbolic part.
 """
 struct LinearDiffusionEquation2D{RealT <: Real} <: AbstractLaplaceDiffusion{2, 1}
     diffusivity::RealT
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::LinearDiffusionEquation2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return LinearDiffusionEquation2D(convert(NewRealT, equations.diffusivity))
 end
 
 varnames(::typeof(cons2cons), ::LinearDiffusionEquation2D) = ("scalar",)

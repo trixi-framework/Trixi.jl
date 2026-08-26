@@ -79,8 +79,7 @@ refinement_patches = ((type = "box", coordinates_min = (-17, -64),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 refinement_patches = refinement_patches,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
@@ -110,6 +109,6 @@ stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1.3e-4)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(; stage_limiter!);
             dt = 1e-2, ode_default_options()..., adaptive = true,
             callback = callbacks);

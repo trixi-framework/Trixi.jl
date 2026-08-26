@@ -154,7 +154,7 @@ coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                periodicity = false, n_cells_max = 30_000) # set maximum capacity of tree data structure
+                periodicity = false)
 
 initial_condition = (x, t, equations) -> SVector(0.0)
 
@@ -170,7 +170,7 @@ callbacks = CallbackSet(SummaryCallback())
 time_int_tol = 1.0e-6
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks);
-println("Number of timesteps: ", sol.destats.naccept)
+println("Number of timesteps: ", sol.stats.naccept)
 
 using Plots
 plot(sol)
@@ -179,9 +179,9 @@ plot(sol)
 
 # In the example above, we used an adaptive timestep based on truncation error estimates.
 # Alternatively, we can also use a CFL-based timestep control, cf. [`StepsizeCallback`](@ref).
-# To be able to do so, we need to define [`max_diffusivity`](@ref) and 
+# To be able to do so, we need to define [`max_diffusivity`](@ref) and
 # [`have_constant_diffusivity`](@ref) for the new parabolic terms.
-# In Trixi.jl, currently only the standard Laplace Diffusion and Compressible Navier-Stokes-Fourier 
+# In Trixi.jl, currently only the standard Laplace Diffusion and Compressible Navier-Stokes-Fourier
 # parabolic terms are implemented.
 # Since these equations have **isotropic** diffusivity, i.e., direction-independent coefficients,
 # [`max_diffusivity`](@ref) is expected to return a scalar value.
@@ -198,7 +198,7 @@ lambda_max() = maximum(abs.(eigvals(diffusivity)))
     return Trixi.True()
 end
 
-# Return the estimated maximum diffusivity for CFL calculations based on 
+# Return the estimated maximum diffusivity for CFL calculations based on
 # the spectral radius of the diffusivity matrix computed above
 @inline function Trixi.max_diffusivity(equations_parabolic::ConstantAnisotropicDiffusion2D)
     return lambda_max()
@@ -216,7 +216,7 @@ callbacks = CallbackSet(SummaryCallback(), stepsize_callback);
 sol = solve(ode, RDPK3SpFSAL49();
             adaptive = false, dt = stepsize_callback(ode),
             ode_default_options()..., callback = callbacks);
-println("Number of timesteps: ", sol.destats.naccept)
+println("Number of timesteps: ", sol.stats.naccept)
 
 plot(sol)
 

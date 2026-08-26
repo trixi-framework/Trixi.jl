@@ -132,6 +132,18 @@ end
     return RealT
 end
 
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(eqs::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP},
+                      ::Type{NewRealT}) where {NVARS, NCOMP, NewRealT}
+    return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP,
+                                                NewRealT}(SVector{NCOMP, NewRealT}(eqs.gammas),
+                                                          SVector{NCOMP, NewRealT}(eqs.gas_constants),
+                                                          convert(NewRealT, eqs.c_h))
+end
+
 have_nonconservative_terms(::IdealGlmMhdMulticomponentEquations2D) = True()
 
 function varnames(::typeof(cons2cons), equations::IdealGlmMhdMulticomponentEquations2D)
@@ -246,7 +258,7 @@ end
     p = (gamma - 1) * (rho_e_total - kin_en - mag_en - 0.5f0 * psi^2)
 
     if orientation == 1
-        f_rho = densities(u, v1, equations)
+        f_rho = partial_momenta(u, v1, equations)
         f1 = rho_v1 * v1 + p + mag_en - B1^2
         f2 = rho_v1 * v2 - B1 * B2
         f3 = rho_v1 * v3 - B1 * B3
@@ -257,7 +269,7 @@ end
         f7 = v1 * B3 - v3 * B1
         f8 = c_h * B1
     else # orientation == 2
-        f_rho = densities(u, v2, equations)
+        f_rho = partial_momenta(u, v2, equations)
         f1 = rho_v2 * v1 - B1 * B2
         f2 = rho_v2 * v2 + p + mag_en - B2^2
         f3 = rho_v2 * v3 - B2 * B3
@@ -839,7 +851,9 @@ end
     return help1 / help2
 end
 
-@inline function densities(u, v, equations::IdealGlmMhdMulticomponentEquations2D)
+# `v` should be a scalar velocity component (i.e., `v1` or `v2`)
+@inline function partial_momenta(u, v,
+                                 equations::IdealGlmMhdMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 8] * v
                                                             for i in eachcomponent(equations))
 end

@@ -52,9 +52,14 @@ ode = semidiscretize(semi, tspan; storage_type = nothing, real_type = nothing)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
 stepsize_callback = StepsizeCallback(cfl = 0.1)
 
-callbacks = CallbackSet(summary_callback,
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                         stepsize_callback)
 
 ###############################################################################
@@ -65,7 +70,7 @@ run_profiler = false
 
 # disable warnings when maxiters is reached
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
-                  dt = 1.0,
+                  dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks,
                   maxiters = maxiters, verbose = false)
 if run_profiler

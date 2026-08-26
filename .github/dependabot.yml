@@ -10,3 +10,26 @@ updates:
       all-github-actions:
         patterns:
           - "*"
+  - package-ecosystem: "julia"
+    directories: # Location of Julia projects
+      - "/"
+      - "/benchmark"
+      - "/docs"
+      - "/test"
+    schedule:
+      interval: "daily"
+    groups:
+      # Group updates for P4est.jl, T8code.jl, and all other julia packages into separate PRs
+      # because we usually want to update P4est.jl and T8code.jl separately.
+      p4est:
+        patterns:
+          - "P4est"
+      t8code:
+        patterns:
+          - "T8code"
+      all-julia-packages-except-p4est-t8code:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "P4est"
+          - "T8code"

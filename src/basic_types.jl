@@ -41,6 +41,10 @@ abstract type AbstractMortarL2{RealT <: Real} <: AbstractMortar{RealT} end
 # numerical solutions, e.g. the calculation of errors
 abstract type SolutionAnalyzer{RealT <: Real} end
 
+# Abstract supertype of indicators used for AMR, shock capturing, and
+# adaptive volume-integral selection
+abstract type AbstractIndicator end
+
 # abstract supertype of grid-transfer methods used for AMR,
 # e.g. refinement and coarsening based on L² projections
 abstract type AdaptorAMR{RealT <: Real} end
@@ -116,6 +120,9 @@ end
     boundary_condition_do_nothing = Trixi.BoundaryConditionDoNothing()
 
 Imposing no boundary condition just evaluates the flux at the inner state.
+This has the effect of extending the domain beyond the boundary with the same solution state as
+in the interior.
+Also applicable to parabolic equations.
 """
 const boundary_condition_do_nothing = BoundaryConditionDoNothing()
 

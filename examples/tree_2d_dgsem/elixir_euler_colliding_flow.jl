@@ -79,8 +79,7 @@ refinement_patches = ((type = "box", coordinates_min = (-17, -64),
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 refinement_patches = refinement_patches,
-                periodicity = (false, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true))
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
@@ -113,5 +112,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(; stage_limiter!);
             ode_default_options()..., callback = callbacks);

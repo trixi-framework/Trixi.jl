@@ -76,17 +76,17 @@ end
 #
 # Here, `mesh.md.FToF` is a `(num_faces_per_element × num_elements)` array where
 # `FToF[f, e]` stores the global face index of the neighbor of local face `f` on
-# element `e`. 
+# element `e`.
 #
 # Global face indices are laid out as
 #
 #   global_face_index = (element_index - 1) * num_faces + local_face_index,
-# 
+#
 # so that the element index can be recovered by integer division:
 #
 #   element_index = (global_face_index - 1) ÷ num_faces + 1.
-# 
-# For a non-periodic boundary face, `FToF[f, e]` points back to face `f` of element 
+#
+# For a non-periodic boundary face, `FToF[f, e]` points back to face `f` of element
 # `e` itself, so boundary elements are listed as their own neighbor.
 function build_element_to_element_connectivity(mesh::DGMultiMesh, dg::DGMulti)
     face_to_face_connectivity = mesh.md.FToF
@@ -129,9 +129,14 @@ function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP,
     solution_container = initialize_dgmulti_solution_container(mesh, equations, dg,
                                                                uEltype)
 
+    # this calls the `create_cache` for the shock capturing volume integral
+    volume_integral_cache = create_cache(mesh, equations, dg.volume_integral,
+                                         dg, RealT, uEltype)
+
     return (; md, Qrst_skew, dxidxhatj = md.rstxyzJ,
             invJ = inv.(md.J), lift_scalings, inv_wq = inv.(rd.wq),
-            solution_container, du_local_threaded)
+            solution_container, du_local_threaded,
+            volume_integral_cache...)
 end
 
 # most general create_cache: works for `DGMultiFluxDiff{<:Polynomial}`
@@ -271,7 +276,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                                alpha = true)
     # No interpolation performed for general volume integral.
     # Instead, an element-wise entropy projection (`entropy_projection!`) is performed before, see
-    # `rhs!` for `DGMultiFluxDiff`, which populates `entropy_projected_u_values`
+    # `rhs_hyperbolic!` for `DGMultiFluxDiff`, which populates `entropy_projected_u_values`
     @threaded for element in eachelement(mesh, dg, cache)
         volume_integral_kernel!(du, u, element, mesh,
                                 have_nonconservative_terms, equations,
@@ -286,13 +291,13 @@ end
 # where ref_entries[d] = Qrst_skew[d][i,j].
 # This fuses the NDIMS per-dimension flux
 # evaluations of the old dimension-by-dimension loop into a single evaluation per pair.
-# Essentially, instead of calculating 
+# Essentially, instead of calculating
 #   volume_flux(u_i, u_j, 1, equations) * Qx[i, j] + volume_flux(u_i, u_j, 2, equations) * Qy[i, j] + ...
 # where Qx[i, j] = dr/dx * Qr[i, j] + ds/dx * Qs[i, j], we can expand out and evaluate
-#   volume_flux(u_i, u_j, [dr/dx, dr/dy] * Qr[i, j], equations) + 
+#   volume_flux(u_i, u_j, [dr/dx, dr/dy] * Qr[i, j], equations) +
 #   volume_flux(u_i, u_j, [ds/dx, ds/dy] * Qs[i, j], equations)
-# which is slightly faster. 
-# 
+# which is slightly faster.
+#
 # For dense operators (SBP on Line/Tri/Tet), we do not use this sum factorization trick.
 @inline function local_flux_differencing!(du_local, u_local, element_index,
                                           have_nonconservative_terms::False,
@@ -345,9 +350,9 @@ end
                 du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
             end
             # Non-conservative terms use the full (non-symmetric) loop.
-            # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
-            # fluxes based on the interpretation of global SBP operators.  
-            # See also `calc_interface_flux!` with `have_nonconservative_terms::True` 
+            # The 0.5f0 factor on the normal direction is necessary for the nonconservative
+            # fluxes based on the interpretation of global SBP operators.
+            # See also `calc_interface_flux!` with `have_nonconservative_terms::True`
             # in src/solvers/dgsem_tree/dg_1d.jl
             f_nc = flux_nonconservative(u_i, u_local[j], 0.5f0 * normal_direction,
                                         equations)
@@ -421,9 +426,9 @@ end
                     du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
                 end
                 # Non-conservative terms use the full (non-symmetric) loop.
-                # The 0.5f0 factor on the normal direction is necessary for the nonconservative 
-                # fluxes based on the interpretation of global SBP operators.  
-                # See also `calc_interface_flux!` with `have_nonconservative_terms::True` 
+                # The 0.5f0 factor on the normal direction is necessary for the nonconservative
+                # fluxes based on the interpretation of global SBP operators.
+                # See also `calc_interface_flux!` with `have_nonconservative_terms::True`
                 # in src/solvers/dgsem_tree/dg_1d.jl
                 f_nc = flux_nonconservative(u_i, u_j, 0.5f0 * normal_direction_ij,
                                             equations)
@@ -506,8 +511,12 @@ end
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
-function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC,
+                         source_terms::Source, dg::DGMultiFluxDiff,
+                         cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     # this function evaluates the solution at volume and face quadrature points (which was previously
@@ -548,12 +557,14 @@ function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
 end
 
 # Specializes on SBP (e.g., nodal/collocation) DG methods with a flux differencing volume
-# integral, e.g., an entropy conservative/stable discretization. The implementation of `rhs!`
-# for such schemes is very similar to the implementation of `rhs!` for standard DG methods,
+# integral, e.g., an entropy conservative/stable discretization. The implementation of `rhs_hyperbolic!`
+# for such schemes is very similar to the implementation of `rhs_hyperbolic!` for standard DG methods,
 # but specializes `calc_volume_integral`.
-function rhs!(du, u, t, mesh, equations,
-              boundary_conditions::BC, source_terms::Source,
-              dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         mesh, equations,
+                         boundary_conditions::BC, source_terms::Source,
+                         dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
     @trixi_timeit timer() "volume integral" calc_volume_integral!(du, u, mesh,
