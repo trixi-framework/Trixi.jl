@@ -2,10 +2,10 @@
     project_to_admissible_set(cell_average, lower_bound, variables, equations)
 
 For scalar equations, the positivity-preserving limiter enforces `u > u_lower`, and
-projection to the admissible set is a clipping operation. 
+projection to the admissible set is a clipping operation.
 
-To ensure that `variables` is consistent with this assumption, users must set 
-`variables = (first,)`. 
+To ensure that `variables` is consistent with this assumption, users must set
+`variables = (first,)`.
 """
 @inline function project_to_admissible_set(cell_average, lower_bounds,
                                            variables::Tuple{typeof(first)},
@@ -14,8 +14,8 @@ To ensure that `variables` is consistent with this assumption, users must set
     return SVector(max(lower_bounds[1], cell_average[1]))
 end
 
-# use lispy tuple recursion (similar to implementation of limiter_zhang_shu!) to 
-# check admissibility in a type-stable way. 
+# use lispy tuple recursion (similar to implementation of limiter_zhang_shu!) to
+# check admissibility in a type-stable way.
 @inline function state_is_admissible(u, lower_bounds::NTuple{N, <:Real},
                                      variables::NTuple{N, Any}, equations) where {N}
     lower_bound = first(lower_bounds)

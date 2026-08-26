@@ -221,14 +221,14 @@ end
 
 function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Tri})
     # this assumes that the nodes of the first face on the reference element correspond to a face where
-    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis. 
+    # s = constant, so that the `r` coordinates on this face can be used to construct a nodal basis.
     @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
     return reshape(basis.r[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
 end
 
 function extract_face_nodes_1D(basis::DGMultiBasis{<:Any, <:Quad})
     # this assumes that the nodes of the first face on the reference element correspond to a face where
-    # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis. 
+    # r = constant, so that the `s` coordinates on this face can be used to construct a nodal basis.
     # For quadrilateral elements, this is true since the faces are ordered r = ±1, s = ±1.
     @assert length(basis.Fmask) % num_faces(basis.element_type)==0 "The number of face nodes must be the same for all faces."
     return reshape(basis.s[basis.Fmask[:, 1]], :, num_faces(basis.element_type))[:, 1]
@@ -244,12 +244,12 @@ function mesh_plotting_wireframe(u::ScalarData, mesh, equations, dg::DGMulti, ca
     # note that since `ScalarPlotData2D` is restricted to Tri and Quad types, this should always be true.
     num_face_points = size(Fmask, 1) ÷ num_faces(rd.element_type)
 
-    # extract a set of interpolation nodes for the face nodes. For Polynomial approximations, 
-    # these are usually just (N+1) Gauss-Lobatto nodes. For SBP approximation types, these can 
-    # be more general, with length(face_nodes_1D) ≥ N+1 for certain configurations. 
+    # extract a set of interpolation nodes for the face nodes. For Polynomial approximations,
+    # these are usually just (N+1) Gauss-Lobatto nodes. For SBP approximation types, these can
+    # be more general, with length(face_nodes_1D) ≥ N+1 for certain configurations.
     face_nodes_1D = extract_face_nodes_1D(dg.basis)
 
-    # Construct 1D plotting interpolation matrix `Vp1D` for a single face. 
+    # Construct 1D plotting interpolation matrix `Vp1D` for a single face.
     # Since num_face_points may be larger than N+1, this is doing a least squares projection
     vandermonde_matrix_1D = StartUpDG.vandermonde(Line(), N, face_nodes_1D)
     rplot = LinRange(-1, 1, nvisnodes)
@@ -1702,14 +1702,14 @@ function reference_node_coordinates_2d(dg::Union{DGSEM, FDSBP})
 end
 
 function plotting_interpolation_matrix(dg::FDSBP; kwargs...)
-    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
-    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points.
+    # However, since FDSBP already has equally spaced nodes, we skip this step
     return I
 end
 
 function face_plotting_interpolation_matrix(dg::FDSBP; kwargs...)
-    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points. 
-    # However, since FDSBP already has equally spaced nodes, we skip this step 
+    # Typically, DGSEM interpolates LGL nodes to a finer set of uniformly spaced points.
+    # However, since FDSBP already has equally spaced nodes, we skip this step
     return I
 end
 
@@ -1824,5 +1824,51 @@ function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
     end
 
     return curve
+end
+
+#####################################################################
+# BlockFV plotting helpers for P4estMesh{2}.
+# Returns the physical (x,y) corners of all FV cells as two arrays of shape
+# (n+1, n+1, n_elements): one corner shared by up to 4 neighboring FV cells.
+
+function calc_fv_cell_corners(mesh::P4estMesh{2}, solver::BlockFV, cache)
+    n = nnodes(solver)
+    n_elements = nelements(solver, cache)
+    # n+1 equidistant boundary nodes in [-1,1] — the cell edges, not the cell centers.
+    boundary_nodes = SVector{n + 1}(range(-1, 1, length = n + 1))
+    corner_coordinates = Array{Float64}(undef, 2, n + 1, n + 1, n_elements)
+    calc_node_coordinates!(corner_coordinates, mesh, boundary_nodes)
+
+    return corner_coordinates[1, :, :, :], corner_coordinates[2, :, :, :]
+end
+
+# Edge segments for all FV cell boundaries.
+# Returns (x_face, y_face), each (2, n_faces): one column per edge segment.
+function calc_fv_grid_wireframe(corners_x, corners_y)
+    n_plus_1, _, n_elements = size(corners_x)
+    n = n_plus_1 - 1
+    n_faces = 4 * n^2 * n_elements
+    x_face = Array{Float64}(undef, 2, n_faces)
+    y_face = similar(x_face)
+
+    face = 0
+    for element in 1:n_elements
+        for j in 1:n, i in 1:n
+            corners_i = (i, i + 1, i + 1, i)
+            corners_j = (j, j, j + 1, j + 1)
+            for k in 1:4
+                k_next = k == 4 ? 1 : k + 1
+                face += 1
+                x_face[1, face] = corners_x[corners_i[k], corners_j[k], element]
+                x_face[2, face] = corners_x[corners_i[k_next], corners_j[k_next],
+                                            element]
+                y_face[1, face] = corners_y[corners_i[k], corners_j[k], element]
+                y_face[2, face] = corners_y[corners_i[k_next], corners_j[k_next],
+                                            element]
+            end
+        end
+    end
+
+    return x_face, y_face
 end
 end # @muladd

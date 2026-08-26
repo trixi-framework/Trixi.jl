@@ -7,11 +7,11 @@ using Trixi
 eos = PengRobinson()
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# the smooth Peng-Robinson N2 transcritical wave taken from "An entropy-stable hybrid 
-# scheme for simulations of transcritical real-fluid flows" by Ma, Ihme (2017). In this 
-# context, the wave is "transcritical" because the solution involves both subcritical 
-# and supercritical density and temperature values. 
-# 
+# the smooth Peng-Robinson N2 transcritical wave taken from "An entropy-stable hybrid
+# scheme for simulations of transcritical real-fluid flows" by Ma, Ihme (2017). In this
+# context, the wave is "transcritical" because the solution involves both subcritical
+# and supercritical density and temperature values.
+#
 # <https://doi.org/10.1016/j.jcp.2017.03.022>
 function initial_condition_transcritical_wave(x, t,
                                               equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
@@ -42,7 +42,6 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;

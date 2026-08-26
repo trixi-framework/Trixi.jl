@@ -7,7 +7,7 @@ using Trixi
 eos = PengRobinson()
 equations = NonIdealCompressibleEulerEquations1D(eos)
 
-# the Peng-Robinson N2 transcritical shock taken from "An entropy-stable hybrid scheme 
+# the Peng-Robinson N2 transcritical shock taken from "An entropy-stable hybrid scheme
 # for simulations of transcritical real-fluid flows" by Ma, Ihme (2017).
 # <https://doi.org/10.1016/j.jcp.2017.03.022>
 function initial_condition_transcritical_shock(x, t,
@@ -39,7 +39,6 @@ coordinates_min = -0.5
 coordinates_max = 0.5
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 30_000,
                 periodicity = false)
 
 boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),

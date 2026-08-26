@@ -127,17 +127,15 @@ end
         # 2D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
         # 3D
         @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
                                             initial_refinement_level = 2,
-                                            n_cells_max = 10_000,
                                             periodicity = true)
 
         # Keyword-only constructor
         mesh_ref = TreeMesh((-1.0, -1.0), (1.0, 1.0);
-                            initial_refinement_level = 2, n_cells_max = 10_000)
+                            initial_refinement_level = 2)
         mesh_kw = TreeMesh(; coordinates_min = (-1.0, -1.0),
                            coordinates_max = (1.0, 1.0),
                            refinement_level = 2)
@@ -157,7 +155,7 @@ end
             for ref_level in 0:2
                 mesh = TreeMesh(coords_min, coords_max,
                                 initial_refinement_level = ref_level,
-                                n_cells_max = 10_000, periodicity = true)
+                                periodicity = true)
 
                 @test @inferred(Trixi.ndims(mesh)) == ndims
                 @test @inferred(Trixi.ncells(mesh)) == (2^ndims)^ref_level
@@ -451,7 +449,7 @@ end
         coordinates_max = (1.0,)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -488,7 +486,7 @@ end
         coordinates_max = (1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -525,7 +523,7 @@ end
         coordinates_max = (1.0, 1.0, 1.0)
         mesh = TreeMesh(coordinates_min, coordinates_max,
                         initial_refinement_level = 0,
-                        n_cells_max = 1_000, periodicity = true)
+                        periodicity = true)
 
         semi = SemidiscretizationHyperbolic(mesh, equations,
                                             initial_condition_discontinuity, solver,
@@ -867,6 +865,41 @@ end
         cons_vars = prim2cons((rho, v1, v2, v3, p), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+end
+
+@testitem "Unit: Navier-Stokes conversion between conservative/primitive variables" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    rho, v1, v2, v3, p = 2.0, 0.1, 0.2, 0.3, 4.0
+    mu, Prandtl = 0.01, 0.72
+
+    let equations_hyperbolic = CompressibleEulerEquations1D(1.4)
+        equations = CompressibleNavierStokesDiffusion1D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations2D(1.4)
+        equations = CompressibleNavierStokesDiffusion2D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
+    end
+
+    let equations_hyperbolic = CompressibleEulerEquations3D(1.4)
+        equations = CompressibleNavierStokesDiffusion3D(equations_hyperbolic;
+                                                        mu, Prandtl)
+        prim_vars = SVector(rho, v1, v2, v3, p)
+        cons_vars = prim2cons(prim_vars, equations)
+        @test prim_vars ≈ cons2prim(cons_vars, equations)
+        @test cons_vars ≈ prim2cons(cons2prim(cons_vars, equations), equations)
     end
 end
 
@@ -1398,7 +1431,6 @@ end
     solver = DGSEM(polydeg = 0, surface_flux = flux_ranocha)
     mesh = TreeMesh((0.0,), (1.0,),
                     initial_refinement_level = 2,
-                    n_cells_max = 30_000,
                     periodicity = true)
     semi = SemidiscretizationHyperbolic(mesh, equations,
                                         initial_condition_convergence_test,
@@ -3438,6 +3470,7 @@ end
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                                    normal_direction,
+                                                                   normal_direction,
                                                                    equations,
                                                                    Trixi.NonConservativeJump(),
                                                                    noncons)
@@ -3467,7 +3500,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
     ###############################################################################
     ### semidiscretization for sparsity detection ###
@@ -3495,10 +3527,11 @@ end
     ###############################################################################
     ### Compute the Jacobian sparsity pattern ###
 
-    # Wrap the `Trixi.rhs!` function to match the signature `f!(du, u)`, see
+    # Wrap the `Trixi.rhs_hyperbolic!` function to match the signature `f!(du, u)`, see
     # https://adrianhill.de/SparseConnectivityTracer.jl/stable/user/api/#ADTypes.jacobian_sparsity
-    rhs_jac_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_jac_type,
-                                                   tspan[1])
+    rhs_jac_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_jac_type, tspan[1])
+    end
 
     jac_prototype = jacobian_sparsity(rhs_jac_type!, du_ode, u0_ode, jac_detector)
 
@@ -3520,8 +3553,11 @@ end
     du_ode = similar(u0_ode)
     N = length(u0_ode)
 
-    rhs_float_type! = (du_ode, u0_ode) -> Trixi.rhs!(du_ode, u0_ode, semi_float_type,
-                                                     tspan[1])
+    @test Trixi.default_rhs(semi_float_type) === Trixi.rhs_hyperbolic!
+
+    rhs_float_type! = function (du_ode, u0_ode)
+        Trixi.rhs_hyperbolic!(du_ode, u0_ode, semi_float_type, tspan[1])
+    end
 
     ###############################################################################
     ### sparsity-aware finite diff ###
@@ -3544,7 +3580,7 @@ end
     function rhs_hyperbolic_parabolic!(du_ode, u_ode,
                                        semi::SemidiscretizationHyperbolicParabolic, t)
         du_para = similar(du_ode) # This obviously allocates, but fine for this test
-        Trixi.rhs!(du_ode, u_ode, semi, t)
+        Trixi.rhs_hyperbolic!(du_ode, u_ode, semi, t)
         Trixi.rhs_parabolic!(du_para, u_ode, semi, t)
 
         Trixi.@threaded for i in eachindex(du_ode)
@@ -3568,7 +3604,6 @@ end
 
     mesh = TreeMesh(coordinates_min, coordinates_max,
                     initial_refinement_level = 4,
-                    n_cells_max = 30_000,
                     periodicity = true)
 
     ###############################################################################
@@ -3588,6 +3623,8 @@ end
                                                           boundary_conditions = (boundary_condition_periodic,
                                                                                  boundary_condition_periodic),
                                                           uEltype = jac_eltype) # Need to supply Jacobian element type
+
+    @test_throws ArgumentError Trixi.default_rhs(semi_jac_type)
 
     tspan = (0.0, 1.5) # Re-used for wrapping `rhs` below
 
@@ -3620,7 +3657,7 @@ end
 
     ###############################################################################
     ### Compare sparsity pattern detected using `rhs_parabolic!` only to ###
-    ### sparsity pattern detected on combined hyperbolic and parabolic `rhs!` ###
+    ### sparsity pattern detected on the combined hyperbolic-parabolic RHS ###
 
     rhs_hyp_para_wrapped! = (du_ode, u0_ode) -> rhs_hyperbolic_parabolic!(du_ode,
                                                                           u0_ode,
@@ -3647,7 +3684,7 @@ end
     # 1D
     eq1d = LinearScalarAdvectionEquation1D(1.0)
     tree_mesh1d_periodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh1d_periodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                 periodicity = true)
     for mesh1d_periodic in (tree_mesh1d_periodic,
@@ -3683,7 +3720,7 @@ end
     end
     # non-periodic mesh
     tree_mesh1d_nonperiodic = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh1d_nonperiodic = StructuredMesh((4,), (-1.0,), (1.0,),
                                                    periodicity = false)
     for mesh1d_nonperiodic in (tree_mesh1d_nonperiodic,
@@ -3712,7 +3749,7 @@ end
     eq2d = LinearScalarAdvectionEquation2D((1.0, -1.0))
     tree_mesh2d_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh2d_periodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                 periodicity = true)
     for mesh2d_periodic in (tree_mesh2d_periodic,
@@ -3758,7 +3795,7 @@ end
     # non-periodic mesh
     tree_mesh2d_nonperiodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh2d_nonperiodic = StructuredMesh((4, 4), (-1.0, -1.0), (1.0, 1.0),
                                                    periodicity = false)
     for mesh2d_nonperiodic in (tree_mesh2d_nonperiodic,
@@ -3792,7 +3829,6 @@ end
     # partially periodic
     tree_mesh2d_partial_periodic = TreeMesh((-1.0, -1.0), (1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (true, false))
     structured_mesh2d_partial_periodic = StructuredMesh((4, 4), (-1.0, -1.0),
                                                         (1.0, 1.0),
@@ -3833,7 +3869,7 @@ end
     eq3d = LinearScalarAdvectionEquation3D((1.0, 1.0, -1.0))
     tree_mesh3d_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                     initial_refinement_level = 1,
-                                    n_cells_max = 10, periodicity = true)
+                                    periodicity = true)
     structured_mesh3d_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                 (1.0, 1.0, 1.0),
                                                 periodicity = true)
@@ -3887,7 +3923,7 @@ end
     # non-periodic mesh
     tree_mesh3d_nonperiodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                        initial_refinement_level = 1,
-                                       n_cells_max = 10, periodicity = false)
+                                       periodicity = false)
     structured_mesh3d_nonperiodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                    (1.0, 1.0, 1.0),
                                                    periodicity = false)
@@ -3929,7 +3965,6 @@ end
     # partially periodic
     tree_mesh3d_partial_periodic = TreeMesh((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0),
                                             initial_refinement_level = 1,
-                                            n_cells_max = 10,
                                             periodicity = (false, true, true))
     structured_mesh3d_partial_periodic = StructuredMesh((4, 4, 4), (-1.0, -1.0, -1.0),
                                                         (1.0, 1.0, 1.0),
@@ -4068,29 +4103,34 @@ end
                                            refinement_level = 2)
 end
 
-@testitem "Unit: TreeMesh without n_cells_max" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+@testitem "Unit: TreeMesh" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:3
         coords_min = ntuple(_ -> -1.0, NDIMS)
         coords_max = ntuple(_ -> 1.0, NDIMS)
         mesh = TreeMesh(coords_min, coords_max; initial_refinement_level = 2)
+        expected_capacity = sum((2^NDIMS)^l for l in 0:2)
         @test @inferred(Trixi.ncells(mesh)) == 2^(NDIMS * 2)
+        @test mesh.tree.capacity == expected_capacity
         @test mesh.tree.capacity >= mesh.tree.length
     end
 end
 
 @testitem "Unit: TreeMesh auto-growth matches large-capacity tree" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     for NDIMS in 1:2
-        coords_min = ntuple(_ -> -1.0, NDIMS)
-        coords_max = ntuple(_ -> 1.0, NDIMS)
+        RealT = Float64
+        TreeType = Trixi.SerialTree{NDIMS, RealT}
+        domain_center = SVector{NDIMS, RealT}(ntuple(_ -> 0.0, NDIMS))
+        domain_length = convert(RealT, 2.0)
 
         # Reference: large capacity, no growth needed
-        mesh_ref = TreeMesh(coords_min, coords_max;
-                            n_cells_max = 10_000,
-                            initial_refinement_level = 3)
-        # Test: starts tiny, must grow during construction and again during AMR
-        mesh_small = TreeMesh(coords_min, coords_max;
-                              n_cells_max = 2,
-                              initial_refinement_level = 3)
+        mesh_ref = TreeMesh{NDIMS, TreeType, RealT}(10_000, domain_center,
+                                                    domain_length)
+        Trixi.initialize!(mesh_ref, 3, (), ())
+
+        # Small: deliberately tiny initial capacity, must grow
+        mesh_small = TreeMesh{NDIMS, TreeType, RealT}(2, domain_center,
+                                                      domain_length)
+        Trixi.initialize!(mesh_small, 3, (), ())
 
         # Post-construction AMR: refine all leaf cells once on both trees
         Trixi.refine!(mesh_ref.tree)
@@ -4112,6 +4152,39 @@ end
         @test size(ts.neighbor_ids) == (2 * NDIMS, ts.capacity + 1)
         @test size(ts.coordinates) == (NDIMS, ts.capacity + 1)
     end
+end
+
+@testitem "Unit: load_mesh derives TreeMesh capacity from n_cells" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    mktempdir() do dir
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
+                        initial_refinement_level = 2)
+        mesh_file = Trixi.save_mesh_file(mesh, dir)
+
+        loaded = Trixi.load_mesh_serial(mesh_file; RealT = Float64)
+        @test loaded.tree.capacity == mesh.tree.length
+        @test loaded.tree.length == mesh.tree.length
+        @test loaded.tree.parent_ids[1:(loaded.tree.length)] ==
+              mesh.tree.parent_ids[1:(mesh.tree.length)]
+        @test loaded.tree.child_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.child_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.neighbor_ids[:, 1:(loaded.tree.length)] ==
+              mesh.tree.neighbor_ids[:, 1:(mesh.tree.length)]
+        @test loaded.tree.levels[1:(loaded.tree.length)] ==
+              mesh.tree.levels[1:(mesh.tree.length)]
+        @test loaded.tree.coordinates[:, 1:(loaded.tree.length)] ≈
+              mesh.tree.coordinates[:, 1:(mesh.tree.length)]
+        @test loaded.tree.center_level_0 == mesh.tree.center_level_0
+        @test loaded.tree.length_level_0 == mesh.tree.length_level_0
+        @test loaded.tree.periodicity == mesh.tree.periodicity
+        @test loaded.current_filename == mesh_file
+        @test loaded.unsaved_changes == false
+    end
+end
+
+@testitem "Unit: removed TreeMesh capacity keyword is rejected" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    removed_kw = Symbol("n_cells", "_max")
+    kwargs = (; initial_refinement_level = 1, removed_kw => 10)
+    @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
 @testitem "Unit: Euler admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
@@ -4186,123 +4259,5 @@ end
         @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
         @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
         @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
-    end
-end
-
-@testset "load_mesh n_cells_max compatibility" begin
-    mktempdir() do dir
-        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0);
-                        initial_refinement_level = 2, n_cells_max = 1000)
-        mesh_file = Trixi.save_mesh_file(mesh, dir)
-        saved_cap = mesh.tree.capacity
-
-        # n_cells_max = nothing: use saved capacity
-        m1 = Trixi.load_mesh_serial(mesh_file; n_cells_max = nothing, RealT = Float64)
-        @test m1.tree.capacity == saved_cap
-
-        # n_cells_max = 0: legacy alias, use saved capacity
-        m2 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 0, RealT = Float64)
-        @test m2.tree.capacity == saved_cap
-
-        # n_cells_max smaller than saved: still use saved capacity
-        m3 = Trixi.load_mesh_serial(mesh_file; n_cells_max = 1, RealT = Float64)
-        @test m3.tree.capacity == saved_cap
-
-        # n_cells_max larger than saved: use provided value
-        m4 = Trixi.load_mesh_serial(mesh_file; n_cells_max = saved_cap + 500,
-                                    RealT = Float64)
-        @test m4.tree.capacity == saved_cap + 500
-
-        # negative value: rejected
-        @test_throws ArgumentError Trixi.load_mesh_serial(mesh_file; n_cells_max = -1,
-                                                          RealT = Float64)
-    end
-end
-
-@testitem "Unit: Specific gas constant" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    # test computation of temperature for CompressibleNavierStokesDiffusion equations
-    # with gas constant not equal to 1
-    @testset "1D equations" begin
-        mu_ref = 1.0
-        prandtl_number() = 0.72
-        gamma = 1.4
-
-        equations = CompressibleEulerEquations1D(gamma)
-
-        # default
-        equations_parabolic_d = CompressibleNavierStokesDiffusion1D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
-
-        # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 1.0), equations_parabolic_d)
-
-        # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic_d) == 1.0
-
-        R_specific = 2.0
-        equations_parabolic = CompressibleNavierStokesDiffusion1D(equations,
-                                                                  mu = mu_ref,
-                                                                  Prandtl = prandtl_number(),
-                                                                  R = R_specific)
-
-        # p = rho R T, R = 2, rho = 1 => T = 0.5
-        @test temperature(u_cons, equations_parabolic) == 0.5
-    end
-
-    @testset "2D equations" begin
-        mu_ref = 1.0
-        prandtl_number() = 0.72
-        gamma = 1.4
-
-        equations = CompressibleEulerEquations2D(gamma)
-
-        # default
-        equations_parabolic_d = CompressibleNavierStokesDiffusion2D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
-
-        # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic_d)
-
-        # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic_d) == 1.0
-
-        R_specific = 2.0
-        equations_parabolic = CompressibleNavierStokesDiffusion2D(equations,
-                                                                  mu = mu_ref,
-                                                                  Prandtl = prandtl_number(),
-                                                                  R = R_specific)
-
-        # p = rho R T, R = 2, rho = 1 => T = 0.5
-        @test temperature(u_cons, equations_parabolic) == 0.5
-    end
-
-    @testset "3D equations" begin
-        mu_ref = 1.0
-        prandtl_number() = 0.72
-        gamma = 1.4
-
-        equations = CompressibleEulerEquations3D(gamma)
-
-        # default
-        equations_parabolic_d = CompressibleNavierStokesDiffusion3D(equations,
-                                                                    mu = mu_ref,
-                                                                    Prandtl = prandtl_number())
-
-        # Flow at rest, rho = 1.0, p = 1.0
-        u_cons = prim2cons(SVector(1.0, 0.0, 0.0, 0.0, 1.0), equations_parabolic_d)
-
-        # p = rho R T, R = 1, rho = 1 => T = 1.0
-        @test temperature(u_cons, equations_parabolic_d) == 1.0
-
-        R_specific = 2.0
-        equations_parabolic = CompressibleNavierStokesDiffusion3D(equations,
-                                                                  mu = mu_ref,
-                                                                  Prandtl = prandtl_number(),
-                                                                  R = R_specific)
-
-        # p = rho R T, R = 2, rho = 1 => T = 0.5
-        @test temperature(u_cons, equations_parabolic) == 0.5
     end
 end
