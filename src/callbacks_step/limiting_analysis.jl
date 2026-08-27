@@ -109,8 +109,9 @@ end
     @unpack t = integrator
     iter = integrator.stats.naccept
 
-    if limiting_analysis_callback.interval == 0 ||
-       (iter % limiting_analysis_callback.interval != 0)
+    if (limiting_analysis_callback.interval == 0 ||
+        (iter % limiting_analysis_callback.interval != 0)) &&
+       !isfinished(integrator)
         return nothing
     end
 
