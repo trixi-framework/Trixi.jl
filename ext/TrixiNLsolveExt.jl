@@ -4,6 +4,8 @@ module TrixiNLsolveExt
 # Required for finding coefficients in Butcher tableau in the third order of
 # PERK scheme integrators
 using NLsolve: nlsolve
+using ADTypes: AutoForwardDiff
+import ForwardDiff
 
 # We use a random initialization of the nonlinear solver.
 # To make the tests reproducible, we need to seed the RNG
@@ -94,7 +96,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
         sol = nlsolve(objective_function!, x0, method = :trust_region,
                       ftol = 4.0e-16, # Enforce objective up to machine precision
-                      iterations = 10^4, xtol = 1.0e-13, autodiff = :forward)
+                      iterations = 10^4, xtol = 1.0e-13, autodiff = AutoForwardDiff())
 
         a_unknown = sol.zero # Retrieve solution (root = zero)
 
