@@ -109,6 +109,11 @@ end
     @unpack t = integrator
     iter = integrator.stats.naccept
 
+    if limiting_analysis_callback.interval == 0 ||
+       (iter % limiting_analysis_callback.interval != 0)
+        return nothing
+    end
+
     limiting_analysis_callback(mesh, equations, solver, cache, solver.volume_integral,
                                t, iter)
 end
@@ -124,11 +129,6 @@ end
                                                                         solver, cache,
                                                                         volume_integral::VolumeIntegralSubcellLimiting,
                                                                         t, iter)
-    if limiting_analysis_callback.interval == 0 ||
-       (iter % limiting_analysis_callback.interval != 0)
-        return nothing
-    end
-
     @trixi_timeit timer() "limiting_analysis_callback" limiting_analysis_callback(mesh,
                                                                                   equations,
                                                                                   solver,
