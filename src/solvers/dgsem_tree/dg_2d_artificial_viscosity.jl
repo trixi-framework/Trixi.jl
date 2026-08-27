@@ -376,7 +376,6 @@
                                            equations_parabolic)
                 flux_viscous_node_y = flux(u_node, (gradients_1_node, gradients_2_node), 2,
                                            equations_parabolic)
-
                 # flip sign for Trixi's parabolic convention
                 add_to_node_vars!(flux_viscous_x, -flux_viscous_node_x, equations_parabolic,
                                   dg,

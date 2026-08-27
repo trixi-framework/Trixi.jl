@@ -2665,6 +2665,31 @@ function coarsen!(mesh::P4estMesh)
     return coarsened_cells_vec[coarsened_cells_vec .>= 0]
 end
 
+@inline function get_cell_volume(element, mesh::P4estMesh{2}, equations, dg, cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+    cell_volume = zero(eltype(weights))
+    for j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                        i, j, element)))
+        cell_volume += weights[i] * weights[j] * volume_jacobian
+    end
+    return cell_volume
+end
+
+@inline function get_cell_volume(element, mesh::P4estMesh{3}, equations, dg, cache)
+    @unpack weights = dg.basis
+    @unpack inverse_jacobian = cache.elements
+
+    cell_volume = zero(eltype(weights))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
+                                                        i, j, k, element)))
+        cell_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
+    end
+    return cell_volume
+end
+
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
     info_pw = PointerWrapper(info)

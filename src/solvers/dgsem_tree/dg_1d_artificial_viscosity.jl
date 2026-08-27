@@ -222,12 +222,12 @@
 
         # Prolong solution to boundaries
         @trixi_timeit_ext backend timer() "prolong2boundaries" begin
-            prolong2boundaries!(cache, u, mesh, equations, dg)
+            prolong2boundaries!(backend, cache, u, mesh, equations, dg)
         end
 
         # Calculate boundary fluxes
         @trixi_timeit_ext backend timer() "boundary flux" begin
-            calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+            calc_boundary_flux!(backend, cache, t, boundary_conditions, mesh, equations,
                                 dg.surface_integral, dg)
         end
 

@@ -6,53 +6,27 @@
 #                 use_volume_correction = false,
 #                 use_shock_capturing = true,
 #                 shock_capturing_alpha_max = 0.5)
-
+using Revise
 using OrdinaryDiffEqSSPRK
 using OrdinaryDiffEqLowStorageRK
 using LinearAlgebra: I
 using Trixi
 
-@inline function get_cell_volume(element, mesh::P4estMesh{2}, equations, dg, cache)
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-    @show "hi"
-    cell_volume = zero(eltype(weights))
-    for j in eachnode(dg), i in eachnode(dg)
-        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                        i, j, element)))
-        cell_volume += weights[i] * weights[j] * volume_jacobian
-    end
-    return cell_volume
-end
-
-@inline function get_cell_volume(element, mesh::P4estMesh{3}, equations, dg, cache)
-    @unpack weights = dg.basis
-    @unpack inverse_jacobian = cache.elements
-
-    cell_volume = zero(eltype(weights))
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                        i, j, k, element)))
-        cell_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
-    end
-    return cell_volume
-end
-
 use_ecav = false;
 use_volume_correction = true;
 use_shock_capturing = false;
 use_positivity_limiter = true;
-shock_capturing_alpha_max = 0.3;
-Ma = 1.1
-refine = 2
+shock_capturing_alpha_max = 0.1;
+Ma = 1.5
+refine = 3
 num_trial = 1
 
 polydeg = 3
-final_time = 12.0
+final_time = 5.0
 analysis_interval = 1000
 save_interval = 1000
-abstol = 1.0e-8
-reltol = 1.0e-6
+abstol = 1.0e-7
+reltol = 1.0e-5
 saveat = 0.05
 
 ###############################################################################
@@ -62,7 +36,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 @inline function initial_condition_mach3_flow(x, t, equations::CompressibleEulerEquations2D)
     rho_freestream = 1.4
-    v1 = 1.5
+    v1 = 1.1
     v2 = 0.0
     p_freestream = 1.0
 
@@ -120,11 +94,13 @@ mu() = 0.0
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesEntropy())
+equations_schlieren = CompressibleNavierStokesDiffusion2D(equations, mu = 0.0,
+                                                          Prandtl = prandtl_number(),
+                                                          gradient_variables = GradientVariablesConservative())
 
 boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition)
 heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_parabolic_slip_wall = BoundaryConditionNavierStokesWall(Slip(), heat_bc)
-
 boundary_conditions_parabolic = (; Bottom = boundary_condition_parabolic_slip_wall,
                                  Circle = boundary_condition_parabolic_slip_wall,
                                  Top = boundary_condition_parabolic_slip_wall,
@@ -137,7 +113,7 @@ solver_parabolic = ParabolicFormulationLocalDG()
 # mesh
 
 mesh_suffix = polydeg == 1 ? "N1" : ""
-mesh_file = joinpath(@__DIR__, "CylinderSuperSonicMa" * string(Ma) * mesh_suffix * ".inp")
+mesh_file = joinpath(@__DIR__, "CylinderSuperSonicMa" * string(1.5) * mesh_suffix * ".inp")
 #mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
 #                           joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
 
@@ -152,7 +128,7 @@ surface_flux = flux_lax_friedrichs
 basis = LobattoLegendreBasis(polydeg)
 VDM = Matrix{Float64}(I, polydeg + 1, polydeg + 1)
 filter = ones(polydeg + 1)
-
+1
 if use_volume_correction
     indicator_ec = IndicatorEntropyCorrection(equations, basis)
 
@@ -214,7 +190,7 @@ save_solution = SaveSolutionCallback(interval = save_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
-
+#stepsize_callback = StepsizeCallback(cfl = 0.1)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback)
 
@@ -222,17 +198,24 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 if use_positivity_limiter
-    stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
+    local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-7, 1.0e-6),
                                                          variables = (pressure,
                                                                       Trixi.density))
-    sol = solve(ode, SSPRK43(; stage_limiter!);
+    global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
+                                                      record_davis_yin_iterations = true)
+    @show "positive on"
+    sol = solve(ode, SSPRK43(; stage_limiter! = global_limiter!,
+                step_limiter! = global_limiter!); #dt = 0.01, adaptive=false,
                 abstol = abstol, reltol = reltol, saveat = saveat,
                 ode_default_options()..., callback = callbacks)
 else
     #sol = solve(ode, RDPK3SpFSAL49();
     #           abstol = abstol, reltol = reltol, saveat = saveat,
     #            ode_default_options()..., callback = callbacks)
-    sol = solve(ode, SSPRK43();
+    # sol = solve(ode, SSPRK43();
+    #             abstol = abstol, reltol = reltol, saveat = saveat,
+    #             ode_default_options()..., callback = callbacks)
+    sol = solve(ode, SSPRK43(); 
                 abstol = abstol, reltol = reltol, saveat = saveat,
                 ode_default_options()..., callback = callbacks)
     
@@ -244,12 +227,11 @@ using JLD2
 @save "Cylinder" * string(num_trial) * ".jld2" sol semi
 data = load("Cylinder1.jld2")
 
-function right_edge_mach_numbers(u_ode, semi)
+function edge_mach_numbers(u_ode, semi, x_max)
     (; equations, solver, cache) = semi
     (; node_coordinates) = cache.elements
     u = Trixi.wrap_array_native(u_ode, semi)
 
-    x_max = maximum(view(node_coordinates, 1, :, :, :))
     tolerance = 1.0e-10 * max(1.0, abs(x_max))
     mach_numbers = Float64[]
 
@@ -276,43 +258,25 @@ function right_edge_mach_numbers(u_ode, semi)
     return mach_numbers
 end
 
+(; node_coordinates) = semi.cache.elements
+x_min = minimum(view(node_coordinates, 1, :, :, :))
+x_max = maximum(view(node_coordinates, 1, :, :, :))
 for i in 1:length(sol.u)
-    right_edge_mach = right_edge_mach_numbers(sol.u[i], semi)
+    right_edge_mach = edge_mach_numbers(sol.u[i], semi, x_max)
+    println("Right-edge Mach number at t = $(sol.t[i]): ",
+            "min = $(minimum(right_edge_mach)), ",
+            "mean = $(sum(right_edge_mach) / length(right_edge_mach)), ",
+            "max = $(maximum(right_edge_mach))")
+end
+for i in 1:length(sol.u)
+    right_edge_mach = edge_mach_numbers(sol.u[i], semi, x_min)
     println("Right-edge Mach number at t = $(sol.t[i]): ",
             "min = $(minimum(right_edge_mach)), ",
             "mean = $(sum(right_edge_mach) / length(right_edge_mach)), ",
             "max = $(maximum(right_edge_mach))")
 end
 
-function density_schlieren(u_ode, semi; beta = 10.0)
-    (; solver, cache) = semi
-    (; derivative_matrix) = solver.basis
-    (; contravariant_vectors, inverse_jacobian) = cache.elements
-    u = Trixi.wrap_array_native(u_ode, semi)
-    schlieren = similar(inverse_jacobian)
-
-    for element in Trixi.eachelement(solver, cache),
-        j in Trixi.eachnode(solver), i in Trixi.eachnode(solver)
-
-        drho_dxi = zero(eltype(schlieren))
-        drho_deta = zero(eltype(schlieren))
-
-        for ii in Trixi.eachnode(solver)
-            drho_dxi += derivative_matrix[i, ii] * u[1, ii, j, element]
-            drho_deta += derivative_matrix[j, ii] * u[1, i, ii, element]
-        end
-
-        Ja11, Ja12 = Trixi.get_contravariant_vector(1, contravariant_vectors,
-                                                    i, j, element)
-        Ja21, Ja22 = Trixi.get_contravariant_vector(2, contravariant_vectors,
-                                                    i, j, element)
-        inv_jacobian = inverse_jacobian[i, j, element]
-
-        drho_dx = inv_jacobian * (Ja11 * drho_dxi + Ja21 * drho_deta)
-        drho_dy = inv_jacobian * (Ja12 * drho_dxi + Ja22 * drho_deta)
-        schlieren[i, j, element] = sqrt(drho_dx^2 + drho_dy^2)
-    end
-
+function schlieren_normalize!(schlieren; beta = 10.0)
     schlieren_min, schlieren_max = extrema(schlieren)
     if schlieren_max > schlieren_min
         @. schlieren = exp(-beta * (schlieren - schlieren_min) /
@@ -320,15 +284,70 @@ function density_schlieren(u_ode, semi; beta = 10.0)
     else
         fill!(schlieren, one(eltype(schlieren)))
     end
-
     return schlieren
 end
+
+function setup_schlieren_gradient(semi)
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    schlieren_solver = ParabolicFormulationLocalDG()
+
+    if semi isa SemidiscretizationArtificialViscosity
+        return (; equations_schlieren, schlieren_solver,
+                cache_parabolic = semi.cache_parabolic,
+                boundary_conditions_parabolic = semi.boundary_conditions_parabolic)
+    elseif semi isa SemidiscretizationHyperbolicParabolic
+        return (; equations_schlieren, schlieren_solver,
+                cache_parabolic = semi.cache_parabolic,
+                boundary_conditions_parabolic = semi.boundary_conditions_parabolic)
+    else
+        uEltype = eltype(cache.elements.inverse_jacobian)
+        cache_parabolic = Trixi.create_cache_parabolic(mesh, equations, dg,
+                                                     nelements(dg, cache), uEltype)
+        return (; equations_schlieren, schlieren_solver, cache_parabolic,
+                boundary_conditions_parabolic)
+    end
+end
+
+"""
+    density_schlieren_dg(u_ode, semi, schlieren_context; beta=10.0, t=0.0)
+
+Compute density Schlieren using Trixi's Local-DG gradient (`calc_gradient!`) on
+curved `P4estMesh`, including volume, interface, and boundary terms.
+"""
+function density_schlieren_dg(u_ode, semi, schlieren_context; beta = 10.0, t = 0.0)
+    mesh, _, dg, cache = mesh_equations_solver_cache(semi)
+    u = Trixi.wrap_array_native(u_ode, semi)
+
+    (; equations_schlieren, schlieren_solver, cache_parabolic,
+     boundary_conditions_parabolic) = schlieren_context
+    (; u_transformed, gradients) = cache_parabolic.parabolic_container
+    gradients_x, gradients_y = gradients
+
+    Trixi.transform_variables!(u_transformed, u, mesh, equations_schlieren, dg, cache)
+    Trixi.calc_gradient!(gradients, u_transformed, t, mesh, equations_schlieren,
+                         boundary_conditions_parabolic, dg, schlieren_solver, cache)
+
+    schlieren = similar(cache.elements.inverse_jacobian)
+
+    for element in Trixi.eachelement(dg, cache),
+        j in Trixi.eachnode(dg), i in Trixi.eachnode(dg)
+
+        drho_dx = gradients_x[1, i, j, element]
+        drho_dy = gradients_y[1, i, j, element]
+        schlieren[i, j, element] = sqrt(drho_dx^2 + drho_dy^2)
+    end
+
+    return schlieren_normalize!(schlieren; beta)
+end
+
+schlieren_context = setup_schlieren_gradient(semi)
 
 gr() # good backend for GIFs
 
 anim = @animate for k in eachindex(sol.u)
-    schlieren = density_schlieren(sol.u[k], semi; beta = 10.0)
-    pd = ScalarPlotData2D(schlieren, semi; variable_name = "density Schlieren")
+    schlieren = density_schlieren_dg(sol.u[k], semi, schlieren_context;
+                                     beta = 10.0, t = sol.t[k])
+    pd = ScalarPlotData2D(schlieren, semi; variable_name = "density Schlieren (LDG)")
     plot(pd;
          title = "density Schlieren, t = $(round(sol.t[k], digits = 3))",
          aspect_ratio = :equal,
@@ -336,5 +355,5 @@ anim = @animate for k in eachindex(sol.u)
          color = :grays)
 end
 
-gif(anim, "rho_schlieren1.gif", fps = 10)
+gif(anim, "rho_schlieren_dg.gif", fps = 10)
 

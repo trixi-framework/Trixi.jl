@@ -335,9 +335,10 @@ Should be used together with [`UnstructuredMesh2D`](@ref), [`P4estMesh`](@ref), 
     if v_normal <= 0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
         p_star = p_local *
-                 (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
+                 max(0.0f0, (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed))^(2 *
                                                                                equations.gamma *
                                                                                equations.inv_gamma_minus_one)
+                
     else # v_normal > 0
         A = 2 / ((equations.gamma + 1) * rho_local)
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
