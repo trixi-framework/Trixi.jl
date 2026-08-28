@@ -15,8 +15,7 @@ prandtl_number() = 0.72
     RealT = eltype(u)
     T_ref = convert(RealT, 291.15)
 
-    R_specific_air = convert(RealT, 287.052874)
-    T = R_specific_air * temperature(u, equations)
+    T = temperature(u, equations)
 
     C_air = 120
     mu_ref_air = convert(RealT, 1.827e-5)
@@ -25,7 +24,10 @@ prandtl_number() = 0.72
 end
 
 equations = CompressibleEulerEquations2D(1.4)
+
+R_specific_air = 287.052874
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                          R = R_specific_air,
                                                           Prandtl = prandtl_number())
 
 """
