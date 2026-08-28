@@ -600,17 +600,17 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
-                                                                                mu = (u, equations) -> 1.827e-5 *
-                                                                                                       (291.15 +
-                                                                                                        120) /
+                                                                                mu = (u, equations) -> 0.01 *
+                                                                                                       (2.0 +
+                                                                                                        10) /
                                                                                                        (temperature(u,
                                                                                                                     equations) +
-                                                                                                        120) *
+                                                                                                        10) *
                                                                                                        (temperature(u,
                                                                                                                     equations) /
-                                                                                                        291.15)^1.5f0,
+                                                                                                        2.0)^1.5f0,
                                                                                 Prandtl = prandtl_number(),
-                                                                                R = 287.052874),
+                                                                                R = 2.0),
                         heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
                                                                                                                                               t,
                                                                                                                                               equations),
