@@ -1951,7 +1951,7 @@ end
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
                                        u, equations::CompressibleEulerEquations3D)
-    rho, rho_v1, rho_v2, rho_v3, _= u
+    rho, rho_v1, rho_v2, rho_v3, _ = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
