@@ -594,6 +594,29 @@ end
                                                                                              equations)))
     @test sol.u[end] ≈ reference_solution
 
+    # For temperature-dependent viscosity in turn, we expect slight changes in the
+    # conserved variables
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = (u, equations) -> 1.827e-5 *
+                                                                                                       (291.15 +
+                                                                                                        120) /
+                                                                                                       (temperature(u,
+                                                                                                                    equations) +
+                                                                                                        120) *
+                                                                                                       (temperature(u,
+                                                                                                                    equations) /
+                                                                                                        291.15)^1.5f0,
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 287.052874),
+                        heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                              t,
+                                                                                                                                              equations),
+                                                                                             equations)))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
