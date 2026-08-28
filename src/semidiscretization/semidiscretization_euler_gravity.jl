@@ -553,6 +553,37 @@ function timestep_gravity_erk53_3Sstar!(cache, u_euler, tau, dtau, gravity_param
                                     gamma1, gamma2, gamma3, beta, delta, c)
 end
 
+# TODO: Taal decide, where should specific parts like these be?
+@inline function save_solution_file(u_ode, t, dt, iter,
+                                    semi::SemidiscretizationEulerGravity,
+                                    solution_callback,
+                                    element_variables = Dict{Symbol, Any}();
+                                    system = "")
+    # If this is called already as part of a multi-system setup (i.e., system is non-empty),
+    # we build a combined system name
+    if !isempty(system)
+        system_euler = system * "_euler"
+        system_gravity = system * "_gravity"
+    else
+        system_euler = "euler"
+        system_gravity = "gravity"
+    end
+
+    u_euler = wrap_array_native(u_ode, semi.semi_euler)
+    filename_euler = save_solution_file(u_euler, t, dt, iter,
+                                        mesh_equations_solver_cache(semi.semi_euler)...,
+                                        solution_callback, element_variables,
+                                        system = system_euler)
+
+    u_gravity = wrap_array_native(semi.cache.u_ode, semi.semi_gravity)
+    filename_gravity = save_solution_file(u_gravity, t, dt, iter,
+                                          mesh_equations_solver_cache(semi.semi_gravity)...,
+                                          solution_callback, element_variables,
+                                          system = system_gravity)
+
+    return filename_euler, filename_gravity
+end
+
 @inline function (amr_callback::AMRCallback)(u_ode,
                                              semi::SemidiscretizationEulerGravity,
                                              t, iter; kwargs...)
