@@ -215,7 +215,7 @@ end
     max_diffusivity(u, equations::ViscoResistiveMhd2D)
 
     # Returns
-    - `dynamic_viscosity(u, equations_parabolic) / u[1] * equations_parabolic.max_visc_cond`
+    - `max(equations.mu / rho * equations.max_visc_cond, equations.eta)`
     where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
     For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
