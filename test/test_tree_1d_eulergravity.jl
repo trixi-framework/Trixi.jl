@@ -24,8 +24,6 @@ end
     Setup,
     TreeMesh1DEulerGravity
 ] tags=[:tree_part1] begin
-    using Trixi: Trixi
-
     # Start with a clean environment: remove Trixi.jl output directory if it exists
     outdir = "out"
     isdir(outdir) && rm(outdir, recursive = true)
