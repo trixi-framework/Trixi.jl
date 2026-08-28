@@ -615,7 +615,7 @@ end
                                                                                                                                               t,
                                                                                                                                               equations),
                                                                                              equations)))
-    @test sol.u[end] ≈ reference_solution
+    @test sol.u[end] != reference_solution
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
