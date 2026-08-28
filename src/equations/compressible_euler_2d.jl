@@ -2253,7 +2253,7 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function gradient_conservative(::typeof(entropy_math),
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
                                        u, equations::CompressibleEulerEquations2D)
     return cons2entropy(u, equations)
 end
