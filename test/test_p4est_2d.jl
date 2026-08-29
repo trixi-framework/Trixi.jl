@@ -175,7 +175,10 @@ end
     @test_allocations(Trixi.rhs!, semi, sol, 1000)
 end
 
-@testitem "P4estMesh2D: elixir_advection_extended.jl (Gauss-Legendre)" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+@testitem "P4estMesh2D: elixir_advection_extended.jl (Gauss-Legendre)" setup=[
+    Setup,
+    P4estMesh2D
+] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         basis_type=GaussLegendreBasis,
                         save_restart=TrivialCallback(),
