@@ -559,4 +559,110 @@ end
                                         equations, dg::DG, indices...)
     return zero(SVector{nvariables(equations), eltype(u)})
 end
+
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                      T8codeMesh{2}},
+                          equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
+    nmortars(dg, cache) == 0 && return nothing
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+
+    index_range = eachnode(dg)
+
+    _nnodes = nnodes(dg)
+    RealType = eltype(u)
+    NVARS = nvariables(equations)
+
+    kernel! = prolong2mortars_KAkernel!(backend)
+    kernel!(backend, cache.mortars.u, u, typeof(mesh), equations,
+            neighbor_ids, node_indices, index_range,
+            mortar_l2.forward_lower, mortar_l2.forward_upper,
+            Val(_nnodes), Val(NVARS), Val(RealType);
+            ndrange = nmortars(dg, cache))
+
+    return nothing
+end
+
+@kernel function prolong2mortars_KAkernel!(backend, mortars_u, u,
+                                           MeshT::Type{<:Union{P4estMesh{2},
+                                                               P4estMeshView{2},
+                                                               T8codeMesh{2}}},
+                                           equations,
+                                           neighbor_ids, node_indices,
+                                           index_range,
+                                           forward_lower,
+                                           forward_upper,
+                                           ::Val{_nnodes}, ::Val{NVARS},
+                                           ::Val{RealType}) where {_nnodes, NVARS,
+                                                                   RealType}
+    mortar = @index(Global)
+
+    # Buffer to copy solution values of the large element in the correct orientation
+    # before interpolating
+    u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+
+    prolong2mortars_per_mortar!(backend, mortars_u, u, mortar, MeshT, equations,
+                                neighbor_ids, node_indices, index_range, forward_lower,
+                                forward_upper, u_buffer)
+end
+
+function calc_mortar_flux!(backend::Backend,
+                           surface_flux_values,
+                           mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                       T8codeMesh{2}},
+                           have_nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2,
+                           surface_integral, dg::DGSEM, cache)
+    nmortars(dg, cache) == 0 && return nothing
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    index_range = eachnode(dg)
+
+    _nnodes = nnodes(dg)
+    NVARS = nvariables(equations)
+    RealType = eltype(surface_flux_values)
+
+    kernel! = calc_mortar_flux_KAkernel!(backend)
+
+    kernel!(backend, surface_flux_values, typeof(mesh), have_nonconservative_terms,
+            equations, surface_integral.surface_flux, typeof(dg),
+            cache.mortars.u, neighbor_ids, node_indices, contravariant_vectors,
+            mortar_l2.reverse_lower, mortar_l2.reverse_upper, index_range,
+            Val(_nnodes), Val(NVARS), Val(RealType);
+            ndrange = nmortars(dg, cache))
+
+    return nothing
+end
+
+@kernel function calc_mortar_flux_KAkernel!(backend, surface_flux_values,
+                                            MeshT::Type{<:Union{P4estMesh{2},
+                                                                P4estMeshView{2},
+                                                                T8codeMesh{2}}},
+                                            have_nonconservative_terms, equations,
+                                            surface_flux, SolverT::Type{<:DGSEM},
+                                            mortars_u, neighbor_ids, node_indices,
+                                            contravariant_vectors,
+                                            reverse_lower, reverse_upper, index_range,
+                                            ::Val{_nnodes}, ::Val{NVARS},
+                                            ::Val{RealType}) where {_nnodes, NVARS,
+                                                                    RealType}
+    mortar = @index(Global)
+
+    fstar_p_1 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+    fstar_p_2 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+    fstar_s_1 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+    fstar_s_2 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+    u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+
+    calc_mortar_flux_per_mortar!(backend, mortar, surface_flux_values, MeshT,
+                                 have_nonconservative_terms, equations, surface_flux,
+                                 SolverT, mortars_u, neighbor_ids, node_indices,
+                                 contravariant_vectors, reverse_lower, reverse_upper,
+                                 index_range, (fstar_p_1, fstar_p_2),
+                                 (fstar_s_1, fstar_s_2), u_buffer)
+end
 end #muladd
