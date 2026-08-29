@@ -507,7 +507,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
-@testitem "elixir_euler_sedov_sc_subcell.jl (Adaptive)" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
+@testitem "P4estMesh3D: elixir_euler_sedov_sc_subcell.jl (Adaptive)" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_sc_subcell.jl"),
                         volume_integral=VolumeIntegralAdaptive(indicator = IndicatorHennemannGassner(equations,
                                                                                                      basis,
@@ -540,7 +540,7 @@ end
     # integrator which are not *recorded* for the methods from
     # OrdinaryDiffEq.jl
     # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
-    @test_allocations(Trixi.rhs!, semi, sol, 15_000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
 @testitem "P4estMesh3D: elixir_euler_sedov.jl (HLLE)" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin

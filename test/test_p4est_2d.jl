@@ -778,7 +778,7 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
-@testitem "elixir_eulermulti_shock.jl (Adaptive Volume Integral)" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
+@testitem "P4estMesh2D: elixir_eulermulti_shock.jl (Adaptive Volume Integral)" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock.jl"),
                         # Adaptive volume integral selects based on the heuristic (!) a priori `indicator`
                         # if the stabilized volume integral should be employed or if the default one is deemed sufficient.
@@ -808,7 +808,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 15000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15000)
 end
 
 @testitem "P4estMesh2D: elixir_mhd_alfven_wave.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
