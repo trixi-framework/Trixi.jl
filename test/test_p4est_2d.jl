@@ -172,7 +172,7 @@ end
                         l2=[4.242946764689567e-6], linf=[3.863499426071115e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh2D: elixir_advection_extended.jl (Gauss-Legendre)" setup=[
@@ -186,7 +186,7 @@ end
                         l2=[1.9055059413792332e-6], linf=[1.018946654784969e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "P4estMesh2D: elixir_euler_subsonic_constant.jl" setup=[Setup, P4estMesh2D] tags=[:p4est_part1] begin
