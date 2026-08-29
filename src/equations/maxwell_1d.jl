@@ -14,22 +14,22 @@ The Maxwell equations of electro dynamics
 \begin{pmatrix}
 E \\ B
 \end{pmatrix}
-+ 
++
 \frac{\partial}{\partial x}
 \begin{pmatrix}
 c^2 B \\ E
 \end{pmatrix}
 =
 \begin{pmatrix}
-0 \\ 0 
+0 \\ 0
 \end{pmatrix}
 ```
 in one dimension with speed of light `c = 299792458 m/s` (in vacuum).
 In one dimension the Maxwell equations reduce to a wave equation.
-The orthogonal magnetic (e.g.`B_y`) and electric field (`E_z`) propagate as waves 
+The orthogonal magnetic (e.g.`B_y`) and electric field (`E_z`) propagate as waves
 through the domain in `x`-direction.
-For reference, see 
-- e.g. p.15 of Numerical Methods for Conservation Laws: From Analysis to Algorithms 
+For reference, see
+- e.g. p.15 of Numerical Methods for Conservation Laws: From Analysis to Algorithms
   https://doi.org/10.1137/1.9781611975109
 
 - or equation (1) in https://inria.hal.science/hal-01720293/document
@@ -40,6 +40,14 @@ struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
     function MaxwellEquations1D(c::Real = 299_792_458.0)
         return new{typeof(c)}(c)
     end
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::MaxwellEquations1D, ::Type{NewRealT}) where {NewRealT}
+    return MaxwellEquations1D(convert(NewRealT, equations.speed_of_light))
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)

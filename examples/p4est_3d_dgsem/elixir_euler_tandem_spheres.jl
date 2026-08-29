@@ -101,6 +101,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 
 tols = 1e-5
-sol = solve(ode, RDPK3SpFSAL35(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL35(thread = Trixi.Threaded());
             abstol = tols, reltol = tols,
             ode_default_options()..., callback = callbacks);

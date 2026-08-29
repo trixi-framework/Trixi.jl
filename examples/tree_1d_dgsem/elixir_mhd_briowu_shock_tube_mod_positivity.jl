@@ -51,7 +51,6 @@ coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
@@ -103,5 +102,5 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6,),
                                                      variables = (pressure,))
 
 sol = solve(ode, SSPRK54(; stage_limiter! = stage_limiter!);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

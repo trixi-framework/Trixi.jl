@@ -65,7 +65,7 @@ alive_callback = AliveCallback(alive_interval = 50)
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 analysis_interval = 10
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg),
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
                                      extra_analysis_integrals = (entropy,))
@@ -83,4 +83,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, ode_default_options()..., callback = callbacks);
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_options()..., callback = callbacks);

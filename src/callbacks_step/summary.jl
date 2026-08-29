@@ -208,7 +208,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "abstol" => integrator.opts.abstol,
               "reltol" => integrator.opts.reltol,
-              "controller" => integrator.opts.controller)
+              "controller" => get_controller(integrator))
     end
     summary_box(io, "Time integration", setup)
     println()
@@ -223,6 +223,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         push!(setup,
               "#MPI ranks" => mpi_nranks())
     end
+    trixi_backend_info!(setup, trixi_backend(u))
     summary_box(io, "Environment information", setup)
     println()
 
@@ -253,9 +254,35 @@ function (cb::DiscreteCallback{Condition, Affect!})(io::IO = stdout) where {Cond
     mpi_isroot() || return nothing
 
     TimerOutputs.complement!(timer())
-    print_timer(io, timer(), title = "Trixi.jl",
-                allocations = true, linechars = :unicode, compact = false)
+    # The keyword argument `bars` was introduced in TimerOutputs.jl v1 and is
+    # not available in earlier versions, which are still supported.
+    @static if pkgversion(TimerOutputs) >= v"1"
+        print_timer(io, timer(), title = "Trixi.jl",
+                    allocations = true, linechars = :unicode, compact = false,
+                    bars = _PREFERENCE_TIMER_BARS)
+    else
+        print_timer(io, timer(), title = "Trixi.jl",
+                    allocations = true, linechars = :unicode, compact = false)
+    end
     println(io)
     return nothing
+end
+
+"""
+    Trixi.set_timer_bars!(toggle::Bool; force = true)
+
+Toggle whether the timer output of the [`SummaryCallback`](@ref) shows bars
+visualizing the fraction of time and allocations spent in each section.
+By default, the bars are disabled since they require a rather wide terminal.
+
+This preference requires TimerOutputs.jl v1 or newer; with older versions of
+TimerOutputs.jl, no bars are printed regardless of this preference.
+"""
+function set_timer_bars!(toggle::Bool; force = true)
+    @static if pkgversion(TimerOutputs) < v"1"
+        @warn "Printing bars in the timer output requires TimerOutputs.jl v1 or newer"
+    end
+    set_preferences!(TRIXI_UUID, "timer_bars" => toggle, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `timer_bars` change to take effect"
 end
 end # @muladd

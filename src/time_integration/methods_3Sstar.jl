@@ -143,7 +143,7 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType <: AbstractVector,
     iter::Int # current number of time step (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    const f::F # `rhs!` of the semidiscretization
+    const f::F # right-hand side of the semidiscretization
     const alg::Alg # SimpleAlgorithm3Sstar
     opts::SimpleIntegratorOptions
     finalstep::Bool # added for convenience
@@ -156,6 +156,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     u_tmp1 = similar(u)
     u_tmp2 = similar(u)
     t = first(ode.tspan)
+    t, dt = promote(t, dt)
     iter = 0
     integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter,
                                         ode.p,

@@ -102,8 +102,7 @@ coordinates_max = (domain_length / 2, domain_length / 2, domain_length / 2)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = (false, true, true),
-                n_cells_max = 100_000)
+                periodicity = (false, true, true))
 
 ### Inviscid boundary conditions ###
 
@@ -177,7 +176,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 # For this setup, both hyperbolic and parabolic timestep restrictions are relevant, i.e.,
 # may not be increased beyond the given values.
 stepsize_callback = StepsizeCallback(cfl = 0.4,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.15)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
                         stepsize_callback)
@@ -186,5 +185,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback,
 # run the simulation
 
 # Use time integrator tailored to compressible Navier-Stokes
-sol = solve(ode, CKLLSRK95_4S(), adaptive = false, dt = 1.0,
+sol = solve(ode, CKLLSRK95_4S(),
+            adaptive = false,
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

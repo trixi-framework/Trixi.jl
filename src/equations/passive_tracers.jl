@@ -9,7 +9,7 @@
     PassiveTracerEquations(flow_equations; n_tracers)
 
 Adds passive tracers to the `flow_equations`. The tracers are advected by the flow velocity.
-These work for arbitrary dimensions with arbitrary numbers of tracers `n_tracers`, for conservative and non-conservative equations. For one dimension, with 
+These work for arbitrary dimensions with arbitrary numbers of tracers `n_tracers`, for conservative and non-conservative equations. For one dimension, with
 one tracer ``\chi`` and flow with density and velocity ``\rho, v`` respectively, the equation of the
 passive tracer is
 ```math
@@ -25,6 +25,17 @@ end
 function PassiveTracerEquations(flow_equations::AbstractEquations; n_tracers::Int)
     return PassiveTracerEquations{ndims(flow_equations),
                                   nvariables(flow_equations) + n_tracers, n_tracers,
+                                  typeof(flow_equations)}(flow_equations)
+end
+
+# Together with our specialization of `Adapt.adapt_structure`,
+# this allows to move semidiscretizations and their components including
+# the equations to GPUs and adapt the floating point type, e.g.,
+# to `Float32` to improve performance on GPUs.
+function Base.similar(equations::PassiveTracerEquations{NDIMS, NVARS, NTracers},
+                      ::Type{NewRealT}) where {NDIMS, NVARS, NTracers, NewRealT}
+    flow_equations = similar(equations.flow_equations, NewRealT)
+    return PassiveTracerEquations{NDIMS, NVARS, NTracers,
                                   typeof(flow_equations)}(flow_equations)
 end
 
@@ -215,7 +226,7 @@ end
 """
     FluxTracerEquationsCentral(flow_flux)
 
-Get an entropy conserving flux for the equations with tracers corresponding to the given entropy conserving flux `flow_flux` for the flow equations. The study of this flux is part of ongoing 
+Get an entropy conserving flux for the equations with tracers corresponding to the given entropy conserving flux `flow_flux` for the flow equations. The study of this flux is part of ongoing
 research.
 """
 struct FluxTracerEquationsCentral{FlowFlux}

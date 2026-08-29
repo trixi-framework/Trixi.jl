@@ -1,6 +1,3 @@
-# !!! warning "Experimental implementation (curvilinear FDSBP)"
-#     This is an experimental feature and may change in future releases.
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -26,8 +23,71 @@ function create_cache(mesh::UnstructuredMesh2D, equations, dg::FDSBP, RealT, uEl
     return cache
 end
 
+# 2D volume integral contributions for `VolumeIntegralFluxDifferencing`
+function calc_volume_integral!(backend, du, u,
+                               mesh::UnstructuredMesh2D,
+                               have_nonconservative_terms::False, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::FDSBP, cache)
+    Q_split = cache.derivative_split_weighted # SBP split derivative operator weighted by mass matrix
+    inv_weights = cache.inv_weights
+    @unpack contravariant_vectors = cache.elements
+    @unpack volume_flux = volume_integral
+
+    Q_split_base, row_ids, rows, vals = sparse_operator_data(Q_split)
+
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+            Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+
+            # We are looping over the columns of the permuted derivative split weighted operator,
+            # which corresponds to looping over the rows of the derivative split weighted operator.
+            for id in nzrange(Q_split_base, i)
+                ii = rows[id]
+                Q_split_i_ii = vals[id]
+                u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+                Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
+                                                       element)
+                Ja1_avg = (Ja1_node + Ja1_node_ii) * 0.5f0
+
+                fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
+
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D.
+                multiply_add_to_node_vars!(du, Q_split_i_ii * inv_weights[i],
+                                           fluxtilde1, equations, dg, i, j, element)
+                multiply_add_to_node_vars!(du, -Q_split_i_ii * inv_weights[ii],
+                                           fluxtilde1, equations, dg, ii, j, element)
+            end
+
+            # We are looping over the columns of the permuted derivative split weighted operator,
+            # which corresponds to looping over the rows of the derivative split weighted operator.
+            for id in nzrange(Q_split_base, j)
+                jj = rows[id]
+                Q_split_j_jj = vals[id]
+
+                u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+                Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
+                                                       element)
+                Ja2_avg = (Ja2_node + Ja2_node_jj) * 0.5f0
+
+                fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
+
+                #  We multiply by the inverse of the mass matrix entries to go back from Q = MD to D.
+                multiply_add_to_node_vars!(du, Q_split_j_jj * inv_weights[j],
+                                           fluxtilde2, equations, dg, i, j, element)
+                multiply_add_to_node_vars!(du, -Q_split_j_jj * inv_weights[jj],
+                                           fluxtilde2, equations, dg, i, jj, element)
+            end
+        end
+    end
+
+    return nothing
+end
+
 # 2D volume integral contributions for `VolumeIntegralStrongForm`
-# OBS! This is the standard (not de-aliased) form of the volume integral.
+# Note: This is the standard (not de-aliased) form of the volume integral.
 # So it is not provably stable for variable coefficients due to the the metric terms.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
@@ -236,22 +296,57 @@ function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2
     return nothing
 end
 
+function calc_surface_integral!(backend::Nothing, du, u, mesh::UnstructuredMesh2D,
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::FDSBP, cache)
+    inv_weight_left = inv(left_boundary_weight(dg.basis))
+    inv_weight_right = inv(right_boundary_weight(dg.basis))
+    @unpack surface_flux_values = cache.elements
+
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            # surface at -x
+            f_num = get_node_vars(surface_flux_values, equations, dg, l, 4, element)
+            multiply_add_to_node_vars!(du, inv_weight_left, f_num,
+                                       equations, dg, 1, l, element)
+
+            # surface at +x
+            f_num = get_node_vars(surface_flux_values, equations, dg, l, 2, element)
+            multiply_add_to_node_vars!(du, inv_weight_right, f_num,
+                                       equations, dg, nnodes(dg), l, element)
+
+            # surface at -y
+            f_num = get_node_vars(surface_flux_values, equations, dg, l, 1, element)
+            multiply_add_to_node_vars!(du, inv_weight_left, f_num,
+                                       equations, dg, l, 1, element)
+
+            # surface at +y
+            f_num = get_node_vars(surface_flux_values, equations, dg, l, 3, element)
+            multiply_add_to_node_vars!(du, inv_weight_right, f_num,
+                                       equations, dg, l, nnodes(dg), element)
+        end
+    end
+
+    return nothing
+end
+
 # AnalysisCallback
 function integrate_via_indices(func::Func, u,
                                mesh::UnstructuredMesh2D, equations,
                                dg::FDSBP, cache, args...; normalize = true) where {Func}
     # TODO: FD. This is rather inefficient right now and allocates...
     weights = diag(SummationByPartsOperators.mass_matrix(dg.basis))
+    @unpack inverse_jacobian = cache.elements
 
     # Initialize integral with zeros of the right shape
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Use quadrature to numerically integrate over entire domain
     @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
                                                                                    cache)
         for j in eachnode(dg), i in eachnode(dg)
-            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
+            volume_jacobian = abs(inv(inverse_jacobian[i, j, element]))
             integral += volume_jacobian * weights[i] * weights[j] *
                         func(u, i, j, element, equations, dg, args...)
             total_volume += volume_jacobian * weights[i] * weights[j]
@@ -276,7 +371,7 @@ function calc_error_norms(func, u, t, analyzer,
     # Set up data structures
     l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
     linf_error = copy(l2_error)
-    total_volume = zero(real(mesh))
+    total_volume = zero(eltype(weights)) * zero(eltype(inverse_jacobian))
 
     # Iterate over all elements for error calculations
     for element in eachelement(dg, cache)
