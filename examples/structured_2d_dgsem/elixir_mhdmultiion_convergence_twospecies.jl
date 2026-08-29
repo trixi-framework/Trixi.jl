@@ -22,7 +22,7 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (2.0, 4.0),
                                            electron_pressure = electron_pressure_alpha)
 
 """
-Initial (and exact) solution for the the manufactured solution test. Runs with 
+Initial (and exact) solution for the the manufactured solution test. Runs with
 * gammas = (2.0, 4.0),
 * charge_to_mass = (2.0, 1.0)
 * Domain size: [-1,1]²
@@ -56,7 +56,7 @@ function initial_condition_manufactured_solution(x, t,
 end
 
 """
-Source term that corresponds to the manufactured solution test. Runs with 
+Source term that corresponds to the manufactured solution test. Runs with
 * gammas = (2.0, 4.0),
 * charge_to_mass = (2.0, 1.0)
 * Domain size: [-1,1]²
@@ -136,7 +136,6 @@ mesh = StructuredMesh(cells_per_dimension, mapping;
 # initial_refinement_level = 1
 # mesh = TreeMesh(coordinates_min, coordinates_max,
 #                 initial_refinement_level = initial_refinement_level,
-#                 n_cells_max = 1_000_000,
 #                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -175,5 +174,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

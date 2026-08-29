@@ -414,7 +414,7 @@ function calc_Dhat(derivative_matrix, weights)
 end
 
 # Calculate the Dsplit matrix for split-form differentiation: Dsplit = 2D - M⁻¹B
-# Note that this is the negated version of the matrix that shows up on the RHS of the 
+# Note that this is the negated version of the matrix that shows up on the RHS of the
 # DG update multiplying the two-point numerical volume flux evaluations.
 function calc_Dsplit(derivative_matrix, weights)
     # Start with 2 x the normal D matrix

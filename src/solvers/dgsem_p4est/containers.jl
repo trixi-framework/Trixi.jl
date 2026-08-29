@@ -5,6 +5,9 @@
 @muladd begin
 #! format: noindent
 
+# In contrast to the containers for the `TreeMesh` the containers for the `P4estMesh` are
+# implemented for both 2D (`NDIMS = 2`) and 3D (`NDIMS = 3`) using a single data structure.
+
 mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                      NDIMSP1, NDIMSP2, NDIMSP3,
                                      ArrayRealTNDIMSP1 <: DenseArray{RealT, NDIMSP1},
@@ -16,20 +19,30 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                      VectoruEltype <: DenseVector{uEltype}} <:
                AbstractElementContainer
     # Physical coordinates at each node
-    node_coordinates::ArrayRealTNDIMSP2 # [orientation, node_i, node_j, node_k, element]
+    # 2D: [orientation, node_i, node_j, element]
+    # 3D: [orientation, node_i, node_j, node_k, element]
+    node_coordinates::ArrayRealTNDIMSP2
 
     # Jacobian matrix of the transformation
-    # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix
+    # 2D: [jacobian_i, jacobian_j, node_i, node_j, element]
+    # 3D: [jacobian_i, jacobian_j, node_i, node_j, node_k, element]
+    # where jacobian_i is the first index of the Jacobian matrix
     jacobian_matrix::ArrayRealTNDIMSP3
 
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::ArrayRealTNDIMSP3 # [dimension, index, node_i, node_j, node_k, element]
+    # 2D: [dimension, index, node_i, node_j, element]
+    # 3D: [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::ArrayRealTNDIMSP3
 
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
-    inverse_jacobian::ArrayRealTNDIMSP1 # [node_i, node_j, node_k, element]
+    # 2D: [node_i, node_j, element]
+    # 3D: [node_i, node_j, node_k, element]
+    inverse_jacobian::ArrayRealTNDIMSP1
 
     # Buffer for calculated surface flux
-    surface_flux_values::ArrayuEltypeNDIMSP2 # [variable, i, j, direction, element]
+    # 2D: [variable, node_i, direction, element]
+    # 3D: [variable, node_i, node_j, direction, element]
+    surface_flux_values::ArrayuEltypeNDIMSP2
 
     # internal `resize!`able storage
     _node_coordinates::VectorRealT
@@ -225,10 +238,18 @@ mutable struct P4estInterfaceContainer{NDIMS, RealT <: Real, uEltype <: Real,
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
                AbstractInterfaceContainer
-    u::uArray                      # [primary/secondary, variable, i, j, interface]
-    normal_directions::NormalArray # [dimension, i, j, interface]
-    neighbor_ids::IdsMatrix        # [primary/secondary, interface]
-    node_indices::IndicesMatrix    # [primary/secondary, interface]
+    # 2D: [primary/secondary, variable, i, interface]
+    # 3D: [primary/secondary, variable, i, j, interface]
+    u::uArray
+
+    # 2D: [dimension, i, interface]
+    # 3D: [dimension, i, j, interface]
+    normal_directions::NormalArray
+
+    # 2D/3D: [primary/secondary, interface]
+    neighbor_ids::IdsMatrix
+    # 2D/3D: [primary/secondary, interface]
+    node_indices::IndicesMatrix
 
     # internal `resize!`able storage
     _u::uVector
@@ -404,11 +425,22 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       CoordVector <:
                                       Union{DenseVector{<:Real}, Nothing}} <:
                AbstractBoundaryContainer
-    u::uArray                         # [variables, i, j, boundary]
-    node_coordinates::CoordinateArray # [orientation, i, j, boundary]
-    neighbor_ids::IdsVector           # [boundary]
-    node_indices::IndicesVector       # [boundary]
-    name::Vector{Symbol}              # [boundary]
+    # 2D: [variable, i, boundary]
+    # 3D: [variable, i, j, boundary]
+    u::uArray
+
+    # 2D: [orientation, i, boundary]
+    # 3D: [orientation, i, j, boundary]
+    node_coordinates::CoordinateArray
+
+    # 2D/3D: [boundary]
+    neighbor_ids::IdsVector
+
+    # 2D/3D: [boundary]
+    node_indices::IndicesVector
+
+    # 2D/3D: [boundary]
+    name::Vector{Symbol}
 
     # internal `resize!`able storage
     _u::uVector
@@ -621,9 +653,16 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     IndicesVector <:
                                     DenseVector{NTuple{NDIMS, Symbol}}} <:
                AbstractMortarContainer
-    u::uArray # [small/large side, variable, position, i, j, mortar]
-    neighbor_ids::IdsMatrix # [position, mortar]
-    node_indices::IndicesMatrix # [small/large, mortar]
+
+    # 2D: [small/large side, variable, position, i, mortar]
+    # 3D: [small/large side, variable, position, i, j, mortar]
+    u::uArray
+
+    # 2D/3D: [position, mortar]
+    neighbor_ids::IdsMatrix
+
+    # 2D/3D: [small/large side, mortar]
+    node_indices::IndicesMatrix
 
     # internal `resize!`able storage
     _u::uVector

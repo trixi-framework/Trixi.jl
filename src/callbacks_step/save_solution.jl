@@ -42,7 +42,7 @@ function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
 end
 ```
 
-For hyperbolic-parabolic equations, `equations_parabolic` and `cache_parabolic` must be 
+For hyperbolic-parabolic equations, `equations_parabolic` and `cache_parabolic` must be
 added:
 ```julia
 function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
@@ -253,7 +253,7 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     end
 
     # avoid re-evaluating possible FSAL stages
-    u_modified!(integrator, false)
+    derivative_discontinuity!(integrator, false)
     return nothing
 end
 

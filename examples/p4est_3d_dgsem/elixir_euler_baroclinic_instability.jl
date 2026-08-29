@@ -255,11 +255,11 @@ u_steady_state = compute_coefficients(steady_state_baroclinic_instability, tspan
 # Use a `let` block for performance (otherwise du_steady_state will be a global variable)
 let du_steady_state = similar(u_steady_state)
     # Save RHS of the steady state
-    Trixi.rhs!(du_steady_state, u_steady_state, semi, tspan[1])
+    Trixi.rhs_hyperbolic!(du_steady_state, u_steady_state, semi, tspan[1])
 
     global function corrected_rhs!(du, u, semi, t)
         # Normal RHS evaluation
-        Trixi.rhs!(du, u, semi, t)
+        Trixi.rhs_hyperbolic!(du, u, semi, t)
         # Correct by subtracting the steady-state RHS
         Trixi.@trixi_timeit Trixi.timer() "rhs correction" begin
             # Use Trixi.@threaded for threaded performance
@@ -294,6 +294,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded());
             abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

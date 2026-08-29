@@ -31,9 +31,9 @@ The compressible Euler equations
 ```
 for a gas with pressure ``p`` specified by some equation of state in two space dimensions.
 
-Here, ``\rho`` is the density, ``v_1`` the x-velocity, ``v_2`` is the y-velocity, ``e_{\text{total}}`` 
-the specific total energy, and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho`` 
-and temperature ``T`` by some user-specified equation of state (EOS) (see [`pressure(V, T, eos::IdealGas)`](@ref), 
+Here, ``\rho`` is the density, ``v_1`` the x-velocity, ``v_2`` is the y-velocity, ``e_{\text{total}}``
+the specific total energy, and the pressure ``p`` is given in terms of specific volume ``V = 1/\rho``
+and temperature ``T`` by some user-specified equation of state (EOS) (see [`pressure(V, T, eos::IdealGas)`](@ref),
 [`pressure(V, T, eos::VanDerWaals)`](@ref)) as
 ```math
 p = p(V, T)
@@ -42,12 +42,18 @@ p = p(V, T)
 Similarly, the specific internal energy is specified by `e_{\text{internal}} = energy_internal_specific(V, T, eos)`, see
 [`energy_internal_specific(V, T, eos::IdealGas)`](@ref), [`energy_internal_specific(V, T, eos::VanDerWaals)`](@ref).
 
-Note that this implementation also assumes a mass basis, so molar weight is not taken into account when calculating 
+Note that this implementation also assumes a mass basis, so molar weight is not taken into account when calculating
 specific volume.
 """
 struct NonIdealCompressibleEulerEquations2D{EoS <: AbstractEquationOfState} <:
        AbstractNonIdealCompressibleEulerEquations{2, 4}
     equation_of_state::EoS
+end
+
+function Base.similar(equations::NonIdealCompressibleEulerEquations2D,
+                      ::Type{NewRealT}) where {NewRealT}
+    return NonIdealCompressibleEulerEquations2D(similar(equations.equation_of_state,
+                                                        NewRealT))
 end
 
 function varnames(::typeof(cons2cons), ::NonIdealCompressibleEulerEquations2D)
@@ -65,6 +71,11 @@ varnames(::typeof(cons2prim), ::NonIdealCompressibleEulerEquations2D) = ("rho",
                                                                          "v1",
                                                                          "v2",
                                                                          "p")
+
+varnames(::typeof(cons2thermo), ::NonIdealCompressibleEulerEquations2D) = ("V",
+                                                                           "v1",
+                                                                           "v2",
+                                                                           "T")
 
 # Calculate flux for a single point
 @inline function flux(u, orientation::Integer,
@@ -185,9 +196,9 @@ end
 
 Approximately pressure equilibrium conserving (APEC) flux.
 
-- H. Terashima, N. Ly, M. Ihme (2025) 
-  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of 
-  compressible multi-species and real-fluid interfacial flows 
+- H. Terashima, N. Ly, M. Ihme (2025)
+  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of
+  compressible multi-species and real-fluid interfacial flows
   [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
 """
 function flux_terashima_etal(u_ll, u_rr, orientation::Int,
@@ -211,7 +222,7 @@ function flux_terashima_etal(u_ll, u_rr, orientation::Int,
     p_v1_avg = 0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
     p_v2_avg = 0.5f0 * (p_ll * v2_rr + p_rr * v2_ll)
 
-    # chain rule from Terashima    
+    # chain rule from Terashima
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_avg_corrected = (rho_e_internal_avg -
@@ -262,7 +273,7 @@ function flux_terashima_etal(u_ll, u_rr, normal_direction::AbstractVector,
     rho_e_internal_avg = 0.5f0 * (rho_e_internal_ll + rho_e_internal_rr)
     p_v_dot_n_avg = 0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
 
-    # chain rule from Terashima    
+    # chain rule from Terashima
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_avg_corrected = (rho_e_internal_avg -
@@ -286,12 +297,12 @@ end
     flux_central_terashima_etal(u_ll, u_rr, orientation_or_normal_direction,
                                 equations::NonIdealCompressibleEulerEquations2D)
 
-A version of the central flux which uses the approximately pressure equilibrium conserving 
-(APEC) internal energy correction. 
+A version of the central flux which uses the approximately pressure equilibrium conserving
+(APEC) internal energy correction.
 
-- H. Terashima, N. Ly, M. Ihme (2025) 
-  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of 
-  compressible multi-species and real-fluid interfacial flows 
+- H. Terashima, N. Ly, M. Ihme (2025)
+  Approximately pressure-equilibrium-preserving scheme for fully conservative simulations of
+  compressible multi-species and real-fluid interfacial flows
   [DOI: 10.1016/j.jcp.2024.113701](https://doi.org/10.1016/j.jcp.2024.113701)
 """
 function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
@@ -312,7 +323,7 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
     p_avg = 0.5f0 * (p_ll + p_rr)
     rho_e_internal_avg = 0.5f0 * (rho_e_internal_ll + rho_e_internal_rr)
 
-    # chain rule from Terashima    
+    # chain rule from Terashima
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_avg_corrected = (rho_e_internal_avg -
@@ -321,7 +332,7 @@ function flux_central_terashima_etal(u_ll, u_rr, orientation::Int,
                                      drho_e_internal_drho_p_ll) *
                                     (rho_rr - rho_ll))
 
-    # calculate internal energy (with APEC correction) and kinetic energy 
+    # calculate internal energy (with APEC correction) and kinetic energy
     # contributions separately in energy equation
     e_kinetic_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
     e_kinetic_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)
@@ -369,7 +380,7 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
     rho_e_internal_avg = 0.5f0 * (rho_e_internal_ll + rho_e_internal_rr)
     p_v_dot_n_avg = 0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
 
-    # chain rule from Terashima    
+    # chain rule from Terashima
     drho_e_internal_drho_p_ll = drho_e_internal_drho_at_const_p(V_ll, T_ll, eos)
     drho_e_internal_drho_p_rr = drho_e_internal_drho_at_const_p(V_rr, T_rr, eos)
     rho_e_internal_avg_corrected = (rho_e_internal_avg -
@@ -378,7 +389,7 @@ function flux_central_terashima_etal(u_ll, u_rr, normal_direction::AbstractVecto
                                      drho_e_internal_drho_p_ll) *
                                     (rho_rr - rho_ll))
 
-    # calculate internal energy (with APEC correction) and kinetic energy 
+    # calculate internal energy (with APEC correction) and kinetic energy
     # contributions separately in energy equation
     e_kinetic_ll = 0.5f0 * (v1_ll^2 + v2_ll^2)
     e_kinetic_rr = 0.5f0 * (v1_rr^2 + v2_rr^2)

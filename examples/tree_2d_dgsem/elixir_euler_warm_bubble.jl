@@ -102,7 +102,6 @@ coordinates_max = (20_000.0, 15_000.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = (true, false))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
@@ -143,5 +142,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             maxiters = 1.0e7,
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

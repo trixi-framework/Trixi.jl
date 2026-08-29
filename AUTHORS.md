@@ -24,7 +24,7 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi.jl and
 are listed in alphabetical order:
 
-* Marco Artiano 
+* Marco Artiano
 * Maximilian D. Bertrand
 * Benjamin Bolm
 * Simon Candelaresi
@@ -37,7 +37,9 @@ are listed in alphabetical order:
 * Gregor Gassner
 * Lucas Gemein
 * Sven Goldberg
+* T. Jeremy P. Karpowski
 * Joshua Lampert
+* Vincent Marks
 * Tristan Montoya
 * Julia Odenthal
 * Sigrun Ortleb

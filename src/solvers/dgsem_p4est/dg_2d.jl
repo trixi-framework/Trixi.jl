@@ -75,39 +75,14 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
         prolong2interfaces_per_interface!(interfaces.u, u, interface,
-                                          typeof(mesh), equations,
+                                          MeshT, equations,
                                           neighbor_ids, node_indices, index_range)
     end
     return nothing
-end
-
-function prolong2interfaces!(backend::Backend, cache, u,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                         T8codeMesh{2}},
-                             equations, dg::DGSEM{<:LobattoLegendreBasis})
-    @unpack interfaces = cache
-    ninterfaces(interfaces) == 0 && return nothing
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    index_range = eachnode(dg)
-
-    kernel! = prolong2interfaces_KAkernel!(backend)
-    kernel!(interfaces.u, u, typeof(mesh), equations, neighbor_ids, node_indices,
-            index_range, ndrange = ninterfaces(interfaces))
-    return nothing
-end
-
-@kernel function prolong2interfaces_KAkernel!(interfaces_u, u,
-                                              MeshT::Type{<:Union{P4estMesh{2},
-                                                                  P4estMeshView{2},
-                                                                  T8codeMesh{2}}},
-                                              equations, neighbor_ids,
-                                              node_indices, index_range)
-    interface = @index(Global)
-    prolong2interfaces_per_interface!(interfaces_u, u, interface, MeshT, equations,
-                                      neighbor_ids, node_indices, index_range)
 end
 
 # Version for Gauss-Lobatto-Legendre
@@ -167,10 +142,11 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack boundary_interpolation = dg.basis
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
 
     @threaded for interface in eachinterface(dg, cache)
         prolong2interfaces_per_interface!(interfaces.u, u, interface,
-                                          typeof(mesh), equations,
+                                          MeshT, equations,
                                           neighbor_ids, node_indices, index_range,
                                           boundary_interpolation)
     end
@@ -295,54 +271,19 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # element data.
     @unpack contravariant_vectors = cache.elements
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
+    SolverT = typeof(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
+        calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                            have_nonconservative_terms,
-                                           equations, surface_integral, typeof(dg),
+                                           equations, surface_integral, SolverT,
                                            cache.interfaces.u, interface,
                                            neighbor_ids, node_indices,
                                            contravariant_vectors, index_range)
     end
 
     return nothing
-end
-
-function calc_interface_flux!(backend::Backend, surface_flux_values,
-                              mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                          T8codeMesh{2}},
-                              have_nonconservative_terms,
-                              equations, surface_integral,
-                              dg::DGSEM{<:LobattoLegendreBasis}, cache)
-    ninterfaces(cache.interfaces) == 0 && return nothing
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    @unpack contravariant_vectors = cache.elements
-    index_range = eachnode(dg)
-
-    kernel! = calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms,
-            equations, surface_integral, typeof(dg), cache.interfaces.u,
-            neighbor_ids, node_indices, contravariant_vectors, index_range,
-            ndrange = ninterfaces(cache.interfaces))
-
-    return nothing
-end
-
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values,
-                                               MeshT::Type{<:Union{P4estMesh{2},
-                                                                   P4estMeshView{2},
-                                                                   T8codeMesh{2}}},
-                                               have_nonconservative_terms,
-                                               equations, surface_integral,
-                                               SolverT::Type{<:DG}, u_interface,
-                                               neighbor_ids, node_indices,
-                                               contravariant_vectors, index_range)
-    interface = @index(Global)
-    calc_interface_flux_per_interface!(surface_flux_values, MeshT,
-                                       have_nonconservative_terms, equations,
-                                       surface_integral, SolverT, u_interface,
-                                       interface, neighbor_ids, node_indices,
-                                       contravariant_vectors, index_range)
 end
 
 @inline function calc_interface_flux_per_interface!(surface_flux_values,
@@ -424,11 +365,13 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # interface data.
     @unpack normal_directions = cache.interfaces
     index_range = eachnode(dg)
+    MeshT = typeof(mesh)
+    SolverT = typeof(dg)
 
     @threaded for interface in eachinterface(dg, cache)
-        calc_interface_flux_per_interface!(surface_flux_values, typeof(mesh),
+        calc_interface_flux_per_interface!(surface_flux_values, MeshT,
                                            have_nonconservative_terms,
-                                           equations, surface_integral, typeof(dg),
+                                           equations, surface_integral, SolverT,
                                            cache.interfaces.u, interface,
                                            neighbor_ids, node_indices,
                                            normal_directions, index_range)
@@ -609,7 +552,7 @@ end
     return nothing
 end
 
-function prolong2boundaries!(cache, u,
+function prolong2boundaries!(backend::Nothing, cache, u,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, dg::DG)
     @unpack boundaries = cache
@@ -704,10 +647,12 @@ end
 function prolong2boundaries!(cache, u, u_parent, semis,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
-    return prolong2boundaries!(cache, u, mesh, equations, dg)
+    backend = trixi_backend(u)
+    return prolong2boundaries!(backend, cache, u, mesh, equations, dg)
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
+function calc_boundary_flux!(backend::Nothing, cache, t, boundary_condition::BC,
+                             boundary_indexing,
                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
@@ -1219,11 +1164,41 @@ function calc_surface_integral!(backend::Nothing, du, u,
     @unpack inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # This computes the **negative** surface integral contribution,
+    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
+    # and the missing "-" is taken care of by `apply_jacobian!`.
+    #
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     @threaded for element in eachelement(dg, cache)
-        calc_surface_integral_per_element!(du, typeof(mesh), equations,
-                                           surface_integral, dg, inverse_weights[1],
-                                           surface_flux_values, element)
+        for l in eachnode(dg)
+            for v in eachvariable(equations)
+                # surface at -x
+                du[v, 1, l, element] = (du[v, 1, l, element] +
+                                        surface_flux_values[v, l, 1, element] *
+                                        factor)
+
+                # surface at +x
+                du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
+                                                 surface_flux_values[v, l, 2, element] *
+                                                 factor)
+
+                # surface at -y
+                du[v, l, 1, element] = (du[v, l, 1, element] +
+                                        surface_flux_values[v, l, 3, element] *
+                                        factor)
+
+                # surface at +y
+                du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
+                                                 surface_flux_values[v, l, 4, element] *
+                                                 factor)
+            end
+        end
     end
+
+    return nothing
 end
 
 function calc_surface_integral!(backend::Nothing, du, u,
@@ -1233,97 +1208,6 @@ function calc_surface_integral!(backend::Nothing, du, u,
     @unpack boundary_interpolation_inverse_weights = dg.basis
     @unpack surface_flux_values = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        calc_surface_integral_per_element!(du, typeof(mesh), equations,
-                                           surface_integral, dg,
-                                           boundary_interpolation_inverse_weights,
-                                           surface_flux_values, element)
-    end
-end
-
-function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                            T8codeMesh{2}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM{<:LobattoLegendreBasis}, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
-
-    kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, surface_integral, dg, inverse_weights[1],
-            surface_flux_values, ndrange = nelements(dg, cache))
-    return nothing
-end
-
-@kernel function calc_surface_integral_KAkernel!(du,
-                                                 MeshT::Type{<:Union{P4estMesh{2},
-                                                                     P4estMeshView{2},
-                                                                     T8codeMesh{2}}},
-                                                 equations,
-                                                 surface_integral::SurfaceIntegralWeakForm,
-                                                 dg::DGSEM{<:LobattoLegendreBasis},
-                                                 factor,
-                                                 surface_flux_values)
-    element = @index(Global)
-    calc_surface_integral_per_element!(du, MeshT, equations, surface_integral,
-                                       dg, factor, surface_flux_values, element)
-end
-
-@inline function calc_surface_integral_per_element!(du,
-                                                    ::Type{<:Union{P4estMesh{2},
-                                                                   P4estMeshView{2},
-                                                                   T8codeMesh{2}}},
-                                                    equations,
-                                                    surface_integral::SurfaceIntegralWeakForm,
-                                                    dg::DGSEM{<:LobattoLegendreBasis},
-                                                    factor,
-                                                    surface_flux_values, element)
-    # Note that all fluxes have been computed with outward-pointing normal vectors.
-    # This computes the **negative** surface integral contribution,
-    # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
-    # and the missing "-" is taken care of by `apply_jacobian!`.
-    #
-    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
-    # into FMAs (see comment at the top of the file).
-    #
-    # factor = inverse_weights[1]
-    # For LGL basis: Identical to weighted boundary interpolation at x = ±1
-    for l in eachnode(dg)
-        for v in eachvariable(equations)
-            # surface at -x
-            du[v, 1, l, element] = (du[v, 1, l, element] +
-                                    surface_flux_values[v, l, 1, element] *
-                                    factor)
-
-            # surface at +x
-            du[v, nnodes(dg), l, element] = (du[v, nnodes(dg), l, element] +
-                                             surface_flux_values[v, l, 2, element] *
-                                             factor)
-
-            # surface at -y
-            du[v, l, 1, element] = (du[v, l, 1, element] +
-                                    surface_flux_values[v, l, 3, element] *
-                                    factor)
-
-            # surface at +y
-            du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
-                                             surface_flux_values[v, l, 4, element] *
-                                             factor)
-        end
-    end
-    return nothing
-end
-
-function calc_surface_integral_per_element!(du,
-                                            ::Type{<:Union{P4estMesh{2},
-                                                           P4estMeshView{2}}},
-                                            equations,
-                                            surface_integral::SurfaceIntegralWeakForm,
-                                            dg::DGSEM{<:GaussLegendreBasis},
-                                            boundary_interpolation_inverse_weights,
-                                            surface_flux_values, element)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T
@@ -1331,53 +1215,53 @@ function calc_surface_integral_per_element!(du,
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
-    for l in eachnode(dg)
-        for v in eachvariable(equations)
-            # Aliases for repeatedly accessed variables
-            surface_flux_minus_x = surface_flux_values[v, l, 1, element]
-            surface_flux_plus_x = surface_flux_values[v, l, 2, element]
-            for ii in eachnode(dg)
-                # surface at -x
-                du[v, ii, l, element] = (du[v, ii, l, element] +
-                                         surface_flux_minus_x *
-                                         boundary_interpolation_inverse_weights[ii,
-                                                                                1])
-                # surface at +x
-                du[v, ii, l, element] = (du[v, ii, l, element] +
-                                         surface_flux_plus_x *
-                                         boundary_interpolation_inverse_weights[ii,
-                                                                                2])
-            end
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations)
+                # Aliases for repeatedly accessed variables
+                surface_flux_minus_x = surface_flux_values[v, l, 1, element]
+                surface_flux_plus_x = surface_flux_values[v, l, 2, element]
+                for ii in eachnode(dg)
+                    # surface at -x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_minus_x *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    1])
+                    # surface at +x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_plus_x *
+                                             boundary_interpolation_inverse_weights[ii,
+                                                                                    2])
+                end
 
-            surface_flux_minus_y = surface_flux_values[v, l, 3, element]
-            surface_flux_plus_y = surface_flux_values[v, l, 4, element]
-            for jj in eachnode(dg)
-                # surface at -y
-                du[v, l, jj, element] = (du[v, l, jj, element] +
-                                         surface_flux_minus_y *
-                                         boundary_interpolation_inverse_weights[jj,
-                                                                                1])
-                # surface at +y
-                du[v, l, jj, element] = (du[v, l, jj, element] +
-                                         surface_flux_plus_y *
-                                         boundary_interpolation_inverse_weights[jj,
-                                                                                2])
+                surface_flux_minus_y = surface_flux_values[v, l, 3, element]
+                surface_flux_plus_y = surface_flux_values[v, l, 4, element]
+                for jj in eachnode(dg)
+                    # surface at -y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_minus_y *
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    1])
+                    # surface at +y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_plus_y *
+                                             boundary_interpolation_inverse_weights[jj,
+                                                                                    2])
+                end
             end
         end
     end
-
-    return nothing
 end
 
 # Call this for coupled P4estMeshView simulations.
 # The coupling calculations (especially boundary conditions) require data from the parent mesh, which is why
 # the additional variable u_parent is needed, compared to non-coupled systems.
-function rhs!(du, u, t, u_parent, semis,
-              mesh::P4estMeshView{2},
-              equations,
-              boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
-    backend = nothing
+function rhs_hyperbolic!(backend::Nothing,
+                         du, u, t,
+                         u_parent, semis,
+                         mesh::P4estMeshView{2}, equations,
+                         boundary_conditions, source_terms::Source,
+                         dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" set_zero!(du, dg, cache)
 
@@ -1437,7 +1321,7 @@ function rhs!(du, u, t, u_parent, semis,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
