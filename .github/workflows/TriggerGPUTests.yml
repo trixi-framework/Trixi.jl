@@ -1,0 +1,90 @@
+name: Trigger GPU Tests
+
+# The GPU tests run on dedicated machines with actual GPUs, which are provided via
+# Buildkite (see `.buildkite/pipeline.yml`). Since they are irrelevant for the vast
+# majority of pull requests and the GPU machines are a scarce resource, they are not run
+# automatically. Instead, they are requested explicitly by commenting `/run_gpu_tests` on
+# a pull request, which is what this workflow reacts to.
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  # Required to look up whether the author of the comment has write access.
+  contents: read
+  # Required to look up the head commit of the pull request.
+  pull-requests: read
+
+jobs:
+  trigger_buildkite:
+    # Only react to comments on pull requests (not on issues) that *start* with the
+    # command. Matching it anywhere in the comment would also trigger on comments that
+    # merely mention it, e.g., "Do not run /run_gpu_tests before the CPU tests are green"
+    # or a quote of the documentation.
+    # The `author_association` check is only a cheap pre-filter to avoid starting a job
+    # for arbitrary users; the authoritative permission check happens in the first step.
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/run_gpu_tests') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+      github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # A `/run_gpu_tests` comment causes the code of the pull request to be executed on
+      # the GPU machines, so it must be restricted to people who can be trusted to have
+      # reviewed that code first. We require write access to this repository, which is the
+      # same bar GitHub uses for approving workflow runs of forked pull requests.
+      # Note that `author_association` alone is not sufficient for this: it reports
+      # `MEMBER` for everyone in the `trixi-framework` organization, including people who
+      # only have read access to this repository.
+      #
+      # We also resolve the head commit of the pull request here and pass it to Buildkite
+      # below. Otherwise, Buildkite would resolve `refs/pull/<number>/head` only when the
+      # build starts, i.e., we could end up testing a commit that was pushed after the
+      # GPU tests had been requested - and thus different code than the one that was
+      # reviewed before requesting them.
+      - name: Check write access and resolve the head commit
+        id: pr
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const user = context.payload.comment.user.login;
+            const { data: permission } =
+              await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: user
+              });
+            // `permission` is one of "admin", "write", "read", "none", where the
+            // "maintain" role is mapped to "write" and "triage" is mapped to "read".
+            if (!["admin", "write"].includes(permission.permission)) {
+              core.setFailed(`@${user} does not have write access to this repository ` +
+                             `(permission: "${permission.permission}"), so the GPU ` +
+                             `tests are not started. Please ask a maintainer to ` +
+                             `request them.`);
+              return;
+            }
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            });
+            core.setOutput("sha", pullRequest.head.sha);
+            core.info(`Requesting GPU tests for ${pullRequest.head.sha}.`);
+
+      - name: Trigger Buildkite pipeline
+        uses: buildkite/trigger-pipeline-action@v2.5.0
+        with:
+          buildkite_api_access_token: ${{ secrets.TRIGGER_BK_BUILD_TOKEN }}
+          pipeline: "julialang/trixi-dot-jl"
+          commit: ${{ steps.pr.outputs.sha }}
+          branch: "refs/pull/${{ github.event.issue.number }}/head"
+          # The Buildkite pipeline only builds `main` automatically, so this explicitly
+          # requested build has to be exempt from that branch filter.
+          ignore_pipeline_branch_filter: true
+          message: >-
+            GPU tests requested by @${{ github.event.comment.user.login }}
+            on PR #${{ github.event.issue.number }}
