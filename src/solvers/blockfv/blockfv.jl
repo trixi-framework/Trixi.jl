@@ -30,10 +30,12 @@ function UniformFiniteVolumeBasis(n_nodes::Integer)
     return UniformFiniteVolumeBasis(Float64, n_nodes)
 end
 
+#=
 # In principle, cell-centered finite volume methods require interpolation to
 # the cell interfaces/boundaries.
 # In the current first order implementation, however, this is not needed.
 @inline surface_interpolation_needed(::UniformFiniteVolumeBasis) = false
+=#
 
 # Basis interface required by the DG infrastructure
 @inline Base.real(::UniformFiniteVolumeBasis{RealT}) where {RealT} = RealT

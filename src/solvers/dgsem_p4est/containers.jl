@@ -497,6 +497,7 @@ function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer,
     return nothing
 end
 
+#=
 # In principle, cell-centered finite volume methods require interpolation to
 # the cell boundaries.
 # In the current first order implementation, however, this is not needed.
@@ -504,6 +505,7 @@ function init_boundary_node_coordinates!(boundaries::P4estBoundaryContainer,
                                          basis::UniformFiniteVolumeBasis, elements)
     return nothing
 end
+=#
 
 # Create interface container and initialize interface data in `elements`.
 function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
