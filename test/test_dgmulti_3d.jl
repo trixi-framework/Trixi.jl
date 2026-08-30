@@ -87,7 +87,7 @@ end
                        7.470983627097499e-14,
                        1.3189745549433738e-13,
                        1.4946376828125984e-13
-                   ])
+                   ], atol = 1e-13)
     @test isapprox(linf,
                    [
                        7.982503547054876e-14,
@@ -95,7 +95,7 @@ end
                        3.626543509938074e-13,
                        4.64406291200703e-13,
                        6.661338147750939e-13
-                   ])
+                   ], atol = 1e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
