@@ -71,6 +71,28 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "DGMulti3D: elixir_euler_freestream.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_freestream.jl"),
+                        tspan=(0.0, 0.25),
+                        l2=[
+                            1.26970240216265e-14,
+                            7.076585993441552e-14,
+                            7.470983627097499e-14,
+                            1.3189745549433738e-13,
+                            1.4946376828125984e-13
+                        ],
+                        linf=[
+                            7.982503547054876e-14,
+                            2.7700064464397656e-13,
+                            5.142275494307569e-13,
+                            6.840084054715589e-13,
+                            8.331113576787175e-13
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" setup=[
     Setup,
     DGMulti3D
