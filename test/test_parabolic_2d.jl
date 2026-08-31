@@ -794,17 +794,18 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
+                        time_int_tol=1e-9,
                         l2=[
-                            0.001452856280034929,
-                            0.0007538775539989481,
-                            0.0007538775539988681,
-                            0.011035506549989587
+                            0.00145486807418178,
+                            0.0007225717711159572,
+                            0.0007225717711157697,
+                            0.0110120461466977
                         ],
                         linf=[
-                            0.003291912841311362,
-                            0.002986462478096974,
-                            0.0029864624780958637,
-                            0.0231954665514138
+                            0.0032979335880943816,
+                            0.0027219734306294097,
+                            0.002721973430631408,
+                            0.0237801274913636
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
