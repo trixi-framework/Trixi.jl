@@ -78,13 +78,10 @@ end
         left_element = neighbor_ids[1, interface]
         right_element = neighbor_ids[2, interface]
 
-        if perform_subcell_limiting(dg.volume_integral, left_element) ||
-           perform_subcell_limiting(dg.volume_integral, right_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
-        else
-            # Subcell limiting is not necessary for both elements => Skip this interface
-            continue
-        end
+        # detect if subcell limiting is necessary for one of the elements
+        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+        (limit_left || limit_right) || continue
 
         orientation = orientations[interface]
 
@@ -98,7 +95,7 @@ end
                 index_right = (i, 1)
             end
 
-            if perform_subcell_limiting(dg.volume_integral, right_element)
+            if limit_right
                 var_left = u[variable, index_left..., left_element]
                 var_min[index_right..., right_element] = min(var_min[index_right...,
                                                                      right_element],
@@ -108,7 +105,7 @@ end
                                                              var_left)
             end
 
-            if perform_subcell_limiting(dg.volume_integral, left_element)
+            if limit_left
                 var_right = u[variable, index_right..., right_element]
                 var_min[index_left..., left_element] = min(var_min[index_left...,
                                                                    left_element],
@@ -251,49 +248,40 @@ end
 end
 
 @inline function calc_bounds_onesided!(var_minmax, min_or_max, variable,
-                                       u::AbstractArray{<:Any, 4}, t,
-                                       semi)
+                                       u::AbstractArray{<:Any, 4}, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
 
-    # The approach used in `calc_bounds_twosided!` is not used here because it requires more
-    # evaluations of the variable and is therefore slower.
-
-    # Calc bounds inside elements
+    # Cache the nonlinear variable once per node before constructing the bounds.
+    # This avoids reevaluating the variable at interfaces.
     @threaded for element in eachelement(dg, cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
-        # Reset bounds
-        for j in eachnode(dg), i in eachnode(dg)
-            if min_or_max === max
-                var_minmax[i, j, element] = typemin(eltype(var_minmax))
-            else
-                var_minmax[i, j, element] = typemax(eltype(var_minmax))
-            end
-        end
-
-        # Calculate bounds at Gauss-Lobatto nodes
+        # Calculate variable values at Gauss-Lobatto nodes
         for j in eachnode(dg), i in eachnode(dg)
             var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
-            var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element], var)
+            variable_values[i, j, element] = var
+            var_minmax[i, j, element] = var
+        end
 
-            if i > 1
-                var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1, j,
-                                                                      element], var)
-            end
-            if i < nnodes(dg)
-                var_minmax[i + 1, j, element] = min_or_max(var_minmax[i + 1, j,
-                                                                      element], var)
-            end
-            if j > 1
-                var_minmax[i, j - 1, element] = min_or_max(var_minmax[i, j - 1,
-                                                                      element], var)
-            end
-            if j < nnodes(dg)
-                var_minmax[i, j + 1, element] = min_or_max(var_minmax[i, j + 1,
-                                                                      element], var)
-            end
+        # Apply neighboring values in the x direction
+        for j in eachnode(dg), i in 2:nnodes(dg)
+            var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element],
+                                                   variable_values[i - 1, j, element])
+
+            var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1, j, element],
+                                                       variable_values[i, j, element])
+        end
+
+        # Apply neighboring values in the y direction
+        for j in 2:nnodes(dg), i in eachnode(dg)
+            var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element],
+                                                   variable_values[i, j - 1, element])
+
+            var_minmax[i, j - 1, element] = min_or_max(var_minmax[i, j - 1, element],
+                                                       variable_values[i, j, element])
         end
     end
 
@@ -316,6 +304,8 @@ end
 @inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u,
                                                  semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
+    n_nodes = nnodes(dg)
 
     (; neighbor_ids, orientations) = cache.interfaces
 
@@ -324,36 +314,43 @@ end
         left_element = neighbor_ids[1, interface]
         right_element = neighbor_ids[2, interface]
 
-        if perform_subcell_limiting(dg.volume_integral, left_element) ||
-           perform_subcell_limiting(dg.volume_integral, right_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
-        else
-            # Subcell limiting is not necessary for both elements => Skip this interface
-            continue
-        end
+        # detect if subcell limiting is necessary for one of the elements
+        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+        (limit_left || limit_right) || continue
 
         orientation = orientations[interface]
 
         for i in eachnode(dg)
             # Define node indices for left and right element based on the interface orientation
             if orientation == 1
-                index_left = (nnodes(dg), i)
+                index_left = (n_nodes, i)
                 index_right = (1, i)
             else # if orientation == 2
-                index_left = (i, nnodes(dg))
+                index_left = (i, n_nodes)
                 index_right = (i, 1)
             end
 
-            if perform_subcell_limiting(dg.volume_integral, right_element)
-                u_left = get_node_vars(u, equations, dg, index_left..., left_element)
-                var_left = variable(u_left, equations)
+            if limit_right
+                # Use cached value if available, otherwise compute it
+                var_left = if limit_left
+                    variable_values[index_left..., left_element]
+                else
+                    variable(get_node_vars(u, equations, dg, index_left...,
+                                           left_element), equations)
+                end
                 var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
                                                                                   right_element],
                                                                        var_left)
             end
-            if perform_subcell_limiting(dg.volume_integral, left_element)
-                u_right = get_node_vars(u, equations, dg, index_right..., right_element)
-                var_right = variable(u_right, equations)
+            if limit_left
+                # Use cached value if available, otherwise compute it
+                var_right = if limit_right
+                    variable_values[index_right..., right_element]
+                else
+                    variable(get_node_vars(u, equations, dg, index_right...,
+                                           right_element), equations)
+                end
                 var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
                                                                                 left_element],
                                                                      var_right)

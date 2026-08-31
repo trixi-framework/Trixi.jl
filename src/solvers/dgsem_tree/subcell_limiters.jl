@@ -161,7 +161,10 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     end
 
     bar_states = bar_states_as_static(bar_states)
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states)
+    # Only cache the variable values when they are needed for the limiter.
+    # This is the case when local one-sided limiting is used.
+    cache_variable_values = local_onesided
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states, cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -256,12 +259,14 @@ end
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys,
-                      ::False) where {NDIMS}
+                      ::False,
+                      cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
-                                                                                        bound_keys)
+                                                                                        bound_keys,
+                                                                                        cache_variable_values)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -283,8 +288,9 @@ end
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, bound_keys,
-                      ::True)
-    cache = create_cache(limiter, equations, basis, bound_keys, False())
+                      ::True,
+                      cache_variable_values)
+    cache = create_cache(limiter, equations, basis, bound_keys, False(), cache_variable_values)
     container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
                                                                    nvariables(equations),
                                                                    nnodes(basis))
@@ -300,6 +306,15 @@ function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     end
 
     return nothing
+end
+
+# The following functions are used to access the subcell limiter coefficients from the volume integral.
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients
+end
+
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralAdaptive)
+    return subcell_limiter_coefficients(volume_integral.volume_integral_stabilized)
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
