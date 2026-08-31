@@ -1,6 +1,6 @@
 #src # DG schemes via `DGMulti` solver
 
-# [`DGMulti`](@ref) is a DG solver that allows meshes with simplex elements. The basic idea and
+# [`DGMulti`](@ref) is a DG solver that allows meshes with simplex(triangles, tetrahedra) elements. The basic idea and
 # implementation of this solver is explained in section ["Meshes"](@ref DGMulti).
 # Here, we want to give some examples and a quick overview about the options with `DGMulti`.
 
