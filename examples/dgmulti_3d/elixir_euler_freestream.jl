@@ -8,6 +8,8 @@ basis = DGMultiBasis(Tet(), polydeg, approximation_type = Polynomial())
 mesh_file = Trixi.download("https://raw.githubusercontent.com/jlchan/StartUpDG.jl/refs/heads/main/test/testset_Gmsh_meshes/cube1.msh",
                            joinpath(@__DIR__, "cube1.msh"))
 
+mesh_file = "/home/daniel/Desktop/cube.msh"
+
 VXY, EToV = StartUpDG.read_Gmsh_3D(mesh_file)
 
 # tag all boundaries as freestream
@@ -28,6 +30,7 @@ dg = DGMulti(basis,
 mesh = DGMultiMesh(dg, VXY, EToV; is_on_boundary)
 
 boundary_conditions = (; freestream = BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (; entire_boundary = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     boundary_conditions = boundary_conditions)

@@ -258,7 +258,11 @@ function DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV::AbstractArray
     else
         md = StartUpDG.make_periodic(md, periodicity)
     end
-    boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+    #boundary_faces = StartUpDG.tag_boundary_faces(md, is_on_boundary)
+    boundary_faces = StartUpDG.tag_boundary_faces(md)
+
+    println("boundary_faces: ", boundary_faces)
+
     return DGMultiMesh(dg, GeometricTermsType(VertexMapped(), dg), md, boundary_faces)
 end
 
