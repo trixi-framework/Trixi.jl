@@ -11,7 +11,8 @@ prandtl_number() = 0.72
 # Frank M. White: Viscous Fluid Flow, 2nd Edition.
 # 1991, McGraw-Hill, ISBN, 0-07-069712-4
 # Pages 28 and 29.
-@inline function mu(u_prim_temperature, equations)
+@inline function mu(u_prim_temperature,
+                    equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
     RealT = eltype(u_prim_temperature)
     T_ref = convert(RealT, 291.15) # [K]
     _, _, _, T = u_prim_temperature
