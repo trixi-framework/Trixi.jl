@@ -73,46 +73,51 @@ end
 
     (; neighbor_ids, orientations) = cache.interfaces
 
-    for interface in eachinterface(dg, cache)
-        # Get neighboring element ids
-        left_element = neighbor_ids[1, interface]
-        right_element = neighbor_ids[2, interface]
+    # Process x- and y-oriented interfaces separately. Interfaces with the
+    # same orientation update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    for selected_orientation in 1:2
+        @threaded for interface in eachinterface(dg, cache)
+            orientations[interface] == selected_orientation || continue
 
-        # detect if subcell limiting is necessary for one of the elements
-        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
-        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
-        (limit_left || limit_right) || continue
+            # Get neighboring element ids
+            left_element = neighbor_ids[1, interface]
+            right_element = neighbor_ids[2, interface]
 
-        orientation = orientations[interface]
+            # detect if subcell limiting is necessary for one of the elements
+            limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+            limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+            (limit_left || limit_right) || continue
 
-        for i in eachnode(dg)
-            # Define node indices for left and right element based on the interface orientation
-            if orientation == 1
-                index_left = (nnodes(dg), i)
-                index_right = (1, i)
-            else # if orientation == 2
-                index_left = (i, nnodes(dg))
-                index_right = (i, 1)
-            end
+            for i in eachnode(dg)
+                # Define node indices for left and right element based on the interface orientation
+                if orientations[interface] == 1
+                    index_left = (nnodes(dg), i)
+                    index_right = (1, i)
+                else # if orientation == 2
+                    index_left = (i, nnodes(dg))
+                    index_right = (i, 1)
+                end
 
-            if limit_right
-                var_left = u[variable, index_left..., left_element]
-                var_min[index_right..., right_element] = min(var_min[index_right...,
-                                                                     right_element],
-                                                             var_left)
-                var_max[index_right..., right_element] = max(var_max[index_right...,
-                                                                     right_element],
-                                                             var_left)
-            end
+                if limit_right
+                    var_left = u[variable, index_left..., left_element]
+                    var_min[index_right..., right_element] = min(var_min[index_right...,
+                                                                         right_element],
+                                                                 var_left)
+                    var_max[index_right..., right_element] = max(var_max[index_right...,
+                                                                         right_element],
+                                                                 var_left)
+                end
 
-            if limit_left
-                var_right = u[variable, index_right..., right_element]
-                var_min[index_left..., left_element] = min(var_min[index_left...,
-                                                                   left_element],
-                                                           var_right)
-                var_max[index_left..., left_element] = max(var_max[index_left...,
-                                                                   left_element],
-                                                           var_right)
+                if limit_left
+                    var_right = u[variable, index_right..., right_element]
+                    var_min[index_left..., left_element] = min(var_min[index_left...,
+                                                                       left_element],
+                                                               var_right)
+                    var_max[index_left..., left_element] = max(var_max[index_left...,
+                                                                       left_element],
+                                                               var_right)
+                end
             end
         end
     end
@@ -309,51 +314,56 @@ end
 
     (; neighbor_ids, orientations) = cache.interfaces
 
-    for interface in eachinterface(dg, cache)
-        # Get neighboring element ids
-        left_element = neighbor_ids[1, interface]
-        right_element = neighbor_ids[2, interface]
+    # Process x- and y-oriented interfaces separately. Interfaces with the
+    # same orientation update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    for selected_orientation in 1:2
+        @threaded for interface in eachinterface(dg, cache)
+            orientations[interface] == selected_orientation || continue
 
-        # detect if subcell limiting is necessary for one of the elements
-        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
-        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
-        (limit_left || limit_right) || continue
+            # Get neighboring element ids
+            left_element = neighbor_ids[1, interface]
+            right_element = neighbor_ids[2, interface]
 
-        orientation = orientations[interface]
+            # detect if subcell limiting is necessary for one of the elements
+            limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+            limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+            (limit_left || limit_right) || continue
 
-        for i in eachnode(dg)
-            # Define node indices for left and right element based on the interface orientation
-            if orientation == 1
-                index_left = (n_nodes, i)
-                index_right = (1, i)
-            else # if orientation == 2
-                index_left = (i, n_nodes)
-                index_right = (i, 1)
-            end
-
-            if limit_right
-                # Use cached value if available, otherwise compute it
-                var_left = if limit_left
-                    variable_values[index_left..., left_element]
-                else
-                    variable(get_node_vars(u, equations, dg, index_left...,
-                                           left_element), equations)
+            for i in eachnode(dg)
+                # Define node indices for left and right element based on the interface orientation
+                if orientations[interface] == 1
+                    index_left = (n_nodes, i)
+                    index_right = (1, i)
+                else # if orientation == 2
+                    index_left = (i, n_nodes)
+                    index_right = (i, 1)
                 end
-                var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
-                                                                                  right_element],
-                                                                       var_left)
-            end
-            if limit_left
-                # Use cached value if available, otherwise compute it
-                var_right = if limit_right
-                    variable_values[index_right..., right_element]
-                else
-                    variable(get_node_vars(u, equations, dg, index_right...,
-                                           right_element), equations)
+
+                if limit_right
+                    # Use cached value if available, otherwise compute it
+                    var_left = if limit_left
+                        variable_values[index_left..., left_element]
+                    else
+                        variable(get_node_vars(u, equations, dg, index_left...,
+                                               left_element), equations)
+                    end
+                    var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
+                                                                                      right_element],
+                                                                           var_left)
                 end
-                var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
-                                                                                left_element],
-                                                                     var_right)
+                if limit_left
+                    # Use cached value if available, otherwise compute it
+                    var_right = if limit_right
+                        variable_values[index_right..., right_element]
+                    else
+                        variable(get_node_vars(u, equations, dg, index_right...,
+                                               right_element), equations)
+                    end
+                    var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
+                                                                                    left_element],
+                                                                         var_right)
+                end
             end
         end
     end
