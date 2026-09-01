@@ -135,15 +135,15 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
     return ContainerSubcellLimiterIDP{NDIMS, uEltype, NDIMS + 1,
                                       typeof(variable_values),
                                       typeof(_variable_values)}(alpha,
-                                                                 alpha_local,
-                                                                 variable_values,
-                                                                 variable_bounds,
-                                                                 n_mortars_per_node,
-                                                                 _alpha,
-                                                                 _alpha_local,
-                                                                 _variable_values,
-                                                                 _variable_bounds,
-                                                                 _n_mortars_per_node)
+                                                                alpha_local,
+                                                                variable_values,
+                                                                variable_bounds,
+                                                                n_mortars_per_node,
+                                                                _alpha,
+                                                                _alpha_local,
+                                                                _variable_values,
+                                                                _variable_bounds,
+                                                                _n_mortars_per_node)
 end
 
 @inline nnodes(container::ContainerSubcellLimiterIDP) = size(container.alpha, 1)

@@ -164,7 +164,8 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states, cache_variable_values)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states,
+                         cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -290,7 +291,8 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
                       basis::LobattoLegendreBasis, bound_keys,
                       ::True,
                       cache_variable_values)
-    cache = create_cache(limiter, equations, basis, bound_keys, False(), cache_variable_values)
+    cache = create_cache(limiter, equations, basis, bound_keys, False(),
+                         cache_variable_values)
     container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
                                                                    nvariables(equations),
                                                                    nnodes(basis))
