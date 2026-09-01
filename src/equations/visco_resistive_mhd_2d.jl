@@ -99,14 +99,14 @@ end
 # We specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
 function gradient_variable_transformation(::ViscoResistiveMhd2D{GradientVariablesPrimitive})
-    cons2prim
+    cons2prim_temperature
 end
 
-# cons2prim returns (rho, v1, v2, v3, T, B1, B2, B3, psi) where T = p/rho is temperature.
-# This differs from the hyperbolic cons2prim which returns pressure as the 5th variable.
+# cons2prim_temperature returns (rho, v1, v2, v3, T, B1, B2, B3, psi) where T = p/rho is temperature.
+# This differs from the hyperbolic cons2prim_temperature which returns pressure as the 5th variable.
 # Gradients are taken of these transformed variables, so the 5th gradient component is dT/dx,
 # which is what the heat flux needs.
-@inline function cons2prim(u, equations::ViscoResistiveMhd2D)
+@inline function cons2prim_temperature(u, equations::ViscoResistiveMhd2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
     v1 = rho_v1 / rho
