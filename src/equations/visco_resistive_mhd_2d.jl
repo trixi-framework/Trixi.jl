@@ -115,7 +115,7 @@ end
     p = (equations.gamma - 1) * (rho_e -
          0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
                   + B1^2 + B2^2 + B3^2 + psi^2))
-    T = p / rho
+    T = p / rho # assumes R_specific = 1
 
     return SVector(rho, v1, v2, v3, T, B1, B2, B3, psi)
 end
