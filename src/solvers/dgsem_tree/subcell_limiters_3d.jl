@@ -695,7 +695,7 @@ end
     if rho <= 0 # State is invalid
         named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
                        rho_to_minus_gamma = zero_uEltype)
-        return false, zero_uEltype, named_tuple
+        return false, zero(bound), named_tuple
     end
 
     # Computation along u(beta) = u + beta * delta_u for Guermond entropy in Euler 3D:
@@ -707,7 +707,7 @@ end
     if internal_energy <= 0
         named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
                        rho_to_minus_gamma = zero_uEltype)
-        return false, zero_uEltype, named_tuple
+        return false, zero(bound), named_tuple
     end
 
     # Modified specific entropy of Guermond et al. (2019)

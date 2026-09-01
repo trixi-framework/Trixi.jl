@@ -465,7 +465,7 @@ end
 
 # Combined Newton data evaluation (state validity and goal function).
 # The default implementation reproduces the previous behavior and is specialized by dispatch.
-# For higher speed-up, use specialized version to avoid more unnecessary recomputations.
+# For additional speed-ups, use a specialized version to avoid unnecessary recomputation.
 @inline function newton_state_data(variable, bound, u, equations)
     is_valid = isvalid(u, equations)
     if is_valid
