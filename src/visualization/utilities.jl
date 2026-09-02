@@ -429,6 +429,11 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
         data = structured_data
     end
 
+    # `data` (in both branches above) is indexed as `[x, y]`.
+    # `Plots.heatmap`/`Makie.heatmap` expect the opposite (`[y, x]`),
+    # so we transpose here once for all data.
+    data = [permutedims(d) for d in data]
+
     # Determine element vertices to plot grid lines
     if grid_lines
         mesh_vertices_x, mesh_vertices_y = calc_vertices(coordinates, levels,
@@ -601,11 +606,6 @@ function cell2node(cell_centered_data)
                                    tmp[i + 1, j + 1]) / 4
             end
         end
-    end
-
-    # Transpose
-    for (index, data) in enumerate(node_centered_data)
-        node_centered_data[index] = permutedims(data)
     end
 
     return node_centered_data
