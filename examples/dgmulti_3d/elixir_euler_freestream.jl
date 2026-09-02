@@ -29,7 +29,6 @@ dg = DGMulti(basis,
 mesh = DGMultiMesh(dg, VXY, EToV; is_on_boundary)
 
 boundary_conditions = (; freestream = BoundaryConditionDirichlet(initial_condition))
-boundary_conditions = (; entire_boundary = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     boundary_conditions = boundary_conditions)
