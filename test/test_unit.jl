@@ -635,6 +635,18 @@ end
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
     end
+
+    @testset "ContainerBarStates" begin
+        container_2d = Trixi.ContainerBarStates2D{Float64}(0, 5, 4)
+        resize!(container_2d, 3)
+        @test container_2d isa Trixi.ContainerBarStates2D
+        @test size(container_2d.bar_states1) == (5, 5, 4, 3)
+        @test size(container_2d.bar_states2) == (5, 4, 5, 3)
+        @test size(container_2d.lambda1) == (5, 4, 3)
+        @test size(container_2d.lambda2) == (4, 5, 3)
+        @test Trixi.nvariables(container_2d) == 5
+        @test Trixi.nnodes(container_2d) == 4
+    end
 end
 
 @testitem "Unit: example elixirs" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -657,6 +669,11 @@ end
     @test isnothing(display(c2d))
     c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
+end
+
+@testitem "Unit: DG IDP mortar container debug output" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    @test isnothing(display(c2d))
 end
 
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -683,8 +700,8 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(entropy_guermond_etal, min)], "cache",
-                                    1, (1.0, 1.0), 1.0)
+                                    true, [(entropy_guermond_etal, min)], nothing, true,
+                                    true, "cache", 1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
