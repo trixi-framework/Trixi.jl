@@ -59,7 +59,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 30)
+                                max_iterations_newton = 30,
+                                bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,

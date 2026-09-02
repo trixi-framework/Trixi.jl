@@ -53,7 +53,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_onesided_variables_nonlinear = [(entropy_guermond_etal,
                                                                        min)],
                                 max_iterations_newton = 40, # Default parameters are not sufficient to fulfill bounds properly.
-                                newton_tolerances = (1.0e-14, 1.0e-15))
+                                newton_tolerances = (1.0e-14, 1.0e-15),
+                                bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -94,10 +95,14 @@ save_solution = SaveSolutionCallback(interval = 300,
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
+limiting_analysis_callback = LimitingAnalysisCallback(output_directory = "out",
+                                                      interval = 1)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         save_solution,
+                        limiting_analysis_callback,
                         stepsize_callback)
 
 ###############################################################################
