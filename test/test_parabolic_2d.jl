@@ -1616,6 +1616,28 @@ end
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
 
+@testitem "elixir_navierstokes_cylinder_bowshock_radiation.jl" setup=[Setup, Parabolic2D] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_cylinder_bowshock_radiation.jl"),
+                        tspan=(0.0, 1e-6),
+                        l2=[
+                            0.00027495246300192,
+                            0.1483982897877467,
+                            0.20689173716517717,
+                            567.6938111056311
+                        ],
+                        linf=[
+                            0.016025164731765566,
+                            9.215626284628064,
+                            15.29313554531913,
+                            35851.718004102004
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
 @testitem "Parabolic2D: TreeMesh2D: elixir_diffusion_steady_state_linear_map.jl" setup=[
     Setup,
     Parabolic2D
