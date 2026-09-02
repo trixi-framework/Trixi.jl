@@ -52,7 +52,7 @@ different features on different mesh types.
 | Spatial dimension                                            |     1D, 2D, 3D     |        1D, 2D, 3D        |              2D              |        2D, 3D       |          1D, 2D, 3D        |
 | Coordinates                                                  |      Cartesian     |        curvilinear       |          curvilinear         |     curvilinear     |         curvilinear        |
 | Connectivity                                                 |  *h*-nonconforming |        conforming        |          conforming          |  *h*-nonconforming  |          conforming        |
-| Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex, quadᵃ, hexᵃ    |
+| Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex(triᵃ, tetᵃ), quadᵃ, hexᵃ    |
 | Adaptive mesh refinement                                     |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            | [`AMRCallback`](@ref)
 | Solver type                                                  |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       |   [`DGSEM`](@ref)   |       [`DGMulti`](@ref)    |
 | Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary    |
@@ -62,7 +62,7 @@ different features on different mesh types.
 | Nonconservative equations                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | e.g., [`IdealGlmMhdEquations2D`](@ref)
 | Parabolic terms                                              |          ✅         |             ❌            |               ❌              |          ✅          |               ✅            | e.g., [`CompressibleNavierStokesDiffusion2D`](@ref)
 
-ᵃ: quad = quadrilateral, hex = hexahedron
+ᵃ: quad = quadrilateral, hex = hexahedron, tri = triangle, tet = tetrahedron
 
 Note that except for [`TreeMesh`](@ref) all meshes are of *curvilinear* type,
 which means that a (unit) vector normal to the interface (`normal_direction`) needs to be supplied to the

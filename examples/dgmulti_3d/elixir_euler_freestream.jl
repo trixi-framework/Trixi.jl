@@ -5,6 +5,7 @@ using Trixi: StartUpDG
 polydeg = 3
 basis = DGMultiBasis(Tet(), polydeg, approximation_type = Polynomial())
 
+# Import mesh consisting of tetrahedra
 mesh_file = Trixi.download("https://raw.githubusercontent.com/jlchan/StartUpDG.jl/refs/heads/main/test/testset_Gmsh_meshes/cube1.msh",
                            joinpath(@__DIR__, "cube1.msh"))
 
