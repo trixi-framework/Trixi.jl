@@ -463,9 +463,11 @@ end
     return -dot(gradient_conservative(variable, u, equations), delta_u)
 end
 
-# Combined Newton data evaluation (state validity and goal function).
-# The default implementation reproduces the previous behavior and is specialized by dispatch.
-# For additional speed-ups, use a specialized version to avoid unnecessary recomputation.
+# Combined function for checking state validity and evaluating the goal function during Newton
+# iterations. By default, both functions are evaluated separately and no additional data is returned.
+# For improved performance, use specialized implementations via dispatch to avoid redundant recomputation.
+# See `newton_state_data` in `subcell_limiters_2d.jl` for an example specialization for
+# `entropy_guermond_etal` for the 2D compressible Euler equations.
 @inline function newton_state_data(variable, bound, u, equations)
     is_valid = isvalid(u, equations)
     if is_valid
@@ -476,6 +478,11 @@ end
     return false, zero(bound), nothing
 end
 
+# By default, `newton_dgoal_dbeta` evaluates the derivative of the goal function without using
+# additional data. For improved performance, use specialized implementations via dispatch to avoid
+# redundant recomputation.
+# See `newton_dgoal_dbeta` in `subcell_limiters_2d.jl` for an example specialization for
+# `entropy_guermond_etal` for the 2D compressible Euler equations.
 @inline function newton_dgoal_dbeta(variable, u, delta_u, equations, state_data)
     return dgoal_function_newton_idp(variable, u, delta_u, equations)
 end
