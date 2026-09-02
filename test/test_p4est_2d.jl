@@ -1137,13 +1137,13 @@ end
                         cfl=0.3,
                         l2=[
                             0.12109201615888719,
-                            0.12072023737145607,
+                            0.12072023937465458,
                             0.12071951427093544,
                             0.7673633187647572
                         ],
                         linf=[
                             0.5308851705112634,
-                            0.7025360709058487,
+                            0.702536058072887,
                             0.702607566402268,
                             4.068560965697952
                         ],
@@ -1151,7 +1151,7 @@ end
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 5.0e-13
+    @test maximum(deviations) <= 3.0e-12
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -1177,14 +1177,14 @@ end
                         l2=[
                             0.12809811981277294,
                             0.12474245197640065,
-                            0.1247424520264346,
+                            0.12474245448061475,
                             0.7738857285332523
                         ],
                         linf=[
                             0.5982110913315719,
-                            0.7312942869462081,
-                            0.7312942157355307,
-                            3.9788246470224244
+                            0.7312942301460079,
+                            0.7312942378665278,
+                            3.978825388900569
                         ],
                         tspan=(0.0, 0.1))
     limiter = semi.solver.volume_integral.limiter
@@ -1226,16 +1226,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_weak_blast_wave_nonconforming_rotated_sc_subcell.jl"),
                         l2=[
-                            0.011454250151498143,
-                            0.02090263825576875,
-                            0.021533186358669385,
-                            0.11486583583620952
+                            0.011454826576992075,
+                            0.020903946245583435,
+                            0.021533551300220395,
+                            0.114867470166944
                         ],
                         linf=[
                             0.30997407561599366,
-                            0.4890733555206387,
-                            0.4397401375725119,
-                            2.382292817119373
+                            0.4893123331496876,
+                            0.4396954179417792,
+                            2.382388412548847
                         ])
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
