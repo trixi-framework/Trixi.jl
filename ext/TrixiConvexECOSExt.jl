@@ -92,9 +92,9 @@ end
 end
 
 #=
-The following structures and methods provide a simplified implementation to 
+The following structures and methods provide a simplified implementation to
 discover optimal stability polynomial for a given set of `eig_vals`
-These are designed for the one-step (i.e., Runge-Kutta methods) integration of initial value ordinary 
+These are designed for the one-step (i.e., Runge-Kutta methods) integration of initial value ordinary
 and partial differential equations.
 
 - Ketcheson and Ahmadia (2012).

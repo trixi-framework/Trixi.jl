@@ -15,7 +15,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_periodic.jl (O2 inner reconstruction)" setup=[
@@ -38,7 +38,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_free_stream.jl" setup=[
@@ -58,7 +58,7 @@ end
                         atol=3.0e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_wall_bc.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -79,7 +79,7 @@ end
                         surface_flux=FluxHLL(min_max_speed_naive))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_basic.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -100,7 +100,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_restart.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -119,7 +119,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_ec.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -139,7 +139,7 @@ end
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_advection_basic.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -148,7 +148,7 @@ end
                         linf=[0.0018997287705734278])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_sedov.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -168,7 +168,7 @@ end
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_euler_time_series.jl" setup=[
@@ -196,7 +196,7 @@ end
                             1.9547142161310154, 3.821066781119142]))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_acoustics_gauss_wall.jl" setup=[
@@ -215,7 +215,7 @@ end
                         tspan=(0.0, 5.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_mhd_ec.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -234,7 +234,7 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_mhd_alfven_wave.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -264,7 +264,7 @@ end
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: elixir_mhd_onion.jl" setup=[Setup, UnstructuredMesh2D] tags=[:unstructured_dgmulti] begin
@@ -293,7 +293,7 @@ end
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 # TODO: FD; for now put the unstructured tests for the 2D FDSBP here.
@@ -308,7 +308,28 @@ end
                         linf=[0.0004199363734466166])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
+@testitem "UnstructuredMesh2D: FDSBP (central): elixir_euler_ec.jl" setup=[
+    Setup,
+    UnstructuredMesh2D
+] tags=[:unstructured_dgmulti] begin
+    using Trixi: examples_dir
+    @test_trixi_include(joinpath(examples_dir(), "unstructured_2d_fdsbp",
+                                 "elixir_euler_ec.jl"),
+                        l2=[0.09056730335512135,
+                            0.07557730593078431,
+                            0.07557331604286137,
+                            0.23768999194184112],
+                        linf=[0.37265499941374935,
+                            0.25381409473468786,
+                            0.2584902123868289,
+                            0.9037236407898466],
+                        tspan=(0.0, 0.2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: FDSBP (central): elixir_euler_source_terms.jl" setup=[
@@ -329,7 +350,7 @@ end
                         tspan=(0.0, 0.05))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: FDSBP (central): elixir_euler_free_stream.jl" setup=[
@@ -351,7 +372,7 @@ end
                         atol=1.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: FDSBP (upwind): elixir_euler_source_terms_upwind.jl" setup=[
@@ -373,7 +394,7 @@ end
                         atol=2.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: FDSBP (upwind): elixir_euler_source_terms_upwind.jl with LF splitting" setup=[
@@ -400,7 +421,7 @@ end
                         atol=2e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: FDSBP (upwind): elixir_euler_free_stream_upwind.jl" setup=[
@@ -422,7 +443,7 @@ end
                         atol=1.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
 @testitem "UnstructuredMesh2D: FDSBP (upwind): elixir_euler_free_stream_upwind_float32.jl" setup=[
@@ -438,5 +459,5 @@ end
                         atol=9.0f-4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end

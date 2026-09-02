@@ -26,9 +26,10 @@ end
 # will be discretized first order form as follows:
 #               1. compute grad(u)
 #               2. compute f(u, grad(u))
-#               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
+#               3. compute div(f(u, grad(u))) (i.e., the "regular" RHS call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
+function rhs_parabolic!(backend::Nothing, du, u, t,
+                        mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
@@ -43,7 +44,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh,
+        calc_gradient!(backend, gradients, u_transformed, t, mesh,
                        equations_parabolic, boundary_conditions_parabolic,
                        dg, parabolic_scheme, cache)
     end
@@ -54,7 +55,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                                equations_parabolic, dg, cache)
     end
 
-    # The remainder of this function is essentially a regular rhs! for parabolic
+    # The remainder of this function is essentially a regular RHS evaluation for parabolic
     # equations (i.e., it computes the divergence of the parabolic fluxes)
     #
     # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
@@ -1155,11 +1156,10 @@ function reset_gradients!(gradients::NTuple{2}, dg::DG, cache)
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t,
+function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
                         mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
-    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin

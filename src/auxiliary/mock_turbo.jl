@@ -1,4 +1,4 @@
-# Copies some of the LoopVectorization functionality, 
+# Copies some of the LoopVectorization functionality,
 # but solely using Julia base functionality. It is equivalent to `@simd`
 # at every loop level
 macro turbo(exprs...)

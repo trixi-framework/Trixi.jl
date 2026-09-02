@@ -234,7 +234,7 @@ are available in the paper:
   the Euler equations of gas dynamics
   [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
 
-The implementation is modified to ensure non-negativity of `p_star`. This modification 
+The implementation is modified to ensure non-negativity of `p_star`. This modification
 preserves entropy stability based on the analysis in the paper:
 - F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
   Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
@@ -1004,7 +1004,12 @@ end
     return (abs(v1) + c,)
 end
 
-# Convert conservative variables to primitive
+"""
+    cons2prim(u, equations::CompressibleEulerEquations1D)
+
+Convert conservative variables `u = (rho, rho*v1, rho*e_total)` to
+primitive variables `(rho, v1, p)`.
+"""
 @inline function cons2prim(u, equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
 
@@ -1055,7 +1060,12 @@ end
     return SVector(rho, rho_v1, rho_e_total)
 end
 
-# Convert primitive to conservative variables
+"""
+    prim2cons(prim, equations::CompressibleEulerEquations1D)
+
+Convert primitive variables `prim = (rho, v1, p)` to
+conservative variables `(rho, rho*v1, rho*e_total)`.
+"""
 @inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
     rho, v1, p = prim
     rho_v1 = rho * v1
