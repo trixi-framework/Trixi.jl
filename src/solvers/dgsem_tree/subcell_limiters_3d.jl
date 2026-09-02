@@ -685,45 +685,8 @@ end
     return nothing
 end
 
-# Specialization for the modified specific entropy of Guermond et al. (2019) in 3D Euler equations.
-# Passes the state data to avoid recomputation in the derivative evaluation.
-@inline function newton_state_data(variable::typeof(entropy_guermond_etal), bound, u,
-                                   equations::CompressibleEulerEquations3D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
-    zero_uEltype = zero(rho)
-
-    if rho <= 0 # State is invalid
-        named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
-                       rho_to_minus_gamma = zero_uEltype)
-        return false, zero(bound), named_tuple
-    end
-
-    # Computation along u(beta) = u + beta * delta_u for Guermond entropy in Euler 3D:
-    kinetic_energy = 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-    internal_energy = rho_e_total - kinetic_energy
-
-    # For Euler with gamma > 1, positivity of internal energy is equivalent
-    # to positivity of pressure.
-    if internal_energy <= 0
-        named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
-                       rho_to_minus_gamma = zero_uEltype)
-        return false, zero(bound), named_tuple
-    end
-
-    # Modified specific entropy of Guermond et al. (2019)
-    # s = e_int * rho^(-gamma),
-    # goal = bound - s,
-    rho_to_minus_gamma = (1 / rho)^equations.gamma
-    s = internal_energy * rho_to_minus_gamma
-    goal = bound - s
-
-    state_data = (; kinetic_energy, internal_energy, rho_to_minus_gamma)
-
-    return true, goal, state_data
-end
-
-# Specialization for the modified specific entropy of Guermond et al. (2019) in 3D Euler equations.
-# Receive the state data to avoid recomputation in the derivative evaluation.
+# Specialization of `newton_dgoal_dbeta` for the modified specific entropy of Guermond et al. (2019) in 3D Euler equations.
+# Receives the additional data to avoid recomputation in the derivative evaluation.
 @inline function newton_dgoal_dbeta(::typeof(entropy_guermond_etal),
                                     u, delta_u,
                                     equations::CompressibleEulerEquations3D,

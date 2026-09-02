@@ -466,8 +466,8 @@ end
 # Combined function for checking state validity and evaluating the goal function during Newton
 # iterations. By default, both functions are evaluated separately and no additional data is returned.
 # For improved performance, use specialized implementations via dispatch to avoid redundant recomputation.
-# See `newton_state_data` in `subcell_limiters_2d.jl` for an example specialization for
-# `entropy_guermond_etal` for the 2D compressible Euler equations.
+# See `newton_state_data` below for an example specialization for `entropy_guermond_etal` for the
+# compressible Euler equations.
 @inline function newton_state_data(variable, bound, u, equations)
     is_valid = isvalid(u, equations)
     if is_valid
@@ -476,6 +476,43 @@ end
     end
 
     return false, zero(bound), nothing
+end
+
+# Specialization of `newton_state_data` for the modified specific entropy of Guermond et al. (2019)
+# for the compressible Euler equations. Saves computational costs by reusing intermediate variables.
+# Returns data to avoid recomputation in the derivative evaluation.
+@inline function newton_state_data(::typeof(entropy_guermond_etal), bound, u,
+                                   equations::AbstractCompressibleEulerEquations)
+    zero_uEltype = zero(eltype(u))
+
+    if u[1] <= 0 # State is invalid
+        named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
+                       rho_to_minus_gamma = zero_uEltype)
+        return false, zero(bound), named_tuple
+    end
+
+    # Computation along u(beta) = u + beta * delta_u for Guermond entropy in Euler:
+    kinetic_energy = energy_kinetic(u, equations)
+    internal_energy = u[end] - kinetic_energy
+
+    # For Euler with gamma > 1, positivity of internal energy is equivalent
+    # to positivity of pressure.
+    if internal_energy <= 0
+        named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
+                       rho_to_minus_gamma = zero_uEltype)
+        return false, zero(bound), named_tuple
+    end
+
+    # Modified specific entropy of Guermond et al. (2019)
+    # s = internal_energy * rho^(-gamma),
+    # goal = bound - s,
+    rho_to_minus_gamma = (1 / u[1])^equations.gamma
+    s = internal_energy * rho_to_minus_gamma
+    goal = bound - s
+
+    state_data = (; kinetic_energy, internal_energy, rho_to_minus_gamma)
+
+    return true, goal, state_data
 end
 
 # By default, `newton_dgoal_dbeta` evaluates the derivative of the goal function without using
