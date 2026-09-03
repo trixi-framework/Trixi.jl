@@ -11,11 +11,15 @@ mesh_file = Trixi.download("https://raw.githubusercontent.com/jlchan/StartUpDG.j
 
 VXY, EToV = StartUpDG.read_Gmsh_3D(mesh_file)
 
+boundary_atol() = 1e-13
 # tag all boundaries as freestream
 function freestream(x)
-    (x[1] ≈ minimum(VXY[1])) || (x[1] ≈ maximum(VXY[1])) ||
-        (x[2] ≈ minimum(VXY[2])) || (x[2] ≈ maximum(VXY[2])) ||
-        (x[3] ≈ minimum(VXY[3])) || (x[3] ≈ maximum(VXY[3]))
+    isapprox(x[1], minimum(VXY[1]); atol = boundary_atol()) ||
+        isapprox(x[1], maximum(VXY[1]); atol = boundary_atol()) ||
+        isapprox(x[2], minimum(VXY[2]); atol = boundary_atol()) ||
+        isapprox(x[2], maximum(VXY[2]); atol = boundary_atol()) ||
+        isapprox(x[3], minimum(VXY[3]); atol = boundary_atol()) ||
+        isapprox(x[3], maximum(VXY[3]); atol = boundary_atol())
 end
 
 is_on_boundary = (; freestream = freestream)
