@@ -20,18 +20,18 @@ const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 const _PREFERENCE_THREADING = Symbol(@load_preference("backend", "polyester"))
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
+const _PREFERENCE_TIMER_BARS = @load_preference("timer_bars", false)
 
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
-                     cross,
-                     normalize, I,
-                     UniformScaling, det
+using LinearAlgebra: LinearAlgebra, Adjoint, UpperTriangular, Diagonal,
+                     I, UniformScaling,
+                     det, diag, dot, eigvals, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
-                    rowvals, nzrange, nonzeros
+                    rowvals, nzrange, nonzeros, dropzeros!
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport

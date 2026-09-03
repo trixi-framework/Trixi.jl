@@ -311,8 +311,8 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-The implementation is modified to ensure non-negativity of `p_star`. This modification 
-preserves entropy stability based on the analysis in the paper:  
+The implementation is modified to ensure non-negativity of `p_star`. This modification
+preserves entropy stability based on the analysis in the paper:
 - F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
   Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
   [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
@@ -2193,7 +2193,7 @@ end
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
                                        u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e_total = u
+    rho, rho_v1, rho_v2, _ = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -2253,7 +2253,7 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function gradient_conservative(::typeof(entropy_math),
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
                                        u, equations::CompressibleEulerEquations2D)
     return cons2entropy(u, equations)
 end

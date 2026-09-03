@@ -303,8 +303,8 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-The implementation is modified to ensure non-negativity of `p_star`. This modification 
-preserves entropy stability based on the analysis in the paper:  
+The implementation is modified to ensure non-negativity of `p_star`. This modification
+preserves entropy stability based on the analysis in the paper:
 - F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
   Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
   [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
@@ -1948,6 +1948,19 @@ end
     return p
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, _ = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1) * SVector(0.5f0 * v_square, -v1, -v2, -v3, 1)
+end
+
 @inline function density_pressure(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
     rho_times_p = (equations.gamma - 1) *
@@ -1973,6 +1986,12 @@ end
     # Mathematical entropy
 
     return S
+end
+
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
+                                       u, equations::CompressibleEulerEquations3D)
+    return cons2entropy(u, equations)
 end
 
 @doc raw"""

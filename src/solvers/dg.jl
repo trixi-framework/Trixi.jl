@@ -703,10 +703,14 @@ end
 """
     VolumeIntegralSubcellLimiting(limiter;
                                   volume_flux_dg = flux_central,
-                                  volume_flux_fv = flux_lax_friedrichs)
+                                  volume_flux_fv = flux_lax_friedrichs,
+                                  volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv))
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. The low-order method can be selected with `volume_integral_low_order`;
+by default, the first-order subcell finite volume scheme [`VolumeIntegralPureLGLFiniteVolume`](@ref)
+with [`FluxLaxFriedrichs`](@ref) is used, while [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref) provides
+a second-order alternative. Used with limiter [`SubcellLimiterIDP`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
@@ -714,19 +718,29 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
 """
-struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
+struct VolumeIntegralSubcellLimiting{VolumeIntegralLowOrder, VolumeFluxDG, Limiter} <:
        AbstractVolumeIntegralSubcell
+    volume_integral_low_order::VolumeIntegralLowOrder
     volume_flux_dg::VolumeFluxDG
-    volume_flux_fv::VolumeFluxFV
     limiter::Limiter
 end
 
 function VolumeIntegralSubcellLimiting(limiter;
                                        volume_flux_dg = flux_central,
-                                       volume_flux_fv = flux_lax_friedrichs)
-    return VolumeIntegralSubcellLimiting{typeof(volume_flux_dg), typeof(volume_flux_fv),
-                                         typeof(limiter)}(volume_flux_dg,
-                                                          volume_flux_fv,
+                                       volume_flux_fv = nothing,
+                                       volume_integral_low_order = nothing)
+    if volume_flux_fv === nothing && volume_integral_low_order === nothing
+        volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs)
+    elseif volume_flux_fv !== nothing && volume_integral_low_order === nothing
+        volume_integral_low_order = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv)
+    elseif volume_flux_fv !== nothing && volume_integral_low_order !== nothing
+        throw(ArgumentError("Both `volume_flux_fv` and `volume_integral_low_order` are specified. Please specify only one of them."))
+    end
+
+    return VolumeIntegralSubcellLimiting{typeof(volume_integral_low_order),
+                                         typeof(volume_flux_dg),
+                                         typeof(limiter)}(volume_integral_low_order,
+                                                          volume_flux_dg,
                                                           limiter)
 end
 
@@ -738,8 +752,10 @@ function Base.show(io::IO, mime::MIME"text/plain",
         show(io, integral)
     else
         summary_header(io, "VolumeIntegralSubcellLimiting")
+        summary_line(io, "volume integral low order",
+                     integral.volume_integral_low_order |> typeof |> nameof)
+        show(increment_indent(io), mime, integral.volume_integral_low_order)
         summary_line(io, "volume flux DG", integral.volume_flux_dg)
-        summary_line(io, "volume flux FV", integral.volume_flux_fv)
         summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
@@ -1322,4 +1338,5 @@ include("dgsem_structured/dg.jl")
 include("dgsem_unstructured/dg.jl")
 include("dgsem_p4est/dg.jl")
 include("dgsem_t8code/dg.jl")
+include("blockfv/blockfv_p4est_2d.jl")
 end # @muladd
