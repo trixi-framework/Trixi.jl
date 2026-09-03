@@ -684,33 +684,4 @@ end
 
     return nothing
 end
-
-# Specialization of `newton_dgoal_dbeta` for the modified specific entropy of Guermond et al. (2019) in 3D Euler equations.
-# Receives the additional data to avoid recomputation in the derivative evaluation.
-@inline function newton_dgoal_dbeta(::typeof(entropy_guermond_etal),
-                                    u, delta_u,
-                                    equations::CompressibleEulerEquations3D,
-                                    state_data)
-    rho, rho_v1, rho_v2, rho_v3, _ = u
-    (; kinetic_energy, internal_energy, rho_to_minus_gamma) = state_data
-
-    # Derivative along u(beta) = u + beta * delta_u:
-    # s(beta) = e_int(beta) * rho(beta)^(-gamma)
-    # ds/d(beta) = rho^(-gamma) *
-    #              (de_int/d(beta) - gamma * e_int * (d(rho)/d(beta)) / rho)
-    # d(goal)/d(beta) = -ds/d(beta), since goal = bound - s.
-
-    delta_rho, delta_rho_v1, delta_rho_v2, delta_rho_v3, delta_rho_e_total = delta_u
-
-    internal_energy_derivative = delta_rho_e_total -
-                                 (rho_v1 * delta_rho_v1 + rho_v2 * delta_rho_v2 +
-                                  rho_v3 * delta_rho_v3) / rho +
-                                 kinetic_energy * delta_rho / rho
-
-    entropy_derivative = rho_to_minus_gamma *
-                         (internal_energy_derivative -
-                          equations.gamma * internal_energy * delta_rho / rho)
-
-    return -entropy_derivative
-end
 end # @muladd
