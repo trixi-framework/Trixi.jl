@@ -204,7 +204,7 @@ with self-gravity from
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t,
                                                           equations::CompressibleEulerEquations1D)
-    # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+    # Note: this assumes that γ = 2 other manufactured source terms are incorrect
     if equations.gamma != 2
         error("adiabatic constant must be 2 for the coupling convergence test")
     end
@@ -234,6 +234,12 @@ are available in the paper:
   the Euler equations of gas dynamics
   [PDF](https://reports.nlr.nl/bitstream/handle/10921/692/TP-2002-300.pdf?sequence=1)
 
+The implementation is modified to ensure non-negativity of `p_star`. This modification
+preserves entropy stability based on the analysis in the paper:
+- F. J. Hindenlang, G. J. Gassner, D. A. Kopriva (2020)
+  Stability of wall boundary condition procedures for discontinuous Galerkin spectral element approximations of the compressible Euler equations
+  [DOI: 10.1007/978-3-030-39647-3_1](https://doi.org/10.1007/978-3-030-39647-3_1)
+
 Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
@@ -254,10 +260,14 @@ Should be used together with [`TreeMesh`](@ref).
     # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
     if v_normal <= 0
         sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-        p_star = p_local *
-                 (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                               equations.gamma *
-                                                                               equations.inv_gamma_minus_one)
+        p_scaling_base = (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)
+        if p_scaling_base >= 0
+            p_star = p_local *
+                     p_scaling_base^(2 * equations.gamma *
+                                     equations.inv_gamma_minus_one)
+        else # avoid taking powers if p_scaling_base < 0
+            p_star = zero(p_local)
+        end
     else # v_normal > 0
         A = 2 / ((equations.gamma + 1) * rho_local)
         B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
@@ -994,7 +1004,12 @@ end
     return (abs(v1) + c,)
 end
 
-# Convert conservative variables to primitive
+"""
+    cons2prim(u, equations::CompressibleEulerEquations1D)
+
+Convert conservative variables `u = (rho, rho*v1, rho*e_total)` to
+primitive variables `(rho, v1, p)`.
+"""
 @inline function cons2prim(u, equations::CompressibleEulerEquations1D)
     rho, rho_v1, rho_e_total = u
 
@@ -1045,7 +1060,12 @@ end
     return SVector(rho, rho_v1, rho_e_total)
 end
 
-# Convert primitive to conservative variables
+"""
+    prim2cons(prim, equations::CompressibleEulerEquations1D)
+
+Convert primitive variables `prim = (rho, v1, p)` to
+conservative variables `(rho, rho*v1, rho*e_total)`.
+"""
 @inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
     rho, v1, p = prim
     rho_v1 = rho * v1
@@ -1056,7 +1076,7 @@ end
 @doc raw"""
     apply_jacobian_entropy2cons(dw, w, equations::CompressibleEulerEquations1D)
 
-Calculate the Jacobian for the mapping from entropy variables to conservative 
+Calculate the Jacobian for the mapping from entropy variables to conservative
 variables at the entropy variable state `w` and apply it to the vector `dw`.
 
 The explicit Jacobian formula can be found in Barth (1999), p. 205.
@@ -1071,7 +1091,7 @@ The explicit Jacobian formula can be found in Barth (1999), p. 205.
     rho, rho_v1, rho_e_total = u
     _, v1, p = cons2prim(u, equations)
 
-    # total enthalpy terms from Barth 
+    # total enthalpy terms from Barth
     a_squared = equations.gamma * p / rho
     H = a_squared * inv_gamma_minus_one + 0.5f0 * v1^2
     rho_h_v1 = rho * v1 * H
@@ -1193,13 +1213,13 @@ of total energy and kinetic energy.
 end
 
 @doc raw"""
-    entropy_potential(u, orientation_or_normal_direction, 
+    entropy_potential(u, orientation_or_normal_direction,
                       equations::AbstractCompressibleEulerEquations)
 
-Calculate the entropy potential, which for the compressible Euler equations is simply 
+Calculate the entropy potential, which for the compressible Euler equations is simply
 the momentum for the choice of mathematical [`entropy`](@ref) ``S(u) = -\frac{\rho s}{\gamma - 1}``
 with thermodynamic entropy ``s = \ln(p) - \gamma \ln(\rho)``.
-    
+
 ## References
 - Eitan Tadmor (2003)
   Entropy stability theory for difference approximations of nonlinear conservation laws and related time-dependent problems

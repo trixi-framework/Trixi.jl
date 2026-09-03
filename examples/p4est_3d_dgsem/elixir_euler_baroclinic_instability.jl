@@ -255,11 +255,11 @@ u_steady_state = compute_coefficients(steady_state_baroclinic_instability, tspan
 # Use a `let` block for performance (otherwise du_steady_state will be a global variable)
 let du_steady_state = similar(u_steady_state)
     # Save RHS of the steady state
-    Trixi.rhs!(du_steady_state, u_steady_state, semi, tspan[1])
+    Trixi.rhs_hyperbolic!(du_steady_state, u_steady_state, semi, tspan[1])
 
     global function corrected_rhs!(du, u, semi, t)
         # Normal RHS evaluation
-        Trixi.rhs!(du, u, semi, t)
+        Trixi.rhs_hyperbolic!(du, u, semi, t)
         # Correct by subtracting the steady-state RHS
         Trixi.@trixi_timeit Trixi.timer() "rhs correction" begin
             # Use Trixi.@threaded for threaded performance

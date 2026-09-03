@@ -1,13 +1,7 @@
-module TestAqua
+@testitem "Aqua.jl" setup=[Setup] tags=[:misc_part2] begin
+    using Aqua
+    using ExplicitImports: check_no_implicit_imports, check_no_stale_explicit_imports
 
-using Aqua
-using ExplicitImports: check_no_implicit_imports, check_no_stale_explicit_imports
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-@timed_testset "Aqua.jl" begin
     Aqua.test_all(Trixi,
                   ambiguities = false,
                   unbound_args = false, # FIXME: UnstructuredSortedBoundaryTypes
@@ -15,8 +9,8 @@ include("test_trixi.jl")
                   # in src/solvers/dgmulti/sbp.jl
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
                                   Trixi.StartUpDG.MeshData],),
-                  # exception necessary because StableRNGs.jl is only used in an extension
-                  stale_deps = (ignore = [:StableRNGs],))
+                  # exception necessary because StableRNGs.jl and ADTypes.jl are only used in an extension
+                  stale_deps = (ignore = [:StableRNGs, :ADTypes],))
     @test isnothing(check_no_implicit_imports(Trixi,
                                               skip = (Core, Base, Trixi.P4est, Trixi.T8code,
                                                       Trixi.EllipsisNotation)))
@@ -27,5 +21,3 @@ include("test_trixi.jl")
                                                               :derivative_discontinuity!,
                                                               Symbol("@batch"))))
 end
-
-end #module

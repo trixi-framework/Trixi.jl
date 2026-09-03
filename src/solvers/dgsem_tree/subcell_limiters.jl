@@ -144,7 +144,11 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
+    # Only cache the variable values when they are needed for the limiter.
+    # This is the case when local one-sided limiting is used.
+    cache_variable_values = local_onesided
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
+                         cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -228,31 +232,45 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+                      basis::LobattoLegendreBasis, bound_keys,
+                      cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
-                                                                                        bound_keys)
+                                                                                        bound_keys,
+                                                                                        cache_variable_values)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
     idp_bounds_delta_local = Dict{Symbol, real(basis)}()
     # Global variable contains the total maximum deviation.
     idp_bounds_delta_global = Dict{Symbol, real(basis)}()
+    # Track whether all Newton solves converged within the iteration budget.
+    # Set to `false` once the maximum number of iterations is reached.
+    idp_newton_converged = Threads.Atomic{Bool}(true)
     for key in bound_keys
         idp_bounds_delta_local[key] = zero(real(basis))
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
     return (; subcell_limiter_coefficients, idp_bounds_delta_local,
-            idp_bounds_delta_global)
+            idp_bounds_delta_global, idp_newton_converged)
 end
 
 function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
     return nothing
+end
+
+# The following functions are used to access the subcell limiter coefficients from the volume integral.
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients
+end
+
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralAdaptive)
+    return subcell_limiter_coefficients(volume_integral.volume_integral_stabilized)
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
@@ -347,9 +365,12 @@ end
                               equations, dt, limiter, antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
+    isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
+    iszero(antidiffusive_flux) && return nothing # Skip if antidiffusive flux vanishes
+
     beta = 1 - alpha[indices...]
 
-    beta_L = 0 # alpha = 1
+    beta_L = zero(beta) # alpha = 1
     beta_R = beta # No higher beta (lower alpha) than the current one
 
     u_curr = u + beta * dt * antidiffusive_flux
@@ -370,16 +391,16 @@ end
             dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
                                                     antidiffusive_flux, equations)
         else # Otherwise, perform a bisection step
-            dgoal_dbeta = 0
+            dgoal_dbeta = zero(beta)
         end
 
-        if dgoal_dbeta != 0
+        if !iszero(dgoal_dbeta)
             # Update beta with Newton's method
             beta = beta - goal / dgoal_dbeta
         end
 
         # Check bounds
-        if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
+        if (beta < beta_L) || (beta > beta_R) || iszero(dgoal_dbeta) || isnan(beta)
             # Out of bounds, do a bisection step
             beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
@@ -422,6 +443,10 @@ end
         # Check absolute tolerance
         if final_check(bound, goal, newton_abstol)
             break
+        end
+
+        if iter == limiter.max_iterations_newton
+            limiter.cache.idp_newton_converged[] = false
         end
     end
 

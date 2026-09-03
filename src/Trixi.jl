@@ -20,18 +20,18 @@ const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 const _PREFERENCE_THREADING = Symbol(@load_preference("backend", "polyester"))
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
+const _PREFERENCE_TIMER_BARS = @load_preference("timer_bars", false)
 
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, diag, dot, eigvals, mul!, norm,
-                     cross,
-                     normalize, I,
-                     UniformScaling, det
+using LinearAlgebra: LinearAlgebra, Adjoint, UpperTriangular, Diagonal,
+                     I, UniformScaling,
+                     det, diag, dot, eigvals, mul!, norm, cross, normalize
 using Printf: @printf, @sprintf, println
 using SparseArrays: SparseMatrixCSC, AbstractSparseMatrix, sparse, droptol!,
-                    rowvals, nzrange, nonzeros
+                    rowvals, nzrange, nonzeros, dropzeros!
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -72,9 +72,9 @@ using KernelAbstractions: KernelAbstractions, @index, @kernel, get_backend, Back
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION
-    using LoopVectorization: LoopVectorization, @turbo, indices
+    using LoopVectorization: LoopVectorization, @turbo, indices, AbstractSIMD
 else
-    using LoopVectorization: LoopVectorization, indices
+    using LoopVectorization: LoopVectorization, indices, AbstractSIMD
     include("auxiliary/mock_turbo.jl")
 end
 
@@ -94,12 +94,12 @@ using Static: Static, One, True, False
 
 Return the appropriate threading argument for OrdinaryDiffEq.jl algorithms based on Trixi.jl's threading backend preference.
 [`Trixi.set_threading_backend!`](@ref) can be used to change the threading backend preference. Both OrdinaryDiffEq.jl and
-Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend, 
-(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms, 
+Trixi.jl use Polyester.jl as the default threading backend. If Trixi.jl is used with a different threading backend,
+(e.g. :static, :serial, or :kernelabstractions), then `Trixi.Threaded()` will disable threading in OrdinaryDiffEq.jl algorithms,
 since we have observed negative interactions between Polyester.jl and the Julia native shared memory parallelism.
 """ Threaded
 
-@static if _PREFERENCE_THREADING === "polyester"
+@static if _PREFERENCE_THREADING === :polyester
     @static if isdefined(DiffEqBase, :Threaded)
         Threaded() = DiffEqBase.Threaded()
     else
@@ -224,7 +224,8 @@ export AcousticPerturbationEquations2D,
        PassiveTracerEquations
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
-export IdealGas, VanDerWaals, PengRobinson, HelmholtzIdealGas
+export IdealGas, ThermallyPerfectGas9PolyFit,
+       VanDerWaals, PengRobinson, HelmholtzIdealGas
 
 export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
        LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
@@ -255,7 +256,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxUpwind,
-       FluxTracerEquationsCentral
+       FluxTracerEquationsCentral, FluxTurbo
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -288,8 +289,9 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons, cons2thermo, thermo2cons
-export density, pressure, density_pressure, velocity, temperature,
+       cons2entropy, entropy2cons, cons2thermo, thermo2cons, cons2prim_temperature
+export density, pressure, density_pressure, velocity,
+       temperature, temperature_given_Vp,
        global_mean_vars,
        equilibrium_distribution,
        waterheight, waterheight_pressure
@@ -370,7 +372,8 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorNodalFunction
 
-export PositivityPreservingLimiterZhangShu, EntropyBoundedLimiter
+export PositivityPreservingLimiterZhangShu, PositivityPreservingLimiterLiuZhang,
+       EntropyBoundedLimiter
 
 export trixi_include, examples_dir, get_examples, default_example,
        default_example_unstructured, ode_default_options
@@ -395,7 +398,7 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
 function __init__()
     # Skip MPI/library initialization during precompilation of subsequent packages.
     # The specific case we are guarding against is recompilation when running under MPI,
-    # then the MPI launcher will error if more processes than asked for are launched. 
+    # then the MPI launcher will error if more processes than asked for are launched.
     if ccall(:jl_generating_output, Cint, ()) == 1
         return nothing
     end

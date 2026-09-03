@@ -231,7 +231,7 @@ function iplot(pd::PlotData2DTriangulated;
                              tellheight = false, width = 200)
 
     # Create a zoomable interactive axis object on top of which to plot the solution.
-    ax = Makie.LScene(fig[1, 2], scenekw = (show_axis = show_axis,))
+    ax = Makie.LScene(fig[1, 2], show_axis = show_axis)
 
     # Initialize the dropdown menu to `variable_to_plot_in`
     # Since menu.selection is an Observable type, we need to dereference it using `[]` to set.
@@ -320,7 +320,7 @@ function iplot(pd::PlotData2DTriangulated{<:ScalarData};
     fig = Makie.Figure()
 
     # Create a zoomable interactive axis object on top of which to plot the solution.
-    ax = Makie.LScene(fig[1, 1], scenekw = (show_axis = show_axis,))
+    ax = Makie.LScene(fig[1, 1], show_axis = show_axis)
 
     # plot the user-defined ScalarData
     fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap = colormap,

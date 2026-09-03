@@ -70,6 +70,7 @@ struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
     mesh_vertices_y::Vertices
     orientation_x::Int
     orientation_y::Int
+    point_values::Bool
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -196,6 +197,12 @@ maximum allowed refinement level in the solution. `nvisnodes` specifies the numb
 nodes to be used. If it is `nothing`, twice the number of solution DG nodes are used for
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
+Finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or `BlockFV`) is piecewise constant, so
+there is nothing to interpolate: `nvisnodes` is ignored, and cells are always drawn with as
+many cells as the solver actually has (`n_nodes`). Make sure `max_supported_level` is large enough
+to fit it at the finest level (`2^(max_supported_level - level) >= n_nodes`), or you will get an
+error telling you to increase it.
+
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
@@ -258,6 +265,28 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
+# Convenience constructor defaulting to point values
+function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                             mesh_vertices_y, orientation_x, orientation_y)
+    return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                               mesh_vertices_y, orientation_x, orientation_y,
+                               true)
+end
+
+# point values (default) or cell values,
+# e.g., for finite volume methods.
+visualize_point_values(mesh, solver) = true
+
+function visualize_point_values(mesh, solver::DGSEM)
+    # We interpret DG methods with polynomial degree 0 as
+    # first-order finite volume methods, which should be
+    # visualized as cell (mean) values.
+    return polydeg(solver) > 0
+end
+# `BlockFV` always holds piecewise constant cell (mean) values, regardless of how
+# many finite volume cells (`nnodes(solver)`) each element is subdivided into.
+visualize_point_values(mesh, solver::BlockFV) = false
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -266,6 +295,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              slice = :xy, point = (0.0, 0.0, 0.0))
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
+
+    point_values = visualize_point_values(mesh, solver)
 
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
@@ -286,14 +317,15 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                                                grid_lines,
                                                                max_supported_level,
                                                                nvisnodes,
-                                                               slice, point)
+                                                               slice, point;
+                                                               point_values = point_values)
     variable_names = SVector(varnames(solution_variables_, equations))
 
     orientation_x, orientation_y = _get_orientations(mesh, slice)
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y,
-                               orientation_x, orientation_y)
+                               orientation_x, orientation_y, point_values)
 end
 
 """
@@ -685,6 +717,113 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
 
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,
                       orientation_x)
+end
+
+function PlotData1D(u, mesh::TreeMesh1D, equations, solver::BlockFV, cache;
+                    solution_variables = nothing, nvisnodes = nothing,
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
+                    variable_names = nothing)
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
+    unstructured_data = get_unstructured_data(u, solution_variables_, mesh,
+                                              equations, solver, cache)
+
+    n_nodes = size(unstructured_data, 1)  # number of subcells per cell
+    n_elements = nelements(solver, cache) # number of cells
+    total_plot_points = 2 * n_nodes * n_elements # The total array size we need
+
+    x = Vector{Float64}(undef, total_plot_points)
+    data = Array{Float64}(undef, total_plot_points, length(variable_names_))
+    mesh_vertices_x = Vector{Float64}(undef, n_elements + 1)
+
+    left_boundary = mesh.tree.center_level_0[1] - mesh.tree.length_level_0 / 2
+
+    if ndims(mesh) === 1
+        orientation_x = 1
+
+        for i in 1:n_elements #the loop over the cells
+            element_width = 2.0 / cache.elements.inverse_jacobian[i]
+            sub_cell_width = element_width / n_nodes
+
+            for j in 1:n_nodes #the loop over the subscells
+                idx_left = (i - 1) * (2 * n_nodes) + 2 * j - 1 #slot number in the list x for the left side of this subcell
+                idx_right = (i - 1) * (2 * n_nodes) + 2 * j #slot number in the list x for the right side of this subcell
+
+                x[idx_left] = left_boundary + (j - 1) * sub_cell_width #coordinate for the left edge of the subcell
+                x[idx_right] = left_boundary + j * sub_cell_width #coordinate for the right edge of the subcell
+
+                for v in 1:length(variable_names_) #loop over the values
+                    data[idx_left, v] = unstructured_data[j, i, v] #value for quantity v at left edge of subcell
+                    data[idx_right, v] = unstructured_data[j, i, v] #value for quantity v at right edge of subcell
+                end
+            end
+
+            mesh_vertices_x[i] = left_boundary #write left boundary of the cell under consideration into the i'th entry of mesh_vertices_x
+            left_boundary += element_width #go to the left boundary of the next cell
+        end
+        mesh_vertices_x[end] = left_boundary #this is the right boundary. We do that by going out of the cell. In that case its the left boundary
+
+    else
+        error("BlockFV is not yet supported for 2D and 3D.")
+    end
+    return PlotData1D(x, data, variable_names_, mesh_vertices_x, orientation_x)
+end
+
+# PlotData2DTriangulated for BlockFV on P4estMesh{2}.
+# Each FV cell becomes a flat-colored quad (split into 2 triangles) so that
+# cell-to-cell jumps are visible rather than smoothed away by interpolation.
+function PlotData2DTriangulated(u, mesh, equations, dg::BlockFV, cache;
+                                solution_variables = nothing, kwargs...)
+    @assert ndims(mesh)==2 "Input must be two-dimensional."
+
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+    variable_names = SVector(varnames(solution_variables_, equations))
+    nvars = length(variable_names)
+    uEltype = eltype(u)
+
+    n = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    n_cells = n^2 * n_elements
+
+    corners_x, corners_y = calc_fv_cell_corners(mesh, dg, cache)
+
+    x = Array{Float64}(undef, 4, n_cells)
+    y = similar(x)
+    data = StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype, 4, n_cells),
+                                                       nvars))
+
+    cell = 0
+    for element in 1:n_elements
+        for j in 1:n, i in 1:n
+            cell += 1
+            x[1, cell] = corners_x[i, j, element]
+            x[2, cell] = corners_x[i + 1, j, element]
+            x[3, cell] = corners_x[i + 1, j + 1, element]
+            x[4, cell] = corners_x[i, j + 1, element]
+            y[1, cell] = corners_y[i, j, element]
+            y[2, cell] = corners_y[i + 1, j, element]
+            y[3, cell] = corners_y[i + 1, j + 1, element]
+            y[4, cell] = corners_y[i, j + 1, element]
+
+            u_node = solution_variables_(get_node_vars(u, equations, dg, i, j, element),
+                                         equations)
+            data[1, cell] = u_node
+            data[2, cell] = u_node
+            data[3, cell] = u_node
+            data[4, cell] = u_node
+        end
+    end
+
+    # Reference triangulation: split each quad (corners 1-2-3-4) into 2 triangles.
+    # The plotting recipe expands this to all cells.
+    t = [1 2 3; 1 3 4]
+
+    x_face, y_face = calc_fv_grid_wireframe(corners_x, corners_y)
+
+    return PlotData2DTriangulated(x, y, data, t, x_face, y_face, nothing,
+                                  variable_names)
 end
 
 # unwrap u if it is VectorOfArray

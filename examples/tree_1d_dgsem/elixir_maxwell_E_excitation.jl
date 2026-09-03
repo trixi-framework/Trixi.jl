@@ -14,7 +14,6 @@ coordinates_max = 1.0
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
 # Excite the electric field which causes a standing wave.
