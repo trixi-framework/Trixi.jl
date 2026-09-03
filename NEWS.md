@@ -18,6 +18,9 @@ for human readability.
 - The low-order FV scheme of `VolumeIntegralSubcellLimiting` can now be customized via
   `volume_integral_low_order`. It defaults to the first-order subcell finite volume scheme,
   while `VolumeIntegralPureLGLFiniteVolumeO2` enables a second-order alternative ([#3185]).
+- `PlotData2D` now visualizes finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or
+  `BlockFV`) as distinct cells instead of interpolating between neighboring cell values,
+  for both `Plots.jl` and `Makie.jl` ([#3150]).
 - For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
   unity is now supported, which then results in a different temperature `T` ([#3165])
 
