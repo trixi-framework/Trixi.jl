@@ -33,6 +33,12 @@ end
 # for convenience to either pass a Ptr or a PointerWrapper
 const PointerOrWrapper = Union{Ptr{T}, PointerWrapper{T}} where {T}
 
+# Convert sc_array of type T to Julia array. Required for `Trixi2Vtk`
+function unsafe_wrap_sc(::Type{T}, sc_array_ptr::Ptr{sc_array}) where {T}
+    sc_array_obj = unsafe_load(sc_array_ptr)
+    return unsafe_wrap_sc(T, sc_array_obj)
+end
+
 function unsafe_wrap_sc(::Type{T}, sc_array_obj::sc_array) where {T}
     elem_count = sc_array_obj.elem_count
     array = sc_array_obj.array
