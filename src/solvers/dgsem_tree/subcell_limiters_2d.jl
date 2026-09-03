@@ -590,8 +590,11 @@ end
                                     u, delta_u,
                                     equations::CompressibleEulerEquations2D,
                                     state_data)
-    rho, rho_v1, rho_v2, _ = u
     (; kinetic_energy, internal_energy, rho_to_minus_gamma) = state_data
+    n_vars_m1 = nvariables(equations) - 1
+
+    rho = u[1]
+    rho_v = view(u, 2:n_vars_m1)
 
     # Derivative along u(beta) = u + beta * delta_u:
     # s(beta) = e_int(beta) * rho(beta)^(-gamma)
@@ -599,10 +602,12 @@ end
     #              (de_int/d(beta) - gamma * e_int * (d(rho)/d(beta)) / rho)
     # d(goal)/d(beta) = -ds/d(beta), since goal = bound - s.
 
-    delta_rho, delta_rho_v1, delta_rho_v2, delta_rho_e_total = delta_u
+    delta_rho = delta_u[1]
+    delta_rho_v = view(delta_u, 2:n_vars_m1)
+    delta_rho_e_total = delta_u[end]
 
     internal_energy_derivative = delta_rho_e_total -
-                                 (rho_v1 * delta_rho_v1 + rho_v2 * delta_rho_v2) / rho +
+                                 dot(rho_v, delta_rho_v) / rho +
                                  kinetic_energy * delta_rho / rho
 
     entropy_derivative = rho_to_minus_gamma *
