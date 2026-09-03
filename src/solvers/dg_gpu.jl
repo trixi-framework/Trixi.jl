@@ -1,21 +1,18 @@
-using Atomix: @atomic
+@inline function get_node_flux(flux_local, ::Val{NVARIABLES},
+                               indices...) where {NVARIABLES}
+    return SVector(ntuple(v -> (@inbounds flux_local[v, indices...]), Val(NVARIABLES)))
+end
 
-# Atomix.jl requires updating operators such as `+=` to generate atomic operations and avoid race conditions.
-# In particular, we cannot use `@muladd` as we do typically in the standard
-# CPU code.
-# See https://github.com/trixi-framework/Trixi.jl/pull/3015#discussion_r3342476726
-@inline function multiply_add_to_first_axis_atomic!(u, factor, u_node::SVector{N},
-                                                    indices...) where {N}
-    for v in Base.OneTo(N)
-        @atomic u[v, indices...] += factor * u_node[v]
-    end
-    return nothing
+@inline function get_node_turbo(turbo_local, ::Val{NAUX},
+                                indices...) where {NAUX}
+    return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
 end
 
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    set_zero!(backend, du, dg, cache)
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,

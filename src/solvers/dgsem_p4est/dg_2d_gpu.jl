@@ -1,3 +1,5 @@
+using KernelAbstractions: @synchronize, @localmem
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -12,11 +14,6 @@ function rhs_hyperbolic!(backend::Backend,
                          equations,
                          boundary_conditions, source_terms::Source,
                          dg::DG, cache) where {Source}
-
-    # Reset du
-    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
-        set_zero!(du, dg, cache)
-    end
 
     # Calculate volume integral
     @trixi_timeit_ext backend timer() "volume integral" begin
