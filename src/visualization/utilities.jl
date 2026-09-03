@@ -430,8 +430,11 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
     end
 
     # `data` (in both branches above) is indexed as `[x, y]`.
-    # `Plots.heatmap`/`Makie.heatmap` expect the opposite (`[y, x]`),
+    # `Plots.heatmap` expects the opposite (`[y, x]`),
     # so we transpose here once for all data.
+    # `Makie.heatmap` uses `[x, y]`, so we transpose the data
+    # once more for it since we use the data layout of Plots.jl
+    # for now.
     data = [permutedims(d) for d in data]
 
     # Determine element vertices to plot grid lines
