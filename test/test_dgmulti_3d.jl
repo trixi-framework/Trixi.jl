@@ -81,13 +81,13 @@ end
                   tspan = (0.0, 0.25))
     l2, linf = analysis_callback(sol)
     @test isapprox(l2,
-                   l2 = [
+                   [
                        1.0434176815721138e-14,
                        5.937118560513734e-14,
                        6.418715956754907e-14,
                        9.943321647688689e-14,
                        1.2303475435124671e-13
-                   ], atol = 1e-12)
+                   ], atol = 5e-13)
     @test isapprox(linf,
                    [
                        6.394884621840902e-14,
@@ -95,7 +95,7 @@ end
                        3.643196855307451e-13,
                        4.629630012686903e-13,
                        6.483702463810914e-13
-                   ], atol = 1e-12)
+                   ], atol = 5e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
