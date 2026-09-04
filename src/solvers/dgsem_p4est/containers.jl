@@ -470,9 +470,9 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
                                (n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                 capacity))
 
-    if _node_coordinates === nothing
+    if _node_coordinates === nothing # Lobatto-Legendre basis, no interpolation needed, so no node coordinates
         boundaries.node_coordinates = nothing
-    else
+    else # Gauss-Legendre basis, interpolation needed, so node coordinates are required
         resize!(_node_coordinates, n_dims * n_nodes^(n_dims - 1) * capacity)
         boundaries.node_coordinates = unsafe_wrap(ArrayType, pointer(_node_coordinates),
                                                   (n_dims,
