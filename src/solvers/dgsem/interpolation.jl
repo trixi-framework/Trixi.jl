@@ -224,9 +224,10 @@ function multiply_dimensionwise!(backend::Backend,
     for i in axes(data_out, 2), v in axes(data_out, 1)
         res = zero(eltype(data_out))
         for ii in axes(matrix2, 2)
-            res += matrix2[i, ii] * data_in2[v, ii]
+            # res = res + ... to use muladd
+            @muladd res = res + matrix2[i, ii] * data_in2[v, ii]
         end
-        data_out[v, i] += res
+        @muladd data_out[v, i] = data_out[v, i] + res
     end
 
     return nothing
