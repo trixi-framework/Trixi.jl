@@ -725,7 +725,7 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::P4estMesh{2},
                                      have_nonconservative_terms::False, equations,
                                      surface_integral, dg::DGSEM{<:GaussLegendreBasis},
                                      cache,
