@@ -199,7 +199,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
 end
 
-@testitem "CUDA 2D: elixir_advection_nonconforming_flag.jl Float32 / CUDA" setup=[Setup, CUDA2DExamples] tags=[:CUDA] begin
+@testitem "CUDA 2D: elixir_advection_nonconforming_flag.jl Float32 / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=Float32[3.198940059144588e-5],

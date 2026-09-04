@@ -251,7 +251,10 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
-@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32 / CUDA" setup=[Setup, KernelAbstractionsExamples] tags=[:kernelabstractions] begin
+@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32 / CUDA" setup=[
+    Setup,
+    KernelAbstractionsExamples
+] tags=[:kernelabstractions] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=Float32[3.198940059144588e-5],
@@ -272,7 +275,6 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
-
 
 @testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
     Setup,
