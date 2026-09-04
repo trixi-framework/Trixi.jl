@@ -429,8 +429,8 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
     # 3D: [variable, i, j, boundary]
     u::uArray
 
-    # 2D: [orientation, i, boundary]
-    # 3D: [orientation, i, j, boundary]
+    # 2D: [orientation, i, boundary]    for Gauss-Legendre, `nothing` for Lobatto-Legendre
+    # 3D: [orientation, i, j, boundary] for Gauss-Legendre, `nothing` for Lobatto-Legendre
     node_coordinates::CoordinateArray
 
     # 2D/3D: [boundary]
