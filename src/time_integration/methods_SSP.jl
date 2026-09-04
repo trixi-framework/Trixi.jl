@@ -205,7 +205,8 @@ function step!(integrator::SimpleIntegratorSSP)
         # skip the stage if a = 0 (and therefore b = denominator = 1), because then the
         # convex combination is simply u = u and is not needed
         if !iszero(alg.numerator_a[stage])
-            a, b, d = alg.numerator_a[stage], alg.numerator_b[stage], alg.denominator[stage]
+            a, b, d = alg.numerator_a[stage], alg.numerator_b[stage],
+                      alg.denominator[stage]
             @threaded for i in eachindex(integrator.u)
                 u[i] = (a * u_tmp[i] + b * u[i]) / d
             end
