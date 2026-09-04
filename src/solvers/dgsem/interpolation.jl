@@ -116,7 +116,10 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::Abst
                                  data_in::AbstractArray{<:Any, 2})
     multiply_dimensionwise!(nothing, data_out, matrix, data_in)
 end
-function multiply_dimensionwise!(backend::Nothing, data_out::AbstractArray{<:Any, 2},
+
+# Version used on CPUs
+function multiply_dimensionwise!(backend::Nothing,
+                                 data_out::AbstractArray{<:Any, 2},
                                  matrix::AbstractMatrix,
                                  data_in::AbstractArray{<:Any, 2})
     # @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
@@ -132,7 +135,8 @@ function multiply_dimensionwise!(backend::Nothing, data_out::AbstractArray{<:Any
 end
 
 # 1D GPU version
-function multiply_dimensionwise!(backend::Backend, data_out::AbstractArray{<:Any, 2},
+function multiply_dimensionwise!(backend::Backend,
+                                 data_out::AbstractArray{<:Any, 2},
                                  matrix::AbstractMatrix,
                                  data_in::AbstractArray{<:Any, 2})
     for i in axes(data_out, 2), v in axes(data_out, 1)
@@ -172,7 +176,10 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2},
                                  data_in2::AbstractArray{<:Any, 2})
     multiply_dimensionwise!(nothing, data_out, matrix1, data_in1, matrix2, data_in2)
 end
-function multiply_dimensionwise!(backend::Nothing, data_out::AbstractArray{<:Any, 2},
+
+# Version used on CPUs
+function multiply_dimensionwise!(backend::Nothing,
+                                 data_out::AbstractArray{<:Any, 2},
                                  matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
                                  data_in2::AbstractArray{<:Any, 2})
@@ -201,7 +208,8 @@ function multiply_dimensionwise!(backend::Nothing, data_out::AbstractArray{<:Any
 end
 
 # 1D GPU version, apply matrixJ to data_inJ
-function multiply_dimensionwise!(backend::Backend, data_out::AbstractArray{<:Any, 2},
+function multiply_dimensionwise!(backend::Backend,
+                                 data_out::AbstractArray{<:Any, 2},
                                  matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
                                  data_in2::AbstractArray{<:Any, 2})
