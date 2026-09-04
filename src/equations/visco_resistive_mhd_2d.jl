@@ -197,8 +197,8 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D
     end
 end
 
-# the `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
-# For CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
+# The `flux` function takes in transformed variables `u` which depend on the type of the gradient variables.
+# As for the CNS, it is simplest to formulate the viscous terms in primitive variables, so we transform the transformed
 # variables into primitive variables.
 @inline function convert_transformed_to_primitive(u_transformed,
                                                   equations::ViscoResistiveMhd2D{GradientVariablesPrimitive})
