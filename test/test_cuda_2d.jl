@@ -206,7 +206,10 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=Float32[3.198940059144588e-5],
-                        linf=Float32[0.00030636069494005547])
+                        linf=Float32[0.00030636069494005547],
+                        RealT_for_test_tolerances=Float32,
+                        real_type=Float32,
+                        storage_type=CuArray)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
