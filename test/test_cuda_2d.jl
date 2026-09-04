@@ -203,6 +203,8 @@ end
     Setup,
     CUDA2DExamples
 ] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=Float32[3.198940059144588e-5],

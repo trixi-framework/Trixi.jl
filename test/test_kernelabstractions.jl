@@ -255,7 +255,7 @@ end
     Setup,
     KernelAbstractionsExamples
 ] tags=[:kernelabstractions] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=Float32[3.198940059144588e-5],
                         linf=Float32[0.00030636069494005547],
