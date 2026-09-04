@@ -136,7 +136,7 @@ end
 end
 
 function prolong2interfaces!(backend::Nothing, cache, u,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             mesh::P4estMesh{2},
                              equations, dg::DGSEM{<:GaussLegendreBasis})
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -356,7 +356,7 @@ end
 end
 
 function calc_interface_flux!(backend::Nothing, surface_flux_values,
-                              mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                              mesh::P4estMesh{2},
                               have_nonconservative_terms,
                               equations, surface_integral,
                               dg::DGSEM{<:GaussLegendreBasis}, cache)
@@ -381,8 +381,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 end
 
 @inline function calc_interface_flux_per_interface!(surface_flux_values,
-                                                    MeshT::Type{<:Union{P4estMesh{2},
-                                                                        P4estMeshView{2}}},
+                                                    MeshT::Type{<:P4estMesh{2}},
                                                     have_nonconservative_terms,
                                                     equations, surface_integral,
                                                     SolverT::Type{<:DGSEM{<:GaussLegendreBasis}},
@@ -582,7 +581,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
 end
 
 function prolong2boundaries!(backend::Nothing, cache, u,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                             mesh::P4estMesh{2},
                              equations, dg::DGSEM{<:GaussLegendreBasis})
     @unpack boundaries = cache
     @unpack boundary_interpolation = dg.basis
@@ -1202,7 +1201,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
 end
 
 function calc_surface_integral!(backend::Nothing, du, u,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                                mesh::P4estMesh{2},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM{<:GaussLegendreBasis}, cache)
     @unpack boundary_interpolation_inverse_weights = dg.basis
