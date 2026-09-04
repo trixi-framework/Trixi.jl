@@ -144,7 +144,11 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys)
+    # Only cache the variable values when they are needed for the limiter.
+    # This is the case when local one-sided limiting is used.
+    cache_variable_values = local_onesided
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
+                         cache_variable_values)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -228,12 +232,14 @@ end
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
-                      basis::LobattoLegendreBasis, bound_keys) where {NDIMS}
+                      basis::LobattoLegendreBasis, bound_keys,
+                      cache_variable_values) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
-                                                                                        bound_keys)
+                                                                                        bound_keys,
+                                                                                        cache_variable_values)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -256,6 +262,15 @@ function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
 
     return nothing
+end
+
+# The following functions are used to access the subcell limiter coefficients from the volume integral.
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralSubcellLimiting)
+    return volume_integral.limiter.cache.subcell_limiter_coefficients
+end
+
+@inline function subcell_limiter_coefficients(volume_integral::VolumeIntegralAdaptive)
+    return subcell_limiter_coefficients(volume_integral.volume_integral_stabilized)
 end
 
 # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
@@ -355,26 +370,27 @@ end
 
     beta = 1 - alpha[indices...]
 
-    beta_L = zero(beta) # alpha = 1
-    beta_R = beta # No higher beta (lower alpha) than the current one
+    delta_u = dt * antidiffusive_flux
+    u_curr = u + beta * delta_u
 
-    u_curr = u + beta * dt * antidiffusive_flux
-
-    # If state is valid, perform initial check and return if correction is not needed
-    if isvalid(u_curr, equations)
-        goal = goal_function_newton_idp(variable, bound, u_curr, equations)
-
+    # Evaluate state validity and goal function (if valid)
+    is_valid, goal, state_data = newton_state_data(variable, bound, u_curr, equations)
+    if is_valid
+        # If state is valid, perform initial check and return if correction is not needed
         initial_check(min_or_max, bound, goal, newton_abstol) && return nothing
     end
+
+    beta_L = zero(beta) # alpha = 1
+    beta_R = beta # No higher beta (lower alpha) than the current one
 
     # Newton iterations
     for iter in 1:(limiter.max_iterations_newton)
         beta_old = beta
 
         # If the state is valid, evaluate d(goal)/d(beta)
-        if isvalid(u_curr, equations)
-            dgoal_dbeta = dgoal_function_newton_idp(variable, u_curr, dt,
-                                                    antidiffusive_flux, equations)
+        if is_valid
+            dgoal_dbeta = newton_dgoal_dbeta(variable, u_curr, delta_u, equations,
+                                             state_data)
         else # Otherwise, perform a bisection step
             dgoal_dbeta = zero(beta)
         end
@@ -389,16 +405,17 @@ end
             # Out of bounds, do a bisection step
             beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
-            u_curr = u + beta * dt * antidiffusive_flux
+            u_curr = u + beta * delta_u
+            is_valid, goal, state_data = newton_state_data(variable, bound, u_curr,
+                                                           equations)
 
             # If the state is invalid, finish bisection step without checking tolerance and iterate further
-            if !isvalid(u_curr, equations)
+            if !is_valid
                 beta_R = beta
                 continue
             end
 
             # Check new beta for condition and update bounds
-            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
             if initial_check(min_or_max, bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
@@ -408,16 +425,15 @@ end
             end
         else
             # Get new u
-            u_curr = u + beta * dt * antidiffusive_flux
+            u_curr = u + beta * delta_u
+            is_valid, goal, state_data = newton_state_data(variable, bound, u_curr,
+                                                           equations)
 
             # If the state is invalid, redefine right bound without checking tolerance and iterate further
-            if !isvalid(u_curr, equations)
+            if !is_valid
                 beta_R = beta
                 continue
             end
-
-            # Evaluate goal function
-            goal = goal_function_newton_idp(variable, bound, u_curr, equations)
         end
 
         # Check relative tolerance
@@ -458,9 +474,102 @@ end
 # Goal and d(Goal)/d(u) function
 @inline goal_function_newton_idp(variable, bound, u, equations) = bound -
                                                                   variable(u, equations)
-@inline function dgoal_function_newton_idp(variable, u, dt, antidiffusive_flux,
-                                           equations)
-    return -dot(gradient_conservative(variable, u, equations), dt * antidiffusive_flux)
+@inline function dgoal_function_newton_idp(variable, u, delta_u, equations)
+    return -dot(gradient_conservative(variable, u, equations), delta_u)
+end
+
+# Combined function for checking state validity and evaluating the goal function during Newton
+# iterations. By default, both functions are evaluated separately and no additional data is returned.
+# For improved performance, use specialized implementations via dispatch to avoid redundant recomputation.
+# See `newton_state_data` below for an example specialization for `entropy_guermond_etal` for the
+# compressible Euler equations.
+@inline function newton_state_data(variable, bound, u, equations)
+    is_valid = isvalid(u, equations)
+    if is_valid
+        goal = goal_function_newton_idp(variable, bound, u, equations)
+        return is_valid, goal, nothing
+    end
+
+    return false, zero(bound), nothing
+end
+
+# Specialization of `newton_state_data` for the modified specific entropy of Guermond et al. (2019)
+# for the compressible Euler equations. Saves computational costs by reusing intermediate variables.
+# Returns data to avoid recomputation in the derivative evaluation.
+@inline function newton_state_data(::typeof(entropy_guermond_etal), bound, u,
+                                   equations::AbstractCompressibleEulerEquations)
+    zero_uEltype = zero(eltype(u))
+
+    if u[1] <= 0 # State is invalid
+        named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
+                       rho_to_minus_gamma = zero_uEltype)
+        return false, zero(bound), named_tuple
+    end
+
+    # Computation along u(beta) = u + beta * delta_u for Guermond entropy in Euler:
+    kinetic_energy = energy_kinetic(u, equations)
+    internal_energy = u[end] - kinetic_energy
+
+    # For Euler with gamma > 1, positivity of internal energy is equivalent
+    # to positivity of pressure.
+    if internal_energy <= 0
+        named_tuple = (; kinetic_energy = zero_uEltype, internal_energy = zero_uEltype,
+                       rho_to_minus_gamma = zero_uEltype)
+        return false, zero(bound), named_tuple
+    end
+
+    # Modified specific entropy of Guermond et al. (2019)
+    # s = internal_energy * rho^(-gamma),
+    # goal = bound - s,
+    rho_to_minus_gamma = (1 / u[1])^equations.gamma
+    s = internal_energy * rho_to_minus_gamma
+    goal = bound - s
+
+    state_data = (; kinetic_energy, internal_energy, rho_to_minus_gamma)
+
+    return true, goal, state_data
+end
+
+# By default, `newton_dgoal_dbeta` evaluates the derivative of the goal function without using
+# additional data. For improved performance, use specialized implementations via dispatch to avoid
+# redundant recomputation.
+# See `newton_dgoal_dbeta` in `subcell_limiters_2d.jl` for an example specialization for
+# `entropy_guermond_etal` for the 2D compressible Euler equations.
+@inline function newton_dgoal_dbeta(variable, u, delta_u, equations, state_data)
+    return dgoal_function_newton_idp(variable, u, delta_u, equations)
+end
+
+# Specialization of `newton_dgoal_dbeta` for the modified specific entropy of Guermond et al. (2019) for compressible Euler equations.
+# Receives the additional data to avoid recomputation in the derivative evaluation.
+@inline function newton_dgoal_dbeta(::typeof(entropy_guermond_etal),
+                                    u, delta_u,
+                                    equations::AbstractCompressibleEulerEquations,
+                                    state_data)
+    (; kinetic_energy, internal_energy, rho_to_minus_gamma) = state_data
+    n_vars_m1 = nvariables(equations) - 1
+
+    rho = u[1]
+    rho_v = view(u, 2:n_vars_m1)
+
+    # Derivative along u(beta) = u + beta * delta_u:
+    # s(beta) = e_int(beta) * rho(beta)^(-gamma)
+    # ds/d(beta) = rho^(-gamma) *
+    #              (de_int/d(beta) - gamma * e_int * (d(rho)/d(beta)) / rho)
+    # d(goal)/d(beta) = -ds/d(beta), since goal = bound - s.
+
+    delta_rho = delta_u[1]
+    delta_rho_v = view(delta_u, 2:n_vars_m1)
+    delta_rho_e_total = delta_u[end]
+
+    internal_energy_derivative = delta_rho_e_total -
+                                 dot(rho_v, delta_rho_v) / rho +
+                                 kinetic_energy * delta_rho / rho
+
+    entropy_derivative = rho_to_minus_gamma *
+                         (internal_energy_derivative -
+                          equations.gamma * internal_energy * delta_rho / rho)
+
+    return -entropy_derivative
 end
 
 # Final checks

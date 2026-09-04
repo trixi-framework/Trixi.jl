@@ -100,11 +100,6 @@ function get_face_node_indices(r, s, dg::Union{<:DGSEM, <:FDSBP}, tol = 100 * ep
     return Fmask
 end
 
-# dispatch on semi
-function mesh_plotting_wireframe(u, semi)
-    return mesh_plotting_wireframe(u, mesh_equations_solver_cache(semi)...)
-end
-
 #     mesh_plotting_wireframe(u, mesh, equations, dg::DGMulti, cache; num_plotting_pts=25)
 #
 # Generates data for plotting a mesh wireframe given StartUpDG data types.
@@ -352,7 +347,7 @@ end
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels,
                      ndims, unstructured_data, n_nodes,
                      grid_lines = false, max_supported_level = 11, nvisnodes = nothing,
-                     slice = :xy, point = (0.0, 0.0, 0.0))
+                     slice = :xy, point = (0.0, 0.0, 0.0); point_values = true)
     # Determine resolution for data interpolation
     max_level = maximum(levels)
     if max_level > max_supported_level
@@ -360,7 +355,22 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
               "maximum supported level $max_supported_level")
     end
     max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
-    if nvisnodes === nothing
+    if !point_values
+        # Finite volume data (`polydeg = 0` DGSEM, or `BlockFV` with one or more
+        # cells per element) consists of piecewise constant (mean) values, so there
+        # is nothing to interpolate. Thus, we ignore `nvisnodes`.
+        if n_nodes > max_available_nodes_per_finest_element
+            # Unlike point values, cell (mean) values cannot be downsampled by
+            # (polynomial) interpolation, so the native resolution must fit within
+            # what `max_supported_level` allows at the finest level in the mesh.
+            min_max_supported_level = max_level + ceil(Int, log2(n_nodes))
+            throw(ArgumentError("The native resolution (`n_nodes = $n_nodes`) at refinement level $max_level " *
+                                "exceeds the resolution supported by `max_supported_level = $max_supported_level` " *
+                                "(allows only $max_available_nodes_per_finest_element cells per element at this level). " *
+                                "Increase `max_supported_level` to at least $min_max_supported_level."))
+        end
+        max_nvisnodes = n_nodes
+    elseif nvisnodes === nothing
         max_nvisnodes = 2 * n_nodes
     elseif nvisnodes == 0
         max_nvisnodes = n_nodes
@@ -393,18 +403,34 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
     end
 
     # Interpolate unstructured DG data to structured data
-    (structured_data = unstructured2structured(unstructured_data,
-                                               normalized_coordinates,
-                                               levels, resolution, nvisnodes_per_level))
+    structured_data = unstructured2structured(unstructured_data,
+                                              normalized_coordinates,
+                                              levels, resolution, nvisnodes_per_level;
+                                              point_values = point_values)
 
-    # Interpolate cell-centered values to node-centered values
-    node_centered_data = cell2node(structured_data)
-
-    # Determine axis coordinates for contour plot
+    # `xs`/`ys` always have `resolution + 1` entries spanning the full domain.
+    # Point-value `data` is brought up to that size by `cell2node` below; cell-value
+    # `data` is left at `resolution`, so `xs`/`ys` become its cell edges instead.
     xs = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
          center_level_0[1]
     ys = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
          center_level_0[2]
+
+    if point_values
+        # Interpolate cell-centered values to node-centered values
+        data = cell2node(structured_data)
+    else
+        # Keep the piecewise constant cell (mean) values as-is.
+        data = structured_data
+    end
+
+    # `data` (in both branches above) is indexed as `[x, y]`.
+    # `Plots.heatmap` expects the opposite (`[y, x]`),
+    # so we transpose here once for all data.
+    # `Makie.heatmap` uses `[x, y]`, so we transpose the data
+    # once more for it since we use the data layout of Plots.jl
+    # for now.
+    data = [permutedims(d) for d in data]
 
     # Determine element vertices to plot grid lines
     if grid_lines
@@ -415,7 +441,7 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
         mesh_vertices_y = Vector{Float64}(undef, 0)
     end
 
-    return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
+    return xs, ys, data, mesh_vertices_x, mesh_vertices_y
 end
 
 # For finite difference methods (FDSBP), we do not want to reinterpolate the data, but use the same
@@ -578,11 +604,6 @@ function cell2node(cell_centered_data)
                                    tmp[i + 1, j + 1]) / 4
             end
         end
-    end
-
-    # Transpose
-    for (index, data) in enumerate(node_centered_data)
-        node_centered_data[index] = permutedims(data)
     end
 
     return node_centered_data
@@ -1390,6 +1411,21 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes,
                        new_unstructured_data[:, 1:new_id, :], nvisnodes, reinterpolate)
 end
 
+# Build a reconstruction matrix mapping `n_nodes_in` equidistant cell (mean) values to
+# `n_nodes_out` equidistant output pixels by replication, so without blending
+# neighboring cells together. `n_nodes_out` must be an integer multiple of `n_nodes_in`,
+# which always holds by construction of `nvisnodes_per_level`.
+function piecewise_constant_interpolation_matrix(n_nodes_in, n_nodes_out)
+    n_repeat, remainder = divrem(n_nodes_out, n_nodes_in)
+    @assert remainder==0 "n_nodes_out ($n_nodes_out) must be an integer multiple of n_nodes_in ($n_nodes_in)"
+
+    matrix = zeros(n_nodes_out, n_nodes_in)
+    for i in 1:n_nodes_in
+        matrix[((i - 1) * n_repeat + 1):(i * n_repeat), i] .= 1
+    end
+    return matrix
+end
+
 # Interpolate unstructured DG data to structured data (cell-centered)
 #
 # This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformly
@@ -1398,22 +1434,31 @@ end
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
 #       thus be changed in future releases.
 function unstructured2structured(unstructured_data, normalized_coordinates,
-                                 levels, resolution, nvisnodes_per_level)
+                                 levels, resolution, nvisnodes_per_level;
+                                 point_values = true)
     # Extract data shape information
     n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
-    # Get node coordinates for DG locations on reference element
-    nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
-
-    # Calculate interpolation vandermonde matrices for each level
+    # Calculate reconstruction matrices for each level: a smooth polynomial
+    # interpolation for point values (e.g., DG data), or a piecewise constant
+    # replication for cell (mean) values (e.g., finite volume data), so that
+    # individual cells are not blended together.
     max_level = length(nvisnodes_per_level) - 1
     vandermonde_per_level = []
+    if point_values
+        nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+    end
     for l in 0:max_level
         n_nodes_out = nvisnodes_per_level[l + 1]
-        dx = 2 / n_nodes_out
-        nodes_out = collect(range(-1 + dx / 2, 1 - dx / 2, length = n_nodes_out))
-        push!(vandermonde_per_level,
-              polynomial_interpolation_matrix(nodes_in, nodes_out))
+        if point_values
+            dx = 2 / n_nodes_out
+            nodes_out = collect(range(-1 + dx / 2, 1 - dx / 2, length = n_nodes_out))
+            push!(vandermonde_per_level,
+                  polynomial_interpolation_matrix(nodes_in, nodes_out))
+        else
+            push!(vandermonde_per_level,
+                  piecewise_constant_interpolation_matrix(n_nodes_in, n_nodes_out))
+        end
     end
 
     # For each element, calculate index position at which to insert data in global data structure
@@ -1529,104 +1574,6 @@ function calc_vertices(coordinates, levels, length_level_0)
         y[index + 4] = coordinates[2, element_id] + 1 / 2 * length
         y[index + 5] = coordinates[2, element_id] - 1 / 2 * length
         y[index + 6] = NaN
-    end
-
-    return x, y
-end
-
-# Calculate the vertices to plot each grid line for StructuredMesh
-#
-# Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
-#       thus be changed in future releases.
-function calc_vertices(node_coordinates, mesh)
-    @unpack cells_per_dimension = mesh
-    @assert size(node_coordinates, 1)==2 "only works in 2D"
-
-    linear_indices = LinearIndices(size(mesh))
-
-    # Initialize output arrays
-    n_lines = sum(cells_per_dimension) + 2
-    max_length = maximum(cells_per_dimension)
-    n_nodes = size(node_coordinates, 2)
-
-    # Create output as two matrices `x` and `y`, each holding the node locations for each of the `n_lines` grid lines
-    # The # of rows in the matrices must be sufficient to store the longest dimension (`max_length`),
-    # and for each the node locations without doubling the corner nodes (`n_nodes-1`), plus the final node (`+1`)
-    # Rely on Plots.jl to ignore `NaN`s (i.e., they are not plotted) to handle shorter lines
-    x = fill(NaN, max_length * (n_nodes - 1) + 1, n_lines)
-    y = fill(NaN, max_length * (n_nodes - 1) + 1, n_lines)
-
-    line_index = 1
-    # Lines in x-direction
-    # Bottom boundary
-    i = 1
-    for cell_x in axes(mesh, 1)
-        for node in 1:(n_nodes - 1)
-            x[i, line_index] = node_coordinates[1, node, 1, linear_indices[cell_x, 1]]
-            y[i, line_index] = node_coordinates[2, node, 1, linear_indices[cell_x, 1]]
-
-            i += 1
-        end
-    end
-    # Last point on bottom boundary
-    x[i, line_index] = node_coordinates[1, end, 1, linear_indices[end, 1]]
-    y[i, line_index] = node_coordinates[2, end, 1, linear_indices[end, 1]]
-
-    # Other lines in x-direction
-    line_index += 1
-    for cell_y in axes(mesh, 2)
-        i = 1
-        for cell_x in axes(mesh, 1)
-            for node in 1:(n_nodes - 1)
-                x[i, line_index] = node_coordinates[1, node, end,
-                                                    linear_indices[cell_x, cell_y]]
-                y[i, line_index] = node_coordinates[2, node, end,
-                                                    linear_indices[cell_x, cell_y]]
-
-                i += 1
-            end
-        end
-        # Last point on line
-        x[i, line_index] = node_coordinates[1, end, end, linear_indices[end, cell_y]]
-        y[i, line_index] = node_coordinates[2, end, end, linear_indices[end, cell_y]]
-
-        line_index += 1
-    end
-
-    # Lines in y-direction
-    # Left boundary
-    i = 1
-    for cell_y in axes(mesh, 2)
-        for node in 1:(n_nodes - 1)
-            x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, cell_y]]
-            y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, cell_y]]
-
-            i += 1
-        end
-    end
-    # Last point on left boundary
-    x[i, line_index] = node_coordinates[1, 1, end, linear_indices[1, end]]
-    y[i, line_index] = node_coordinates[2, 1, end, linear_indices[1, end]]
-
-    # Other lines in y-direction
-    line_index += 1
-    for cell_x in axes(mesh, 1)
-        i = 1
-        for cell_y in axes(mesh, 2)
-            for node in 1:(n_nodes - 1)
-                x[i, line_index] = node_coordinates[1, end, node,
-                                                    linear_indices[cell_x, cell_y]]
-                y[i, line_index] = node_coordinates[2, end, node,
-                                                    linear_indices[cell_x, cell_y]]
-
-                i += 1
-            end
-        end
-        # Last point on line
-        x[i, line_index] = node_coordinates[1, end, end, linear_indices[cell_x, end]]
-        y[i, line_index] = node_coordinates[2, end, end, linear_indices[cell_x, end]]
-
-        line_index += 1
     end
 
     return x, y
