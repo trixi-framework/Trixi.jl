@@ -106,6 +106,7 @@ for human readability.
   This EOS allows for temperature-dependent specific heat capacities (`c_p(T)`, `c_v(T)`) and ratio of specific heats (`\gamma(T)`), while obeying the ideal gas law to relate pressure, density, and temperature ([#3079]).
   This equation of state needs to be supplied to `NonIdealCompressibleEulerEquations`.
 - Added support for one-block periodic SBP operators (finite differences, CGSEM, etc.) on `DGMultiMesh`es with nonconservative terms ([#3144]).
+- Added experimental second-order reconstructions for 1D `TreeMesh` `BlockFV` via `VolumeIntegralFiniteVolumeO2` enabled by passing a `reconstruction_mode`, with volume-local higher-order reconstruction and reconstructed states at element interfaces and boundaries ([#3156]).
 
 #### Changed
 - Fixes a bug in `IndicatorEntropyCorrectionShockCapturingCombined` where blending was only applied when the entropy residual was positive. The intended behavior is to apply blending when either entropy correction or shock capturing are activate ([#3131]).
