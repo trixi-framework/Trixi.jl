@@ -71,6 +71,36 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "DGMulti3D: elixir_euler_freestream.jl" setup=[Setup, DGMulti3D] tags=[:unstructured_dgmulti] begin
+    # @test_trixi_include errors due to an @info call by StartUpDG.jl during
+    # Gmsh file parsing. To avoid this, we directly call trixi_include.
+    # We pass @__MODULE__ to ensure that variables defined during the test
+    # are visible inside the @testitem block.
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_freestream.jl"),
+                  tspan = (0.0, 0.25))
+    l2, linf = analysis_callback(sol)
+    @test isapprox(l2,
+                   [
+                       1.0434176815721138e-14,
+                       5.937118560513734e-14,
+                       6.418715956754907e-14,
+                       9.943321647688689e-14,
+                       1.2303475435124671e-13
+                   ], atol = 5e-13)
+    @test isapprox(linf,
+                   [
+                       9.192646643896296e-14,
+                       4.597433544972773e-13,
+                       4.331535130575048e-13,
+                       6.818989817247711e-13,
+                       1.0746958878371515e-12
+                   ], atol = 5e-13)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "DGMulti3D: elixir_euler_curved.jl (Hex elements, SBP, flux differencing)" setup=[
     Setup,
     DGMulti3D
