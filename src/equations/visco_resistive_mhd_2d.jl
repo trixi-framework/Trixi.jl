@@ -214,15 +214,15 @@ end
 @doc raw"""
     max_diffusivity(u, equations::ViscoResistiveMhd2D)
 
-    # Returns
-    - `max(equations.mu / rho * equations.max_visc_cond, equations.eta)`
-    where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
+# Returns
+- `max(equations.mu / rho * equations.max_visc_cond, equations.eta)`
+where `max_visc_cond = max(4/3, gamma_over_Pr)` is computed in the constructor.
 
-    For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
-    as suggested in Section 3.5 of
-    - Krais et al. (2021)
-    FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
-    [DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
+For the diffusive estimate we use the eigenvalues of the diffusivity matrix,
+as suggested in Section 3.5 of
+- Krais et al. (2021)
+FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+[DOI: 10.1016/j.camwa.2020.05.004](https://doi.org/10.1016/j.camwa.2020.05.004)
 """
 @inline function max_diffusivity(u, equations::ViscoResistiveMhd2D)
     rho = u[1]
