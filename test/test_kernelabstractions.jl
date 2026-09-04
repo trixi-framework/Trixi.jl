@@ -15,8 +15,6 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
@@ -45,8 +43,6 @@ end
                         linf=[Float32(6.627000273229378e-5)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
@@ -79,8 +75,6 @@ end
                             1.1707525985116263e-5,
                             1.1707525982673772e-5,
                             4.886961559069647e-5])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
@@ -114,8 +108,6 @@ end
                                      6.214141845717336e-5],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
@@ -152,8 +144,6 @@ end
                         solver=DGSEM(polydeg = 3,
                                      surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
                                      volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
@@ -200,8 +190,6 @@ end
                             0.0008948904521319523,
                             0.00018926467653786568
                         ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
@@ -246,8 +234,6 @@ end
                                      0.00018917795326144592],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
@@ -265,6 +251,29 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === Array
 end
 
+@testitem "KernelAbstractions CPU 2D: elixir_advection_nonconforming_flag.jl Float32 / CUDA" setup=[Setup, KernelAbstractionsExamples] tags=[:kernelabstractions] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_advection_nonconforming_flag.jl"),
+                        l2=Float32[3.198940059144588e-5],
+                        linf=Float32[0.00030636069494005547])
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    @test real(semi.solver) == Float32
+    @test real(semi.solver.basis) == Float32
+    @test real(semi.solver.mortar) == Float32
+    # TODO: `mesh` is currently not `adapt`ed correctly
+    @test real(semi.mesh) == Float64
+    @test typeof(semi.equations.gamma) == Float32
+
+    @test ode.u0 isa Array
+    @test semi.solver.basis.derivative_matrix isa Array
+
+    @test Trixi.storage_type(semi.cache.elements) === Array
+    @test Trixi.storage_type(semi.cache.interfaces) === Array
+    @test Trixi.storage_type(semi.cache.boundaries) === Array
+    @test Trixi.storage_type(semi.cache.mortars) === Array
+end
+
+
 @testitem "KernelAbstractions CPU 3D: elixir_advection_basic.jl" setup=[
     Setup,
     KernelAbstractionsExamples
@@ -274,8 +283,6 @@ end
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
                         linf=[0.0014537194925779984])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
@@ -304,8 +311,6 @@ end
                         linf=[Float32(0.0014537194925779984)],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
@@ -340,8 +345,6 @@ end
                             0.011300883615918522,
                             0.02090696711453477],
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
@@ -378,8 +381,6 @@ end
                         volume_integral=VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
@@ -426,8 +427,6 @@ end
                             0.004448527707559019,
                             0.0001983994478820785
                         ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
@@ -472,8 +471,6 @@ end
                                      0.00019839944646198146],
                         RealT_for_test_tolerances=Float32,
                         real_type=Float32)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
