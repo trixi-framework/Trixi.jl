@@ -11,22 +11,24 @@ prandtl_number() = 0.72
 # Frank M. White: Viscous Fluid Flow, 2nd Edition.
 # 1991, McGraw-Hill, ISBN, 0-07-069712-4
 # Pages 28 and 29.
-@inline function mu(u, equations)
-    RealT = eltype(u)
-    T_ref = convert(RealT, 291.15)
+@inline function mu(u_prim_temperature,
+                    equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    RealT = eltype(u_prim_temperature)
+    T_ref = convert(RealT, 291.15) # [K]
+    _, _, _, T = u_prim_temperature
 
-    R_specific_air = convert(RealT, 287.052874)
-    T = R_specific_air * temperature(u, equations)
-
-    C_air = 120
-    mu_ref_air = convert(RealT, 1.827e-5)
+    C_air = 120 # [K]
+    mu_ref_air = convert(RealT, 1.827e-5) # [Pa * s] = [kg/(m * s)]
 
     return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5f0
 end
 
 equations = CompressibleEulerEquations2D(1.4)
+
+R_specific_air = 287.052874 # [J/(kg * K)]
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                          Prandtl = prandtl_number())
+                                                          Prandtl = prandtl_number(),
+                                                          R = R_specific_air)
 
 """
     initial_condition_taylor_green_vortex(x, t, equations::CompressibleEulerEquations2D)
@@ -40,14 +42,19 @@ This forms the basis behind the 3D case found for instance in
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations2D)
     RealT = eltype(x)
-    A = 1 # magnitude of speed
+    A = 1 # magnitude of speed [m/s]
     Ms = convert(RealT, 0.1) # maximum Mach number
 
-    rho = 1
-    v1 = A * sin(x[1]) * cos(x[2])
-    v2 = -A * cos(x[1]) * sin(x[2])
-    p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
-    p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2]))
+    rho = 1 # [kg/m^3]
+    v1 = A * sin(x[1]) * cos(x[2]) # [m/s]
+    v2 = -A * cos(x[1]) * sin(x[2]) # [m/s]
+
+    # Scaling to get Ms
+    p = (A / Ms)^2 * rho / equations.gamma # [Pa] = [kg/(m * s^2)]
+    # Add terms for the Taylor-Green vortex
+    p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2])) # [Pa] = [kg/(m * s^2)]
+
+    println("p: ", p)
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -76,7 +83,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 200
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      save_analysis = true,
                                      extra_analysis_integrals = (energy_kinetic,
@@ -91,6 +98,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-9
+time_int_tol = 1e-6
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

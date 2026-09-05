@@ -21,6 +21,8 @@ for human readability.
 - `PlotData2D` now visualizes finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or
   `BlockFV`) as distinct cells instead of interpolating between neighboring cell values,
   for both `Plots.jl` and `Makie.jl` ([#3150]).
+- For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
+  unity is now supported, which then results in a different temperature `T` ([#3165])
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
