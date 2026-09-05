@@ -182,23 +182,35 @@ function step!(integrator::SimpleIntegratorSSP)
 
     limit_dt!(integrator, t_end)
 
-    @. integrator.u_tmp = integrator.u
+    @threaded for i in eachindex(integrator.u)
+        integrator.u_tmp[i] = integrator.u[i]
+    end
     for stage in eachindex(alg.c)
-        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        u, du, u_tmp, dt = integrator.u, integrator.du, integrator.u_tmp, integrator.dt
+
+        t_stage = integrator.t + dt * alg.c[stage]
         # compute du
-        integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
+        integrator.f(du, u, integrator.p, t_stage)
 
         # perform forward Euler step
-        @. integrator.u = integrator.u + integrator.dt * integrator.du
+        @threaded for i in eachindex(integrator.u)
+            u[i] = u[i] + dt * du[i]
+        end
 
         for stage_callback in alg.stage_callbacks
             stage_callback(integrator.u, integrator, stage)
         end
 
         # perform convex combination
-        @. integrator.u = (alg.numerator_a[stage] * integrator.u_tmp +
-                           alg.numerator_b[stage] * integrator.u) /
-                          alg.denominator[stage]
+        # skip the stage if a = 0 (and therefore b = denominator = 1), because then the
+        # convex combination is simply u = u and is not needed
+        if !iszero(alg.numerator_a[stage])
+            a, b, d = alg.numerator_a[stage], alg.numerator_b[stage],
+                      alg.denominator[stage]
+            @threaded for i in eachindex(integrator.u)
+                u[i] = (a * u_tmp[i] + b * u[i]) / d
+            end
+        end
     end
     integrator.iter += 1
     integrator.t += integrator.dt
