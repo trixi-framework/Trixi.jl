@@ -56,6 +56,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                                                                              equations,
                                                                                              dg,
                                                                                              uEltype)
+    init_boundary_node_coordinates!(boundaries, dg.basis, elements)
 
     cache = (; elements, interfaces, boundaries, mortars, neighbor_ids_parent)
 
@@ -68,7 +69,7 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
     return cache
 end
 
-# Extract outward-pointing normal direction
+# Extract outward-pointing normal direction from element `contravariant_vectors`
 # (contravariant vector ±Ja^i, i = index)
 # Note that this vector is not normalized
 @inline function get_normal_direction(direction, contravariant_vectors, indices...)
