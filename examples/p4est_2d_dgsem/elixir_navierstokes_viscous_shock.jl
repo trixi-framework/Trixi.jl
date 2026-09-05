@@ -32,6 +32,7 @@ using Trixi
 # Corresponds essentially to fixing the Mach number
 alpha = 0.5
 # We want kappa = cp * mu = mu_bar to ensure constant enthalpy
+# See fotonote 1 on page 335 in Margolin et al.
 prandtl_number() = 3 / 4
 
 ### Free choices: ###
