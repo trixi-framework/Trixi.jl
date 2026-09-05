@@ -89,7 +89,8 @@ initial_condition = initial_condition_viscous_shock
 equations = CompressibleEulerEquations1D(gamma())
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to
-# convert the "isotropic viscosity" to the "deviatoric viscosity"
+# convert the "isotropic/longitudinal viscosity" to the "deviatoric viscosity"
+# See again fotonote 1 on page 335 in Margolin et al.
 mu_deviatoric() = mu_bar() * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
