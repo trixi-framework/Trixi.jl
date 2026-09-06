@@ -22,21 +22,21 @@ mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations,
                AbstractSemidiscretization
     mesh::Mesh
 
-    equations::Equations
-    equations_parabolic::EquationsParabolic
+    equations::Equations # cannot be const due to `GlmSpeedCallback`
+    const equations_parabolic::EquationsParabolic
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
-    initial_condition::InitialCondition
+    const initial_condition::InitialCondition
 
-    boundary_conditions::BoundaryConditions
-    boundary_conditions_parabolic::BoundaryConditionsParabolic
+    const boundary_conditions::BoundaryConditions
+    const boundary_conditions_parabolic::BoundaryConditionsParabolic
 
-    source_terms::SourceTerms
-    source_terms_parabolic::SourceTermsParabolic
+    const source_terms::SourceTerms
+    const source_terms_parabolic::SourceTermsParabolic
 
-    solver::Solver
-    solver_parabolic::SolverParabolic
+    const solver::Solver
+    const solver_parabolic::SolverParabolic
 
     cache::Cache
     cache_parabolic::CacheParabolic
