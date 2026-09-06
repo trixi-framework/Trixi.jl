@@ -142,8 +142,10 @@ function flux(u, gradients, orientation::Integer, equations::ViscoResistiveMhd2D
     # Components of viscous stress tensor
 
     # Diagonal parts
-    tau_11 = 4.0f0 / 3.0f0 * dv1dx - 2.0f0 / 3.0f0 * dv2dy
-    tau_22 = 4.0f0 / 3.0f0 * dv2dy - 2.0f0 / 3.0f0 * dv1dx
+    # (4 * (v1)_x / 3 - 2 * (v2)_y / 3)
+    tau_11 = (4 * dv1dx - 2 * dv2dy) / 3
+    # (4/3 * (v2)_y - 2/3 * (v1)_x)
+    tau_22 = (4 * dv2dy - 2 * dv1dx) / 3
 
     # Off diagonal parts, exploit that stress tensor is symmetric
     # ((v1)_y + (v2)_x)
