@@ -461,14 +461,14 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
                         title = variable_name,
                         xlabel = _makie_guide(pd.orientation_x),
                         ylabel = _makie_guide(pd.orientation_y),
-                        xticks = Makie.WilkinsonTicks(4; k_min = 3, k_max = 5),
-                        yticks = Makie.WilkinsonTicks(4; k_min = 3, k_max = 5))
+                        xticks = Makie.WilkinsonTicks(3; k_max = 4),
+                        yticks = Makie.WilkinsonTicks(3; k_max = 4))
         axes[row, col] = ax
         # Makie expands a zero-width color range only if it is passed explicitly.
         plt = Makie.heatmap!(ax, pds; colormap,
                              colorrange = extrema(pds.plot_data.data[pds.variable_id]))
         Makie.Colorbar(fig[row, col][1, 2], plt;
-                       ticks = Makie.WilkinsonTicks(4; k_min = 3, k_max = 5))
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4))
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, x[begin], x[end])
         Makie.ylims!(ax, y[begin], y[end])
@@ -538,12 +538,12 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
         ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
                         xlabel = _makie_guide(1), ylabel = _makie_guide(2),
-                        xticks = Makie.WilkinsonTicks(4; k_min = 3, k_max = 5),
-                        yticks = Makie.WilkinsonTicks(4; k_min = 3, k_max = 5))
+                        xticks = Makie.WilkinsonTicks(3; k_max = 4),
+                        yticks = Makie.WilkinsonTicks(3; k_max = 4))
         axes[row, col] = ax
         plt = trixiheatmap!(ax, pds; plot_mesh, colormap)
         Makie.Colorbar(fig[row, col][1, 2], plt;
-                       ticks = Makie.WilkinsonTicks(4; k_min = 3, k_max = 5))
+                       ticks = Makie.WilkinsonTicks(3; k_max = 4))
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, extrema(pd.x))
         Makie.ylims!(ax, extrema(pd.y))
