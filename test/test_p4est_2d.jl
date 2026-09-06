@@ -184,6 +184,10 @@ end
                         save_restart=TrivialCallback(),
                         cfl=0.8,
                         l2=[1.9055059413792332e-6], linf=[1.018946654784969e-5])
+
+    p4est_boundary_container = semi.cache.boundaries
+    @test_nowarn resize!(p4est_boundary_container, 42)
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
