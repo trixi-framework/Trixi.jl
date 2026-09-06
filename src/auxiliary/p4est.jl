@@ -33,7 +33,7 @@ end
 # for convenience to either pass a Ptr or a PointerWrapper
 const PointerOrWrapper = Union{Ptr{T}, PointerWrapper{T}} where {T}
 
-# Convert sc_array of type T to Julia array
+# Convert sc_array of type T to Julia array. Required for `Trixi2Vtk`
 function unsafe_wrap_sc(::Type{T}, sc_array_ptr::Ptr{sc_array}) where {T}
     sc_array_obj = unsafe_load(sc_array_ptr)
     return unsafe_wrap_sc(T, sc_array_obj)
@@ -191,18 +191,6 @@ end
 # (see https://github.com/cburstedde/p4est/blob/439bc9aae849555256ddfe4b03d1f9fe8d18ff0e/src/p8est_iterate.h#L66-L72).
 function ghost_new_p4est(p8est::PointerOrWrapper{p8est_t})
     return p8est_ghost_new(p8est, P4est.P8EST_CONNECT_FULL)
-end
-
-# Check if ghost layer is valid
-# 2D
-function ghost_is_valid_p4est(p4est::PointerOrWrapper{p4est_t},
-                              ghost_layer::Ptr{p4est_ghost_t})
-    return p4est_ghost_is_valid(p4est, ghost_layer)
-end
-# 3D
-function ghost_is_valid_p4est(p4est::PointerOrWrapper{p8est_t},
-                              ghost_layer::Ptr{p8est_ghost_t})
-    return p8est_ghost_is_valid(p4est, ghost_layer)
 end
 
 # Destroy ghost layer
