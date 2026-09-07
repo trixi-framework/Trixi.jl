@@ -516,6 +516,11 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
+    # Check if this variable was already limited by the local two-sided limiter,
+    # which can impose a stricter lower bound than the positivity limiting below.
+    local_twosided_variable = limiter.local_twosided &&
+                              (variable in limiter.local_twosided_variables_cons)
+
     @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
@@ -530,8 +535,7 @@ end
             end
 
             # Compute bound
-            if limiter.local_twosided &&
-               (variable in limiter.local_twosided_variables_cons) &&
+            if local_twosided_variable &&
                (var_min[i, j, k, element] >= positivity_correction_factor * var)
                 # Local limiting is more restrictive that positivity limiting
                 # => Skip positivity limiting for this node
