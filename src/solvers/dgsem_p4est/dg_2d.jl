@@ -933,7 +933,7 @@ end
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                          index_range)
 
-    for position in 1:2
+    KernelAbstractions.Extras.@unroll for position in 1:2
         i_small = i_small_start
         j_small = j_small_start
         element = neighbor_ids[position, mortar]
