@@ -463,19 +463,6 @@ end
     return nothing
 end
 
-# For GPU backends mortars are not yet implemented
-function prolong2mortars!(backend::Backend, cache, u, mesh, equations, mortar, dg)
-    @assert isempty(eachmortar(dg, cache))
-    return nothing
-end
-
-# For GPU backends mortars are not yet implemented
-function calc_mortar_flux!(backend::Backend, surface_flux_values, mesh,
-                           have_nonconservative_terms, equations, mortar,
-                           surface_integral, dg, cache)
-    @assert isempty(eachmortar(dg, cache))
-end
-
 function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Backend,
                                                                     du, u, t,
                                                                     source_terms,
