@@ -739,16 +739,15 @@ end
     # Specialized path: entropy_guermond_etal + CompressibleEulerEquations2D.
     equations_2d = CompressibleEulerEquations2D(1.4)
     bound = 1.0
-    rng = Random.MersenneTwister(1234)
+    rng = MersenneTwister(1234)
 
     for _ in 1:64
-        rho = 0.1 + Random.rand(rng)
-        v1 = Random.randn(rng)
-        v2 = Random.randn(rng)
-        p = 0.1 + Random.rand(rng)
+        rho = 0.1 + rand(rng)
+        v1 = randn(rng)
+        v2 = randn(rng)
+        p = 0.1 + rand(rng)
         u = prim2cons(SVector(rho, v1, v2, p), equations_2d)
-        delta_u = SVector(Random.randn(rng), Random.randn(rng), Random.randn(rng),
-                          Random.randn(rng))
+        delta_u = SVector(randn(rng), randn(rng), randn(rng), randn(rng))
 
         is_valid, goal, state_data = Trixi.newton_state_data(entropy_guermond_etal, bound,
                                                              u, equations_2d)
