@@ -294,9 +294,10 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{2},
                       basis::LobattoLegendreBasis, bound_keys,
                       ::True,
-                      cache_variable_values)
+                      cache_variable_values,
+                      cache_alpha_local)
     cache = create_cache(limiter, equations, basis, bound_keys, False(),
-                         cache_variable_values)
+                         cache_variable_values, cache_alpha_local)
     container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
                                                                    nvariables(equations),
                                                                    nnodes(basis))
