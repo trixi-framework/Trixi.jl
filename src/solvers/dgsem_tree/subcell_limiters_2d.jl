@@ -649,6 +649,9 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
+    was_limited_locally = limiter.local_twosided &&
+                          (variable in limiter.local_twosided_variables_cons)
+
     @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
@@ -661,8 +664,7 @@ end
             end
 
             # Compute bound
-            if limiter.local_twosided &&
-               (variable in limiter.local_twosided_variables_cons) &&
+            if was_limited_locally &&
                (var_min[i, j, element] >= positivity_correction_factor * var)
                 # Local limiting is more restrictive that positivity limiting
                 # => Skip positivity limiting for this node
@@ -938,9 +940,6 @@ end
 
             # Large element
             var_large = u[var_index, indices_large..., large_element]
-            if var_large < 0
-                error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
-            end
 
             # Two-sided local bounds
             var_min_large = var_min[indices_large..., large_element]
@@ -995,9 +994,6 @@ end
 
                 small_element = neighbor_ids[small_element_index, mortar]
                 var_small = u[var_index, indices_small..., small_element]
-                if var_small < 0
-                    error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
-                end
 
                 var_min_small = var_min[indices_small..., small_element]
                 var_max_small = var_max[indices_small..., small_element]
@@ -1253,9 +1249,6 @@ end
 
             # Large element
             var_large = u[var_index, indices_large..., large_element]
-            if var_large < 0
-                error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
-            end
 
             # Minimum bound
             var_min_large = var_min[indices_large..., large_element]
@@ -1302,9 +1295,6 @@ end
 
                 small_element = neighbor_ids[small_element_index, mortar]
                 var_small = u[var_index, indices_small..., small_element]
-                if var_small < 0
-                    error("Safe low-order method produces negative value for conservative variable rho. Try a smaller time step.")
-                end
 
                 # Compute flux differences
                 flux_small_high_order = surface_flux_values_high_order[var_index, i,

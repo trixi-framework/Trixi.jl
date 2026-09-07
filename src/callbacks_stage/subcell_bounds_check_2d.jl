@@ -105,8 +105,7 @@
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)
-                    deviation = max(deviation,
-                                    bounds[i, j, element] - var)
+                    deviation = max(deviation, bounds[i, j, element] - var)
                 end
             end
             idp_bounds_delta_local[key] = deviation
