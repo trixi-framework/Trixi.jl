@@ -438,17 +438,17 @@ function _precompile_manual_()
                                       TreeMesh{2, Trixi.ParallelTree{2}, RealT}, String})
 
         # 3D, serial
-        @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.TreeElementContainer3D{RealT, uEltype},
-                                      basis_type_dgsem(RealT, nnodes_)})
-        @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.TreeElementContainer3D{RealT, uEltype}})
-        @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
-                                      Trixi.TreeElementContainer3D{RealT, uEltype},
-                                      mortar_type})
+        Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
+                              TreeMesh{3, Trixi.SerialTree{3}, RealT},
+                              Trixi.TreeElementContainer3D{RealT, uEltype},
+                              basis_type_dgsem(RealT, nnodes_)})
+        Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
+                              TreeMesh{3, Trixi.SerialTree{3}, RealT},
+                              Trixi.TreeElementContainer3D{RealT, uEltype}})
+        Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
+                              TreeMesh{3, Trixi.SerialTree{3}, RealT},
+                              Trixi.TreeElementContainer3D{RealT, uEltype},
+                              mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
                                       TreeMesh{3, Trixi.SerialTree{3}, RealT}, String})
     end
