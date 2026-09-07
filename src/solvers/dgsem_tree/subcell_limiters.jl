@@ -163,10 +163,11 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     bar_states = bar_states_as_static(bar_states)
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
-    # `variable_values` is also used to store the alternative alphas for enabled smoothness indicator.
     cache_variable_values = local_onesided || !isnothing(indicator)
+    # Only cache `alpha_local` if smoothness indicator is enabled.
+    cache_alpha_local = !isnothing(indicator)
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states,
-                         cache_variable_values)
+                         cache_variable_values, cache_alpha_local)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
@@ -262,13 +263,15 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys,
                       ::False,
-                      cache_variable_values) where {NDIMS}
+                      cache_variable_values,
+                      cache_alpha_local) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys,
-                                                                                        cache_variable_values)
+                                                                                        cache_variable_values,
+                                                                                        cache_alpha_local)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.

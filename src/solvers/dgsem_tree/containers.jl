@@ -92,11 +92,12 @@ end
 
 function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
                                                     bound_keys,
-                                                    cache_variable_values = false) where {
-                                                                                          NDIMS,
-                                                                                          uEltype <:
-                                                                                          Real
-                                                                                          }
+                                                    cache_variable_values = false,
+                                                    cache_alpha_local = false) where {
+                                                                                      NDIMS,
+                                                                                      uEltype <:
+                                                                                      Real
+                                                                                      }
     nan_uEltype = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -108,7 +109,7 @@ function ContainerSubcellLimiterIDP{NDIMS, uEltype}(capacity::Integer, n_nodes,
     n_mortars_per_node = unsafe_wrap(Array, pointer(_n_mortars_per_node),
                                      (ntuple(_ -> n_nodes, NDIMS)..., capacity))
 
-    if cache_variable_values
+    if cache_alpha_local
         # Initialize caching variable for the computation of the alphas with smoothness indicator
         _alpha_local = fill(nan_uEltype,
                             prod(ntuple(_ -> n_nodes, NDIMS)) * capacity)
