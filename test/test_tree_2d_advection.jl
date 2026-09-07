@@ -43,7 +43,6 @@ end
                         polydeg=1)
     # Test `show()`
     @trixi_test_nowarn show(IOContext(stdout, :compact => false), save_restart)
-    
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
