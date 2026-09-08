@@ -182,8 +182,9 @@ function step!(integrator::SimpleIntegratorSSP)
 
     limit_dt!(integrator, t_end)
 
-    @threaded for i in eachindex(integrator.u)
-        integrator.u_tmp[i] = integrator.u[i]
+    u, u_tmp = integrator.u, integrator.u_tmp
+    @threaded for i in eachindex(u)
+        u_tmp[i] = u[i]
     end
     for stage in eachindex(alg.c)
         u, du, u_tmp, dt = integrator.u, integrator.du, integrator.u_tmp, integrator.dt
