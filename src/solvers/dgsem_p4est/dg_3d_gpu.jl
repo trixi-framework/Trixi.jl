@@ -103,7 +103,7 @@ end
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[i, ii]) * fluxtilde1 +
                    (weight * alpha * derivative_split[i, iib]) *
-                   get_node_vars(flux_local, dg, iib, j, k)
+                   get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
     end
 
