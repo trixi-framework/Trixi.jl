@@ -130,10 +130,11 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function weak_form_kernel!(du, u,
-                                   element, ::Type{<:TreeMesh{3}},
-                                   have_nonconservative_terms::False, equations,
-                                   dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function weak_form_kernel!(du, u,
+                                                    element, ::Type{<:TreeMesh{3}},
+                                                    have_nonconservative_terms::False,
+                                                    equations,
+                                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
@@ -216,9 +217,12 @@ Base.@propagate_inbounds function flux_differencing_kernel!(du, u, element,
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element, MeshT::Type{<:TreeMesh{3}},
-                                           have_nonconservative_terms::True, equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function flux_differencing_kernel!(du, u, element,
+                                                            MeshT::Type{<:TreeMesh{3}},
+                                                            have_nonconservative_terms::True,
+                                                            equations,
+                                                            volume_flux, dg::DGSEM,
+                                                            cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_split = dg.basis
@@ -537,31 +541,34 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
     interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        left_element = neighbor_ids[1, interface]
-        right_element = neighbor_ids[2, interface]
+        @inbounds begin
+            left_element = neighbor_ids[1, interface]
+            right_element = neighbor_ids[2, interface]
 
-        if orientations[interface] == 1
-            # interface in x-direction
-            for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
-                                                        left_element]
-                interfaces_u[2, v, j, k, interface] = u[v, 1, j, k,
-                                                        right_element]
-            end
-        elseif orientations[interface] == 2
-            # interface in y-direction
-            for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
-                                                        left_element]
-                interfaces_u[2, v, i, k, interface] = u[v, i, 1, k,
-                                                        right_element]
-            end
-        else # if orientations[interface] == 3
-            # interface in z-direction
-            for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, j, interface] = u[v, i, j, nnodes(dg),
-                                                        left_element]
-                interfaces_u[2, v, i, j, interface] = u[v, i, j, 1, right_element]
+            if orientations[interface] == 1
+                # interface in x-direction
+                for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
+                    interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
+                                                            left_element]
+                    interfaces_u[2, v, j, k, interface] = u[v, 1, j, k,
+                                                            right_element]
+                end
+            elseif orientations[interface] == 2
+                # interface in y-direction
+                for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                    interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
+                                                            left_element]
+                    interfaces_u[2, v, i, k, interface] = u[v, i, 1, k,
+                                                            right_element]
+                end
+            else # if orientations[interface] == 3
+                # interface in z-direction
+                for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
+                    interfaces_u[1, v, i, j, interface] = u[v, i, j, nnodes(dg),
+                                                            left_element]
+                    interfaces_u[2, v, i, j, interface] = u[v, i, j, 1,
+                                                            right_element]
+                end
             end
         end
     end

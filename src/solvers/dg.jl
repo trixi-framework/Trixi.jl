@@ -1088,7 +1088,11 @@ end
 # - https://github.com/trixi-framework/Trixi.jl/issues/88
 # - https://github.com/trixi-framework/Trixi.jl/issues/87
 # - https://github.com/trixi-framework/Trixi.jl/issues/86
-@inline function get_node_coords(x, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_node_coords(x, equations, solver::DG,
+                                                  indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(x, 1:ndims(equations), indices...)
+    # Assume inbounds access now
     return SVector(ntuple(@inline(idx->@inbounds x[idx, indices...]),
                           Val(ndims(equations))))
 end
@@ -1107,7 +1111,7 @@ i.e., `get_node_vars(u, equations, solver::DG, i, j, k, element)` is also valid.
 For more details, see the documentation:
 https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
 """
-@inline function get_node_vars(u, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
@@ -1118,16 +1122,23 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     # compiler for standard `Array`s but not necessarily for more
     # advanced array types such as `PtrArray`s, cf.
     # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:nvariables(equations), indices...)
+    # Assume inbounds access now
     return SVector(ntuple(@inline(v->@inbounds u[v, indices...]),
                           Val(nvariables(equations))))
 end
 
-@inline function get_surface_node_vars(u, equations, solver::DG, indices...)
+Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG,
+                                                        indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
     # in Julia `v1.5`, leading to type instabilities if
     # more than ten variables are used. That's why we use
     # `Val(...)` below.
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:2, 1:nvariables(equations), indices...)
+    # Assume inbounds access now
     u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
                           Val(nvariables(equations))))
     u_rr = SVector(ntuple(@inline(v->@inbounds u[2, v, indices...]),
@@ -1136,7 +1147,11 @@ end
 end
 
 # As above but dispatches on an type argument
-@inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
+Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
+                                                        indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:2, 1:nvariables(equations), indices...)
+    # Assume inbounds access now
     u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
                           Val(nvariables(equations))))
     u_rr = SVector(ntuple(@inline(v->@inbounds u[2, v, indices...]),
