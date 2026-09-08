@@ -1134,7 +1134,6 @@ end
     eos_pr = PengRobinson()
     states_pr = ((1.0e-3, 150.0), (2.0e-3, 200.0), (1.5e-3, 180.0))
     cv_pr = eos -> eos.cv0
-    # rtol_pr = 1e-6 
     rtol_pr = sqrt(eps())
 
     cases = ((eos_helmholtz_ig, eos_ig, states_ig, cv_ig, rtol_ig),
