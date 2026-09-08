@@ -933,10 +933,10 @@ end
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2],
                                                          index_range)
 
-    KernelAbstractions.Extras.@unroll for position in 1:2
+    Base.Cartesian.@nexprs 2 p -> begin
         i_small = i_small_start
         j_small = j_small_start
-        element = neighbor_ids[position, mortar]
+        element = neighbor_ids[p, mortar]
         for node in index_range
             # Get the normal direction on the small element.
             # Note, contravariant vectors at interfaces in negative coordinate direction
@@ -948,7 +948,7 @@ end
             calc_mortar_flux!(fstar_primary, fstar_secondary,
                               MeshT, have_nonconservative_terms, equations,
                               surface_flux, SolverT, mortars_u,
-                              mortar, position, normal_direction,
+                              mortar, p, normal_direction,
                               node)
 
             i_small += i_small_step
