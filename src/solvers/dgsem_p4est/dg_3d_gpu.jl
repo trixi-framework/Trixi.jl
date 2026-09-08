@@ -29,6 +29,32 @@
     return nothing
 end
 
+"""
+    flux_differencing_KAkernel!(du, u, equations, MeshT, kernel_type,
+                                have_nonconservative_terms,
+                                combine_conservative_and_nonconservative_fluxes,
+                                dg, volume_flux, ::Val{NNODES}, ::Val{NVARIABLES},
+                                derivative_split, contravariant_vectors, alpha)
+
+GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
+see [`HalfSweep`](@ref) and [`FullSweep`](@ref).
+
+For [`HalfSweep`](@ref), all diagonal entries of `derivative_split` are zero. Thus,
+we can skip the computation of the diagonal terms. In addition, we use the symmetry
+of the `volume_flux` to save half of the possible two-point flux computations.
+Instead of assigning thread `i` the partners `i+1, …, N`, we distribute the half
+sweep cyclically: each thread visits `div(N, 2)` partners at a fixed rotating
+offset. Every unordered pair is still covered exactly once, but now every thread
+performs the same number of loop iterations. When `N` is even (odd polynomial
+degree), the antipodal pair at offset `div(N, 2)` is shared by two threads, so its
+contribution is weighted by 1/2 to avoid double counting.
+
+For details on the cyclic distribution see Section 4.1 (Eq. 6) of
+- Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+  GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
+  with Non-Conservative Terms
+  [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
+"""
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
@@ -54,26 +80,6 @@ end
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-
-    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
-    # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-point flux
-    # computations.
-    #
-    # Instead of assigning thread i the partners i+1, …, N,
-    # we distribute the half-sweep cyclically: each thread visits
-    # half = div(N,2) partners at a fixed rotating offset.
-    # Every unordered pair is still covered exactly
-    # once, but now every thread performs the same number of loop iterations.
-    # When N is even (odd polynomial degree) the antipodal pair at
-    # offset half is shared by two threads, so its contribution is weighted by
-    # 1/2 to avoid double counting.
-    #
-    # See Section 4.1 (Eq. 6) of
-    # - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
-    #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
-    #   with Non-Conservative Terms.
-    #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
 
     half_nnodes = div(NNODES, 2)
     even_nodes = iseven(NNODES)
@@ -182,26 +188,6 @@ end
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
-
-    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
-    # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-point flux
-    # computations.
-    #
-    # Instead of assigning thread i the partners i+1, …, N,
-    # we distribute the half-sweep cyclically: each thread visits
-    # half = div(N,2) partners at a fixed rotating offset.
-    # Every unordered pair is still covered exactly
-    # once, but now every thread performs the same number of loop iterations.
-    # When N is even (odd polynomial degree) the antipodal pair at
-    # offset half is shared by two threads, so its contribution is weighted by
-    # 1/2 to avoid double counting.
-    #
-    # See Section 4.1 (Eq. 6) of
-    # - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
-    #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
-    #   with Non-Conservative Terms.
-    #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
 
     half_nnodes = div(NNODES, 2)
     even_nodes = iseven(NNODES)
