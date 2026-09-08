@@ -415,7 +415,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              mesh::Union{P4estMesh{2}, P4estMeshView{2}},
@@ -826,7 +826,7 @@ end
 end
 
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              mesh::P4estMesh{2},
