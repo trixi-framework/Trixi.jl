@@ -602,7 +602,7 @@ end
 
     # Buffer to copy solution values of the large element in the correct orientation
     # before interpolating
-    u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+    u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
 
     prolong2mortars_per_mortar!(backend, mortars_u, u, mortar, MeshT, equations,
                                 neighbor_ids, node_indices, index_range, forward_lower,
@@ -652,17 +652,21 @@ end
                                                                     RealType}
     mortar = @index(Global)
 
-    fstar_p_1 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
-    fstar_p_2 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
-    fstar_s_1 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
-    fstar_s_2 = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
-    u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType, 2, NVARS * _nnodes}(undef)
+    fstar_p1 = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
+    fstar_p2 = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
+    fstar_s1 = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
+    fstar_s2 = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
+    u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
+
+    # Warning: creating tuples like (fstar_p1, fstar_p2), as done in the CPU case, results
+    # in non-constant tuple indexing on the GPU later on, which can cause illegal memory
+    # access!
 
     calc_mortar_flux_per_mortar!(backend, mortar, surface_flux_values, MeshT,
                                  have_nonconservative_terms, equations, surface_flux,
                                  SolverT, mortars_u, neighbor_ids, node_indices,
                                  contravariant_vectors, reverse_lower, reverse_upper,
-                                 index_range, (fstar_p_1, fstar_p_2),
-                                 (fstar_s_1, fstar_s_2), u_buffer)
+                                 index_range,
+                                 [fstar_p1, fstar_p2], [fstar_s1, fstar_s2], u_buffer)
 end
 end #muladd
