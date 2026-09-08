@@ -22,7 +22,6 @@ for human readability.
   can now be chosen via the new keyword argument `flux_differencing_kernel` of
   `semidiscretize`, either `HalfSweep()` (default, previously available)
   or `FullSweep()` ([#3206]).
->>>>>>> cc5adebdd8ca355038802ea5a25383de12309c73
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
