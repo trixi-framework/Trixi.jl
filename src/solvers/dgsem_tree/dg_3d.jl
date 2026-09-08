@@ -540,6 +540,9 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck check_axes(u, equations, dg, cache)
+
     @threaded for interface in eachinterface(dg, cache)
         @inbounds begin
             left_element = neighbor_ids[1, interface]
