@@ -40,8 +40,10 @@ function SemidiscretizationCoupled(semis...)
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
     for i in 1:length(semis)
-        _, equations, _, _ = mesh_equations_solver_cache(semis[i])
+        _, equations, solver, _ = mesh_equations_solver_cache(semis[i])
         n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
+
+        @assert solver.basis isa LobattoLegendreBasis "Currently only solvers with `LobattoLegendreBasis` are supported for coupled semidiscretizations."
     end
 
     # Compute range of coefficients associated with each semidiscretization and allocate coupled BCs
