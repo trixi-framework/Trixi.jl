@@ -13,11 +13,11 @@
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
-    @unpack flux_differencing_kernel = cache
+    kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
     kernel! = flux_differencing_KAkernel!(backend, (NNODES, NNODES, NNODES, 1))
     kernel!(du, u, equations,
             typeof(mesh),
-            flux_differencing_kernel,
+            kernel_type,
             have_nonconservative_terms,
             combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
                                                             equations),
@@ -81,8 +81,8 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
 
-    half_nnodes = div(NNODES, 2)
-    even_nodes = iseven(NNODES)
+    @uniform half_nnodes = div(NNODES, 2)
+    @uniform even_nodes = iseven(NNODES)
 
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
@@ -161,6 +161,8 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -189,8 +191,8 @@ end
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
 
-    half_nnodes = div(NNODES, 2)
-    even_nodes = iseven(NNODES)
+    @uniform half_nnodes = div(NNODES, 2)
+    @uniform even_nodes = iseven(NNODES)
 
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
@@ -273,6 +275,8 @@ end
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -301,7 +305,7 @@ end
     end
     @synchronize
 
-    u_node = get_node_vars_local(u_local, Val(NVARIABLES), i, j, k)
+    u_node = get_node_vars(u_local, equations, dg, i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -313,8 +317,8 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node,
-                                 get_node_vars_local(u_local, Val(NVARIABLES), ii, j,
-                                                     k),
+                                 get_node_vars(u_local, equations, dg, ii, j,
+                                               k),
                                  Ja1_avg, equations)
         du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1
     end
@@ -325,8 +329,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2 = volume_flux(u_node,
-                                 get_node_vars_local(u_local, Val(NVARIABLES), i, jj,
-                                                     k),
+                                 get_node_vars(u_local, equations, dg, i, jj,
+                                               k),
                                  Ja2_avg, equations)
         du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2
     end
@@ -337,8 +341,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3 = volume_flux(u_node,
-                                 get_node_vars_local(u_local, Val(NVARIABLES), i, j,
-                                                     kk),
+                                 get_node_vars(u_local, equations, dg, i, j,
+                                               kk),
                                  Ja3_avg, equations)
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
     end
@@ -372,7 +376,7 @@ end
     end
     @synchronize
 
-    u_node = get_node_vars_local(u_local, Val(NVARIABLES), i, j, k)
+    u_node = get_node_vars(u_local, equations, dg, i, j, k)
     du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -381,8 +385,8 @@ end
                    get_contravariant_vector(1, contravariant_vectors,
                                             ii, j, k, element))
         fluxtilde1_left, _ = volume_flux(u_node,
-                                         get_node_vars_local(u_local, Val(NVARIABLES),
-                                                             ii, j, k),
+                                         get_node_vars(u_local, equations, dg,
+                                                       ii, j, k),
                                          Ja1_avg, equations)
         du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1_left
     end
@@ -393,8 +397,8 @@ end
                    get_contravariant_vector(2, contravariant_vectors,
                                             i, jj, k, element))
         fluxtilde2_left, _ = volume_flux(u_node,
-                                         get_node_vars_local(u_local, Val(NVARIABLES),
-                                                             i, jj, k),
+                                         get_node_vars(u_local, equations, dg,
+                                                       i, jj, k),
                                          Ja2_avg, equations)
         du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2_left
     end
@@ -405,8 +409,8 @@ end
                    get_contravariant_vector(3, contravariant_vectors,
                                             i, j, kk, element))
         fluxtilde3_left, _ = volume_flux(u_node,
-                                         get_node_vars_local(u_local, Val(NVARIABLES),
-                                                             i, j, kk),
+                                         get_node_vars(u_local, equations, dg,
+                                                       i, j, kk),
                                          Ja3_avg, equations)
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
     end

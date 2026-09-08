@@ -69,7 +69,7 @@ using FFTW: fft
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using KernelAbstractions: KernelAbstractions, @index, @kernel, @localmem,
-                          @synchronize, get_backend, Backend
+                          @synchronize, @uniform, get_backend, Backend
 using AcceleratedKernels: AcceleratedKernels
 using LinearMaps: LinearMap
 if _PREFERENCE_LOOPVECTORIZATION

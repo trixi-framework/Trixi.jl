@@ -68,6 +68,10 @@ See [`HalfSweep`](@ref) for guidance on choosing between the two kernels.
 """
 struct FullSweep end
 
+# Fallback for CPU KernelAbstractions backend
+@inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweep()
+@inline flux_differencing_kernel(::Backend, kernel) = kernel
+
 # define types for parabolic solvers
 include("solvers_parabolic.jl")
 
