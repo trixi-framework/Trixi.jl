@@ -775,17 +775,18 @@ end
                                                              equations_2d)
         @test !is_valid
         @test iszero(goal)
-        @test isnothing(state_data)
+        @test all(iszero, values(state_data))
     end
 
     # Generic fallback path must preserve the legacy goal and derivative behavior.
     u = prim2cons(SVector(1.1, 0.2, -0.3, 1.0), equations_2d)
     delta_u = SVector(0.01, -0.02, 0.03, -0.04)
 
-    is_valid, goal, state_data = Trixi.newton_state_data(pressure, bound, u, equations_2d)
-    @test is_valid == Trixi.isvalid(u, equations_2d)
+    is_valid, goal, state_data = Trixi.newton_state_data(pressure, bound, u + delta_u,
+                                                         equations_2d)
+    @test is_valid && (is_valid == Trixi.isvalid(u, equations_2d))
+    @test goal == Trixi.goal_function_newton_idp(pressure, bound, u + delta_u, equations_2d)
     @test isnothing(state_data)
-    @test goal == Trixi.goal_function_newton_idp(pressure, bound, u, equations_2d)
 
     dgoal_dbeta = Trixi.newton_dgoal_dbeta(pressure, u, delta_u, equations_2d,
                                            state_data)
