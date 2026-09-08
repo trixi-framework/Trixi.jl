@@ -460,6 +460,20 @@ end
                             0.02451274749189282,
                             0.11191122588626357
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -516,6 +530,21 @@ end
                             0.02458089234472249,
                             0.11425600758024679
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # The specific gas constant only changes the conversion from pressure to
+    # temperature. Thus, the solution in conserved variables must be independent
+    # of R.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0,
+                                                                                gradient_variables = GradientVariablesEntropy()))
+    @test sol.u[end] ≈ reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -546,6 +575,46 @@ end
                             0.025099598505644406,
                             0.11795616324985403
                         ])
+    reference_solution = copy(sol.u[end])
+
+    # At an isothermal wall, the last entropy variable is -1 / (R * T).
+    # Therefore, changing R changes the prescribed temperature but must not
+    # change the solution in conserved variables.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu(),
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 6.7,
+                                                                                gradient_variables = GradientVariablesEntropy()),
+                        heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                              t,
+                                                                                                                                              equations),
+                                                                                             equations)))
+    @test sol.u[end] ≈ reference_solution
+
+    # For temperature-dependent viscosity in turn, we expect slight changes in the
+    # conserved variables
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_navierstokes_convergence.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = (u_prim_T, equations) -> 0.01 *
+                                                                                                              (2.0 +
+                                                                                                               10) /
+                                                                                                              (u_prim_T[4] +
+                                                                                                               10) *
+                                                                                                              (u_prim_T[4] /
+                                                                                                               2.0)^1.5f0,
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0),
+                        heat_bc_top_bottom=Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                              t,
+                                                                                                                                              equations),
+                                                                                             equations)))
+    @test sol.u[end] != reference_solution
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
@@ -723,17 +792,18 @@ end
 ] tags=[:parabolic_part1] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
+                        time_int_tol=1e-9,
                         l2=[
-                            0.001452856280034929,
-                            0.0007538775539989481,
-                            0.0007538775539988681,
-                            0.011035506549989587
+                            0.00145486807418178,
+                            0.0007225717711159572,
+                            0.0007225717711157697,
+                            0.0110120461466977
                         ],
                         linf=[
-                            0.003291912841311362,
-                            0.002986462478096974,
-                            0.0029864624780958637,
-                            0.0231954665514138
+                            0.0032979335880943816,
+                            0.0027219734306294097,
+                            0.002721973430631408,
+                            0.0237801274913636
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
@@ -993,6 +1063,38 @@ end
                             0.7223919625994717,
                             1.4846907331004786
                         ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+    @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
+end
+
+@testitem "Parabolic2D: P4estMesh2D: elixir_navierstokes_lid_driven_cavity.jl (R=2)" setup=[
+    Setup,
+    Parabolic2D
+] tags=[:parabolic_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
+                                 "elixir_navierstokes_lid_driven_cavity.jl"),
+                        equations_parabolic=CompressibleNavierStokesDiffusion2D(equations,
+                                                                                mu = mu,
+                                                                                Prandtl = prandtl_number(),
+                                                                                R = 2.0),
+                        initial_refinement_level=2, tspan=(0.0, 0.5),
+                        # Exact same errors as for the R = 1 case above
+                        l2=[
+                            0.00028716166408816073,
+                            0.08101204560401647,
+                            0.02099595625377768,
+                            0.05008149754143295
+                        ],
+                        linf=[
+                            0.014804500261322406,
+                            0.9513271652357098,
+                            0.7223919625994717,
+                            1.4846907331004786
+                        ])
+    reference_solution = copy(sol.u[end])
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
