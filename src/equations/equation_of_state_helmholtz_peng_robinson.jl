@@ -36,14 +36,12 @@ end
 
 Constructs a [`HelmholtzPengRobinson`](@ref) with the same interface as [`PengRobinson`](@ref).
 """
-function HelmholtzPengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
-    inv2sqrt2b = inv(2 * sqrt(2) * b)
-    one_minus_sqrt2_b = (1 - sqrt(2)) * b
-    one_plus_sqrt2_b = (1 + sqrt(2)) * b
-    return HelmholtzPengRobinson{typeof(a0)}(R, a0, b, cv0, kappa, Tc,
-                                             inv2sqrt2b, one_minus_sqrt2_b,
-                                             one_plus_sqrt2_b)
-end
+HelmholtzPengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324) = HelmholtzPengRobinson(PengRobinson(a0,
+                                                                                                        b,
+                                                                                                        cv0,
+                                                                                                        kappa,
+                                                                                                        Tc,
+                                                                                                        R))
 
 function Base.similar(eos::HelmholtzPengRobinson, ::Type{NewRealT}) where {NewRealT}
     return HelmholtzPengRobinson(convert(NewRealT, eos.a0), convert(NewRealT, eos.b),
@@ -58,7 +56,10 @@ end
 Constructs a [`HelmholtzPengRobinson`](@ref) from an existing [`PengRobinson`](@ref).
 """
 function HelmholtzPengRobinson(eos::PengRobinson)
-    return HelmholtzPengRobinson(eos.a0, eos.b, eos.cv0, eos.kappa, eos.Tc, eos.R)
+    return HelmholtzPengRobinson{typeof(eos.a0)}(eos.R, eos.a0, eos.b, eos.cv0,
+                                                 eos.kappa, eos.Tc,
+                                                 eos.inv2sqrt2b, eos.one_minus_sqrt2_b,
+                                                 eos.one_plus_sqrt2_b)
 end
 
 """
