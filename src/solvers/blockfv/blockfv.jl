@@ -86,16 +86,32 @@ function BlockFV(; n_nodes::Integer,
     basis = UniformFiniteVolumeBasis(RealT, n_nodes)
     volume_integral = VolumeIntegralFiniteVolume(surface_flux)
     surface_integral = SurfaceIntegralWeakForm(surface_flux)
-    # `nothing` is passed as placeholder for the mortar method
-    return DG(basis, nothing, surface_integral, volume_integral)
+    #basis is passed as mortar method
+    return DG(basis, basis, surface_integral, volume_integral)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", dg::BlockFV)
     @nospecialize dg
     summary_header(io, "BlockFV")
     summary_line(io, "basis", dg.basis)
+    summary_line(io, "mortar method", dg.mortar)
     summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
     summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     summary_footer(io)
 end
-end # @muladd
+
+# This hack is currently required for the SaveSolutionCallback.
+@inline polydeg(dg::BlockFV) = polydeg(dg.basis)
+
+function create_cache_indicator_for_amr(typ::Type{IndicatorType},
+                                        mesh, equations::AbstractEquations, dg::BlockFV,
+                                        cache) where {IndicatorType <:
+                                                      AbstractIndicator}
+    return create_cache(typ, equations, dg.basis)
+end
+
+# No special Adaptor is needed for the BlockFV solver. Thus, we just
+# reuse the `basis::UniformFiniteVolumeBasis` to enable specialized
+# dispatch of the AMR routines.
+AdaptorAMR(mesh, dg::BlockFV) = dg.basis
+end

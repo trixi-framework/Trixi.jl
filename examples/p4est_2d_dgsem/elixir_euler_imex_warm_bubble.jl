@@ -1,4 +1,4 @@
-# This elixir demonstrates how an implicit-explicit (IMEX) time integration scheme can be applied to the stiff and non-stiff parts of a right hand side, respectively. 
+# This elixir demonstrates how an implicit-explicit (IMEX) time integration scheme can be applied to the stiff and non-stiff parts of a right hand side, respectively.
 # We define separate solvers, boundary conditions, and source terms, and create a `SemidiscretizationHyperbolicSplit`, which will return a `SplitODEProblem` compatible with OrdinaryDiffEqBDF.jl, cf. https://docs.sciml.ai/OrdinaryDiffEq/stable/imex/IMEXBDF.
 # Note: This is currently more of a proof of concept and not particularly useful in practice, as fully explicit methods are still faster at the moment.
 
@@ -47,10 +47,10 @@ function initial_condition_warm_bubble(x, t, equations::CompressibleEulerEquatio
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
-# The standard Trixi.jl implementation of the slip wall boundary condition is not directly 
-# compatible with this general splitting approach, since it is based on Toro's Riemann solver 
-# which always returns boundary condition values for the entire right-hand side. 
-# This function computes the boundary condition based on the surface flux function of the 
+# The standard Trixi.jl implementation of the slip wall boundary condition is not directly
+# compatible with this general splitting approach, since it is based on Toro's Riemann solver
+# which always returns boundary condition values for the entire right-hand side.
+# This function computes the boundary condition based on the surface flux function of the
 # explicit and implicit parts, where the splitting has been defined and thus accounts for it.
 @inline function boundary_condition_slip_wall_simple(u_inner,
                                                      normal_direction::AbstractVector,

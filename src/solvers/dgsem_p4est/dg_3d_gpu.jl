@@ -246,65 +246,216 @@ end
     end
 end
 
-function prolong2interfaces!(backend::Backend, cache, u,
-                             mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, dg::DG)
-    @unpack interfaces = cache
-    @unpack neighbor_ids, node_indices = cache.interfaces
-    index_range = eachnode(dg)
-
-    kernel! = prolong2interfaces_KAkernel!(backend)
-    kernel!(interfaces.u, u, typeof(mesh), equations, neighbor_ids, node_indices,
-            index_range,
-            ndrange = ninterfaces(interfaces))
-    return nothing
-end
-
-@kernel function prolong2interfaces_KAkernel!(interface_u, u,
-                                              MeshT::Type{<:Union{P4estMesh{3},
-                                                                  T8codeMesh{3}}},
-                                              equations,
-                                              neighbor_ids, node_indices, index_range)
-    interface = @index(Global)
-    prolong2interfaces_per_interface!(interface_u, u,
-                                      MeshT::Type{<:Union{P4estMesh{3},
-                                                          T8codeMesh{3}}},
-                                      equations, neighbor_ids,
-                                      node_indices, index_range, interface)
-end
-
-function calc_interface_flux!(backend::Backend, surface_flux_values,
-                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                              have_nonconservative_terms,
-                              equations, surface_integral, dg::DG, cache)
+function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
+                                                     surface_flux_values, u,
+                                                     mesh::Union{P4estMesh{3},
+                                                                 T8codeMesh{3}},
+                                                     have_nonconservative_terms,
+                                                     equations,
+                                                     surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements
+    ninterfaces(cache.interfaces) == 0 && return nothing
     index_range = eachnode(dg)
+    kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
+    kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
+            surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
+            index_range,
+            ndrange = (nnodes(dg), nnodes(dg), ninterfaces(cache.interfaces)))
 
-    kernel! = calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, typeof(mesh), have_nonconservative_terms, equations,
-            surface_integral, typeof(dg), cache.interfaces.u,
-            neighbor_ids, node_indices, contravariant_vectors, index_range,
-            ndrange = ninterfaces(cache.interfaces))
     return nothing
 end
 
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values,
-                                               MeshT::Type{<:Union{P4estMesh{3},
-                                                                   T8codeMesh{3}}},
-                                               have_nonconservative_terms, equations,
-                                               surface_integral, SolverT, u_interface,
-                                               neighbor_ids, node_indices,
-                                               contravariant_vectors, index_range)
-    interface = @index(Global)
-    calc_interface_flux_per_interface!(surface_flux_values,
-                                       MeshT,
-                                       have_nonconservative_terms,
-                                       equations, surface_integral, SolverT,
-                                       u_interface,
-                                       neighbor_ids, node_indices,
-                                       contravariant_vectors,
-                                       index_range, interface)
+@kernel function prolong2interfaces_and_calc_interface_flux_KAkernel!(surface_flux_values,
+                                                                      u, MeshT,
+                                                                      have_nonconservative_terms,
+                                                                      equations,
+                                                                      surface_integral,
+                                                                      dg,
+                                                                      neighbor_ids,
+                                                                      node_indices,
+                                                                      contravariant_vectors,
+                                                                      index_range)
+    i, j, interface = @index(Global, NTuple)
+    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
+                                                         have_nonconservative_terms,
+                                                         equations,
+                                                         surface_integral, dg,
+                                                         neighbor_ids,
+                                                         node_indices,
+                                                         contravariant_vectors,
+                                                         index_range, i, j,
+                                                         interface)
+end
+
+@inline function delayed_index_3d(start, step_i, step_j, i, j, n)
+    return start + ((i - 1) + (j - 1) * n) * step_i + (j - 1) * step_j
+end
+
+@inline function get_interface_values(u, equations, dg, neighbor_ids,
+                                      node_indices, contravariant_vectors,
+                                      index_range, i, j, interface)
+    n = length(index_range)
+
+    primary_element = neighbor_ids[1, interface]
+    primary_indices = node_indices[1, interface]
+    primary_direction = indices2direction(primary_indices)
+
+    i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                 index_range)
+    j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                 index_range)
+    k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                 index_range)
+
+    i_primary = delayed_index_3d(i_primary_start, i_primary_step_i, i_primary_step_j,
+                                 i, j, n)
+    j_primary = delayed_index_3d(j_primary_start, j_primary_step_i, j_primary_step_j,
+                                 i, j, n)
+    k_primary = delayed_index_3d(k_primary_start, k_primary_step_i, k_primary_step_j,
+                                 i, j, n)
+
+    secondary_element = neighbor_ids[2, interface]
+    secondary_indices = node_indices[2, interface]
+    secondary_direction = indices2direction(secondary_indices)
+    i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                       index_range)
+    j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                       index_range)
+    k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                       index_range)
+
+    i_secondary_node = delayed_index_3d(i_secondary_start, i_secondary_step_i,
+                                        i_secondary_step_j, i, j, n)
+    j_secondary_node = delayed_index_3d(j_secondary_start, j_secondary_step_i,
+                                        j_secondary_step_j, i, j, n)
+    k_secondary_node = delayed_index_3d(k_secondary_start, k_secondary_step_i,
+                                        k_secondary_step_j, i, j, n)
+
+    secondary_surface_indices = surface_indices(secondary_indices)
+    i_secondary_step_start, i_secondary_step_start_i, i_secondary_step_start_j = index_to_start_step_3d(secondary_surface_indices[1],
+                                                                                                        index_range)
+    j_secondary_step_start, j_secondary_step_start_i, j_secondary_step_start_j = index_to_start_step_3d(secondary_surface_indices[2],
+                                                                                                        index_range)
+    i_secondary = delayed_index_3d(i_secondary_step_start, i_secondary_step_start_i,
+                                   i_secondary_step_start_j, i, j, n)
+    j_secondary = delayed_index_3d(j_secondary_step_start, j_secondary_step_start_i,
+                                   j_secondary_step_start_j, i, j, n)
+
+    u_ll = get_node_vars(u, equations, dg, i_primary, j_primary, k_primary,
+                         primary_element)
+    u_rr = get_node_vars(u, equations, dg, i_secondary_node, j_secondary_node,
+                         k_secondary_node, secondary_element)
+
+    normal_direction = get_normal_direction(primary_direction, contravariant_vectors,
+                                            i_primary, j_primary, k_primary,
+                                            primary_element)
+
+    return (u_ll, u_rr, normal_direction, primary_direction, primary_element,
+            i_secondary, j_secondary, secondary_direction, secondary_element)
+end
+
+@inline function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
+                                                                      u,
+                                                                      MeshT::Type{<:Union{P4estMesh{3},
+                                                                                          T8codeMesh{3}}},
+                                                                      have_nonconservative_terms::False,
+                                                                      equations,
+                                                                      surface_integral,
+                                                                      dg,
+                                                                      neighbor_ids,
+                                                                      node_indices,
+                                                                      contravariant_vectors,
+                                                                      index_range,
+                                                                      i, j, interface)
+    @unpack surface_flux = surface_integral
+
+    u_ll, u_rr, normal_direction, primary_direction, primary_element,
+    i_secondary, j_secondary, secondary_direction, secondary_element = get_interface_values(u,
+                                                                                            equations,
+                                                                                            dg,
+                                                                                            neighbor_ids,
+                                                                                            node_indices,
+                                                                                            contravariant_vectors,
+                                                                                            index_range,
+                                                                                            i,
+                                                                                            j,
+                                                                                            interface)
+
+    flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
+    for v in eachvariable(equations)
+        surface_flux_values[v, i, j, primary_direction, primary_element] = flux_[v]
+        surface_flux_values[v, i_secondary, j_secondary, secondary_direction,
+        secondary_element] = -flux_[v]
+    end
+    return nothing
+end
+
+@inline function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
+                                                                      u,
+                                                                      MeshT::Type{<:Union{P4estMesh{3},
+                                                                                          T8codeMesh{3}}},
+                                                                      have_nonconservative_terms::True,
+                                                                      equations,
+                                                                      surface_integral,
+                                                                      dg,
+                                                                      neighbor_ids,
+                                                                      node_indices,
+                                                                      contravariant_vectors,
+                                                                      index_range,
+                                                                      i, j, interface)
+    prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values, u, MeshT,
+                                                         have_nonconservative_terms,
+                                                         combine_conservative_and_nonconservative_fluxes(surface_integral.surface_flux,
+                                                                                                         equations),
+                                                         equations, surface_integral,
+                                                         dg,
+                                                         neighbor_ids,
+                                                         node_indices,
+                                                         contravariant_vectors,
+                                                         index_range, i, j, interface)
+    return nothing
+end
+
+@inline function prolong2interfaces_and_calc_interface_flux_per_node!(surface_flux_values,
+                                                                      u,
+                                                                      MeshT::Type{<:Union{P4estMesh{3},
+                                                                                          T8codeMesh{3}}},
+                                                                      have_nonconservative_terms::True,
+                                                                      combine_conservative_and_nonconservative_fluxes::True,
+                                                                      equations,
+                                                                      surface_integral,
+                                                                      dg,
+                                                                      neighbor_ids,
+                                                                      node_indices,
+                                                                      contravariant_vectors,
+                                                                      index_range,
+                                                                      i, j, interface)
+    @unpack surface_flux = surface_integral
+
+    u_ll, u_rr, normal_direction, primary_direction, primary_element,
+    i_secondary, j_secondary, secondary_direction, secondary_element = get_interface_values(u,
+                                                                                            equations,
+                                                                                            dg,
+                                                                                            neighbor_ids,
+                                                                                            node_indices,
+                                                                                            contravariant_vectors,
+                                                                                            index_range,
+                                                                                            i,
+                                                                                            j,
+                                                                                            interface)
+
+    flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
+    for v in eachvariable(equations)
+        surface_flux_values[v, i, j, primary_direction, primary_element] = flux_left[v]
+        surface_flux_values[v, i_secondary, j_secondary, secondary_direction,
+        secondary_element] = -flux_right[v]
+    end
+    return nothing
+end
+
+@inline function boundary_node_ndrange(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, dg)
+    return (nnodes(dg), nnodes(dg))
 end
 
 function prolong2boundaries!(backend::Backend, cache, u,
@@ -317,7 +468,7 @@ function prolong2boundaries!(backend::Backend, cache, u,
     index_range = eachnode(dg)
     kernel! = prolong2boundaries_kernel!(backend)
     kernel!(u, typeof(mesh), equations, dg, index_range, boundaries.u, neighbor_ids,
-            node_indices, ndrange = nboundaries)
+            node_indices, ndrange = (boundary_node_ndrange(mesh, dg)..., nboundaries))
     return nothing
 end
 
@@ -326,9 +477,39 @@ end
                                                                 T8codeMesh{3}}},
                                             equations, dg, index_range,
                                             u_boundaries, neighbor_ids, node_indices)
-    boundary = @index(Global)
-    prolong2boundaries_per_boundary!(u, MeshT, equations, dg, index_range, u_boundaries,
-                                     neighbor_ids, node_indices, boundary)
+    i, j, boundary = @index(Global, NTuple)
+    prolong2boundaries_per_node!(u, MeshT, equations, dg, index_range, u_boundaries,
+                                 neighbor_ids, node_indices, i, j, boundary)
+end
+
+@inline function prolong2boundaries_per_node!(u,
+                                              MeshT::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                              equations, dg::DG, index_range,
+                                              u_boundaries,
+                                              neighbor_ids, node_indices, i, j,
+                                              boundary)
+    # Copy solution data from the element using "delayed indexing" with
+    # a start value and a step size to get the correct face and orientation.
+    element = neighbor_ids[boundary]
+    node_index = node_indices[boundary]
+    n = length(index_range)
+
+    i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_index[1],
+                                                                        index_range)
+    j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_index[2],
+                                                                        index_range)
+    k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_index[3],
+                                                                        index_range)
+
+    i_node = delayed_index_3d(i_node_start, i_node_step_i, i_node_step_j, i, j, n)
+    j_node = delayed_index_3d(j_node_start, j_node_step_i, j_node_step_j, i, j, n)
+    k_node = delayed_index_3d(k_node_start, k_node_step_i, k_node_step_j, i, j, n)
+
+    u_node = get_node_vars(u, equations, dg, i_node, j_node, k_node, element)
+    set_node_vars!(u_boundaries, u_node, equations, dg, i, j, boundary)
+
+    return nothing
 end
 
 function calc_boundary_flux!(backend::Backend, cache, t::Real,
@@ -392,7 +573,7 @@ function calc_boundary_flux_by_type!(backend::Backend, cache, t,
             surface_integral,
             dg,
             kernel_cache, node_coordinates, contravariant_vectors;
-            ndrange = n_boundaries)
+            ndrange = (boundary_node_ndrange(mesh, dg)..., n_boundaries))
 
     calc_boundary_flux_by_type!(backend, cache, t,
                                 Base.tail(BCs),
@@ -417,37 +598,38 @@ end
                                             dg,
                                             cache, node_coordinates,
                                             contravariant_vectors)
-    local_index = @index(Global, Linear)
+    i, j, local_index = @index(Global, NTuple)
 
     if local_index <= length(boundary_condition_indices)
         boundary = boundary_condition_indices[local_index]
 
-        calc_boundary_flux_per_boundary!(u,
-                                         surface_flux_values, t, boundary_condition,
-                                         MeshT, equations, surface_integral, dg, cache,
-                                         boundary, neighbor_ids, node_indices_arr,
-                                         index_range, node_coordinates,
-                                         contravariant_vectors)
+        calc_boundary_flux_per_node!(u,
+                                     surface_flux_values, t, boundary_condition,
+                                     MeshT, equations, surface_integral, dg, cache,
+                                     boundary, neighbor_ids, node_indices_arr,
+                                     index_range, node_coordinates,
+                                     contravariant_vectors, i, j)
     end
 end
 
-@inline function calc_boundary_flux_per_boundary!(u,
-                                                  surface_flux_values, t,
-                                                  boundary_condition,
-                                                  MeshT::Type{<:Union{P4estMesh{3},
-                                                                      T8codeMesh{3}}},
-                                                  equations, surface_integral, dg,
-                                                  cache,
-                                                  boundary, neighbor_ids,
-                                                  node_indices_arr,
-                                                  index_range, node_coordinates,
-                                                  contravariant_vectors)
+@inline function calc_boundary_flux_per_node!(u,
+                                              surface_flux_values, t,
+                                              boundary_condition,
+                                              MeshT::Type{<:Union{P4estMesh{3},
+                                                                  T8codeMesh{3}}},
+                                              equations, surface_integral, dg,
+                                              cache,
+                                              boundary, neighbor_ids,
+                                              node_indices_arr,
+                                              index_range, node_coordinates,
+                                              contravariant_vectors, i, j)
 
     # Get information on the adjacent element, compute the surface fluxes,
     # and store them
     element = neighbor_ids[boundary]
     node_indices = node_indices_arr[boundary]
     direction = indices2direction(node_indices)
+    n = length(index_range)
 
     i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
                                                                         index_range)
@@ -455,25 +637,15 @@ end
                                                                         index_range)
     k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
                                                                         index_range)
+    i_node = delayed_index_3d(i_node_start, i_node_step_i, i_node_step_j, i, j, n)
+    j_node = delayed_index_3d(j_node_start, j_node_step_i, j_node_step_j, i, j, n)
+    k_node = delayed_index_3d(k_node_start, k_node_step_i, k_node_step_j, i, j, n)
 
-    i_node = i_node_start
-    j_node = j_node_start
-    k_node = k_node_start
-    for j in eachnode(dg)
-        for i in eachnode(dg)
-            calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
-                                have_nonconservative_terms(equations), equations,
-                                surface_integral, dg, cache, i_node, j_node, k_node,
-                                i, j, direction, element, boundary, node_coordinates,
-                                contravariant_vectors)
-            i_node += i_node_step_i
-            j_node += j_node_step_i
-            k_node += k_node_step_i
-        end
-        i_node += i_node_step_j
-        j_node += j_node_step_j
-        k_node += k_node_step_j
-    end
+    calc_boundary_flux!(u, surface_flux_values, t, boundary_condition, MeshT,
+                        have_nonconservative_terms(equations), equations,
+                        surface_integral, dg, cache, i_node, j_node, k_node,
+                        i, j, direction, element, boundary, node_coordinates,
+                        contravariant_vectors)
 end
 
 # inlined version of the boundary flux calculation along a physical interface
@@ -569,40 +741,54 @@ end
     return nothing
 end
 
-function calc_surface_integral!(backend::Backend, du, u,
-                                mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGSEM{<:LobattoLegendreBasis},
-                                cache)
+function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Backend,
+                                                                    du, u, t,
+                                                                    source_terms,
+                                                                    mesh::Union{P4estMesh{3},
+                                                                                T8codeMesh{3}},
+                                                                    equations,
+                                                                    surface_integral::SurfaceIntegralWeakForm,
+                                                                    dg::DGSEM{<:LobattoLegendreBasis},
+                                                                    cache)
+    nelements(dg, cache) == 0 && return nothing
     @unpack inverse_weights = dg.basis
-    @unpack surface_flux_values = cache.elements
+    @unpack surface_flux_values, inverse_jacobian, node_coordinates = cache.elements
+    kernel_cache = kernel_filter_cache(cache)
     NNODES = nnodes(dg)
-    kernel! = calc_surface_integral_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, inverse_weights[1],
-            Val(NNODES),
-            surface_flux_values,
+    kernel! = calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(backend)
+    kernel!(du, u, t, source_terms, node_coordinates, typeof(mesh), equations,
+            inverse_weights[1], Val(NNODES), surface_flux_values, dg, inverse_jacobian,
+            kernel_cache,
             ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
 
     return nothing
 end
 
-@kernel function calc_surface_integral_KAkernel!(du,
-                                                 MeshT::Type{<:Union{P4estMesh{3},
-                                                                     T8codeMesh{3}}},
-                                                 equations, factor, ::Val{NNODES},
-                                                 surface_flux_values) where {NNODES}
+@kernel function calc_surface_integral_and_apply_jacobian_and_calc_sources_KAkernel!(du,
+                                                                                     u,
+                                                                                     t,
+                                                                                     source_terms,
+                                                                                     node_coordinates,
+                                                                                     MeshT::Type{<:Union{P4estMesh{3},
+                                                                                                         T8codeMesh{3}}},
+                                                                                     equations::AbstractEquations{3},
+                                                                                     factor,
+                                                                                     ::Val{NNODES},
+                                                                                     surface_flux_values,
+                                                                                     dg::DGSEM,
+                                                                                     inverse_jacobian,
+                                                                                     cache) where {NNODES}
     i, j, k, element = @index(Global, NTuple)
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
     # i.e., M^{-1} * boundary_interpolation^T (which is for Gauss-Lobatto DGSEM just M^{-1} * B)
-    # and the missing "-" is taken care of by `apply_jacobian!`.
+    # and the missing "-" is taken care of by the Jacobian factor below.
     #
     # We also use explicit assignments instead of `+=` to let `@muladd` turn these
     # into FMAs (see comment at the top of the file).
     #
     # factor = inverse_weights[1]
-    # For LGL basis: Identical to weighted boundary interpolation at x = ±1	
+    # For LGL basis: Identical to weighted boundary interpolation at x = ±1
     x_node_interface = (i == 1) | (i == NNODES)
     y_node_interface = (j == 1) | (j == NNODES)
     z_node_interface = (k == 1) | (k == NNODES)
@@ -610,65 +796,24 @@ end
     y_face = ifelse(j == 1, 3, 4)
     z_face = ifelse(k == 1, 5, 6)
     _zero = zero(eltype(du))
-    for v in eachvariable(equations)
-        x_contribution = ifelse(x_node_interface,
-                                surface_flux_values[v, j, k, x_face, element], _zero)
-        y_contribution = ifelse(y_node_interface,
-                                surface_flux_values[v, i, k, y_face, element], _zero)
-        z_contribution = ifelse(z_node_interface,
-                                surface_flux_values[v, i, j, z_face, element], _zero)
-        du_node = x_contribution + y_contribution + z_contribution
-        du[v, i, j, k, element] = du[v, i, j, k, element] + du_node * factor
-    end
-end
-
-function apply_jacobian!(backend::Backend, du,
-                         mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                         equations, dg::DG, cache)
-    @unpack inverse_jacobian = cache.elements
-
-    kernel! = apply_jacobian_KAkernel!(backend)
-    kernel!(du, typeof(mesh), equations, dg, inverse_jacobian,
-            ndrange = (nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-    return nothing
-end
-
-@kernel function apply_jacobian_KAkernel!(du,
-                                          MeshT::Type{<:Union{P4estMesh{3},
-                                                              T8codeMesh{3}}},
-                                          equations, dg::DG,
-                                          inverse_jacobian)
-    i, j, k, element = @index(Global, NTuple)
-    apply_jacobian_per_quadrature_node!(du, MeshT, equations, dg, inverse_jacobian,
-                                        i, j, k, element)
-end
-
-@kernel function calc_sources_KAkernel!(du, u, t, source_terms,
-                                        node_coordinates,
-                                        equations::AbstractEquations{3}, dg, cache)
-    i, j, k, element = @index(Global, NTuple)
-    u_local = get_node_vars(u, equations, dg, i, j, k, element)
-    x_local = get_node_coords(node_coordinates, equations, dg, i, j, k, element)
-
-    du_local = source_terms(u_local, x_local, t, equations)
-
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
-end
-
-function calc_sources!(backend::Backend, du, u, t, source_terms,
-                       equations::AbstractEquations{3}, dg::DG, cache)
-    nelements(dg, cache) == 0 && return nothing
-    @unpack node_coordinates = cache.elements
-    kernel_cache = kernel_filter_cache(cache)
-    kernel! = calc_sources_KAkernel!(backend)
-    kernel!(du, u, t, source_terms, node_coordinates, equations, dg, kernel_cache,
-            ndrange = (nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-
-    return nothing
-end
-
-function calc_sources!(backend::Backend, du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{3}, dg::DG, cache)
-    return nothing
+    surface_node = SVector(ntuple(@inline(v->ifelse(x_node_interface,
+                                                    surface_flux_values[v, j, k, x_face,
+                                                                        element],
+                                                    _zero) +
+                                             ifelse(y_node_interface,
+                                                    surface_flux_values[v, i, k, y_face,
+                                                                        element],
+                                                    _zero) +
+                                             ifelse(z_node_interface,
+                                                    surface_flux_values[v, i, j, z_face,
+                                                                        element], _zero)),
+                                  Val(nvariables(equations))))
+    source_node = calc_source_terms_node(u, t, source_terms, node_coordinates,
+                                         equations, dg, i, j, k, element)
+    jacobian_factor = inverse_jacobian[i, j, k, element]
+    du_local = get_node_vars(du, equations, dg, i, j, k, element) +
+               factor * surface_node
+    du_node = source_node - jacobian_factor * du_local
+    set_node_vars!(du, du_node, equations, dg, i, j, k, element)
 end
 end #muladd

@@ -103,7 +103,7 @@ coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
-                n_cells_max = 100_000, periodicity = true)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -128,7 +128,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # For coarser grids, linear stability is governed by the hyperbolic CFL condition,
 # while for high refinements (e.g. initial_refinement_level = 8) the flow becomes diffusion-dominated.
 stepsize_callback = StepsizeCallback(cfl = 2.7,
-                                     cfl_parabolic = 0.2)
+                                     cfl_parabolic = 0.08)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

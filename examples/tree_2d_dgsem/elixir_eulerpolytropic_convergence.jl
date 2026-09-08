@@ -20,8 +20,7 @@ coordinates_max = (1.0, 1.0)
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                periodicity = true,
-                n_cells_max = 30_000)
+                periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_terms_convergence_test,

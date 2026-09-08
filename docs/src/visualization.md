@@ -482,7 +482,7 @@ interactive surface plots via [`iplot`](@ref) for all supported 2D mesh types.
 To use Makie-based visualization, load [CairoMakie.jl](https://github.com/JuliaPlots/CairoMakie.jl)
 for static plots or [GLMakie.jl](https://github.com/JuliaPlots/GLMakie.jl/) for interactive use:
 ```julia
-julia> using CairoMakie 
+julia> using CairoMakie
 ```
 
 !!! note
@@ -508,7 +508,7 @@ pd = PlotData1D(sol)
 plot(pd["scalar"])
 ```
 
-The figure can be customized with any attributes from Makie: 
+The figure can be customized with any attributes from Makie:
 ```@example makie-1d
 fig, axes = plot(pd)
 axes[1, 1].title = "New title"

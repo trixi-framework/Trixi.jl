@@ -56,8 +56,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # resolves this by redistributing cell averages to satisfy positivity constraints.
 # Note the threshold is significantly larger than implied by the initial condition
 # to stress-test the limiter.
-# 
-# For scalar equations, the projection to the admissible set assumes that 
+#
+# For scalar equations, the projection to the admissible set assumes that
 # `variables = (first,)` for the Liu-Zhang limiter.
 local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
                                                      variables = (first,))

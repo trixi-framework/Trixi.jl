@@ -5,6 +5,7 @@ using Trixi: StartUpDG
 polydeg = 3
 basis = DGMultiBasis(Tri(), polydeg, approximation_type = SBP())
 
+# Import mesh consisting of triangles
 mesh_file = Trixi.download("https://gist.githubusercontent.com/jlchan/d070400ccd69f3d2ee50b1d7ed65ded1/raw/c906ff1a0cd5593977614245e16144972a577f0b/squareCylinder2D.msh",
                            joinpath(@__DIR__, "squareCylinder2D.msh"))
 VXY, EToV = StartUpDG.read_Gmsh_2D(mesh_file)
@@ -59,7 +60,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 50)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      solution_variables = cons2prim)
 callbacks = CallbackSet(summary_callback, alive_callback,

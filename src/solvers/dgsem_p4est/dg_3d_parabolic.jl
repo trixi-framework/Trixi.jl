@@ -297,7 +297,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                         primary_element)
 
                 for v in eachvariable(equations_parabolic)
-                    # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                    # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
                     flux_parabolic = SVector(flux_parabolic_x[v,
                                                               i_primary,
                                                               j_primary,
@@ -354,7 +354,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                         secondary_element)
 
                 for v in eachvariable(equations_parabolic)
-                    # OBS! `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
+                    # Note: `interfaces.u` stores the interpolated *fluxes* and *not the solution*!
                     flux_parabolic = SVector(flux_parabolic_x[v,
                                                               i_secondary,
                                                               j_secondary,
@@ -454,7 +454,7 @@ function calc_interface_flux!(surface_flux_values, mesh::P4estMesh{3},
 
                 for v in eachvariable(equations_parabolic)
                     surface_flux_values[v, i, j, primary_direction_index, primary_element] = flux_[v]
-                    # Sign flip required for divergence calculation since the flux for the 
+                    # Sign flip required for divergence calculation since the flux for the
                     # divergence involves the normal direction.
                     surface_flux_values[v, i_secondary, j_secondary, secondary_direction_index, secondary_element] = -flux_[v]
                 end

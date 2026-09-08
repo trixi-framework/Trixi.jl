@@ -187,14 +187,14 @@ A prime example of such a case is pretty printing of `struct`s in the Julia REPL
 
 As a rule of thumb:
 - Do not use `@nospecialize` in performance-critical parts, in particular not for methods involved
-  in computing `Trixi.rhs!`.
+  in computing a right-hand-side (RHS) function.
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
 
 
 ## [Performance metrics of the `AnalysisCallback`](@id performance-metrics)
 The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
 evaluate the serial and parallel performance of Trixi.jl. They represent
-measured run times that are normalized by the number of `rhs!` evaluations and
+measured run times that are normalized by the number of RHS evaluations and
 the number of degrees of freedom of the problem setup. The normalization ensures that we can
 compare different measurements for each type of indicator independent of the number of
 time steps or mesh size. All indicators have in common that they are still in units of
@@ -237,34 +237,34 @@ want to be measured (such as I/O callbacks, visualization etc.).
     changing repeatedly. The only way to do this at the moment is by setting the
     analysis interval to the same value as the AMR interval.
 
-### Local, `rhs!`-only indicator
-The *local, `rhs!`-only indicator* is computed as
+### Local RHS-only indicator
+The *local RHS-only indicator* is computed as
 ```math
-\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}} \cdot n_{\text{threads}}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{time/DOF/RHS} = \frac{t_\text{RHS} \cdot n_{\text{threads}}}{n_\text{DOFs,local} \cdot n_\text{calls,RHS}},
 ```
-where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`, ``n_{\text{threads}}`` is
-the number of threads, ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
-current MPI rank; if doing a serial run, you can just think of this as *the*
-number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
-`rhs!` function has been evaluated. Note that for this indicator, we measure *only*
-the time spent in `rhs!`, i.e., by definition all computations outside of `rhs!` - specifically
+where ``t_\text{RHS}`` is the accumulated time spent in the RHS evaluation,
+``n_{\text{threads}}`` is the number of threads, ``n_\text{DOFs,local}`` is the *local* number
+of DOFs (i.e., on the current MPI rank; if doing a serial run, you can just think of this as
+*the* number of DOFs), and ``n_\text{calls,RHS}`` is the number of times the RHS has been
+evaluated. Note that for this indicator, we measure *only* the time spent in the RHS evaluation,
+i.e., by definition all computations outside of the RHS evaluation - specifically
 all other callbacks and the time integration method - are not taken into account.
 
-The local, `rhs!`-only indicator is usually most useful if you do serial
+The local RHS-only indicator is usually most useful if you do serial
 measurements and are interested in the performance of the implementation of your
 core numerical methods (e.g., when doing performance tuning).
 
 ### Performance index (PID)
 The *performance index* (PID) is computed as
 ```math
-\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI} \cdot n_{\text{threads}}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI} \cdot n_{\text{threads}}}{n_\text{DOFs,global} \cdot n_\text{calls,RHS}},
 ```
 where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCallback`, ``n_{\text{threads}}``
 is the number of threads, ``n_\text{ranks,MPI}`` is the number of MPI ranks used,
 ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
-number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
-`rhs!` function has been evaluated since the last call to the `AnalysisCallback`.
+number of DOFs), and ``n_\text{calls,RHS}`` is the number of times the RHS has been evaluated
+since the last call to the `AnalysisCallback`.
 The PID measures everything except the time spent in the `AnalysisCallback` itself -
 specifically, all other callbacks and the time integration method itself are included.
 
@@ -279,10 +279,10 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
 !!! note "Initialization overhead in measurements"
     When using one of the integration schemes from OrdinaryDiffEq.jl, their implementation
     will initialize some OrdinaryDiffEq.jl-specific information during the first
-    time step. Among other things, one additional call to `rhs!` is performed.
+    time step. Among other things, one additional RHS evaluation is performed.
     Therefore, make sure that for performance measurements using the PID either the
-    number of timesteps or the workload per `rhs!` call is large enough to make
-    the initialization overhead negligible. Note that the extra call to `rhs!`
+    number of timesteps or the workload per RHS evaluation is large enough to make
+    the initialization overhead negligible. Note that the extra RHS evaluation
     is properly accounted for in both the number of calls and the measured time,
     so you do not need to worry about it being expensive. If you want a perfect
     timing result, you need to set the analysis interval such that the

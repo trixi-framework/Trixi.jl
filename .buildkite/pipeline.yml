@@ -13,6 +13,7 @@ steps:
       - JuliaCI/julia-test#v1: ~
     env:
       TRIXI_TEST: "CUDA"
+      TRIXI_TEST_VERBOSE: "true"
     agents:
       queue: "cuda"
     if: build.message !~ /\[skip ci\]/
@@ -31,6 +32,7 @@ steps:
       - JuliaCI/julia-test#v1: ~
     env:
       TRIXI_TEST: "AMDGPU"
+      TRIXI_TEST_VERBOSE: "true"
     agents:
       queue: "rocm"
     if: build.message !~ /\[skip ci\]/

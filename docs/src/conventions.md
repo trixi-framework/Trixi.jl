@@ -80,8 +80,8 @@ set via the keywords
 
 If some functionality is shared by multiple combinations of meshes/solvers,
 it is defined in the directory of the most basic mesh and solver type.
-An example for this is the `rhs!` function, which lays out the sequence of functions
-that compose the overall right-hand-side function provided to the ODE integrator.
+An example is `rhs_hyperbolic!`, whose lower-level methods define the sequence of operations used
+to evaluate the hyperbolic right-hand side provided to the ODE integrator.
 Since this general "recipe" can be unified for different meshes of a certain dimension,
 a shared implementation is used to minimize code duplication.
 

@@ -168,6 +168,14 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
     return nothing
 end
 
+function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
+                              mesh::DGMultiMesh,
+                              have_nonconservative_terms::True, equations,
+                              dg::DGMultiPeriodicFDSBP)
+    @assert nelements(mesh, dg, cache) == 1
+    return nothing
+end
+
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMultiPeriodicFDSBP, cache)
@@ -209,13 +217,13 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             # These are weak-form operators of the form `Q = M * D` where `M` is diagonal
-            # and `Q` is skew-symmetric. 
+            # and `Q` is skew-symmetric.
             # TODO: DGMulti.
-            # This would have to be changed if `have_nonconservative_terms = False()`
+            # This would have to be changed if `have_nonconservative_terms = True()`
             # because then `volume_flux` is non-symmetric.
             A = cache.Qrst[dim]
 
-            # sparse_operator_data retrieves column indices and row offsets, but because 
+            # sparse_operator_data retrieves column indices and row offsets, but because
             # A is skew-symmetric, these are also the row indices and column offsets.
             A_base, row_ids, cols, vals = sparse_operator_data(A)
 
@@ -226,8 +234,8 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                     j = cols[id]
                     u_j = u[j]
 
-                    # we use the negative of A_ij since A is skew-symmetric, 
-                    # and we are accessing the transpose of A. 
+                    # we use the negative of A_ij since A is skew-symmetric,
+                    # and we are accessing the transpose of A.
                     A_ij = -vals[id]
                     AF_ij = 2 * A_ij *
                             volume_flux(u_i, u_j, normal_direction, equations)
@@ -252,7 +260,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             normal_direction = get_contravariant_vector(1, dim, mesh, cache)
 
             A = cache.Qrst[dim]
-            # sparse_operator_data retrieves column indices and row offsets, but because 
+            # sparse_operator_data retrieves column indices and row offsets, but because
             # A is skew-symmetric, these are also the row indices and column offsets.
             A_base, row_ids, cols, vals = sparse_operator_data(A)
 
@@ -277,11 +285,58 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             end
         end
 
-        # apply M^{-1} only after all skew-symmetric contributions are 
+        # apply M^{-1} only after all skew-symmetric contributions are
         # accumulated over each dimension.
         @inbounds for i in eachindex(du)
             du[i] = du[i] * cache.invM.diag[i]
         end
+    end
+
+    return nothing
+end
+
+# Periodic SBP operators are global operators without interfaces. Thus, both the
+# conservative and nonconservative contributions are applied directly using Q = M D.
+# Unlike the conservative flux, the nonconservative flux is not symmetric in its
+# two solution arguments, so the complete operator must be traversed.
+function calc_volume_integral!(du, u, mesh::DGMultiMesh,
+                               have_nonconservative_terms::True, equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGMultiFluxDiffPeriodicFDSBP, cache)
+    flux_conservative, flux_nonconservative = volume_integral.volume_flux
+
+    for dim in eachdim(mesh)
+        normal_direction = get_contravariant_vector(1, dim, mesh, cache)
+        A = cache.Qrst[dim]
+
+        # `sparse_operator_data` exposes the CSC storage of A. Since A is
+        # skew-symmetric, traversing a column as a row changes the sign.
+        A_base, row_ids, cols, vals = sparse_operator_data(A)
+
+        @threaded for i in row_ids
+            u_i = u[i]
+            du_i = du[i]
+            @inbounds for id in nzrange(A_base, i)
+                j = cols[id]
+                A_ij = -vals[id]
+                u_j = u[j]
+
+                conservative_flux = flux_conservative(u_i, u_j, normal_direction,
+                                                      equations)
+                # The factor 1/2 in the direction is required by the global-SBP
+                # interpretation of nonconservative fluxes. The outer factor 2
+                # is the usual flux-differencing scaling.
+                nonconservative_flux = flux_nonconservative(u_i, u_j,
+                                                            0.5f0 * normal_direction,
+                                                            equations)
+                du_i = du_i + 2 * A_ij * (conservative_flux + nonconservative_flux)
+            end
+            du[i] = du_i
+        end
+    end
+
+    @inbounds for i in eachindex(du)
+        du[i] *= cache.invM.diag[i]
     end
 
     return nothing

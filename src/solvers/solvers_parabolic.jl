@@ -13,8 +13,8 @@ A more detailed study of the BR1 scheme for the DGSEM can be found in
   The BR1 Scheme is Stable for the Compressible Navier-Stokes Equations
   [DOI: 10.1007/s10915-018-0702-1](https://doi.org/10.1007/s10915-018-0702-1)
 
-The BR1 scheme works well for convection-dominated problems, but may cause instabilities or 
-reduced convergence for diffusion-dominated problems. 
+The BR1 scheme works well for convection-dominated problems, but may cause instabilities or
+reduced convergence for diffusion-dominated problems.
 In the latter case, the [`ParabolicFormulationLocalDG`](@ref) scheme is recommended.
 """
 struct ParabolicFormulationBassiRebay1 end
@@ -28,8 +28,8 @@ struct ParabolicFormulationBassiRebay1 end
                    gradient_or_divergence, equations_parabolic,
                    parabolic_scheme::ParabolicFormulationBassiRebay1)
 
-This computes the classical BR1 flux. Since the interface flux for both the 
-DG gradient and DG divergence under BR1 are identical, this function does 
+This computes the classical BR1 flux. Since the interface flux for both the
+DG gradient and DG divergence under BR1 are identical, this function does
 not need to be specialized for `Gradient` and `Divergence`.
 
 `normal_direction` is not used in the BR1 flux,
@@ -69,13 +69,13 @@ end
 """
     ParabolicFormulationLocalDG()
 
-The minimum dissipation local DG (LDG) flux from "An Analysis of the Minimal Dissipation Local 
-Discontinuous Galerkin Method for Convection–Diffusion Problems" by Cockburn and Dong (2007). 
-This scheme corresponds to an LDG parabolic "upwinding/downwinding" but no LDG penalty parameter. 
-Cockburn and Dong proved that this scheme is still stable despite the zero penalty parameter. 
+The minimum dissipation local DG (LDG) flux from "An Analysis of the Minimal Dissipation Local
+Discontinuous Galerkin Method for Convection–Diffusion Problems" by Cockburn and Dong (2007).
+This scheme corresponds to an LDG parabolic "upwinding/downwinding" but no LDG penalty parameter.
+Cockburn and Dong proved that this scheme is still stable despite the zero penalty parameter.
 
-- Cockburn and Dong (2007)  
-  An Analysis of the Minimal Dissipation Local Discontinuous 
+- Cockburn and Dong (2007)
+  An Analysis of the Minimal Dissipation Local Discontinuous
   Galerkin Method for Convection–Diffusion Problems.
   [DOI: 10.1007/s10915-007-9130-3](https://doi.org/10.1007/s10915-007-9130-3)
 """
@@ -90,8 +90,8 @@ ParabolicFormulationLocalDG() = ParabolicFormulationLocalDG(nothing)
                    ::Gradient, equations_parabolic,
                    parabolic_scheme::ParabolicFormulationLocalDG)
 
-These fluxes computes the gradient and divergence interface fluxes for the 
-local DG method. The local DG method uses an "upwind/downwind" flux for the 
+These fluxes computes the gradient and divergence interface fluxes for the
+local DG method. The local DG method uses an "upwind/downwind" flux for the
 gradient and divergence (i.e., if the gradient is upwinded, the divergence
 must be downwinded in order to preserve symmetry and positive definiteness).
 Here, we use the convention that the gradient flux is upwinded, thus we have
@@ -111,11 +111,11 @@ i = \text{argmax} \{ \begin{pmatrix} \vert n_1 \vert \\ \vert n_2 \vert \\ \dots
 function flux_parabolic(u_ll, u_rr, # Version for `TreeMesh`
                         ::Gradient, equations_parabolic,
                         parabolic_scheme::ParabolicFormulationLocalDG)
-    # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
-    # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
-    # jump term should be opposite that of the sign used in the divergence flux. 
+    # The LDG flux is {{f}} + beta * [[f]], where beta is the LDG "switch",
+    # which we set to -1 on the left and +1 on the right in 1D. The sign of the
+    # jump term should be opposite that of the sign used in the divergence flux.
     # This is equivalent to setting the flux equal to `u_ll` for the gradient,
-    # and `u_rr` for the divergence. 
+    # and `u_rr` for the divergence.
     return u_ll # Use the upwind value for the gradient interface flux
 end
 # Version for `P4estMesh`
@@ -134,11 +134,11 @@ end
                    parabolic_scheme::ParabolicFormulationLocalDG)
 
     flux_parabolic(u_ll, u_rr, normal_direction,
-                   ::Divergence, equations_parabolic,  
+                   ::Divergence, equations_parabolic,
                    parabolic_scheme::ParabolicFormulationLocalDG)
 
-These fluxes computes the gradient and divergence interface fluxes for the 
-local DG method. The local DG method uses an "upwind/downwind" flux for the 
+These fluxes computes the gradient and divergence interface fluxes for the
+local DG method. The local DG method uses an "upwind/downwind" flux for the
 gradient and divergence (i.e., if the gradient is upwinded, the divergence
 must be downwinded in order to preserve symmetry and positive definiteness).
 Here, we use the convention that, because the gradient flux is upwinded, the divergence flux is downwinded.

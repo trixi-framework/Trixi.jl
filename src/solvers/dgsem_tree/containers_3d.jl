@@ -395,7 +395,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D, basis)
     # Initialize boundary counts
     counts_per_direction = MVector(0, 0, 0, 0, 0, 0)
 
-    # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+    # Note: Iterate over directions first, then over elements, and count boundaries in each direction
     # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
     #            obviating the need to store the boundary condition to be applied explicitly.
     # Loop over directions

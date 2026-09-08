@@ -16,7 +16,6 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 mesh = TreeMesh((-Float64(pi), -Float64(pi), -Float64(pi)),
                 (Float64(pi), Float64(pi), Float64(pi));
                 initial_refinement_level = 3,
-                n_cells_max = 30_000,
                 periodicity = true)
 
 initial_condition = function (x, t, equations::LinearScalarAdvectionEquation3D)
