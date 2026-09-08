@@ -103,7 +103,7 @@ end
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[i, ii]) * fluxtilde1 +
                    (weight * alpha * derivative_split[i, iib]) *
-                   get_node_flux(flux_local, Val(NVARIABLES), iib, j, k)
+                   get_node_vars(flux_local, dg, iib, j, k)
         @synchronize
     end
 
@@ -128,7 +128,7 @@ end
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[j, jj]) * fluxtilde2 +
                    (weight * alpha * derivative_split[j, jjb]) *
-                   get_node_flux(flux_local, Val(NVARIABLES), i, jjb, k)
+                   get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
     end
 
@@ -152,7 +152,7 @@ end
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local + (weight * alpha * derivative_split[k, kk]) * fluxtilde3 +
                    (weight * alpha * derivative_split[k, kkb]) *
-                   get_node_flux(flux_local, Val(NVARIABLES), i, j, kkb)
+                   get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
 end
@@ -224,7 +224,7 @@ end
         fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
                                                         equations)
 
-              @inbounds for v in 1:NVARIABLES
+        @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1_right[v]
         end
         @synchronize
@@ -232,9 +232,9 @@ end
         du_local = du_local +
                    (weight * alpha * derivative_split[i, ii]) * fluxtilde1_left +
                    (weight * alpha * derivative_split[i, iib]) *
-                   get_node_flux(flux_local, Val(NVARIABLES), iib, j, k)
+                   get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
-        end
+    end
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
@@ -250,7 +250,7 @@ end
         # averaged contravariant vector
         fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
                                                         equations)
-             @inbounds for v in 1:NVARIABLES
+        @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2_right[v]
         end
         @synchronize
@@ -258,9 +258,9 @@ end
         du_local = du_local +
                    (weight * alpha * derivative_split[j, jj]) * fluxtilde2_left +
                    (weight * alpha * derivative_split[j, jjb]) *
-                   get_node_flux(flux_local, Val(NVARIABLES), i, jjb, k)
+                   get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
-            end
+    end
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
@@ -276,7 +276,7 @@ end
         # averaged contravariant vector
         fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
                                                         equations)
-                @inbounds for v in 1:NVARIABLES
+        @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3_right[v]
         end
         @synchronize
@@ -284,9 +284,9 @@ end
         du_local = du_local +
                    (weight * alpha * derivative_split[k, kk]) * fluxtilde3_left +
                    (weight * alpha * derivative_split[k, kkb]) *
-                   get_node_flux(flux_local, Val(NVARIABLES), i, j, kkb)
+                   get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
-            end
+    end
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
