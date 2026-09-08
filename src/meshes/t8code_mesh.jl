@@ -493,9 +493,10 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    # Non-periodic boundaries.
+    # Initialize boundary information matrix with symbol for no boundary / internal connection
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
+    # Non-periodic boundaries
     for itree in 1:t8_forest_get_num_global_trees(forest)
         if !periodicity[1]
             boundary_names[1, itree] = :x_neg
@@ -902,6 +903,8 @@ function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                    mpi_comm())
 
     num_trees = t8_cmesh_get_num_trees(cmesh)
+
+    # Initialize boundary information matrix with symbol for no boundary / internal connection
     boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
     for itree in 1:num_trees
         boundary_names[5, itree] = :inside
