@@ -163,7 +163,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     bar_states = bar_states_as_static(bar_states)
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
-    cache_variable_values = local_onesided || !isnothing(indicator)
+    cache_variable_values = local_onesided
     # Only cache `alpha_local` if smoothness indicator is enabled.
     cache_alpha_local = !isnothing(indicator)
     cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states,
