@@ -231,7 +231,7 @@ end
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
 end
 
-@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl HalfSweep vs. FullSweep / AMDGPU" setup=[
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
     Setup,
     AMDGPU3DExamples
 ] tags=[:AMDGPU] begin
@@ -259,10 +259,21 @@ end
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    u_full_sweep_global = Array(sol.u[end])
+
     @test u_half_sweep ≈ u_full_sweep
+    @test u_half_sweep ≈ u_full_sweep_global
 end
 
-@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl HalfSweep vs. FullSweep / AMDGPU" setup=[
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
     Setup,
     AMDGPU3DExamples
 ] tags=[:AMDGPU] begin
@@ -290,5 +301,16 @@ end
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    u_full_sweep_global = Array(sol.u[end])
+
     @test u_half_sweep ≈ u_full_sweep
+    @test u_half_sweep ≈ u_full_sweep_global
 end

@@ -106,7 +106,8 @@ Optional keyword arguments:
   `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
 - `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
-  volume integral, either [`HalfSweep()`](@ref) or [`FullSweep()`](@ref).
+  volume integral, one of [`HalfSweep()`](@ref), [`FullSweep()`](@ref), or
+  [`FullSweepGlobal()`](@ref).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,

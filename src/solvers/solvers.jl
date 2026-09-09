@@ -43,9 +43,9 @@ the same number of two-point fluxes.
 
 On NVIDIA GPUs, this kernel should be faster than [`FullSweep`](@ref) for most
 configurations. [`FullSweep`](@ref) can be competitive for systems with few
-variables and high polynomial degrees, so it is worth measuring both.
+variables and high polynomial degrees.
 
-See also [`FullSweep`](@ref).
+See also [`FullSweep`](@ref) and [`FullSweepGlobal`](@ref).
 
 For details on the cyclic distribution see Section 4.1 (Eq. 6) of
 - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
@@ -61,14 +61,34 @@ struct HalfSweep end
 Selects the "full sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
 see [`semidiscretize`](@ref).
 
-Every node evaluates all of its own two-point fluxes. This doubles the number of
-flux evaluations, but requires neither atomic operations nor barriers.
+All two-point fluxes are computed for each node.
+This doubles the number of flux evaluations,
+but no flux has to be exchanged between the threads.
+Shared memory is used to avoid repeated slow reads
+from the solution vector `u`.
 
-See [`HalfSweep`](@ref) for guidance on choosing between the two kernels.
+See [`HalfSweep`](@ref) for guidance on choosing between the kernels.
 """
 struct FullSweep end
 
+"""
+    FullSweepGlobal()
+
+Selects the "global full sweep" GPU kernel for [`VolumeIntegralFluxDifferencing`](@ref),
+see [`semidiscretize`](@ref).
+
+Same sweep as [`FullSweep`](@ref), but the solution is read from global memory
+instead of being copied in shared memory. Therefore, the kernel does not need
+synchronization barriers and thus it is not limited by the number of variables
+and the number of nodes in each element. For that reason it is useful
+in case the faster kernels [`FullSweep`](@ref) and [`HalfSweep`](@ref)
+are limited by the shared memory, due to either high number of variables, high
+polynomial degree, or both.
+"""
+struct FullSweepGlobal end
+
 # Fallback for CPU KernelAbstractions backend
+# This fallback is necessary to run Kernel
 @inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweep()
 @inline flux_differencing_kernel(::Backend, kernel) = kernel
 
