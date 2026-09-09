@@ -81,18 +81,6 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan;
-                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec::Union{AbstractVector, Nothing} = nothing,
-                   storage_type = nothing,
-                   real_type = nothing)
-
-   semidiscretize(semi::AbstractSemidiscretization, tspan;
-                  jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                  colorvec::Union{AbstractVector, Nothing} = nothing,
-                  storage_type = nothing,
-                  real_type = nothing,
-                  flux_differencing_kernel = nothing)
    semidiscretize(semi::AbstractSemidiscretization, tspan;
                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                   colorvec::Union{AbstractVector, Nothing} = nothing,
