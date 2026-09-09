@@ -348,6 +348,16 @@ end
                   flux_differencing_kernel = FullSweep())
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test Array(sol.u[end]) ≈ u_plain
 end
 
 @testitem "CUDA 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl FluxTurbo / CUDA" setup=[
@@ -388,5 +398,16 @@ end
                   storage_type = CuArray,
                   flux_differencing_kernel = FullSweep())
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
+    @test Array(sol.u[end]) ≈ u_plain
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux_turbo),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = CuArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
     @test Array(sol.u[end]) ≈ u_plain
 end
