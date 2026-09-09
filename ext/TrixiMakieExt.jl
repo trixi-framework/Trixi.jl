@@ -146,6 +146,24 @@ function _makie_guide(orientation)
     return latexstring("\$", label, "\$")
 end
 
+# Reduce the number of ticks when a figure holds several subplots, since these are
+# relatively small. A single subplot fills the whole figure, so Makie's defaults are
+# used in that case.
+_makie_ticks(n) = n == 1 ? Makie.automatic : Makie.WilkinsonTicks(3; k_max = 4)
+
+# Fill the cells of a layout that are not used by a variable with empty
+# axes. Otherwise, the returned array of axes contains undefined references.
+function _fill_empty_axes!(axes, fig, n, rows, cols)
+    for i in (n + 1):(rows * cols)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1])
+        Makie.hidedecorations!(ax)
+        Makie.hidespines!(ax)
+        axes[row, col] = ax
+    end
+    return axes
+end
+
 # convenience struct for editing Makie plots after they're created.
 struct FigureAndAxes{Axes}
     fig::Makie.Figure
@@ -451,24 +469,22 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
     cols = n <= 3 ? n : ceil(Int, sqrt(n))
     rows = cld(n, cols)
 
+    ticks = _makie_ticks(n)
     axes = Matrix{Makie.Axis}(undef, rows, cols)
     for (i, (variable_name, pds)) in enumerate(pd)
         row, col = cld(i, cols), mod1(i, cols)
         @unpack x, y, mesh_vertices_x, mesh_vertices_y = pds.plot_data
 
-        # Fewer ticks since the subplots are relatively small.
         ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
                         xlabel = _makie_guide(pd.orientation_x),
                         ylabel = _makie_guide(pd.orientation_y),
-                        xticks = Makie.WilkinsonTicks(3; k_max = 4),
-                        yticks = Makie.WilkinsonTicks(3; k_max = 4))
+                        xticks = ticks, yticks = ticks)
         axes[row, col] = ax
         # Makie expands a zero-width color range only if it is passed explicitly.
         plt = Makie.heatmap!(ax, pds; colormap,
                              colorrange = extrema(pds.plot_data.data[pds.variable_id]))
-        Makie.Colorbar(fig[row, col][1, 2], plt;
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4))
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, x[begin], x[end])
         Makie.ylims!(ax, y[begin], y[end])
@@ -477,6 +493,7 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
                          color = :grey, linewidth = 1)
         end
     end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
 
     display(fig)
     return FigureAndAxes(fig, axes)
@@ -531,23 +548,22 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
     cols = n <= 3 ? n : ceil(Int, sqrt(n))
     rows = cld(n, cols)
 
+    ticks = _makie_ticks(n)
     axes = Matrix{Makie.Axis}(undef, rows, cols)
     for (i, (variable_name, pds)) in enumerate(pd)
         row, col = cld(i, cols), mod1(i, cols)
-        # Fewer ticks since the subplots are relatively small.
         ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
                         xlabel = _makie_guide(1), ylabel = _makie_guide(2),
-                        xticks = Makie.WilkinsonTicks(3; k_max = 4),
-                        yticks = Makie.WilkinsonTicks(3; k_max = 4))
+                        xticks = ticks, yticks = ticks)
         axes[row, col] = ax
         plt = trixiheatmap!(ax, pds; plot_mesh, colormap)
-        Makie.Colorbar(fig[row, col][1, 2], plt;
-                       ticks = Makie.WilkinsonTicks(3; k_max = 4))
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
         ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, extrema(pd.x))
         Makie.ylims!(ax, extrema(pd.y))
     end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
 
     return FigureAndAxes(fig, axes)
 end
