@@ -321,7 +321,7 @@ end
     # @test_trixi_include errors due to an @info call by StartUpDG.jl during
     # Gmsh file parsing. To avoid this, we directly call trixi_include.
     # We pass @__MODULE__ to ensure that variables defined during the test
-    # are visible inside the @trixi_testset block.
+    # are visible inside the @testitem block.
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_gmsh_square_cylinder.jl"),
                   polydeg = 2, adaptive = false, tspan = (0.0, 1e-3))

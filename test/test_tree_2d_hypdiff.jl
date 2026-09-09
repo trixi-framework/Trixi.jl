@@ -17,6 +17,9 @@ end
                             0.006423873515531753,
                             0.006423873515533529
                         ])
+    # Test `show()`
+    @trixi_test_nowarn show(IOContext(stdout, :compact => false), steady_state_callback)
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom

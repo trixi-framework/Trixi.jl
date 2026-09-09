@@ -26,6 +26,9 @@ end
                             1.2406302192291552e-5,
                             2.373765544951732e-6
                         ])
+    # Test `show()`
+    @trixi_test_nowarn show(IOContext(stdout, :compact => false), glm_speed_callback)
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)

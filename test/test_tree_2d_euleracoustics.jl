@@ -28,6 +28,10 @@ end
                             38.139032147739684,
                             51.378134660241294
                         ])
+    # Test `show()`
+    @trixi_test_nowarn show(IOContext(stdout, :compact => false), averaging_callback)
+    @trixi_test_nowarn show(IOContext(stdout, :compact => false), euler_acoustics_coupling)
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
