@@ -554,6 +554,8 @@ end
     # We inline the logarithmic mean to allow LoopVectorization.jl to optimize
     # it efficiently. This is equivalent to
     # rho_mean = ln_mean(rho_ll, rho_rr)
+    RealT = eltype(rho_ll)
+    epsilon_z = convert(RealT, 1.0e-4)
     x1 = rho_ll
     log_x1 = log_rho_ll
     y1 = rho_rr
@@ -561,9 +563,10 @@ end
     x1_plus_y1 = x1 + y1
     y1_minus_x1 = y1 - x1
     z1 = y1_minus_x1^2 / x1_plus_y1^2
-    special_path1 = x1_plus_y1 / (2 + z1 * (2 / 3 + z1 * (2 / 5 + 2 / 7 * z1)))
+    special_path1 = x1_plus_y1 / @evalpoly(z1, convert(RealT, 2), convert(RealT, 2 / 3),
+                              convert(RealT, 2 / 5), convert(RealT, 2 / 7))
     regular_path1 = y1_minus_x1 / (log_y1 - log_x1)
-    rho_mean = ifelse(z1 < 1.0e-4, special_path1, regular_path1)
+    rho_mean = ifelse(z1 < epsilon_z, special_path1, regular_path1)
 
     # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
     # in exact arithmetic since
@@ -577,9 +580,10 @@ end
     x2_plus_y2 = x2 + y2
     y2_minus_x2 = y2 - x2
     z2 = y2_minus_x2^2 / x2_plus_y2^2
-    special_path2 = (2 + z2 * (2 / 3 + z2 * (2 / 5 + 2 / 7 * z2))) / x2_plus_y2
+    special_path2 = @evalpoly(z2, convert(RealT, 2), convert(RealT, 2 / 3),
+                              convert(RealT, 2 / 5), convert(RealT, 2 / 7)) / x2_plus_y2
     regular_path2 = (log_y2 - log_x2) / y2_minus_x2
-    inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < 1.0e-4, special_path2, regular_path2)
+    inv_rho_p_mean = p_ll * p_rr * ifelse(z2 < epsilon_z, special_path2, regular_path2)
 
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)

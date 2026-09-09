@@ -297,12 +297,11 @@ end
     # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using CUDA
 
-    # `Trixi.flux_turbo` for `flux_ranocha` is not type stable in `Float32`
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
                   tspan = (0.0, 0.5),
-                  real_type = Float64,
+                  real_type = Float32,
                   storage_type = CuArray,
                   flux_differencing_kernel = HalfSweep())
     @test Trixi.storage_type(ode.p.cache.elements) === CuArray
@@ -312,7 +311,7 @@ end
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
                   tspan = (0.0, 0.5),
-                  real_type = Float64,
+                  real_type = Float32,
                   storage_type = CuArray,
                   flux_differencing_kernel = HalfSweep())
     @test ode.p.cache.flux_differencing_kernel === HalfSweep()
@@ -322,7 +321,7 @@ end
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
                   tspan = (0.0, 0.5),
-                  real_type = Float64,
+                  real_type = Float32,
                   storage_type = CuArray,
                   flux_differencing_kernel = FullSweep())
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
