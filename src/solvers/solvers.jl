@@ -41,9 +41,17 @@ is staged in shared memory, so that both nodes of the pair can use it. The half
 sweep is distributed cyclically over the threads, so that each of them evaluates
 the same number of two-point fluxes.
 
-On NVIDIA GPUs, this kernel should be faster than [`FullSweep`](@ref) for most
-configurations. [`FullSweep`](@ref) can be competitive for systems with few
-variables and high polynomial degrees.
+On (recent) NVIDIA GPUs, this kernel should be faster than [`FullSweep`](@ref)
+and [`FullSweepGlobal`](@ref) for most configurations. [`FullSweep`](@ref) can
+be competitive for systems with few variables and high polynomial degrees, and
+for older-generation GPUs such as an AMD MI210.
+
+However, both [`HalfSweep`](@ref) and [`FullSweep`](@ref) use some local storage.
+For systems with many variables and/or high polynomial degrees, this can exceed
+the available storage on current GPUs, and the resulting workgroup sizes may
+exceed limits on some systems. For this case, [`FullSweepGlobal`](@ref)
+provides a fallback option that is typically slower but should work for all
+configurations.
 
 See also [`FullSweep`](@ref) and [`FullSweepGlobal`](@ref).
 
