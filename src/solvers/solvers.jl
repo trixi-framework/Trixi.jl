@@ -96,7 +96,7 @@ polynomial degree, or both.
 struct FullSweepGlobal end
 
 # Fallback for CPU KernelAbstractions backend
-# This fallback is necessary to run Kernel
+# This fallback is necessary to run tests on KernelAbstractions CPU backend
 @inline flux_differencing_kernel(::KernelAbstractions.CPU, ::HalfSweep) = FullSweep()
 @inline flux_differencing_kernel(::Backend, kernel) = kernel
 
