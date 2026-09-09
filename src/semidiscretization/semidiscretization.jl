@@ -135,6 +135,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         if flux_differencing_kernel === nothing
             flux_differencing_kernel = HalfSweep()
         end
+        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
         @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
     end
 
