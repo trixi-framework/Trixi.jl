@@ -179,7 +179,7 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -293,7 +293,7 @@ end
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -364,7 +364,7 @@ end
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -432,7 +432,7 @@ end
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -721,7 +721,7 @@ end
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -870,7 +870,7 @@ end
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -952,7 +952,7 @@ end
                    (alpha * derivative_split[k, kk]) * SVector{NVARIABLES}(fluxtilde3)
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -1037,7 +1037,7 @@ end
                    SVector{NVARIABLES}(fluxtilde3_left)
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
