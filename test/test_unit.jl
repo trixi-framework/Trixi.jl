@@ -1145,10 +1145,10 @@ end
             @test pressure(V, T, eos_h) ≈ pressure(V, T, eos_ref)
             @test energy_internal_specific(V, T, eos_h) ≈
                   energy_internal_specific(V, T, eos_ref)
-            @test heat_capacity_constant_volume(V, T, eos_h) ≈
-                  heat_capacity_constant_volume(V, T, eos_ref)
-            dpdT_h, dpdV_h = calc_pressure_derivatives(V, T, eos_h)
-            dpdT_ref, dpdV_ref = calc_pressure_derivatives(V, T, eos_ref)
+            @test Trixi.heat_capacity_constant_volume(V, T, eos_h) ≈
+                  Trixi.heat_capacity_constant_volume(V, T, eos_ref)
+            dpdT_h, dpdV_h = Trixi.calc_pressure_derivatives(V, T, eos_h)
+            dpdT_ref, dpdV_ref = Trixi.calc_pressure_derivatives(V, T, eos_ref)
             @test dpdT_h ≈ dpdT_ref
             @test dpdV_h ≈ dpdV_ref
             @test speed_of_sound(V, T, eos_h) ≈ speed_of_sound(V, T, eos_ref)
