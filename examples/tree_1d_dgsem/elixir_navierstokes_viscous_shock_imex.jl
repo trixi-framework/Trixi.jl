@@ -34,7 +34,7 @@ using ADTypes # To access the types choosing how to evaluate Jacobian-vector pro
 # Corresponds essentially to fixing the Mach number
 alpha = 0.5
 # We want kappa = cp * mu = mu_bar to ensure constant enthalpy
-# See fotonote 1 on page 335 in Margolin et al.
+# See footnote 1 on page 335 in Margolin et al.
 prandtl_number() = 3 / 4
 
 ### Free choices: ###
@@ -91,7 +91,7 @@ equations = CompressibleEulerEquations1D(gamma())
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to
 # convert the "isotropic/longitudinal viscosity" to the "deviatoric viscosity"
-# See again fotonote 1 on page 335 in Margolin et al.
+# See again footnote 1 on page 335 in Margolin et al.
 mu_deviatoric() = mu_bar() * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
