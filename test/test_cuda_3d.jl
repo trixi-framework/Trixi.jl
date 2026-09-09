@@ -227,3 +227,150 @@ end
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
 end
+
+@testitem "CUDA 3D: P4estMesh3D, FluxTurbo(flux_ranocha)" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    using Trixi
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  tspan = (0.0, 0.0),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  storage_type = CuArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
+    GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        backend = Trixi.trixi_backend(u)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+
+        @test backend isa CUDA.CUDABackend
+        @test Trixi.nturbovars(flux_ranocha, semi.equations) === Val(7)
+
+        # Call the optimized version
+        du .= 0
+        Trixi.calc_volume_integral!(backend, du, u, semi.mesh,
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral, semi.solver, semi.cache)
+        Trixi.KernelAbstractions.synchronize(backend)
+        du_specialized = Array(du_ode)
+
+        # Call the plain version
+        du .= 0
+        Trixi.calc_volume_integral!(backend, du, u, semi.mesh,
+                                    have_nonconservative_terms, semi.equations,
+                                    VolumeIntegralFluxDifferencing(flux_ranocha),
+                                    semi.solver, semi.cache)
+        Trixi.KernelAbstractions.synchronize(backend)
+        du_baseline = Array(du_ode)
+
+        @test du_specialized ≈ du_baseline
+    end
+end
+
+@testitem "CUDA 3D: P4estMesh3D, FluxTurbo(flux_kennedy_gruber)" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    using Trixi
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  tspan = (0.0, 0.0),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_kennedy_gruber)),
+                  storage_type = CuArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
+    GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        backend = Trixi.trixi_backend(u)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+
+        @test backend isa CUDA.CUDABackend
+        @test Trixi.nturbovars(flux_kennedy_gruber, semi.equations) ===
+              Val(nvariables(semi.equations))
+
+        # Call the optimized version
+        du .= 0
+        Trixi.calc_volume_integral!(backend, du, u, semi.mesh,
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral, semi.solver, semi.cache)
+        Trixi.KernelAbstractions.synchronize(backend)
+        du_specialized = Array(du_ode)
+
+        # Call the plain version
+        du .= 0
+        Trixi.calc_volume_integral!(backend, du, u, semi.mesh,
+                                    have_nonconservative_terms, semi.equations,
+                                    VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                                    semi.solver, semi.cache)
+        Trixi.KernelAbstractions.synchronize(backend)
+        du_baseline = Array(du_ode)
+
+        @test du_specialized ≈ du_baseline
+    end
+end
+
+@testitem "CUDA 3D: P4estMesh3D, FluxTurbo with nonconservative terms" setup=[
+    Setup,
+    CUDA3DExamples
+] tags=[:CUDA] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    using Trixi
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.0),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_hindenlang_gassner,
+                                                                             flux_nonconservative_powell)),
+                  storage_type = CuArray)
+    semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode)
+
+    # Preserve original memory since it will be `unsafe_wrap`ped and might
+    # thus otherwise be garbage collected
+    GC.@preserve u_ode du_ode begin
+        u = Trixi.wrap_array(u_ode, semi)
+        du = Trixi.wrap_array(du_ode, semi)
+        backend = Trixi.trixi_backend(u)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+
+        @test backend isa CUDA.CUDABackend
+        @test have_nonconservative_terms === Trixi.True()
+
+        # Call the optimized version
+        du .= 0
+        Trixi.calc_volume_integral!(backend, du, u, semi.mesh,
+                                    have_nonconservative_terms, semi.equations,
+                                    semi.solver.volume_integral, semi.solver, semi.cache)
+        Trixi.KernelAbstractions.synchronize(backend)
+        du_specialized = Array(du_ode)
+
+        # Call the plain version
+        du .= 0
+        Trixi.calc_volume_integral!(backend, du, u, semi.mesh,
+                                    have_nonconservative_terms, semi.equations,
+                                    VolumeIntegralFluxDifferencing(flux_hindenlang_gassner_nonconservative_powell),
+                                    semi.solver, semi.cache)
+        Trixi.KernelAbstractions.synchronize(backend)
+        du_baseline = Array(du_ode)
+
+        @test du_specialized ≈ du_baseline
+    end
+end
