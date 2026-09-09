@@ -166,7 +166,7 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -280,7 +280,7 @@ end
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -351,7 +351,7 @@ end
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
@@ -419,7 +419,7 @@ end
         du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @inline function calc_volume_integral!(backend::Backend, du, u,
@@ -588,7 +588,7 @@ end
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
@@ -738,7 +738,7 @@ end
         @synchronize
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
@@ -821,8 +821,9 @@ end
                    (alpha * derivative_split[k, kk]) * SVector{NVARIABLES}(fluxtilde3)
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
+
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
@@ -907,7 +908,7 @@ end
                    SVector{NVARIABLES}(fluxtilde3_left)
     end
 
-    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+    set_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
