@@ -87,6 +87,13 @@ end
                    storage_type = nothing,
                    real_type = nothing)
 
+   semidiscretize(semi::AbstractSemidiscretization, tspan;
+                  jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                  colorvec::Union{AbstractVector, Nothing} = nothing,
+                  storage_type = nothing,
+                  real_type = nothing,
+                  flux_differencing_kernel = nothing)
+
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 
