@@ -7,6 +7,10 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+    # Reset du
+    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+        set_zero!(du, dg, cache)
+    end
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
