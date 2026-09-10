@@ -24,6 +24,13 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === Array
     @test Trixi.storage_type(ode.p.cache.boundaries) === Array
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_advection_basic.jl Float32 / AMDGPU" setup=[
@@ -56,6 +63,13 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === ROCArray
     @test Trixi.storage_type(ode.p.cache.boundaries) === ROCArray
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl native" setup=[
@@ -92,6 +106,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32 / AMDGPU" setup=[
@@ -133,6 +154,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
     @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
@@ -180,6 +208,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" setup=[
@@ -229,6 +264,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
     @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
@@ -249,6 +291,13 @@ end
     @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
     u_half_sweep = Array(sol.u[end])
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
@@ -259,6 +308,13 @@ end
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
@@ -268,6 +324,13 @@ end
                   flux_differencing_kernel = FullSweepGlobal())
     @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
     u_full_sweep_global = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 
     @test u_half_sweep ≈ u_full_sweep
     @test u_half_sweep ≈ u_full_sweep_global
@@ -291,6 +354,13 @@ end
     @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
     u_half_sweep = Array(sol.u[end])
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -301,6 +371,13 @@ end
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     u_full_sweep = Array(sol.u[end])
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -310,6 +387,13 @@ end
                   flux_differencing_kernel = FullSweepGlobal())
     @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
     u_full_sweep_global = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 
     @test u_half_sweep ≈ u_full_sweep
     @test u_half_sweep ≈ u_full_sweep_global
@@ -332,6 +416,13 @@ end
     @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
     u_plain = Array(sol.u[end])
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
@@ -341,6 +432,13 @@ end
                   flux_differencing_kernel = HalfSweep())
     @test ode.p.cache.flux_differencing_kernel === HalfSweep()
     @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
@@ -352,6 +450,13 @@ end
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
                   volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
@@ -361,6 +466,13 @@ end
                   flux_differencing_kernel = FullSweepGlobal())
     @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
     @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl FluxTurbo / AMDGPU" setup=[
@@ -381,6 +493,13 @@ end
                   flux_differencing_kernel = HalfSweep())
     u_plain = Array(sol.u[end])
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -392,6 +511,13 @@ end
     @test ode.p.cache.flux_differencing_kernel === HalfSweep()
     @test Array(sol.u[end]) ≈ u_plain
 
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR,
                            "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
@@ -402,4 +528,11 @@ end
                   flux_differencing_kernel = FullSweep())
     @test ode.p.cache.flux_differencing_kernel === FullSweep()
     @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
