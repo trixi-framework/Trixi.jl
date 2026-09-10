@@ -5,6 +5,17 @@
 @muladd begin
 #! format: noindent
 
+# The half sweep and full sweep kernels have a shared memory within an element,
+# and therefore, they need all nodes of an element in a single workgroup.
+@inline function flux_differencing_workgroupsize(::Union{HalfSweep, FullSweep},
+                                                 ::Val{NNODES}) where {NNODES}
+    return ((NNODES, NNODES, NNODES, 1),)
+end
+
+# The global full sweep kernel does not use shared memory, so we let KernelAbstractions
+# pick the workgroup size for it.
+@inline flux_differencing_workgroupsize(::FullSweepGlobal, ::Val) = ()
+
 @inline function calc_volume_integral!(backend::Backend, du, u,
                                        mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                        have_nonconservative_terms, equations,
@@ -12,35 +23,69 @@
                                        dg::DGSEM, cache)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
-    kernel! = flux_differencing_KAkernel!(backend)
     NNODES = nnodes(dg)
+    kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
+    kernel! = flux_differencing_KAkernel!(backend,
+                                          flux_differencing_workgroupsize(kernel_type,
+                                                                          Val(NNODES))...)
     kernel!(du, u, equations,
             typeof(mesh),
+            kernel_type,
             have_nonconservative_terms,
             combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
                                                             equations),
             dg,
-            volume_integral.volume_flux, Val(NNODES),
+            volume_integral.volume_flux, Val(NNODES), Val(nvariables(equations)),
             derivative_split,
             contravariant_vectors,
             ndrange = (NNODES, NNODES, NNODES, nelements(dg, cache)))
     return nothing
 end
 
+"""
+    flux_differencing_KAkernel!(du, u, equations, MeshT, kernel_type,
+                                have_nonconservative_terms,
+                                combine_conservative_and_nonconservative_fluxes,
+                                dg, volume_flux, ::Val{NNODES}, ::Val{NVARIABLES},
+                                derivative_split, contravariant_vectors, alpha)
+
+GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
+see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
+
+For [`HalfSweep`](@ref), all diagonal entries of `derivative_split` are zero. Thus,
+we can skip the computation of the diagonal terms. In addition, we use the symmetry
+of the `volume_flux` to save half of the possible two-point flux computations.
+Instead of assigning thread `i` the partners `i+1, …, N`, we distribute the half
+sweep cyclically: each thread visits `div(N, 2)` partners at a fixed rotating
+offset. Every unordered pair is still covered exactly once, but now every thread
+performs the same number of loop iterations. When `N` is even (odd polynomial
+degree), the antipodal pair at offset `div(N, 2)` is shared by two threads, so its
+contribution is weighted by 1/2 to avoid double counting.
+
+For details on the cyclic distribution see Section 4.1 (Eq. 6) of
+- Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+  GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
+  with Non-Conservative Terms
+  [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
+"""
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
+                                             ::HalfSweep,
                                              have_nonconservative_terms::False,
                                              combine_conservative_and_nonconservative_fluxes::False,
                                              dg::DGSEM,
                                              volume_flux,
                                              ::Val{NNODES},
+                                             ::Val{NVARIABLES},
                                              derivative_split,
                                              contravariant_vectors,
-                                             alpha = true) where {NNODES}
+                                             alpha = true) where {NNODES, NVARIABLES}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
+
+    flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -49,28 +94,10 @@ end
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
 
-    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
-    # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-point flux
-    # computations.
-    #
-    # Instead of assigning thread i the partners i+1, …, N,
-    # we distribute the half-sweep cyclically: each thread visits
-    # half = div(N,2) partners at a fixed rotating offset.
-    # Every unordered pair is still covered exactly
-    # once, but now every thread performs the same number of loop iterations.
-    # When N is even (odd polynomial degree) the antipodal pair at
-    # offset half is shared by two threads, so its contribution is weighted by
-    # 1/2 to avoid double counting.
-    #
-    # See Section 4.1 (Eq. 6) of
-    # - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
-    #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
-    #   with Non-Conservative Terms.
-    #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
+    @uniform half_nnodes = div(NNODES, 2)
+    @uniform even_nodes = iseven(NNODES)
 
-    half_nnodes = div(NNODES, 2)
-    even_nodes = iseven(NNODES)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
@@ -86,14 +113,22 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[i, ii],
-                                           fluxtilde1,
-                                           i, j, k, element)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[ii, i],
-                                           fluxtilde1,
-                                           ii, j, k, element)
+
+        @inbounds for v in 1:NVARIABLES
+            flux_local[v, i, j, k] = fluxtilde1[v]
+        end
+
+        @synchronize
+        iib = mod(i - 1 - offset, NNODES) + 1
+        du_local = du_local + (weight * alpha * derivative_split[i, ii]) * fluxtilde1 +
+                   (weight * alpha * derivative_split[i, iib]) *
+                   get_node_vars(flux_local, equations, dg, iib, j, k)
+        @synchronize
+    end
+
+    KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
+        # weight the antipodal pair by 1/2 only when the number of nodes is even
+        weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
 
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
@@ -105,15 +140,20 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[j, jj],
-                                           fluxtilde2,
-                                           i, j, k, element)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[jj, j],
-                                           fluxtilde2,
-                                           i, jj, k, element)
+        @inbounds for v in 1:NVARIABLES
+            flux_local[v, i, j, k] = fluxtilde2[v]
+        end
+        @synchronize
+        jjb = mod(j - 1 - offset, NNODES) + 1
+        du_local = du_local + (weight * alpha * derivative_split[j, jj]) * fluxtilde2 +
+                   (weight * alpha * derivative_split[j, jjb]) *
+                   get_node_vars(flux_local, equations, dg, i, jjb, k)
+        @synchronize
+    end
 
+    KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
+        # weight the antipodal pair by 1/2 only when the number of nodes is even
+        weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
@@ -124,31 +164,38 @@ end
         # compute the contravariant volume flux in the direction of the
         # averaged contravariant vector
         fluxtilde3 = volume_flux(u_node, u_node_kk, Ja3_avg, equations)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[k, kk],
-                                           fluxtilde3,
-                                           i, j, k, element)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[kk, k],
-                                           fluxtilde3,
-                                           i, j, kk, element)
+        @inbounds for v in 1:NVARIABLES
+            flux_local[v, i, j, k] = fluxtilde3[v]
+        end
+        @synchronize
+        kkb = mod(k - 1 - offset, NNODES) + 1
+        du_local = du_local + (weight * alpha * derivative_split[k, kk]) * fluxtilde3 +
+                   (weight * alpha * derivative_split[k, kkb]) *
+                   get_node_vars(flux_local, equations, dg, i, j, kkb)
+        @synchronize
     end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
+                                             ::HalfSweep,
                                              have_nonconservative_terms::True,
                                              combine_conservative_and_nonconservative_fluxes::True,
                                              dg::DGSEM,
                                              volume_flux,
                                              ::Val{NNODES},
+                                             ::Val{NVARIABLES},
                                              derivative_split,
                                              contravariant_vectors,
-                                             alpha = true) where {NNODES}
+                                             alpha = true) where {NNODES, NVARIABLES}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
+
+    flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
@@ -157,28 +204,10 @@ end
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
 
-    # All diagonal entries of `derivative_split` are zero. Thus, we can skip
-    # the computation of the diagonal terms. In addition, we use the symmetry
-    # of the `volume_flux` to save half of the possible two-point flux
-    # computations.
-    #
-    # Instead of assigning thread i the partners i+1, …, N,
-    # we distribute the half-sweep cyclically: each thread visits
-    # half = div(N,2) partners at a fixed rotating offset.
-    # Every unordered pair is still covered exactly
-    # once, but now every thread performs the same number of loop iterations.
-    # When N is even (odd polynomial degree) the antipodal pair at
-    # offset half is shared by two threads, so its contribution is weighted by
-    # 1/2 to avoid double counting.
-    #
-    # See Section 4.1 (Eq. 6) of
-    # - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
-    #   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
-    #   with Non-Conservative Terms.
-    #   arXiv (pre-print): https://arxiv.org/abs/2605.16684
+    @uniform half_nnodes = div(NNODES, 2)
+    @uniform even_nodes = iseven(NNODES)
 
-    half_nnodes = div(NNODES, 2)
-    even_nodes = iseven(NNODES)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
 
     KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
         # weight the antipodal pair by 1/2 only when the number of nodes is even
@@ -195,15 +224,22 @@ end
         # averaged contravariant vector
         fluxtilde1_left, fluxtilde1_right = volume_flux(u_node, u_node_ii, Ja1_avg,
                                                         equations)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[i, ii],
-                                           fluxtilde1_left,
-                                           i, j, k, element)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[ii, i],
-                                           fluxtilde1_right,
-                                           ii, j, k, element)
 
+        @inbounds for v in 1:NVARIABLES
+            flux_local[v, i, j, k] = fluxtilde1_right[v]
+        end
+        @synchronize
+        iib = mod(i - 1 - offset, NNODES) + 1
+        du_local = du_local +
+                   (weight * alpha * derivative_split[i, ii]) * fluxtilde1_left +
+                   (weight * alpha * derivative_split[i, iib]) *
+                   get_node_vars(flux_local, equations, dg, iib, j, k)
+        @synchronize
+    end
+
+    KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
+        # weight the antipodal pair by 1/2 only when the number of nodes is even
+        weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
         # second coordinate direction: rotate the partner index along `j`
         jj = mod(j - 1 + offset, NNODES) + 1
         u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
@@ -215,15 +251,21 @@ end
         # averaged contravariant vector
         fluxtilde2_left, fluxtilde2_right = volume_flux(u_node, u_node_jj, Ja2_avg,
                                                         equations)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[j, jj],
-                                           fluxtilde2_left,
-                                           i, j, k, element)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[jj, j],
-                                           fluxtilde2_right,
-                                           i, jj, k, element)
+        @inbounds for v in 1:NVARIABLES
+            flux_local[v, i, j, k] = fluxtilde2_right[v]
+        end
+        @synchronize
+        jjb = mod(j - 1 - offset, NNODES) + 1
+        du_local = du_local +
+                   (weight * alpha * derivative_split[j, jj]) * fluxtilde2_left +
+                   (weight * alpha * derivative_split[j, jjb]) *
+                   get_node_vars(flux_local, equations, dg, i, jjb, k)
+        @synchronize
+    end
 
+    KernelAbstractions.Extras.@unroll for offset in 1:half_nnodes
+        # weight the antipodal pair by 1/2 only when the number of nodes is even
+        weight = (even_nodes && offset == half_nnodes) ? 0.5f0 : 1.0f0
         # third coordinate direction: rotate the partner index along `k`
         kk = mod(k - 1 + offset, NNODES) + 1
         u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
@@ -235,15 +277,278 @@ end
         # averaged contravariant vector
         fluxtilde3_left, fluxtilde3_right = volume_flux(u_node, u_node_kk, Ja3_avg,
                                                         equations)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[k, kk],
-                                           fluxtilde3_left,
-                                           i, j, k, element)
-        multiply_add_to_first_axis_atomic!(du,
-                                           weight * alpha * derivative_split[kk, k],
-                                           fluxtilde3_right,
-                                           i, j, kk, element)
+        @inbounds for v in 1:NVARIABLES
+            flux_local[v, i, j, k] = fluxtilde3_right[v]
+        end
+        @synchronize
+        kkb = mod(k - 1 - offset, NNODES) + 1
+        du_local = du_local +
+                   (weight * alpha * derivative_split[k, kk]) * fluxtilde3_left +
+                   (weight * alpha * derivative_split[k, kkb]) *
+                   get_node_vars(flux_local, equations, dg, i, j, kkb)
+        @synchronize
     end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+end
+
+@kernel function flux_differencing_KAkernel!(du, u, equations,
+                                             MeshT::Type{<:Union{P4estMesh{3},
+                                                                 T8codeMesh{3}}},
+                                             ::FullSweep,
+                                             have_nonconservative_terms::False,
+                                             combine_conservative_and_nonconservative_fluxes::False,
+                                             dg::DGSEM,
+                                             volume_flux,
+                                             ::Val{NNODES},
+                                             ::Val{NVARIABLES},
+                                             derivative_split,
+                                             contravariant_vectors,
+                                             alpha = true) where {NNODES,
+                                                                  NVARIABLES}
+    # `true * [some floating point value] == [exactly the same floating point value]`
+    # This can (hopefully) be optimized away due to constant propagation.
+    i, j, k, element = @index(Global, NTuple)
+
+    u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
+
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    @inbounds for v in 1:NVARIABLES
+        u_local[v, i, j, k] = u_node[v]
+    end
+    @synchronize
+
+    u_node = get_node_vars(u_local, equations, dg, i, j, k)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    for ii in 1:NNODES
+        # pull the contravariant vectors and compute the average
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors,
+                                            ii, j, k, element))
+        # compute the contravariant volume flux in the direction of the
+        # averaged contravariant vector
+        fluxtilde1 = volume_flux(u_node,
+                                 get_node_vars(u_local, equations, dg, ii, j,
+                                               k),
+                                 Ja1_avg, equations)
+        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1
+    end
+
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    for jj in 1:NNODES
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors,
+                                            i, jj, k, element))
+        fluxtilde2 = volume_flux(u_node,
+                                 get_node_vars(u_local, equations, dg, i, jj,
+                                               k),
+                                 Ja2_avg, equations)
+        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2
+    end
+
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    for kk in 1:NNODES
+        Ja3_avg = 0.5f0 * (Ja3_node +
+                   get_contravariant_vector(3, contravariant_vectors,
+                                            i, j, kk, element))
+        fluxtilde3 = volume_flux(u_node,
+                                 get_node_vars(u_local, equations, dg, i, j,
+                                               kk),
+                                 Ja3_avg, equations)
+        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
+    end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+end
+
+@kernel function flux_differencing_KAkernel!(du, u, equations,
+                                             MeshT::Type{<:Union{P4estMesh{3},
+                                                                 T8codeMesh{3}}},
+                                             ::FullSweep,
+                                             have_nonconservative_terms::True,
+                                             combine_conservative_and_nonconservative_fluxes::True,
+                                             dg::DGSEM,
+                                             volume_flux,
+                                             ::Val{NNODES},
+                                             ::Val{NVARIABLES},
+                                             derivative_split,
+                                             contravariant_vectors,
+                                             alpha = true) where {NNODES,
+                                                                  NVARIABLES}
+    # `true * [some floating point value] == [exactly the same floating point value]`
+    # This can (hopefully) be optimized away due to constant propagation.
+    i, j, k, element = @index(Global, NTuple)
+
+    u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
+
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    @inbounds for v in 1:NVARIABLES
+        u_local[v, i, j, k] = u_node[v]
+    end
+    @synchronize
+
+    u_node = get_node_vars(u_local, equations, dg, i, j, k)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    for ii in 1:NNODES
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors,
+                                            ii, j, k, element))
+        fluxtilde1_left, _ = volume_flux(u_node,
+                                         get_node_vars(u_local, equations, dg,
+                                                       ii, j, k),
+                                         Ja1_avg, equations)
+        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1_left
+    end
+
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    for jj in 1:NNODES
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors,
+                                            i, jj, k, element))
+        fluxtilde2_left, _ = volume_flux(u_node,
+                                         get_node_vars(u_local, equations, dg,
+                                                       i, jj, k),
+                                         Ja2_avg, equations)
+        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2_left
+    end
+
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    for kk in 1:NNODES
+        Ja3_avg = 0.5f0 * (Ja3_node +
+                   get_contravariant_vector(3, contravariant_vectors,
+                                            i, j, kk, element))
+        fluxtilde3_left, _ = volume_flux(u_node,
+                                         get_node_vars(u_local, equations, dg,
+                                                       i, j, kk),
+                                         Ja3_avg, equations)
+        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
+    end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+end
+
+@kernel function flux_differencing_KAkernel!(du, u, equations,
+                                             MeshT::Type{<:Union{P4estMesh{3},
+                                                                 T8codeMesh{3}}},
+                                             ::FullSweepGlobal,
+                                             have_nonconservative_terms::False,
+                                             combine_conservative_and_nonconservative_fluxes::False,
+                                             dg::DGSEM,
+                                             volume_flux,
+                                             ::Val{NNODES},
+                                             ::Val{NVARIABLES},
+                                             derivative_split,
+                                             contravariant_vectors,
+                                             alpha = true) where {NNODES,
+                                                                  NVARIABLES}
+    # `true * [some floating point value] == [exactly the same floating point value]`
+    # This can (hopefully) be optimized away due to constant propagation.
+    i, j, k, element = @index(Global, NTuple)
+
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    for ii in 1:NNODES
+        # pull the contravariant vectors and compute the average
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors,
+                                            ii, j, k, element))
+        # compute the contravariant volume flux in the direction of the
+        # averaged contravariant vector
+        fluxtilde1 = volume_flux(u_node,
+                                 get_node_vars(u, equations, dg, ii, j, k, element),
+                                 Ja1_avg, equations)
+        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1
+    end
+
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    for jj in 1:NNODES
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors,
+                                            i, jj, k, element))
+        fluxtilde2 = volume_flux(u_node,
+                                 get_node_vars(u, equations, dg, i, jj, k, element),
+                                 Ja2_avg, equations)
+        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2
+    end
+
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    for kk in 1:NNODES
+        Ja3_avg = 0.5f0 * (Ja3_node +
+                   get_contravariant_vector(3, contravariant_vectors,
+                                            i, j, kk, element))
+        fluxtilde3 = volume_flux(u_node,
+                                 get_node_vars(u, equations, dg, i, j, kk, element),
+                                 Ja3_avg, equations)
+        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
+    end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+end
+
+@kernel function flux_differencing_KAkernel!(du, u, equations,
+                                             MeshT::Type{<:Union{P4estMesh{3},
+                                                                 T8codeMesh{3}}},
+                                             ::FullSweepGlobal,
+                                             have_nonconservative_terms::True,
+                                             combine_conservative_and_nonconservative_fluxes::True,
+                                             dg::DGSEM,
+                                             volume_flux,
+                                             ::Val{NNODES},
+                                             ::Val{NVARIABLES},
+                                             derivative_split,
+                                             contravariant_vectors,
+                                             alpha = true) where {NNODES,
+                                                                  NVARIABLES}
+    # `true * [some floating point value] == [exactly the same floating point value]`
+    # This can (hopefully) be optimized away due to constant propagation.
+    i, j, k, element = @index(Global, NTuple)
+
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
+    du_local = zero(SVector{NVARIABLES, eltype(du)})
+
+    Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+    for ii in 1:NNODES
+        Ja1_avg = 0.5f0 * (Ja1_node +
+                   get_contravariant_vector(1, contravariant_vectors,
+                                            ii, j, k, element))
+        fluxtilde1_left, _ = volume_flux(u_node,
+                                         get_node_vars(u, equations, dg, ii, j, k,
+                                                       element),
+                                         Ja1_avg, equations)
+        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1_left
+    end
+
+    Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+    for jj in 1:NNODES
+        Ja2_avg = 0.5f0 * (Ja2_node +
+                   get_contravariant_vector(2, contravariant_vectors,
+                                            i, jj, k, element))
+        fluxtilde2_left, _ = volume_flux(u_node,
+                                         get_node_vars(u, equations, dg, i, jj, k,
+                                                       element),
+                                         Ja2_avg, equations)
+        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2_left
+    end
+
+    Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+    for kk in 1:NNODES
+        Ja3_avg = 0.5f0 * (Ja3_node +
+                   get_contravariant_vector(3, contravariant_vectors,
+                                            i, j, kk, element))
+        fluxtilde3_left, _ = volume_flux(u_node,
+                                         get_node_vars(u, equations, dg, i, j, kk,
+                                                       element),
+                                         Ja3_avg, equations)
+        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
+    end
+
+    add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
