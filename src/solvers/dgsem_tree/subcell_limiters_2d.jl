@@ -649,7 +649,11 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    was_limited_locally = limiter.local_twosided &&
+    # `isnothing(limiter.indicator)` was added to make sure that in case of an enabled smoothness
+    # indicator (changed order of computation: positivity limiting -> local limiting) positivity
+    # limiting is not skipped due to uninitialized minimum bounds or bounds of the previous time step.
+    was_limited_locally = isnothing(limiter.indicator) &&
+                          limiter.local_twosided &&
                           (variable in limiter.local_twosided_variables_cons)
 
     @threaded for element in eachelement(dg, semi.cache)
