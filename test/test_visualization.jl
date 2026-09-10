@@ -1133,6 +1133,26 @@ end
     @test collect(plt_fv[1][]) == pd_fv.x
     @test all(isapprox.(extrema(plt_fv[1][]), (-1, 1)))
     @test all(isapprox.(extrema(plt_fv[2][]), (-1, 1)))
+
+    # Constant variables give a zero-width color range, which Makie only expands if the
+    # color range is passed explicitly. `elixir_acoustics_gauss.jl` has four constant
+    # variables (`v1_mean`, `v2_mean`, `c_mean`, `rho_mean`).
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
+                                 "elixir_acoustics_gauss.jl"))
+    pd_const = PlotData2D(sol)
+    fig_const, axes_const = @trixi_test_nowarn Makie.plot(pd_const)
+    Makie.update_state_before_display!(fig_const)
+    for content in fig_const.content
+        content isa Makie.Colorbar || continue
+        limits = content.limits[]
+        @test limits[1] < limits[2]
+    end
+    @trixi_test_nowarn Makie.plot(pd_const["v1_mean"])
+
+    # The seven variables do not fill the 3x3 layout, so the unused cells must still
+    # hold (empty) axes instead of undefined references.
+    @test size(axes_const) == (3, 3)
+    @test all(i -> isassigned(axes_const, i), eachindex(axes_const))
 end
 @testitem "Visualization: Makie visualization tests for UnstructuredMesh2D" setup=[
     Setup,

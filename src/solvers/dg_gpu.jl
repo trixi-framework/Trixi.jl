@@ -36,10 +36,31 @@ end
 # 48 KiB per workgroup on NVIDIA GPUs and 64 KiB on AMD GPUs.
 function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSweep}, semi)
     dg = semi.solver
-    shared_memory = nvariables(semi.equations) * nnodes(dg)^3 * sizeof(real(dg))
+    equations = semi.equations
+    volume_integral = semi.solver.volume_integral
+
+    nshared = nvariables(equations)
+
+    if volume_integral isa VolumeIntegralFluxDifferencing
+        volume_flux = volume_integral.volume_flux
+        if volume_flux isa FluxTurbo
+            nturbo = typeof(nturbovars(volume_flux.numerical_flux, equations)).parameters[1]
+            nshared = kernel isa HalfSweep ? nvariables(equations) + nturbo : nturbo
+        end
+    end
+
+    shared_memory = nshared * nnodes(dg)^3 * sizeof(real(dg))
 
     if shared_memory > 48 * 1024
-        @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU. In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
+        @warn "The shared memory required by the selected flux differencing kernel may exceed the limit of the GPU.
+        In case, consider using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) shared_memory=Base.format_bytes(shared_memory)
+    end
+
+    workgroup_size = nnodes(dg)^3
+
+    if workgroup_size > 1024
+        @error "The workgroup size required by the selected flux differencing kernel exceeds device limit.
+        Please, consider reducing the polynomial degree or using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
     end
 
     return nothing
