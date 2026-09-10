@@ -115,6 +115,14 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         error("The smoothness indicator is only implemented in 2D.")
     end
 
+    # The MPI-parallel `rhs!` implementations do not call the `calc_volume_integral!` method
+    # specialized on `VolumeIntegralSubcellLimiting`, so neither the bar states nor the local
+    # bounds would be computed. Additionally, the mortar limiting factors are not communicated
+    # between ranks. Bail out here instead of silently computing a wrong solution.
+    if mpi_isparallel()
+        error("Subcell limiting is not supported with MPI.")
+    end
+
     # When passing `min` or `max` in the elixir, the specific function of Base is used.
     # To speed up the simulation, we replace it with `Trixi.min` and `Trixi.max` respectively.
     local_onesided_variables_nonlinear_ = Tuple{Function, Function}[]
