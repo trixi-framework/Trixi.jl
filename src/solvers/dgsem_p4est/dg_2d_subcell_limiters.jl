@@ -190,8 +190,6 @@ end
             i_small += i_small_step
             j_small += j_small_step
 
-            i_mortar = get_mortar_index(small_indices, i_small, j_small)
-
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
                 u_small = get_node_vars(u, equations, dg, i_small, j_small,
@@ -207,9 +205,12 @@ end
                     i_large += i_large_step
                     j_large += j_large_step
 
-                    j_mortar = get_mortar_index(large_indices, i_large, j_large)
-
-                    weight = mortar_weights[j_mortar, i_mortar, small_element_index]
+                    # `mortar_weights` is defined in mortar reference coordinates, so it
+                    # has to be indexed with the traversal counters. Using the element-local
+                    # face indices instead would pair mirror-image subcells whenever the large
+                    # side is traversed backwards, i.e., for `:i_backward in large_indices`.
+                    weight = mortar_weights[node_large, node_small,
+                                            small_element_index]
                     !iszero(weight) || continue
 
                     u_large = get_node_vars(u, equations, dg, i_large, j_large,
@@ -218,7 +219,7 @@ end
                     lambda = max_abs_speed_naive(u_small, u_large,
                                                  normal_direction_small,
                                                  equations)
-                    lambda_small = weight * lambda / mortar_weights_sums[i_mortar, 1]
+                    lambda_small = weight * lambda / mortar_weights_sums[node_small, 1]
                     if small_direction == 1
                         lambda1[i_small, j_small, small_element] += lambda_small
                     elseif small_direction == 2
@@ -229,7 +230,7 @@ end
                         lambda2[i_small, j_small + 1, small_element] += lambda_small
                     end
 
-                    lambda_large = weight * lambda / mortar_weights_sums[j_mortar, 2]
+                    lambda_large = weight * lambda / mortar_weights_sums[node_large, 2]
                     if large_direction == 1
                         lambda1[i_large, j_large, large_element] += lambda_large
                     elseif large_direction == 2
@@ -251,28 +252,28 @@ end
                         for v in eachvariable(equations)
                             bar_states1[v, i_small, j_small, small_element] += weight *
                                                                                bar_state[v] /
-                                                                               mortar_weights_sums[i_mortar,
+                                                                               mortar_weights_sums[node_small,
                                                                                                    1]
                         end
                     elseif small_direction == 2
                         for v in eachvariable(equations)
                             bar_states1[v, i_small + 1, j_small, small_element] += weight *
                                                                                    bar_state[v] /
-                                                                                   mortar_weights_sums[i_mortar,
+                                                                                   mortar_weights_sums[node_small,
                                                                                                        1]
                         end
                     elseif small_direction == 3
                         for v in eachvariable(equations)
                             bar_states2[v, i_small, j_small, small_element] += weight *
                                                                                bar_state[v] /
-                                                                               mortar_weights_sums[i_mortar,
+                                                                               mortar_weights_sums[node_small,
                                                                                                    1]
                         end
                     else # small_direction == 4
                         for v in eachvariable(equations)
                             bar_states2[v, i_small, j_small + 1, small_element] += weight *
                                                                                    bar_state[v] /
-                                                                                   mortar_weights_sums[i_mortar,
+                                                                                   mortar_weights_sums[node_small,
                                                                                                        1]
                         end
                     end
@@ -281,28 +282,28 @@ end
                         for v in eachvariable(equations)
                             bar_states1[v, i_large, j_large, large_element] += weight *
                                                                                bar_state[v] /
-                                                                               mortar_weights_sums[j_mortar,
+                                                                               mortar_weights_sums[node_large,
                                                                                                    2]
                         end
                     elseif large_direction == 2
                         for v in eachvariable(equations)
                             bar_states1[v, i_large + 1, j_large, large_element] += weight *
                                                                                    bar_state[v] /
-                                                                                   mortar_weights_sums[j_mortar,
+                                                                                   mortar_weights_sums[node_large,
                                                                                                        2]
                         end
                     elseif large_direction == 3
                         for v in eachvariable(equations)
                             bar_states2[v, i_large, j_large, large_element] += weight *
                                                                                bar_state[v] /
-                                                                               mortar_weights_sums[j_mortar,
+                                                                               mortar_weights_sums[node_large,
                                                                                                    2]
                         end
                     else # large_direction == 4
                         for v in eachvariable(equations)
                             bar_states2[v, i_large, j_large + 1, large_element] += weight *
                                                                                    bar_state[v] /
-                                                                                   mortar_weights_sums[j_mortar,
+                                                                                   mortar_weights_sums[node_large,
                                                                                                        2]
                         end
                     end
@@ -439,6 +440,8 @@ function calc_mortar_flux_low_order!(surface_flux_values,
         j_small = j_small_start
         # Calculate fluxes
         for i in eachnode(dg)
+            # Index of the small-element face node. Equal to `i` because the small side is
+            # always traversed forward, but kept explicit to mirror `j_mortar` below.
             i_mortar = get_mortar_index(small_indices, i_small, j_small)
 
             for small_element_index in 1:2
@@ -457,9 +460,12 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                 i_large = i_large_start
                 j_large = j_large_start
                 for j in eachnode(dg)
+                    # Index of the large-element face node. Needed because the large side may
+                    # be traversed backwards, unlike `mortar_weights`, which is defined in
+                    # mortar reference coordinates and indexed with the traversal counters.
                     j_mortar = get_mortar_index(large_indices, i_large, j_large)
 
-                    factor = mortar_weights[j_mortar, i_mortar, small_element_index]
+                    factor = mortar_weights[j, i, small_element_index]
                     if !isapprox(factor, zero(typeof(factor)))
                         u_large_local = get_node_vars(u_large, equations, dg, j, mortar)
 
@@ -475,7 +481,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                         # Add flux to small element
                         multiply_add_to_node_vars!(surface_flux_values,
                                                    factor /
-                                                   mortar_weights_sums[i_mortar, 1],
+                                                   mortar_weights_sums[i, 1],
                                                    flux, equations, dg,
                                                    i_mortar, small_direction,
                                                    small_element)
@@ -489,7 +495,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                         # to be scaled by a factor of 2 to obtain the flux of the large element.
                         multiply_add_to_node_vars!(surface_flux_values,
                                                    -2 * factor /
-                                                   mortar_weights_sums[j_mortar, 2],
+                                                   mortar_weights_sums[j, 2],
                                                    flux, equations, dg,
                                                    j_mortar, large_direction,
                                                    large_element)

@@ -175,6 +175,10 @@ end
         println("positivity limiting was employed. However, the deviations are computed solely with respect to the local")
         println("bounds. Consequently, the resulting deviation statistics may not be meaningful and can exceed zero.")
         println("─"^100 * "\n")
+        # Note also that with a smoothness indicator the positivity limiting runs *before* the local limiting,
+        # so the positivity bounds stored in `variable_bounds` are overwritten by the local ones. To compute
+        # meaningful deviations again, the order of computation has to be changed or the bounds of both limiters
+        # have to be stored separately.
         return nothing
     end
     if !idp_newton_converged[]
