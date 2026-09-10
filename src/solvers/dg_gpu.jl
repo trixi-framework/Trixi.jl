@@ -33,7 +33,7 @@ end
 end
 
 # The half sweep and full sweep kernels use local share data, which is limited to
-# 48 KiB per workgroup on NVIDIA GPUs and 64 KiB on AMD GPUs.
+# 48 KiB per workgroup on NVIDIA GPUs and 64 KiB on AMD GPUs (as of 2026).
 function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSweep}, semi)
     dg = semi.solver
     equations = semi.equations
@@ -59,7 +59,7 @@ function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSwee
     workgroup_size = nnodes(dg)^3
 
     if workgroup_size > 1024
-        @error "The workgroup size required by the selected flux differencing kernel exceeds device limit.
+        @warn "The workgroup size required by the selected flux differencing kernel likely exceeds the device limit.
         Please, consider reducing the polynomial degree or using `flux_differencing_kernel = FullSweepGlobal()`." flux_differencing_kernel=kernel nvariables=nvariables(semi.equations) polydeg=polydeg(dg) workgroup_size
     end
 
