@@ -1140,27 +1140,27 @@ end
              (eos_helmholtz_vdw, eos_vdw, states_vdw, cv_vdw, rtol_vdw),
              (eos_helmholtz_pr, eos_pr, states_pr, cv_pr, rtol_pr))
 
-    for (eos_h, eos_ref, states, cv_of, T_rtol) in cases
+    for (eos_helmholtz, eos_explicit, states, cv_eos, T_rtol) in cases
         for (V, T) in states
-            @test pressure(V, T, eos_h) ≈ pressure(V, T, eos_ref)
-            @test energy_internal_specific(V, T, eos_h) ≈
-                  energy_internal_specific(V, T, eos_ref)
-            @test Trixi.heat_capacity_constant_volume(V, T, eos_h) ≈
-                  Trixi.heat_capacity_constant_volume(V, T, eos_ref)
-            dpdT_h, dpdV_h = Trixi.calc_pressure_derivatives(V, T, eos_h)
-            dpdT_ref, dpdV_ref = Trixi.calc_pressure_derivatives(V, T, eos_ref)
-            @test dpdT_h ≈ dpdT_ref
-            @test dpdV_h ≈ dpdV_ref
-            @test speed_of_sound(V, T, eos_h) ≈ speed_of_sound(V, T, eos_ref)
+            @test pressure(V, T, eos_helmholtz) ≈ pressure(V, T, eos_explicit)
+            @test energy_internal_specific(V, T, eos_helmholtz) ≈
+                  energy_internal_specific(V, T, eos_explicit)
+            @test Trixi.heat_capacity_constant_volume(V, T, eos_helmholtz) ≈
+                  Trixi.heat_capacity_constant_volume(V, T, eos_explicit)
+            dpdT_helmholtz, dpdV_helmholtz = Trixi.calc_pressure_derivatives(V, T, eos_helmholtz)
+            dpdT_explicit, dpdV_explicit = Trixi.calc_pressure_derivatives(V, T, eos_explicit)
+            @test dpdT_helmholtz ≈ dpdT_explicit
+            @test dpdV_helmholtz ≈ dpdV_explicit
+            @test Trixi.speed_of_sound(V, T, eos_helmholtz) ≈ Trixi.speed_of_sound(V, T, eos_explicit)
 
-            e = energy_internal_specific(V, T, eos_h)
-            @test temperature(V, e, eos_h)≈T rtol=T_rtol
+            e = energy_internal_specific(V, T, eos_helmholtz)
+            @test temperature(V, e, eos_helmholtz)≈T rtol=T_rtol
 
-            p_h = pressure(V, T, eos_h)
-            s_h = Trixi.entropy_specific(V, T, eos_h)
-            s_ref = Trixi.entropy_specific(V, T, eos_ref)
-            @test s_h ≈ s_ref + eos_h.R + cv_of(eos_h)
-            @test Trixi.gibbs_free_energy(V, T, eos_h) ≈ e + p_h * V - T * s_h
+            p_helmholtz = pressure(V, T, eos_helmholtz)
+            s_helmholtz = Trixi.entropy_specific(V, T, eos_helmholtz)
+            s_explicit = Trixi.entropy_specific(V, T, eos_explicit)
+            @test s_helmholtz ≈ s_explicit + eos_helmholtz.R + cv_eos(eos_helmholtz)
+            @test Trixi.gibbs_free_energy(V, T, eos_helmholtz) ≈ e + p_helmholtz * V - T * s_helmholtz
         end
     end
 end
