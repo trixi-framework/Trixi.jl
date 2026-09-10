@@ -823,13 +823,18 @@ end
                                                  dg, cache, mesh)
     return nothing
 end
+@inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralAdaptive,
+                                                 dg, cache, mesh)
+    return precompute_n_mortars_per_nodes!(volume_integral.volume_integral_stabilized,
+                                           dg, cache, mesh)
+end
 @inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralSubcellLimiting,
                                                  dg, cache, mesh::TreeMesh{2})
     if !(dg.mortar isa LobattoLegendreMortarIDP)
         return nothing
     end
 
-    (; n_mortars_per_node) = dg.mortar.limiter.cache.subcell_limiter_coefficients
+    (; n_mortars_per_node) = subcell_limiter_coefficients(volume_integral)
     (; neighbor_ids, orientations, large_sides) = cache.mortars
 
     n_mortars_per_node .= zero(eltype(n_mortars_per_node))
@@ -880,7 +885,7 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
     variable_string = string(var_index)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
@@ -891,14 +896,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         # Set up correct direction and factors
         orientation = orientations[mortar]
@@ -1070,15 +1067,6 @@ end
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
 
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
-
         orientation = orientations[mortar]
         if large_sides[mortar] == 1 # -> small elements on right side
             direction_small = 2 * orientation - 1
@@ -1190,7 +1178,7 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = dg.mortar.limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1199,15 +1187,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         # Set up correct direction and factors
         orientation = orientations[mortar]
@@ -1364,15 +1343,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         orientation = orientations[mortar]
         if large_sides[mortar] == 1 # -> small elements on right side

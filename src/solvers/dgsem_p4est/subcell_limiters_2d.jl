@@ -462,7 +462,7 @@ end
         return nothing
     end
 
-    (; n_mortars_per_node) = volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; n_mortars_per_node) = subcell_limiter_coefficients(volume_integral)
     (; neighbor_ids, node_indices) = cache.mortars
     index_range = eachnode(dg)
 
@@ -520,7 +520,7 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
     variable_string = string(var_index)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
@@ -533,14 +533,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -711,14 +703,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -829,7 +813,7 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
+    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
     var_min = variable_bounds[Symbol(string(var_index), "_min")]
 
     index_range = eachnode(dg)
@@ -840,14 +824,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -1001,14 +977,6 @@ end
         large_element = neighbor_ids[3, mortar]
         upper_element = neighbor_ids[2, mortar]
         lower_element = neighbor_ids[1, mortar]
-        if perform_subcell_limiting(dg.volume_integral, large_element) ||
-           perform_subcell_limiting(dg.volume_integral, lower_element) ||
-           perform_subcell_limiting(dg.volume_integral, upper_element)
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this mortar
-        else
-            # Subcell limiting is not necessary for all elements => Skip this mortar
-            continue
-        end
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]

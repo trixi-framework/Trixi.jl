@@ -206,6 +206,15 @@ end
         error("`bar_states=true` is currently not supported in combination with the adaptive volume integral.")
     end
 
+    # The mortar limiting routines read the local bounds of all three elements adjacent to a
+    # mortar. With the adaptive volume integral, `perform_subcell_limiting` can be `false` for
+    # some of them, in which case their bounds are never computed and stay `NaN`. Skipping such
+    # mortars entirely is not an option either, since the neighboring limited elements still
+    # need their mortar fluxes limited.
+    if dg.mortar isa LobattoLegendreMortarIDP
+        error("`MortarIDP` is currently not supported in combination with the adaptive volume integral.")
+    end
+
     # These tolerances for "active" shock capturing alpha values are copied
     # from the `calc_volume_integral!` implementation for
     # `VolumeIntegralShockCapturingHGType`
