@@ -3,6 +3,11 @@
     return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
 end
 
+# This is a general fallback for volume integral kernels, parallelizing across
+# elements on GPUs in the same way as we do on CPUs. Optimized kernels, e.g.,
+# for flux differencing, parallelize across the individual solution nodes
+# and are contained in the files src/solvers/dgsem_p4est/dg_2d_gpu.jl and
+# src/solvers/dgsem_p4est/dg_3d_gpu.jl.
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
