@@ -81,11 +81,12 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan;
-                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec::Union{AbstractVector, Nothing} = nothing,
-                   storage_type = nothing,
-                   real_type = nothing)
+   semidiscretize(semi::AbstractSemidiscretization, tspan;
+                  jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                  colorvec::Union{AbstractVector, Nothing} = nothing,
+                  storage_type = nothing,
+                  real_type = nothing,
+                  flux_differencing_kernel = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -99,7 +100,8 @@ Optional keyword arguments:
   `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
 - `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
-  volume integral, either [`HalfSweep`](@ref) or [`FullSweep`](@ref).
+  volume integral, one of [`HalfSweep()`](@ref) (default), [`FullSweep()`](@ref), or
+  [`FullSweepGlobal()`](@ref).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
@@ -133,6 +135,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         if flux_differencing_kernel === nothing
             flux_differencing_kernel = HalfSweep()
         end
+        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
         @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
     end
 
