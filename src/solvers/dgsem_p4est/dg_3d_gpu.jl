@@ -21,6 +21,7 @@ end
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralFluxDifferencing,
                                        dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     NNODES = nnodes(dg)
@@ -47,7 +48,7 @@ end
                                 have_nonconservative_terms,
                                 combine_conservative_and_nonconservative_fluxes,
                                 dg, volume_flux, ::Val{NNODES}, ::Val{NVARIABLES},
-                                derivative_split, contravariant_vectors, alpha)
+                                derivative_split, contravariant_vectors)
 
 GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
 see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
@@ -79,10 +80,12 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
                                              ::Val{NNODES},
                                              ::Val{NVARIABLES},
                                              derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES, NVARIABLES}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -120,8 +123,8 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
 
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
-        du_local = du_local + (weight * alpha * derivative_split[i, ii]) * fluxtilde1 +
-                   (weight * alpha * derivative_split[i, iib]) *
+        du_local = du_local + (weight * derivative_split[i, ii]) * fluxtilde1 +
+                   (weight * derivative_split[i, iib]) *
                    get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
     end
@@ -145,8 +148,8 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
         end
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
-        du_local = du_local + (weight * alpha * derivative_split[j, jj]) * fluxtilde2 +
-                   (weight * alpha * derivative_split[j, jjb]) *
+        du_local = du_local + (weight * derivative_split[j, jj]) * fluxtilde2 +
+                   (weight * derivative_split[j, jjb]) *
                    get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
     end
@@ -169,8 +172,8 @@ For details on the cyclic distribution see Section 4.1 (Eq. 6) of
         end
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
-        du_local = du_local + (weight * alpha * derivative_split[k, kk]) * fluxtilde3 +
-                   (weight * alpha * derivative_split[k, kkb]) *
+        du_local = du_local + (weight * derivative_split[k, kk]) * fluxtilde3 +
+                   (weight * derivative_split[k, kkb]) *
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
@@ -189,10 +192,12 @@ end
                                              ::Val{NNODES},
                                              ::Val{NVARIABLES},
                                              derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES, NVARIABLES}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -231,8 +236,8 @@ end
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local +
-                   (weight * alpha * derivative_split[i, ii]) * fluxtilde1_left +
-                   (weight * alpha * derivative_split[i, iib]) *
+                   (weight * derivative_split[i, ii]) * fluxtilde1_left +
+                   (weight * derivative_split[i, iib]) *
                    get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
     end
@@ -257,8 +262,8 @@ end
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local +
-                   (weight * alpha * derivative_split[j, jj]) * fluxtilde2_left +
-                   (weight * alpha * derivative_split[j, jjb]) *
+                   (weight * derivative_split[j, jj]) * fluxtilde2_left +
+                   (weight * derivative_split[j, jjb]) *
                    get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
     end
@@ -283,8 +288,8 @@ end
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local +
-                   (weight * alpha * derivative_split[k, kk]) * fluxtilde3_left +
-                   (weight * alpha * derivative_split[k, kkb]) *
+                   (weight * derivative_split[k, kk]) * fluxtilde3_left +
+                   (weight * derivative_split[k, kkb]) *
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
@@ -303,11 +308,12 @@ end
                                              ::Val{NNODES},
                                              ::Val{NVARIABLES},
                                              derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -333,7 +339,7 @@ end
                                  get_node_vars(u_local, equations, dg, ii, j,
                                                k),
                                  Ja1_avg, equations)
-        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1
+        du_local = du_local + derivative_split[i, ii] * fluxtilde1
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -345,7 +351,7 @@ end
                                  get_node_vars(u_local, equations, dg, i, jj,
                                                k),
                                  Ja2_avg, equations)
-        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2
+        du_local = du_local + derivative_split[j, jj] * fluxtilde2
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -357,7 +363,7 @@ end
                                  get_node_vars(u_local, equations, dg, i, j,
                                                kk),
                                  Ja3_avg, equations)
-        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
+        du_local = du_local + derivative_split[k, kk] * fluxtilde3
     end
 
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -374,11 +380,12 @@ end
                                              ::Val{NNODES},
                                              ::Val{NVARIABLES},
                                              derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     u_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -401,7 +408,7 @@ end
                                          get_node_vars(u_local, equations, dg,
                                                        ii, j, k),
                                          Ja1_avg, equations)
-        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1_left
+        du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -413,7 +420,7 @@ end
                                          get_node_vars(u_local, equations, dg,
                                                        i, jj, k),
                                          Ja2_avg, equations)
-        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2_left
+        du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -425,7 +432,7 @@ end
                                          get_node_vars(u_local, equations, dg,
                                                        i, j, kk),
                                          Ja3_avg, equations)
-        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
+        du_local = du_local + derivative_split[k, kk] * fluxtilde3_left
     end
 
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -442,11 +449,12 @@ end
                                              ::Val{NNODES},
                                              ::Val{NVARIABLES},
                                              derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -463,7 +471,7 @@ end
         fluxtilde1 = volume_flux(u_node,
                                  get_node_vars(u, equations, dg, ii, j, k, element),
                                  Ja1_avg, equations)
-        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1
+        du_local = du_local + derivative_split[i, ii] * fluxtilde1
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -474,7 +482,7 @@ end
         fluxtilde2 = volume_flux(u_node,
                                  get_node_vars(u, equations, dg, i, jj, k, element),
                                  Ja2_avg, equations)
-        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2
+        du_local = du_local + derivative_split[j, jj] * fluxtilde2
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -485,7 +493,7 @@ end
         fluxtilde3 = volume_flux(u_node,
                                  get_node_vars(u, equations, dg, i, j, kk, element),
                                  Ja3_avg, equations)
-        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3
+        du_local = du_local + derivative_split[k, kk] * fluxtilde3
     end
 
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -502,11 +510,12 @@ end
                                              ::Val{NNODES},
                                              ::Val{NVARIABLES},
                                              derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                             contravariant_vectors) where {NNODES,
+                                                                           NVARIABLES}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -521,7 +530,7 @@ end
                                          get_node_vars(u, equations, dg, ii, j, k,
                                                        element),
                                          Ja1_avg, equations)
-        du_local = du_local + (alpha * derivative_split[i, ii]) * fluxtilde1_left
+        du_local = du_local + derivative_split[i, ii] * fluxtilde1_left
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -533,7 +542,7 @@ end
                                          get_node_vars(u, equations, dg, i, jj, k,
                                                        element),
                                          Ja2_avg, equations)
-        du_local = du_local + (alpha * derivative_split[j, jj]) * fluxtilde2_left
+        du_local = du_local + derivative_split[j, jj] * fluxtilde2_left
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -545,7 +554,7 @@ end
                                          get_node_vars(u, equations, dg, i, j, kk,
                                                        element),
                                          Ja3_avg, equations)
-        du_local = du_local + (alpha * derivative_split[k, kk]) * fluxtilde3_left
+        du_local = du_local + derivative_split[k, kk] * fluxtilde3_left
     end
 
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -556,6 +565,7 @@ end
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralFluxDifferencing{<:FluxTurbo},
                                        dg::DGSEM, cache)
+    nelements(dg, cache) == 0 && return nothing
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     @unpack numerical_flux = volume_integral.volume_flux
@@ -590,7 +600,7 @@ end
     flux_differencing_KAkernel_turbo!(du, u, equations, MeshT, kernel_type,
                                       have_nonconservative_terms, dg, numerical_flux,
                                       ::Val{NNODES}, ::Val{NVARIABLES}, ::Val{NAUX},
-                                      derivative_split, contravariant_vectors, alpha)
+                                      derivative_split, contravariant_vectors)
 
 Variant of [`flux_differencing_KAkernel!`](@ref) for volume fluxes wrapped in a
 [`FluxTurbo`](@ref). The `NAUX` precomputed variables of `Trixi.cons2turbo` are
@@ -608,12 +618,13 @@ evaluated once per node instead of once per two-point flux evaluation. For
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors,
-                                                   alpha = true) where {NNODES,
-                                                                        NVARIABLES,
-                                                                        NAUX}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                                   contravariant_vectors) where {NNODES,
+                                                                                 NVARIABLES,
+                                                                                 NAUX}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -662,8 +673,8 @@ evaluated once per node instead of once per two-point flux evaluation. For
 
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
-        du_local = du_local + (weight * alpha * derivative_split[i, ii]) * fluxtilde1 +
-                   (weight * alpha * derivative_split[i, iib]) *
+        du_local = du_local + (weight * derivative_split[i, ii]) * fluxtilde1 +
+                   (weight * derivative_split[i, iib]) *
                    get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
     end
@@ -692,8 +703,8 @@ evaluated once per node instead of once per two-point flux evaluation. For
 
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
-        du_local = du_local + (weight * alpha * derivative_split[j, jj]) * fluxtilde2 +
-                   (weight * alpha * derivative_split[j, jjb]) *
+        du_local = du_local + (weight * derivative_split[j, jj]) * fluxtilde2 +
+                   (weight * derivative_split[j, jjb]) *
                    get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
     end
@@ -722,8 +733,8 @@ evaluated once per node instead of once per two-point flux evaluation. For
 
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
-        du_local = du_local + (weight * alpha * derivative_split[k, kk]) * fluxtilde3 +
-                   (weight * alpha * derivative_split[k, kkb]) *
+        du_local = du_local + (weight * derivative_split[k, kk]) * fluxtilde3 +
+                   (weight * derivative_split[k, kkb]) *
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
@@ -742,12 +753,13 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors,
-                                                   alpha = true) where {NNODES,
-                                                                        NVARIABLES,
-                                                                        NAUX}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                                   contravariant_vectors) where {NNODES,
+                                                                                 NVARIABLES,
+                                                                                 NAUX}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     flux_local = @localmem eltype(du) (NVARIABLES, NNODES, NNODES, NNODES)
@@ -800,9 +812,9 @@ end
         @synchronize
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local +
-                   (weight * alpha * derivative_split[i, ii]) *
+                   (weight * derivative_split[i, ii]) *
                    fluxtilde1_left +
-                   (weight * alpha * derivative_split[i, iib]) *
+                   (weight * derivative_split[i, iib]) *
                    get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
     end
@@ -835,9 +847,9 @@ end
         @synchronize
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local +
-                   (weight * alpha * derivative_split[j, jj]) *
+                   (weight * derivative_split[j, jj]) *
                    fluxtilde2_left +
-                   (weight * alpha * derivative_split[j, jjb]) *
+                   (weight * derivative_split[j, jjb]) *
                    get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
     end
@@ -870,9 +882,9 @@ end
         @synchronize
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local +
-                   (weight * alpha * derivative_split[k, kk]) *
+                   (weight * derivative_split[k, kk]) *
                    fluxtilde3_left +
-                   (weight * alpha * derivative_split[k, kkb]) *
+                   (weight * derivative_split[k, kkb]) *
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
     end
@@ -891,12 +903,13 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors,
-                                                   alpha = true) where {NNODES,
-                                                                        NVARIABLES,
-                                                                        NAUX}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                                   contravariant_vectors) where {NNODES,
+                                                                                 NVARIABLES,
+                                                                                 NAUX}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     # We do not need `u_local` as in the regular `FullSweep` flux differencing
@@ -928,7 +941,7 @@ end
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[i, ii]) * fluxtilde1
+                   derivative_split[i, ii] * fluxtilde1
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -943,7 +956,7 @@ end
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[j, jj]) * fluxtilde2
+                   derivative_split[j, jj] * fluxtilde2
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -958,7 +971,7 @@ end
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[k, kk]) * fluxtilde3
+                   derivative_split[k, kk] * fluxtilde3
     end
 
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -975,12 +988,13 @@ end
                                                    ::Val{NVARIABLES},
                                                    ::Val{NAUX},
                                                    derivative_split,
-                                                   contravariant_vectors,
-                                                   alpha = true) where {NNODES,
-                                                                        NVARIABLES,
-                                                                        NAUX}
-    # `true * [some floating point value] == [exactly the same floating point value]`
-    # This can (hopefully) be optimized away due to constant propagation.
+                                                   contravariant_vectors) where {NNODES,
+                                                                                 NVARIABLES,
+                                                                                 NAUX}
+    # In contrast to the regular (CPU) code, this kernel does not
+    # include an additional factor `alpha` scaling the update
+    # since we use `set_node_vars!` instead of `add_to_node_vars!`
+    # or `multiply_add_to_node_vars!` to improve the performance.
     i, j, k, element = @index(Global, NTuple)
 
     # We do not need `u_local` as in the regular `FullSweep` flux differencing
@@ -1012,7 +1026,7 @@ end
                                         Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                         equations)
         du_local = du_local +
-                   (alpha * derivative_split[i, ii]) *
+                   derivative_split[i, ii] *
                    fluxtilde1_left
     end
 
@@ -1028,7 +1042,7 @@ end
                                         Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                         equations)
         du_local = du_local +
-                   (alpha * derivative_split[j, jj]) *
+                   derivative_split[j, jj] *
                    fluxtilde2_left
     end
 
@@ -1044,7 +1058,7 @@ end
                                         Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                         equations)
         du_local = du_local +
-                   (alpha * derivative_split[k, kk]) *
+                   derivative_split[k, kk] *
                    fluxtilde3_left
     end
 

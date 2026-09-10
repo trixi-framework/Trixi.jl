@@ -12,10 +12,17 @@ function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+
     # Reset du
+    # In the usual (CPU) code, this is called at the beginning of rhs_hyperbolic!
+    # However, we can significantly improve the performance on GPUs by avoiding
+    # launching an additional kernel for this memory reset. Thus, specialized
+    # GPU volume kernels write directly into the existing `du` array, and we reset
+    # it here for the general (fallback) case.
     @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
         set_zero!(du, dg, cache)
     end
+
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
