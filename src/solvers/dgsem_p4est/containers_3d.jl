@@ -6,23 +6,130 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                        basis::LobattoLegendreBasis)
-    @unpack node_coordinates, jacobian_matrix,
-    contravariant_vectors, inverse_jacobian = elements
+function init_elements!(elements,
+                        mesh::Union{P4estMesh{3}, T8codeMesh{3}, P4estMesh{2},
+                                    P4estMeshView{2}, T8codeMesh{2}},
+                        basis::AbstractBasisSBP)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
-    calc_node_coordinates!(node_coordinates, mesh, basis)
-
-    for element in 1:ncells(mesh)
-        calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
-
-        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
-                                    node_coordinates, basis)
-
-        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
+    # TODO GPU
+    # mesh lives on the CPU -> move node_coordinates to CPU before recomputing coordinates
+    # this creates a local copy shadowing unpacked node_coordinates!
+    backend = trixi_backend(node_coordinates)
+    storageT = storage_type(node_coordinates)
+    if backend !== nothing
+        node_coordinates = @trixi_timeit timer() "node_coords D2H" trixi_adapt(Array,
+                                                                               eltype(node_coordinates),
+                                                                               node_coordinates)
     end
 
+    @trixi_timeit timer() "calc_node_coordinates" calc_node_coordinates!(node_coordinates,
+                                                                         mesh, basis)
+
+    # copy back to elements struct on GPU
+    if backend !== nothing
+        elements.node_coordinates = @trixi_timeit timer() "node_coords H2D" trixi_adapt(storageT,
+                                                                                        eltype(node_coordinates),
+                                                                                        node_coordinates)
+    end
+
+    # - introduced backend to launch kernels for element-wise computation of remaining struct 
+    #   members. 
+    # - @turbo temporily removed in inner loops
+    #init_element_structs!(backend, elements, ncells(mesh), basis)
+
+    @trixi_timeit timer() "init_element_structs" init_element_structs!(backend,
+                                                                       elements,
+                                                                       ncells(mesh),
+                                                                       basis)
+    free_jacobian_matrix!(elements)
     return nothing
+end
+
+function init_element_structs!(backend::Nothing, elements, n_elements,
+                               basis::AbstractBasisSBP)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+    @unpack derivative_matrix = basis
+
+    for element in 1:n_elements
+        calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates,
+                              derivative_matrix, Val(nnodes(basis)))
+
+        calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+                                    node_coordinates, derivative_matrix,
+                                    Val(nnodes(basis)))
+
+        calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix,
+                               Val(nnodes(basis)))
+    end
+end
+
+# function init_element_structs!(backend::Backend, elements, n_elements,
+#                                basis::LobattoLegendreBasis)
+#     @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+#     @unpack derivative_matrix = basis
+
+#     kernel! = init_element_structs_KAkernel!(backend)
+#     kernel!(node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian,
+#             derivative_matrix, Val(nnodes(basis)),
+#             ndrange = n_elements)
+#     return nothing
+# end
+
+# @kernel function init_element_structs_KAkernel!(node_coordinates, jacobian_matrix,
+#                                                 contravariant_vectors, inverse_jacobian,
+#                                                 derivative_matrix, val_nnodes)
+#     element = @index(Global)
+
+#     calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, derivative_matrix,
+#                           val_nnodes)
+
+#     calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix,
+#                                 node_coordinates, derivative_matrix, val_nnodes)
+
+#     calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, val_nnodes)
+# end
+
+function init_element_structs!(backend::Backend, elements::P4estElementContainer{3},
+                               n_elements,
+                               basis::LobattoLegendreBasis)
+    @unpack node_coordinates, jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
+    @unpack derivative_matrix = basis
+    _nnodes = nnodes(basis)
+
+    jacobian_kernel! = init_jacobian_KAkernel!(backend)
+    jacobian_kernel!(jacobian_matrix, inverse_jacobian, node_coordinates,
+                     derivative_matrix, Val(_nnodes),
+                     ndrange = (_nnodes, _nnodes, _nnodes, n_elements))
+
+    contravariant_kernel! = init_contravariant_KAkernel!(backend)
+    contravariant_kernel!(contravariant_vectors, jacobian_matrix, node_coordinates,
+                          derivative_matrix, Val(_nnodes),
+                          ndrange = (_nnodes, _nnodes, _nnodes, n_elements))
+
+    return nothing
+end
+
+@kernel function init_jacobian_KAkernel!(jacobian_matrix, inverse_jacobian,
+                                         node_coordinates, derivative_matrix,
+                                         ::Val{_nnodes}) where {_nnodes}
+    i, j, k, element = @index(Global, NTuple)
+
+    calc_jacobian_matrix_node!(jacobian_matrix, element, i, j, k, node_coordinates,
+                               derivative_matrix, Val(_nnodes))
+
+    calc_inverse_jacobian_node!(inverse_jacobian, element, i, j, k, jacobian_matrix,
+                                Val(_nnodes))
+end
+
+@kernel function init_contravariant_KAkernel!(contravariant_vectors, jacobian_matrix,
+                                              node_coordinates, derivative_matrix,
+                                              ::Val{_nnodes}) where {_nnodes}
+    i, j, k, element = @index(Global, NTuple)
+
+    calc_contravariant_vectors_node!(contravariant_vectors, element, i, j, k,
+                                     jacobian_matrix, node_coordinates,
+                                     derivative_matrix, Val(_nnodes))
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis

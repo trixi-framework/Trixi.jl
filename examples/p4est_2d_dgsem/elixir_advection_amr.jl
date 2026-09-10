@@ -1,57 +1,41 @@
+# The same setup as tree_2d_dgsem/elixir_advection_basic.jl
+# to verify the StructuredMesh implementation against TreeMesh
+
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = (0.2, -0.7, 0.5)
-equations = LinearScalarAdvectionEquation3D(advection_velocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
-trees_per_dimension = (1, 1, 1)
+coordinates_min = (-5.0, -5.0) # minimum coordinates (min(x), min(y))
+coordinates_max = (5.0, 5.0) # maximum coordinates (max(x), max(y))
 
-# Note that it is not necessary to use mesh polydeg lower than the solver polydeg
-# on a Cartesian mesh.
-# See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
+trees_per_dimension = (8, 8)
+
+# Create P4estMesh with 8 x 8 trees and 16 x 16 elements
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 2,
+                 initial_refinement_level = 1,
                  periodicity = true)
 
-# Refine bottom left quadrant of each tree to level 3
-function refine_fn(p8est, which_tree, quadrant)
-    quadrant_obj = unsafe_load(quadrant)
-    if quadrant_obj.x == 0 && quadrant_obj.y == 0 && quadrant_obj.z == 0 &&
-       quadrant_obj.level < 3
-        # return true (refine)
-        return Cint(1)
-    else
-        # return false (don't refine)
-        return Cint(0)
-    end
-end
-
-# Refine recursively until each bottom left quadrant of a tree has level 3
-# The mesh will be rebalanced before the simulation starts
-refine_fn_c = @cfunction(refine_fn, Cint,
-                         (Ptr{Trixi.p8est_t}, Ptr{Trixi.p4est_topidx_t},
-                          Ptr{Trixi.p8est_quadrant_t}))
-Trixi.refine_p4est!(mesh.p4est, true, refine_fn_c, C_NULL)
-
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss,
                                     solver;
                                     boundary_conditions = boundary_condition_periodic)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
-
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
+# Setting `real_type` allows to change the real number type, e.g., to `Float32`.
+# This is particularly useful when changing the `storage_type` to a GPU array
+# type such as `ROCArray` (AMD) or `CuArray` (NVIDIA CUDA).
 ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -59,17 +43,33 @@ ode = semidiscretize(semi, tspan; real_type = nothing, storage_type = nothing)
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim)
 
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                      base_level = 1,
+                                      med_level = 2, med_threshold = 0.1,
+                                      max_level = 3, max_threshold = 0.6)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 5,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+                        alive_callback,
+                        #save_solution,
+                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################
