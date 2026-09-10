@@ -52,10 +52,6 @@ end
 GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
 see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
 
-Volume fluxes wrapped in a [`FluxTurbo`](@ref) are dispatched to a variant that stages
-the precomputed variables of `Trixi.cons2turbo` in shared memory, so that they are
-computed once per node instead of once per two-point flux evaluation.
-
 For [`HalfSweep`](@ref), all diagonal entries of `derivative_split` are zero. Thus,
 we can skip the computation of the diagonal terms. In addition, we use the symmetry
 of the `volume_flux` to save half of the possible two-point flux computations.
@@ -565,9 +561,9 @@ end
     @unpack numerical_flux = volume_integral.volume_flux
     NNODES = nnodes(dg)
     kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
-    kernel! = flux_differencing_KAkernel!(backend,
-                                          flux_differencing_workgroupsize(kernel_type,
-                                                                          Val(NNODES))...)
+    kernel! = flux_differencing_KAkernel_turbo!(backend,
+                                                flux_differencing_workgroupsize(kernel_type,
+                                                                                Val(NNODES))...)
     kernel!(du, u, equations,
             typeof(mesh),
             kernel_type,
@@ -581,21 +577,33 @@ end
     return nothing
 end
 
-@kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:Union{P4estMesh{3},
-                                                                 T8codeMesh{3}}},
-                                             ::HalfSweep,
-                                             have_nonconservative_terms::False,
-                                             dg::DGSEM,
-                                             numerical_flux,
-                                             ::Val{NNODES},
-                                             ::Val{NVARIABLES},
-                                             ::Val{NAUX},
-                                             derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES,
-                                                                  NAUX}
+"""
+    flux_differencing_KAkernel_turbo!(du, u, equations, MeshT, kernel_type,
+                                      have_nonconservative_terms, dg, numerical_flux,
+                                      ::Val{NNODES}, ::Val{NVARIABLES}, ::Val{NAUX},
+                                      derivative_split, contravariant_vectors, alpha)
+
+Variant of [`flux_differencing_KAkernel!`](@ref) for volume fluxes wrapped in a
+[`FluxTurbo`](@ref). The `NAUX` precomputed variables of `Trixi.cons2turbo` are
+evaluated once per node instead of once per two-point flux evaluation. For
+[`HalfSweep`](@ref) and [`FullSweep`](@ref) they are precomputed in shared memory, while
+[`FullSweepGlobal`](@ref) recomputes them for each partner node.
+"""
+@kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
+                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                       T8codeMesh{3}}},
+                                                   ::HalfSweep,
+                                                   have_nonconservative_terms::False,
+                                                   dg::DGSEM,
+                                                   numerical_flux,
+                                                   ::Val{NNODES},
+                                                   ::Val{NVARIABLES},
+                                                   ::Val{NAUX},
+                                                   derivative_split,
+                                                   contravariant_vectors,
+                                                   alpha = true) where {NNODES,
+                                                                        NVARIABLES,
+                                                                        NAUX}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -715,21 +723,21 @@ end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:Union{P4estMesh{3},
-                                                                 T8codeMesh{3}}},
-                                             ::HalfSweep,
-                                             have_nonconservative_terms::True,
-                                             dg::DGSEM,
-                                             numerical_flux,
-                                             ::Val{NNODES},
-                                             ::Val{NVARIABLES},
-                                             ::Val{NAUX},
-                                             derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES,
-                                                                  NAUX}
+@kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
+                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                       T8codeMesh{3}}},
+                                                   ::HalfSweep,
+                                                   have_nonconservative_terms::True,
+                                                   dg::DGSEM,
+                                                   numerical_flux,
+                                                   ::Val{NNODES},
+                                                   ::Val{NVARIABLES},
+                                                   ::Val{NAUX},
+                                                   derivative_split,
+                                                   contravariant_vectors,
+                                                   alpha = true) where {NNODES,
+                                                                        NVARIABLES,
+                                                                        NAUX}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -864,21 +872,21 @@ end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:Union{P4estMesh{3},
-                                                                 T8codeMesh{3}}},
-                                             ::FullSweep,
-                                             have_nonconservative_terms::False,
-                                             dg::DGSEM,
-                                             numerical_flux,
-                                             ::Val{NNODES},
-                                             ::Val{NVARIABLES},
-                                             ::Val{NAUX},
-                                             derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES,
-                                                                  NAUX}
+@kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
+                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                       T8codeMesh{3}}},
+                                                   ::FullSweep,
+                                                   have_nonconservative_terms::False,
+                                                   dg::DGSEM,
+                                                   numerical_flux,
+                                                   ::Val{NNODES},
+                                                   ::Val{NVARIABLES},
+                                                   ::Val{NAUX},
+                                                   derivative_split,
+                                                   contravariant_vectors,
+                                                   alpha = true) where {NNODES,
+                                                                        NVARIABLES,
+                                                                        NAUX}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -946,21 +954,21 @@ end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:Union{P4estMesh{3},
-                                                                 T8codeMesh{3}}},
-                                             ::FullSweep,
-                                             have_nonconservative_terms::True,
-                                             dg::DGSEM,
-                                             numerical_flux,
-                                             ::Val{NNODES},
-                                             ::Val{NVARIABLES},
-                                             ::Val{NAUX},
-                                             derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES,
-                                                                  NAUX}
+@kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
+                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                       T8codeMesh{3}}},
+                                                   ::FullSweep,
+                                                   have_nonconservative_terms::True,
+                                                   dg::DGSEM,
+                                                   numerical_flux,
+                                                   ::Val{NNODES},
+                                                   ::Val{NVARIABLES},
+                                                   ::Val{NAUX},
+                                                   derivative_split,
+                                                   contravariant_vectors,
+                                                   alpha = true) where {NNODES,
+                                                                        NVARIABLES,
+                                                                        NAUX}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -1031,21 +1039,21 @@ end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:Union{P4estMesh{3},
-                                                                 T8codeMesh{3}}},
-                                             ::FullSweepGlobal,
-                                             have_nonconservative_terms::False,
-                                             dg::DGSEM,
-                                             numerical_flux,
-                                             ::Val{NNODES},
-                                             ::Val{NVARIABLES},
-                                             ::Val{NAUX},
-                                             derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES,
-                                                                  NAUX}
+@kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
+                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                       T8codeMesh{3}}},
+                                                   ::FullSweepGlobal,
+                                                   have_nonconservative_terms::False,
+                                                   dg::DGSEM,
+                                                   numerical_flux,
+                                                   ::Val{NNODES},
+                                                   ::Val{NVARIABLES},
+                                                   ::Val{NAUX},
+                                                   derivative_split,
+                                                   contravariant_vectors,
+                                                   alpha = true) where {NNODES,
+                                                                        NVARIABLES,
+                                                                        NAUX}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
@@ -1111,21 +1119,21 @@ end
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
-@kernel function flux_differencing_KAkernel!(du, u, equations,
-                                             MeshT::Type{<:Union{P4estMesh{3},
-                                                                 T8codeMesh{3}}},
-                                             ::FullSweepGlobal,
-                                             have_nonconservative_terms::True,
-                                             dg::DGSEM,
-                                             numerical_flux,
-                                             ::Val{NNODES},
-                                             ::Val{NVARIABLES},
-                                             ::Val{NAUX},
-                                             derivative_split,
-                                             contravariant_vectors,
-                                             alpha = true) where {NNODES,
-                                                                  NVARIABLES,
-                                                                  NAUX}
+@kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
+                                                   MeshT::Type{<:Union{P4estMesh{3},
+                                                                       T8codeMesh{3}}},
+                                                   ::FullSweepGlobal,
+                                                   have_nonconservative_terms::True,
+                                                   dg::DGSEM,
+                                                   numerical_flux,
+                                                   ::Val{NNODES},
+                                                   ::Val{NVARIABLES},
+                                                   ::Val{NAUX},
+                                                   derivative_split,
+                                                   contravariant_vectors,
+                                                   alpha = true) where {NNODES,
+                                                                        NVARIABLES,
+                                                                        NAUX}
     # `true * [some floating point value] == [exactly the same floating point value]`
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
