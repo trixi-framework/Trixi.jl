@@ -28,13 +28,15 @@ end
 function check_flux_differencing_shared_memory(kernel::Union{HalfSweep, FullSweep}, semi)
     dg = semi.solver
     equations = semi.equations
-    volume_flux = semi.solver.volume_integral.volume_flux
-
-    if volume_flux isa FluxTurbo
-        nturbo = typeof(nturbovars(volume_flux.numerical_flux, equations)).parameters[1]
-        nshared = kernel isa HalfSweep ? nvariables(equations) + nturbo : nturbo
-    else
-        nshared = nvariables(equations)
+    volume_integral = semi.solver.volume_integral
+    if volume_integral isa VolumeIntegralFluxDifferencing
+        volume_flux = volume_integral.volume_flux
+        if volume_flux isa FluxTurbo
+            nturbo = typeof(nturbovars(volume_flux.numerical_flux, equations)).parameters[1]
+            nshared = kernel isa HalfSweep ? nvariables(equations) + nturbo : nturbo
+        else
+            nshared = nvariables(equations)
+        end
     end
 
     shared_memory = nshared * nnodes(dg)^3 * sizeof(real(dg))
