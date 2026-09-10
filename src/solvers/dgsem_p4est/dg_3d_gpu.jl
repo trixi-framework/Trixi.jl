@@ -883,6 +883,8 @@ end
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
 
+    # We do not need `u_local` as in the regular `FullSweep` flux differencing
+    # kernel but only the local turbo variables.
     turbo_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
@@ -965,6 +967,8 @@ end
     # This can (hopefully) be optimized away due to constant propagation.
     i, j, k, element = @index(Global, NTuple)
 
+    # We do not need `u_local` as in the regular `FullSweep` flux differencing
+    # kernel but only the local turbo variables.
     turbo_local = @localmem eltype(du) (NAUX, NNODES, NNODES, NNODES)
 
     u_node = get_node_vars(u, equations, dg, i, j, k, element)

@@ -554,7 +554,7 @@ end
     # We inline the logarithmic mean to allow LoopVectorization.jl to optimize
     # it efficiently. This is equivalent to
     # rho_mean = ln_mean(rho_ll, rho_rr)
-    RealT = eltype(rho_ll)
+    RealT = typeof(rho_ll)
     epsilon_z = convert(RealT, 1.0e-4)
     # Coefficients of the Taylor series expansion used for the logarithmic mean
     c1 = convert(RealT, 2 / 3)
