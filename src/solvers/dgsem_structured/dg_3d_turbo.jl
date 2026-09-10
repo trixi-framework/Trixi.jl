@@ -602,5 +602,5 @@ end
           +
           0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
 
-    return (f1, f2, f3, f4, f5)
+    return SVector(f1, f2, f3, f4, f5)
 end

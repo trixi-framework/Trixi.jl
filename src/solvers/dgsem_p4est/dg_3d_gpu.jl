@@ -634,14 +634,11 @@ end
         Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
         # compute the contravariant volume flux in the direction of the averaged
         # contravariant vector, using the precomputed variables of both nodes
-        fluxtilde1 = SVector{NVARIABLES}(flux_turbo(numerical_flux,
-                                                    turbo_node...,
-                                                    get_node_turbo(turbo_local,
-                                                                   Val(NAUX),
-                                                                   ii, j, k)...,
-                                                    Ja1_avg[1], Ja1_avg[2],
-                                                    Ja1_avg[3],
-                                                    equations))
+        fluxtilde1 = flux_turbo(numerical_flux,
+                                turbo_node...,
+                                get_node_turbo(turbo_local, Val(NAUX), ii, j, k)...,
+                                Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
+                                equations)
 
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde1[v]
@@ -667,14 +664,11 @@ end
         Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
         # compute the contravariant volume flux in the direction of the averaged
         # contravariant vector, using the precomputed variables of both nodes
-        fluxtilde2 = SVector{NVARIABLES}(flux_turbo(numerical_flux,
-                                                    turbo_node...,
-                                                    get_node_turbo(turbo_local,
-                                                                   Val(NAUX),
-                                                                   i, jj, k)...,
-                                                    Ja2_avg[1], Ja2_avg[2],
-                                                    Ja2_avg[3],
-                                                    equations))
+        fluxtilde2 = flux_turbo(numerical_flux,
+                                turbo_node...,
+                                get_node_turbo(turbo_local, Val(NAUX), i, jj, k)...,
+                                Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
+                                equations)
 
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde2[v]
@@ -700,14 +694,11 @@ end
         Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
         # compute the contravariant volume flux in the direction of the averaged
         # contravariant vector, using the precomputed variables of both nodes
-        fluxtilde3 = SVector{NVARIABLES}(flux_turbo(numerical_flux,
-                                                    turbo_node...,
-                                                    get_node_turbo(turbo_local,
-                                                                   Val(NAUX),
-                                                                   i, j, kk)...,
-                                                    Ja3_avg[1], Ja3_avg[2],
-                                                    Ja3_avg[3],
-                                                    equations))
+        fluxtilde3 = flux_turbo(numerical_flux,
+                                turbo_node...,
+                                get_node_turbo(turbo_local, Val(NAUX), i, j, kk)...,
+                                Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
+                                equations)
 
         @inbounds for v in 1:NVARIABLES
             flux_local[v, i, j, k] = fluxtilde3[v]
@@ -780,8 +771,8 @@ end
         fluxtilde1_left, fluxtilde1_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX),
-                                                                      ii, j, k)...,
+                                                                      Val(NAUX), ii, j,
+                                                                      k)...,
                                                        Ja1_avg[1], Ja1_avg[2],
                                                        Ja1_avg[3],
                                                        equations)
@@ -794,7 +785,7 @@ end
         iib = mod(i - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * alpha * derivative_split[i, ii]) *
-                   SVector{NVARIABLES}(fluxtilde1_left) +
+                   fluxtilde1_left +
                    (weight * alpha * derivative_split[i, iib]) *
                    get_node_vars(flux_local, equations, dg, iib, j, k)
         @synchronize
@@ -815,8 +806,8 @@ end
         fluxtilde2_left, fluxtilde2_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX),
-                                                                      i, jj, k)...,
+                                                                      Val(NAUX), i, jj,
+                                                                      k)...,
                                                        Ja2_avg[1], Ja2_avg[2],
                                                        Ja2_avg[3],
                                                        equations)
@@ -829,7 +820,7 @@ end
         jjb = mod(j - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * alpha * derivative_split[j, jj]) *
-                   SVector{NVARIABLES}(fluxtilde2_left) +
+                   fluxtilde2_left +
                    (weight * alpha * derivative_split[j, jjb]) *
                    get_node_vars(flux_local, equations, dg, i, jjb, k)
         @synchronize
@@ -850,8 +841,8 @@ end
         fluxtilde3_left, fluxtilde3_right = flux_turbo(numerical_flux,
                                                        turbo_node...,
                                                        get_node_turbo(turbo_local,
-                                                                      Val(NAUX),
-                                                                      i, j, kk)...,
+                                                                      Val(NAUX), i, j,
+                                                                      kk)...,
                                                        Ja3_avg[1], Ja3_avg[2],
                                                        Ja3_avg[3],
                                                        equations)
@@ -864,7 +855,7 @@ end
         kkb = mod(k - 1 - offset, NNODES) + 1
         du_local = du_local +
                    (weight * alpha * derivative_split[k, kk]) *
-                   SVector{NVARIABLES}(fluxtilde3_left) +
+                   fluxtilde3_left +
                    (weight * alpha * derivative_split[k, kkb]) *
                    get_node_vars(flux_local, equations, dg, i, j, kkb)
         @synchronize
@@ -919,7 +910,7 @@ end
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[i, ii]) * SVector{NVARIABLES}(fluxtilde1)
+                   (alpha * derivative_split[i, ii]) * fluxtilde1
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -934,7 +925,7 @@ end
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[j, jj]) * SVector{NVARIABLES}(fluxtilde2)
+                   (alpha * derivative_split[j, jj]) * fluxtilde2
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -949,7 +940,7 @@ end
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[k, kk]) * SVector{NVARIABLES}(fluxtilde3)
+                   (alpha * derivative_split[k, kk]) * fluxtilde3
     end
 
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -1002,7 +993,7 @@ end
                                         equations)
         du_local = du_local +
                    (alpha * derivative_split[i, ii]) *
-                   SVector{NVARIABLES}(fluxtilde1_left)
+                   fluxtilde1_left
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -1018,7 +1009,7 @@ end
                                         equations)
         du_local = du_local +
                    (alpha * derivative_split[j, jj]) *
-                   SVector{NVARIABLES}(fluxtilde2_left)
+                   fluxtilde2_left
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -1034,7 +1025,7 @@ end
                                         equations)
         du_local = du_local +
                    (alpha * derivative_split[k, kk]) *
-                   SVector{NVARIABLES}(fluxtilde3_left)
+                   fluxtilde3_left
     end
 
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -1080,7 +1071,7 @@ end
                                 Ja1_avg[1], Ja1_avg[2], Ja1_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[i, ii]) * SVector{NVARIABLES}(fluxtilde1)
+                   (alpha * derivative_split[i, ii]) * fluxtilde1
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -1097,7 +1088,7 @@ end
                                 Ja2_avg[1], Ja2_avg[2], Ja2_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[j, jj]) * SVector{NVARIABLES}(fluxtilde2)
+                   (alpha * derivative_split[j, jj]) * fluxtilde2
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -1114,7 +1105,7 @@ end
                                 Ja3_avg[1], Ja3_avg[2], Ja3_avg[3],
                                 equations)
         du_local = du_local +
-                   (alpha * derivative_split[k, kk]) * SVector{NVARIABLES}(fluxtilde3)
+                   (alpha * derivative_split[k, kk]) * fluxtilde3
     end
 
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
@@ -1161,7 +1152,7 @@ end
                                         equations)
         du_local = du_local +
                    (alpha * derivative_split[i, ii]) *
-                   SVector{NVARIABLES}(fluxtilde1_left)
+                   fluxtilde1_left
     end
 
     Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
@@ -1179,7 +1170,7 @@ end
                                         equations)
         du_local = du_local +
                    (alpha * derivative_split[j, jj]) *
-                   SVector{NVARIABLES}(fluxtilde2_left)
+                   fluxtilde2_left
     end
 
     Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
@@ -1197,7 +1188,7 @@ end
                                         equations)
         du_local = du_local +
                    (alpha * derivative_split[k, kk]) *
-                   SVector{NVARIABLES}(fluxtilde3_left)
+                   fluxtilde3_left
     end
 
     add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
