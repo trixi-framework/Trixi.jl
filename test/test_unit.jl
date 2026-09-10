@@ -1147,11 +1147,14 @@ end
                   energy_internal_specific(V, T, eos_explicit)
             @test Trixi.heat_capacity_constant_volume(V, T, eos_helmholtz) ≈
                   Trixi.heat_capacity_constant_volume(V, T, eos_explicit)
-            dpdT_helmholtz, dpdV_helmholtz = Trixi.calc_pressure_derivatives(V, T, eos_helmholtz)
-            dpdT_explicit, dpdV_explicit = Trixi.calc_pressure_derivatives(V, T, eos_explicit)
+            dpdT_helmholtz, dpdV_helmholtz = Trixi.calc_pressure_derivatives(V, T,
+                                                                             eos_helmholtz)
+            dpdT_explicit, dpdV_explicit = Trixi.calc_pressure_derivatives(V, T,
+                                                                           eos_explicit)
             @test dpdT_helmholtz ≈ dpdT_explicit
             @test dpdV_helmholtz ≈ dpdV_explicit
-            @test Trixi.speed_of_sound(V, T, eos_helmholtz) ≈ Trixi.speed_of_sound(V, T, eos_explicit)
+            @test Trixi.speed_of_sound(V, T, eos_helmholtz) ≈
+                  Trixi.speed_of_sound(V, T, eos_explicit)
 
             e = energy_internal_specific(V, T, eos_helmholtz)
             @test temperature(V, e, eos_helmholtz)≈T rtol=T_rtol
@@ -1160,7 +1163,8 @@ end
             s_helmholtz = Trixi.entropy_specific(V, T, eos_helmholtz)
             s_explicit = Trixi.entropy_specific(V, T, eos_explicit)
             @test s_helmholtz ≈ s_explicit + eos_helmholtz.R + cv_eos(eos_helmholtz)
-            @test Trixi.gibbs_free_energy(V, T, eos_helmholtz) ≈ e + p_helmholtz * V - T * s_helmholtz
+            @test Trixi.gibbs_free_energy(V, T, eos_helmholtz) ≈
+                  e + p_helmholtz * V - T * s_helmholtz
         end
     end
 end
