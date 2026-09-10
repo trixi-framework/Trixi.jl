@@ -413,6 +413,11 @@ function calc_mortar_flux_low_order!(surface_flux_values,
     (; mortar_weights, mortar_weights_sums) = mortar_idp
     index_range = eachnode(dg)
 
+    # `surface_flux_values` is defined with element-local indices. For the large element, we need
+    # to map the mortar node to the large-element face (using `get_mortar_index`) since its orientation
+    # may be flipped. Since the small element are always traversed forward, the element-local
+    # indices are the same as the loop counters.
+
     @threaded for mortar in eachmortar(dg, cache)
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -440,10 +445,6 @@ function calc_mortar_flux_low_order!(surface_flux_values,
         j_small = j_small_start
         # Calculate fluxes
         for i in eachnode(dg)
-            # Index of the small-element face node. Equal to `i` because the small side is
-            # always traversed forward, but kept explicit to mirror `j_mortar` below.
-            i_mortar = get_mortar_index(small_indices, i_small, j_small)
-
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
                 u_small_local, _ = get_surface_node_vars(mortars.u, equations, dg,
@@ -483,7 +484,7 @@ function calc_mortar_flux_low_order!(surface_flux_values,
                                                    factor /
                                                    mortar_weights_sums[i, 1],
                                                    flux, equations, dg,
-                                                   i_mortar, small_direction,
+                                                   i, small_direction,
                                                    small_element)
                         # Add flux to large element
                         # The flux is calculated in the outward direction of the small elements,

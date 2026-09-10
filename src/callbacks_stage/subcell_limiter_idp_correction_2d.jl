@@ -197,6 +197,11 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
+    # `surface_flux_values` and `surface_flux_values_high_order` are defined with element-local
+    # indices. For the large element, we need to map the mortar node to the large-element face
+    # (using `get_mortar_index`) since its orientation may be flipped. Since the small element are
+    # always traversed forward, the element-local indices are the same as the loop counters.
+
     for mortar in eachmortar(dg, cache)
         if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue
