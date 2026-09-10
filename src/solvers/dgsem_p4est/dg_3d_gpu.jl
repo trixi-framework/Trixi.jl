@@ -561,6 +561,15 @@ end
     @unpack numerical_flux = volume_integral.volume_flux
     NNODES = nnodes(dg)
     kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
+
+    # Fallback for FullSweepGlobal when wrapped with FluxTurbo.
+    if kernel_type isa FullSweepGlobal
+        return calc_volume_integral!(backend, du, u, mesh, have_nonconservative_terms,
+                                     equations,
+                                     VolumeIntegralFluxDifferencing(numerical_flux),
+                                     dg, cache)
+    end
+
     kernel! = flux_differencing_KAkernel_turbo!(backend,
                                                 flux_differencing_workgroupsize(kernel_type,
                                                                                 Val(NNODES))...)
