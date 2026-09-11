@@ -172,6 +172,7 @@ function step!(integrator::SimpleIntegratorSSP)
     @unpack alg = integrator
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
+    (; numerator_a, numerator_b, denominator) = alg
 
     @assert !integrator.finalstep
     if isnan(integrator.dt)
@@ -182,13 +183,11 @@ function step!(integrator::SimpleIntegratorSSP)
 
     limit_dt!(integrator, t_end)
 
-    u, u_tmp = integrator.u, integrator.u_tmp
+    (; u, u_tmp, du, dt) = integrator
     @threaded for i in eachindex(u)
         u_tmp[i] = u[i]
     end
     for stage in eachindex(alg.c)
-        u, du, u_tmp, dt = integrator.u, integrator.du, integrator.u_tmp, integrator.dt
-
         t_stage = integrator.t + dt * alg.c[stage]
         # compute du
         integrator.f(du, u, integrator.p, t_stage)
@@ -203,11 +202,12 @@ function step!(integrator::SimpleIntegratorSSP)
         end
 
         # perform convex combination
-        # skip the stage if a = 0 (and therefore b = denominator = 1), because then the
-        # convex combination is simply u = u and is not needed
-        if !iszero(alg.numerator_a[stage])
-            a, b, d = alg.numerator_a[stage], alg.numerator_b[stage],
-                      alg.denominator[stage]
+        a = numerator_a[stage]
+        # Skip the convex combination if a = 0. In that case, b = denominator = 1 holds
+        # as well, such that the combination reduces to the identity u = u.
+        if !iszero(a)
+            b = numerator_b[stage]
+            d = denominator[stage]
             @threaded for i in eachindex(integrator.u)
                 u[i] = (a * u_tmp[i] + b * u[i]) / d
             end
