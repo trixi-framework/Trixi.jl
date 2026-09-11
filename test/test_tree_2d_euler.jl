@@ -190,6 +190,42 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
 end
 
+@testitem "TreeMesh2D Euler: elixir_euler_density_wave_isentropic_flow_nonconforming_idp_mortars.jl" setup=[
+    Setup,
+    TreeMesh2DEuler
+] tags=[:tree_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_isentropic_flow_nonconforming_idp_mortars.jl"),
+                        l2=[
+                            0.0005121701087787252,
+                            0.0005296935844600892,
+                            0.0005273442464117259,
+                            0.0007054111755637014
+                        ],
+                        linf=[
+                            0.013863314342036664,
+                            0.007543930367019967,
+                            0.006804171429210526,
+                            0.010804154321971349
+                        ])
+    # Ensure that the IDP mortars are actually exercised by this setup
+    @test Trixi.nmortars(semi.cache.mortars) > 0
+
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    # Larger values for allowed allocations due to usage of custom
+    # integrator which are not *recorded* for the methods from
+    # OrdinaryDiffEq.jl
+    # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 15_000)
+end
+
 @testitem "TreeMesh2D Euler: elixir_euler_density_wave.jl with entropy correction" setup=[
     Setup,
     TreeMesh2DEuler
