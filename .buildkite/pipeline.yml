@@ -1,3 +1,12 @@
+# The GPU tests are *not* run automatically for every push or pull request, since they are
+# not essential for the vast majority of pull requests and the GPU machines are a scarce
+# resource. Therefore, it can take quite a while for them to start. They only run if
+#   * they were explicitly requested by commenting `/run_gpu_tests` on a pull request,
+#     which triggers a build via `.github/workflows/TriggerGPUTests.yml`, or
+#   * the build is for the default branch (`main`), i.e., after a pull request was merged,
+#     or
+#   * the build was started manually from the Buildkite web interface.
+
 env:
 
 steps:
@@ -16,7 +25,11 @@ steps:
       TRIXI_TEST_VERBOSE: "true"
     agents:
       queue: "cuda"
-    if: build.message !~ /\[skip ci\]/
+    if: >
+      build.message !~ /\[skip ci\]/ &&
+      (build.source == "api" ||
+      build.branch == pipeline.default_branch ||
+      build.source == "ui")
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
@@ -35,7 +48,11 @@ steps:
       TRIXI_TEST_VERBOSE: "true"
     agents:
       queue: "rocm"
-    if: build.message !~ /\[skip ci\]/
+    if: >
+      build.message !~ /\[skip ci\]/ &&
+      (build.source == "api" ||
+      build.branch == pipeline.default_branch ||
+      build.source == "ui")
     timeout_in_minutes: 60
     soft_fail:
       - exit_status: 3
