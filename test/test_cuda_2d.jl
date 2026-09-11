@@ -24,6 +24,13 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === Array
     @test Trixi.storage_type(ode.p.cache.boundaries) === Array
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_advection_basic.jl Float32 / CUDA" setup=[Setup, CUDA2DExamples] tags=[:CUDA] begin
@@ -53,6 +60,13 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === CuArray
     @test Trixi.storage_type(ode.p.cache.boundaries) === CuArray
     @test Trixi.storage_type(ode.p.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_euler_source_terms.jl native" setup=[Setup, CUDA2DExamples] tags=[:CUDA] begin
@@ -83,6 +97,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_euler_source_terms.jl Float32 / CUDA" setup=[
@@ -120,6 +141,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_euler_source_terms.jl Flux Differencing Float32 / CUDA" setup=[
@@ -160,6 +188,13 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
 @testitem "CUDA 2D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / CUDA" setup=[
@@ -209,4 +244,11 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === CuArray
     @test Trixi.storage_type(semi.cache.boundaries) === CuArray
     @test Trixi.storage_type(semi.cache.mortars) === CuArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
