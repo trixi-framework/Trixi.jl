@@ -11,31 +11,32 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a mixed hyperbolic-parabolic conservation law.
 """
-struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic,
-                                             InitialCondition,
-                                             BoundaryConditions,
-                                             BoundaryConditionsParabolic,
-                                             SourceTerms, SourceTermsParabolic,
-                                             Solver, SolverParabolic,
-                                             Cache, CacheParabolic} <:
-       AbstractSemidiscretization
+mutable struct SemidiscretizationHyperbolicParabolic{Mesh, Equations,
+                                                     EquationsParabolic,
+                                                     InitialCondition,
+                                                     BoundaryConditions,
+                                                     BoundaryConditionsParabolic,
+                                                     SourceTerms, SourceTermsParabolic,
+                                                     Solver, SolverParabolic,
+                                                     Cache, CacheParabolic} <:
+               AbstractSemidiscretization
     mesh::Mesh
 
-    equations::Equations
-    equations_parabolic::EquationsParabolic
+    equations::Equations # cannot be const due to `GlmSpeedCallback`
+    const equations_parabolic::EquationsParabolic
 
     # This guy is a bit messy since we abuse it as some kind of "exact solution"
     # although this doesn't really exist...
-    initial_condition::InitialCondition
+    const initial_condition::InitialCondition
 
-    boundary_conditions::BoundaryConditions
-    boundary_conditions_parabolic::BoundaryConditionsParabolic
+    const boundary_conditions::BoundaryConditions
+    const boundary_conditions_parabolic::BoundaryConditionsParabolic
 
-    source_terms::SourceTerms
-    source_terms_parabolic::SourceTermsParabolic
+    const source_terms::SourceTerms
+    const source_terms_parabolic::SourceTermsParabolic
 
-    solver::Solver
-    solver_parabolic::SolverParabolic
+    const solver::Solver
+    const solver_parabolic::SolverParabolic
 
     cache::Cache
     cache_parabolic::CacheParabolic
@@ -396,7 +397,9 @@ function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabo
 end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-    @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms_parabolic, solver, solver_parabolic, cache, cache_parabolic = semi
+    @unpack mesh, equations_parabolic, boundary_conditions_parabolic,
+    source_terms_parabolic, solver, solver_parabolic, cache,
+    cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache)
