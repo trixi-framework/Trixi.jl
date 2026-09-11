@@ -99,6 +99,8 @@ function perform_idp_mortar_correction(u, dt, mesh::TreeMesh{2}, equations, dg, 
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
+    # Using a serial loop here because corner nodes can be adapted by more than 1 mortars
+    # simultaneously and therefore, the updates to the corner nodes are not thread-safe.
     for mortar in eachmortar(dg, cache)
         if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue
@@ -202,6 +204,8 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
     # (using `get_mortar_index`) since its orientation may be flipped. Since the small elements are
     # always traversed forward, the element-local indices are the same as the loop counters.
 
+    # Using a serial loop here because corner nodes can be adapted by more than 1 mortars
+    # simultaneously and therefore, the updates to the corner nodes are not thread-safe.
     for mortar in eachmortar(dg, cache)
         if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue

@@ -19,6 +19,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain",
                    cb::DiscreteCallback{<:Any, <:LimitingAnalysisCallback})
+    # TODO: Do we want any return value here?
     return nothing
 end
 

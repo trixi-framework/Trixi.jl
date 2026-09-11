@@ -243,7 +243,9 @@ end
 function MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
                    pure_low_order = false,
                    output_directory = "out")
-    @assert limiter isa SubcellLimiterIDP
+    if !(limiter isa SubcellLimiterIDP)
+        throw(ArgumentError("`MortarIDP` requires a `SubcellLimiterIDP`, got a `$(typeof(limiter))`."))
+    end
     RealT = real(basis)
     n_dims = ndims(equations)
     nnodes_ = nnodes(basis)

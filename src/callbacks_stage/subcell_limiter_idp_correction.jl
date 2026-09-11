@@ -59,7 +59,7 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     # Calculate blending factor alpha in [0,1]
     # f_ij = alpha_ij * f^(FV)_ij + (1 - alpha_ij) * f^(DG)_ij
     #      = f^(FV)_ij + (1 - alpha_ij) * f^(antidiffusive)_ij
-    @trixi_timeit timer() "blending factors" if indicator === nothing
+    @trixi_timeit timer() "blending factors" if isnothing(indicator)
         limiter(u, semi, equations, solver, t, dt)
     else
         limiter(u, semi, equations, solver, t, dt, alpha_indicator)
@@ -70,7 +70,7 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
 
     if solver.mortar isa Trixi.LobattoLegendreMortarIDP &&
        !(solver.mortar.pure_low_order)
-        @trixi_timeit timer() "mortar blending factors" if indicator === nothing
+        @trixi_timeit timer() "mortar blending factors" if isnothing(indicator)
             calc_mortar_limiting_factor!(u, semi, t, dt)
         else
             calc_mortar_limiting_factor!(u, semi, t, dt, alpha_indicator)

@@ -165,7 +165,7 @@ function Base.resize!(container::ContainerSubcellLimiterIDP, capacity)
     n_nodes = nnodes(container)
     n_dims = ndims(container)
 
-    (; _alpha, _alpha_local) = container
+    (; _alpha) = container
     resize!(_alpha, prod(ntuple(_ -> n_nodes, n_dims)) * capacity)
     container.alpha = unsafe_wrap(Array, pointer(_alpha),
                                   (ntuple(_ -> n_nodes, n_dims)..., capacity))

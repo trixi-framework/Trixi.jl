@@ -525,8 +525,6 @@ end
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
-        upper_element = neighbor_ids[2, mortar]
-        lower_element = neighbor_ids[1, mortar]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -695,8 +693,6 @@ end
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
-        upper_element = neighbor_ids[2, mortar]
-        lower_element = neighbor_ids[1, mortar]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -816,8 +812,6 @@ end
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
-        upper_element = neighbor_ids[2, mortar]
-        lower_element = neighbor_ids[1, mortar]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -969,8 +963,6 @@ end
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
-        upper_element = neighbor_ids[2, mortar]
-        lower_element = neighbor_ids[1, mortar]
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
