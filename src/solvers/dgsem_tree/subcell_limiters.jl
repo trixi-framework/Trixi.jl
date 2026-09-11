@@ -111,7 +111,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     positivity = (length(positivity_variables_cons) +
                   length(positivity_variables_nonlinear) > 0)
 
-    if indicator !== nothing && ndims(equations) != 2
+    if !isnothing(indicator) && ndims(equations) != 2
         error("The smoothness indicator is only implemented in 2D.")
     end
 

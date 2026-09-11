@@ -52,7 +52,7 @@ function (limiter!::SubcellLimiterIDPCorrection)(u_ode, semi, t, dt,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     (; indicator) = limiter
-    if indicator !== nothing
+    if !isnothing(indicator)
         alpha_indicator = indicator(u, semi.mesh, equations, solver, semi.cache)
     end
 

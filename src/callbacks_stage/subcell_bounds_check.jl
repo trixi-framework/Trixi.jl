@@ -38,7 +38,7 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
 
     if ndims(equations) == 2 &&
        solver.volume_integral isa VolumeIntegralSubcellLimiting &&
-       solver.volume_integral.limiter.indicator !== nothing
+       !isnothing(solver.volume_integral.limiter.indicator)
         # When using a smoothness indicator, a convex combination of the limiting factors from
         # local and positivity limiting are used. However, the deviations are computed solely with
         # respect to the local bounds. Consequently, the resulting deviation statistics would not
@@ -170,7 +170,7 @@ end
     end
     if ndims(semi.equations) == 2 &&
        semi.solver.volume_integral isa VolumeIntegralSubcellLimiting &&
-       limiter.indicator !== nothing
+       !isnothing(limiter.indicator)
         println("Due to the use of a smoothness indicator, a convex combination of the limiting factors of local and")
         println("positivity limiting was employed. However, the deviations are computed solely with respect to the local")
         println("bounds. Consequently, the resulting deviation statistics may not be meaningful and can exceed zero.")

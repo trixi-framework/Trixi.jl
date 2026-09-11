@@ -27,7 +27,7 @@ end
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralSubcellLimiting, dg,
                                 cache)
-    if volume_integral.limiter.indicator !== nothing
+    if !isnothing(volume_integral.limiter.indicator)
         # call the indicator to get up-to-date values for IO
         volume_integral.limiter.indicator(u, mesh, equations, dg, cache)
         return get_element_variables!(element_variables,
