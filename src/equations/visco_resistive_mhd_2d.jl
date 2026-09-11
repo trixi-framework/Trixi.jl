@@ -103,7 +103,7 @@ function gradient_variable_transformation(::ViscoResistiveMhd2D{GradientVariable
 end
 
 # cons2prim_temperature returns (rho, v1, v2, v3, T, B1, B2, B3, psi) where T = p/rho is temperature.
-# This differs from the hyperbolic cons2prim_temperature which returns pressure as the 5th variable.
+# This differs from the hyperbolic cons2prim which returns pressure as the 5th variable.
 # Gradients are taken of these transformed variables, so the 5th gradient component is dT/dx,
 # which is what the heat flux needs.
 @inline function cons2prim_temperature(u, equations::ViscoResistiveMhd2D)
