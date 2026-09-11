@@ -9,10 +9,10 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                          semi, mesh::StructuredMesh{2}, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    for element in eachelement(dg, cache)
-        # Get neighboring element ids
+    # Process x- and y-oriented interfaces separately. Within one loop each face is written by exactly one element iteration; the barrier between the loops prevents races at element corners.
+    @threaded for element in eachelement(dg, cache)
+        # Get neighboring element id
         left = cache.elements.left_neighbors[1, element]
-        lower = cache.elements.left_neighbors[2, element]
 
         if left != 0
             for j in eachnode(dg)
@@ -28,6 +28,11 @@ function calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                                    var_element)
             end
         end
+    end
+    @threaded for element in eachelement(dg, cache)
+        # Get neighboring element id
+        lower = cache.elements.left_neighbors[2, element]
+
         if lower != 0
             for i in eachnode(dg)
                 var_lower = u[variable, i, nnodes(dg), lower]
@@ -143,10 +148,12 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
     (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
     n_nodes = nnodes(dg)
 
-    for element in eachelement(dg, cache)
-        # Get neighboring element ids
+    # Process x- and y-oriented interfaces separately. Interfaces with the
+    # same orientation update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    @threaded for element in eachelement(dg, cache)
+        # Get neighboring element id
         left = cache.elements.left_neighbors[1, element]
-        lower = cache.elements.left_neighbors[2, element]
 
         if left != 0
             for j in eachnode(dg)
@@ -158,6 +165,11 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u,
                                                       var_element)
             end
         end
+    end
+    @threaded for element in eachelement(dg, cache)
+        # Get neighboring element id
+        lower = cache.elements.left_neighbors[2, element]
+
         if lower != 0
             for i in eachnode(dg)
                 var_lower = variable_values[i, n_nodes, lower]
