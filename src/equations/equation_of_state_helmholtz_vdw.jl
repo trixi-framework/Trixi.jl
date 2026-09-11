@@ -26,16 +26,20 @@ struct HelmholtzVanDerWaals{RealT <: Real} <: AbstractHelmholtzEOS
 end
 
 """
-    HelmholtzVanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
-                          gamma = 5 / 3, R = 296.8390795484912)
+    HelmholtzVanDerWaals(; kwargs...)
 
-Constructs a [`HelmholtzVanDerWaals`](@ref) with the same defaults as [`VanDerWaals`](@ref).
-By default, van der Waals parameters are for N2.
+Constructs a [`HelmholtzVanDerWaals`](@ref) with the same keyword arguments and defaults as
+[`VanDerWaals`](@ref).
 """
-function HelmholtzVanDerWaals(; a = 174.64049524257663, b = 0.001381308696129041,
-                              gamma = 5 / 3, R = 296.8390795484912)
-    cv = R / (gamma - 1)
-    return HelmholtzVanDerWaals(promote(a, b, gamma, R, cv)...)
+HelmholtzVanDerWaals(; kwargs...) = HelmholtzVanDerWaals(VanDerWaals(; kwargs...))
+
+"""
+    HelmholtzVanDerWaals(eos::VanDerWaals)
+
+Constructs a [`HelmholtzVanDerWaals`](@ref) from an existing [`VanDerWaals`](@ref).
+"""
+function HelmholtzVanDerWaals(eos::VanDerWaals)
+    return HelmholtzVanDerWaals{typeof(eos.a)}(eos.a, eos.b, eos.gamma, eos.R, eos.cv)
 end
 
 function Base.similar(eos::HelmholtzVanDerWaals, ::Type{NewRealT}) where {NewRealT}
