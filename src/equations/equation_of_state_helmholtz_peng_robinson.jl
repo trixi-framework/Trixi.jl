@@ -34,7 +34,7 @@ end
 """
     HelmholtzPengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324)
 
-Constructs a [`HelmholtzPengRobinson`](@ref) with the same interface as [`PengRobinson`](@ref).
+Constructs a [`HelmholtzPengRobinson`](@ref); see [`PengRobinson`](@ref) for parameter conventions.
 """
 HelmholtzPengRobinson(a0, b, cv0, kappa, Tc, R = 8.31446261815324) = HelmholtzPengRobinson(PengRobinson(a0,
                                                                                                         b,
@@ -65,10 +65,7 @@ end
 """
     HelmholtzPengRobinson(; RealT = Float64)
 
-By default, the units for the Peng-Robinson parameters are in mass basis
-(such as kg / m^3) as opposed to molar basis units (such as kg / mol).
-
-The default parameters are for N2.
+Constructs a [`HelmholtzPengRobinson`](@ref) with the same defaults as [`PengRobinson(; RealT)`](@ref).
 """
 HelmholtzPengRobinson(; RealT = Float64) = HelmholtzPengRobinson(PengRobinson(; RealT))
 
