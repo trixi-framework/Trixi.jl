@@ -666,7 +666,7 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractContainer
+mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractTreeL2MortarContainer
     u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_large::Array{uEltype, 3}  # [variables, i, mortars]
@@ -753,9 +753,6 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
                                          limiting_factor, limiting_factor_local,
                                          _u_upper, _u_lower, _u_large, _neighbor_ids)
 end
-
-# Return number of IDP mortars
-@inline nmortars(l2mortars::IDPMortarContainer2D) = length(l2mortars.orientations)
 
 # Allow printing container contents
 function Base.show(io::IO, ::MIME"text/plain", c::IDPMortarContainer2D)

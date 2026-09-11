@@ -697,7 +697,7 @@ mutable struct P4estIDPMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}}} <:
-               AbstractContainer
+               AbstractMortarContainer
     u::uArray # [small/large side, variable, position, i, j, mortar]
     u_large::uLArray # [variable, i, j, mortar]
     neighbor_ids::IdsMatrix # [position, mortar]
