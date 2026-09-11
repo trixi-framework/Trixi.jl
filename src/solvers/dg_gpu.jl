@@ -3,10 +3,26 @@
     return ntuple(v -> (@inbounds turbo_local[v, indices...]), Val(NAUX))
 end
 
+# This is a general fallback for volume integral kernels, parallelizing across
+# elements on GPUs in the same way as we do on CPUs. Optimized kernels, e.g.,
+# for flux differencing, parallelize across the individual solution nodes
+# and are contained in the files src/solvers/dgsem_p4est/dg_2d_gpu.jl and
+# src/solvers/dgsem_p4est/dg_3d_gpu.jl.
 function calc_volume_integral!(backend::Backend, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
     nelements(dg, cache) == 0 && return nothing
+
+    # Reset du
+    # In the usual (CPU) code, this is called at the beginning of rhs_hyperbolic!
+    # However, we can significantly improve the performance on GPUs by avoiding
+    # launching an additional kernel for this memory reset. Thus, specialized
+    # GPU volume kernels write directly into the existing `du` array, and we reset
+    # it here for the general (fallback) case.
+    @trixi_timeit_ext backend timer() "reset ∂u/∂t" begin
+        set_zero!(du, dg, cache)
+    end
+
     kernel! = volume_integral_KAkernel!(backend)
     kernel_cache = kernel_filter_cache(cache)
     kernel!(du, u, typeof(mesh), have_nonconservative_terms, equations,
