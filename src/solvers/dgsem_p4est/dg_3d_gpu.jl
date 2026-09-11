@@ -7,14 +7,14 @@
 
 # The half sweep and full sweep kernels have a shared memory within an element,
 # and therefore, they need all nodes of an element in a single workgroup.
-@inline function flux_differencing_workgroupsize(::Union{HalfSweep, FullSweep},
-                                                 ::Val{NNODES}) where {NNODES}
+@inline function flux_differencing_workgroupsize_3d(::Union{HalfSweep, FullSweep},
+                                                    ::Val{NNODES}) where {NNODES}
     return ((NNODES, NNODES, NNODES, 1),)
 end
 
 # The global full sweep kernel does not use shared memory, so we let KernelAbstractions
 # pick the workgroup size for it.
-@inline flux_differencing_workgroupsize(::FullSweepGlobal, ::Val) = ()
+@inline flux_differencing_workgroupsize_3d(::FullSweepGlobal, ::Val) = ()
 
 @inline function calc_volume_integral!(backend::Backend, du, u,
                                        mesh::Union{P4estMesh{3}, T8codeMesh{3}},
@@ -27,8 +27,8 @@ end
     NNODES = nnodes(dg)
     kernel_type = flux_differencing_kernel(backend, cache.flux_differencing_kernel)
     kernel! = flux_differencing_KAkernel!(backend,
-                                          flux_differencing_workgroupsize(kernel_type,
-                                                                          Val(NNODES))...)
+                                          flux_differencing_workgroupsize_3d(kernel_type,
+                                                                             Val(NNODES))...)
     kernel!(du, u, equations,
             typeof(mesh),
             kernel_type,
@@ -43,32 +43,25 @@ end
     return nothing
 end
 
-"""
-    flux_differencing_KAkernel!(du, u, equations, MeshT, kernel_type,
-                                have_nonconservative_terms,
-                                combine_conservative_and_nonconservative_fluxes,
-                                dg, volume_flux, ::Val{NNODES}, ::Val{NVARIABLES},
-                                derivative_split, contravariant_vectors)
-
-GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
-see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
-
-For [`HalfSweep`](@ref), all diagonal entries of `derivative_split` are zero. Thus,
-we can skip the computation of the diagonal terms. In addition, we use the symmetry
-of the `volume_flux` to save half of the possible two-point flux computations.
-Instead of assigning thread `i` the partners `i+1, …, N`, we distribute the half
-sweep cyclically: each thread visits `div(N, 2)` partners at a fixed rotating
-offset. Every unordered pair is still covered exactly once, but now every thread
-performs the same number of loop iterations. When `N` is even (odd polynomial
-degree), the antipodal pair at offset `div(N, 2)` is shared by two threads, so its
-contribution is weighted by 1/2 to avoid double counting.
-
-For details on the cyclic distribution see Section 4.1 (Eq. 6) of
-- Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
-  GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
-  with Non-Conservative Terms
-  [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
-"""
+# GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
+# see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
+# See the documentation of [`HalfSweep`](@ref) for details on the trade-offs.
+#
+# For [`HalfSweep`](@ref), we use that all diagonal entries of `derivative_split` are zero.
+# Thus, we skip the computation of the diagonal terms. In addition, we use the symmetry
+# of the `volume_flux` to save half of the possible two-point flux computations.
+# Instead of assigning thread `i` the partners `i+1, …, N`, we distribute the half
+# sweep cyclically: each thread visits `div(N, 2)` partners at a fixed rotating
+# offset. Every unordered pair is still covered exactly once, but now every thread
+# performs the same number of loop iterations. When `N` is even (odd polynomial
+# degree), the antipodal pair at offset `div(N, 2)` is shared by two threads, so its
+# contribution is weighted by 1/2 to avoid double counting.
+#
+# For details on the cyclic distribution see Section 4.1 (Eq. 6) of
+# - Waterhouse, Waruszewski, Wilcox, Giraldo (2026)
+#   GPU Performance of an Entropy-Stable Discontinuous Galerkin Euler Solver
+#   with Non-Conservative Terms
+#   [arXiv: 2605.16684](https://arxiv.org/abs/2605.16684)
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
@@ -297,6 +290,9 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
+# GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
+# see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
+# See the documentation of [`HalfSweep`](@ref) for details on the trade-offs.
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
@@ -438,6 +434,11 @@ end
     set_node_vars!(du, du_local, equations, dg, i, j, k, element)
 end
 
+# GPU kernel of the flux differencing volume integral, dispatching on `kernel_type`,
+# see [`HalfSweep`](@ref), [`FullSweep`](@ref), and [`FullSweepGlobal`](@ref).
+# See the documentation of [`HalfSweep`](@ref) for details on the trade-offs.
+# This is the least efficient version, but it is also the most flexible one since
+# it is not restricted by shared memory or workgroup size limits.
 @kernel function flux_differencing_KAkernel!(du, u, equations,
                                              MeshT::Type{<:Union{P4estMesh{3},
                                                                  T8codeMesh{3}}},
@@ -581,8 +582,8 @@ end
     end
 
     kernel! = flux_differencing_KAkernel_turbo!(backend,
-                                                flux_differencing_workgroupsize(kernel_type,
-                                                                                Val(NNODES))...)
+                                                flux_differencing_workgroupsize_3d(kernel_type,
+                                                                                   Val(NNODES))...)
     kernel!(du, u, equations,
             typeof(mesh),
             kernel_type,
@@ -596,17 +597,10 @@ end
     return nothing
 end
 
-"""
-    flux_differencing_KAkernel_turbo!(du, u, equations, MeshT, kernel_type,
-                                      have_nonconservative_terms, dg, numerical_flux,
-                                      ::Val{NNODES}, ::Val{NVARIABLES}, ::Val{NAUX},
-                                      derivative_split, contravariant_vectors)
-
-Variant of [`flux_differencing_KAkernel!`](@ref) for volume fluxes wrapped in a
-[`FluxTurbo`](@ref). The `NAUX` precomputed variables of `Trixi.cons2turbo` are
-evaluated once per node instead of once per two-point flux evaluation. For
-[`HalfSweep`](@ref) and [`FullSweep`](@ref) they are precomputed in shared memory.
-"""
+# Variant of `flux_differencing_KAkernel!` for volume fluxes wrapped in a
+# [`FluxTurbo`](@ref). The `NAUX` precomputed variables of `Trixi.cons2turbo` are
+# evaluated once per node instead of once per two-point flux evaluation and stored
+# in shared memory for [`HalfSweep`](@ref) and [`FullSweep`](@ref) kernels.
 @kernel function flux_differencing_KAkernel_turbo!(du, u, equations,
                                                    MeshT::Type{<:Union{P4estMesh{3},
                                                                        T8codeMesh{3}}},
