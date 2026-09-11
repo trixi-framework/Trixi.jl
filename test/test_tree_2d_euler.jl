@@ -1493,16 +1493,16 @@ end
 ] tags=[:tree_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_sc_subcell.jl"),
                         l2=[
-                            1.4554602836511314,
-                            1153.460823717299,
-                            83.44679664934718,
+                            1.4554603146570804,
+                            1153.4608412500927,
+                            83.4467980434706,
                             446275.4834756419
                         ],
                         linf=[
-                            14.960908908847427,
-                            10419.575587094148,
-                            776.3365610330441,
-                            3.83863927104727e6
+                            14.960912465106105,
+                            10419.578166611158,
+                            776.33668281734,
+                            3.8386402873687297e6
                         ],
                         refinement_level=5)
     # Ensure that we do not have excessive memory allocations
