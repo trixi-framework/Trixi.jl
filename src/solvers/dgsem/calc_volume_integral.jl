@@ -8,10 +8,11 @@
 # The following `volume_integral_kernel!` and `calc_volume_integral!` functions are
 # dimension and meshtype agnostic, i.e., valid for all 1D, 2D, and 3D meshes.
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralWeakForm,
-                                         dg, cache, alpha = true)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralWeakForm,
+                                                          dg, cache, alpha = true)
     weak_form_kernel!(du, u, element, MeshT,
                       have_nonconservative_terms, equations,
                       dg, cache, alpha)
@@ -19,10 +20,11 @@
     return nothing
 end
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralFluxDifferencing,
-                                         dg, cache, alpha = true)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralFluxDifferencing,
+                                                          dg, cache, alpha = true)
     @unpack volume_flux = volume_integral # Volume integral specific data
 
     flux_differencing_kernel!(du, u, element, MeshT,
@@ -180,11 +182,15 @@ end
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    @boundscheck begin
+        check_axes(u, equations, dg, cache)
+        check_axes(du, equations, dg, cache)
+    end
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
-        volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, equations,
-                                volume_integral, dg, cache)
+        @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                          have_nonconservative_terms, equations,
+                                          volume_integral, dg, cache)
     end
 
     return nothing
