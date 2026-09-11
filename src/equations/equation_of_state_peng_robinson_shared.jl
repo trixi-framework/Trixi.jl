@@ -5,7 +5,7 @@ const PengRobinsonEOS = Union{PengRobinson, HelmholtzPengRobinson}
 # the default tolerance of 10 * eps() does not converge for most Peng-Robinson examples,
 # so we choose a looser tolerance here. Researchers at the US Naval Research Lab noted
 # that they typically just use 8 fixed Newton iterations for Peng-Robinson.
-eos_newton_tol(eos::PengRobinsonEOS) = convert(eltype(eos.R), 1e-8) 
+eos_newton_tol(eos::PengRobinsonEOS) = convert(eltype(eos.R), 1e-8)
 
 @inline function peng_robinson_a(T, eos::PengRobinsonEOS)
     (; a0, kappa, Tc) = eos
