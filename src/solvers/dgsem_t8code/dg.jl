@@ -11,7 +11,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::
     elements = init_elements(mesh, equations, dg.basis, uEltype)
     interfaces = init_interfaces(mesh, equations, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
-    mortars = init_mortars(mesh, equations, dg.basis, elements)
+    mortars = init_mortars(mesh, equations, dg.basis, elements, dg.mortar)
 
     fill_mesh_info!(mesh, interfaces, mortars, boundaries,
                     mesh.boundary_names)

@@ -56,6 +56,9 @@
     calc_bounds_twosided_interface!(var_min, var_max, variable, u,
                                     semi, mesh, equations)
 
+    # Calc bounds at mortars
+    calc_bounds_twosided_mortar!(var_min, var_max, variable, u, semi, mesh)
+
     # Calc bounds at physical boundaries
     (; boundary_conditions) = semi
     calc_bounds_twosided_boundary!(var_min, var_max, variable, u, t,
@@ -68,50 +71,141 @@ end
                                                  semi, mesh::TreeMesh2D, equations)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
-    for interface in eachinterface(dg, cache)
-        # Get neighboring element ids
-        left_element = cache.interfaces.neighbor_ids[1, interface]
-        right_element = cache.interfaces.neighbor_ids[2, interface]
+    (; neighbor_ids, orientations) = cache.interfaces
 
-        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
-        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
-        if limit_left || limit_right
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
-        else
-            # Subcell limiting is not necessary for both elements => Skip this interface
-            continue
+    # Process x- and y-oriented interfaces separately. Interfaces with the
+    # same orientation update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    for selected_orientation in 1:2
+        @threaded for interface in eachinterface(dg, cache)
+            orientations[interface] == selected_orientation || continue
+
+            # Get neighboring element ids
+            left_element = neighbor_ids[1, interface]
+            right_element = neighbor_ids[2, interface]
+
+            limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+            limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+            if limit_left || limit_right
+                # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+            else
+                # Subcell limiting is not necessary for both elements => Skip this interface
+                continue
+            end
+
+            for i in eachnode(dg)
+                # Define node indices for left and right element based on the interface orientation
+                if orientations[interface] == 1
+                    index_left = (nnodes(dg), i)
+                    index_right = (1, i)
+                else # if orientation == 2
+                    index_left = (i, nnodes(dg))
+                    index_right = (i, 1)
+                end
+
+                if limit_right
+                    var_left = u[variable, index_left..., left_element]
+                    var_min[index_right..., right_element] = min(var_min[index_right...,
+                                                                         right_element],
+                                                                 var_left)
+                    var_max[index_right..., right_element] = max(var_max[index_right...,
+                                                                         right_element],
+                                                                 var_left)
+                end
+
+                if limit_left
+                    var_right = u[variable, index_right..., right_element]
+                    var_min[index_left..., left_element] = min(var_min[index_left...,
+                                                                       left_element],
+                                                               var_right)
+                    var_max[index_left..., left_element] = max(var_max[index_left...,
+                                                                       left_element],
+                                                               var_right)
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+@inline function calc_bounds_twosided_mortar!(var_min, var_max, variable, u,
+                                              semi, mesh::TreeMesh2D)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+
+    # - For LobattoLegendreMortarIDP: include only values of nodes with nonnegative local weights
+    # - For LobattoLegendreMortarL2: include all neighboring values
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            node_small = 1
+            node_large = nnodes(dg)
+        else # large_sides[mortar] == 2 -> small elements on left side
+            node_small = nnodes(dg)
+            node_large = 1
         end
 
-        orientation = cache.interfaces.orientations[interface]
-
         for i in eachnode(dg)
-            # Define node indices for left and right element based on the interface orientation
             if orientation == 1
-                index_left = (nnodes(dg), i)
-                index_right = (1, i)
-            else # if orientation == 2
-                index_left = (i, nnodes(dg))
-                index_right = (i, 1)
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
             end
+            # Get solution data
+            var_small = (u[variable, indices_small..., neighbor_ids[1, mortar]],
+                         u[variable, indices_small..., neighbor_ids[2, mortar]])
+            # Using the following version with `ntuple` creates allocations due to a type instability of `indices_small`.
+            # var_small = index -> u[variable, indices_small..., neighbor_ids[index, mortar]]
+            # Theoretically, that could be fixed with the following version:
+            # f = let indices_small = indices_small
+            #     index -> u[variable, indices_small..., neighbor_ids[index, mortar]]
+            # end
+            # var_small = ntuple(f, Val(2))
+            var_large = u[variable, indices_large..., large_element]
 
-            if limit_right
-                var_left = u[variable, index_left..., left_element]
-                var_min[index_right..., right_element] = min(var_min[index_right...,
-                                                                     right_element],
-                                                             var_left)
-                var_max[index_right..., right_element] = max(var_max[index_right...,
-                                                                     right_element],
-                                                             var_left)
-            end
+            for j in eachnode(dg)
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small_inner = (node_small, j)
+                    indices_large_inner = (node_large, j)
+                else
+                    # L2 mortars in y-direction
+                    indices_small_inner = (j, node_small)
+                    indices_large_inner = (j, node_large)
+                end
 
-            if limit_left
-                var_right = u[variable, index_right..., right_element]
-                var_min[index_left..., left_element] = min(var_min[index_left...,
-                                                                   left_element],
-                                                           var_right)
-                var_max[index_left..., left_element] = max(var_max[index_left...,
-                                                                   left_element],
-                                                           var_right)
+                for small_element_index in 1:2
+                    small_element = neighbor_ids[small_element_index, mortar]
+                    # from large to small element
+                    if l2_mortars ||
+                       dg.mortar.mortar_weights[i, j, small_element_index] > 0
+                        var_min[indices_small_inner..., small_element] = min(var_min[indices_small_inner...,
+                                                                                     small_element],
+                                                                             var_large)
+                        var_max[indices_small_inner..., small_element] = max(var_max[indices_small_inner...,
+                                                                                     small_element],
+                                                                             var_large)
+                    end
+                    # from small to large element
+                    if l2_mortars ||
+                       dg.mortar.mortar_weights[j, i, small_element_index] > 0
+                        var_min[indices_large_inner..., large_element] = min(var_min[indices_large_inner...,
+                                                                                     large_element],
+                                                                             var_small[small_element_index])
+                        var_max[indices_large_inner..., large_element] = max(var_max[indices_large_inner...,
+                                                                                     large_element],
+                                                                             var_small[small_element_index])
+                    end
+                end
             end
         end
     end
@@ -204,6 +298,9 @@ end
     calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u,
                                     semi, mesh)
 
+    # Calc bounds at mortars
+    calc_bounds_onesided_mortar!(var_minmax, min_or_max, variable, u, semi, mesh)
+
     # Calc bounds at physical boundaries
     (; boundary_conditions) = semi
     calc_bounds_onesided_boundary!(var_minmax, min_or_max, variable, u, t,
@@ -219,55 +316,143 @@ end
     (; variable_values) = subcell_limiter_coefficients(dg.volume_integral)
     n_nodes = nnodes(dg)
 
-    for interface in eachinterface(dg, cache)
-        # Get neighboring element ids
-        left_element = cache.interfaces.neighbor_ids[1, interface]
-        right_element = cache.interfaces.neighbor_ids[2, interface]
+    (; neighbor_ids, orientations) = cache.interfaces
 
-        limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
-        limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
-        if limit_left || limit_right
-            # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
-        else
-            # Subcell limiting is not necessary for both elements => Skip this interface
-            continue
+    # Process x- and y-oriented interfaces separately. Interfaces with the
+    # same orientation update disjoint faces of each element. The barrier
+    # between these loops prevents races at element corners.
+    for selected_orientation in 1:2
+        @threaded for interface in eachinterface(dg, cache)
+            orientations[interface] == selected_orientation || continue
+
+            # Get neighboring element ids
+            left_element = neighbor_ids[1, interface]
+            right_element = neighbor_ids[2, interface]
+
+            limit_left = perform_subcell_limiting(dg.volume_integral, left_element)
+            limit_right = perform_subcell_limiting(dg.volume_integral, right_element)
+            if limit_left || limit_right
+                # Subcell limiting is necessary for at least one of the elements => Calculate bounds at this interface
+            else
+                # Subcell limiting is not necessary for both elements => Skip this interface
+                continue
+            end
+
+            for i in eachnode(dg)
+                # Define node indices for left and right element based on the interface orientation
+                if orientations[interface] == 1
+                    index_left = (n_nodes, i)
+                    index_right = (1, i)
+                else # if orientation == 2
+                    index_left = (i, n_nodes)
+                    index_right = (i, 1)
+                end
+
+                if limit_right
+                    # Use cached value if available, otherwise compute it
+                    var_left = if limit_left
+                        variable_values[index_left..., left_element]
+                    else
+                        variable(get_node_vars(u, equations, dg, index_left...,
+                                               left_element), equations)
+                    end
+                    var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
+                                                                                      right_element],
+                                                                           var_left)
+                end
+                if limit_left
+                    # Use cached value if available, otherwise compute it
+                    var_right = if limit_right
+                        variable_values[index_right..., right_element]
+                    else
+                        variable(get_node_vars(u, equations, dg, index_right...,
+                                               right_element), equations)
+                    end
+                    var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
+                                                                                    left_element],
+                                                                         var_right)
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+@inline function calc_bounds_onesided_mortar!(var_minmax, min_or_max, variable, u,
+                                              semi, mesh::TreeMesh2D)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+
+    # See comment above two-sided version
+    l2_mortars = dg.mortar isa LobattoLegendreMortarL2
+    for mortar in eachmortar(dg, cache)
+        large_element = neighbor_ids[3, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        lower_element = neighbor_ids[1, mortar]
+
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            node_small = 1
+            node_large = nnodes(dg)
+        else # large_sides[mortar] == 2 -> small elements on left side
+            node_small = nnodes(dg)
+            node_large = 1
         end
 
-        orientation = cache.interfaces.orientations[interface]
-
         for i in eachnode(dg)
-            # Define node indices for left and right element based on the interface orientation
             if orientation == 1
-                index_left = (n_nodes, i)
-                index_right = (1, i)
-            else # if orientation == 2
-                index_left = (i, n_nodes)
-                index_right = (i, 1)
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
             end
+            u_lower = get_node_vars(u, equations, dg, indices_small..., lower_element)
+            u_upper = get_node_vars(u, equations, dg, indices_small..., upper_element)
+            u_large = get_node_vars(u, equations, dg, indices_large..., large_element)
+            var_lower = variable(u_lower, equations)
+            var_upper = variable(u_upper, equations)
+            var_large = variable(u_large, equations)
 
-            if limit_right
-                # Use cached value if available, otherwise compute it
-                var_left = if limit_left
-                    variable_values[index_left..., left_element]
+            for j in eachnode(dg)
+                if orientation == 1
+                    # L2 mortars in x-direction
+                    indices_small_inner = (node_small, j)
+                    indices_large_inner = (node_large, j)
                 else
-                    variable(get_node_vars(u, equations, dg, index_left...,
-                                           left_element), equations)
+                    # L2 mortars in y-direction
+                    indices_small_inner = (j, node_small)
+                    indices_large_inner = (j, node_large)
                 end
-                var_minmax[index_right..., right_element] = min_or_max(var_minmax[index_right...,
-                                                                                  right_element],
-                                                                       var_left)
-            end
-            if limit_left
-                # Use cached value if available, otherwise compute it
-                var_right = if limit_right
-                    variable_values[index_right..., right_element]
-                else
-                    variable(get_node_vars(u, equations, dg, index_right...,
-                                           right_element), equations)
+
+                # values of large element to lower element
+                if l2_mortars || dg.mortar.mortar_weights[i, j, 1] > 0
+                    var_minmax[indices_small_inner..., lower_element] = min_or_max(var_minmax[indices_small_inner...,
+                                                                                              lower_element],
+                                                                                   var_large)
                 end
-                var_minmax[index_left..., left_element] = min_or_max(var_minmax[index_left...,
-                                                                                left_element],
-                                                                     var_right)
+                # values of lower element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j, i, 1] > 0
+                    var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
+                                                                                              large_element],
+                                                                                   var_lower)
+                end
+                # values of large element to upper element
+                if l2_mortars || dg.mortar.mortar_weights[i, j, 2] > 0
+                    var_minmax[indices_small_inner..., upper_element] = min_or_max(var_minmax[indices_small_inner...,
+                                                                                              upper_element],
+                                                                                   var_large)
+                end
+                # values of upper element to large element
+                if l2_mortars || dg.mortar.mortar_weights[j, i, 2] > 0
+                    var_minmax[indices_large_inner..., large_element] = min_or_max(var_minmax[indices_large_inner...,
+                                                                                              large_element],
+                                                                                   var_upper)
+                end
             end
         end
     end
@@ -317,11 +502,45 @@ end
     return nothing
 end
 
+@inline function merge_alphas!(alpha::AbstractArray{<:Any, 3}, alpha_local,
+                               alpha_indicator, dg, cache)
+    # `alpha` holds the positivity limiting factor, `alpha_local` the local one. Positivity
+    # has to be enforced completely, while the local limiting is only applied with the
+    # fraction `alpha_indicator`. Blending the local limiting *on top of* the positivity one
+    # (instead of taking a convex combination of both) makes sure that the merged factor
+    # never falls below `alpha`.
+    for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            alpha[i, j, element] = alpha[i, j, element] +
+                                   alpha_indicator[element] *
+                                   max(0,
+                                       alpha_local[i, j, element] -
+                                       alpha[i, j, element])
+        end
+    end
+
+    return nothing
+end
+
+@inline function merge_alphas_mortar!(limiting_factor, limiting_factor_local,
+                                      alpha_indicator, dg, mesh::AbstractMesh{2}, cache)
+    (; neighbor_ids) = cache.mortars
+    for mortar in eachmortar(dg, cache)
+        alpha_element = max(alpha_indicator[neighbor_ids[1, mortar]],
+                            alpha_indicator[neighbor_ids[2, mortar]],
+                            alpha_indicator[neighbor_ids[3, mortar]])
+        limiting_factor[mortar] = (1 - alpha_element) * limiting_factor[mortar] +
+                                  alpha_element * limiting_factor_local[mortar]
+    end
+
+    return nothing
+end
+
 ###############################################################################
 # Local minimum and maximum limiting of conservative variables
 
-@inline function idp_local_twosided!(alpha, limiter, u::AbstractArray{<:Any, 4},
-                                     t, dt, semi, variable)
+@inline function idp_local_twosided!(alpha, limiter, u::AbstractArray{<:Any, 4}, t, dt,
+                                     semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
@@ -330,7 +549,9 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    if limiter.bar_states == false
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi, equations)
+    end
 
     @threaded for element in eachelement(dg, semi.cache)
 
@@ -338,8 +559,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, element)
+            isone(alpha[i, j, element]) && continue # Skip if alpha is already 1
+
             var = u[variable, i, j, element]
             # Real Zalesak type limiter
             #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -366,15 +587,16 @@ end
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
 
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
             # Compute blending coefficient avoiding division by zero
             # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qp = abs(Qp) /
-                 (abs(Pp) + eps(typeof(Qp)) * 100 * abs(var_max[i, j, element]))
-            Qm = abs(Qm) /
-                 (abs(Pm) + eps(typeof(Qm)) * 100 * abs(var_max[i, j, element]))
+            eps_ = eps(typeof(Qp)) * 100 * abs(var_max[i, j, element])
+            Qp = abs(Qp) / (abs(Pp) + eps_)
+            Qm = abs(Qm) / (abs(Pm) + eps_)
 
             # Calculate alpha at nodes
             alpha[i, j, element] = max(alpha[i, j, element], 1 - min(1, Qp, Qm))
@@ -392,7 +614,9 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
-    calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    if limiter.bar_states == false
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    end
 
     # Perform Newton's bisection method to find new alpha
     @threaded for element in eachelement(dg, cache)
@@ -401,6 +625,8 @@ end
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for j in eachnode(dg), i in eachnode(dg)
+            isone(alpha[i, j, element]) && continue # Skip if alpha is already 1
+
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
             u_local = get_node_vars(u, equations, dg, i, j, element)
@@ -429,35 +655,52 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
+    # Check whether the local limiting already computed a bound for this variable in this stage.
+    # The local limiting always runs before the positivity limiting, also with an enabled
+    # smoothness indicator, so `var_min` holds a valid local bound if this is `true`.
+    was_limited_locally = limiter.local_twosided &&
+                          (variable in limiter.local_twosided_variables_cons)
+
     @threaded for element in eachelement(dg, semi.cache)
 
         # detect if subcell limiting is necessary
         perform_subcell_limiting(dg.volume_integral, element) || continue
 
         for j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
-                                                    mesh, i, j, element)
             var = u[variable, i, j, element]
             if var < 0
                 error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
             end
 
             # Compute bound
-            if limiter.local_twosided &&
-               (variable in limiter.local_twosided_variables_cons) &&
-               (var_min[i, j, element] >= positivity_correction_factor * var)
-                # Local limiting is more restrictive that positivity limiting
-                # => Skip positivity limiting for this node
-                continue
+            bound = positivity_correction_factor * var
+            if was_limited_locally
+                if isnothing(limiter.indicator) &&
+                   (var_min[i, j, element] >= bound)
+                    # Local limiting is more restrictive that positivity limiting and is
+                    # enforced completely (no smoothness indicator)
+                    # => Skip positivity limiting for this node
+                    continue
+                end
+                # Keep the more restrictive of both bounds. With a smoothness indicator only a
+                # fraction of the local limiting is applied, so the positivity bound must not be
+                # skipped above; storing the maximum keeps the local bound available for the
+                # mortar limiting, which reads `var_min` afterwards without recomputing it.
+                var_min[i, j, element] = max(var_min[i, j, element], bound)
+            else
+                var_min[i, j, element] = bound
             end
-            var_min[i, j, element] = positivity_correction_factor * var
+
+            isone(alpha[i, j, element]) && continue # Skip if alpha is already 1
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
             # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
             # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
             #       for each interface, not each node
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
+            # Note: Use `bound` and not `var_min`, which may hold the more restrictive local
+            #       bound. Enforcing that one here would bypass the smoothness indicator.
+            Qm = min(0, (bound - var) / dt)
 
             # Calculate Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
@@ -472,11 +715,15 @@ end
 
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
+
+            inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                    mesh, i, j, element)
             Pm = inverse_jacobian * Pm
 
             # Compute blending coefficient avoiding division by zero
             # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
-            Qm = abs(Qm) / (abs(Pm) + eps(typeof(Qm)) * 100)
+            eps_ = eps(typeof(Qm)) * 100
+            Qm = abs(Qm) / (abs(Pm) + eps_)
 
             # Calculate alpha
             alpha[i, j, element] = max(alpha[i, j, element], 1 - Qm)
@@ -527,7 +774,7 @@ end
 end
 
 ###############################################################################
-# Newton-bisection method
+# Auxiliary functions for Newton-bisection method
 
 @inline function newton_loops_alpha!(alpha, bound, u, i, j, element,
                                      variable, min_or_max,
@@ -584,6 +831,630 @@ end
                                            i, j + 1, element)
         newton_loop!(alpha, bound, u, indices, variable, min_or_max, initial_check,
                      final_check, equations, dt, limiter, antidiffusive_flux)
+    end
+
+    return nothing
+end
+
+###############################################################################
+# IDP mortar limiting
+###############################################################################
+
+@inline function precompute_n_mortars_per_nodes!(volume_integral::AbstractVolumeIntegral,
+                                                 dg, cache, mesh)
+    return nothing
+end
+@inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralAdaptive,
+                                                 dg, cache, mesh)
+    return precompute_n_mortars_per_nodes!(volume_integral.volume_integral_stabilized,
+                                           dg, cache, mesh)
+end
+@inline function precompute_n_mortars_per_nodes!(volume_integral::VolumeIntegralSubcellLimiting,
+                                                 dg, cache, mesh::TreeMesh{2})
+    if !(dg.mortar isa LobattoLegendreMortarIDP)
+        return nothing
+    end
+
+    (; n_mortars_per_node) = subcell_limiter_coefficients(volume_integral)
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+
+    n_mortars_per_node .= zero(eltype(n_mortars_per_node))
+
+    for mortar in eachmortar(dg, cache)
+        lower_element = neighbor_ids[1, mortar]
+        upper_element = neighbor_ids[2, mortar]
+        large_element = neighbor_ids[3, mortar]
+
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            node_small = 1
+            node_large = nnodes(dg)
+        else # large_sides[mortar] == 2 -> small elements on left side
+            node_small = nnodes(dg)
+            node_large = 1
+        end
+
+        for i in eachnode(dg)
+            if orientation == 1
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
+            end
+
+            n_mortars_per_node[indices_small..., lower_element] += 1
+            n_mortars_per_node[indices_small..., upper_element] += 1
+            n_mortars_per_node[indices_large..., large_element] += 1
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
+# Local minimum and maximum limiting of conservative variables
+
+@inline function limiting_local_conservative!(limiting_factor, u, dt, semi,
+                                              mesh::TreeMesh{2}, var_index)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+    (; surface_flux_values, inverse_jacobian) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+
+    (; inverse_weights) = dg.basis
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
+    variable_string = string(var_index)
+    var_min = variable_bounds[Symbol(variable_string, "_min")]
+    var_max = variable_bounds[Symbol(variable_string, "_max")]
+
+    @threaded for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
+
+        large_element = neighbor_ids[3, mortar]
+
+        # Set up correct direction and factors
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            direction_small = 2 * orientation - 1
+            direction_large = 2 * orientation
+            node_small = 1
+            node_large = nnodes(dg)
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_small = factor
+            factor_large = -factor
+        else # large_sides[mortar] == 2 -> small elements on left side
+            direction_small = 2 * orientation
+            direction_large = 2 * orientation - 1
+            node_small = nnodes(dg)
+            node_large = 1
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_large = factor
+            factor_small = -factor
+        end
+
+        # Compute limiting factor
+        for i in eachnode(dg)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
+            if orientation == 1
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
+            end
+
+            # Large element
+            var_large = u[var_index, indices_large..., large_element]
+
+            # Two-sided local bounds
+            var_min_large = var_min[indices_large..., large_element]
+            var_max_large = var_max[indices_large..., large_element]
+
+            # Real Zalesak type limiter
+            #   * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            #   * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #         for each interface, not each node
+            Qp_large = max(0, (var_max_large - var_large) / dt)
+            Qm_large = min(0, (var_min_large - var_large) / dt)
+
+            # Compute flux differences
+            flux_large_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   direction_large,
+                                                                   large_element]
+            # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
+            if !isfinite(flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            flux_large_low_order = surface_flux_values[var_index, i, direction_large,
+                                                       large_element]
+            flux_difference_large = factor_large *
+                                    (flux_large_high_order - flux_large_low_order)
+
+            inverse_jacobian_large = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_large...,
+                                                          large_element)
+            Pp_large = max(0, flux_difference_large)
+            Pm_large = min(0, flux_difference_large)
+            Pp_large = inverse_jacobian_large * Pp_large
+            Pm_large = inverse_jacobian_large * Pm_large
+
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            n_mortars_large = n_mortars_per_node[indices_large..., large_element]
+            Pp_large = n_mortars_large * Pp_large
+            Pm_large = n_mortars_large * Pm_large
+
+            eps_ = eps(typeof(Qp_large)) * 100 * abs(var_max_large)
+            Qp_large = abs(Qp_large) / (abs(Pp_large) + eps_)
+            Qm_large = abs(Qm_large) / (abs(Pm_large) + eps_)
+
+            # Calculate limiting factor
+            Q = min(1, Qp_large, Qm_large)
+
+            # Small elements
+            for small_element_index in 1:2
+                isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
+                small_element = neighbor_ids[small_element_index, mortar]
+                var_small = u[var_index, indices_small..., small_element]
+
+                var_min_small = var_min[indices_small..., small_element]
+                var_max_small = var_max[indices_small..., small_element]
+
+                Qp_small = max(0, (var_max_small - var_small) / dt)
+                Qm_small = min(0, (var_min_small - var_small) / dt)
+
+                # Compute flux differences
+                flux_small_high_order = surface_flux_values_high_order[var_index, i,
+                                                                       direction_small,
+                                                                       small_element]
+                if !isfinite(flux_small_high_order)
+                    limiting_factor[mortar] = 1
+                    break
+                end
+                flux_small_low_order = surface_flux_values[var_index, i,
+                                                           direction_small,
+                                                           small_element]
+                flux_difference_small = factor_small *
+                                        (flux_small_high_order - flux_small_low_order)
+
+                inverse_jacobian_small = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                              indices_small...,
+                                                              small_element)
+                Pp_small = max(0, flux_difference_small)
+                Pm_small = min(0, flux_difference_small)
+                Pp_small = inverse_jacobian_small * Pp_small
+                Pm_small = inverse_jacobian_small * Pm_small
+
+                n_mortars_small = n_mortars_per_node[indices_small..., small_element]
+                Pp_small = n_mortars_small * Pp_small
+                Pm_small = n_mortars_small * Pm_small
+
+                eps_ = eps(typeof(Qp_small)) * 100 * abs(var_max_small)
+                Qp_small = abs(Qp_small) / (abs(Pp_small) + eps_)
+                Qm_small = abs(Qm_small) / (abs(Pm_small) + eps_)
+
+                Q = min(Q, Qp_small, Qm_small)
+            end
+
+            # Calculate limiting factor
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Q)
+        end
+    end
+
+    return nothing
+end
+
+##############################################################################
+# Local minimum or maximum limiting of nonlinear variables
+
+@inline function limiting_local_nonlinear!(limiting_factor, u, dt, semi,
+                                           mesh::TreeMesh{2}, variable,
+                                           min_or_max)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+
+    (; inverse_weights) = dg.basis
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; limiter) = dg.mortar
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
+
+    (; gamma_constant_newton) = limiter
+
+    @threaded for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
+
+        large_element = neighbor_ids[3, mortar]
+
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            direction_small = 2 * orientation - 1
+            direction_large = 2 * orientation
+            node_small = 1
+            node_large = nnodes(dg)
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_small = factor
+            factor_large = -factor
+        else # large_sides[mortar] == 2 -> small elements on left side
+            direction_small = 2 * orientation
+            direction_large = 2 * orientation - 1
+            node_small = nnodes(dg)
+            node_large = 1
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_large = factor
+            factor_small = -factor
+        end
+
+        for i in eachnode(dg)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1 (no limiting needed)
+
+            if orientation == 1
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
+            end
+
+            # Large element
+            u_large = get_node_vars(u, equations, dg, indices_large..., large_element)
+            bound_large = var_minmax[indices_large..., large_element]
+
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, direction_large, large_element)
+            # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
+            if !all(isfinite, flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, direction_large, large_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_large...,
+                                                          large_element)
+            antidiffusive_flux_large = gamma_constant_newton * factor_large *
+                                       inverse_jacobian_large *
+                                       (flux_large_high_order .- flux_large_low_order)
+
+            newton_loop!(limiting_factor, bound_large, u_large, (mortar,), variable,
+                         min_or_max, initial_check_local_onesided_newton_idp,
+                         final_check_local_onesided_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_large)
+
+            # Small elements
+            for small_element_index in 1:2
+                small_element = neighbor_ids[small_element_index, mortar]
+
+                u_small = get_node_vars(u, equations, dg, indices_small...,
+                                        small_element)
+                bound_small = var_minmax[indices_small..., small_element]
+
+                flux_small_high_order = get_node_vars(surface_flux_values_high_order,
+                                                      equations, dg,
+                                                      i, direction_small, small_element)
+                if !all(isfinite, flux_small_high_order)
+                    limiting_factor[mortar] = 1
+                    break
+                end
+                flux_small_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                     i, direction_small, small_element)
+                inverse_jacobian_small = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                              mesh, indices_small...,
+                                                              small_element)
+                antidiffusive_flux_small = gamma_constant_newton * factor_small *
+                                           inverse_jacobian_small *
+                                           (flux_small_high_order .-
+                                            flux_small_low_order)
+
+                newton_loop!(limiting_factor, bound_small, u_small, (mortar,), variable,
+                             min_or_max, initial_check_local_onesided_newton_idp,
+                             final_check_local_onesided_newton_idp,
+                             equations, dt, limiter, antidiffusive_flux_small)
+            end
+        end
+    end
+
+    return nothing
+end
+
+###############################################################################
+# Global positivity limiting of conservative variables
+@inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
+                                                   mesh::TreeMesh{2}, var_index)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+    (; surface_flux_values, inverse_jacobian) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+
+    (; inverse_weights) = dg.basis
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
+    var_min = variable_bounds[Symbol(string(var_index), "_min")]
+
+    @threaded for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
+
+        large_element = neighbor_ids[3, mortar]
+
+        # Set up correct direction and factors
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            direction_small = 2 * orientation - 1
+            direction_large = 2 * orientation
+            node_small = 1
+            node_large = nnodes(dg)
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_small = factor
+            factor_large = -factor
+        else # large_sides[mortar] == 2 -> small elements on left side
+            direction_small = 2 * orientation
+            direction_large = 2 * orientation - 1
+            node_small = nnodes(dg)
+            node_large = 1
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_large = factor
+            factor_small = -factor
+        end
+
+        # Compute limiting factor
+        for i in eachnode(dg)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
+            if orientation == 1
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
+            end
+
+            # Large element
+            var_large = u[var_index, indices_large..., large_element]
+
+            # Minimum bound
+            var_min_large = var_min[indices_large..., large_element]
+
+            flux_large_high_order = surface_flux_values_high_order[var_index, i,
+                                                                   direction_large,
+                                                                   large_element]
+            # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
+            if !isfinite(flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            flux_large_low_order = surface_flux_values[var_index, i, direction_large,
+                                                       large_element]
+            flux_difference_large = factor_large *
+                                    (flux_large_high_order - flux_large_low_order)
+
+            # Real one-sided Zalesak-type limiter
+            # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
+            # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
+            # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
+            #       for each mortar, not each node
+            Qm_large = min(0, var_min_large - var_large)
+            Pm_large = min(0, flux_difference_large)
+
+            # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+            # to account for this. Similar to scaling with `gamma_constant_newton`.
+            Pm_large = n_mortars_per_node[indices_large..., large_element] * Pm_large
+
+            inverse_jacobian_large = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                          indices_large...,
+                                                          large_element)
+            Pm_large = dt * inverse_jacobian_large * Pm_large
+
+            # Compute blending coefficient avoiding division by zero
+            # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+            eps_ = eps(typeof(Qm_large)) * 100
+            Qm_large = abs(Qm_large) / (abs(Pm_large) + eps_)
+            Qm = min(1, Qm_large)
+
+            # Small elements
+            for small_element_index in 1:2
+                isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
+                small_element = neighbor_ids[small_element_index, mortar]
+                var_small = u[var_index, indices_small..., small_element]
+
+                # Compute flux differences
+                flux_small_high_order = surface_flux_values_high_order[var_index, i,
+                                                                       direction_small,
+                                                                       small_element]
+                if !isfinite(flux_small_high_order)
+                    limiting_factor[mortar] = 1
+                    break
+                end
+                flux_small_low_order = surface_flux_values[var_index, i,
+                                                           direction_small,
+                                                           small_element]
+                flux_difference_small = factor_small *
+                                        (flux_small_high_order - flux_small_low_order)
+
+                # Minimum bound
+                var_min_small = var_min[indices_small..., small_element]
+                Qm_small = min(0, var_min_small - var_small)
+                Pm_small = min(0, flux_difference_small)
+
+                # A node can be on multiple mortars. Scale the antidiffusive flux contribution
+                # to account for this. Similar to scaling with `gamma_constant_newton`.
+                Pm_small = n_mortars_per_node[indices_small..., small_element] *
+                           Pm_small
+
+                inverse_jacobian_small = get_inverse_jacobian(inverse_jacobian, mesh,
+                                                              indices_small...,
+                                                              small_element)
+                Pm_small = dt * inverse_jacobian_small * Pm_small
+
+                # Compute blending coefficient avoiding division by zero
+                # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
+                Qm_small = abs(Qm_small) / (abs(Pm_small) + eps_)
+                Qm = min(Qm, Qm_small)
+            end
+
+            # Calculate limiting factor
+            limiting_factor[mortar] = max(limiting_factor[mortar], 1 - Qm)
+        end
+    end
+
+    return nothing
+end
+
+##############################################################################
+# Global positivity limiting of nonlinear variables
+@inline function limiting_positivity_nonlinear!(limiting_factor, u, dt, semi,
+                                                mesh::TreeMesh{2}, variable)
+    _, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    (; neighbor_ids, orientations, large_sides) = cache.mortars
+    (; surface_flux_values) = cache.elements
+    (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
+    (; inverse_weights) = dg.basis
+
+    factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
+
+    (; limiter) = dg.mortar
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    var_min = variable_bounds[Symbol(string(variable), "_min")]
+
+    (; gamma_constant_newton) = limiter
+
+    @threaded for mortar in eachmortar(dg, cache)
+        isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
+
+        large_element = neighbor_ids[3, mortar]
+
+        orientation = orientations[mortar]
+        if large_sides[mortar] == 1 # -> small elements on right side
+            direction_small = 2 * orientation - 1
+            direction_large = 2 * orientation
+            node_small = 1
+            node_large = nnodes(dg)
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_small = factor
+            factor_large = -factor
+        else # large_sides[mortar] == 2 -> small elements on left side
+            direction_small = 2 * orientation
+            direction_large = 2 * orientation - 1
+            node_small = nnodes(dg)
+            node_large = 1
+
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
+            factor_large = factor
+            factor_small = -factor
+        end
+
+        for i in eachnode(dg)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1 (no limiting needed)
+
+            if orientation == 1
+                # L2 mortars in x-direction
+                indices_small = (node_small, i)
+                indices_large = (node_large, i)
+            else
+                # L2 mortars in y-direction
+                indices_small = (i, node_small)
+                indices_large = (i, node_large)
+            end
+
+            # Large element
+            u_large = get_node_vars(u, equations, dg, indices_large..., large_element)
+
+            # Minimum bound
+            var_min_large = var_min[indices_large..., large_element]
+
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg,
+                                                  i, direction_large, large_element)
+            # Check if high-order flux is finite. Otherwise, use pure low-order fluxes.
+            if !all(isfinite, flux_large_high_order)
+                limiting_factor[mortar] = 1
+                break
+            end
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                 i, direction_large, large_element)
+            inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                          mesh, indices_large...,
+                                                          large_element)
+            antidiffusive_flux_large = gamma_constant_newton * factor_large *
+                                       inverse_jacobian_large *
+                                       (flux_large_high_order .- flux_large_low_order)
+
+            newton_loop!(limiting_factor, var_min_large, u_large, (mortar,), variable,
+                         min, initial_check_nonnegative_newton_idp,
+                         final_check_nonnegative_newton_idp,
+                         equations, dt, limiter, antidiffusive_flux_large)
+
+            # Small elements
+            for small_element_index in 1:2
+                small_element = neighbor_ids[small_element_index, mortar]
+                u_small = get_node_vars(u, equations, dg, indices_small...,
+                                        small_element)
+
+                # Minimum bound
+                var_min_small = var_min[indices_small..., small_element]
+
+                flux_small_high_order = get_node_vars(surface_flux_values_high_order,
+                                                      equations, dg,
+                                                      i, direction_small, small_element)
+                if !all(isfinite, flux_small_high_order)
+                    limiting_factor[mortar] = 1
+                    break
+                end
+                flux_small_low_order = get_node_vars(surface_flux_values, equations, dg,
+                                                     i, direction_small, small_element)
+
+                inverse_jacobian_small = get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                              mesh, indices_small...,
+                                                              small_element)
+                antidiffusive_flux_small = gamma_constant_newton * factor_small *
+                                           inverse_jacobian_small *
+                                           (flux_small_high_order .-
+                                            flux_small_low_order)
+
+                newton_loop!(limiting_factor, var_min_small, u_small, (mortar,),
+                             variable,
+                             min, initial_check_nonnegative_newton_idp,
+                             final_check_nonnegative_newton_idp,
+                             equations, dt, limiter, antidiffusive_flux_small)
+            end
+        end
     end
 
     return nothing
