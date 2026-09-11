@@ -383,13 +383,12 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
     @unpack alpha, alpha_local = limiter.cache.subcell_limiter_coefficients
     @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
 
-    # positivity
-    if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
-    end
-
-    # local
-    alpha_local .= alpha
+    # Local limiting comes first, even though only a fraction `alpha_indicator` of it enters
+    # the merged blending factor below. The local limiters are the ones computing (or, for
+    # `bar_states=true`, consuming) the local bounds in `variable_bounds`. Running the
+    # positivity limiting first would overwrite those bounds before they are used, both here
+    # and in the subsequent mortar limiting, which only reads them.
+    @trixi_timeit timer() "reset alpha local" set_zero!(alpha_local, dg, semi.cache)
     if limiter.local_twosided
         @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha_local,
                                                                    limiter,
@@ -399,6 +398,11 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
         @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha_local,
                                                                    limiter,
                                                                    u, t, dt, semi)
+    end
+
+    # positivity
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
     end
 
     merge_alphas!(alpha, alpha_local, alpha_indicator, dg, semi.cache)

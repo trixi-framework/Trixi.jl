@@ -504,12 +504,18 @@ end
 
 @inline function merge_alphas!(alpha::AbstractArray{<:Any, 3}, alpha_local,
                                alpha_indicator, dg, cache)
+    # `alpha` holds the positivity limiting factor, `alpha_local` the local one. Positivity
+    # has to be enforced completely, while the local limiting is only applied with the
+    # fraction `alpha_indicator`. Blending the local limiting *on top of* the positivity one
+    # (instead of taking a convex combination of both) makes sure that the merged factor
+    # never falls below `alpha`.
     for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
-            alpha[i, j, element] = (1 - alpha_indicator[element]) *
-                                   alpha[i, j, element] +
+            alpha[i, j, element] = alpha[i, j, element] +
                                    alpha_indicator[element] *
-                                   alpha_local[i, j, element]
+                                   max(0,
+                                       alpha_local[i, j, element] -
+                                       alpha[i, j, element])
         end
     end
 
@@ -649,11 +655,10 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    # `isnothing(limiter.indicator)` was added to make sure that in case of an enabled smoothness
-    # indicator (changed order of computation: positivity limiting -> local limiting) positivity
-    # limiting is not skipped due to uninitialized minimum bounds or bounds of the previous time step.
-    was_limited_locally = isnothing(limiter.indicator) &&
-                          limiter.local_twosided &&
+    # Check whether the local limiting already computed a bound for this variable in this stage.
+    # The local limiting always runs before the positivity limiting, also with an enabled
+    # smoothness indicator, so `var_min` holds a valid local bound if this is `true`.
+    was_limited_locally = limiter.local_twosided &&
                           (variable in limiter.local_twosided_variables_cons)
 
     @threaded for element in eachelement(dg, semi.cache)
@@ -668,13 +673,23 @@ end
             end
 
             # Compute bound
-            if was_limited_locally &&
-               (var_min[i, j, element] >= positivity_correction_factor * var)
-                # Local limiting is more restrictive that positivity limiting
-                # => Skip positivity limiting for this node
-                continue
+            bound = positivity_correction_factor * var
+            if was_limited_locally
+                if isnothing(limiter.indicator) &&
+                   (var_min[i, j, element] >= bound)
+                    # Local limiting is more restrictive that positivity limiting and is
+                    # enforced completely (no smoothness indicator)
+                    # => Skip positivity limiting for this node
+                    continue
+                end
+                # Keep the more restrictive of both bounds. With a smoothness indicator only a
+                # fraction of the local limiting is applied, so the positivity bound must not be
+                # skipped above; storing the maximum keeps the local bound available for the
+                # mortar limiting, which reads `var_min` afterwards without recomputing it.
+                var_min[i, j, element] = max(var_min[i, j, element], bound)
+            else
+                var_min[i, j, element] = bound
             end
-            var_min[i, j, element] = positivity_correction_factor * var
 
             isone(alpha[i, j, element]) && continue # Skip if alpha is already 1
 
@@ -683,7 +698,9 @@ end
             # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
             # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
             #       for each interface, not each node
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
+            # Note: Use `bound` and not `var_min`, which may hold the more restrictive local
+            #       bound. Enforcing that one here would bypass the smoothness indicator.
+            Qm = min(0, (bound - var) / dt)
 
             # Calculate Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
