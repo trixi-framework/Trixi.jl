@@ -54,11 +54,12 @@ end
 """
     reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
                            sc_interface_coords, node_index,
-                           limiter, dg::DGSEM)
+                           limiter, dg::Union{DGSEM, BlockFV})
 
 Returns the reconstructed values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
-Computes limited (linear) slopes on the subcells for a DGSEM element.
-Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref).
+Computes limited (linear) slopes on the subcells for a [`DGSEM`](@ref) or [`BlockFV`](@ref) element.
+Supposed to be used in conjunction with [`VolumeIntegralPureLGLFiniteVolumeO2`](@ref)
+or [`VolumeIntegralFiniteVolumeO2`](@ref).
 
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_ll`, `u_lr`, `u_rl`, and `u_rr` at the (Gauss-Lobatto Legendre) nodes.
@@ -83,7 +84,7 @@ This approach corresponds to equation (79) described in
 """
 @inline function reconstruction_O2_full(u_ll, u_lr, u_rl, u_rr,
                                         sc_interface_coords, node_index,
-                                        limiter, dg::DGSEM)
+                                        limiter, dg::Union{DGSEM, BlockFV})
     @unpack nodes = dg.basis
     x_lr = nodes[node_index - 1]
     x_rl = nodes[node_index]
@@ -118,7 +119,7 @@ end
 """
     reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
                             sc_interface_coords, node_index,
-                            limiter, dg::DGSEM)
+                            limiter, dg::Union{DGSEM, BlockFV})
 
 Returns the reconstructed values `u_lr, u_rl` at the interface `sc_interface_coords[node_index - 1]`.
 Computes limited (linear) slopes on the *inner* subcells for a DGSEM element.
@@ -147,7 +148,7 @@ This approach corresponds to equation (78) described in
 """
 @inline function reconstruction_O2_inner(u_ll, u_lr, u_rl, u_rr,
                                          sc_interface_coords, node_index,
-                                         limiter, dg::DGSEM)
+                                         limiter, dg::Union{DGSEM, BlockFV})
     @unpack nodes = dg.basis
     x_lr = nodes[node_index - 1]
     x_rl = nodes[node_index]
