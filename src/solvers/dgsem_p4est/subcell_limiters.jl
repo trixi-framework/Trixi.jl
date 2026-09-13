@@ -34,4 +34,20 @@ Should be used together with [`P4estMesh`](@ref).
 
     return u_outer
 end
+
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionCharacteristic,
+                                          normal_direction,
+                                          mesh::P4estMesh, equations, dg, cache,
+                                          indices...)
+    (; node_coordinates) = cache.elements
+
+    x = get_node_coords(node_coordinates, equations, dg, indices...)
+    u_outer = boundary_condition.boundary_value_function(boundary_condition.outer_boundary_value_function,
+                                                         u_inner,
+                                                         normal_direction,
+                                                         x, t, equations)
+
+    return u_outer
+end
 end # @muladd

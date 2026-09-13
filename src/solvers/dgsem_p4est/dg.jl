@@ -98,6 +98,7 @@ include("dg_3d_gpu.jl")
 # Subcell limiters
 include("subcell_limiters.jl")
 include("subcell_limiters_2d.jl")
+include("dg_2d_subcell_limiters.jl")
 include("subcell_limiters_3d.jl")
 include("dg_3d_subcell_limiters.jl")
 end # @muladd
