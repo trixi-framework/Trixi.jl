@@ -48,12 +48,10 @@ Construct a semidiscretization of a hyperbolic PDE.
 Boundary conditions must be provided explicitly either as a `NamedTuple` or as a
 single boundary condition that gets applied to all boundaries.
 
-`aux_field` is an optional function `aux_field(x, equations)` of the node coordinates `x`
-returning the auxiliary variables at that point. It may be passed for equations supporting
-auxiliary variables, i.e., if `n_aux_node_vars(equations) > 0`. The auxiliary variables are
-evaluated once and stored in `cache.aux_vars`. Without `aux_field`, no auxiliary variables
-are stored and the equations use their flux functions without them.
-See [`n_aux_node_vars`](@ref) for details.
+`aux_field` is an optional function `aux_field(x, equations)` returning the auxiliary
+variables at the node coordinates `x`. It may be passed for equations using auxiliary
+variables, see [`n_aux_node_vars`](@ref). The auxiliary variables are evaluated once and
+stored in `cache.aux_vars`.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
@@ -504,8 +502,12 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         print_boundary_conditions(io, semi)
 
         summary_line(io, "source terms", semi.source_terms)
-        if hasproperty(semi.cache, :aux_vars)
-            summary_line(io, "auxiliary variables", semi.cache.aux_vars.aux_field)
+        if n_aux_node_vars(semi.equations) > 0
+            # The equations support auxiliary variables, but they are only used if an
+            # `aux_field` was passed
+            summary_line(io, "auxiliary variables",
+                         hasproperty(semi.cache, :aux_vars) ?
+                         semi.cache.aux_vars.aux_field : nothing)
         end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))

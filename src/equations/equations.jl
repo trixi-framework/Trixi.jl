@@ -241,8 +241,7 @@ end
                                                                   x, t,
                                                                   surface_flux_function,
                                                                   equations)
-    # Get the external value of the solution. Note that the auxiliary variables are
-    # continuous across the boundary, so the inner values are used on both sides.
+    # Get the external value of the solution.
     u_boundary = boundary_condition.boundary_value_function(x, t, equations)
 
     # Calculate boundary flux
@@ -403,46 +402,37 @@ have_constant_speed(::AbstractEquations) = False()
 """
     n_aux_node_vars(equations)
 
-Number of auxiliary variables of `equations` that are stored at every node of the
-solution alongside the conserved variables. Auxiliary variables are spatially varying
-but constant in time, e.g., a prescribed background flow or a variable coefficient.
-They are evaluated once from the `aux_field` function passed to
-[`SemidiscretizationHyperbolic`](@ref) and are stored in `cache.aux_vars`.
+Number of auxiliary variables of `equations`, stored at every node.
+Auxiliary variables vary in space but are constant in time, e.g.,
+a prescribed background flow or a variable coefficient. The default is `0`, i.e., no
+auxiliary variables.
 
-The default is `0`, i.e., no auxiliary variables. Equations that support auxiliary
-variables need to specialize this function and accept them as an additional argument in
-[`flux`](@ref) and in the numerical fluxes, e.g.,
+Equations using auxiliary variables specialize this function and take them as an
+additional argument in [`flux`](@ref) and in the numerical fluxes, e.g.,
 ```julia
 n_aux_node_vars(::MyEquations) = 2
 
 flux(u, aux, normal_direction, equations::MyEquations) = ...
-flux_godunov(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
 ```
-Equations without auxiliary variables, as well as equations supporting them but used
-without an `aux_field`, get an empty tuple of auxiliary variables from
-`get_aux_node_vars`, so the solvers call their flux functions with the usual signature
-at no runtime cost.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-    Currently, auxiliary variables are only implemented for `P4estMesh{3}` with `DGSEM`
-    on the CPU, and they are not supported together with mesh adaptation (AMR).
+The values are given by the `aux_field` function passed to
+[`SemidiscretizationHyperbolic`](@ref).
 """
 @inline n_aux_node_vars(::AbstractEquations) = 0
 
 """
     eachauxvariable(equations)
 
-Return an iterator over the indices of the auxiliary variables of `equations`,
-see [`n_aux_node_vars`](@ref).
+Return an iterator over the indices that specify the location in relevant data structures
+for the auxiliary variables in `equations`, see [`n_aux_node_vars`](@ref).
+In particular, not the auxiliary variables themselves are returned.
 """
 @inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(n_aux_node_vars(equations))
 
 """
     cons2aux(u, aux, equations)
 
-Return the auxiliary variables `aux`. Used with [`varnames`](@ref) to get the names of
-the auxiliary variables, see [`n_aux_node_vars`](@ref).
+Return the auxiliary variables `aux`, see [`n_aux_node_vars`](@ref).
 """
 @inline cons2aux(u, aux, ::AbstractEquations) = aux
 

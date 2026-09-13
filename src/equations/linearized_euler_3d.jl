@@ -91,19 +91,19 @@ end
 @doc raw"""
     n_aux_node_vars(::LinearizedEulerEquations3D)
 
-The mean flow can alternatively be prescribed as a spatially varying field using auxiliary
-variables, see [`n_aux_node_vars`](@ref). In that case the auxiliary variables are
+The mean flow can alternatively be prescribed as a spatially varying field of auxiliary
+variables, see [`n_aux_node_vars`](@ref). They are
 ```math
 (\bar{\rho}, \bar{v}_1, \bar{v}_2, \bar{v}_3, \bar{c})
 ```
-and they replace `rho_mean_global`, `v_mean_global` and `c_mean_global` in the fluxes.
-They are activated by passing an `aux_field` to [`SemidiscretizationHyperbolic`](@ref);
-without it, the global mean values stored in the equations are used as before.
+and replace `rho_mean_global`, `v_mean_global` and `c_mean_global` in the fluxes. They are
+activated by passing an `aux_field` to [`SemidiscretizationHyperbolic`](@ref); without it,
+the global mean values stored in the equations are used.
 
 !!! note
-    The mean values stored in the equations are still used for the time step
-    computation via `max_abs_speeds`, since [`have_constant_speed`](@ref) is `True()`.
-    They therefore have to bound the varying mean flow prescribed by `aux_field`.
+    Since [`have_constant_speed`](@ref) is `True()`, the time step is still computed from
+    the global mean values. They therefore have to bound the mean flow prescribed by
+    `aux_field`.
 """
 @inline n_aux_node_vars(::LinearizedEulerEquations3D) = 5
 

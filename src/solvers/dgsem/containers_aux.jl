@@ -6,12 +6,8 @@
 #! format: noindent
 
 # Container for the values of the auxiliary variables at the volume and surface
-# quadrature nodes, see [`n_aux_node_vars`](@ref).
-#
-# The container is only created if an `aux_field` is passed to the semidiscretization.
-# It is stored as `cache.aux_vars` and filled once during its construction. Since the
-# auxiliary variables depend on the node coordinates only, they never change during a
-# simulation on a fixed mesh.
+# quadrature nodes, see [`n_aux_node_vars`](@ref). It is stored as `cache.aux_vars` and
+# only created if an `aux_field` is passed to the semidiscretization.
 struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP2, NDIMSP3, AuxField}
     aux_node_vars::Array{uEltype, NDIMSP2}          # [var, i, j, k, element]
     aux_surface_node_vars::Array{uEltype, NDIMSP2}  # [leftright, var, i, j, interface]
@@ -29,6 +25,8 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     n_nodes = nnodes(solver)
     uEltype = eltype(cache.elements)
     nan_uEltype = convert(uEltype, NaN)
+
+    check_aux_field(aux_field, mesh, equations, solver, cache)
 
     # Volume nodes of the elements
     aux_node_vars = fill(nan_uEltype,
@@ -61,6 +59,27 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver, cache)
 
     return aux_vars
+end
+
+# Make sure that `aux_field` provides exactly the number of auxiliary variables the
+# equations expect. Without this check, too few values result in a confusing `BoundsError`
+# and too many are silently ignored.
+function check_aux_field(aux_field, mesh, equations, solver, cache)
+    # Nothing to check without elements, e.g., on an empty MPI rank
+    if nelements(cache.elements) == 0
+        return nothing
+    end
+
+    x_local = get_node_coords(cache.elements.node_coordinates, equations, solver,
+                              ntuple(_ -> 1, ndims(mesh))..., 1)
+    n_returned = length(aux_field(x_local, equations))
+    if n_returned != n_aux_node_vars(equations)
+        throw(ArgumentError("`aux_field` returned $n_returned values but " *
+                            "`$(nameof(typeof(equations)))` has " *
+                            "$(n_aux_node_vars(equations)) auxiliary variables"))
+    end
+
+    return nothing
 end
 
 # Evaluate the auxiliary variables at the volume nodes. This works for every mesh type

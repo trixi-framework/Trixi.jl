@@ -1090,14 +1090,10 @@ https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
     return SVector(ntuple(@inline(v->u[v, indices...]), Val(nvariables(equations))))
 end
 
-# Return the auxiliary variables at a given volume node index, wrapped in a tuple that is
-# meant to be splatted into the flux functions:
-#
-#     aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
-#     flux(u_node, aux_node..., 1, equations)
-#
-# If the `cache` does not store any auxiliary variables, the tuple is empty and the flux
-# functions are called with their usual signature, at no runtime cost.
+# Return the auxiliary variables at a given volume node index as a tuple. Thus, the flux
+# functions are called as `flux(u_node, aux_node..., 1, equations)`. The tuple is empty if
+# the `cache` does not store any auxiliary variables, so that this reduces to
+# `flux(u_node, 1, equations)`.
 @inline get_aux_node_vars(::Nothing, equations, ::DG, indices...) = ()
 
 @inline function get_aux_node_vars(aux_node_vars, equations, ::DG, indices...)
@@ -1117,7 +1113,7 @@ end
 end
 
 # Return the auxiliary variables on both sides of a given surface node index, again as a
-# tuple to be splatted into the flux functions, see [`get_aux_node_vars`](@ref)
+# tuple, see `get_aux_node_vars` above
 @inline get_aux_surface_node_vars(::Nothing, equations, ::DG, indices...) = ()
 
 @inline function get_aux_surface_node_vars(aux_surface_node_vars, equations, ::DG,
@@ -1164,8 +1160,8 @@ end
 
 # Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
 # container is only created if an `aux_field` is passed to the semidiscretization, see
-# [`n_aux_node_vars`](@ref); otherwise `nothing` is returned. Since `hasproperty` is
-# resolved at compile time, this is free of any runtime cost.
+# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned. Note that `hasproperty` is
+# resolved at compile time, so this does not cost anything at runtime.
 @inline function get_aux_node_vars_array(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_node_vars : nothing
 end
