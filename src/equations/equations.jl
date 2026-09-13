@@ -81,6 +81,14 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
                          "variable " * string(variable),
                          varnames(cons2cons, equations)[variable])
         end
+        if n_aux_node_vars(equations) > 0
+            summary_line(io, "#auxiliary variables", n_aux_node_vars(equations))
+            for variable in eachauxvariable(equations)
+                summary_line(increment_indent(io),
+                             "variable " * string(variable),
+                             varnames(cons2aux, equations)[variable])
+            end
+        end
         summary_footer(io)
     end
 end
@@ -223,6 +231,23 @@ end
 
     # Calculate boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
+# Dirichlet-type boundary condition for equations with auxiliary variables
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    # Get the external value of the solution. Note that the auxiliary variables are
+    # continuous across the boundary, so the inner values are used on both sides.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                 normal_direction, equations)
 
     return flux
 end
@@ -374,6 +399,52 @@ This is the default fallback for nonlinear equations.
 - `False()`
 """
 have_constant_speed(::AbstractEquations) = False()
+
+"""
+    n_aux_node_vars(equations)
+
+Number of auxiliary variables of `equations` that are stored at every node of the
+solution alongside the conserved variables. Auxiliary variables are spatially varying
+but constant in time, e.g., a prescribed background flow or a variable coefficient.
+They are evaluated once from the `aux_field` function passed to
+[`SemidiscretizationHyperbolic`](@ref) and are stored in `cache.aux_vars`.
+
+The default is `0`, i.e., no auxiliary variables. Equations that support auxiliary
+variables need to specialize this function and accept them as an additional argument in
+[`flux`](@ref) and in the numerical fluxes, e.g.,
+```julia
+n_aux_node_vars(::MyEquations) = 2
+
+flux(u, aux, normal_direction, equations::MyEquations) = ...
+flux_godunov(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+```
+Equations without auxiliary variables, as well as equations supporting them but used
+without an `aux_field`, get an empty tuple of auxiliary variables from
+`get_aux_node_vars`, so the solvers call their flux functions with the usual signature
+at no runtime cost.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+    Currently, auxiliary variables are only implemented for `P4estMesh{3}` with `DGSEM`
+    on the CPU, and they are not supported together with mesh adaptation (AMR).
+"""
+@inline n_aux_node_vars(::AbstractEquations) = 0
+
+"""
+    eachauxvariable(equations)
+
+Return an iterator over the indices of the auxiliary variables of `equations`,
+see [`n_aux_node_vars`](@ref).
+"""
+@inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(n_aux_node_vars(equations))
+
+"""
+    cons2aux(u, aux, equations)
+
+Return the auxiliary variables `aux`. Used with [`varnames`](@ref) to get the names of
+the auxiliary variables, see [`n_aux_node_vars`](@ref).
+"""
+@inline cons2aux(u, aux, ::AbstractEquations) = aux
 
 """
     default_analysis_errors(equations)

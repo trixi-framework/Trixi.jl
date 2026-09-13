@@ -889,6 +889,24 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
 end
 
+@testitem "P4estMesh3D: elixir_linearizedeuler_aux_mean_flow.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_aux_mean_flow.jl"),
+                        l2=[
+                            0.09376658249717858, 0.02362059813363448,
+                            0.027758023173570047, 0.024365135712989944,
+                            0.09349650593081046
+                        ],
+                        linf=[
+                            1.0905405868983333, 0.10769970556581673,
+                            0.14308560598829212, 0.09750975703490734,
+                            1.1076522654280505
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
+
 @testitem "P4estMesh3D: elixir_euler_weak_blast_wave_amr.jl" setup=[Setup, P4estMesh3D] tags=[:p4est_part2] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[

@@ -333,4 +333,175 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
 
     return surface_index1, surface_index2
 end
+# Auxiliary variables at the interface nodes, cf. `prolong2interfaces!`
+function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{3}, equations, solver,
+                                     cache)
+    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
+    @unpack neighbor_ids, node_indices = cache.interfaces
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachinterface(solver, cache)
+        # Copy the auxiliary variables from the primary element using "delayed indexing"
+        # with a start value and two step sizes to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_surface_node_vars[1, v, i, j, interface] = aux_node_vars[v,
+                                                                                 i_primary,
+                                                                                 j_primary,
+                                                                                 k_primary,
+                                                                                 primary_element]
+                end
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+            end
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+        end
+
+        # Copy the auxiliary variables from the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                           index_range)
+        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                           index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        k_secondary = k_secondary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_surface_node_vars[2, v, i, j, interface] = aux_node_vars[v,
+                                                                                 i_secondary,
+                                                                                 j_secondary,
+                                                                                 k_secondary,
+                                                                                 secondary_element]
+                end
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+                k_secondary += k_secondary_step_i
+            end
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+            k_secondary += k_secondary_step_j
+        end
+    end
+
+    return nothing
+end
+
+# Auxiliary variables at the boundary nodes, cf. `prolong2boundaries!`.
+# Only the values inside the domain are stored; boundary conditions get them as
+# `aux_inner`.
+function init_aux_boundary_node_vars!(aux_vars, mesh::P4estMesh{3}, equations, solver,
+                                      cache)
+    @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
+    @unpack neighbor_ids, node_indices = cache.boundaries
+    index_range = eachnode(solver)
+
+    @threaded for boundary in eachboundary(solver, cache)
+        element = neighbor_ids[boundary]
+        boundary_indices = node_indices[boundary]
+
+        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(boundary_indices[1],
+                                                                            index_range)
+        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(boundary_indices[2],
+                                                                            index_range)
+        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(boundary_indices[3],
+                                                                            index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        k_node = k_node_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_boundary_node_vars[v, i, j, boundary] = aux_node_vars[v,
+                                                                              i_node,
+                                                                              j_node,
+                                                                              k_node,
+                                                                              element]
+                end
+                i_node += i_node_step_i
+                j_node += j_node_step_i
+                k_node += k_node_step_i
+            end
+            i_node += i_node_step_j
+            j_node += j_node_step_j
+            k_node += k_node_step_j
+        end
+    end
+
+    return nothing
+end
+
+# Auxiliary variables at the mortar nodes, cf. `prolong2mortars!`.
+# The values of the four small elements are used on both sides of the mortar instead of
+# interpolating the values of the large element to the small ones. This is exact as long as
+# `aux_field` is continuous, which is assumed throughout.
+function init_aux_mortar_node_vars!(aux_vars, mesh::P4estMesh{3}, equations, solver,
+                                    cache)
+    @unpack aux_node_vars, aux_mortar_node_vars = aux_vars
+    @unpack neighbor_ids, node_indices = cache.mortars
+    index_range = eachnode(solver)
+
+    @threaded for mortar in eachmortar(solver, cache)
+        # Get index information on the small elements
+        small_indices = node_indices[1, mortar]
+
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                               index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                               index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                               index_range)
+
+        for position in 1:4
+            i_small = i_small_start
+            j_small = j_small_start
+            k_small = k_small_start
+            element = neighbor_ids[position, mortar]
+            for j in eachnode(solver)
+                for i in eachnode(solver)
+                    for v in eachauxvariable(equations)
+                        aux_small = aux_node_vars[v, i_small, j_small, k_small, element]
+                        aux_mortar_node_vars[1, v, position, i, j, mortar] = aux_small
+                        aux_mortar_node_vars[2, v, position, i, j, mortar] = aux_small
+                    end
+                    i_small += i_small_step_i
+                    j_small += j_small_step_i
+                    k_small += k_small_step_i
+                end
+                i_small += i_small_step_j
+                j_small += j_small_step_j
+                k_small += k_small_step_j
+            end
+        end
+    end
+
+    return nothing
+end
 end # @muladd

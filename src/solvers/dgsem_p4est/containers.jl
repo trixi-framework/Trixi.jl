@@ -750,6 +750,12 @@ function reinitialize_containers!(mesh::P4estMesh, equations, dg::DGSEM, cache)
     # init_normal_directions! requires that `node_indices` have been initialized
     init_normal_directions!(interfaces, dg.basis, elements)
 
+    # Auxiliary variables are evaluated once for a fixed mesh, so adaptation would
+    # require re-initializing (and resizing) their container.
+    if hasproperty(cache, :aux_vars)
+        throw(ArgumentError("mesh adaptation is not supported with auxiliary variables"))
+    end
+
     return nothing
 end
 
