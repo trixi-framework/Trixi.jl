@@ -182,10 +182,13 @@ end
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
+    # We explicitly check whether the input arrays have the assumed sizes so
+    # that we can use `@inbounds` below to improve the performance.
     @boundscheck begin
         check_axes(u, equations, dg, cache)
         check_axes(du, equations, dg, cache)
     end
+
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         @inbounds volume_integral_kernel!(du, u, element, MeshT,
