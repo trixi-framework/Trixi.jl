@@ -8,11 +8,9 @@
 # Container for the values of the auxiliary variables at the volume and surface
 # quadrature nodes, see [`n_aux_node_vars`](@ref). It is stored as `cache.aux_vars` and
 # only created if an `aux_field` is passed to the semidiscretization.
-struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP2, NDIMSP3, AuxField}
-    aux_node_vars::Array{uEltype, NDIMSP2}          # [var, i, j, k, element]
-    aux_surface_node_vars::Array{uEltype, NDIMSP2}  # [leftright, var, i, j, interface]
-    aux_boundary_node_vars::Array{uEltype, NDIMSP1} # [var, i, j, boundary]
-    aux_mortar_node_vars::Array{uEltype, NDIMSP3}   # [leftright, var, position, i, j, mortar]
+struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxField}
+    aux_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, k, element]
+    aux_surface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, j, interface]
 
     # function `aux_field(x, equations)` used to initialize the auxiliary variables
     aux_field::AuxField
@@ -36,27 +34,14 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
     aux_surface_node_vars = fill(nan_uEltype,
                                  (2, n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
                                   ninterfaces(cache.interfaces)))
-    # Surface nodes at the boundaries. Only the values inside of the domain are stored.
-    aux_boundary_node_vars = fill(nan_uEltype,
-                                  (n_aux, ntuple(_ -> n_nodes, NDIMS - 1)...,
-                                   nboundaries(cache.boundaries)))
-    # Surface nodes on both sides of each position of the mortars
-    aux_mortar_node_vars = fill(nan_uEltype,
-                                (2, n_aux, 2^(NDIMS - 1),
-                                 ntuple(_ -> n_nodes, NDIMS - 1)...,
-                                 nmortars(cache.mortars)))
 
-    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 2, NDIMS + 3,
+    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2,
                                     typeof(aux_field)}(aux_node_vars,
                                                        aux_surface_node_vars,
-                                                       aux_boundary_node_vars,
-                                                       aux_mortar_node_vars,
                                                        aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
-    init_aux_boundary_node_vars!(aux_vars, mesh, equations, solver, cache)
-    init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver, cache)
 
     return aux_vars
 end
@@ -103,23 +88,11 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
     return nothing
 end
 
-# The remaining initializations require information about the coupling of the elements
-# and are thus implemented for each mesh type separately, currently only for
+# Filling the interface values requires information about the coupling of the elements
+# and is thus implemented for each mesh type separately, currently only for
 # `P4estMesh{3}` in `dgsem_p4est/containers_3d.jl`.
 function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
-    throw(ArgumentError(unsupported_aux_vars_message(mesh, solver)))
-end
-
-function init_aux_boundary_node_vars!(aux_vars, mesh, equations, solver, cache)
-    throw(ArgumentError(unsupported_aux_vars_message(mesh, solver)))
-end
-
-function init_aux_mortar_node_vars!(aux_vars, mesh, equations, solver, cache)
-    throw(ArgumentError(unsupported_aux_vars_message(mesh, solver)))
-end
-
-function unsupported_aux_vars_message(mesh, solver)
-    return "auxiliary variables are not implemented for $(typeof(mesh)) with " *
-           "$(typeof(solver))"
+    throw(ArgumentError("auxiliary variables are not implemented for $(typeof(mesh)) " *
+                        "with $(typeof(solver))"))
 end
 end # @muladd

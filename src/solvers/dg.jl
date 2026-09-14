@@ -1112,19 +1112,6 @@ end
     return u_ll, u_rr
 end
 
-# Return the auxiliary variables on both sides of a given surface node index, again as a
-# tuple, see `get_aux_node_vars` above
-@inline get_aux_surface_node_vars(::Nothing, equations, ::DG, indices...) = ()
-
-@inline function get_aux_surface_node_vars(aux_surface_node_vars, equations, ::DG,
-                                           indices...)
-    aux_ll = SVector(ntuple(@inline(v->aux_surface_node_vars[1, v, indices...]),
-                            Val(n_aux_node_vars(equations))))
-    aux_rr = SVector(ntuple(@inline(v->aux_surface_node_vars[2, v, indices...]),
-                            Val(n_aux_node_vars(equations))))
-    return aux_ll, aux_rr
-end
-
 # As above but dispatches on an type argument
 @inline function get_surface_node_vars(u, equations, ::Type{<:DG}, indices...)
     u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), Val(nvariables(equations))))
@@ -1132,6 +1119,7 @@ end
     return u_ll, u_rr
 end
 
+# Return the auxiliary variables on both sides of a given surface node index.
 @inline get_aux_surface_node_vars(::Nothing, equations, ::Type{<:DG}, indices...) = ()
 
 @inline function get_aux_surface_node_vars(aux_surface_node_vars, equations,
@@ -1169,15 +1157,6 @@ end
 @inline function get_aux_surface_node_vars_array(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_surface_node_vars :
            nothing
-end
-
-@inline function get_aux_boundary_node_vars_array(cache)
-    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_boundary_node_vars :
-           nothing
-end
-
-@inline function get_aux_mortar_node_vars_array(cache)
-    return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_mortar_node_vars : nothing
 end
 
 @inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)

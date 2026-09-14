@@ -291,20 +291,6 @@ end
     return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr,
-                                     orientation_or_normal_direction,
-                                     equations::LinearizedEulerEquations3D)
-    return max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation_or_normal_direction,
-                         equations)
-end
-
-@inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                               equations::LinearizedEulerEquations3D)
-    v_mean_ll = SVector(aux_ll[2], aux_ll[3], aux_ll[4])[orientation]
-    v_mean_rr = SVector(aux_rr[2], aux_rr[3], aux_rr[4])[orientation]
-    return max(abs(v_mean_ll) + aux_ll[5], abs(v_mean_rr) + aux_rr[5])
-end
-
 @inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
                                normal_direction::AbstractVector,
                                equations::LinearizedEulerEquations3D)
