@@ -109,6 +109,12 @@ end
                             1.6530653472068835e-5,
                             5.124340147499851e-5
                         ])
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -647,6 +653,12 @@ end
                             3.056308177579416
                         ],
                         tspan=(0.0, 1.0))
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -678,6 +690,12 @@ end
                             2.9727088721825745
                         ],
                         tspan=(0.0, 0.5))
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-12
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -711,6 +729,12 @@ end
                             3.009711769469177
                         ],
                         tspan=(0.0, 0.5))
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -916,6 +940,12 @@ end
                         tspan=(0.0, 0.5),
                         initial_refinement_level=5,
                         max_level=5)
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 3.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -948,6 +978,12 @@ end
                         max_level=5,
                         bar_states=true,
                         cfl=0.9)
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -1315,6 +1351,13 @@ end
     @test lines[1] == "# iter, simu_time, rho_min, rho_max, pressure_min"
     # Run takes 99 time steps
     @test startswith(lines[end], "99")
+
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -1351,6 +1394,12 @@ end
                             0.27333417871543686
                         ],
                         tspan=(0.0, 0.2))
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -1471,6 +1520,12 @@ end
                             356.8409617047616
                         ],
                         tspan=(0.0, 0.0005))
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(isfinite, deviations)
+    @test maximum(deviations) <= 1.0e-13
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -1541,6 +1596,11 @@ end
                             3.8386402873687297e6
                         ],
                         refinement_level=5)
+    # Check the maximum deviations
+    limiter = semi.solver.volume_integral.limiter
+    deviations = collect(values(limiter.cache.idp_bounds_delta_global))
+    @test all(iszero, deviations) # disabled due to use of smoothness indicator
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
