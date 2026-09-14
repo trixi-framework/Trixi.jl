@@ -52,7 +52,8 @@ end
 
 function Adapt.adapt_structure(to, mpi_cache::P4estMPICache)
     mpi_neighbor_ranks = mpi_cache.mpi_neighbor_ranks
-    mpi_neighbor_interfaces = Adapt.adapt_structure(to, mpi_cache.mpi_neighbor_interfaces)
+    mpi_neighbor_interfaces = Adapt.adapt_structure(to,
+                                                    mpi_cache.mpi_neighbor_interfaces)
     mpi_neighbor_mortars = Adapt.adapt_structure(to, mpi_cache.mpi_neighbor_mortars)
     mpi_send_buffers = Adapt.adapt_structure(to, mpi_cache.mpi_send_buffers)
     mpi_recv_buffers = Adapt.adapt_structure(to, mpi_cache.mpi_recv_buffers)
@@ -65,7 +66,8 @@ function Adapt.adapt_structure(to, mpi_cache::P4estMPICache)
     @assert eltype(mpi_send_buffers) == eltype(mpi_recv_buffers)
     BufferType = eltype(mpi_send_buffers)
     VecInt = eltype(mpi_neighbor_interfaces)
-    return P4estMPICache{BufferType, VecInt}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+    return P4estMPICache{BufferType, VecInt}(mpi_neighbor_ranks,
+                                             mpi_neighbor_interfaces,
                                              mpi_neighbor_mortars, mpi_send_buffers,
                                              mpi_recv_buffers, mpi_send_requests,
                                              mpi_recv_requests, n_elements_by_rank,
@@ -82,7 +84,8 @@ precompile(Base.reindex,
            (Tuple{Base.Slice{Base.OneTo{Int64}}, Int64, Base.Slice{Base.OneTo{Int64}},
                   Base.Slice{Base.OneTo{Int64}}, Int64}, Tuple{Int64, Int64, Int64}))
 
-function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
+function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache, mesh, equations,
+                         dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
     n_small_elements = 2^(ndims(mesh) - 1)
 
@@ -137,6 +140,45 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
     return nothing
 end
 
+# TODO GPU: MPI mortars
+function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
+                         mesh::P4estMeshParallel{2}, equations, dg, cache)
+    @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces = mpi_cache
+    @unpack mpi_send_buffers, mpi_send_requests = mpi_cache
+    @unpack local_sides, u = cache.mpi_interfaces
+
+    kernel! = start_mpi_send_KAkernel!(backend)
+
+    for (rank_index, neighbor_rank) in enumerate(mpi_neighbor_ranks)
+        send_buffer = mpi_send_buffers[rank_index]
+        neighbor_interfaces = mpi_neighbor_interfaces[rank_index]
+        kernel!(send_buffer, neighbor_interfaces, local_sides, u,
+                Val(nvariables(equations)), Val(ndims(mesh)),
+                ndrange = (nnodes(dg), length(neighbor_interfaces)))
+
+        # wait for the kernel to return before sending the buffer
+        KernelAbstractions.synchronize(backend)
+        mpi_send_requests[rank_index] = MPI.Isend(send_buffer, neighbor_rank,
+                                                  mpi_rank(), mpi_comm())
+    end
+end
+
+@kernel function start_mpi_send_KAkernel!(send_buffer, neighbor_interfaces, local_sides,
+                                          u_mpi_interfaces, ::Val{NVARS},
+                                          ::Val{2}) where {NVARS}
+    index_node, index_interface = @index(Global, NTuple)
+    index_linear = @index(Global, Linear)
+
+    buffer_offset = (index_linear - 1) * NVARS
+    interface = neighbor_interfaces[index_interface]
+    local_side = local_sides[interface]
+
+    for v in 1:NVARS
+        send_buffer[buffer_offset + v] = u_mpi_interfaces[local_side, v, index_node,
+                                                          index_interface]
+    end
+end
+
 function start_mpi_receive!(mpi_cache::P4estMPICache)
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
         mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
@@ -150,7 +192,8 @@ function finish_mpi_send!(mpi_cache::P4estMPICache)
     return MPI.Waitall(mpi_cache.mpi_send_requests, MPI.Status)
 end
 
-function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
+function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache, mesh,
+                             equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
     n_small_elements = 2^(ndims(mesh) - 1)
     n_positions = n_small_elements + 1
@@ -198,6 +241,44 @@ function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cach
     end
 
     return nothing
+end
+
+# TODO GPU: MPI mortars
+function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
+                             mesh::P4estMeshParallel{2}, equations, dg, cache)
+    @unpack mpi_neighbor_interfaces = mpi_cache
+    @unpack mpi_recv_buffers, mpi_recv_requests = mpi_cache
+    @unpack local_sides, u = cache.mpi_interfaces
+
+    kernel! = finish_mpi_receive_KAkernel!(backend)
+
+    # Start receiving and unpack received data until all communication is finished
+    data = MPI.Waitany(mpi_recv_requests)
+    while data !== nothing
+        recv_buffer = mpi_recv_buffers[data]
+        neighbor_interfaces = mpi_neighbor_interfaces[data]
+        kernel!(recv_buffer, neighbor_interfaces, local_sides, u,
+                Val(nvariables(equations)), Val(ndims(mesh)),
+                ndrange = (nnodes(dg), length(neighbor_interfaces)))
+
+        data = MPI.Waitany(mpi_recv_requests)
+    end
+    # Wait for the last kernel to return ?
+    KernelAbstractions.synchronize(backend)
+end
+
+@kernel function finish_mpi_receive_KAkernel!(recv_buffer, neighbor_interfaces,
+                                              local_sides,
+                                              u_mpi_interfaces, ::Val{NVARS},
+                                              ::Val{3}) where {NVARS}
+    index_node, index_interface = @index(Global, NTuple)
+    index_linear = @index(Global, Linear)
+    buffer_offset = (index_linear - 1) * NVARS
+    interface = neighbor_interfaces[index_interface]
+    remote_side = local_sides[interface] == 1 ? 2 : 1
+    for v in 1:NVARS
+        u_mpi_interfaces[remote_side, v, index_node, interface] = recv_buffer[buffer_offset + v]
+    end
 end
 
 # Return a tuple `indices` where indices[position] is a `(first, last)` tuple for accessing the

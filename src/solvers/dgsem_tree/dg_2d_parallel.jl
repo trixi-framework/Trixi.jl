@@ -450,7 +450,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
 
-function rhs_hyperbolic!(backend::Nothing,
+function rhs_hyperbolic!(backend,
                          du, u, t,
                          mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
                                      T8codeMeshParallel{2}}, equations,
@@ -461,7 +461,8 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to MPI interfaces
     @trixi_timeit timer() "prolong2mpiinterfaces" begin
-        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral, dg)
+        prolong2mpiinterfaces!(backend, cache, u, mesh, equations, dg.surface_integral,
+                               dg)
     end
 
     # Prolong solution to MPI mortars
@@ -472,7 +473,7 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Start to send MPI data
     @trixi_timeit timer() "start MPI send" begin
-        start_mpi_send!(cache.mpi_cache, mesh, equations, dg, cache)
+        start_mpi_send!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Reset du
@@ -524,12 +525,12 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Finish to receive MPI data
     @trixi_timeit timer() "finish MPI receive" begin
-        finish_mpi_receive!(cache.mpi_cache, mesh, equations, dg, cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Calculate MPI interface fluxes
     @trixi_timeit timer() "MPI interface flux" begin
-        calc_mpi_interface_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mpi_interface_flux!(backend, cache.elements.surface_flux_values, mesh,
                                  have_nonconservative_terms(equations), equations,
                                  dg.surface_integral, dg, cache)
     end
