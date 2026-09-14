@@ -102,7 +102,7 @@ function perform_idp_mortar_correction(u, dt, mesh::TreeMesh{2}, equations, dg, 
     # Using a serial loop here because corner nodes can be adapted by more than 1 mortars
     # simultaneously and therefore, the updates to the corner nodes are not thread-safe.
     for mortar in eachmortar(dg, cache)
-        if isone(limiting_factor[mortar])
+        if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue
         end
         large_element = neighbor_ids[3, mortar]
@@ -207,7 +207,7 @@ function perform_idp_mortar_correction(u, dt, mesh::P4estMesh{2}, equations, dg,
     # Using a serial loop here because corner nodes can be adapted by more than 1 mortars
     # simultaneously and therefore, the updates to the corner nodes are not thread-safe.
     for mortar in eachmortar(dg, cache)
-        if isone(limiting_factor[mortar])
+        if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue
         end
         large_element = neighbor_ids[3, mortar]
