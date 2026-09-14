@@ -509,7 +509,7 @@ end
     # fraction `alpha_indicator`. Blending the local limiting *on top of* the positivity one
     # (instead of taking a convex combination of both) makes sure that the merged factor
     # never falls below `alpha`.
-    for element in eachelement(dg, cache)
+    @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             alpha[i, j, element] = alpha[i, j, element] +
                                    alpha_indicator[element] *
@@ -525,7 +525,7 @@ end
 @inline function merge_alphas_mortar!(limiting_factor, limiting_factor_local,
                                       alpha_indicator, dg, mesh::AbstractMesh{2}, cache)
     (; neighbor_ids) = cache.mortars
-    for mortar in eachmortar(dg, cache)
+    @threaded for mortar in eachmortar(dg, cache)
         alpha_element = max(alpha_indicator[neighbor_ids[1, mortar]],
                             alpha_indicator[neighbor_ids[2, mortar]],
                             alpha_indicator[neighbor_ids[3, mortar]])
