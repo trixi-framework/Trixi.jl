@@ -1080,6 +1080,9 @@ end
     Makie.plot(pd["scalar"])
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
+
+    # contour plots are only defined for 2D solutions
+    @test_throws ArgumentError Makie.contour(sol)
 end
 @testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[
     Setup,
@@ -1121,6 +1124,33 @@ end
     @trixi_test_nowarn Makie.plot!(Trixi.PlotMesh(pd), color = :black,
                                    linestyle = :dash)
 
+    # Makie.contour(pds) gives title, xlabel, ylabel and colorbar
+    @trixi_test_nowarn Makie.contour(pd["scalar"])
+
+    # kwargs are forwarded to contour!
+    @trixi_test_nowarn Makie.contour(pd["scalar"], levels = 5)
+
+    # Makie.contour(pd) gives layout for all variables
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
+
+    # Makie.contour(sol) for 2D TreeMesh solutions
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # the same for filled contours
+    @trixi_test_nowarn Makie.contourf(pd["scalar"])
+    @trixi_test_nowarn Makie.contourf(pd["scalar"], levels = 5)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+
+    # contour! overlay on the current axis
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"])
+
+    # kwargs are forwarded to contour! in the overlay
+    Makie.plot(pd["scalar"])
+    @trixi_test_nowarn Makie.contour!(pd["scalar"], levels = 5, color = :white)
+
     # FV (polydeg = 0): `pd_fv.x`/`.y` are the `length(data)+1` cell edges.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
                                  "elixir_advection_basic.jl"),
@@ -1148,6 +1178,12 @@ end
         @test limits[1] < limits[2]
     end
     @trixi_test_nowarn Makie.plot(pd_const["v1_mean"])
+
+    # Constant variables have no contour lines, but the plots must still be created.
+    @trixi_test_nowarn Makie.contour(pd_const)
+    @trixi_test_nowarn Makie.contour(pd_const["v1_mean"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const["v1_mean"])
 
     # The seven variables do not fill the 3x3 layout, so the unused cells must still
     # hold (empty) axes instead of undefined references.

@@ -568,6 +568,43 @@ Colorbar(fig[1, 2], plt)
 plot!(getmesh(pd))
 ```
 
+### Contour plots
+
+For solutions on Cartesian meshes, Trixi.jl also supports unfilled contour lines
+(`contour`) and filled contour bands (`contourf`). Contour lines for a single variable:
+```@example makie-2d
+Makie.contour(pd["rho"])
+```
+
+Filled contour bands:
+```@example makie-2d
+Makie.contourf(pd["rho"])
+```
+
+All variables at once, optionally with mesh overlay:
+```@example makie-2d
+Makie.contour(pd, plot_mesh = true)
+```
+
+`Makie.contour` also accepts the solution directly:
+```@example makie-2d
+Makie.contour(sol)
+```
+
+Keyword arguments are forwarded to the underlying Makie plot. For example, the number of
+contour lines is controlled by `levels`, which takes either the number of levels or a
+vector of level values:
+```@example makie-2d
+Makie.contour(pd["rho"], levels = 5, colormap = :berlin, linewidth = 2)
+```
+
+Finally, `contour!` adds contour lines on top of the plot in the currently active axis,
+e.g., to overlay them on a heatmap:
+```@example makie-2d
+Makie.plot(pd["rho"])
+Makie.contour!(pd["rho"], color = :white)
+```
+
 ### Interactive visualization
 
 Trixi.jl also supports interactive surface plots using [`iplot`](@ref).
