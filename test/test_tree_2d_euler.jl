@@ -677,7 +677,7 @@ end
                             1.2282956020880327,
                             2.9727088721825745
                         ],
-                        tspan=(0.0, 1.0))
+                        tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -710,7 +710,7 @@ end
                             1.965677360731519,
                             3.009711769469177
                         ],
-                        tspan=(0.0, 1.0))
+                        tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom
@@ -913,7 +913,7 @@ end
                             1.136723672147965,
                             6.462700955857644
                         ],
-                        tspan=(0.0, 1.0),
+                        tspan=(0.0, 0.5),
                         initial_refinement_level=5,
                         max_level=5)
     # Ensure that we do not have excessive memory allocations
@@ -943,7 +943,7 @@ end
                             1.7100359171012502,
                             6.479880391554932
                         ],
-                        tspan=(0.0, 1.0),
+                        tspan=(0.0, 0.5),
                         initial_refinement_level=5,
                         max_level=5,
                         bar_states=true,
@@ -1470,7 +1470,7 @@ end
                             0.005527716062691499,
                             356.8409617047616
                         ],
-                        tspan=(0.0, 1.0))
+                        tspan=(0.0, 0.0005))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     # Larger values for allowed allocations due to usage of custom

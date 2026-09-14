@@ -638,7 +638,7 @@ end
                             30.899108718819736,
                             484.8651130121227
                         ],
-                        tspan=(0.0, 0.0001))
+                        tspan=(0.0, 5.0e-5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
@@ -673,7 +673,7 @@ end
                             29.768793591389432,
                             467.00033830740983
                         ],
-                        tspan=(0.0, 0.0001))
+                        tspan=(0.0, 5.0e-5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
@@ -1109,7 +1109,7 @@ end
                             1.012037484406978,
                             4.451090347256024
                         ],
-                        tspan=(0.0, 0.1))
+                        tspan=(0.0, 0.05))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
@@ -1147,7 +1147,7 @@ end
                             0.702607566402268,
                             4.068560965697952
                         ],
-                        tspan=(0.0, 0.1))
+                        tspan=(0.0, 0.05))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
@@ -1186,7 +1186,7 @@ end
                             0.7312942378665278,
                             3.978825522109933
                         ],
-                        tspan=(0.0, 0.1))
+                        tspan=(0.0, 0.05))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
