@@ -868,7 +868,7 @@ end
             # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
             # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
             #       for each mortar, not each node
-            Qm_large = min(0, var_min_large - var_large)
+            Qm_large = min(0, (var_min_large - var_large) / dt)
             Pm_large = min(0, flux_difference_large)
 
             # A node can be on multiple mortars. Scale the antidiffusive flux contribution
@@ -878,7 +878,7 @@ end
             inverse_jacobian_large = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                           mesh, i_large, j_large,
                                                           large_element)
-            Pm_large = dt * inverse_jacobian_large * Pm_large
+            Pm_large = inverse_jacobian_large * Pm_large
 
             # Compute blending coefficient avoiding division by zero
             # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
@@ -908,7 +908,7 @@ end
                                         (flux_small_high_order - flux_small_low_order)
 
                 var_min_small = positivity_correction_factor * var_small
-                Qm_small = min(0, var_min_small - var_small)
+                Qm_small = min(0, (var_min_small - var_small) / dt)
                 Pm_small = min(0, flux_difference_small)
 
                 # A node can be on multiple mortars. Scale the antidiffusive flux contribution
@@ -919,7 +919,7 @@ end
                 inverse_jacobian_small = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                               mesh, i_small, j_small,
                                                               small_element)
-                Pm_small = dt * inverse_jacobian_small * Pm_small
+                Pm_small = inverse_jacobian_small * Pm_small
 
                 # Compute blending coefficient avoiding division by zero
                 # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))

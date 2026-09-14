@@ -536,7 +536,7 @@ end
             # Compute bound
             if was_limited_locally &&
                (var_min[i, j, k, element] >= positivity_correction_factor * var)
-                # Local limiting is more restrictive that positivity limiting
+                # Local limiting is more restrictive than positivity limiting
                 # => Skip positivity limiting for this node
                 continue
             end

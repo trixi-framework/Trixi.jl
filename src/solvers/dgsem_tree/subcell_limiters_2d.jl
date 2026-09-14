@@ -689,7 +689,7 @@ end
             bound = positivity_correction_factor * var
             if !keep_local_bound
                 if was_limited_locally && (var_min[i, j, element] >= bound)
-                    # Local limiting is more restrictive that positivity limiting and is
+                    # Local limiting is more restrictive than positivity limiting and is
                     # enforced completely (no smoothness indicator)
                     # => Skip positivity limiting for this node
                     continue
@@ -1275,7 +1275,7 @@ end
             # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
             # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
             #       for each mortar, not each node
-            Qm_large = min(0, var_min_large - var_large)
+            Qm_large = min(0, (var_min_large - var_large) / dt)
             Pm_large = min(0, flux_difference_large)
 
             # A node can be on multiple mortars. Scale the antidiffusive flux contribution
@@ -1285,7 +1285,7 @@ end
             inverse_jacobian_large = get_inverse_jacobian(inverse_jacobian, mesh,
                                                           indices_large...,
                                                           large_element)
-            Pm_large = dt * inverse_jacobian_large * Pm_large
+            Pm_large = inverse_jacobian_large * Pm_large
 
             # Compute blending coefficient avoiding division by zero
             # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
@@ -1317,7 +1317,7 @@ end
                 # Minimum bound
                 var_min_small = positivity_correction_factor * var_small
 
-                Qm_small = min(0, var_min_small - var_small)
+                Qm_small = min(0, (var_min_small - var_small) / dt)
                 Pm_small = min(0, flux_difference_small)
 
                 # A node can be on multiple mortars. Scale the antidiffusive flux contribution
@@ -1328,7 +1328,7 @@ end
                 inverse_jacobian_small = get_inverse_jacobian(inverse_jacobian, mesh,
                                                               indices_small...,
                                                               small_element)
-                Pm_small = dt * inverse_jacobian_small * Pm_small
+                Pm_small = inverse_jacobian_small * Pm_small
 
                 # Compute blending coefficient avoiding division by zero
                 # (as in paper of [Guermond, Nazarov, Popov, Thomas] (4.8))
