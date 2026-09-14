@@ -524,13 +524,20 @@ end
 
 @inline function merge_alphas_mortar!(limiting_factor, limiting_factor_local,
                                       alpha_indicator, dg, mesh::AbstractMesh{2}, cache)
+    # Same blending as `merge_alphas!` uses within the elements: the positivity limiting in
+    # `limiting_factor` is enforced completely, while the local limiting is added on top with
+    # the fraction `alpha_indicator`. This never lets the merged factor fall below the
+    # positivity one. A mortar is assigned the largest `alpha_indicator` of its elements.
     (; neighbor_ids) = cache.mortars
     @threaded for mortar in eachmortar(dg, cache)
         alpha_element = max(alpha_indicator[neighbor_ids[1, mortar]],
                             alpha_indicator[neighbor_ids[2, mortar]],
                             alpha_indicator[neighbor_ids[3, mortar]])
-        limiting_factor[mortar] = (1 - alpha_element) * limiting_factor[mortar] +
-                                  alpha_element * limiting_factor_local[mortar]
+        limiting_factor[mortar] = limiting_factor[mortar] +
+                                  alpha_element *
+                                  max(0,
+                                      limiting_factor_local[mortar] -
+                                      limiting_factor[mortar])
     end
 
     return nothing
@@ -660,6 +667,12 @@ end
     # smoothness indicator, so `var_min` holds a valid local bound if this is `true`.
     was_limited_locally = limiter.local_twosided &&
                           (variable in limiter.local_twosided_variables_cons)
+    # Without a smoothness indicator, both limiters are enforced completely and `var_min` may
+    # hold the more restrictive of the two bounds. With a smoothness indicator, only
+    # the fraction `alpha_indicator` of the local limiting is applied, so `var_min` must keep
+    # the pure local bound. The positivity limiting does not need it stored, neither here nor at
+    # the mortars, since its bound follows from the current solution alone.
+    keep_local_bound = was_limited_locally && !isnothing(limiter.indicator)
 
     @threaded for element in eachelement(dg, semi.cache)
 
@@ -674,20 +687,13 @@ end
 
             # Compute bound
             bound = positivity_correction_factor * var
-            if was_limited_locally
-                if isnothing(limiter.indicator) &&
-                   (var_min[i, j, element] >= bound)
+            if !keep_local_bound
+                if was_limited_locally && (var_min[i, j, element] >= bound)
                     # Local limiting is more restrictive that positivity limiting and is
                     # enforced completely (no smoothness indicator)
                     # => Skip positivity limiting for this node
                     continue
                 end
-                # Keep the more restrictive of both bounds. With a smoothness indicator only a
-                # fraction of the local limiting is applied, so the positivity bound must not be
-                # skipped above; storing the maximum keeps the local bound available for the
-                # mortar limiting, which reads `var_min` afterwards without recomputing it.
-                var_min[i, j, element] = max(var_min[i, j, element], bound)
-            else
                 var_min[i, j, element] = bound
             end
 
@@ -698,8 +704,8 @@ end
             # * Kuzmin et al. (2010). "Failsafe flux limiting and constrained data projections for equations of gas dynamics"
             # Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
             #       for each interface, not each node
-            # Note: Use `bound` and not `var_min`, which may hold the more restrictive local
-            #       bound. Enforcing that one here would bypass the smoothness indicator.
+            # Note: Use `bound` and not `var_min`, which may hold the local bound. Enforcing
+            #       that one here would bypass the smoothness indicator.
             Qm = min(0, (bound - var) / dt)
 
             # Calculate Pm
@@ -1195,8 +1201,12 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
-    var_min = variable_bounds[Symbol(string(var_index), "_min")]
+    (; n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
+    # The positivity bound depends  on the current solution alone. It is deliberately not read
+    # from `variable_bounds`, which holds the bounds of the *local* limiting: with a smoothness
+    # indicator only the fraction `alpha_indicator` of the local limiting is applied, so
+    # enforcing its bound here would bypass the indicator.
+    (; positivity_correction_factor) = dg.mortar.limiter
 
     @threaded for mortar in eachmortar(dg, cache)
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
@@ -1245,7 +1255,7 @@ end
             var_large = u[var_index, indices_large..., large_element]
 
             # Minimum bound
-            var_min_large = var_min[indices_large..., large_element]
+            var_min_large = positivity_correction_factor * var_large
 
             flux_large_high_order = surface_flux_values_high_order[var_index, i,
                                                                    direction_large,
@@ -1305,7 +1315,8 @@ end
                                         (flux_small_high_order - flux_small_low_order)
 
                 # Minimum bound
-                var_min_small = var_min[indices_small..., small_element]
+                var_min_small = positivity_correction_factor * var_small
+
                 Qm_small = min(0, var_min_small - var_small)
                 Pm_small = min(0, flux_difference_small)
 
@@ -1347,6 +1358,9 @@ end
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.mortar
+    # The nonlinear positivity limiting is the only limiter writing this bound: the nonlinear
+    # local limiting is only used for entropies, the nonlinear positivity limiting only for
+    # the pressure. Therefore, `var_min` holds the positivity bound and can be reused here.
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 

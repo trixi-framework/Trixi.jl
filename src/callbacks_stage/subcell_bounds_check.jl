@@ -39,10 +39,10 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     if ndims(equations) == 2 &&
        solver.volume_integral isa VolumeIntegralSubcellLimiting &&
        !isnothing(solver.volume_integral.limiter.indicator)
-        # When using a smoothness indicator, a convex combination of the limiting factors from
-        # local and positivity limiting are used. However, the deviations are computed solely with
-        # respect to the local bounds. Consequently, the resulting deviation statistics would not
-        # reflect the actual deviations accurately. Skip the computation.
+        # When using a smoothness indicator, convex combinations of the limiting factors from
+        # local and positivity limiting are used. However, the deviations would be computed solely
+        # with respect to the local bounds. Consequently, the resulting deviation statistics would
+        # not reflect the actual deviations accurately. Skip the computation.
         return nothing
     end
     (; t, iter, alg) = integrator
@@ -172,13 +172,13 @@ end
        semi.solver.volume_integral isa VolumeIntegralSubcellLimiting &&
        !isnothing(limiter.indicator)
         println("Due to the use of a smoothness indicator, a convex combination of the limiting factors of local and")
-        println("positivity limiting was employed. However, the deviations are computed solely with respect to the local")
-        println("bounds. Consequently, the resulting deviation statistics may not be meaningful and can exceed zero.")
+        println("positivity limiting was employed. However, only the local bounds are actually stored. Therefore,")
+        println("nonzero deviations would be expected and would not necessarily indicate a bug. Consequently, the")
+        println("computation is skipped.")
         println("─"^100 * "\n")
-        # Note also that `variable_bounds` holds the maximum of the local and the positivity bound
-        # for variables that are limited by both. Only the positivity part of it is enforced
-        # completely; the local part is applied with the factor `alpha_indicator`. To compute
-        # meaningful deviations again, the bounds of both limiters have to be stored separately.
+        # `variable_bounds` currently only holds the local bounds. The computation of deviations
+        # is skipped. To report meaningful deviations again, the bounds of both limiters have to
+        # be stored and checked separately.
         return nothing
     end
     if !idp_newton_converged[]

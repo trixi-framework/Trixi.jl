@@ -803,8 +803,12 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; variable_bounds, n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
-    var_min = variable_bounds[Symbol(string(var_index), "_min")]
+    (; n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
+    # The positivity bound follows from the current solution alone. It is deliberately not read
+    # from `variable_bounds`, which holds the bounds of the *local* limiting: with a smoothness
+    # indicator only the fraction `alpha_indicator` of the local limiting is applied, so
+    # enforcing its bound here would bypass the indicator.
+    (; positivity_correction_factor) = dg.mortar.limiter
 
     index_range = eachnode(dg)
 
@@ -857,7 +861,7 @@ end
                                     (flux_large_high_order - flux_large_low_order)
 
             # Minimum bound
-            var_min_large = var_min[i_large, j_large, large_element]
+            var_min_large = positivity_correction_factor * var_large
 
             # Real one-sided Zalesak-type limiter
             # * Zalesak (1979). "Fully multidimensional flux-corrected transport algorithms for fluids"
@@ -903,7 +907,7 @@ end
                 flux_difference_small = factor *
                                         (flux_small_high_order - flux_small_low_order)
 
-                var_min_small = var_min[i_small, j_small, small_element]
+                var_min_small = positivity_correction_factor * var_small
                 Qm_small = min(0, var_min_small - var_small)
                 Pm_small = min(0, flux_difference_small)
 
@@ -952,6 +956,9 @@ end
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     (; limiter) = dg.mortar
+    # The nonlinear positivity limiting is the only limiter writing this bound: the nonlinear
+    # local limiting is only used for entropies, the nonlinear positivity limiting only for
+    # the pressure. Therefore, `var_min` holds the positivity bound and can be reused here.
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 

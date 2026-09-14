@@ -491,17 +491,9 @@ end
     (; limiting_factor, limiting_factor_local) = cache.mortars
     @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
 
-    # positivity
-    @trixi_timeit timer() "positivity: conservative variables" for var_index in positivity_variables_cons
-        limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
-    end
-
-    @trixi_timeit timer() "positivity: nonlinear variables" for variable in positivity_variables_nonlinear
-        limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
-    end
-
-    # local
-    limiting_factor_local .= limiting_factor
+    # Same order as within the elements: local limiting first, then positivity. The order is free
+    # here, since the positivity bound is computed from the current solution.
+    @trixi_timeit timer() "reset alpha local" limiting_factor_local.=zero(eltype(limiting_factor_local))
     @trixi_timeit timer() "local limiting: conservative variables" for var_index in local_twosided_variables_cons
         limiting_local_conservative!(limiting_factor_local, u, dt, semi, mesh,
                                      var_index)
@@ -510,6 +502,15 @@ end
     @trixi_timeit timer() "local limiting: nonlinear variables" for (variable, min_or_max) in local_onesided_variables_nonlinear
         limiting_local_nonlinear!(limiting_factor_local, u, dt, semi, mesh,
                                   variable, min_or_max)
+    end
+
+    # positivity
+    @trixi_timeit timer() "positivity: conservative variables" for var_index in positivity_variables_cons
+        limiting_positivity_conservative!(limiting_factor, u, dt, semi, mesh, var_index)
+    end
+
+    @trixi_timeit timer() "positivity: nonlinear variables" for variable in positivity_variables_nonlinear
+        limiting_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
     end
 
     merge_alphas_mortar!(limiting_factor, limiting_factor_local, alpha_indicator,
