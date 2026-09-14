@@ -1,7 +1,3 @@
-# The linearized Euler equations with a spatially varying mean flow, which is prescribed
-# as a field of auxiliary variables instead of the global mean values stored in the
-# equations, see `n_aux_node_vars`.
-
 using OrdinaryDiffEqLowStorageRK
 using Trixi
 
