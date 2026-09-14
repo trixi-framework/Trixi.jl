@@ -88,6 +88,29 @@ end
 function varnames(::typeof(cons2cons), ::LinearizedEulerEquations3D)
     return ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
 end
+@doc raw"""
+    n_aux_node_vars(::LinearizedEulerEquations3D)
+
+The mean flow can alternatively be prescribed as a spatially varying field of auxiliary
+variables, see [`n_aux_node_vars`](@ref). They are
+```math
+(\bar{\rho}, \bar{v}_1, \bar{v}_2, \bar{v}_3, \bar{c})
+```
+and replace `rho_mean_global`, `v_mean_global` and `c_mean_global` in the fluxes. They are
+activated by passing an `aux_field` to [`SemidiscretizationHyperbolic`](@ref); without it,
+the global mean values stored in the equations are used.
+
+!!! note
+    Since [`have_constant_speed`](@ref) is `True()`, the time step is still computed from
+    the global mean values. They therefore have to bound the mean flow prescribed by
+    `aux_field`.
+"""
+@inline n_aux_node_vars(::LinearizedEulerEquations3D) = 5
+
+function varnames(::typeof(cons2aux), ::LinearizedEulerEquations3D)
+    return ("rho_mean", "v1_mean", "v2_mean", "v3_mean", "c_mean")
+end
+
 function varnames(::typeof(cons2prim), ::LinearizedEulerEquations3D)
     return ("rho_prime", "v1_prime", "v2_prime", "v3_prime", "p_prime")
 end
@@ -191,6 +214,45 @@ end
     return SVector(f1, f2, f3, f4, f5)
 end
 
+# Calculate 1D flux for a single point using the mean flow from the auxiliary variables
+@inline function flux(u, aux, orientation::Integer,
+                      equations::LinearizedEulerEquations3D)
+    rho_mean, v1_mean, v2_mean, v3_mean, c_mean = aux
+    rho_prime, v1_prime, v2_prime, v3_prime, p_prime = u
+
+    v_mean = SVector(v1_mean, v2_mean, v3_mean)[orientation]
+    v_prime = SVector(v1_prime, v2_prime, v3_prime)[orientation]
+
+    f1 = v_mean * rho_prime + rho_mean * v_prime
+    f2 = v_mean * v1_prime + (orientation == 1) * p_prime / rho_mean
+    f3 = v_mean * v2_prime + (orientation == 2) * p_prime / rho_mean
+    f4 = v_mean * v3_prime + (orientation == 3) * p_prime / rho_mean
+    f5 = v_mean * p_prime + c_mean^2 * rho_mean * v_prime
+
+    return SVector(f1, f2, f3, f4, f5)
+end
+
+# Calculate 1D flux for a single point in the normal direction using the mean flow from
+# the auxiliary variables
+@inline function flux(u, aux, normal_direction::AbstractVector,
+                      equations::LinearizedEulerEquations3D)
+    rho_mean, v1_mean, v2_mean, v3_mean, c_mean = aux
+    rho_prime, v1_prime, v2_prime, v3_prime, p_prime = u
+
+    v_mean_normal = v1_mean * normal_direction[1] + v2_mean * normal_direction[2] +
+                    v3_mean * normal_direction[3]
+    v_prime_normal = v1_prime * normal_direction[1] + v2_prime * normal_direction[2] +
+                     v3_prime * normal_direction[3]
+
+    f1 = v_mean_normal * rho_prime + rho_mean * v_prime_normal
+    f2 = v_mean_normal * v1_prime + normal_direction[1] * p_prime / rho_mean
+    f3 = v_mean_normal * v2_prime + normal_direction[2] * p_prime / rho_mean
+    f4 = v_mean_normal * v3_prime + normal_direction[3] * p_prime / rho_mean
+    f5 = v_mean_normal * p_prime + c_mean^2 * rho_mean * v_prime_normal
+
+    return SVector(f1, f2, f3, f4, f5)
+end
+
 """
     have_constant_speed(::LinearizedEulerEquations3D)
 
@@ -227,6 +289,20 @@ end
                     normal_direction[2] * v_mean_global[2] +
                     normal_direction[3] * v_mean_global[3]
     return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
+end
+
+@inline function max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
+                               normal_direction::AbstractVector,
+                               equations::LinearizedEulerEquations3D)
+    norm_ = norm(normal_direction)
+    v_mean_normal_ll = aux_ll[2] * normal_direction[1] +
+                       aux_ll[3] * normal_direction[2] +
+                       aux_ll[4] * normal_direction[3]
+    v_mean_normal_rr = aux_rr[2] * normal_direction[1] +
+                       aux_rr[3] * normal_direction[2] +
+                       aux_rr[4] * normal_direction[3]
+    return max(abs(v_mean_normal_ll) + aux_ll[5] * norm_,
+               abs(v_mean_normal_rr) + aux_rr[5] * norm_)
 end
 
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
