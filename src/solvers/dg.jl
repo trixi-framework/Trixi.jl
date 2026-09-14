@@ -1148,8 +1148,7 @@ end
 
 # Accessors for the auxiliary variable arrays stored in the `cache`. The `aux_vars`
 # container is only created if an `aux_field` is passed to the semidiscretization, see
-# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned. Note that `hasproperty` is
-# resolved at compile time, so this does not cost anything at runtime.
+# [`n_aux_node_vars`](@ref). Otherwise, `nothing` is returned.
 @inline function get_aux_node_vars_array(cache)
     return hasproperty(cache, :aux_vars) ? cache.aux_vars.aux_node_vars : nothing
 end
