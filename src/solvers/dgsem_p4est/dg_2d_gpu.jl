@@ -7,12 +7,12 @@
 
 function rhs_hyperbolic!(backend::Backend,
                          du, u, t,
-                         mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                     T8codeMesh{2},
+                         mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2},
                                      P4estMesh{3}, T8codeMesh{3}},
                          equations,
                          boundary_conditions, source_terms::Source,
                          dg::DG, cache) where {Source}
+
     # Calculate volume integral
     @trixi_timeit_ext backend timer() "volume integral" begin
         calc_volume_integral!(backend, du, u, mesh,
