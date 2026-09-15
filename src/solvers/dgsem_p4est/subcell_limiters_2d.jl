@@ -812,7 +812,7 @@ end
 
     index_range = eachnode(dg)
 
-    for mortar in eachmortar(dg, cache)
+    @threaded for mortar in eachmortar(dg, cache)
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
 
         large_element = neighbor_ids[3, mortar]
