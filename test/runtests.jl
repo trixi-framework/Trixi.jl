@@ -70,6 +70,10 @@ end
 if "kernelabstractions" in SUITES_TO_DISPATCH
     import Trixi
 end
+if "kernelabstractions_mpi" in SUITES_TO_DISPATCH
+    import MPI
+    import Trixi
+end
 
 # The GPU suites run their items only when the respective backend is `functional()`,
 # so requesting `CUDA`/`AMDGPU` on a machine without that GPU warns and runs nothing
@@ -111,6 +115,18 @@ function dispatch_special_suite(suite)
         Trixi.set_threading_backend!(:kernelabstractions)
         try
             cmd = `$julia --threads=$TRIXI_NTHREADS --check-bounds=yes --project=$project $(@__FILE__)`
+            run_worker(cmd, suite)
+        finally
+            Trixi.set_threading_backend!(Symbol(previous_backend))
+        end
+    elseif suite == "kernelabstractions_mpi"
+        # The threading backend is selected via a preference that is read on Julia
+        # startup, so we set it here (in the parent) and restore it afterwards;
+        # the relaunched worker picks it up.
+        previous_backend = Trixi._PREFERENCE_THREADING
+        Trixi.set_threading_backend!(:kernelabstractions)
+        try
+            cmd = `$(MPI.mpiexec()) -n $TRIXI_MPI_NPROCS $julia --threads=1 --check-bounds=yes --heap-size-hint=0.5G --project=$project $(@__FILE__)`
             run_worker(cmd, suite)
         finally
             Trixi.set_threading_backend!(Symbol(previous_backend))
