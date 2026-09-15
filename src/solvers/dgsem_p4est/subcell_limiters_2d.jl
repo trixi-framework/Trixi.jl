@@ -628,29 +628,32 @@ end
         for i in eachnode(dg)
             isone(limiting_factor[mortar]) && break # Skip if alpha is already 1 (no limiting needed)
 
+            # Large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
+            newton_loop_mortar!(limiting_factor, mortar, u,
+                                i_large, j_large, large_element,
+                                large_node, large_direction, factor, dt,
+                                var_minmax, variable, min_or_max,
+                                initial_check_local_onesided_newton_idp,
+                                final_check_local_onesided_newton_idp,
+                                mesh, equations, dg, cache)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
             # Small elements
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
 
-                newton_loop_mortar!(limiting_factor, mortar, u, i_small, j_small,
-                                    small_element, i, small_direction, factor, dt,
+                newton_loop_mortar!(limiting_factor, mortar, u,
+                                    i_small, j_small, small_element,
+                                    i, small_direction, factor, dt,
                                     var_minmax, variable, min_or_max,
                                     initial_check_local_onesided_newton_idp,
                                     final_check_local_onesided_newton_idp,
                                     mesh, equations, dg, cache)
                 isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
             end
-
-            # Large element
-            # Map the mortar node to the large-element face since its orientation may be flipped.
-            # The small-element face needs no mapping because it is always traversed forward.
-            large_node = get_mortar_index(large_indices, i_large, j_large)
-            newton_loop_mortar!(limiting_factor, mortar, u, i_large, j_large,
-                                large_element, large_node, large_direction, factor, dt,
-                                var_minmax, variable, min_or_max,
-                                initial_check_local_onesided_newton_idp,
-                                final_check_local_onesided_newton_idp,
-                                mesh, equations, dg, cache)
 
             i_small += i_small_step
             j_small += j_small_step
@@ -795,29 +798,32 @@ end
         for i in eachnode(dg)
             isone(limiting_factor[mortar]) && break # Skip if alpha is already 1 (no limiting needed)
 
+            # Large element
+            # Map the mortar node to the large-element face since its orientation may be flipped.
+            # The small-element face needs no mapping because it is always traversed forward.
+            large_node = get_mortar_index(large_indices, i_large, j_large)
+            newton_loop_mortar!(limiting_factor, mortar, u,
+                                i_large, j_large, large_element,
+                                large_node, large_direction, factor, dt,
+                                var_min, variable, min,
+                                initial_check_nonnegative_newton_idp,
+                                final_check_nonnegative_newton_idp,
+                                mesh, equations, dg, cache)
+            isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
+
             # Small elements
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
 
-                newton_loop_mortar!(limiting_factor, mortar, u, i_small, j_small,
-                                    small_element, i, small_direction, factor, dt,
+                newton_loop_mortar!(limiting_factor, mortar, u,
+                                    i_small, j_small, small_element,
+                                    i, small_direction, factor, dt,
                                     var_min, variable, min,
                                     initial_check_nonnegative_newton_idp,
                                     final_check_nonnegative_newton_idp,
                                     mesh, equations, dg, cache)
                 isone(limiting_factor[mortar]) && break # Skip if alpha is already 1
             end
-
-            # Large element
-            # Map the mortar node to the large-element face since its orientation may be flipped.
-            # The small-element face needs no mapping because it is always traversed forward.
-            large_node = get_mortar_index(large_indices, i_large, j_large)
-            newton_loop_mortar!(limiting_factor, mortar, u, i_large, j_large,
-                                large_element, large_node, large_direction, factor, dt,
-                                var_min, variable, min,
-                                initial_check_nonnegative_newton_idp,
-                                final_check_nonnegative_newton_idp,
-                                mesh, equations, dg, cache)
 
             i_small += i_small_step
             j_small += j_small_step

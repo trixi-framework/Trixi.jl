@@ -1099,8 +1099,9 @@ end
             end
 
             # Large element
-            newton_loop_mortar!(limiting_factor, mortar, u, indices_large...,
-                                large_element, i, direction_large, factor_large, dt,
+            newton_loop_mortar!(limiting_factor, mortar, u,
+                                indices_large..., large_element,
+                                i, direction_large, factor_large, dt,
                                 var_minmax, variable, min_or_max,
                                 initial_check_local_onesided_newton_idp,
                                 final_check_local_onesided_newton_idp,
@@ -1111,9 +1112,10 @@ end
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
 
-                newton_loop_mortar!(limiting_factor, mortar, u, indices_small...,
-                                    small_element, i, direction_small, factor_small,
-                                    dt, var_minmax, variable, min_or_max,
+                newton_loop_mortar!(limiting_factor, mortar, u,
+                                    indices_small..., small_element,
+                                    i, direction_small, factor_small, dt,
+                                    var_minmax, variable, min_or_max,
                                     initial_check_local_onesided_newton_idp,
                                     final_check_local_onesided_newton_idp,
                                     mesh, equations, dg, cache)
@@ -1131,10 +1133,11 @@ end
 # to one, which results in pure low-order fluxes at this mortar.
 #   Note: The limiting factor has to be computed, even if the state is valid, because the
 #         correction is for each mortar, not each node
-@inline function newton_loop_mortar!(limiting_factor, mortar, u, i_node, j_node,
-                                     element,
-                                     surface_node, direction, factor, dt, var_bound,
-                                     variable, min_or_max, initial_check, final_check,
+@inline function newton_loop_mortar!(limiting_factor, mortar, u,
+                                     i_node, j_node, element,
+                                     surface_node, direction, factor, dt,
+                                     var_bound, variable, min_or_max,
+                                     initial_check, final_check,
                                      mesh, equations, dg, cache)
     (; surface_flux_values, inverse_jacobian) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
@@ -1363,8 +1366,9 @@ end
             end
 
             # Large element
-            newton_loop_mortar!(limiting_factor, mortar, u, indices_large...,
-                                large_element, i, direction_large, factor_large, dt,
+            newton_loop_mortar!(limiting_factor, mortar, u,
+                                indices_large..., large_element,
+                                i, direction_large, factor_large, dt,
                                 var_min, variable, min,
                                 initial_check_nonnegative_newton_idp,
                                 final_check_nonnegative_newton_idp,
@@ -1375,9 +1379,10 @@ end
             for small_element_index in 1:2
                 small_element = neighbor_ids[small_element_index, mortar]
 
-                newton_loop_mortar!(limiting_factor, mortar, u, indices_small...,
-                                    small_element, i, direction_small, factor_small,
-                                    dt, var_min, variable, min,
+                newton_loop_mortar!(limiting_factor, mortar, u,
+                                    indices_small..., small_element,
+                                    i, direction_small, factor_small, dt,
+                                    var_min, variable, min,
                                     initial_check_nonnegative_newton_idp,
                                     final_check_nonnegative_newton_idp,
                                     mesh, equations, dg, cache)
