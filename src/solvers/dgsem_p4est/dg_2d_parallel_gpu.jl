@@ -207,7 +207,7 @@ end
 
     for v in 1:NVARS
         send_buffer[buffer_offset + v] = u_mpi_interfaces[local_side, v, index_node,
-                                                          index_interface]
+                                                          interface]
     end
 end
 
