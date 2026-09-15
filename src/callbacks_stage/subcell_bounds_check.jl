@@ -35,6 +35,16 @@ end
 
 function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     mesh, equations, solver, cache = mesh_equations_solver_cache(integrator.p)
+
+    if ndims(equations) == 2 &&
+       solver.volume_integral isa VolumeIntegralSubcellLimiting &&
+       !isnothing(solver.volume_integral.limiter.indicator)
+        # When using a smoothness indicator, convex combinations of the limiting factors from
+        # local and positivity limiting are used. However, the deviations would be computed solely
+        # with respect to the local bounds. Consequently, the resulting deviation statistics would
+        # not reflect the actual deviations accurately. Skip the computation.
+        return nothing
+    end
     (; t, iter, alg) = integrator
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
@@ -157,6 +167,19 @@ end
     if semi.solver.volume_integral isa VolumeIntegralAdaptive
         println("Note: The following deviations are only computed in elements where subcell limiting is active.")
         println("In other elements, the solution is not checked for bounds violations.")
+    end
+    if ndims(semi.equations) == 2 &&
+       semi.solver.volume_integral isa VolumeIntegralSubcellLimiting &&
+       !isnothing(limiter.indicator)
+        println("Due to the use of a smoothness indicator, a convex combination of the limiting factors of local and")
+        println("positivity limiting was employed. However, only the local bounds are actually stored. Therefore,")
+        println("nonzero deviations would be expected and would not necessarily indicate a bug. Consequently, the")
+        println("computation is skipped.")
+        println("─"^100 * "\n")
+        # `variable_bounds` currently only holds the local bounds. The computation of deviations
+        # is skipped. To report meaningful deviations again, the bounds of both limiters have to
+        # be stored and checked separately.
+        return nothing
     end
     if !idp_newton_converged[]
         println("Note: Newton-bisection method reached the maximum number of iterations at least once.")
