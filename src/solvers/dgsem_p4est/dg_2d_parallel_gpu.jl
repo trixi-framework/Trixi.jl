@@ -217,6 +217,7 @@ function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
     KernelAbstractions.synchronize(backend)
 
     for (rank_index, neighbor_rank) in enumerate(mpi_neighbor_ranks)
+        send_buffer = mpi_send_buffers[rank_index]
         mpi_send_requests[rank_index] = MPI.Isend(send_buffer, neighbor_rank,
                                                   mpi_rank(), mpi_comm())
     end
