@@ -137,6 +137,7 @@ function calc_mpi_interface_flux!(backend::Backend, surface_flux_values,
                                               T8codeMeshParallel{2}},
                                   have_nonconservative_terms,
                                   equations, surface_integral, dg::DG, cache)
+    nmpiinterfaces(dg, cache) == 0 && return nothing
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
     @unpack u = cache.mpi_interfaces
@@ -172,24 +173,50 @@ end
                                            index_range, interface)
 end
 
-# TODO GPU: MPI mortars
+# For GPU backends MPI mortars are not yet implemented
+function prolong2mpimortars!(backend::Backend, cache, u,
+                             mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                             equations, mortar, dg::DG)
+    @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
+    return nothing
+end
+
+# For GPU backends MPI mortars are not yet implemented
+function calc_mpi_mortar_flux!(backend::Backend, surface_flux_values,
+                               mesh::Union{P4estMeshParallel{2},
+                                           T8codeMeshParallel{2}},
+                               have_nonconservative_terms, equations, mortar,
+                               surface_integral, dg::DG, cache)
+    @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
+    return nothing
+end
+
 function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
-                         mesh::P4estMeshParallel{2}, equations, dg, cache)
+                         mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                         equations, dg, cache)
+    # TODO GPU: MPI mortars are not yet implemented
+    @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
+
     @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces = mpi_cache
     @unpack mpi_send_buffers, mpi_send_requests = mpi_cache
     @unpack local_sides, u = cache.mpi_interfaces
 
     kernel! = start_mpi_send_KAkernel!(backend)
 
-    for (rank_index, neighbor_rank) in enumerate(mpi_neighbor_ranks)
+    for (rank_index, _) in enumerate(mpi_neighbor_ranks)
         send_buffer = mpi_send_buffers[rank_index]
         neighbor_interfaces = mpi_neighbor_interfaces[rank_index]
-        kernel!(send_buffer, neighbor_interfaces, local_sides, u,
-                Val(nvariables(equations)), Val(ndims(mesh)),
-                ndrange = (nnodes(dg), length(neighbor_interfaces)))
+        if !isempty(neighbor_interfaces)
+            kernel!(send_buffer, neighbor_interfaces, local_sides, u,
+                    Val(nvariables(equations)), Val(ndims(mesh)),
+                    ndrange = (nnodes(dg), length(neighbor_interfaces)))
+        end
+    end
 
-        # wait for the kernel to return before sending the buffer
-        KernelAbstractions.synchronize(backend)
+    # wait for the kernels to return before sending the buffers
+    KernelAbstractions.synchronize(backend)
+
+    for (rank_index, neighbor_rank) in enumerate(mpi_neighbor_ranks)
         mpi_send_requests[rank_index] = MPI.Isend(send_buffer, neighbor_rank,
                                                   mpi_rank(), mpi_comm())
     end
@@ -211,9 +238,12 @@ end
     end
 end
 
-# TODO GPU: MPI mortars
 function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
-                             mesh::P4estMeshParallel{2}, equations, dg, cache)
+                             mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
+                             equations, dg, cache)
+    # TODO GPU: MPI mortars are not yet implemented
+    @assert isempty(eachmpimortar(dg, cache)) "MPI mortars are not yet supported on GPU backends"
+
     @unpack mpi_neighbor_interfaces = mpi_cache
     @unpack mpi_recv_buffers, mpi_recv_requests = mpi_cache
     @unpack local_sides, u = cache.mpi_interfaces
@@ -225,9 +255,11 @@ function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
     while data !== nothing
         recv_buffer = mpi_recv_buffers[data]
         neighbor_interfaces = mpi_neighbor_interfaces[data]
-        kernel!(recv_buffer, neighbor_interfaces, local_sides, u,
-                Val(nvariables(equations)), Val(ndims(mesh)),
-                ndrange = (nnodes(dg), length(neighbor_interfaces)))
+        if !isempty(neighbor_interfaces)
+            kernel!(recv_buffer, neighbor_interfaces, local_sides, u,
+                    Val(nvariables(equations)), Val(ndims(mesh)),
+                    ndrange = (nnodes(dg), length(neighbor_interfaces)))
+        end
 
         data = MPI.Waitany(mpi_recv_requests)
     end
