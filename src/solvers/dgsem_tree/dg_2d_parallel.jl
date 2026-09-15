@@ -450,7 +450,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mpi_mortars,
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
 end
 
-function rhs_hyperbolic!(backend,
+function rhs_hyperbolic!(backend::Nothing,
                          du, u, t,
                          mesh::Union{TreeMeshParallel{2}, P4estMeshParallel{2},
                                      T8codeMeshParallel{2}}, equations,

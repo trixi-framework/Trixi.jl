@@ -112,7 +112,7 @@ end
 # 2D/3D `TreeMesh`es, `P4estMesh`es, and `T8codeMesh`es.
 function rhs_hyperbolic!(backend::Nothing,
                          du, u, t,
-                         mesh::Union{TreeMesh{2}, P4estMeshSerial{2}, P4estMeshView{2},
+                         mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2},
                                      T8codeMesh{2},
                                      TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations,

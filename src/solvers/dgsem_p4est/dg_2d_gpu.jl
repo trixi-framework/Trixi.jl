@@ -7,7 +7,7 @@
 
 function rhs_hyperbolic!(backend::Backend,
                          du, u, t,
-                         mesh::Union{P4estMeshSerial{2}, P4estMeshView{2},
+                         mesh::Union{P4estMesh{2}, P4estMeshView{2},
                                      T8codeMesh{2},
                                      P4estMesh{3}, T8codeMesh{3}},
                          equations,

@@ -15,36 +15,12 @@ function prolong2mpiinterfaces!(backend::Nothing, cache, u,
 
     @threaded for interface in eachmpiinterface(dg, cache)
         prolong2mpiinterfaces_per_interface!(cache.mpi_interfaces.u, interface,
-                                             local_sides, local_neighbor_ids, node_indices,
+                                             local_sides, local_neighbor_ids,
+                                             node_indices,
                                              index_range, variables_range, u)
     end
 
     return nothing
-end
-
-function prolong2mpiinterfaces!(backend::Backend, cache, u,
-                                mesh::Union{P4estMeshParallel{2},
-                                            T8codeMeshParallel{2}},
-                                equations, surface_integral, dg::DG)
-    nmpiinterfaces(dg, cache) == 0 && return nothing
-    @unpack local_sides, local_neighbor_ids, node_indices = cache.mpi_interfaces
-    index_range = eachnode(dg)
-    variables_range = eachvariable(equations)
-
-    kernel! = prolong2mpiinterfaces_kernel!(backend)
-    kernel!(cache.mpi_interfaces.u, local_sides, local_neighbor_ids, node_indices,
-            index_range, variables_range, u,
-            ndrange = nmpiinterfaces(dg, cache))
-    return nothing
-end
-
-@kernel function prolong2mpiinterfaces_kernel!(mpi_interfaces_u, local_sides,
-                                               local_neighbor_ids, node_indices,
-                                               index_range, variables_range, u)
-    interface = @index(Global)
-    prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface, local_sides,
-                                         local_neighbor_ids, node_indices, index_range,
-                                         variables_range, u)
 end
 
 @inline function prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface,
@@ -103,10 +79,14 @@ end
 @inline function calc_mpi_interface_flux_per_interface!(surface_flux_values,
                                                         MeshT::Type{<:Union{P4estMeshParallel{2},
                                                                             T8codeMeshParallel{2}}},
-                                                        have_nonconservative_terms, equations,
-                                                        surface_integral, SolverT::Type{<:DG},
-                                                        local_neighbor_ids, node_indices, local_sides,
-                                                        contravariant_vectors, u_mpi_interfaces,
+                                                        have_nonconservative_terms,
+                                                        equations,
+                                                        surface_integral,
+                                                        SolverT::Type{<:DG},
+                                                        local_neighbor_ids,
+                                                        node_indices, local_sides,
+                                                        contravariant_vectors,
+                                                        u_mpi_interfaces,
                                                         index_range, interface)
 
     # Get element and side index information on the local element

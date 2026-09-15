@@ -140,45 +140,6 @@ function start_mpi_send!(backend::Nothing, mpi_cache::P4estMPICache, mesh, equat
     return nothing
 end
 
-# TODO GPU: MPI mortars
-function start_mpi_send!(backend::Backend, mpi_cache::P4estMPICache,
-                         mesh::P4estMeshParallel{2}, equations, dg, cache)
-    @unpack mpi_neighbor_ranks, mpi_neighbor_interfaces = mpi_cache
-    @unpack mpi_send_buffers, mpi_send_requests = mpi_cache
-    @unpack local_sides, u = cache.mpi_interfaces
-
-    kernel! = start_mpi_send_KAkernel!(backend)
-
-    for (rank_index, neighbor_rank) in enumerate(mpi_neighbor_ranks)
-        send_buffer = mpi_send_buffers[rank_index]
-        neighbor_interfaces = mpi_neighbor_interfaces[rank_index]
-        kernel!(send_buffer, neighbor_interfaces, local_sides, u,
-                Val(nvariables(equations)), Val(ndims(mesh)),
-                ndrange = (nnodes(dg), length(neighbor_interfaces)))
-
-        # wait for the kernel to return before sending the buffer
-        KernelAbstractions.synchronize(backend)
-        mpi_send_requests[rank_index] = MPI.Isend(send_buffer, neighbor_rank,
-                                                  mpi_rank(), mpi_comm())
-    end
-end
-
-@kernel function start_mpi_send_KAkernel!(send_buffer, neighbor_interfaces, local_sides,
-                                          u_mpi_interfaces, ::Val{NVARS},
-                                          ::Val{2}) where {NVARS}
-    index_node, index_interface = @index(Global, NTuple)
-    index_linear = @index(Global, Linear)
-
-    buffer_offset = (index_linear - 1) * NVARS
-    interface = neighbor_interfaces[index_interface]
-    local_side = local_sides[interface]
-
-    for v in 1:NVARS
-        send_buffer[buffer_offset + v] = u_mpi_interfaces[local_side, v, index_node,
-                                                          index_interface]
-    end
-end
-
 function start_mpi_receive!(mpi_cache::P4estMPICache)
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
         mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
@@ -241,44 +202,6 @@ function finish_mpi_receive!(backend::Nothing, mpi_cache::P4estMPICache, mesh,
     end
 
     return nothing
-end
-
-# TODO GPU: MPI mortars
-function finish_mpi_receive!(backend::Backend, mpi_cache::P4estMPICache,
-                             mesh::P4estMeshParallel{2}, equations, dg, cache)
-    @unpack mpi_neighbor_interfaces = mpi_cache
-    @unpack mpi_recv_buffers, mpi_recv_requests = mpi_cache
-    @unpack local_sides, u = cache.mpi_interfaces
-
-    kernel! = finish_mpi_receive_KAkernel!(backend)
-
-    # Start receiving and unpack received data until all communication is finished
-    data = MPI.Waitany(mpi_recv_requests)
-    while data !== nothing
-        recv_buffer = mpi_recv_buffers[data]
-        neighbor_interfaces = mpi_neighbor_interfaces[data]
-        kernel!(recv_buffer, neighbor_interfaces, local_sides, u,
-                Val(nvariables(equations)), Val(ndims(mesh)),
-                ndrange = (nnodes(dg), length(neighbor_interfaces)))
-
-        data = MPI.Waitany(mpi_recv_requests)
-    end
-    # Wait for the last kernel to return ?
-    KernelAbstractions.synchronize(backend)
-end
-
-@kernel function finish_mpi_receive_KAkernel!(recv_buffer, neighbor_interfaces,
-                                              local_sides,
-                                              u_mpi_interfaces, ::Val{NVARS},
-                                              ::Val{3}) where {NVARS}
-    index_node, index_interface = @index(Global, NTuple)
-    index_linear = @index(Global, Linear)
-    buffer_offset = (index_linear - 1) * NVARS
-    interface = neighbor_interfaces[index_interface]
-    remote_side = local_sides[interface] == 1 ? 2 : 1
-    for v in 1:NVARS
-        u_mpi_interfaces[remote_side, v, index_node, interface] = recv_buffer[buffer_offset + v]
-    end
 end
 
 # Return a tuple `indices` where indices[position] is a `(first, last)` tuple for accessing the
@@ -707,6 +630,7 @@ end
 end
 
 include("dg_2d_parallel.jl")
+include("dg_2d_parallel_gpu.jl")
 include("dg_3d_parallel.jl")
 include("dg_2d_parabolic_parallel.jl")
 end # muladd
