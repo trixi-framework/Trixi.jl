@@ -901,8 +901,8 @@ end
 ###############################################################################
 # Local minimum and maximum limiting of conservative variables
 
-@inline function limiting_local_conservative!(limiting_factor, u, dt, semi,
-                                              mesh::TreeMesh{2}, var_index)
+@inline function idp_mortar_local_twosided!(limiting_factor, u, dt, semi,
+                                            mesh::TreeMesh{2}, var_index)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, orientations, large_sides) = cache.mortars
@@ -1067,9 +1067,9 @@ end
 ##############################################################################
 # Local minimum or maximum limiting of nonlinear variables
 
-@inline function limiting_local_nonlinear!(limiting_factor, u, dt, semi,
-                                           mesh::TreeMesh{2}, variable,
-                                           min_or_max)
+@inline function idp_mortar_local_onesided!(limiting_factor, u, dt, semi,
+                                            mesh::TreeMesh{2}, variable,
+                                            min_or_max)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, orientations, large_sides) = cache.mortars
@@ -1190,8 +1190,8 @@ end
 
 ###############################################################################
 # Global positivity limiting of conservative variables
-@inline function limiting_positivity_conservative!(limiting_factor, u, dt, semi,
-                                                   mesh::TreeMesh{2}, var_index)
+@inline function idp_mortar_positivity_conservative!(limiting_factor, u, dt, semi,
+                                                     mesh::TreeMesh{2}, var_index)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, orientations, large_sides) = cache.mortars
@@ -1346,8 +1346,8 @@ end
 
 ##############################################################################
 # Global positivity limiting of nonlinear variables
-@inline function limiting_positivity_nonlinear!(limiting_factor, u, dt, semi,
-                                                mesh::TreeMesh{2}, variable)
+@inline function idp_mortar_positivity_nonlinear!(limiting_factor, u, dt, semi,
+                                                  mesh::TreeMesh{2}, variable)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
 
     (; neighbor_ids, orientations, large_sides) = cache.mortars
