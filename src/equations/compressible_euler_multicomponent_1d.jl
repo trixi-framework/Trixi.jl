@@ -342,13 +342,83 @@ See also
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
+                              equations::CompressibleEulerMulticomponentEquations1D)
+    # Unpack left and right state
+    @unpack gammas, gas_constants, cv = equations
+    rho_v1_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_e_total_rr = u_rr
+    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 2],
+                                                                         u_rr[i + 2])
+                                                                 for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 2] +
+                                                                 u_rr[i + 2])
+                                                                for i in eachcomponent(equations))
+
+    # Iterating over all partial densities
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculating gamma
+    gamma = totalgamma(0.5f0 * (u_ll + u_rr), equations)
+    inv_gamma_minus_one = 1 / (gamma - 1)
+
+    # extract velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr)
+
+    # density flux
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
+                                                             for i in eachcomponent(equations))
+
+    # helpful variables
+    RealT = eltype(u_ll)
+    f_rho_sum = zero(RealT)
+    help1_ll = zero(RealT)
+    help1_rr = zero(RealT)
+    enth_ll = zero(RealT)
+    enth_rr = zero(RealT)
+    for i in eachcomponent(equations)
+        enth_ll += u_ll[i + 2] * gas_constants[i]
+        enth_rr += u_rr[i + 2] * gas_constants[i]
+        f_rho_sum += f_rho[i]
+        help1_ll += u_ll[i + 2] * cv[i]
+        help1_rr += u_rr[i + 2] * cv[i]
+    end
+
+    # temperature and pressure
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2)) / help1_ll
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2)) / help1_rr
+    p_ll = T_ll * enth_ll
+    p_rr = T_rr * enth_rr
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+
+    # momentum and energy flux
+    f1 = f_rho_sum * v1_avg + p_avg
+    f2 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
+         0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
+    f_other = SVector(f1, f2)
+
+    return vcat(f_other, f_rho)
+end
+
+"""
+    flux_srinivasan_nadarajah(u_ll, u_rr, orientation_or_normal_direction,
+                              equations::CompressibleEulerMulticomponentEquations1D)
+
+Entropy conserving and kinetic energy preserving two-point flux for multi-species
+compressible flow by
 - Sai Shruthi Srinivasan, Siva Nadarajah (2026)
   A Kinetic Energy Preserving and Entropy Conserving Two-Point Flux for Multi-species
   Compressible Flow
   [arXiv:2609.13503](https://arxiv.org/abs/2609.13503)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
-                              equations::CompressibleEulerMulticomponentEquations1D)
+@inline function flux_srinivasan_nadarajah(u_ll, u_rr, orientation::Integer,
+                                           equations::CompressibleEulerMulticomponentEquations1D)
     # Unpack left and right state
     @unpack gammas, gas_constants, cv = equations
     rho_v1_ll, rho_e_total_ll = u_ll

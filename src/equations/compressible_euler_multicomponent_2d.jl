@@ -520,13 +520,171 @@ See also
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
+                              equations::CompressibleEulerMulticomponentEquations2D)
+    # Unpack left and right state
+    @unpack gammas, gas_constants, cv = equations
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
+    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
+                                                                         u_rr[i + 3])
+                                                                 for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
+                                                                 u_rr[i + 3])
+                                                                for i in eachcomponent(equations))
+
+    # Iterating over all partial densities
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculating gamma
+    gamma = totalgamma(0.5f0 * (u_ll + u_rr), equations)
+    inv_gamma_minus_one = 1 / (gamma - 1)
+
+    # extract velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_ll = rho_v2_ll / rho_ll
+    v2_rr = rho_v2_rr / rho_rr
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr)
+
+    # helpful variables
+    RealT = eltype(u_ll)
+    help1_ll = zero(RealT)
+    help1_rr = zero(RealT)
+    enth_ll = zero(RealT)
+    enth_rr = zero(RealT)
+    for i in eachcomponent(equations)
+        enth_ll += u_ll[i + 3] * gas_constants[i]
+        enth_rr += u_rr[i + 3] * gas_constants[i]
+        help1_ll += u_ll[i + 3] * cv[i]
+        help1_rr += u_rr[i + 3] * cv[i]
+    end
+
+    # temperature and pressure
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    p_ll = T_ll * enth_ll
+    p_rr = T_rr * enth_rr
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+
+    f_rho_sum = zero(RealT)
+    if orientation == 1
+        f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
+                                                                 for i in eachcomponent(equations))
+        for i in eachcomponent(equations)
+            f_rho_sum += f_rho[i]
+        end
+        f1 = f_rho_sum * v1_avg + p_avg
+        f2 = f_rho_sum * v2_avg
+        f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
+             0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
+    else
+        f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
+                                                                 for i in eachcomponent(equations))
+        for i in eachcomponent(equations)
+            f_rho_sum += f_rho[i]
+        end
+        f1 = f_rho_sum * v1_avg
+        f2 = f_rho_sum * v2_avg + p_avg
+        f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
+             0.5f0 * (p_ll * v2_rr + p_rr * v2_ll)
+    end
+
+    # momentum and energy flux
+    f_other = SVector(f1, f2, f3)
+
+    return vcat(f_other, f_rho)
+end
+
+@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
+                              equations::CompressibleEulerMulticomponentEquations2D)
+    # Unpack left and right state
+    @unpack gammas, gas_constants, cv = equations
+    rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_total_rr = u_rr
+    rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
+                                                                         u_rr[i + 3])
+                                                                 for i in eachcomponent(equations))
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
+                                                                 u_rr[i + 3])
+                                                                for i in eachcomponent(equations))
+
+    # Iterating over all partial densities
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculating gamma
+    gamma = totalgamma(0.5f0 * (u_ll + u_rr), equations)
+    inv_gamma_minus_one = 1 / (gamma - 1)
+
+    # extract velocities
+    v1_ll = rho_v1_ll / rho_ll
+    v1_rr = rho_v1_rr / rho_rr
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_ll = rho_v2_ll / rho_ll
+    v2_rr = rho_v2_rr / rho_rr
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr)
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # helpful variables
+    RealT = eltype(u_ll)
+    help1_ll = zero(RealT)
+    help1_rr = zero(RealT)
+    enth_ll = zero(RealT)
+    enth_rr = zero(RealT)
+    for i in eachcomponent(equations)
+        enth_ll += u_ll[i + 3] * gas_constants[i]
+        enth_rr += u_rr[i + 3] * gas_constants[i]
+        help1_ll += u_ll[i + 3] * cv[i]
+        help1_rr += u_rr[i + 3] * cv[i]
+    end
+
+    # temperature and pressure
+    T_ll = (rho_e_total_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_total_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    p_ll = T_ll * enth_ll
+    p_rr = T_rr * enth_rr
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
+
+    f_rho_sum = zero(RealT)
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5f0 *
+                                                             (v_dot_n_ll + v_dot_n_rr)
+                                                             for i in eachcomponent(equations))
+    for i in eachcomponent(equations)
+        f_rho_sum += f_rho[i]
+    end
+    f1 = f_rho_sum * v1_avg + p_avg * normal_direction[1]
+    f2 = f_rho_sum * v2_avg + p_avg * normal_direction[2]
+    f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
+         0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+
+    # momentum and energy flux
+    f_other = SVector(f1, f2, f3)
+
+    return vcat(f_other, f_rho)
+end
+
+"""
+    flux_srinivasan_nadarajah(u_ll, u_rr, orientation_or_normal_direction,
+                              equations::CompressibleEulerMulticomponentEquations2D)
+
+Entropy conserving and kinetic energy preserving two-point flux for multi-species
+compressible flow by
 - Sai Shruthi Srinivasan, Siva Nadarajah (2026)
   A Kinetic Energy Preserving and Entropy Conserving Two-Point Flux for Multi-species
   Compressible Flow
   [arXiv:2609.13503](https://arxiv.org/abs/2609.13503)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
-                              equations::CompressibleEulerMulticomponentEquations2D)
+@inline function flux_srinivasan_nadarajah(u_ll, u_rr, orientation::Integer,
+                                           equations::CompressibleEulerMulticomponentEquations2D)
     # Unpack left and right state
     @unpack gammas, gas_constants, cv = equations
     rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
@@ -601,8 +759,8 @@ See also
     return vcat(f_other, f_rho)
 end
 
-@inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
-                              equations::CompressibleEulerMulticomponentEquations2D)
+@inline function flux_srinivasan_nadarajah(u_ll, u_rr, normal_direction::AbstractVector,
+                                           equations::CompressibleEulerMulticomponentEquations2D)
     # Unpack left and right state
     @unpack gammas, gas_constants, cv = equations
     rho_v1_ll, rho_v2_ll, rho_e_total_ll = u_ll
