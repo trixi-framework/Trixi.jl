@@ -65,25 +65,25 @@ end
     F_x = flux_srinivasan_nadarajah(u_ll, u_rr, 1, equations)
     tadmor_residual_x = dot(w_rr - w_ll, F_x) - jump_entropy_potential_x
     atol_ec_x = 100 * eps(Float64) * max(1, abs(jump_entropy_potential_x))
-    @test abs(tadmor_residual_x) <= atol_ec_x
+    @test abs(tadmor_residual_x) < atol_ec_x
 
     # check Jameson KEP form for `flux_srinivasan_nadarajah` in x direction
     f_rho_sum_x = sum(@view F_x[4:end])
     kep_residual_x = @view(F_x[1:2]) - (f_rho_sum_x * vel_avg + p_avg * SVector(1.0, 0.0))
     atol_kep_x = 100 * eps(Float64) * max(1, norm(@view F_x[1:2]))
-    @test norm(kep_residual_x) <= atol_kep_x
+    @test norm(kep_residual_x) < atol_kep_x
 
     # check that `flux_srinivasan_nadarajah` is entropy conservative in y direction
     F_y = flux_srinivasan_nadarajah(u_ll, u_rr, 2, equations)
     tadmor_residual_y = dot(w_rr - w_ll, F_y) - jump_entropy_potential_y
     atol_ec_y = 100 * eps(Float64) * max(1, abs(jump_entropy_potential_y))
-    @test abs(tadmor_residual_y) <= atol_ec_y
+    @test abs(tadmor_residual_y) < atol_ec_y
 
     # check Jameson KEP form for `flux_srinivasan_nadarajah` in y direction
     f_rho_sum_y = sum(@view F_y[4:end])
     kep_residual_y = @view(F_y[1:2]) - (f_rho_sum_y * vel_avg + p_avg * SVector(0.0, 1.0))
     atol_kep_y = 100 * eps(Float64) * max(1, norm(@view F_y[1:2]))
-    @test norm(kep_residual_y) <= atol_kep_y
+    @test norm(kep_residual_y) < atol_kep_y
 
     normal_direction_oblique = SVector(0.5, -1.0)
     jump_entropy_potential_oblique = entropy_potential(u_rr, normal_direction_oblique,
@@ -93,13 +93,13 @@ end
     F_oblique = flux_srinivasan_nadarajah(u_ll, u_rr, normal_direction_oblique, equations)
     tadmor_residual_oblique = dot(w_rr - w_ll, F_oblique) - jump_entropy_potential_oblique
     atol_ec_oblique = 100 * eps(Float64) * max(1, abs(jump_entropy_potential_oblique))
-    @test abs(tadmor_residual_oblique) <= atol_ec_oblique
+    @test abs(tadmor_residual_oblique) < atol_ec_oblique
 
     f_rho_sum_oblique = sum(@view F_oblique[4:end])
     kep_residual_oblique = @view(F_oblique[1:2]) -
                            (f_rho_sum_oblique * vel_avg + p_avg * normal_direction_oblique)
     atol_kep_oblique = 100 * eps(Float64) * max(1, norm(@view F_oblique[1:2]))
-    @test norm(kep_residual_oblique) <= atol_kep_oblique
+    @test norm(kep_residual_oblique) < atol_kep_oblique
 end
 
 # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
@@ -163,7 +163,7 @@ end
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) < 1.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -199,7 +199,7 @@ end
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
     @test all(isfinite, deviations)
-    @test maximum(deviations) <= 1.0e-13
+    @test maximum(deviations) < 1.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

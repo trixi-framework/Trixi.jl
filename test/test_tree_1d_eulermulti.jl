@@ -44,7 +44,7 @@ end
                           flux_srinivasan_nadarajah(u_ll, u_rr, 1, equations)) -
                       jump_entropy_potential
     atol = 100 * eps(Float64) * max(1, abs(jump_entropy_potential))
-    @test abs(tadmor_residual) <= atol
+    @test abs(tadmor_residual) < atol
 
     rho_ll = density(u_ll, equations)
     rho_rr = density(u_rr, equations)
@@ -60,7 +60,7 @@ end
     f_rho_sum = sum(@view F[3:end])
     kep_residual = F[1] - (f_rho_sum * v1_avg + p_avg)
     atol_kep = 100 * eps(Float64) * max(1, abs(F[1]))
-    @test abs(kep_residual) <= atol_kep
+    @test abs(kep_residual) < atol_kep
 
     # `flux_chandrashekar` is EC but not KEP under the arithmetic-pressure Jameson form
     F_ch = flux_chandrashekar(u_ll, u_rr, 1, equations)
