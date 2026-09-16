@@ -54,8 +54,6 @@ function initial_condition_taylor_green_vortex(x, t,
     # Add terms for the Taylor-Green vortex
     p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2])) # [Pa] = [kg/(m * s^2)]
 
-    println("p: ", p)
-
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 initial_condition = initial_condition_taylor_green_vortex
