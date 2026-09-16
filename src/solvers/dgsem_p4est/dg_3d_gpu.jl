@@ -1,4 +1,4 @@
-# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+git ad# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
@@ -1070,37 +1070,6 @@ function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
     @unpack contravariant_vectors = cache.elements
     ninterfaces(cache.interfaces) == 0 && return nothing
     index_range = eachnode(dg)
-<<<<<<< HEAD
-    aux_interface = get_aux_surface_node_vars_vector(have_aux_node_vars, cache)
-    MeshT = typeof(mesh)
-    SolverT = typeof(dg)
-
-    kernel! = calc_interface_flux_KAkernel!(backend)
-    kernel!(surface_flux_values, MeshT, have_nonconservative_terms,
-            have_aux_node_vars, equations,
-            surface_integral, SolverT, cache.interfaces.u, aux_interface,
-            neighbor_ids, node_indices, contravariant_vectors, index_range,
-            ndrange = ninterfaces(cache.interfaces))
-    return nothing
-end
-
-@kernel function calc_interface_flux_KAkernel!(surface_flux_values, MeshT,
-                                               have_nonconservative_terms,
-                                               have_aux_node_vars, equations,
-                                               surface_integral, SolverT,
-                                               u_interface, aux_interface,
-                                               neighbor_ids, node_indices,
-                                               contravariant_vectors, index_range)
-    interface = @index(Global)
-    calc_interface_flux_per_interface!(surface_flux_values,
-                                       MeshT,
-                                       have_nonconservative_terms, have_aux_node_vars,
-                                       equations, surface_integral, SolverT,
-                                       u_interface, aux_interface,
-                                       neighbor_ids, node_indices,
-                                       contravariant_vectors,
-                                       index_range, interface)
-=======
     kernel! = prolong2interfaces_and_calc_interface_flux_KAkernel!(backend)
     kernel!(surface_flux_values, u, typeof(mesh), have_nonconservative_terms, equations,
             surface_integral, dg, neighbor_ids, node_indices, contravariant_vectors,
@@ -1300,7 +1269,6 @@ end
 
 @inline function boundary_node_ndrange(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, dg)
     return (nnodes(dg), nnodes(dg))
->>>>>>> main
 end
 
 function prolong2boundaries!(backend::Backend, cache, u,
