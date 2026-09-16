@@ -678,12 +678,30 @@ end
     # This sign switch is directly applied to the boundary interpolation factors here.
     factor = -inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
-    # The positivity bound follows from the current solution alone. It is deliberately not read
-    # from `variable_bounds`, which holds the bounds of the *local* limiting: with a smoothness
-    # indicator only the fraction `alpha_indicator` of the local limiting is applied, so
-    # enforcing its bound here would bypass the indicator.
-    (; positivity_correction_factor) = dg.mortar.limiter
+    (; limiter) = dg.mortar
+    (; n_mortars_per_node, variable_bounds) = subcell_limiter_coefficients(dg.volume_integral)
+
+    # Check whether the local limiting already computed a bound for this variable in this stage.
+    was_limited_locally = limiter.local_twosided &&
+                          (var_index in limiter.local_twosided_variables_cons)
+    # Without a smoothness indicator, both limiters are enforced completely and `var_min`
+    # holds the more restrictive of the two bounds. With a smoothness indicator, local bounds are
+    # only enforced fractionally, while positivity limiting is enforced completely.
+    # In that case, the local bound is stored in `var_min`, while the positivity bound is stored in
+    # `var_min_positivity`.
+    enabled_indicator = !isnothing(limiter.indicator)
+
+    # Array the positivity bound was written to. Only with a smoothness indicator it is stored
+    # separately; otherwise the more restrictive of the two bounds is kept in `var_min`.
+    if was_limited_locally && !enabled_indicator
+        # Positivity bound was merged into var_min and therefore already enforced during local limiting.
+        # Skip positivity limiting for this variable.
+        return nothing
+    elseif was_limited_locally && enabled_indicator
+        var_min = variable_bounds[Symbol(string(var_index), "_min_positivity")]
+    else
+        var_min = variable_bounds[Symbol(string(var_index), "_min")]
+    end
 
     index_range = eachnode(dg)
 
@@ -720,8 +738,8 @@ end
             large_node = get_mortar_index(large_indices, i_large, j_large)
             Q = zalesak_limiting_onesided(u, var_index, i_large, j_large, large_element,
                                           large_node, large_direction, factor, dt,
-                                          positivity_correction_factor,
-                                          n_mortars_per_node, mesh, cache)
+                                          var_min, n_mortars_per_node,
+                                          mesh, cache)
 
             # Small elements
             for small_element_index in 1:2
@@ -730,10 +748,10 @@ end
                 small_element = neighbor_ids[small_element_index, mortar]
                 Q = min(Q,
                         zalesak_limiting_onesided(u, var_index, i_small, j_small,
-                                                  small_element, i, small_direction,
-                                                  factor, dt,
-                                                  positivity_correction_factor,
-                                                  n_mortars_per_node, mesh, cache))
+                                                  small_element,
+                                                  i, small_direction, factor, dt,
+                                                  var_min, n_mortars_per_node,
+                                                  mesh, cache))
             end
 
             # Calculate limiting factor

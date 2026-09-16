@@ -160,8 +160,13 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         end
     end
     for v in positivity_variables_cons_
-        if !(v in local_twosided_variables_cons_)
+        was_limited_locally = local_twosided &&
+                              (v in local_twosided_variables_cons_)
+        enabled_indicator = !isnothing(indicator)
+        if !was_limited_locally
             bound_keys = (bound_keys..., Symbol(string(v), "_min"))
+        elseif enabled_indicator # && was_limited_locally
+            bound_keys = (bound_keys..., Symbol(string(v), "_min_positivity"))
         end
     end
     for variable in positivity_variables_nonlinear
@@ -492,8 +497,7 @@ end
     (; limiting_factor, limiting_factor_local) = cache.mortars
     @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
 
-    # Same order as within the elements: local limiting first, then positivity. The order is free
-    # here, since the positivity bound is computed from the current solution.
+    # Same order as within the elements: local limiting first, then positivity.
     @trixi_timeit timer() "reset alpha local" limiting_factor_local.=zero(eltype(limiting_factor_local))
     @trixi_timeit timer() "local limiting: conservative variables" for var_index in local_twosided_variables_cons
         idp_mortar_local_twosided!(limiting_factor_local, u, dt, semi, mesh,

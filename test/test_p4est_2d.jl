@@ -641,7 +641,8 @@ end
                         tspan=(0.0, 5.0e-5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
-    @test all(iszero, deviations) # disabled due to use of smoothness indicator
+    # deviations wrt positivity bounds due to use of smoothness indicator
+    @test maximum(deviations) <= 1.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -675,7 +676,8 @@ end
                         tspan=(0.0, 5.0e-5))
     limiter = semi.solver.volume_integral.limiter
     deviations = collect(values(limiter.cache.idp_bounds_delta_global))
-    @test all(iszero, deviations) # disabled due to use of smoothness indicator
+    # deviations wrt positivity bounds due to use of smoothness indicator
+    @test maximum(deviations) <= 1.0e-13
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

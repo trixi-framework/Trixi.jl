@@ -663,16 +663,28 @@ end
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
     # Check whether the local limiting already computed a bound for this variable in this stage.
-    # The local limiting always runs before the positivity limiting, also with an enabled
-    # smoothness indicator, so `var_min` holds a valid local bound if this is `true`.
+    # The local limiting always runs before the positivity limiting, so `var_min` holds a valid
+    # local bound if this is `true`.
     was_limited_locally = limiter.local_twosided &&
                           (variable in limiter.local_twosided_variables_cons)
-    # Without a smoothness indicator, both limiters are enforced completely and `var_min` may
-    # hold the more restrictive of the two bounds. With a smoothness indicator, only
-    # the fraction `alpha_indicator` of the local limiting is applied, so `var_min` must keep
-    # the pure local bound. The positivity limiting does not need it stored, neither here nor at
-    # the mortars, since its bound follows from the current solution alone.
-    keep_local_bound = was_limited_locally && !isnothing(limiter.indicator)
+    # Without a smoothness indicator, both limiters are enforced completely and `var_min`
+    # holds the more restrictive of the two bounds. With a smoothness indicator, local bounds are
+    # only enforced fractionally, while positivity limiting is enforced completely.
+    # In that case, the local bound is stored in `var_min`, while the positivity bound is stored in
+    # `var_min_positivity`.
+    enabled_indicator = !isnothing(limiter.indicator)
+
+    # Array the positivity bound was written to. Only with a smoothness indicator it is stored
+    # separately; otherwise the more restrictive of the two bounds is kept in `var_min`.
+    if was_limited_locally && enabled_indicator
+        var_min_positivity = variable_bounds[Symbol(string(variable),
+                                                    "_min_positivity")]
+    else
+        var_min_positivity = var_min
+    end
+    # Only when both limiters share `var_min`, the local bound has to be compared to the
+    # positivity bound before it is overwritten.
+    merge_bounds = was_limited_locally && !enabled_indicator
 
     @threaded for element in eachelement(dg, semi.cache)
 
@@ -687,15 +699,13 @@ end
 
             # Compute bound
             bound = positivity_correction_factor * var
-            if !keep_local_bound
-                if was_limited_locally && (var_min[i, j, element] >= bound)
-                    # Local limiting is more restrictive than positivity limiting and is
-                    # enforced completely (no smoothness indicator)
-                    # => Skip positivity limiting for this node
-                    continue
-                end
-                var_min[i, j, element] = bound
+            if merge_bounds && var_min[i, j, element] >= bound
+                # Local limiting is more restrictive than positivity limiting and is
+                # enforced completely (no smoothness indicator)
+                # => Skip positivity limiting for this node
+                continue
             end
+            var_min_positivity[i, j, element] = bound
 
             isone(alpha[i, j, element]) && continue # Skip if alpha is already 1
 
@@ -1181,12 +1191,30 @@ end
     (; inverse_weights) = dg.basis
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
-    (; n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
-    # The positivity bound depends  on the current solution alone. It is deliberately not read
-    # from `variable_bounds`, which holds the bounds of the *local* limiting: with a smoothness
-    # indicator only the fraction `alpha_indicator` of the local limiting is applied, so
-    # enforcing its bound here would bypass the indicator.
-    (; positivity_correction_factor) = dg.mortar.limiter
+    (; limiter) = dg.mortar
+    (; n_mortars_per_node, variable_bounds) = subcell_limiter_coefficients(dg.volume_integral)
+
+    # Check whether the local limiting already computed a bound for this variable in this stage.
+    was_limited_locally = limiter.local_twosided &&
+                          (var_index in limiter.local_twosided_variables_cons)
+    # Without a smoothness indicator, both limiters are enforced completely and `var_min`
+    # holds the more restrictive of the two bounds. With a smoothness indicator, local bounds are
+    # only enforced fractionally, while positivity limiting is enforced completely.
+    # In that case, the local bound is stored in `var_min`, while the positivity bound is stored in
+    # `var_min_positivity`.
+    enabled_indicator = !isnothing(limiter.indicator)
+
+    # Array the positivity bound was written to. Only with a smoothness indicator it is stored
+    # separately; otherwise the more restrictive of the two bounds is kept in `var_min`.
+    if was_limited_locally && !enabled_indicator
+        # Positivity bound was merged into var_min and therefore already enforced during local limiting.
+        # Skip positivity limiting for this variable.
+        return nothing
+    elseif was_limited_locally && enabled_indicator
+        var_min = variable_bounds[Symbol(string(var_index), "_min_positivity")]
+    else
+        var_min = variable_bounds[Symbol(string(var_index), "_min")]
+    end
 
     @threaded for mortar in eachmortar(dg, cache)
         isone(limiting_factor[mortar]) && continue # Skip if alpha is already 1
@@ -1234,8 +1262,8 @@ end
             # Large element
             Q = zalesak_limiting_onesided(u, var_index, indices_large..., large_element,
                                           i, direction_large, factor_large, dt,
-                                          positivity_correction_factor,
-                                          n_mortars_per_node, mesh, cache)
+                                          var_min, n_mortars_per_node,
+                                          mesh, cache)
 
             # Small elements
             for small_element_index in 1:2
@@ -1244,10 +1272,10 @@ end
                 small_element = neighbor_ids[small_element_index, mortar]
                 Q = min(Q,
                         zalesak_limiting_onesided(u, var_index, indices_small...,
-                                                  small_element, i, direction_small,
-                                                  factor_small, dt,
-                                                  positivity_correction_factor,
-                                                  n_mortars_per_node, mesh, cache))
+                                                  small_element,
+                                                  i, direction_small, factor_small, dt,
+                                                  var_min, n_mortars_per_node,
+                                                  mesh, cache))
             end
 
             # Calculate limiting factor
@@ -1268,15 +1296,15 @@ end
 #         for each mortar, not each node
 @inline function zalesak_limiting_onesided(u, var_index, i_node, j_node, element,
                                            surface_node, direction, factor, dt,
-                                           positivity_correction_factor,
-                                           n_mortars_per_node, mesh, cache)
+                                           var_min, n_mortars_per_node,
+                                           mesh, cache)
     (; surface_flux_values, inverse_jacobian) = cache.elements
     (; surface_flux_values_high_order) = cache.antidiffusive_fluxes
 
     var = u[var_index, i_node, j_node, element]
 
     # Minimum bound
-    var_min_node = positivity_correction_factor * var
+    var_min_node = var_min[i_node, j_node, element]
 
     Qm = min(0, (var_min_node - var) / dt)
 
