@@ -27,6 +27,7 @@ Fluid properties such as the specific gas constant ``R`` and the dynamic viscosi
 The viscosity ``\mu`` may be a constant or a function of the current state, e.g.,
 depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
 In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
+Note that `u` is assumed to be the "transformed" variables according to [`gradient_variable_transformation`](@ref).
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
@@ -158,9 +159,20 @@ end
 
 # we specialize this function to compute gradients of primitive variables instead of
 # conservative variables.
+"""
+    gradient_variable_transformation(equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+
+Returns [`cons2prim_temperature`](@ref).
+"""
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
     return cons2prim_temperature
 end
+
+"""
+    gradient_variable_transformation(equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
+
+Returns [`cons2entropy`](@ref).
+"""
 function gradient_variable_transformation(::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
     return cons2entropy
 end
@@ -310,6 +322,12 @@ end
 # TODO: parabolic. We can improve efficiency by not computing w_1, which involves logarithms
 # This can be done by specializing `cons2entropy` and `entropy2cons` to `CompressibleNavierStokesDiffusion2D`,
 # but this may be confusing to new users.
+"""
+    cons2entropy(u, equations::CompressibleNavierStokesDiffusion3D)
+
+Forwards to [`cons2entropy(u, equations::CompressibleEulerEquations3D)`](@ref), i.e., 
+the variable transformation is the same for the hyperbolic and parabolic terms.
+"""
 function cons2entropy(u, equations::CompressibleNavierStokesDiffusion3D)
     return cons2entropy(u, equations.equations_hyperbolic)
 end
