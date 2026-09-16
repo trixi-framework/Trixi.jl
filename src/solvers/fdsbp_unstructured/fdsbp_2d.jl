@@ -91,7 +91,8 @@ end
 # So it is not provably stable for variable coefficients due to the the metric terms.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
-                               have_nonconservative_terms::False, equations,
+                               have_nonconservative_terms::False,
+                               have_aux_node_vars::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
                                dg::FDSBP, cache)
     D = dg.basis # SBP derivative operator
@@ -154,7 +155,8 @@ end
 # of the flux splitting f^-.
 function calc_volume_integral!(backend::Nothing, du, u,
                                mesh::UnstructuredMesh2D,
-                               have_nonconservative_terms::False, equations,
+                               have_nonconservative_terms::False,
+                               have_aux_node_vars::False, equations,
                                volume_integral::VolumeIntegralUpwind,
                                dg::FDSBP, cache)
     # Assume that

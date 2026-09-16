@@ -149,7 +149,8 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_hyperbolic(t) * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
+                  have_constant_speed(equations),
+                  have_aux_node_vars(equations), equations,
                   solver, cache)
 end
 
@@ -171,7 +172,8 @@ function calculate_dt(u_ode, t, cfl_hyperbolic::Real, cfl_parabolic::Real,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     return cfl_hyperbolic * max_dt(u, t, mesh,
-                  have_constant_speed(equations), equations,
+                  have_constant_speed(equations),
+                  have_aux_node_vars(equations), equations,
                   solver, cache)
 end
 
@@ -184,7 +186,8 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt_hyperbolic = cfl_hyperbolic(t) * max_dt(u, t, mesh,
-                           have_constant_speed(equations), equations,
+                           have_constant_speed(equations),
+                           have_aux_node_vars(equations), equations,
                            solver, cache)
 
     cfl_para = cfl_parabolic(t)
@@ -199,14 +202,14 @@ function calculate_dt(u_ode, t, cfl_hyperbolic, cfl_parabolic,
     end
 end
 
-function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equations, dg,
-                               cache)
+function calc_max_scaled_speed(backend::Nothing, u, mesh, have_constant_speed,
+                               have_aux_node_vars, equations, dg, cache)
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     max_scaled_speed = zero(eltype(u))
     @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
-        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), constant_speed,
-                                                  equations, dg,
+        max_lambda = max_scaled_speed_per_element(u, typeof(mesh), have_constant_speed,
+                                                  have_aux_node_vars, equations, dg,
                                                   contravariant_vectors,
                                                   inverse_jacobian,
                                                   element)
@@ -217,9 +220,8 @@ function calc_max_scaled_speed(backend::Nothing, u, mesh, constant_speed, equati
     return max_scaled_speed
 end
 
-function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equations,
-                               dg,
-                               cache) where {MeshT}
+function calc_max_scaled_speed(backend::Backend, u, ::MeshT, have_constant_speed,
+                               have_aux_node_vars, equations, dg, cache) where {MeshT}
     @unpack contravariant_vectors, inverse_jacobian = cache.elements
 
     num_elements = nelements(dg, cache)
@@ -228,7 +230,7 @@ function calc_max_scaled_speed(backend::Backend, u, ::MeshT, constant_speed, equ
     # Provide a custom neutral and init element since we "reduce" over 1:num_elements
     max_scaled_speed = AcceleratedKernels.mapreduce(Base.max, 1:num_elements, backend;
                                                     init, neutral) do element
-        max_scaled_speed_per_element(u, MeshT, constant_speed,
+        max_scaled_speed_per_element(u, MeshT, have_constant_speed, have_aux_node_vars,
                                      equations, dg,
                                      contravariant_vectors,
                                      inverse_jacobian,
