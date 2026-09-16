@@ -26,15 +26,14 @@ end
 # will be discretized first order form as follows:
 #               1. compute grad(u)
 #               2. compute f(u, grad(u))
-#               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
+#               3. compute div(f(u, grad(u))) (i.e., the "regular" RHS call)
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
+function rhs_parabolic!(backend::Nothing, du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
                         boundary_conditions_parabolic, source_terms_parabolic,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack parabolic_container = cache_parabolic
     @unpack u_transformed, gradients, flux_parabolic = parabolic_container
-    backend = trixi_backend(u_transformed)
 
     # Convert conservative variables to a form more suitable for parabolic flux calculations
     @trixi_timeit timer() "transform variables" begin
@@ -44,7 +43,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
+        calc_gradient!(backend, gradients, u_transformed, t, mesh, equations_parabolic,
                        boundary_conditions_parabolic, dg,
                        parabolic_scheme, cache)
     end
@@ -55,10 +54,10 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                                equations_parabolic, dg, cache)
     end
 
-    # The remainder of this function is essentially a regular rhs! for
+    # The remainder of this function is essentially a regular RHS evaluation for
     # parabolic equations (i.e., it computes the divergence of the parabolic fluxes)
     #
-    # OBS! In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
+    # Note: In `calc_parabolic_fluxes!`, the parabolic flux values at the volume nodes of each element have
     # been computed and stored in `flux_parabolic`. In the following, we *reuse* (abuse) the
     # `interfaces` and `boundaries` containers in `cache` to interpolate and store the
     # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
@@ -193,7 +192,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{1},
                                                  equations_parabolic,
                                                  dg, interface)
 
-        # compute interface flux for the DG divergence 
+        # compute interface flux for the DG divergence
         flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
                               equations_parabolic, parabolic_scheme)
 
@@ -436,7 +435,7 @@ function calc_interface_flux_gradient!(surface_flux_values,
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
             surface_flux_values[v, left_direction, left_id] = flux[v]
-            # No sign flip needed for gradient computation because for parabolic terms, 
+            # No sign flip needed for gradient computation because for parabolic terms,
             # the normals are not embedded in `flux_` for gradient computations.
             surface_flux_values[v, right_direction, right_id] = flux[v]
         end
@@ -508,10 +507,10 @@ function calc_surface_integral_gradient!(gradients,
 end
 
 # Calculate the gradient of the transformed variables
-function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
+function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
+                        mesh::TreeMesh{1},
                         equations_parabolic, boundary_conditions_parabolic,
                         dg::DG, parabolic_scheme, cache)
-    backend = trixi_backend(u_transformed)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin

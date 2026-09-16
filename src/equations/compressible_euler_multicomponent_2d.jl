@@ -384,12 +384,12 @@ end
     p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
 
     if orientation == 1
-        f_rho = densities(u, v1, equations)
+        f_rho = partial_momenta(u, v1, equations)
         f1 = rho_v1 * v1 + p
         f2 = rho_v2 * v1
         f3 = (rho_e_total + p) * v1
     else
-        f_rho = densities(u, v2, equations)
+        f_rho = partial_momenta(u, v2, equations)
         f1 = rho_v1 * v2
         f2 = rho_v2 * v2 + p
         f3 = (rho_e_total + p) * v2
@@ -413,7 +413,7 @@ end
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e_total - 0.5f0 * rho * (v1^2 + v2^2))
 
-    f_rho = densities(u, v_normal, equations)
+    f_rho = partial_momenta(u, v_normal, equations)
     f1 = rho_v1 * v_normal + p * normal_direction[1]
     f2 = rho_v2 * v_normal + p * normal_direction[2]
     f3 = (rho_e_total + p) * v_normal
@@ -1036,7 +1036,9 @@ end
     return rho
 end
 
-@inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D)
+# `v` should be a scalar velocity component (i.e., `v1` or `v2`)
+@inline function partial_momenta(u, v,
+                                 equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
                                                             for i in eachcomponent(equations))
 end
@@ -1053,5 +1055,40 @@ end
     rho = density(u, equations)
     v = u[orientation] / rho
     return v
+end
+
+# Entropy potential in the requested direction; see, for example,
+# - Ayoub Gouasmi, Karthik Duraisamy (2020)
+#   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations"
+#   [DOI: 10.1016/j.cma.2020.112912](https://doi.org/10.1016/j.cma.2020.112912)
+@inline function entropy_potential(u, orientation::Int,
+                                   equations::CompressibleEulerMulticomponentEquations2D)
+    @unpack gas_constants = equations
+
+    v = velocity(u, orientation, equations)
+
+    RealT = eltype(u)
+    rho_r_sum = zero(RealT)
+    for i in eachcomponent(equations)
+        rho_r_sum += gas_constants[i] * u[i + 3]
+    end
+
+    return rho_r_sum * v
+end
+
+@inline function entropy_potential(u, normal_direction::AbstractVector,
+                                   equations::CompressibleEulerMulticomponentEquations2D)
+    @unpack gas_constants = equations
+
+    v = velocity(u, equations)
+    normal_velocity = v[1] * normal_direction[1] + v[2] * normal_direction[2]
+
+    RealT = eltype(u)
+    rho_r_sum = zero(RealT)
+    for i in eachcomponent(equations)
+        rho_r_sum += gas_constants[i] * u[i + 3]
+    end
+
+    return rho_r_sum * normal_velocity
 end
 end # @muladd

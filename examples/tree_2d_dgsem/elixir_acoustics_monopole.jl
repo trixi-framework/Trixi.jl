@@ -117,7 +117,6 @@ boundary_conditions = (; x_neg = boundary_condition_zero,
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization

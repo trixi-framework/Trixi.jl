@@ -106,7 +106,7 @@ end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
+                initial_refinement_level = 4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -151,7 +151,7 @@ error_1 = analysis_callback(sol).l2 |> first
 # simulation again.
 
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 5, n_cells_max = 10^4, periodicity = true)
+                initial_refinement_level = 5, periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver;
                                     boundary_conditions = boundary_condition_periodic)
@@ -256,7 +256,7 @@ end
 
 ## Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level = 4, n_cells_max = 10^4, periodicity = true)
+                initial_refinement_level = 4, periodicity = true)
 
 ## Create a DGSEM solver with polynomials of degree `polydeg`
 ## Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
@@ -357,6 +357,13 @@ function Trixi.limiter_zhang_shu!(u, threshold, variable, mesh,
         ## Jensen's inequality holds.
         value_mean = variable(u_mean, equations)
         theta = (value_mean - threshold) / (value_mean - value_min)
+
+        ## This avoids the issue when `value_mean` is slightly smaller than `threshold`
+        ## (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
+        ## which results in invalid theta values smaller than 0. Note that min(1, theta)
+        ## is not necessary since we are only enforcing lower bounds.
+        theta = max(0, theta)
+
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, element)
 

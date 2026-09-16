@@ -78,8 +78,8 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Line, Quad,
 end
 
 # calculates the inverse of the Vandermonde matrix for shock capturing purposes.
-# This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde 
-# matrix first projects from solution values at SBP nodes to degree N polynomials, 
+# This version is for nodal simplicial SBP elements. Note that the inverse Vandermonde
+# matrix first projects from solution values at SBP nodes to degree N polynomials,
 # and then returns the modal coefficients of that projected polynomial.
 function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, <:SBP}) where {NDIMS}
     (; N, element_type, r, s, VDM, wq) = basis
@@ -87,15 +87,15 @@ function calc_inverse_vandermonde(basis::DGMultiBasis{NDIMS, <:Union{Tri, Tet}, 
     interp_matrix_to_quad_points = StartUpDG.vandermonde(element_type, N, r, s) /
                                    VDM
 
-    # note that this mass matrix is not necessarily diagonal                                    
+    # note that this mass matrix is not necessarily diagonal
     mass_matrix = interp_matrix_to_quad_points' * Diagonal(wq) *
                   interp_matrix_to_quad_points
 
-    # construct quadrature-based L2 projection matrix                  
+    # construct quadrature-based L2 projection matrix
     projection_matrix = mass_matrix \
                         (interp_matrix_to_quad_points' * Diagonal(wq))
 
-    # invert Vandermonde matrix to recover modal coefficients from the 
+    # invert Vandermonde matrix to recover modal coefficients from the
     # quadrature-based L2 projection matrix.
     return VDM \ projection_matrix
 end
@@ -115,7 +115,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::DGMultiMesh,
         resize!(alpha_tmp, nelements(mesh, dg))
     end
 
-    # reuses the quad/hex "magic parameters". 
+    # reuses the quad/hex "magic parameters".
     # TODO: optimize, as these are likely not optimal for triangular/tetrahedral elements.
     threshold = 0.5f0 * 10^(-1.8 * (N + 1)^0.25)
     parameter_s = log((1 - 0.0001) / 0.0001)
@@ -436,10 +436,10 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         u_i = u_local[i]
         du_i = zero(u_i)
         for id in nzrange(A_base, i)
-            # nonzero column indices for row i of the sparse operator. 
-            # note that because Julia uses SparseMatrixCSC, rows[id] 
+            # nonzero column indices for row i of the sparse operator.
+            # note that because Julia uses SparseMatrixCSC, rows[id]
             # are efficient to access. We assume here that `sparsity_pattern`
-            # is symmetric (which is true since A_base is skew-symmetric), 
+            # is symmetric (which is true since A_base is skew-symmetric),
             # so nonzero row indices are the same as nonzero column indices.
             j = rows[id]
             u_j = u_local[j]
@@ -454,8 +454,8 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             # it is typically normalized within the flux computation.
             f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
 
-            # the factor of 2 is for consistency; for example, if f_ij is the central 
-            # flux, flux differencing with a differentiation matrix should recover the 
+            # the factor of 2 is for consistency; for example, if f_ij is the central
+            # flux, flux differencing with a differentiation matrix should recover the
             # flux derivative via
             #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
             #                          = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)
@@ -486,10 +486,10 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
         u_i = u[i, element]
         du_i = zero(u_i)
         for id in nzrange(A_base, i)
-            # nonzero column indices for row i of the sparse operator. 
-            # note that because Julia uses SparseMatrixCSC, rows[id] 
+            # nonzero column indices for row i of the sparse operator.
+            # note that because Julia uses SparseMatrixCSC, rows[id]
             # are efficient to access. We assume here that `sparsity_pattern`
-            # is symmetric (which is true since A_base is skew-symmetric), 
+            # is symmetric (which is true since A_base is skew-symmetric),
             # so nonzero row indices are the same as nonzero column indices.
             j = rows[id]
             u_j = u[j, element]
@@ -505,8 +505,8 @@ function volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
             # it is typically normalized within the flux computation.
             f_ij = volume_flux_fv(u_i, u_j, normal_direction_ij, equations)
 
-            # the factor of 2 is for consistency; for example, if f_ij is the central 
-            # flux, flux differencing with a differentiation matrix should recover the 
+            # the factor of 2 is for consistency; for example, if f_ij is the central
+            # flux, flux differencing with a differentiation matrix should recover the
             # flux derivative via
             #   \sum_j 2 * D_ij * f_ij = \sum_j 2 * D_ij * 0.5 * (f(u_i) + f(u_j))
             #                          = f(u_i) \sum_j D_ij + \sum_j D_ij f(u_j)

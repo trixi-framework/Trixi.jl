@@ -20,28 +20,28 @@ const VolumeIntegralAdaptiveEC_WF_DG = VolumeIntegralAdaptive{<:IndicatorEntropy
                                                               <:VolumeIntegralFluxDifferencing}
 
 """
-    VolumeIntegralEntropyCorrection(indicator, 
-                                    volume_integral_default, 
+    VolumeIntegralEntropyCorrection(indicator,
+                                    volume_integral_default,
                                     volume_integral_entropy_stable)
 
 Entropy correction volume integral type for DG methods using a convex blending of
-a `volume_integral_default` (for example, [`VolumeIntegralWeakForm`](@ref)) and 
+a `volume_integral_default` (for example, [`VolumeIntegralWeakForm`](@ref)) and
 `volume_integral_entropy_stable` (for example, [`VolumeIntegralPureLGLFiniteVolume`](@ref)
-with an entropy stable finite volume flux). 
+with an entropy stable finite volume flux).
 
-This is intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the 
-amount of blending based on the violation of a cell entropy equality by the volume integral. 
+This is intended to be used with [`IndicatorEntropyCorrection`](@ref), which determines the
+amount of blending based on the violation of a cell entropy equality by the volume integral.
 
-The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending 
+The parameter `scaling ≥ 1` in [`IndicatorEntropyCorrection`](@ref) scales the DG-FV blending
 parameter ``\\alpha``(see the [tutorial on shock-capturing](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/shock_capturing/#Shock-capturing-with-flux-differencing))
 by a constant, increasing the amount of the subcell FV added in (up to 1, i.e., pure subcell FV).
-This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed 
+This can be used to add shock capturing-like behavior. Note though that ``\\alpha`` is computed
 here from the entropy defect, **not** using [`IndicatorHennemannGassner`](@ref).
 
 The use of `VolumeIntegralEntropyCorrection` requires either
 `entropy_potential(u, orientation, equations)` for TreeMesh, or
 `entropy_potential(u, normal_direction, equations)` for other mesh types
-to be defined. 
+to be defined.
 """
 const VolumeIntegralEntropyCorrection = VolumeIntegralAdaptive{<:IndicatorEntropyCorrection}
 
@@ -69,7 +69,7 @@ end
 
 # `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
 # We only need to resize `volume_integral.indicator.cache.alpha`, which stores the blending factors
-# for visualization. 
+# for visualization.
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralEntropyCorrection,
                                        new_size)
@@ -82,14 +82,14 @@ function resize_volume_integral_cache!(cache, mesh,
     return nothing
 end
 
-# `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction 
-# indicator with a heuristic shock capturing indicator. 
+# `VolumeIntegralEntropyCorrectionShockCapturingCombined` combines the entropy correction
+# indicator with a heuristic shock capturing indicator.
 const VolumeIntegralEntropyCorrectionShockCapturingCombined = VolumeIntegralAdaptive{<:IndicatorEntropyCorrectionShockCapturingCombined}
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralEntropyCorrectionShockCapturingCombined,
                                 dg, cache)
-    # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable 
+    # here, we reuse `indicator_shock_capturing.cache.alpha` to store the indicator variable
     element_variables[:indicator_shock_capturing] = volume_integral.indicator.indicator_shock_capturing.cache.alpha
     return nothing
 end

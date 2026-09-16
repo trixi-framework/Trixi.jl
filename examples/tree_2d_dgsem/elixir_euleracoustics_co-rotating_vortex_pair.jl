@@ -227,11 +227,9 @@ refinement_patches = ((type = "sphere", center = (0.0, 0.0), radius = 85.0 * r0)
                       (type = "sphere", center = (0.0, 0.0), radius = 10.0 * r0),
                       (type = "sphere", center = (0.0, 0.0), radius = 5.0 * r0))
 initial_refinement_level = 7
-n_cells_max = 500_000
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = initial_refinement_level,
                 refinement_patches = refinement_patches,
-                n_cells_max = n_cells_max, # set maximum capacity of tree data structure
                 periodicity = false)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux

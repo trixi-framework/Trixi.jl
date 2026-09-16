@@ -1,7 +1,7 @@
 #src # DG schemes via `DGMulti` solver
 
-# [`DGMulti`](@ref) is a DG solver that allows meshes with simplex elements. The basic idea and
-# implementation of this solver is explained in section ["Meshes"](@ref DGMulti).
+# [`DGMulti`](@ref) is a DG solver that allows meshes with simplex (triangles, tetrahedra) elements.
+# The basic idea and implementation of this solver is explained in section ["Meshes"](@ref DGMulti).
 # Here, we want to give some examples and a quick overview about the options with `DGMulti`.
 
 # We start with a simple example we already used in the [tutorial about flux differencing](@ref fluxDiffExample).
@@ -41,7 +41,7 @@ tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 # Run the simulation with the same time integration algorithm as before.
@@ -90,7 +90,7 @@ tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
@@ -130,7 +130,7 @@ tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 10)
-analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 100)
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
@@ -183,7 +183,7 @@ tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
 alive_callback = AliveCallback(alive_interval = 20)
-analysis_callback = AnalysisCallback(semi, interval = 200, uEltype = real(dg))
+analysis_callback = AnalysisCallback(semi, interval = 200)
 callbacks = CallbackSet(alive_callback, analysis_callback);
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);

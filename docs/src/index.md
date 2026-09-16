@@ -400,6 +400,7 @@ Participating research groups in alphabetical order:
     -->
   </div>
   <div><!--
+    M3ODEL   --><img src="https://github.com/user-attachments/assets/dc903573-244f-4674-a0d4-019fef24bd4d" style="height: 120px; width: auto"><!--
     NumFOCUS --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" style="height: 120px; width: auto"><!--
     -->
   </div>
@@ -438,5 +439,8 @@ with significantly reduced computation time for exascale supercomputers
 This project has benefited from funding by the
 [Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
 through grant no. 32-10/22.
+
+This project has benefited from funding by the
+[Mainz Institute of Multiscale Modeling (M³ODEL)](https://model.uni-mainz.de/).
 
 Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.

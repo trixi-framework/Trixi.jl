@@ -3,18 +3,19 @@ module TrixiMakieExt
 
 # Required for visualization code
 using Makie: Makie, GeometryBasics
+using LaTeXStrings: latexstring
 
 # Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
 using Trixi
 
 # Use additional symbols that are not exported
 using Trixi: @muladd, AbstractPlotData, PlotMesh, PlotDataSeries, ScalarData,
-             PlotData1D, PlotData2DTriangulated,
+             PlotData1D, PlotData2D, PlotData2DCartesian, PlotData2DTriangulated,
              TrixiODESolution,
              wrap_array_native, mesh_equations_solver_cache
 
 # Import functions such that they can be extended with new methods
-import Trixi: iplot, iplot!
+import Trixi: iplot, iplot!, trixiheatmap, trixiheatmap!
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -138,7 +139,30 @@ end
 # We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
 default_Makie_colormap() = :inferno
 
-_makie_guide(orientation) = orientation == 1 ? "x" : orientation == 2 ? "y" : "z"
+function _makie_guide(orientation)
+    label = orientation == 1 ? "x" :
+            orientation == 2 ? "y" : orientation == 3 ? "z" : ""
+    isempty(label) && return label
+    return latexstring("\$", label, "\$")
+end
+
+# Reduce the number of ticks when a figure holds several subplots, since these are
+# relatively small. A single subplot fills the whole figure, so Makie's defaults are
+# used in that case.
+_makie_ticks(n) = n == 1 ? Makie.automatic : Makie.WilkinsonTicks(3; k_max = 4)
+
+# Fill the cells of a layout that are not used by a variable with empty
+# axes. Otherwise, the returned array of axes contains undefined references.
+function _fill_empty_axes!(axes, fig, n, rows, cols)
+    for i in (n + 1):(rows * cols)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1])
+        Makie.hidedecorations!(ax)
+        Makie.hidespines!(ax)
+        axes[row, col] = ax
+    end
+    return axes
+end
 
 # convenience struct for editing Makie plots after they're created.
 struct FigureAndAxes{Axes}
@@ -160,21 +184,6 @@ function Base.iterate(fa::FigureAndAxes, state = 1)
         return nothing
     end
 end
-
-"""
-    iplot(u, mesh::UnstructuredMesh2D, equations, solver, cache;
-          plot_mesh=true, show_axis=false, colormap=default_Makie_colormap(),
-          variable_to_plot_in=1)
-
-Creates an interactive surface plot of the solution and mesh for an `UnstructuredMesh2D` type.
-
-Keywords:
-- variable_to_plot_in: variable to show by default
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
-function iplot end
 
 # Enables `iplot(PlotData2D(sol))`.
 function iplot(pd::PlotData2DTriangulated;
@@ -201,7 +210,7 @@ function iplot(pd::PlotData2DTriangulated;
                              tellheight = false, width = 200)
 
     # Create a zoomable interactive axis object on top of which to plot the solution.
-    ax = Makie.LScene(fig[1, 2], scenekw = (show_axis = show_axis,))
+    ax = Makie.LScene(fig[1, 2], show_axis = show_axis)
 
     # Initialize the dropdown menu to `variable_to_plot_in`
     # Since menu.selection is an Observable type, we need to dereference it using `[]` to set.
@@ -290,7 +299,7 @@ function iplot(pd::PlotData2DTriangulated{<:ScalarData};
     fig = Makie.Figure()
 
     # Create a zoomable interactive axis object on top of which to plot the solution.
-    ax = Makie.LScene(fig[1, 1], scenekw = (show_axis = show_axis,))
+    ax = Makie.LScene(fig[1, 1], show_axis = show_axis)
 
     # plot the user-defined ScalarData
     fig_axis_plt = iplot!(FigureAndAxes(fig, ax), pd; colormap = colormap,
@@ -332,7 +341,8 @@ end
 # This initializes a Makie recipe, which creates a new type definition which Makie uses to create
 # custom `trixiheatmap` plots. See also https://docs.makie.org/stable/documentation/recipes/
 Makie.@recipe(TrixiHeatmap, plot_data_series) do scene
-    return Makie.Theme(colormap = default_Makie_colormap())
+    return Makie.Theme(colormap = default_Makie_colormap(),
+                       plot_mesh = false)
 end
 
 function Makie.plot!(myplot::TrixiHeatmap)
@@ -347,15 +357,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
                 colormap = myplot[:colormap])
     myplot.colorrange = extrema(solution_z)
 
-    # Makie hides keyword arguments within `myplot`; see also
-    # https://github.com/JuliaPlots/Makie.jl/issues/837#issuecomment-845985070
-    plot_mesh = if haskey(myplot, :plot_mesh)
-        myplot.plot_mesh[]
-    else
-        true # default to plotting the mesh
-    end
-
-    if plot_mesh
+    if myplot.plot_mesh[]
         xyz_wireframe = convert_PlotData2D_to_mesh_Points(pds;
                                                           set_z_coordinate_zero = true)
         Makie.lines!(myplot, xyz_wireframe, color = :lightgrey)
@@ -367,8 +369,9 @@ end
 # redirects Makie.plot(pd::PlotDataSeries) to custom recipe TrixiHeatmap(pd)
 Makie.plottype(::Trixi.PlotDataSeries{<:Trixi.PlotData2DTriangulated}) = TrixiHeatmap
 Makie.plottype(::PlotDataSeries{<:AbstractPlotData{1}}) = Makie.Lines
+Makie.plottype(::PlotDataSeries{<:AbstractPlotData{2}}) = Makie.Heatmap
 
-# Makie recipe for PlotDataSeries
+# Makie recipe for 1D PlotDataSeries
 function Makie.convert_arguments(::Type{<:Makie.Plot},
                                  pds::PlotDataSeries{<:AbstractPlotData{1}})
     @unpack plot_data, variable_id = pds
@@ -377,7 +380,7 @@ function Makie.convert_arguments(::Type{<:Makie.Plot},
 end
 
 function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figure();
-                    kwargs...)
+                    plot_mesh = false, kwargs...)
     @unpack plot_data, variable_id = pds
     @unpack x, variable_names, mesh_vertices_x = plot_data
     ax = Makie.Axis(fig[1, 1],
@@ -385,7 +388,9 @@ function Makie.plot(pds::PlotDataSeries{<:AbstractPlotData{1}}, fig = Makie.Figu
                     xlabel = _makie_guide(plot_data.orientation_x))
     plt = Makie.lines!(ax, pds; kwargs...)
     Makie.xlims!(ax, x[begin], x[end])
-
+    if plot_mesh
+        Makie.vlines!(ax, mesh_vertices_x; color = :grey, linewidth = 1)
+    end
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
@@ -397,7 +402,7 @@ function Makie.plot!(pm::PlotMesh{<:AbstractPlotData{1}}; kwargs...)
     return plt
 end
 
-function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); show_mesh = false)
+function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); plot_mesh = false)
     n = length(pd)
     cols = n <= 3 ? n : ceil(Int, sqrt(n))
     rows = cld(n, cols)
@@ -406,16 +411,90 @@ function Makie.plot(pd::PlotData1D, fig = Makie.Figure(); show_mesh = false)
     for (i, (variable_name, pds)) in enumerate(pd)
         row, col = cld(i, cols), mod1(i, cols)
         @unpack x, mesh_vertices_x = pds.plot_data
-        ax = Makie.Axis(fig[row, col],
+        ax = Makie.Axis(fig[row, col][1, 1],
                         title = variable_name,
                         xlabel = _makie_guide(pd.orientation_x))
         axes[row, col] = ax
         Makie.lines!(ax, pds)
         Makie.xlims!(ax, x[begin], x[end])
-        if show_mesh
+        if plot_mesh
             Makie.vlines!(ax, mesh_vertices_x; color = :grey, linewidth = 1)
         end
     end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
+
+    display(fig)
+    return FigureAndAxes(fig, axes)
+end
+
+# Makie recipe for 2D PlotDataSeries
+function Makie.convert_arguments(::Type{<:Makie.Plot},
+                                 pds::PlotDataSeries{<:PlotData2DCartesian})
+    @unpack plot_data, variable_id = pds
+    @unpack x, y, data = plot_data
+    return (x, y, permutedims(data[variable_id])) # permutedims to match the axis convention of Plots.jl
+end
+
+function Makie.plot(pds::PlotDataSeries{<:PlotData2DCartesian},
+                    fig = Makie.Figure(); kwargs...)
+    @unpack plot_data, variable_id = pds
+    @unpack x, y, variable_names = plot_data
+    ax = Makie.Axis(fig[1, 1],
+                    title = variable_names[variable_id],
+                    xlabel = _makie_guide(plot_data.orientation_x),
+                    ylabel = _makie_guide(plot_data.orientation_y))
+
+    # Makie expands a zero-width color range only if it is passed explicitly.
+    plt = Makie.heatmap!(ax, pds; colormap = default_Makie_colormap(),
+                         colorrange = extrema(plot_data.data[variable_id]),
+                         kwargs...)
+    Makie.Colorbar(fig[1, 2], plt)
+    ax.aspect = Makie.DataAspect()
+    Makie.xlims!(ax, x[begin], x[end])
+    Makie.ylims!(ax, y[begin], y[end])
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.plot!(pm::PlotMesh{<:PlotData2DCartesian}; kwargs...)
+    ax = Makie.current_axis()
+    @unpack mesh_vertices_x, mesh_vertices_y = pm.plot_data
+    plt = Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
+                       color = :grey, linewidth = 1, kwargs...)
+    display(Makie.current_figure())
+    return plt
+end
+
+function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
+                    plot_mesh = false, colormap = default_Makie_colormap())
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
+
+    ticks = _makie_ticks(n)
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        @unpack x, y, mesh_vertices_x, mesh_vertices_y = pds.plot_data
+
+        ax = Makie.Axis(fig[row, col][1, 1],
+                        title = variable_name,
+                        xlabel = _makie_guide(pd.orientation_x),
+                        ylabel = _makie_guide(pd.orientation_y),
+                        xticks = ticks, yticks = ticks)
+        axes[row, col] = ax
+        # Makie expands a zero-width color range only if it is passed explicitly.
+        plt = Makie.heatmap!(ax, pds; colormap,
+                             colorrange = extrema(pds.plot_data.data[pds.variable_id]))
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
+        ax.aspect = Makie.DataAspect()
+        Makie.xlims!(ax, x[begin], x[end])
+        Makie.ylims!(ax, y[begin], y[end])
+        if plot_mesh
+            Makie.lines!(ax, mesh_vertices_x, mesh_vertices_y;
+                         color = :grey, linewidth = 1)
+        end
+    end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
 
     display(fig)
     return FigureAndAxes(fig, axes)
@@ -426,8 +505,35 @@ function Makie.plot(sol::TrixiODESolution; solution_variables = nothing, kwargs.
     if ndims(sol.prob.p) == 1
         return Makie.plot(PlotData1D(sol; solution_variables); kwargs...)
     else
-        return Makie.plot(PlotData2DTriangulated(sol; solution_variables); kwargs...)
+        pd = PlotData2D(sol; solution_variables) # use Julias dispatch here
+        return Makie.plot(pd; kwargs...)
     end
+end
+
+function Makie.plot(pds::PlotDataSeries{<:PlotData2DTriangulated},
+                    fig = Makie.Figure();
+                    plot_mesh = false, colormap = default_Makie_colormap(), kwargs...)
+    @unpack plot_data, variable_id = pds
+    @unpack variable_names = plot_data
+    ax = Makie.Axis(fig[1, 1],
+                    title = variable_names[variable_id],
+                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    aspect = Makie.DataAspect())
+    plt = trixiheatmap!(ax, pds; plot_mesh, colormap, kwargs...)
+    Makie.Colorbar(fig[1, 2], plt)
+    Makie.xlims!(ax, extrema(plot_data.x))
+    Makie.ylims!(ax, extrema(plot_data.y))
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.plot!(pm::PlotMesh{<:PlotData2DTriangulated}; kwargs...)
+    ax = Makie.current_axis()
+    @unpack x_face, y_face = pm.plot_data
+    x_wire = vec(vcat(x_face, fill(NaN, 1, size(x_face, 2))))
+    y_wire = vec(vcat(y_face, fill(NaN, 1, size(y_face, 2))))
+    plt = Makie.lines!(ax, x_wire, y_wire; color = :grey, linewidth = 1, kwargs...)
+    display(Makie.current_figure())
+    return plt
 end
 
 function Makie.plot(pd::PlotData2DTriangulated, fig = Makie.Figure();
@@ -439,34 +545,26 @@ end
 
 function Makie.plot!(fig, pd::PlotData2DTriangulated;
                      plot_mesh = false, colormap = default_Makie_colormap())
-    # Create layout that is as square as possible, when there are more than 3 subplots.
-    # This is done with a preference for more columns than rows if not.
-    if length(pd) <= 3
-        cols = length(pd)
-        rows = 1
-    else
-        cols = ceil(Int, sqrt(length(pd)))
-        rows = cld(length(pd), cols)
-    end
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
 
-    axes = [Makie.Axis(fig[i, j], xlabel = "x", ylabel = "y")
-            for j in 1:rows, i in 1:cols]
-    row_list, col_list = ([i for j in 1:rows, i in 1:cols],
-                          [j for j in 1:rows, i in 1:cols])
-
-    for (variable_to_plot, (variable_name, pds)) in enumerate(pd)
-        ax = axes[variable_to_plot]
+    ticks = _makie_ticks(n)
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1],
+                        title = variable_name,
+                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xticks = ticks, yticks = ticks)
+        axes[row, col] = ax
         plt = trixiheatmap!(ax, pds; plot_mesh, colormap)
-
-        row = row_list[variable_to_plot]
-        col = col_list[variable_to_plot]
-        Makie.Colorbar(fig[row, col][1, 2], colormap = colormap)
-
-        ax.aspect = Makie.DataAspect() # equal aspect ratio
-        ax.title = variable_name
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
+        ax.aspect = Makie.DataAspect()
         Makie.xlims!(ax, extrema(pd.x))
         Makie.ylims!(ax, extrema(pd.y))
     end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
 
     return FigureAndAxes(fig, axes)
 end

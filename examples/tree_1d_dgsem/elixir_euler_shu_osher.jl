@@ -50,7 +50,6 @@ coordinates_min = (-5.0,)
 coordinates_max = (5.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                n_cells_max = 10_000,
                 periodicity = false)
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)

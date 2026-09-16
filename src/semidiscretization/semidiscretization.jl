@@ -66,7 +66,7 @@ function integrate(u_ode, semi::AbstractSemidiscretization; normalize = true)
 end
 
 # Select the right-hand side function corresponding to the semidiscretization `semi`.
-@inline default_rhs(::AbstractSemidiscretization) = rhs!
+@inline default_rhs(::AbstractSemidiscretization) = rhs_hyperbolic!
 
 """
     calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis)
@@ -81,11 +81,12 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan;
-                   jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
-                   colorvec::Union{AbstractVector, Nothing} = nothing,
-                   storage_type = nothing,
-                   real_type = nothing)
+   semidiscretize(semi::AbstractSemidiscretization, tspan;
+                  jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
+                  colorvec::Union{AbstractVector, Nothing} = nothing,
+                  storage_type = nothing,
+                  real_type = nothing,
+                  flux_differencing_kernel = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -95,16 +96,20 @@ Optional keyword arguments:
   Specifies the sparsity structure of the Jacobian to enable e.g. efficient implicit time stepping.
 - `colorvec`: Expected to come from [SparseMatrixColorings.jl](https://github.com/gdalle/SparseMatrixColorings.jl).
   Allows for even faster Jacobian computation if a sparse `jac_prototype` is given (optional).
-- `storage_type` and `real_type`: Configure the underlying computational datastructures. 
-  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray` 
+- `storage_type` and `real_type`: Configure the underlying computational datastructures.
+  `storage_type` changes the fundamental array type being used, allowing the experimental use of `CuArray`
   or other GPU array types. `real_type` changes the computational data type being used.
+- `flux_differencing_kernel`: Select the GPU kernel used for the flux differencing
+  volume integral, one of [`HalfSweep()`](@ref) (default), [`FullSweep()`](@ref), or
+  [`FullSweepGlobal()`](@ref).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
                         jac_prototype::Union{AbstractMatrix, Nothing} = nothing,
                         colorvec::Union{AbstractVector, Nothing} = nothing,
                         reset_threads = true,
                         storage_type = nothing,
-                        real_type = nothing)
+                        real_type = nothing,
+                        flux_differencing_kernel = nothing)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -123,6 +128,23 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         if eltype(tspan) !== real_type
             tspan = convert.(real_type, tspan)
         end
+    end
+
+    if storage_type !== nothing || flux_differencing_kernel !== nothing ||
+       _PREFERENCE_THREADING === :kernelabstractions
+        if flux_differencing_kernel === nothing
+            flux_differencing_kernel = HalfSweep()
+        end
+
+        volume_integral = semi.solver.volume_integral
+        if flux_differencing_kernel isa FullSweepGlobal &&
+           volume_integral isa VolumeIntegralFluxDifferencing &&
+           volume_integral.volume_flux isa FluxTurbo &&
+           have_nonconservative_terms(semi.equations) === True()
+            error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
+        end
+        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
+        @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
     end
 
     u0_ode = compute_coefficients(first(tspan), semi) # Invoke initial condition
@@ -303,7 +325,7 @@ function linear_structure(semi::AbstractSemidiscretization;
     end
 
     apply_rhs! = function (dest, src)
-        return rhs!(dest, src, semi, t0)
+        return rhs_hyperbolic!(dest, src, semi, t0)
     end
 
     return _linear_structure_from_rhs(semi, apply_rhs!)
@@ -317,6 +339,11 @@ end
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
 of the semidiscretization `semi` at time `t0` and state `u0_ode`.
+
+This function does not support [`SemidiscretizationHyperbolicParabolic`](@ref),
+which has separate hyperbolic and parabolic right-hand sides. Use
+[`jacobian_ad_forward`](@ref) for its combined Jacobian or
+[`jacobian_ad_forward_parabolic`](@ref) for its parabolic Jacobian.
 """
 function jacobian_fd(semi::AbstractSemidiscretization;
                      t0 = zero(real(semi)),
@@ -515,7 +542,7 @@ end
 # which can be `resize!`ed for AMR. Then, we have to wrap these `Vector`s inside
 # Trixi.jl as our favorite multidimensional array type. We need to do this wrapping
 # in every method exposed to OrdinaryDiffEq, i.e. in the first levels of things like
-# rhs!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback
+# rhs_hyperbolic!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback
 #
 # This wrapping will also allow us to experiment more easily with additional
 # kinds of wrapping, e.g. HybridArrays.jl or PaddedMatrices.jl to inform the
@@ -559,7 +586,7 @@ end
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
-# - rhs!(du, u, t, mesh, equations, boundary_conditions, source_terms, solver, cache)
+# - rhs_hyperbolic!(backend, du, u, t, mesh, equations, boundary_conditions, source_terms, solver, cache)
 #
 
 end # @muladd

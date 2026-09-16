@@ -31,51 +31,67 @@ executing
 ```julia
 julia> using Pkg; Pkg.test("Trixi")
 ```
-in the REPL. Since there already exist many tests, we have split them up into
-multiple files in the `test` directory to allow for faster testing of individual
-parts of the code.
-Thus in addition to performing all tests, you can also just `include` one of the
-files named `test_xxx.jl` to run only a specific subset, e.g.,
-```julia
-julia> # Run all 2D tests on the P4estMesh
-       include(joinpath("test", "test_p4est_2d.jl"))
+in the REPL.
 
-julia> # Run all 1D tests for the Euler equations on the TreeMesh
-       include(joinpath("test", "test_tree_1d_euler.jl"))
-```
-Often you want to run only a specific test or a small subset of tests. To do this, we
-recommend using [TestPicker.jl](https://github.com/theogf/TestPicker.jl). To make
-TestPicker.jl aware of the special testing system used in Trixi.jl, you first need to
-[set the environment variable "TESTPICKER_NODES"](https://github.com/theogf/TestPicker.jl#running-other-test-blocks-than-testset):
+Trixi.jl's tests are organized with
+[TestItems.jl](https://github.com/julia-vscode/TestItems.jl) and executed with
+[TestItemRunner.jl](https://github.com/julia-vscode/TestItemRunner.jl). Every individual
+test is a self-contained `@testitem` block, and these are collected in the various files
+named `test_xxx.jl` in the `test` directory (e.g., all 2D tests on the `P4estMesh` live
+in
+[`test/test_p4est_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_p4est_2d.jl)).
+Because every `@testitem` is independent and discoverable on its own, you can run a
+single test or a small subset without running the whole suite — either directly from the
+[Testing UI of the Julia VS Code extension](https://www.julia-vscode.org/docs/stable/userguide/testitems/)
+or from the REPL as shown below.
+
+To run a subset from the REPL, first activate the test environment (which merges the
+package with its test-only dependencies), for example using
+[TestEnv.jl](https://github.com/JuliaTesting/TestEnv.jl), and then call
+`@run_package_tests` with a `filter` on the test item's `name`, `tags`, or `filename`:
 ```julia
-julia> ENV["TESTPICKER_NODES"] = "@trixi_testset, @timed_testset"
+julia> using TestEnv; TestEnv.activate()
+
+julia> using TestItemRunner
+
+julia> cd("test")
+
+julia> @run_package_tests filter = ti -> occursin("TreeMesh2D Advection: elixir_advection_basic.jl", ti.name)
+
+julia> # Run every test tagged `:tree_part1`
+       @run_package_tests filter = ti -> :tree_part1 in ti.tags
 ```
-To automatically set the environment variable, on Unix-like systems you can add
+
+For the automated tests with GitHub Actions, we run multiple jobs in parallel to reduce
+the waiting time until all tests are finished. Each job runs a subset of the tests,
+selected via the `TRIXI_TEST` environment variable whose value is matched against the
+`tags` attached to each `@testitem`. You can reproduce a specific job locally by setting
+`TRIXI_TEST` accordingly, e.g., from the shell
+
 ```bash
-export TESTPICKER_NODES="@trixi_testset, @timed_testset"
+TRIXI_TEST=tree_part1 julia --project=. -e 'using Pkg; Pkg.test("Trixi")'
 ```
-to the `~/.bashrc` file. After `using TestPicker`, you can enter the REPL test mode
-with `!` and search for test files with a fuzzy search. To search for testsets, you
-can separate the fuzzy search for test files and a fuzzy search of testsets with
-a colon. For more details, check out the documentation of
-[TestPicker.jl](https://github.com/theogf/TestPicker.jl).
 
-For the automated tests with GitHub Actions, we run multiple jobs in parallel to
-reduce the waiting time until all tests are finished. You can see the different
-components that are run as jobs by looking at the `TRIXI_TEST` variable in
-[`test/runtests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/runtests.jl).
+You can see the different components that are run as jobs by looking at the `TRIXI_TEST`
+values in
+[`test/runtests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/runtests.jl)
+and
+[`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/ci.yml).
 
 
 ## Adding new tests
-We use Julia's built-in [unit testing capabilities](https://docs.julialang.org/en/v1/stdlib/Test/)
-to configure tests. In general, newly added code must be covered by at least one
-test, and all new elixirs added to the `examples/` directory must be used at
-least once during testing. New tests should be added to the corresponding
-`test/test_xxx.jl` file, e.g., a test involving the 3D linear advection equation
-on the `TreeMesh` would go into
+We use [TestItems.jl](https://github.com/julia-vscode/TestItems.jl) on top of Julia's
+built-in [unit testing capabilities](https://docs.julialang.org/en/v1/stdlib/Test/):
+each test is a `@testitem` block whose body uses the usual `@test` assertions. In
+general, newly added code must be covered by at least one test, and all new elixirs added
+to the `examples/` directory must be used at least once during testing. New tests should
+be added as a `@testitem` to the corresponding `test/test_xxx.jl` file, e.g., a test
+involving the 3D linear advection equation on the `TreeMesh` would go into
 [`test/test_tree_3d_advection.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_tree_3d_advection.jl).
-Please study one of the existing tests and stay consistent to the current style
-when creating new tests.
+Each `@testitem` lists the setup snippets it needs via `setup = [Setup, ...]` and the CI
+job(s) it belongs to via `tags = [...]` (see [Testing setup](@ref) for how `tags`
+correspond to the `TRIXI_TEST` jobs). Please study one of the existing tests and stay
+consistent to the current style when creating new tests.
 
 Since we want to test as much as possible, we have a lot of tests and
 frequently create new ones. Naturally, this increases the time to wait for all

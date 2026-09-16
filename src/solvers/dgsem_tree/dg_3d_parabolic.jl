@@ -92,7 +92,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_3d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              mesh::TreeMesh{3},
@@ -101,7 +101,7 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
 
-    # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
+    # Note: `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
     interfaces_u = interfaces.u
 
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
@@ -192,7 +192,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_3d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2boundaries!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              mesh::TreeMesh{3},
@@ -201,7 +201,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
     @unpack boundaries = cache
     @unpack orientations, neighbor_sides, neighbor_ids = boundaries
 
-    # OBS! `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
+    # Note: `boundaries_u` stores the "interpolated" *fluxes* and *not the solution*!
     boundaries_u = boundaries.u
     flux_parabolic_x, flux_parabolic_y, flux_parabolic_z = flux_parabolic
 
@@ -554,7 +554,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2mortars!` in dg_3d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2mortars!` in dg_3d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 5}`.
 function prolong2mortars!(cache, flux_parabolic::Tuple,
                           mesh::TreeMesh{3},

@@ -102,7 +102,6 @@ coordinates_min = (-4.0, -4.0)
 coordinates_max = (4.0, 4.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
-                n_cells_max = 100_000,
                 periodicity = false)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition,
