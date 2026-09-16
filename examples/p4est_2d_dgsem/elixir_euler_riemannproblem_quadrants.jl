@@ -59,9 +59,9 @@ boundary_conditions = (; x_neg = boundary_condition_subsonic,
                        y_neg = boundary_condition_subsonic,
                        y_pos = boundary_condition_do_nothing)
 
-# map [-1,1]^2 to [0,1]^2, with a mild curved warping 
-# applied to each quadrant. Mesh interfaces between quadrants 
-# are preserved, however. 
+# map [-1,1]^2 to [0,1]^2, with a mild curved warping
+# applied to each quadrant. Mesh interfaces between quadrants
+# are preserved, however.
 function mapping_warp(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
     y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)

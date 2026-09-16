@@ -8,7 +8,7 @@
 """
     SemidiscretizationParabolic
 
-A struct containing everything needed to describe a spatial semidiscretization of a purely 
+A struct containing everything needed to describe a spatial semidiscretization of a purely
 parabolic PDE.
 """
 mutable struct SemidiscretizationParabolic{Mesh, Equations, InitialCondition,
@@ -209,7 +209,7 @@ function linear_structure(semi::SemidiscretizationParabolic;
 end
 
 # For a purely parabolic semidiscretization, the right-hand side is `rhs_parabolic!`
-# instead of the default `rhs!`.
+# instead of the default `rhs_hyperbolic!`.
 @inline default_rhs(::SemidiscretizationParabolic) = rhs_parabolic!
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
@@ -220,7 +220,8 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationParabolic, t)
     backend = trixi_backend(u)
 
     time_start = time_ns()
-    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
+    @trixi_timeit_ext backend timer() "parabolic rhs!" rhs_parabolic!(backend, du, u, t,
+                                                                      mesh,
                                                                       equations,
                                                                       boundary_conditions,
                                                                       source_terms,

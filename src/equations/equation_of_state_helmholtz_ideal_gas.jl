@@ -11,7 +11,7 @@ with ``c_v = R / (\gamma - 1)``.
 
 Fields:
 - `gamma`: ratio of specific heats
-- `R`: specific gas constant 
+- `R`: specific gas constant
 """
 struct HelmholtzIdealGas{RealT <: Real} <: AbstractHelmholtzEOS
     gamma::RealT
@@ -21,9 +21,9 @@ end
 """
     HelmholtzIdealGas(gamma = 1.4, R = 287)
 
-Constructs a [`HelmholtzIdealGas`](@ref) with ratio of specific heats 
-`gamma` and specific gas constant `R`. If not specified, `R` defaults 
-to 287 J/(kg K), a value typical of air (see also [`IdealGas`](@ref)). 
+Constructs a [`HelmholtzIdealGas`](@ref) with ratio of specific heats
+`gamma` and specific gas constant `R`. If not specified, `R` defaults
+to 287 J/(kg K), a value typical of air (see also [`IdealGas`](@ref)).
 """
 function HelmholtzIdealGas(gamma = 1.4, R = 287)
     return HelmholtzIdealGas(promote(gamma, R)...)

@@ -136,7 +136,6 @@ mesh = StructuredMesh(cells_per_dimension, mapping;
 # initial_refinement_level = 1
 # mesh = TreeMesh(coordinates_min, coordinates_max,
 #                 initial_refinement_level = initial_refinement_level,
-#                 n_cells_max = 1_000_000,
 #                 periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

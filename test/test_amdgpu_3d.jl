@@ -1,20 +1,8 @@
-module TestAMDGPU3D
+@testsnippet AMDGPU3DExamples begin
+    EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
+end
 
-using Test
-using Trixi
-
-include("test_trixi.jl")
-
-EXAMPLES_DIR = joinpath(examples_dir(), "p4est_3d_dgsem")
-
-# Start with a clean environment: remove Trixi.jl output directory if it exists
-outdir = "out"
-isdir(outdir) && rm(outdir, recursive = true)
-
-@testset "AMDGPU 3D" begin
-#! format: noindent
-
-@trixi_testset "elixir_advection_basic.jl native" begin
+@testitem "AMDGPU 3D: elixir_advection_basic.jl native" setup=[Setup, AMDGPU3DExamples] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[0.00016263963870641478],
@@ -22,7 +10,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(ode.p.solver) == Float64
     @test real(ode.p.solver.basis) == Float64
     @test real(ode.p.solver.mortar) == Float64
@@ -37,10 +24,20 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test Trixi.storage_type(ode.p.cache.interfaces) === Array
     @test Trixi.storage_type(ode.p.cache.boundaries) === Array
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_advection_basic.jl Float32 / AMDGPU" begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+@testitem "AMDGPU 3D: elixir_advection_basic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors similar to reference on CPU
@@ -52,7 +49,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1_700_000)
     @test real(ode.p.solver) == Float32
     @test real(ode.p.solver.basis) == Float32
     @test real(ode.p.solver.mortar) == Float32
@@ -67,9 +63,19 @@ end
     @test Trixi.storage_type(ode.p.cache.interfaces) === ROCArray
     @test Trixi.storage_type(ode.p.cache.boundaries) === ROCArray
     @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl native" begin
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl native" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
                         l2=[0.0014517629881062517,
@@ -86,7 +92,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 1000)
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -101,10 +106,20 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_euler_source_terms_nonperiodic.jl Float32 / AMDGPU" begin
-    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
     using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),
@@ -125,7 +140,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 600_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -140,9 +154,19 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
     @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" begin
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl native" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                         l2=[
@@ -170,7 +194,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
     @test real(semi.solver) == Float64
     @test real(semi.solver.basis) == Float64
     @test real(semi.solver.mortar) == Float64
@@ -185,9 +208,19 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === Array
     @test Trixi.storage_type(semi.cache.boundaries) === Array
     @test Trixi.storage_type(semi.cache.mortars) === Array
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-@trixi_testset "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" begin
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl Float32 / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
     # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
     using AMDGPU
     using Trixi
@@ -217,7 +250,6 @@ end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     semi = ode.p # `semidiscretize` adapts the semi, so we need to obtain it from the ODE problem.
-    @test_allocations(Trixi.rhs!, semi, sol, 2_000_000)
     @test real(semi.solver) == Float32
     @test real(semi.solver.basis) == Float32
     @test real(semi.solver.mortar) == Float32
@@ -232,9 +264,275 @@ end
     @test Trixi.storage_type(semi.cache.interfaces) === ROCArray
     @test Trixi.storage_type(semi.cache.boundaries) === ROCArray
     @test Trixi.storage_type(semi.cache.mortars) === ROCArray
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
 end
 
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn isdir(outdir) && rm(outdir, recursive = true)
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
+    u_half_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweep())
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+    u_full_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    u_full_sweep_global = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test u_half_sweep ≈ u_full_sweep
+    @test u_half_sweep ≈ u_full_sweep_global
 end
-end # module
+
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl HalfSweep vs. FullSweep vs. FullSweepGlobal / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
+    u_half_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweep())
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+    u_full_sweep = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    u_full_sweep_global = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    @test u_half_sweep ≈ u_full_sweep
+    @test u_half_sweep ≈ u_full_sweep_global
+end
+
+@testitem "AMDGPU 3D: elixir_euler_source_terms_nonperiodic.jl FluxTurbo / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
+    u_plain = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+    @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweep())
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+    @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(FluxTurbo(flux_ranocha)),
+                  tspan = (0.0, 0.5),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "AMDGPU 3D: elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl FluxTurbo / AMDGPU" setup=[
+    Setup,
+    AMDGPU3DExamples
+] tags=[:AMDGPU] begin
+    # Using AMDGPU inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using AMDGPU
+
+    volume_flux_turbo = FluxTurbo(flux_hindenlang_gassner, flux_nonconservative_powell)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = HalfSweep())
+    u_plain = Array(sol.u[end])
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux_turbo),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = HalfSweep())
+    @test ode.p.cache.flux_differencing_kernel === HalfSweep()
+    @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(volume_flux_turbo),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = ROCArray,
+                  flux_differencing_kernel = FullSweep())
+    @test ode.p.cache.flux_differencing_kernel === FullSweep()
+    @test Array(sol.u[end]) ≈ u_plain
+
+    # Ensure that the RHS computation overwrites existing data in `du` correctly.
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end

@@ -57,7 +57,7 @@ coordinates_max = (1.0, 1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
-                periodicity = false, n_cells_max = 512^2 * 16)
+                periodicity = false)
 
 surface_flux = flux_lax_friedrichs
 

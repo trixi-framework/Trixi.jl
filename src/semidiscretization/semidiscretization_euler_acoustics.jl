@@ -169,7 +169,7 @@ end
     return calc_error_norms(func, u, t, analyzer, semi.semi_acoustics, cache_analysis)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
+function rhs_hyperbolic!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
     @unpack semi_acoustics, cache = semi
     @unpack acoustic_source_terms, acoustic_source_weights, coupled_element_ids = cache
 
@@ -177,7 +177,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerAcoustics, t)
 
     time_start = time_ns()
 
-    @trixi_timeit timer() "acoustics rhs!" rhs!(du_ode, u_ode, semi_acoustics, t)
+    @trixi_timeit timer() "acoustics rhs!" rhs_hyperbolic!(du_ode, u_ode,
+                                                           semi_acoustics, t)
 
     @trixi_timeit timer() "add acoustic source terms" begin
         add_acoustic_source_terms!(du_acoustics, acoustic_source_terms,

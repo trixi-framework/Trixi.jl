@@ -432,7 +432,7 @@ function calc_surface_integral!(backend, du, u, mesh::UnstructuredMesh2D,
 
     # Note that all fluxes have been computed with outward-pointing normal vectors.
     # This computes the **negative** surface integral contribution,
-    # i.e., M^{-1} * boundary_interpolation^T 
+    # i.e., M^{-1} * boundary_interpolation^T
     # and the missing "-" is taken care of by `apply_jacobian!`.
     #
     # We also use explicit assignments instead of `+=` and `-=` to let `@muladd`

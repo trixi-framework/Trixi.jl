@@ -42,7 +42,6 @@ refinement_patches = ((type = "box",
 # Make sure to turn periodicity explicitly off as special boundary conditions are specified
 mesh = TreeMesh(coordinate_min, coordinate_max,
                 initial_refinement_level = 5,
-                n_cells_max = 10_000,
                 refinement_patches = refinement_patches,
                 periodicity = false)
 

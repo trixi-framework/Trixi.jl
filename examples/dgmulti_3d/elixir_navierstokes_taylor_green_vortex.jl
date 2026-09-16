@@ -69,7 +69,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg),
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      extra_analysis_integrals = (energy_kinetic,
                                                                  energy_internal))
 save_solution = SaveSolutionCallback(interval = analysis_interval,

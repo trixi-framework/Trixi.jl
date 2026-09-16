@@ -17,28 +17,28 @@ Linearized Euler equations in three space dimensions. The equations are given by
 +
 \partial_x
 \begin{pmatrix}
-    \bar{\rho} v_1' + \bar{v_1} \rho ' \\ 
-    \bar{v_1} v_1' + \frac{p'}{\bar{\rho}} \\ 
-    \bar{v_1} v_2' \\ 
-    \bar{v_1} v_3' \\ 
+    \bar{\rho} v_1' + \bar{v_1} \rho ' \\
+    \bar{v_1} v_1' + \frac{p'}{\bar{\rho}} \\
+    \bar{v_1} v_2' \\
+    \bar{v_1} v_3' \\
     \bar{v_1} p' + c^2 \bar{\rho} v_1'
 \end{pmatrix}
 +
 \partial_y
 \begin{pmatrix}
-    \bar{\rho} v_2' + \bar{v_2} \rho ' \\ 
-    \bar{v_2} v_1' \\ 
-    \bar{v_2} v_2' + \frac{p'}{\bar{\rho}} \\ 
-    \bar{v_2} v_3' \\ 
+    \bar{\rho} v_2' + \bar{v_2} \rho ' \\
+    \bar{v_2} v_1' \\
+    \bar{v_2} v_2' + \frac{p'}{\bar{\rho}} \\
+    \bar{v_2} v_3' \\
     \bar{v_2} p' + c^2 \bar{\rho} v_2'
 \end{pmatrix}
-+ 
++
 \partial_z
 \begin{pmatrix}
-    \bar{\rho} v_3' + \bar{v_3} \rho ' \\ 
-    \bar{v_3} v_1' \\ 
-    \bar{v_3} v_2' \\ 
-    \bar{v_3} v_3' + \frac{p'}{\bar{\rho}} \\ 
+    \bar{\rho} v_3' + \bar{v_3} \rho ' \\
+    \bar{v_3} v_1' \\
+    \bar{v_3} v_2' \\
+    \bar{v_3} v_3' + \frac{p'}{\bar{\rho}} \\
     \bar{v_3} p' + c^2 \bar{\rho} v_3'
 \end{pmatrix}
 =
@@ -132,7 +132,7 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t,
     end
 
     # Calculate boundary flux depending on the orientation of the boundary
-    # Odd directions are in negative coordinate direction, 
+    # Odd directions are in negative coordinate direction,
     # even directions are in positive coordinate direction.
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)

@@ -15,8 +15,7 @@ coordinates_min = (-1.0,)
 coordinates_max = (0.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000)
+                periodicity = false)
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).

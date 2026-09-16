@@ -21,7 +21,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     old_n_elements = nelements(dg, cache)
     old_cell_ids = copy(cache.elements.cell_ids)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    GC.@preserve old_u_ode begin # Note: If we don't GC.@preserve old_u_ode, it might be GC'ed
         # Use `wrap_array_native` instead of `wrap_array` since MPI might not interact
         # nicely with non-base array types
         old_u = wrap_array_native(old_u_ode, mesh, equations, dg, cache)
@@ -83,7 +83,8 @@ end
 # from the parent element into the four children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                 equations, dg::DGSEM, cache, elements_to_refine, limiter!)
+                 equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_refine,
+                 limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
         if mpi_isparallel()
@@ -102,7 +103,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
@@ -293,7 +294,8 @@ end
 # element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                  equations, dg::DGSEM, cache, elements_to_remove, limiter!)
+                  equations, dg::Union{DGSEM, BlockFV}, cache, elements_to_remove,
+                  limiter!)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
         if mpi_isparallel()
@@ -312,7 +314,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
@@ -509,7 +511,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
 
-    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    # Note: If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
