@@ -300,7 +300,7 @@ end
 """
     cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D)
 
-Forwards to [`cons2entropy(u, equations::CompressibleEulerEquations2D)`](@ref), i.e., 
+Forwards to [`cons2entropy(u, equations::CompressibleEulerEquations2D)`](@ref), i.e.,
 the variable transformation is the same for the hyperbolic and parabolic terms.
 """
 function cons2entropy(u, equations::CompressibleNavierStokesDiffusion2D)
