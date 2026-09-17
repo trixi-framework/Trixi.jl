@@ -655,6 +655,15 @@ function Makie.contour(sol::TrixiODESolution; solution_variables = nothing, kwar
     end
 end
 
+function Makie.contourf(sol::TrixiODESolution; solution_variables = nothing, kwargs...)
+    if ndims(sol.prob.p) == 1
+        throw(ArgumentError("Filled contour plots are not supported for 1D solutions."))
+    else
+        pd = PlotData2D(sol; solution_variables) # use Julias dispatch here
+        return Makie.contourf(pd; kwargs...)
+    end
+end
+
 function Makie.plot(pds::PlotDataSeries{<:PlotData2DTriangulated},
                     fig = Makie.Figure();
                     plot_mesh = false, colormap = default_Makie_colormap(), kwargs...)

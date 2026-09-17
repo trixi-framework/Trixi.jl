@@ -1083,6 +1083,7 @@ end
 
     # contour plots are only defined for 2D solutions
     @test_throws ArgumentError Makie.contour(sol)
+    @test_throws ArgumentError Makie.contourf(sol)
 end
 @testitem "Visualization: Makie visualization tests for TreeMesh2D" setup=[
     Setup,
@@ -1142,6 +1143,7 @@ end
     @trixi_test_nowarn Makie.contourf(pd["scalar"], levels = 5)
     @trixi_test_nowarn Makie.contourf(pd)
     @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(sol)
 
     # contour! overlay on the current axis
     Makie.plot(pd["scalar"])

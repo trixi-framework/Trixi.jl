@@ -581,19 +581,21 @@ Filled contour bands:
 Makie.contourf(pd["rho"])
 ```
 
-All variables at once, optionally with mesh overlay:
+The remaining examples use `contour`, but work the same way for `contourf`. The only exception is `contour!`, which has no `contourf!` counterpart in Trixi.jl. All variables at
+once, optionally with mesh overlay:
 ```@example makie-2d
 Makie.contour(pd, plot_mesh = true)
 ```
 
-`Makie.contour` also accepts the solution directly:
+Both functions also accept the solution directly:
 ```@example makie-2d
 Makie.contour(sol)
 ```
 
 Keyword arguments are forwarded to the underlying Makie plot. For example, the number of
-contour lines is controlled by `levels`, which takes either the number of levels or a
-vector of level values:
+contour lines or bands is controlled by `levels`, which takes either the number of levels or a
+vector of level values. Attributes of the contour lines such as `linewidth` apply to `contour`
+only, since `contourf` draws filled bands instead of lines:
 ```@example makie-2d
 Makie.contour(pd["rho"], levels = 5, colormap = :berlin, linewidth = 2)
 ```
