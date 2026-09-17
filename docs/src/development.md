@@ -190,6 +190,38 @@ than can increase your productivity in the Julia REPL.
   ```
 
 
+## Enabling bounds checking
+Trixi.jl uses `@inbounds` to avoid bounds checking and therefore speed up the code.
+This instruction is generally applied at a higher level and then propagated to the functions called
+therein. For this propagation to work, such a function has to be defined as follows
+```julia
+Base.@propagate_inbounds function function_name(args...)
+    # body of the function
+end
+```
+
+Before inbounds access is assumed, the indices should be verified once in an explicit
+`@boundscheck` block. Such a block is removed whenever `@inbounds` is propagated correctly, e.g.,
+```julia
+Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(u, 1:nvariables(equations), indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(v->@inbounds u[v, indices...]),
+                          Val(nvariables(equations))))
+end
+```
+When developing and introducing new functions, kernels or features within Trixi.jl,
+we strongly suggest to enable Julia's explicit bounds checking by starting the REPL
+with
+```bash
+julia --project=path/to/Trixi.jl/run --check-bounds=yes
+```
+to avoid possible silent errors. In this way, Julia ignores `@inbounds` and always
+performs the bounds checks described above, so that out-of-bounds accesses are
+always caught.
+
+
 ## Text editors
 When writing code, the choice of text editor can have a significant impact on
 productivity and developer satisfaction. While using the default text editor
