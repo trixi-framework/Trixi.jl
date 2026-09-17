@@ -22,7 +22,7 @@ Here, we just list some important aspects you should consider when developing Tr
 - Use `@inbounds` to avoid bounds checking in performance-critical loops and propagate it
   to the functions called therein using `Base.@propagate_inbounds`, after verifying the
   indices once in an explicit `@boundscheck` block
-  ([further details](@ref bounds-checking)).
+  ([further details](@ref enabling-bounds-checking)).
 - Function barriers can improve performance due to type stability
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#kernel-functions)).
 - Look for type instabilities using `@code_warntype`.

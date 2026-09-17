@@ -190,7 +190,7 @@ than can increase your productivity in the Julia REPL.
   ```
 
 
-## [Enabling bounds checking](@id bounds-checking)
+## [Enabling bounds checking](@id enabling-bounds-checking)
 Trixi.jl uses `@inbounds` to avoid bounds checking and therefore speed up the code.
 This instruction is generally applied at a higher level and then propagated to the functions called
 therein. For this propagation to work, such a function has to be defined as follows
