@@ -333,4 +333,83 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
 
     return surface_index1, surface_index2
 end
+# Auxiliary variables at the interface nodes, cf. `prolong2interfaces!`
+function init_aux_surface_node_vars!(aux_vars, mesh::P4estMesh{3}, equations, solver,
+                                     cache)
+    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
+    @unpack neighbor_ids, node_indices = cache.interfaces
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachinterface(solver, cache)
+        # Copy the auxiliary variables from the primary element using "delayed indexing"
+        # with a start value and two step sizes to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
+        primary_element = neighbor_ids[1, interface]
+        primary_indices = node_indices[1, interface]
+
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_surface_node_vars[1, v, i, j, interface] = aux_node_vars[v,
+                                                                                 i_primary,
+                                                                                 j_primary,
+                                                                                 k_primary,
+                                                                                 primary_element]
+                end
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+            end
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+        end
+
+        # Copy the auxiliary variables from the secondary element
+        secondary_element = neighbor_ids[2, interface]
+        secondary_indices = node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                           index_range)
+        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                           index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        k_secondary = k_secondary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachauxvariable(equations)
+                    aux_surface_node_vars[2, v, i, j, interface] = aux_node_vars[v,
+                                                                                 i_secondary,
+                                                                                 j_secondary,
+                                                                                 k_secondary,
+                                                                                 secondary_element]
+                end
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+                k_secondary += k_secondary_step_i
+            end
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+            k_secondary += k_secondary_step_j
+        end
+    end
+
+    return nothing
+end
 end # @muladd
