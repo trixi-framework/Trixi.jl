@@ -588,9 +588,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        checkbounds(u, 1:2, 1:nvariables(equations), eachnode(dg), eachnode(dg),
+        checkbounds(u, 1:2, eachvariable(equations), eachnode(dg), eachnode(dg),
                     eachinterface(dg, cache))
-        checkbounds(surface_flux_values, 1:nvariables(equations), eachnode(dg),
+        checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
     end
 
@@ -633,9 +633,9 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        checkbounds(u, 1:2, 1:nvariables(equations), eachnode(dg), eachnode(dg),
+        checkbounds(u, 1:2, eachvariable(equations), eachnode(dg), eachnode(dg),
                     eachinterface(dg, cache))
-        checkbounds(surface_flux_values, 1:nvariables(equations), eachnode(dg),
+        checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
     end
 
@@ -796,11 +796,11 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        checkbounds(u, 1:2, 1:nvariables(equations), eachnode(dg), eachnode(dg),
+        checkbounds(u, 1:2, eachvariable(equations), eachnode(dg), eachnode(dg),
                     first_boundary:last_boundary)
         checkbounds(node_coordinates, 1:ndims(equations), eachnode(dg), eachnode(dg),
                     first_boundary:last_boundary)
-        checkbounds(surface_flux_values, 1:nvariables(equations), eachnode(dg),
+        checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), direction, eachelement(dg, cache))
     end
 
@@ -1055,10 +1055,10 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         for u_mortar in (u_lower_left, u_lower_right, u_upper_left, u_upper_right)
-            checkbounds(u_mortar, 1:2, 1:nvariables(equations), eachnode(dg),
+            checkbounds(u_mortar, 1:2, eachvariable(equations), eachnode(dg),
                         eachnode(dg), eachmortar(dg, cache))
         end
-        checkbounds(surface_flux_values, 1:nvariables(equations), eachnode(dg),
+        checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
     end
 
@@ -1122,10 +1122,10 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         for u_mortar in (u_lower_left, u_lower_right, u_upper_left, u_upper_right)
-            checkbounds(u_mortar, 1:2, 1:nvariables(equations), eachnode(dg),
+            checkbounds(u_mortar, 1:2, eachvariable(equations), eachnode(dg),
                         eachnode(dg), eachmortar(dg, cache))
         end
-        checkbounds(surface_flux_values, 1:nvariables(equations), eachnode(dg),
+        checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
     end
 
