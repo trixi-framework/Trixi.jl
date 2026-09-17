@@ -27,7 +27,9 @@ for human readability.
   `FullSweepGlobal` ([#3206]).
 - Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
   which substitutes `@inline` to correctly propagate inbounds access for `TreeMesh3D`.
-  Moreover, explicit bounds check are added before assuming inbounds access ([#3208]).
+  Moreover, explicit bounds check are added before assuming inbounds access.
+  This improves the performance in common cases; developers are encouraged to
+  start Julia with `julia --check-bounds=yes` during development in case of issues ([#3208]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).

@@ -977,7 +977,7 @@ end
                    axes(u, 2) == eachnode(solver) &&
                    axes(u, 3) == eachelement(solver, cache)
     if !axes_correct
-        throw(BoundsError())
+        throw(DimensionMismatch())
     end
 end
 @inline function check_axes(u, equations::AbstractEquations{2}, solver::DG, cache)
@@ -986,7 +986,7 @@ end
                    axes(u, 3) == eachnode(solver) &&
                    axes(u, 4) == eachelement(solver, cache)
     if !axes_correct
-        throw(BoundsError())
+        throw(DimensionMismatch())
     end
 end
 @inline function check_axes(u, equations::AbstractEquations{3}, solver::DG, cache)
@@ -996,7 +996,7 @@ end
                    axes(u, 4) == eachnode(solver) &&
                    axes(u, 5) == eachelement(solver, cache)
     if !axes_correct
-        throw(BoundsError())
+        throw(DimensionMismatch())
     end
 end
 
