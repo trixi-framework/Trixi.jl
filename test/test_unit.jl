@@ -6,6 +6,7 @@
     using Convex: Convex
     using ECOS: Optimizer
     using NLsolve: nlsolve
+    using Random: MersenneTwister, rand, randn
     import SparseConnectivityTracer: TracerSparsityDetector, jacobian_eltype,
                                      jacobian_sparsity
     import SparseMatrixColorings: ColoringProblem, GreedyColoringAlgorithm, coloring,
@@ -635,6 +636,18 @@ end
         c = MyContainer([1, 2, 3, 4])
         @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
     end
+
+    @testset "ContainerBarStates" begin
+        container_2d = Trixi.ContainerBarStates2D{Float64}(0, 5, 4)
+        resize!(container_2d, 3)
+        @test container_2d isa Trixi.ContainerBarStates2D
+        @test size(container_2d.bar_states1) == (5, 5, 4, 3)
+        @test size(container_2d.bar_states2) == (5, 4, 5, 3)
+        @test size(container_2d.lambda1) == (5, 4, 3)
+        @test size(container_2d.lambda2) == (4, 5, 3)
+        @test Trixi.nvariables(container_2d) == 5
+        @test Trixi.nnodes(container_2d) == 4
+    end
 end
 
 @testitem "Unit: example elixirs" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -657,6 +670,11 @@ end
     @test isnothing(display(c2d))
     c3d = Trixi.TreeL2MortarContainer3D{Float64}(1, 1, 1)
     @test isnothing(display(c3d))
+end
+
+@testitem "Unit: DG IDP mortar container debug output" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    @test isnothing(display(c2d))
 end
 
 @testitem "Unit: TreeContainer1D nnodes(container)" setup=[Setup, UnitTests] tags=[:misc_part1] begin
@@ -683,8 +701,8 @@ end
     @test_nowarn show(stdout, indicator_hg)
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
-                                    true, [(entropy_guermond_etal, min)], "cache",
-                                    1, (1.0, 1.0), 1.0)
+                                    true, [(entropy_guermond_etal, min)], nothing, true,
+                                    true, "cache", 1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
@@ -715,6 +733,65 @@ end
                       global_limiter!)
     @test_nowarn show(IOContext(IOBuffer(), :compact => false), MIME"text/plain"(),
                       global_limiter!)
+end
+
+@testitem "Unit: Newton state data for subcell IDP" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # Specialized path: entropy_guermond_etal + CompressibleEulerEquations2D.
+    equations_2d = CompressibleEulerEquations2D(1.4)
+    bound = 1.0
+    rng = MersenneTwister(1234)
+
+    for _ in 1:64
+        rho = 0.1 + rand(rng)
+        v1 = randn(rng)
+        v2 = randn(rng)
+        p = 0.1 + rand(rng)
+        u = prim2cons(SVector(rho, v1, v2, p), equations_2d)
+        delta_u = SVector(randn(rng), randn(rng), randn(rng), randn(rng))
+
+        is_valid, goal, state_data = Trixi.newton_state_data(entropy_guermond_etal, bound,
+                                                             u, equations_2d)
+        @test is_valid
+        @test !isnothing(state_data)
+
+        dgoal_dbeta = Trixi.newton_dgoal_dbeta(entropy_guermond_etal, u, delta_u,
+                                               equations_2d, state_data)
+
+        goal_ref = Trixi.goal_function_newton_idp(entropy_guermond_etal, bound, u,
+                                                  equations_2d)
+        dgoal_ref = Trixi.dgoal_function_newton_idp(entropy_guermond_etal, u,
+                                                    delta_u, equations_2d)
+        @test goal ≈ goal_ref
+        @test dgoal_dbeta ≈ dgoal_ref
+    end
+
+    # Invalid Euler2D states must short-circuit and not produce reusable state data.
+    u_invalid_rho = SVector(-1.0, 0.1, 0.2, 1.0)
+    u_invalid_internal = SVector(1.0, 10.0, 0.0, 1.0)
+
+    for u_invalid in (u_invalid_rho, u_invalid_internal)
+        is_valid, goal, state_data = Trixi.newton_state_data(entropy_guermond_etal, bound,
+                                                             u_invalid,
+                                                             equations_2d)
+        @test !is_valid
+        @test iszero(goal)
+        @test all(iszero, values(state_data))
+    end
+
+    # Generic fallback path must preserve the legacy goal and derivative behavior.
+    u = prim2cons(SVector(1.1, 0.2, -0.3, 1.0), equations_2d)
+    delta_u = SVector(0.01, -0.02, 0.03, -0.04)
+
+    is_valid, goal, state_data = Trixi.newton_state_data(pressure, bound, u + delta_u,
+                                                         equations_2d)
+    @test is_valid && (is_valid == Trixi.isvalid(u, equations_2d))
+    @test goal == Trixi.goal_function_newton_idp(pressure, bound, u + delta_u, equations_2d)
+    @test isnothing(state_data)
+
+    dgoal_dbeta = Trixi.newton_dgoal_dbeta(pressure, u, delta_u, equations_2d,
+                                           state_data)
+    @test dgoal_dbeta ==
+          Trixi.dgoal_function_newton_idp(pressure, u, delta_u, equations_2d)
 end
 
 @testitem "Unit: LBM 2D constructor" setup=[Setup, UnitTests] tags=[:misc_part1] begin

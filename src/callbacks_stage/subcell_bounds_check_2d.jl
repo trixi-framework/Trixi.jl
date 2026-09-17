@@ -11,6 +11,8 @@
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
 
+    enabled_indicator = !isnothing(limiter.indicator)
+
     # Note: In order to get the maximum deviation from the target bounds, this bounds check
     # requires a reduction in every RK stage and for every enabled limiting option. To make
     # this Thread-parallel we are using Polyester.jl's (at least v0.7.10) `@batch reduction`
@@ -19,7 +21,7 @@
     # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
     # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
 
-    if local_twosided
+    if local_twosided && !enabled_indicator
         for v in limiter.local_twosided_variables_cons
             v_string = string(v)
             key_min = Symbol(v_string, "_min")
@@ -48,7 +50,7 @@
             idp_bounds_delta_local[key_max] = deviation_max
         end
     end
-    if local_onesided
+    if local_onesided && !enabled_indicator
         for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
             key = Symbol(string(variable), "_", string(min_or_max))
             deviation = idp_bounds_delta_local[key]
@@ -73,12 +75,19 @@
     end
     if positivity
         for v in limiter.positivity_variables_cons
-            # Note: If a variable appears here and in the local min/max limiting, the positivity
-            # lower bound is taken into account there. Skip these variables here.
-            if v in limiter.local_twosided_variables_cons
+            if (v in limiter.local_twosided_variables_cons) &&
+               !enabled_indicator
+                # Note: If a variable appears here and in the local min/max limiting (with no
+                # smoothness indicator), the positivity bound is merged into the local bound and
+                # therefore already taken into account there. Skip these variables here.
                 continue
             end
-            key = Symbol(string(v), "_min")
+            key = if (v in limiter.local_twosided_variables_cons) &&
+                     enabled_indicator
+                Symbol(string(v), "_min_positivity")
+            else
+                Symbol(string(v), "_min")
+            end
             deviation = idp_bounds_delta_local[key]
             bounds = variable_bounds[key]
             @batch reduction=(max, deviation) for element in eachelement(solver, cache)
@@ -105,8 +114,7 @@
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)
-                    deviation = max(deviation,
-                                    bounds[i, j, element] - var)
+                    deviation = max(deviation, bounds[i, j, element] - var)
                 end
             end
             idp_bounds_delta_local[key] = deviation

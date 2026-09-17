@@ -55,6 +55,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
                             element_ids_new, u_mean_refined_elements)
     @assert length(element_ids_new)==size(u_mean_refined_elements, 2) "The length of `element_ids_new` must match the second dimension of `u_mean_refined_elements`."
 
+    # theta_sum = [zero(eltype(u)) for _ in 1:Threads.maxthreadid()]
     @threaded for idx in eachindex(element_ids_new)
         # Get the mean value from the parent element
         u_mean = get_node_vars(u_mean_refined_elements, equations, dg, idx)
@@ -78,6 +79,12 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
         end
 
         theta < 1 || continue # Check if limiting action is necessary
+        # if theta < 1
+        #     theta_sum[Threads.threadid()] += theta
+        # else
+        #     theta_sum[Threads.threadid()] += 1.0
+        #     continue # Check if limiting action is necessary
+        # end
 
         # This avoids the issue when `value_mean` is slightly smaller than `threshold`
         # (e.g., due to finite precision effects in PositivityPreservingLimiterLiuZhang),
@@ -94,6 +101,12 @@ function limiter_zhang_shu!(u, threshold::Real, variable, mesh::AbstractMesh{3},
             end
         end
     end
+    # thread_sum_total = sum(theta_sum)
+    # (; output_directory) = dg.mortar
+    # open(joinpath(output_directory, "shifting_alphas_refined_elements.txt"), "a") do f
+    #     println(f,
+    #             "variable: $variable, n_refined elements: $(length(element_ids_new) * 8), avg: $(thread_sum_total / length(element_ids_new)), ")
+    # end
 
     return nothing
 end
@@ -104,6 +117,7 @@ end
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{3}, equations, dg::DGSEM, cache,
                             element_ids_new)
+    # theta_sum = [zero(eltype(u)) for _ in 1:Threads.maxthreadid()]
     # Apply limiter to coarsened elements
     @threaded for element in element_ids_new
         # determine minimum value
@@ -113,6 +127,10 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             value_min = min(value_min, variable(u_node, equations))
         end
         value_min < threshold || continue # Detect if limiting is necessary
+        # if value_min >= threshold
+        #     theta_sum[Threads.threadid()] += 1.0
+        #     continue # Check if limiting action is necessary
+        # end
 
         u_mean = compute_u_mean(u, element, mesh, equations, dg, cache)
 
@@ -127,12 +145,19 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         # is not necessary since we are only enforcing lower bounds.
         theta = max(0, theta)
 
+        # theta_sum[Threads.threadid()] += theta
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
                            equations, dg, i, j, k, element)
         end
     end
+    # thread_sum_total = sum(theta_sum)
+    # (; output_directory) = dg.mortar
+    # open(joinpath(output_directory, "shifting_alphas_coarsened_elements.txt"), "a") do f
+    #     println(f,
+    #             "variable: $variable, n_coarsened elements: $(length(element_ids_new)), avg: $(thread_sum_total / length(element_ids_new)), ")
+    # end
 
     return nothing
 end
