@@ -598,6 +598,10 @@ vector of level values:
 Makie.contour(pd["rho"], levels = 5, colormap = :berlin, linewidth = 2)
 ```
 
+For finite volume data (`polydeg = 0` DGSEM or `BlockFV`), `PlotData2D` holds one value per
+cell together with the cell edges. Since contours need one coordinate per value, they are
+drawn through the cell centers.
+
 Finally, `contour!` adds contour lines on top of the plot in the currently active axis,
 e.g., to overlay them on a heatmap:
 ```@example makie-2d

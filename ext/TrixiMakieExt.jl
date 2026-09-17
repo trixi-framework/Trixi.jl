@@ -500,12 +500,21 @@ function Makie.plot(pd::PlotData2DCartesian, fig = Makie.Figure();
     return FigureAndAxes(fig, axes)
 end
 
+# Contours need one coordinate per value. For finite volume data (`point_values == false`),
+# `x` and `y` hold the cell edges while `data` holds one value per cell, so the contours are
+# drawn through the cell centers.
+function _contour_coordinates(pd::PlotData2DCartesian)
+    pd.point_values && return (pd.x, pd.y)
+    centers(edges) = @views 0.5 .* (edges[begin:(end - 1)] .+ edges[(begin + 1):end])
+    return (centers(pd.x), centers(pd.y))
+end
+
 # Makie recipe for 2D contour plots of PlotDataSeries
 function Makie.convert_arguments(::Type{<:Makie.Contour},
                                  pds::PlotDataSeries{<:PlotData2DCartesian})
     @unpack plot_data, variable_id = pds
-    @unpack x, y, data = plot_data
-    return (x, y, permutedims(data[variable_id])) # permutedims to match the axis convention of Plots.jl
+    x, y = _contour_coordinates(plot_data)
+    return (x, y, permutedims(plot_data.data[variable_id])) # permutedims to match the axis convention of Plots.jl
 end
 
 function Makie.contour(pds::PlotDataSeries{<:PlotData2DCartesian},
@@ -571,8 +580,8 @@ end
 function Makie.convert_arguments(::Type{<:Makie.Contourf},
                                  pds::PlotDataSeries{<:PlotData2DCartesian})
     @unpack plot_data, variable_id = pds
-    @unpack x, y, data = plot_data
-    return (x, y, permutedims(data[variable_id])) # permutedims to match the axis convention of Plots.jl
+    x, y = _contour_coordinates(plot_data)
+    return (x, y, permutedims(plot_data.data[variable_id])) # permutedims to match the axis convention of Plots.jl
 end
 
 function Makie.contourf(pds::PlotDataSeries{<:PlotData2DCartesian},

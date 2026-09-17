@@ -1164,6 +1164,15 @@ end
     @test all(isapprox.(extrema(plt_fv[1][]), (-1, 1)))
     @test all(isapprox.(extrema(plt_fv[2][]), (-1, 1)))
 
+    # Contours need one coordinate per value, so they use the cell centers instead.
+    x_centers = 0.5 .* (pd_fv.x[begin:(end - 1)] .+ pd_fv.x[(begin + 1):end])
+    y_centers = 0.5 .* (pd_fv.y[begin:(end - 1)] .+ pd_fv.y[(begin + 1):end])
+    _, _, plt_fv_contour = Makie.contour(pd_fv["scalar"])
+    @test collect(plt_fv_contour[1][]) ≈ x_centers
+    @test collect(plt_fv_contour[2][]) ≈ y_centers
+    @trixi_test_nowarn Makie.contourf(pd_fv["scalar"])
+    @trixi_test_nowarn Makie.contour(pd_fv)
+
     # Constant variables give a zero-width color range, which Makie only expands if the
     # color range is passed explicitly. `elixir_acoustics_gauss.jl` has four constant
     # variables (`v1_mean`, `v2_mean`, `c_mean`, `rho_mean`).
