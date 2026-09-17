@@ -685,7 +685,6 @@ end
 
 nvariables(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 2)
 nnodes(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 3)
-Base.eltype(mortars::IDPMortarContainer2D) = eltype(mortars.u_upper)
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::IDPMortarContainer2D, capacity)
