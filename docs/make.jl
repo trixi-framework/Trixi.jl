@@ -169,6 +169,7 @@ makedocs(
                  "Style guide" => "styleguide.md",
                  "Testing" => "testing.md",
                  "Performance" => "performance.md",
+                 "GPU benchmarking" => "gpu_benchmarking.md",
                  "Parallelization" => "parallelization.md",
                  "Heterogeneous" => "heterogeneous.md"
              ],
