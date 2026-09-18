@@ -28,7 +28,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 # also works for every MPI rank). The `TRIXI_TEST` value of such a suite selects
 # the items via the equally-named tag; `threaded_legacy` reuses the `threaded`
 # items but is launched on a different Julia version by CI.
-const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions")
+const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions",
+                                "kernelabstractions_mp")
 const IN_WORKER = haskey(ENV, "TRIXI_TEST_RUN_ITEMS")
 
 # Remove Trixi's output directory `out`, where examples write solution/restart/mesh
@@ -68,6 +69,10 @@ if "mpi" in SUITES_TO_DISPATCH
     import MPI
 end
 if "kernelabstractions" in SUITES_TO_DISPATCH
+    import Trixi
+end
+if "kernelabstractions_mpi" in SUITES_TO_DISPATCH
+    import MPI
     import Trixi
 end
 
@@ -111,6 +116,18 @@ function dispatch_special_suite(suite)
         Trixi.set_threading_backend!(:kernelabstractions)
         try
             cmd = `$julia --threads=$TRIXI_NTHREADS --check-bounds=yes --project=$project $(@__FILE__)`
+            run_worker(cmd, suite)
+        finally
+            Trixi.set_threading_backend!(Symbol(previous_backend))
+        end
+    elseif suite == "kernelabstractions_mpi"
+        # The threading backend is selected via a preference that is read on Julia
+        # startup, so we set it here (in the parent) and restore it afterwards;
+        # the relaunched worker picks it up.
+        previous_backend = Trixi._PREFERENCE_THREADING
+        Trixi.set_threading_backend!(:kernelabstractions)
+        try
+            cmd = `$(MPI.mpiexec()) -n $TRIXI_MPI_NPROCS $julia --threads=1 --check-bounds=yes --heap-size-hint=0.5G --project=$project $(@__FILE__)`
             run_worker(cmd, suite)
         finally
             Trixi.set_threading_backend!(Symbol(previous_backend))
