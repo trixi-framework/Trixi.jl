@@ -416,6 +416,22 @@ compressible flow by
   A Kinetic Energy Preserving and Entropy Conserving Two-Point Flux for Multi-species
   Compressible Flow
   [arXiv:2609.13503](https://arxiv.org/abs/2609.13503)
+
+It is an extension of [`flux_ranocha`](@ref) for the single-component
+[`CompressibleEulerEquations1D`](@ref) to multiple components, see also
+
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+- Hendrik Ranocha and Gregor Gassner (2021)
+  Preventing pressure oscillations does not fix local linear stability
+  issues of entropy-based split-form high-order schemes
+  [DOI: 10.1007/s42967-021-00148-z](https://doi.org/10.1007/s42967-021-00148-z)
 """
 @inline function flux_srinivasan_nadarajah(u_ll, u_rr, orientation::Integer,
                                            equations::CompressibleEulerMulticomponentEquations1D)
