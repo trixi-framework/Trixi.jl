@@ -804,6 +804,58 @@ end
     @test norm(sol.u[end] - sol_ideal.u[end]) < 10 * eps() * length(sol.u[end])
 end
 
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl (VanDerWaals vs HelmholtzVanDerWaals)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
+    using Trixi: VanDerWaals, HelmholtzVanDerWaals, FluxHLL, min_max_speed_naive
+
+    vdw_kwargs = (; a = 10, b = 1e-2, gamma = 1.4, R = 287)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  eos = VanDerWaals(; vdw_kwargs...),
+                  surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+
+    sol_vdw = deepcopy(sol)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_density_wave.jl"),
+                  eos = HelmholtzVanDerWaals(; vdw_kwargs...),
+                  surface_flux = FluxHLL(min_max_speed_naive),
+                  tspan = (0.0, 0.1))
+
+    using LinearAlgebra: norm
+    @test sol.u[end]≈sol_vdw.u[end] rtol=1e-12 atol=1e-12
+end
+
+@testitem "TreeMesh1D Euler: elixir_euler_nonideal_transcritical_wave.jl (PengRobinson vs HelmholtzPengRobinson)" setup=[
+    Setup,
+    TreeMesh1DEuler
+] tags=[:tree_part1] begin
+    using Trixi: PengRobinson, HelmholtzPengRobinson
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_transcritical_wave.jl"),
+                  eos = PengRobinson(),
+                  tspan = (0.0, 0.001))
+
+    sol_pr = deepcopy(sol)
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_euler_nonideal_transcritical_wave.jl"),
+                  eos = HelmholtzPengRobinson(),
+                  tspan = (0.0, 0.001))
+
+    using LinearAlgebra: norm
+    @test sol.u[end]≈sol_pr.u[end] rtol=1e-12 atol=1e-12
+end
+
 @testitem "TreeMesh1D Euler: elixir_euler_nonideal_density_wave.jl with flux_terashima_etal" setup=[
     Setup,
     TreeMesh1DEuler

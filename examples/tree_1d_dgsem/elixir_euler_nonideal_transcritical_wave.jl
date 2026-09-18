@@ -14,7 +14,8 @@ equations = NonIdealCompressibleEulerEquations1D(eos)
 #
 # <https://doi.org/10.1016/j.jcp.2017.03.022>
 function initial_condition_transcritical_wave(x, t,
-                                              equations::NonIdealCompressibleEulerEquations1D{<:PengRobinson})
+                                              equations::NonIdealCompressibleEulerEquations1D{<:Union{PengRobinson,
+                                                                                                      HelmholtzPengRobinson}})
     RealT = eltype(x)
     eos = equations.equation_of_state
 
