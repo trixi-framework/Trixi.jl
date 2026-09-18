@@ -1123,7 +1123,7 @@ Base.@propagate_inbounds function get_node_vars(u, equations, solver::DG, indice
     # advanced array types such as `PtrArray`s, cf.
     # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(u, 1:nvariables(equations), indices...)
+    @boundscheck checkbounds(u, eachvariable(equations), indices...)
     # Assume inbounds access now
     return SVector(ntuple(@inline(v->@inbounds u[v, indices...]),
                           Val(nvariables(equations))))
@@ -1137,7 +1137,7 @@ Base.@propagate_inbounds function get_surface_node_vars(u, equations, solver::DG
     # more than ten variables are used. That's why we use
     # `Val(...)` below.
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(u, 1:2, 1:nvariables(equations), indices...)
+    @boundscheck checkbounds(u, 1:2, eachvariable(equations), indices...)
     # Assume inbounds access now
     u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
                           Val(nvariables(equations))))
@@ -1150,7 +1150,7 @@ end
 Base.@propagate_inbounds function get_surface_node_vars(u, equations, ::Type{<:DG},
                                                         indices...)
     # Explicit bounds check, which can be removed by calling this function with `@inbounds`
-    @boundscheck checkbounds(u, 1:2, 1:nvariables(equations), indices...)
+    @boundscheck checkbounds(u, 1:2, eachvariable(equations), indices...)
     # Assume inbounds access now
     u_ll = SVector(ntuple(@inline(v->@inbounds u[1, v, indices...]),
                           Val(nvariables(equations))))

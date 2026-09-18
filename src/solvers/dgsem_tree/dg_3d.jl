@@ -541,7 +541,13 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
     interfaces_u = interfaces.u
 
     # Explicit bounds check, which allows us to assume inbounds access below
-    @boundscheck check_axes(u, equations, dg, cache)
+    @boundscheck begin
+        check_axes(u, equations, dg, cache)
+        checkbounds(interfaces_u, 1:2, eachvariable(equations), eachnode(dg),
+                    eachnode(dg), eachinterface(dg, cache))
+        checkbounds(neighbor_ids, 1:2, eachinterface(dg, cache))
+        checkbounds(orientations, eachinterface(dg, cache))
+    end
 
     @threaded for interface in eachinterface(dg, cache)
         @inbounds begin
@@ -592,6 +598,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                     eachinterface(dg, cache))
         checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
+        checkbounds(neighbor_ids, 1:2, eachinterface(dg, cache))
+        checkbounds(orientations, eachinterface(dg, cache))
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -637,6 +645,8 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
                     eachinterface(dg, cache))
         checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
+        checkbounds(neighbor_ids, 1:2, eachinterface(dg, cache))
+        checkbounds(orientations, eachinterface(dg, cache))
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -687,7 +697,14 @@ function prolong2boundaries!(backend::Nothing, cache, u,
     @unpack orientations, neighbor_sides = boundaries
 
     # Explicit bounds check, which allows us to assume inbounds access below
-    @boundscheck check_axes(u, equations, dg, cache)
+    @boundscheck begin
+        check_axes(u, equations, dg, cache)
+        checkbounds(boundaries.u, 1:2, eachvariable(equations), eachnode(dg),
+                    eachnode(dg), eachboundary(dg, cache))
+        for container in (boundaries.neighbor_ids, orientations, neighbor_sides)
+            checkbounds(container, eachboundary(dg, cache))
+        end
+    end
 
     @threaded for boundary in eachboundary(dg, cache)
         @inbounds begin
@@ -802,6 +819,9 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                     first_boundary:last_boundary)
         checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), direction, eachelement(dg, cache))
+        for container in (neighbor_ids, neighbor_sides, orientations)
+            checkbounds(container, first_boundary:last_boundary)
+        end
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -841,7 +861,23 @@ function prolong2mortars!(cache, u,
     @unpack fstar_tmp1_threaded = cache
 
     # Explicit bounds check, which allows us to assume inbounds access below
-    @boundscheck check_axes(u, equations, dg, cache)
+    @boundscheck begin
+        check_axes(u, equations, dg, cache)
+        for u_mortar in (cache.mortars.u_lower_left, cache.mortars.u_lower_right,
+                         cache.mortars.u_upper_left, cache.mortars.u_upper_right)
+            checkbounds(u_mortar, 1:2, eachvariable(equations), eachnode(dg),
+                        eachnode(dg), eachmortar(dg, cache))
+        end
+        checkbounds(cache.mortars.neighbor_ids, 1:5, eachmortar(dg, cache))
+        for container in (cache.mortars.orientations, cache.mortars.large_sides)
+            checkbounds(container, eachmortar(dg, cache))
+        end
+        # Thread-local scratch buffer, indexed by `Threads.threadid()`
+        checkbounds(fstar_tmp1_threaded, 1:Threads.maxthreadid())
+        for buffer in fstar_tmp1_threaded
+            checkbounds(buffer, eachvariable(equations), eachnode(dg), eachnode(dg))
+        end
+    end
 
     @threaded for mortar in eachmortar(dg, cache)
         @inbounds begin
@@ -1060,6 +1096,22 @@ function calc_mortar_flux!(surface_flux_values,
         end
         checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
+        # `mortar_fluxes_to_elements!` reads these mortar containers
+        checkbounds(cache.mortars.neighbor_ids, 1:5, eachmortar(dg, cache))
+        for container in (cache.mortars.orientations, cache.mortars.large_sides)
+            checkbounds(container, eachmortar(dg, cache))
+        end
+        # Thread-local scratch buffers, indexed by `Threads.threadid()`
+        for buffers in (fstar_primary_upper_left_threaded,
+                        fstar_primary_upper_right_threaded,
+                        fstar_primary_lower_left_threaded,
+                        fstar_primary_lower_right_threaded,
+                        fstar_tmp1_threaded)
+            checkbounds(buffers, 1:Threads.maxthreadid())
+            for buffer in buffers
+                checkbounds(buffer, eachvariable(equations), eachnode(dg), eachnode(dg))
+            end
+        end
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1127,6 +1179,26 @@ function calc_mortar_flux!(surface_flux_values,
         end
         checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
                     eachnode(dg), 1:6, eachelement(dg, cache))
+        # `mortar_fluxes_to_elements!` reads these mortar containers
+        checkbounds(cache.mortars.neighbor_ids, 1:5, eachmortar(dg, cache))
+        for container in (cache.mortars.orientations, cache.mortars.large_sides)
+            checkbounds(container, eachmortar(dg, cache))
+        end
+        # Thread-local scratch buffers, indexed by `Threads.threadid()`
+        for buffers in (fstar_primary_upper_left_threaded,
+                        fstar_primary_upper_right_threaded,
+                        fstar_primary_lower_left_threaded,
+                        fstar_primary_lower_right_threaded,
+                        fstar_secondary_upper_left_threaded,
+                        fstar_secondary_upper_right_threaded,
+                        fstar_secondary_lower_left_threaded,
+                        fstar_secondary_lower_right_threaded,
+                        fstar_tmp1_threaded)
+            checkbounds(buffers, 1:Threads.maxthreadid())
+            for buffer in buffers
+                checkbounds(buffer, eachvariable(equations), eachnode(dg), eachnode(dg))
+            end
+        end
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1474,7 +1546,11 @@ function calc_surface_integral!(backend::Nothing, du, u,
     factor = inverse_weights[1] # For LGL basis: Identical to weighted boundary interpolation at x = ±1
 
     # Explicit bounds check, which allows us to assume inbounds access below
-    @boundscheck check_axes(du, equations, dg, cache)
+    @boundscheck begin
+        check_axes(du, equations, dg, cache)
+        checkbounds(surface_flux_values, eachvariable(equations), eachnode(dg),
+                    eachnode(dg), 1:6, eachelement(dg, cache))
+    end
 
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
@@ -1531,7 +1607,10 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
     @unpack inverse_jacobian = cache.elements
 
     # Explicit bounds check, which allows us to assume inbounds access below
-    @boundscheck check_axes(du, equations, dg, cache)
+    @boundscheck begin
+        check_axes(du, equations, dg, cache)
+        checkbounds(inverse_jacobian, eachelement(dg, cache))
+    end
 
     @threaded for element in eachelement(dg, cache)
         @inbounds begin
@@ -1565,6 +1644,8 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     @boundscheck begin
         check_axes(u, equations, dg, cache)
         check_axes(du, equations, dg, cache)
+        checkbounds(node_coordinates, 1:ndims(equations), eachnode(dg), eachnode(dg),
+                    eachnode(dg), eachelement(dg, cache))
     end
 
     @threaded for element in eachelement(dg, cache)
