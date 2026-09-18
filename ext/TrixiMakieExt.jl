@@ -534,7 +534,7 @@ function Makie.contour(pds::PlotDataSeries{<:PlotData2DCartesian},
     return Makie.FigureAxisPlot(fig, ax, plt)
 end
 
-function Makie.contour!(pds::PlotDataSeries{<:PlotData2DCartesian}; kwargs...)
+function Makie.contour!(pds::PlotDataSeries{<:AbstractPlotData{2}}; kwargs...)
     ax = Makie.current_axis()
     plt = Makie.contour!(ax, pds; kwargs...)
     display(Makie.current_figure())
@@ -720,6 +720,181 @@ function Makie.plot!(fig, pd::PlotData2DTriangulated;
     end
     _fill_empty_axes!(axes, fig, n, rows, cols)
 
+    return FigureAndAxes(fig, axes)
+end
+
+# We use Makie's `tricontour` and `tricontourf` to plot triangulated data
+# and use the triangulation of each element instead of a Delaunay triangulation
+# of all plotting nodes, which could extend beyond concave domain boundaries.
+# Since nodes at element interfaces are duplicated, contours are computed
+# separately for each element.
+function _tricontour_arguments(pds::PlotDataSeries{<:PlotData2DTriangulated})
+    @unpack plot_data, variable_id = pds
+    @unpack x, y, data, t = plot_data
+
+    num_plotting_nodes, num_elements = size(x)
+    num_reference_triangles = size(t, 1)
+    triangles = Matrix{Int}(undef, 3, num_reference_triangles * num_elements)
+    for element in Base.OneTo(num_elements)
+        offset = (element - 1) * num_plotting_nodes
+        for triangle in Base.OneTo(num_reference_triangles)
+            triangle_id = triangle + (element - 1) * num_reference_triangles
+            triangles[:, triangle_id] .= @views t[triangle, :] .+ offset
+        end
+    end
+
+    x, y, z = vec(x), vec(y), vec(StructArrays.component(data, variable_id))
+    plot_data.point_values && return x, y, z, triangles
+    return _cell_to_point_values(x, y, z, triangles)
+end
+
+# Contours need point values. Finite volume data (`point_values == false`) holds one value
+# per cell on its own copy of the cell corners, so each triangle is constant and contains
+# no contour lines. As ParaView's "Clean to Grid" and "Cell Data to Point Data" filters do,
+# we merge coincident corners and assign each of them the mean value of all adjacent cells.
+function _cell_to_point_values(x, y, z, triangles)
+    # Corners shared by neighboring elements only coincide up to round-off errors, so they
+    # are merged within a tolerance relative to the size of the domain. To find them, the
+    # nodes are sorted into buckets of this size and compared with neighboring buckets.
+    tol = sqrt(eps(eltype(x))) * max(maximum(x) - minimum(x), maximum(y) - minimum(y))
+    buckets = Dict{Tuple{Int, Int}, Vector{Int}}()
+    x_merged, y_merged = eltype(x)[], eltype(y)[]
+    node_ids = Vector{Int}(undef, length(x))
+    for i in eachindex(x, y)
+        bucket = (floor(Int, x[i] / tol), floor(Int, y[i] / tol))
+        node_id = 0
+        for dx in -1:1, dy in -1:1
+            for j in get(buckets, bucket .+ (dx, dy), ())
+                if abs(x_merged[j] - x[i]) <= tol && abs(y_merged[j] - y[i]) <= tol
+                    node_id = j
+                end
+            end
+        end
+        if node_id == 0
+            push!(x_merged, x[i])
+            push!(y_merged, y[i])
+            node_id = length(x_merged)
+            push!(get!(Vector{Int}, buckets, bucket), node_id)
+        end
+        node_ids[i] = node_id
+    end
+
+    z_merged = zeros(eltype(z), length(x_merged))
+    num_cells = zeros(Int, length(x_merged))
+    for i in eachindex(z)
+        z_merged[node_ids[i]] += z[i]
+        num_cells[node_ids[i]] += 1
+    end
+    z_merged ./= num_cells
+
+    return x_merged, y_merged, z_merged, node_ids[triangles]
+end
+
+function Makie.contour!(ax, pds::PlotDataSeries{<:PlotData2DTriangulated}; kwargs...)
+    x, y, z, triangles = _tricontour_arguments(pds)
+    return Makie.tricontour!(ax, x, y, z; triangulation = triangles, kwargs...)
+end
+
+function Makie.contourf!(ax, pds::PlotDataSeries{<:PlotData2DTriangulated}; kwargs...)
+    x, y, z, triangles = _tricontour_arguments(pds)
+    return Makie.tricontourf!(ax, x, y, z; triangulation = triangles, kwargs...)
+end
+
+function Makie.contour(pds::PlotDataSeries{<:PlotData2DTriangulated},
+                       fig = Makie.Figure(); kwargs...)
+    @unpack plot_data, variable_id = pds
+    @unpack variable_names = plot_data
+    ax = Makie.Axis(fig[1, 1],
+                    title = variable_names[variable_id],
+                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    aspect = Makie.DataAspect())
+    plt = Makie.contour!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
+    Makie.Colorbar(fig[1, 2], plt)
+    Makie.xlims!(ax, extrema(plot_data.x))
+    Makie.ylims!(ax, extrema(plot_data.y))
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.contour(pd::PlotData2DTriangulated, fig = Makie.Figure();
+                       plot_mesh = false, colormap = default_Makie_colormap(),
+                       kwargs...)
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
+
+    ticks = _makie_ticks(n)
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1],
+                        title = variable_name,
+                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xticks = ticks, yticks = ticks)
+        axes[row, col] = ax
+        plt = Makie.contour!(ax, pds; colormap, kwargs...)
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
+        ax.aspect = Makie.DataAspect()
+        Makie.xlims!(ax, extrema(pd.x))
+        Makie.ylims!(ax, extrema(pd.y))
+        if plot_mesh
+            Makie.lines!(ax,
+                         convert_PlotData2D_to_mesh_Points(pds;
+                                                           set_z_coordinate_zero = true);
+                         color = :grey, linewidth = 1)
+        end
+    end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
+
+    display(fig)
+    return FigureAndAxes(fig, axes)
+end
+
+function Makie.contourf(pds::PlotDataSeries{<:PlotData2DTriangulated},
+                        fig = Makie.Figure(); kwargs...)
+    @unpack plot_data, variable_id = pds
+    @unpack variable_names = plot_data
+    ax = Makie.Axis(fig[1, 1],
+                    title = variable_names[variable_id],
+                    xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                    aspect = Makie.DataAspect())
+    plt = Makie.contourf!(ax, pds; colormap = default_Makie_colormap(), kwargs...)
+    Makie.Colorbar(fig[1, 2], plt)
+    Makie.xlims!(ax, extrema(plot_data.x))
+    Makie.ylims!(ax, extrema(plot_data.y))
+    return Makie.FigureAxisPlot(fig, ax, plt)
+end
+
+function Makie.contourf(pd::PlotData2DTriangulated, fig = Makie.Figure();
+                        plot_mesh = false, colormap = default_Makie_colormap(),
+                        kwargs...)
+    n = length(pd)
+    cols = n <= 3 ? n : ceil(Int, sqrt(n))
+    rows = cld(n, cols)
+
+    ticks = _makie_ticks(n)
+    axes = Matrix{Makie.Axis}(undef, rows, cols)
+    for (i, (variable_name, pds)) in enumerate(pd)
+        row, col = cld(i, cols), mod1(i, cols)
+        ax = Makie.Axis(fig[row, col][1, 1],
+                        title = variable_name,
+                        xlabel = _makie_guide(1), ylabel = _makie_guide(2),
+                        xticks = ticks, yticks = ticks)
+        axes[row, col] = ax
+        plt = Makie.contourf!(ax, pds; colormap, kwargs...)
+        Makie.Colorbar(fig[row, col][1, 2], plt; ticks)
+        ax.aspect = Makie.DataAspect()
+        Makie.xlims!(ax, extrema(pd.x))
+        Makie.ylims!(ax, extrema(pd.y))
+        if plot_mesh
+            Makie.lines!(ax,
+                         convert_PlotData2D_to_mesh_Points(pds;
+                                                           set_z_coordinate_zero = true);
+                         color = :grey, linewidth = 1)
+        end
+    end
+    _fill_empty_axes!(axes, fig, n, rows, cols)
+
+    display(fig)
     return FigureAndAxes(fig, axes)
 end
 end # @muladd
