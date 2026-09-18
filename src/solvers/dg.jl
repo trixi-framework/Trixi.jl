@@ -997,13 +997,11 @@ end
 end
 @inline function check_axes(u::AbstractArray, equations::AbstractEquations{3},
                             solver::DG, cache)
-    axes_correct = axes(u) == (
-        eachvariable(equations),
-        eachnode(solver),
-        eachnode(solver),
-        eachnode(solver),
-        eachelement(solver, cache),
-    )
+    axes_correct = axes(u) == (eachvariable(equations),
+                    eachnode(solver),
+                    eachnode(solver),
+                    eachnode(solver),
+                    eachelement(solver, cache))
     if !axes_correct
         throw(DimensionMismatch())
     end
