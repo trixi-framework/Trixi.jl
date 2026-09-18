@@ -974,11 +974,9 @@ end
 # of Trixi.jl.
 @inline function check_axes(u::AbstractArray, equations::AbstractEquations{1},
                             solver::DG, cache)
-    axes_correct = axes(u) == (
-        eachvariable(equations),
-        eachnode(solver),
-        eachelement(solver, cache),
-    )
+    axes_correct = axes(u) == (eachvariable(equations),
+                    eachnode(solver),
+                    eachelement(solver, cache))
     if !axes_correct
         throw(DimensionMismatch())
     end
