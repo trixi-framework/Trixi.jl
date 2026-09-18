@@ -189,7 +189,8 @@ function check_axes(interfaces::TreeInterfaceContainer3D, equations, solver::DG,
                     eachnode(solver),
                     eachnode(solver),
                     eachinterface(solver, cache)) &&
-                   axes(interfaces.neighbor_ids) == (Base.OneTo(2), eachinterface(solver, cache)) &&
+                   axes(interfaces.neighbor_ids) ==
+                   (Base.OneTo(2), eachinterface(solver, cache)) &&
                    axes(interfaces.orientations) == (eachinterface(solver, cache),)
     if !axes_correct
         throw(DimensionMismatch())
@@ -375,7 +376,7 @@ function check_axes(boundaries::TreeBoundaryContainer3D, equations, solver::DG, 
                    (Base.OneTo(ndims(equations)),
                     eachnode(solver),
                     eachnode(solver),
-eachboundary(solver, cache)) &&
+                    eachboundary(solver, cache)) &&
                    all(axes(container) == (eachboundary(solver, cache),)
                        for container in (boundaries.neighbor_ids,
                                          boundaries.orientations,
@@ -662,18 +663,19 @@ function check_axes(mortars::TreeL2MortarContainer3D, equations, solver::DG, cac
 
     threaded_values_axes = (eachvariable(equations), eachnode(solver), eachnode(solver))
 
-    threaded_values_correct =
-        all(axes(values) == (Base.OneTo(Threads.maxthreadid()),) &&
-            all(axes(value) == threaded_values_axes for value in values)
-            for values in (cache.fstar_primary_upper_left_threaded,
-                           cache.fstar_primary_upper_right_threaded,
-                           cache.fstar_primary_lower_left_threaded,
-                           cache.fstar_primary_lower_right_threaded,
-                           cache.fstar_secondary_upper_left_threaded,
-                           cache.fstar_secondary_upper_right_threaded,
-                           cache.fstar_secondary_lower_left_threaded,
-                           cache.fstar_secondary_lower_right_threaded,
-                           cache.fstar_tmp1_threaded))
+    threaded_values_correct = all(axes(values) ==
+                                  (Base.OneTo(Threads.maxthreadid()),) &&
+                                  all(axes(value) == threaded_values_axes
+                                      for value in values)
+                                  for values in (cache.fstar_primary_upper_left_threaded,
+                                                 cache.fstar_primary_upper_right_threaded,
+                                                 cache.fstar_primary_lower_left_threaded,
+                                                 cache.fstar_primary_lower_right_threaded,
+                                                 cache.fstar_secondary_upper_left_threaded,
+                                                 cache.fstar_secondary_upper_right_threaded,
+                                                 cache.fstar_secondary_lower_left_threaded,
+                                                 cache.fstar_secondary_lower_right_threaded,
+                                                 cache.fstar_tmp1_threaded))
 
     if !(axes_correct && threaded_values_correct)
         throw(DimensionMismatch())
