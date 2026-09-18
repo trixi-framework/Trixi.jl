@@ -79,6 +79,32 @@ and
 [`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/ci.yml).
 
 
+### GPU tests
+The tests for the GPU backends cannot run on GitHub Actions since they require actual
+hardware. They are therefore executed on [Buildkite](https://buildkite.com) on dedicated
+machines with NVIDIA (`TRIXI_TEST=CUDA`) and AMD (`TRIXI_TEST=AMDGPU`) GPUs, configured in
+[`.buildkite/pipeline.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.buildkite/pipeline.yml).
+
+Since most pull requests do not touch any GPU-related code and the GPU machines are a
+scarce resource, these tests do **not** run automatically. Instead, they are only run
+* on demand, by writing a comment starting with
+  ```
+  /run_gpu_tests
+  ```
+  on the pull request. This runs both the CUDA and the AMDGPU tests. The comment must be written by someone
+  with write access to this repository,
+* automatically for every push to `main`, i.e., after a pull request has been merged, and
+* when a build is started manually from the Buildkite web interface.
+
+The comment is picked up by
+[`.github/workflows/TriggerGPUTests.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/TriggerGPUTests.yml),
+which first verifies that the author of the comment has write access and then asks
+Buildkite to build the *current* head commit of the pull request. Hence, you need to
+comment again after pushing further changes. If you modify GPU code, please request a GPU
+run before merging. If you do not have write access, the workflow fails with a
+corresponding message; please ask a maintainer to request the GPU tests for you.
+
+
 ## Adding new tests
 We use [TestItems.jl](https://github.com/julia-vscode/TestItems.jl) on top of Julia's
 built-in [unit testing capabilities](https://docs.julialang.org/en/v1/stdlib/Test/):
