@@ -194,7 +194,7 @@ than can increase your productivity in the Julia REPL.
 Trixi.jl uses `@inbounds` to avoid bounds checking and therefore speed up the code.
 After initial bounds/range/axes checks at a high level (in the callgraph), `@inbounds`
 is applied and then propagated to the lower-level functions. For this propagation
-to work, such a function has to be defined as follows
+to work, such a function has to be defined as follows.
 
 Before inbounds access is assumed, the indices should be verified once in an explicit
 `@boundscheck` block. Such a block is removed whenever `@inbounds` is propagated correctly, e.g.,

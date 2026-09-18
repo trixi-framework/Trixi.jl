@@ -974,30 +974,36 @@ end
 # of Trixi.jl.
 @inline function check_axes(u::AbstractArray, equations::AbstractEquations{1},
                             solver::DG, cache)
-    axes_correct = axes(u, 1) == eachvariable(equations) &&
-                   axes(u, 2) == eachnode(solver) &&
-                   axes(u, 3) == eachelement(solver, cache)
+    axes_correct = axes(u) == (
+        eachvariable(equations),
+        eachnode(solver),
+        eachelement(solver, cache),
+    )
     if !axes_correct
         throw(DimensionMismatch())
     end
 end
 @inline function check_axes(u::AbstractArray, equations::AbstractEquations{2},
                             solver::DG, cache)
-    axes_correct = axes(u, 1) == eachvariable(equations) &&
-                   axes(u, 2) == eachnode(solver) &&
-                   axes(u, 3) == eachnode(solver) &&
-                   axes(u, 4) == eachelement(solver, cache)
+    axes_correct = axes(u) == (
+        eachvariable(equations),
+        eachnode(solver),
+        eachnode(solver),
+        eachelement(solver, cache),
+    )
     if !axes_correct
         throw(DimensionMismatch())
     end
 end
 @inline function check_axes(u::AbstractArray, equations::AbstractEquations{3},
                             solver::DG, cache)
-    axes_correct = axes(u, 1) == eachvariable(equations) &&
-                   axes(u, 2) == eachnode(solver) &&
-                   axes(u, 3) == eachnode(solver) &&
-                   axes(u, 4) == eachnode(solver) &&
-                   axes(u, 5) == eachelement(solver, cache)
+    axes_correct = axes(u) == (
+        eachvariable(equations),
+        eachnode(solver),
+        eachnode(solver),
+        eachnode(solver),
+        eachelement(solver, cache),
+    )
     if !axes_correct
         throw(DimensionMismatch())
     end
