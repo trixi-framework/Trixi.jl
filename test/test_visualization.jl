@@ -1245,12 +1245,49 @@ end
     @trixi_test_nowarn typeof(fig) <: Makie.Figure
     @trixi_test_nowarn typeof(axes) <: AbstractArray{<:Makie.Axis}
 
+    # Makie.contour(pds) uses tricontour with title, xlabel, ylabel and colorbar
+    _, _, plt = @trixi_test_nowarn Makie.contour(pd["rho"])
+    @test plt isa Makie.Tricontour
+
+    # kwargs are forwarded to tricontour!
+    @trixi_test_nowarn Makie.contour(pd["rho"], levels = 5)
+
+    # Makie.contour(pd) gives layout for all variables
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contour(pd, plot_mesh = true)
+
+    # Makie.contour(sol) for 2D UnstructuredMesh2D solutions
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # the same for filled contours
+    _, _, plt = @trixi_test_nowarn Makie.contourf(pd["rho"])
+    @test plt isa Makie.Tricontourf
+    @trixi_test_nowarn Makie.contourf(pd["rho"], levels = 5)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contourf(pd, plot_mesh = true)
+    @trixi_test_nowarn Makie.contourf(sol)
+
+    # contour! overlay on the current axis
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"])
+
+    # kwargs are forwarded to contour! in the overlay
+    Makie.plot(pd["rho"])
+    @trixi_test_nowarn Makie.contour!(pd["rho"], levels = 5, color = :white)
+
     # test plotting of constant solutions with Makie
     # related issue: https://github.com/MakieOrg/Makie.jl/issues/931
     for i in eachindex(sol.u)
         fill!(sol.u[i], one(eltype(sol.u[i])))
     end
     @trixi_test_nowarn Trixi.iplot(sol)
+
+    # Constant variables have no contour lines, but the plots must still be created.
+    pd_const = PlotData2D(sol)
+    @trixi_test_nowarn Makie.contour(pd_const)
+    @trixi_test_nowarn Makie.contour(pd_const["rho"])
+    @trixi_test_nowarn Makie.contourf(pd_const)
+    @trixi_test_nowarn Makie.contourf(pd_const["rho"])
 end
 @testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
     Setup,
