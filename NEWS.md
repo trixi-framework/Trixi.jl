@@ -26,6 +26,8 @@ for human readability.
   can now be chosen via the new keyword argument `flux_differencing_kernel` of
   `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
   `FullSweepGlobal` ([#3206]).
+- For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
+  unity is now supported, which then results in a different temperature `T` ([#3165])
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
