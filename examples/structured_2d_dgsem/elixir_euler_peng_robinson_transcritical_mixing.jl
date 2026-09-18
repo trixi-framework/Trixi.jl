@@ -107,7 +107,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-solver = CarpenterKennedy2N54(williamson_condition = false)
+solver = CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded())
 sol = solve(ode, solver;
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

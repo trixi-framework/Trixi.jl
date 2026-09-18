@@ -93,6 +93,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # We use a fixed time step here, as the wave speed estimate
 # (which aims to bound the largest eigenvalues from above)
 # in the stepsize callback produced sometimes unphysical values
-sol = solve(ode, SSPRK43(), adaptive = false;
+sol = solve(ode, SSPRK43(thread = Trixi.Threaded()), adaptive = false;
             dt = 2e-3,
             callback = callbacks, ode_default_options()...)

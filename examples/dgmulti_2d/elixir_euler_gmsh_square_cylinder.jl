@@ -69,7 +69,7 @@ callbacks = CallbackSet(summary_callback, alive_callback,
 ###############################################################################
 # run the simulation
 
-solver = SSPRK43()
+solver = SSPRK43(thread = Trixi.Threaded())
 
 sol = solve(ode, solver; dt = 1e-5, adaptive = true, abstol = 1e-5, reltol = 1e-3,
             ode_default_options()...,

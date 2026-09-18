@@ -88,7 +88,7 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-ode_alg = RDPK3SpFSAL49()
+ode_alg = RDPK3SpFSAL49(thread = Trixi.Threaded())
 sol = solve(ode, ode_alg;
             dt = 1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
