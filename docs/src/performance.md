@@ -18,7 +18,7 @@ Here, we just list some important aspects you should consider when developing Tr
   of an assignment
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-views)).
 - Functions are essentially for free, since they are usually automatically inlined where it makes sense (using `@inline` can be used as an additional hint to the compiler)
-([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#Break-functions-into-multiple-definitions)).
+  ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#Break-functions-into-multiple-definitions)).
 - Use `@inbounds` to avoid bounds checking in performance-critical loops and propagate it
   to the functions called therein using `Base.@propagate_inbounds`, after verifying the
   indices once in an explicit `@boundscheck` block; `Base.@propagate_inbounds`
