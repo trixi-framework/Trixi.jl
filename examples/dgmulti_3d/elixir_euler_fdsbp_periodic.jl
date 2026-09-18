@@ -52,5 +52,5 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-7, reltol = 1.0e-7,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.Threaded()); abstol = 1.0e-7, reltol = 1.0e-7,
             ode_default_options()..., callback = callbacks)
