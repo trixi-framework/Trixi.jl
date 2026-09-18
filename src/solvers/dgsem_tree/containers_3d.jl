@@ -181,6 +181,22 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
                                              _u, _neighbor_ids)
 end
 
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::TreeInterfaceContainer3D, equations, solver::DG, cache)
+    axes_correct = axes(interfaces.u) == (Base.OneTo(2),
+                    eachvariable(equations),
+                    eachnode(solver),
+                    eachnode(solver),
+                    eachinterface(solver, cache)) &&
+                   axes(interfaces.neighbor_ids) ==
+                   (Base.OneTo(2), eachinterface(solver, cache)) &&
+                   axes(interfaces.orientations) == (eachinterface(solver, cache),)
+    if !axes_correct
+        throw(DimensionMismatch())
+    end
+end
+
 # Create interface container and initialize interface data in `elements`.
 function init_interfaces(cell_ids, mesh::TreeMesh3D,
                          elements::TreeElementContainer3D)
@@ -346,6 +362,28 @@ function TreeBoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
                                                    node_coordinates,
                                                    n_boundaries_per_direction,
                                                    _u, _node_coordinates)
+end
+
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::TreeBoundaryContainer3D, equations, solver::DG, cache)
+    axes_correct = axes(boundaries.u) == (Base.OneTo(2),
+                    eachvariable(equations),
+                    eachnode(solver),
+                    eachnode(solver),
+                    eachboundary(solver, cache)) &&
+                   axes(boundaries.node_coordinates) ==
+                   (Base.OneTo(ndims(equations)),
+                    eachnode(solver),
+                    eachnode(solver),
+                    eachboundary(solver, cache)) &&
+                   all(axes(container) == (eachboundary(solver, cache),)
+                       for container in (boundaries.neighbor_ids,
+                                         boundaries.orientations,
+                                         boundaries.neighbor_sides))
+    if !axes_correct
+        throw(DimensionMismatch())
+    end
 end
 
 # Create boundaries container and initialize boundary data in `elements`.
@@ -607,6 +645,41 @@ function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer3D)
     println(io, "c.orientations = $(c.orientations)")
     print(io, '*'^20)
     return nothing
+end
+
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::TreeL2MortarContainer3D, equations, solver::DG, cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations), eachnode(solver),
+                     eachnode(solver), eachmortar(solver, cache))
+
+    axes_correct = all(axes(u_mortar) == u_mortar_axes
+                       for u_mortar in (mortars.u_lower_left, mortars.u_lower_right,
+                                        mortars.u_upper_left, mortars.u_upper_right)) &&
+                   axes(mortars.neighbor_ids) ==
+                   (Base.OneTo(5), eachmortar(solver, cache)) &&
+                   all(axes(container) == (eachmortar(solver, cache),)
+                       for container in (mortars.large_sides, mortars.orientations))
+
+    threaded_values_axes = (eachvariable(equations), eachnode(solver), eachnode(solver))
+
+    threaded_values_correct = all(axes(values) ==
+                                  (Base.OneTo(Threads.maxthreadid()),) &&
+                                  all(axes(value) == threaded_values_axes
+                                      for value in values)
+                                  for values in (cache.fstar_primary_upper_left_threaded,
+                                                 cache.fstar_primary_upper_right_threaded,
+                                                 cache.fstar_primary_lower_left_threaded,
+                                                 cache.fstar_primary_lower_right_threaded,
+                                                 cache.fstar_secondary_upper_left_threaded,
+                                                 cache.fstar_secondary_upper_right_threaded,
+                                                 cache.fstar_secondary_lower_left_threaded,
+                                                 cache.fstar_secondary_lower_right_threaded,
+                                                 cache.fstar_tmp1_threaded))
+
+    if !(axes_correct && threaded_values_correct)
+        throw(DimensionMismatch())
+    end
 end
 
 # Create mortar container and initialize mortar data in `elements`.
