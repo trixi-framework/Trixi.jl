@@ -1246,6 +1246,7 @@ end
     @trixi_test_nowarn typeof(axes) <: AbstractArray{<:Makie.Axis}
 
     # Makie.contour(pds) uses tricontour with title, xlabel, ylabel and colorbar
+    @test pd.point_values
     _, _, plt = @trixi_test_nowarn Makie.contour(pd["rho"])
     @test plt isa Makie.Tricontour
 
@@ -1288,6 +1289,46 @@ end
     @trixi_test_nowarn Makie.contour(pd_const["rho"])
     @trixi_test_nowarn Makie.contourf(pd_const)
     @trixi_test_nowarn Makie.contourf(pd_const["rho"])
+end
+@testitem "Visualization: Makie contour plots for BlockFV on P4estMesh" setup=[
+    Setup,
+    Visualization
+] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
+                                 "elixir_advection_basic.jl"),
+                        tspan=(0.0, 0.1))
+    pd = PlotData2D(sol)
+    @test pd isa Trixi.PlotData2DTriangulated
+    @test !pd.point_values
+
+    # Each cell holds a single value on its own copy of the cell corners, so every
+    # triangle is constant. Contours need point values, so coincident corners are merged
+    # and get the mean value of the adjacent cells: 64 x 64 cells have 65 x 65 corners.
+    TrixiMakieExt = Base.get_extension(Trixi, :TrixiMakieExt)
+    x, y, z, triangles = TrixiMakieExt._tricontour_arguments(pd["scalar"])
+    @test length(x) == length(y) == length(z) == 65^2
+    @test size(triangles) == (3, 2 * 64^2)
+    u = StructArrays.component(pd.data, 1)
+    @test minimum(u) <= minimum(z) && maximum(z) <= maximum(u)
+
+    _, _, plt = @trixi_test_nowarn Makie.contour(pd["scalar"])
+    @test !isempty(plt.plots[1][1][])
+    @trixi_test_nowarn Makie.contour(pd)
+    @trixi_test_nowarn Makie.contourf(pd)
+    @trixi_test_nowarn Makie.contour(sol)
+
+    # On curved meshes, corners shared by neighboring elements only coincide up to
+    # round-off errors. If they are merged, the triangulation of the square domain is
+    # connected and has the Euler characteristic V - E + F = 1.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "p4est_2d_blockfv",
+                                 "elixir_advection_unstructured_flag.jl"),
+                        tspan=(0.0, 0.1))
+    pd = PlotData2D(sol)
+    x, _, _, triangles = TrixiMakieExt._tricontour_arguments(pd["scalar"])
+    @test length(x) < length(unique(zip(vec(pd.x), vec(pd.y))))
+    edges = Set(minmax(triangles[a, k], triangles[b, k])
+                for k in axes(triangles, 2) for (a, b) in ((1, 2), (2, 3), (3, 1)))
+    @test length(x) - length(edges) + size(triangles, 2) == 1
 end
 @testitem "Visualization: Makie iplot for DGMulti with VectorOfArray solution" setup=[
     Setup,

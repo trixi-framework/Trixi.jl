@@ -743,7 +743,51 @@ function _tricontour_arguments(pds::PlotDataSeries{<:PlotData2DTriangulated})
         end
     end
 
-    return vec(x), vec(y), vec(StructArrays.component(data, variable_id)), triangles
+    x, y, z = vec(x), vec(y), vec(StructArrays.component(data, variable_id))
+    plot_data.point_values && return x, y, z, triangles
+    return _cell_to_point_values(x, y, z, triangles)
+end
+
+# Contours need point values. Finite volume data (`point_values == false`) holds one value
+# per cell on its own copy of the cell corners, so each triangle is constant and contains
+# no contour lines. As ParaView's "Clean to Grid" and "Cell Data to Point Data" filters do,
+# we merge coincident corners and assign each of them the mean value of all adjacent cells.
+function _cell_to_point_values(x, y, z, triangles)
+    # Corners shared by neighboring elements only coincide up to round-off errors, so they
+    # are merged within a tolerance relative to the size of the domain. To find them, the
+    # nodes are sorted into buckets of this size and compared with neighboring buckets.
+    tol = sqrt(eps(eltype(x))) * max(maximum(x) - minimum(x), maximum(y) - minimum(y))
+    buckets = Dict{Tuple{Int, Int}, Vector{Int}}()
+    x_merged, y_merged = eltype(x)[], eltype(y)[]
+    node_ids = Vector{Int}(undef, length(x))
+    for i in eachindex(x, y)
+        bucket = (floor(Int, x[i] / tol), floor(Int, y[i] / tol))
+        node_id = 0
+        for dx in -1:1, dy in -1:1
+            for j in get(buckets, bucket .+ (dx, dy), ())
+                if abs(x_merged[j] - x[i]) <= tol && abs(y_merged[j] - y[i]) <= tol
+                    node_id = j
+                end
+            end
+        end
+        if node_id == 0
+            push!(x_merged, x[i])
+            push!(y_merged, y[i])
+            node_id = length(x_merged)
+            push!(get!(Vector{Int}, buckets, bucket), node_id)
+        end
+        node_ids[i] = node_id
+    end
+
+    z_merged = zeros(eltype(z), length(x_merged))
+    num_cells = zeros(Int, length(x_merged))
+    for i in eachindex(z)
+        z_merged[node_ids[i]] += z[i]
+        num_cells[node_ids[i]] += 1
+    end
+    z_merged ./= num_cells
+
+    return x_merged, y_merged, z_merged, node_ids[triangles]
 end
 
 function Makie.contour!(ax, pds::PlotDataSeries{<:PlotData2DTriangulated}; kwargs...)
