@@ -193,12 +193,31 @@ end
 @inline function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                        have_nonconservative_terms, equations,
                                        volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
-                                       dg::DGSEM, cache)
+                                       dg::DGSEM, cache, t, boundary_conditions)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
 
     # Calculate a-priori stabilization indicator
     alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
                                                         dg, cache)
+
+    if volume_integral_stabilized isa VolumeIntegralSubcellLimiting
+        limiter = volume_integral_stabilized.limiter
+        # Calculate lambdas and bar states
+        @trixi_timeit timer() "calc_lambdas_bar_states!" calc_lambdas_bar_states!(u, t,
+                                                                                  mesh,
+                                                                                  have_nonconservative_terms,
+                                                                                  equations,
+                                                                                  limiter,
+                                                                                  dg,
+                                                                                  cache,
+                                                                                  boundary_conditions)
+        # Calculate boundaries
+        @trixi_timeit timer() "calc_variable_bounds!" calc_variable_bounds!(u, mesh,
+                                                                            have_nonconservative_terms,
+                                                                            equations,
+                                                                            limiter, dg,
+                                                                            cache)
+    end
 
     # These tolerances for "active" shock capturing alpha values are copied
     # from the `calc_volume_integral!` implementation for
