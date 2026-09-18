@@ -972,7 +972,8 @@ end
 
 # Check whether the array `u` has the axes we assume it must have in the inner loops
 # of Trixi.jl.
-@inline function check_axes(u, equations::AbstractEquations{1}, solver::DG, cache)
+@inline function check_axes(u::AbstractArray, equations::AbstractEquations{1},
+                            solver::DG, cache)
     axes_correct = axes(u, 1) == eachvariable(equations) &&
                    axes(u, 2) == eachnode(solver) &&
                    axes(u, 3) == eachelement(solver, cache)
@@ -980,7 +981,8 @@ end
         throw(DimensionMismatch())
     end
 end
-@inline function check_axes(u, equations::AbstractEquations{2}, solver::DG, cache)
+@inline function check_axes(u::AbstractArray, equations::AbstractEquations{2},
+                            solver::DG, cache)
     axes_correct = axes(u, 1) == eachvariable(equations) &&
                    axes(u, 2) == eachnode(solver) &&
                    axes(u, 3) == eachnode(solver) &&
@@ -989,7 +991,8 @@ end
         throw(DimensionMismatch())
     end
 end
-@inline function check_axes(u, equations::AbstractEquations{3}, solver::DG, cache)
+@inline function check_axes(u::AbstractArray, equations::AbstractEquations{3},
+                            solver::DG, cache)
     axes_correct = axes(u, 1) == eachvariable(equations) &&
                    axes(u, 2) == eachnode(solver) &&
                    axes(u, 3) == eachnode(solver) &&
