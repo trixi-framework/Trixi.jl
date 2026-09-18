@@ -9,7 +9,7 @@ for human readability.
 
 #### Added
 - Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238])
-  and `PlotData2DTriangulated` data ([todo]).
+  and `PlotData2DTriangulated` data ([#3253]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
   toggles the bars visualizing the fraction of time and allocations spent in
