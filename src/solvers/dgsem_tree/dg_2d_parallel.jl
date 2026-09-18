@@ -58,7 +58,8 @@ function start_mpi_receive!(mpi_cache::MPICache)
 end
 
 # TODO: MPI dimension agnostic
-function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
+function start_mpi_send!(backend::Nothing, mpi_cache::MPICache, mesh, equations, dg,
+                         cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
@@ -159,7 +160,8 @@ function finish_mpi_send!(mpi_cache::MPICache)
 end
 
 # TODO: MPI dimension agnostic
-function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
+function finish_mpi_receive!(backend::Nothing, mpi_cache::MPICache, mesh, equations, dg,
+                             cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
     # Start receiving and unpack received data until all communication is finished
@@ -467,7 +469,7 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Prolong solution to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars" begin
-        prolong2mpimortars!(cache, u, mesh, equations,
+        prolong2mpimortars!(backend, cache, u, mesh, equations,
                             dg.mortar, dg)
     end
 
@@ -599,7 +601,7 @@ function prolong2mpiinterfaces!(cache, u,
     return nothing
 end
 
-function prolong2mpimortars!(cache, u,
+function prolong2mpimortars!(backend::Nothing, cache, u,
                              mesh::TreeMeshParallel{2}, equations,
                              mortar_l2::LobattoLegendreMortarL2,
                              dg::DGSEM)
@@ -725,7 +727,7 @@ function prolong2mpimortars!(cache, u,
     return nothing
 end
 
-function calc_mpi_interface_flux!(surface_flux_values,
+function calc_mpi_interface_flux!(backend::Nothing, surface_flux_values,
                                   mesh::TreeMeshParallel{2},
                                   have_nonconservative_terms::False, equations,
                                   surface_integral, dg::DG, cache)

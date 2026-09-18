@@ -28,7 +28,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Prolong transformed variables to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars gradient" begin
-        prolong2mpimortars!(cache, u_transformed, mesh, equations_parabolic,
+        prolong2mpimortars!(backend, cache, u_transformed, mesh, equations_parabolic,
                             dg.mortar, dg)
     end
 
@@ -40,7 +40,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Start gradient MPI send
     @trixi_timeit timer() "start MPI send gradient" begin
-        start_mpi_send!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
+        start_mpi_send!(backend, cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
 
     # Local gradient computation
@@ -52,7 +52,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Finish gradient MPI receive
     @trixi_timeit timer() "finish MPI receive gradient" begin
-        finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations_parabolic, dg,
+                            cache)
     end
 
     # MPI interface fluxes for gradients
@@ -122,7 +123,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Start divergence MPI send
     @trixi_timeit timer() "start MPI send divergence" begin
-        start_mpi_send!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
+        start_mpi_send!(backend, cache.mpi_cache, mesh, equations_parabolic, dg, cache)
     end
 
     # Local, i.e., non-MPI interface/boundary/mortar fluxes
@@ -137,7 +138,8 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Finish divergence MPI receive
     @trixi_timeit timer() "finish MPI receive divergence" begin
-        finish_mpi_receive!(cache.mpi_cache, mesh, equations_parabolic, dg, cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations_parabolic, dg,
+                            cache)
     end
 
     # MPI interface fluxes for divergence

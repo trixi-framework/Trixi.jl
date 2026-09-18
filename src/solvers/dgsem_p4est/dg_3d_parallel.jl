@@ -27,7 +27,7 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Start to send MPI data
     @trixi_timeit timer() "start MPI send" begin
-        start_mpi_send!(cache.mpi_cache, mesh, equations, dg, cache)
+        start_mpi_send!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Reset du
@@ -78,7 +78,7 @@ function rhs_hyperbolic!(backend::Nothing,
 
     # Finish to receive MPI data
     @trixi_timeit timer() "finish MPI receive" begin
-        finish_mpi_receive!(cache.mpi_cache, mesh, equations, dg, cache)
+        finish_mpi_receive!(backend, cache.mpi_cache, mesh, equations, dg, cache)
     end
 
     # Calculate MPI interface fluxes
