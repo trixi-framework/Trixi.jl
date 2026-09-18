@@ -5,6 +5,14 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.18 from v0.17.x
+
+#### Changed
+
+- For the `CompressibleNavierStokesDiffusion1D` equations, the stress "tensor" `tau_xx` is now computed as
+  `tau_xx = (4/3) * mu * (dv1/dx)` instead of `tau_xx = mu * (dv1/dx)`.
+  Here, `mu` is the user-given dynamic viscosity.
+
 ## Changes in the v0.17 lifecycle
 
 #### Added
