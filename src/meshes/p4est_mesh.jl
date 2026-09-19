@@ -1136,6 +1136,7 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
 
     p4est = new_p4est(connectivity, initial_refinement_level)
 
+    # Initialize boundary information matrix with symbol for no boundary / internal connection
     boundary_names = fill(Symbol("---"), 2 * 3, n_trees)
     boundary_names[5, :] .= Symbol("inside")
     boundary_names[6, :] .= Symbol("outside")
