@@ -70,6 +70,7 @@ struct PlotData2DCartesian{Coordinates, Data, VariableNames, Vertices} <:
     mesh_vertices_y::Vertices
     orientation_x::Int
     orientation_y::Int
+    point_values::Bool
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -196,6 +197,12 @@ maximum allowed refinement level in the solution. `nvisnodes` specifies the numb
 nodes to be used. If it is `nothing`, twice the number of solution DG nodes are used for
 visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
 
+Finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or `BlockFV`) is piecewise constant, so
+there is nothing to interpolate: `nvisnodes` is ignored, and cells are always drawn with as
+many cells as the solver actually has (`n_nodes`). Make sure `max_supported_level` is large enough
+to fit it at the finest level (`2^(max_supported_level - level) >= n_nodes`), or you will get an
+error telling you to increase it.
+
 When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
 `slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
 The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
@@ -258,6 +265,28 @@ function PlotData2D(u, mesh, equations, solver, cache; kwargs...)
     return PlotData2DTriangulated(u, mesh, equations, solver, cache; kwargs...)
 end
 
+# Convenience constructor defaulting to point values
+function PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                             mesh_vertices_y, orientation_x, orientation_y)
+    return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
+                               mesh_vertices_y, orientation_x, orientation_y,
+                               true)
+end
+
+# point values (default) or cell values,
+# e.g., for finite volume methods.
+visualize_point_values(mesh, solver) = true
+
+function visualize_point_values(mesh, solver::DGSEM)
+    # We interpret DG methods with polynomial degree 0 as
+    # first-order finite volume methods, which should be
+    # visualized as cell (mean) values.
+    return polydeg(solver) > 0
+end
+# `BlockFV` always holds piecewise constant cell (mean) values, regardless of how
+# many finite volume cells (`nnodes(solver)`) each element is subdivided into.
+visualize_point_values(mesh, solver::BlockFV) = false
+
 # Create a PlotData2DCartesian for a TreeMesh.
 function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              solution_variables = nothing,
@@ -266,6 +295,8 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                              slice = :xy, point = (0.0, 0.0, 0.0))
     @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
     solution_variables_ = digest_solution_variables(equations, solution_variables)
+
+    point_values = visualize_point_values(mesh, solver)
 
     # Extract mesh info
     center_level_0 = mesh.tree.center_level_0
@@ -286,14 +317,15 @@ function PlotData2DCartesian(u, mesh::TreeMesh, equations, solver, cache;
                                                                grid_lines,
                                                                max_supported_level,
                                                                nvisnodes,
-                                                               slice, point)
+                                                               slice, point;
+                                                               point_values = point_values)
     variable_names = SVector(varnames(solution_variables_, equations))
 
     orientation_x, orientation_y = _get_orientations(mesh, slice)
 
     return PlotData2DCartesian(x, y, data, variable_names, mesh_vertices_x,
                                mesh_vertices_y,
-                               orientation_x, orientation_y)
+                               orientation_x, orientation_y, point_values)
 end
 
 """
