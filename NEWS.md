@@ -8,6 +8,7 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Contour plotting using Makie.jl is now supported for `PlotData2DCartesian` data ([#3238]).
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
   toggles the bars visualizing the fraction of time and allocations spent in
@@ -21,6 +22,10 @@ for human readability.
 - `PlotData2D` now visualizes finite volume data on a `TreeMesh` (`polydeg = 0` DGSEM, or
   `BlockFV`) as distinct cells instead of interpolating between neighboring cell values,
   for both `Plots.jl` and `Makie.jl` ([#3150]).
+- The GPU kernel of `VolumeIntegralFluxDifferencing` on `P4estMesh{3}`/`T8codeMesh{3}`
+  can now be chosen via the new keyword argument `flux_differencing_kernel` of
+  `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
+  `FullSweepGlobal` ([#3206]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).

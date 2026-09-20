@@ -210,7 +210,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              mesh::TreeMesh{2},
@@ -252,7 +252,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2interfaces!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2interfaces!(cache, flux_parabolic::Tuple,
                              mesh::TreeMesh{2},
@@ -360,7 +360,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              mesh::TreeMesh{2},
@@ -413,7 +413,7 @@ end
 
 # This is the version used when calculating the divergence of the parabolic fluxes.
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2boundaries!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2boundaries!(cache, flux_parabolic::Tuple,
                              mesh::TreeMesh{2},
@@ -734,7 +734,7 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 # Specialization `flux_parabolic::Tuple` needed to
-# avoid amibiguity with the hyperbolic version of `prolong2mortars!` in dg_2d.jl
+# avoid ambiguity with the hyperbolic version of `prolong2mortars!` in dg_2d.jl
 # which is for the variables itself, i.e., `u::Array{uEltype, 4}`.
 function prolong2mortars!(cache, flux_parabolic::Tuple,
                           mesh::TreeMesh{2},
