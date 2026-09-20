@@ -64,9 +64,10 @@ local_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1e-3,),
 global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
                                                       record_davis_yin_iterations = true)
 
-sol = solve(ode, RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
-                               step_limiter! = global_limiter!,
-                               thread = Trixi.Threaded());
+sol = solve(ode,
+            RDPK3SpFSAL35(; stage_limiter! = global_limiter!,
+                          step_limiter! = global_limiter!,
+                          thread = Trixi.Threaded());
             adaptive = false,
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
