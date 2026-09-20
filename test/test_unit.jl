@@ -3083,6 +3083,7 @@ end
     @test Trixi.is_github_url("https://gist.githubusercontent.com/foo/bar/raw/baz.txt")
     @test Trixi.is_github_url("http://GitHub.com:443/foo?a=b#c")
 
+    @test !Trixi.is_github_url("https://github.com@evil.com/foo")
     @test !Trixi.is_github_url("https://gist.github.com.example.com/foo")
     @test !Trixi.is_github_url("https://example.com/github.com/foo")
     @test !Trixi.is_github_url("https://user@example.com/foo")
