@@ -13,7 +13,7 @@
     nelements(dg, cache) == 0 && return nothing
 
     kernel_type = flux_differencing_kernel(backend,
-                                            cache.flux_differencing_kernel)
+                                           cache.flux_differencing_kernel)
     if !(kernel_type isa FullSweepGlobal)
         return calc_volume_integral_fallback!(backend, du, u, mesh,
                                               have_nonconservative_terms, equations,

@@ -172,9 +172,9 @@ end
 
     function run_with_kernel(flux_differencing_kernel)
         ode = semidiscretize(semi, (0.0, 0.1);
-                              real_type = Float32,
-                              storage_type = StorageT,
-                              flux_differencing_kernel)
+                             real_type = Float32,
+                             storage_type = StorageT,
+                             flux_differencing_kernel)
         sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                     dt = 1, ode_default_options()..., callback = callbacks)
         return ode, sol
@@ -210,9 +210,9 @@ end
 
     function run_with_kernel(flux_differencing_kernel)
         ode = semidiscretize(semi, (0.0, 0.1);
-                              real_type = Float32,
-                              storage_type = StorageT,
-                              flux_differencing_kernel)
+                             real_type = Float32,
+                             storage_type = StorageT,
+                             flux_differencing_kernel)
         sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                     dt = 1, ode_default_options()..., callback = callbacks)
         return ode, sol
