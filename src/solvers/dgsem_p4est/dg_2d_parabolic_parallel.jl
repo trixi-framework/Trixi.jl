@@ -34,7 +34,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
 
     # Prolong transformed variables to MPI interfaces
     @trixi_timeit timer() "prolong2mpiinterfaces gradient" begin
-        prolong2mpiinterfaces!(cache, u_transformed, mesh, equations_parabolic,
+        prolong2mpiinterfaces!(backend, cache, u_transformed, mesh, equations_parabolic,
                                dg.surface_integral, dg)
     end
 
