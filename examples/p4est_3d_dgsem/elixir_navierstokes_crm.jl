@@ -1,5 +1,6 @@
 using OrdinaryDiffEqSSPRK
 using Trixi
+using TrixiData # for the mesh file
 
 # CRM = Common Research Model
 # https://doi.org/10.2514/6.2008-6919
@@ -66,8 +67,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 # This is an extremely coarse mesh with only ~79k cells, thus way too coarse for real simulations.
 # The mesh is further truncated to linear elements from third-order elements.
-mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/fbc9d785909263ffec76983c4d520fe3/raw/68741ba6c6965b2045af04323bf73df9dab6ed6d/CRM_HIOCFD_2015_meters.inp",
-                           joinpath(@__DIR__, "CRM_HIOCFD_2015_meters.inp"))
+mesh_file = mesh_nasa_crm_hex_p1()
 
 boundary_symbols = [:SYMMETRY,
     :FARFIELD, :OUTFLOW,
