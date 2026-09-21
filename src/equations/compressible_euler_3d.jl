@@ -1948,6 +1948,19 @@ end
     return p
 end
 
+# Transformation from conservative variables u to d(p)/d(u)
+@inline function gradient_conservative(::typeof(pressure),
+                                       u, equations::CompressibleEulerEquations3D)
+    rho, rho_v1, rho_v2, rho_v3, _ = u
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_square = v1^2 + v2^2 + v3^2
+
+    return (equations.gamma - 1) * SVector(0.5f0 * v_square, -v1, -v2, -v3, 1)
+end
+
 @inline function density_pressure(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e_total = u
     rho_times_p = (equations.gamma - 1) *
@@ -1973,6 +1986,12 @@ end
     # Mathematical entropy
 
     return S
+end
+
+# Transformation from conservative variables u to d(s)/d(u)
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
+                                       u, equations::CompressibleEulerEquations3D)
+    return cons2entropy(u, equations)
 end
 
 @doc raw"""

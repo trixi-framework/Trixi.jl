@@ -2193,7 +2193,7 @@ end
 # Transformation from conservative variables u to d(p)/d(u)
 @inline function gradient_conservative(::typeof(pressure),
                                        u, equations::CompressibleEulerEquations2D)
-    rho, rho_v1, rho_v2, rho_e_total = u
+    rho, rho_v1, rho_v2, _ = u
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -2253,7 +2253,7 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function gradient_conservative(::typeof(entropy_math),
+@inline function gradient_conservative(::Union{typeof(entropy), typeof(entropy_math)},
                                        u, equations::CompressibleEulerEquations2D)
     return cons2entropy(u, equations)
 end
