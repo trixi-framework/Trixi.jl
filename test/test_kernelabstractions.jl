@@ -233,6 +233,21 @@ end
     fill!(du_ode, convert(eltype(du_ode), NaN))
     Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
     @test all(isfinite, du_ode)
+
+    semi = remake(semi;
+                  solver = DGSEM(polydeg = 3,
+                                 surface_flux = semi.solver.surface_integral.surface_flux,
+                                 volume_integral = VolumeIntegralFluxDifferencing((flux_hindenlang_gassner,
+                                                                                   flux_nonconservative_powell))))
+    @testset "tuple volume flux fallback" begin
+        ode, sol = run_with_kernel(HalfSweep())
+        u_reference = Array(sol.u[end])
+        @test all(isfinite, u_reference)
+        ode, sol = run_with_kernel(FullSweepGlobal())
+        @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+        @test all(isfinite, Array(sol.u[end]))
+        @test Array(sol.u[end]) ≈ u_reference
+    end
 end
 
 @testitem "KernelAbstractions CPU 2D: elixir_euler_source_terms.jl Flux Differencing Float32" setup=[

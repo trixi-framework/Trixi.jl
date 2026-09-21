@@ -14,7 +14,10 @@
 
     kernel_type = flux_differencing_kernel(backend,
                                            cache.flux_differencing_kernel)
-    if !(kernel_type isa FullSweepGlobal)
+    if !(kernel_type isa FullSweepGlobal) ||
+       (have_nonconservative_terms isa True &&
+        combine_conservative_and_nonconservative_fluxes(volume_integral.volume_flux,
+                                                        equations) isa False)
         return calc_volume_integral_fallback!(backend, du, u, mesh,
                                               have_nonconservative_terms, equations,
                                               volume_integral, dg, cache)
