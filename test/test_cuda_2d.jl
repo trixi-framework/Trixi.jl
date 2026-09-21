@@ -150,6 +150,74 @@ end
     @test all(isfinite, du_ode)
 end
 
+@testitem "CUDA 2D: Euler FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    StorageT = CuArray
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = StorageT,
+                  flux_differencing_kernel = HalfSweep())
+    u_reference = Array(sol.u[end])
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = StorageT,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test Array(sol.u[end]) ≈ u_reference
+
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
+@testitem "CUDA 2D: MHD FullSweepGlobal / CUDA" setup=[
+    Setup,
+    CUDA2DExamples
+] tags=[:CUDA] begin
+    # Using CUDA inside the testitem since otherwise the bindings are hidden by the anonymous modules
+    using CUDA
+    StorageT = CuArray
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = StorageT,
+                  flux_differencing_kernel = HalfSweep())
+    u_reference = Array(sol.u[end])
+
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
+                  tspan = (0.0, 0.1),
+                  real_type = Float32,
+                  storage_type = StorageT,
+                  flux_differencing_kernel = FullSweepGlobal())
+    @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
+    @test Array(sol.u[end]) ≈ u_reference
+
+    u_ode = copy(ode.u0)
+    du_ode = similar(u_ode)
+    fill!(du_ode, convert(eltype(du_ode), NaN))
+    Trixi.rhs_hyperbolic!(du_ode, u_ode, ode.p, first(ode.tspan))
+    @test all(isfinite, du_ode)
+end
+
 @testitem "CUDA 2D: elixir_euler_source_terms.jl Flux Differencing Float32 / CUDA" setup=[
     Setup,
     CUDA2DExamples
