@@ -565,7 +565,7 @@ function rhs_hyperbolic!(backend::Nothing,
     return nothing
 end
 
-function prolong2mpiinterfaces!(cache, u,
+function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                 mesh::TreeMeshParallel{2},
                                 equations, surface_integral, dg::DG)
     @unpack mpi_interfaces = cache
