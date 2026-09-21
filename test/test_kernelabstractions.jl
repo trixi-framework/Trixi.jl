@@ -169,20 +169,26 @@ end
 
     trixi_include(@__MODULE__,
                   joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms.jl"),
-                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
                   tspan = (0.0, 0.1),
                   real_type = Float32,
                   storage_type = StorageT,
-                  flux_differencing_kernel = HalfSweep())
-    u_reference = Array(sol.u[end])
+                  solver = DGSEM(polydeg = 3,
+                                 surface_flux = FluxLaxFriedrichs(max_abs_speed_naive),
+                                 volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber)))
 
-    trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem", "elixir_euler_source_terms.jl"),
-                  volume_integral = VolumeIntegralFluxDifferencing(flux_kennedy_gruber),
-                  tspan = (0.0, 0.1),
-                  real_type = Float32,
-                  storage_type = StorageT,
-                  flux_differencing_kernel = FullSweepGlobal())
+    function run_with_kernel(flux_differencing_kernel)
+        ode = semidiscretize(semi, (0.0, 0.1);
+                              real_type = Float32,
+                              storage_type = StorageT,
+                              flux_differencing_kernel)
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+                    dt = 1, ode_default_options()..., callback = callbacks)
+        return ode, sol
+    end
+
+    ode, sol = run_with_kernel(HalfSweep())
+    u_reference = Array(sol.u[end])
+    ode, sol = run_with_kernel(FullSweepGlobal())
     @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
     @test Array(sol.u[end]) ≈ u_reference
 
@@ -204,17 +210,21 @@ end
                            "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
                   tspan = (0.0, 0.1),
                   real_type = Float32,
-                  storage_type = StorageT,
-                  flux_differencing_kernel = HalfSweep())
-    u_reference = Array(sol.u[end])
+                  storage_type = StorageT)
 
-    trixi_include(@__MODULE__,
-                  joinpath(EXAMPLES_DIR, "p4est_2d_dgsem",
-                           "elixir_mhd_alfven_wave_combined_fluxes_nonperiodic.jl"),
-                  tspan = (0.0, 0.1),
-                  real_type = Float32,
-                  storage_type = StorageT,
-                  flux_differencing_kernel = FullSweepGlobal())
+    function run_with_kernel(flux_differencing_kernel)
+        ode = semidiscretize(semi, (0.0, 0.1);
+                              real_type = Float32,
+                              storage_type = StorageT,
+                              flux_differencing_kernel)
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+                    dt = 1, ode_default_options()..., callback = callbacks)
+        return ode, sol
+    end
+
+    ode, sol = run_with_kernel(HalfSweep())
+    u_reference = Array(sol.u[end])
+    ode, sol = run_with_kernel(FullSweepGlobal())
     @test ode.p.cache.flux_differencing_kernel === FullSweepGlobal()
     @test Array(sol.u[end]) ≈ u_reference
 
