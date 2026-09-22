@@ -8,6 +8,9 @@ for human readability.
 ## Changes in the v0.17 lifecycle
 
 #### Added
+- Added multi-GPU support for 2D P4estMesh. A local CUDA-aware MPI installation is required.
+  For configuration see [Parallelization](https://trixi-framework.org/TrixiDocumentation/stable/parallelization/#parallel_system_MPI)
+  in the docs.
 - TimerOutputs.jl v1 is now supported in addition to v0.5 ([#3172]).
   When TimerOutputs.jl v1 is used, the new preference `Trixi.set_timer_bars!`
   toggles the bars visualizing the fraction of time and allocations spent in
