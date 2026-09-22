@@ -72,7 +72,7 @@ function StepsizeCallback(; cfl = 1.0, cfl_parabolic = 0.0,
     # Convert plain real numbers to functions for unified treatment
     cfl_hyp = isa(cfl, Real) ? Returns(cfl) : cfl
     cfl_para = isa(cfl_parabolic, Real) ? Returns(cfl_parabolic) : cfl_parabolic
-    bar_states = bar_states_as_static(bar_states)
+    bar_states = as_static_bool(bar_states)
     stepsize_callback = StepsizeCallback{typeof(cfl_hyp), typeof(cfl_para),
                                          typeof(bar_states)}(cfl_hyp, cfl_para,
                                                              interval, bar_states)

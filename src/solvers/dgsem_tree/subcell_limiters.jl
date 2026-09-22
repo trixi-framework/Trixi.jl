@@ -12,9 +12,9 @@ function create_cache(typ::Type{LimiterType},
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
-@inline bar_states_as_static(bar_states::Bool) = bar_states ? True() : False()
-@inline bar_states_as_static(bar_states::True) = bar_states
-@inline bar_states_as_static(bar_states::False) = bar_states
+@inline as_static_bool(b::Bool) = b ? True() : False()
+@inline as_static_bool(b::True) = b
+@inline as_static_bool(b::False) = b
 
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
@@ -173,7 +173,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
-    bar_states = bar_states_as_static(bar_states)
+    bar_states = as_static_bool(bar_states)
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
