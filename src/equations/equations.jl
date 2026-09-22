@@ -81,6 +81,14 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
                          "variable " * string(variable),
                          varnames(cons2cons, equations)[variable])
         end
+        if n_aux_node_vars(equations) > 0
+            summary_line(io, "#auxiliary variables", n_aux_node_vars(equations))
+            for variable in eachauxvariable(equations)
+                summary_line(increment_indent(io),
+                             "variable " * string(variable),
+                             varnames(cons2aux, equations)[variable])
+            end
+        end
         summary_footer(io)
     end
 end
@@ -223,6 +231,22 @@ end
 
     # Calculate boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
+# Dirichlet-type boundary condition for equations with auxiliary variables
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    # Get the external value of the solution.
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                 normal_direction, equations)
 
     return flux
 end
@@ -374,6 +398,43 @@ This is the default fallback for nonlinear equations.
 - `False()`
 """
 have_constant_speed(::AbstractEquations) = False()
+
+"""
+    n_aux_node_vars(equations)
+
+Number of auxiliary variables of `equations`, stored at every node.
+Auxiliary variables vary in space but are constant in time, e.g.,
+a prescribed background flow or a variable coefficient. The default is `0`, i.e., no
+auxiliary variables.
+
+Equations using auxiliary variables specialize this function and take them as an
+additional argument in [`flux`](@ref) and in the numerical fluxes, e.g.,
+```julia
+n_aux_node_vars(::MyEquations) = 2
+
+flux(u, aux, normal_direction, equations::MyEquations) = ...
+flux_central(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations::MyEquations) = ...
+```
+The values are given by the `aux_field` function passed to
+[`SemidiscretizationHyperbolic`](@ref).
+"""
+@inline n_aux_node_vars(::AbstractEquations) = 0
+
+"""
+    eachauxvariable(equations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the auxiliary variables in `equations`, see [`n_aux_node_vars`](@ref).
+In particular, not the auxiliary variables themselves are returned.
+"""
+@inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(n_aux_node_vars(equations))
+
+"""
+    cons2aux(u, aux, equations)
+
+Return the auxiliary variables `aux`, see [`n_aux_node_vars`](@ref).
+"""
+@inline cons2aux(u, aux, ::AbstractEquations) = aux
 
 """
     default_analysis_errors(equations)
