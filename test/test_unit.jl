@@ -4213,7 +4213,7 @@ end
         @test n_roots == 3
         @test all(isfinite, roots)
         for i in 1:n_roots
-            @test cubic_residual(p, q, roots[i]) ≈ 0.0 atol=1.0e-12 rtol=1.0e-12
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
         end
     end
 
@@ -4223,7 +4223,7 @@ end
         @test n_roots == 3
         @test all(isfinite, roots)
         for i in 1:n_roots
-            @test cubic_residual(p, q, roots[i]) ≈ 0.0 atol=1.0e-12 rtol=1.0e-12
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
         end
     end
 end
