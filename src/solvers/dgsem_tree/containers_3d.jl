@@ -77,9 +77,9 @@ function check_axes(elements::TreeElementContainer3D, equations, solver::DG, cac
                     eachnode(solver),
                     eachnode(solver),
                     eachnode(solver),
-            eachelement(solver,cache)) &&
-            axes(elements.inverse_jacobian) == (eachelement(solver,cache),) &&
-            axes(elements.cell_ids) == (eachelement(solver,cache),)
+                    eachelement(solver, cache)) &&
+                   axes(elements.inverse_jacobian) == (eachelement(solver, cache),) &&
+                   axes(elements.cell_ids) == (eachelement(solver, cache),)
     if !axes_correct
         throw(DimensionMismatch())
     end
