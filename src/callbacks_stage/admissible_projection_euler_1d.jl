@@ -94,7 +94,7 @@ function calc_depressed_cubic_roots(p, q)
         n_roots = 3
         sqrt_3 = sqrt(T(3))
         sqrt_mp_3 = sqrt(-p / 3)
-        theta = acos(-T(3) / 2 * sqrt_mp_3 * q / p)
+        theta = acos(-T(3) / (2 * sqrt_mp_3) * q / p)
         s, c = sincos(theta / 3)
 
         root_1 = -2 * sqrt_mp_3 * c
