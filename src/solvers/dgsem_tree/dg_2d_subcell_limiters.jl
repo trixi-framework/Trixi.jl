@@ -1517,8 +1517,11 @@ end
                         var_minmax_element = min_or_max(var_minmax_element, var)
                     end
                     for j in eachnode(dg), i in eachnode(dg)
+                        var = variable(get_node_vars(u, equations, dg, i, j, element),
+                                       equations)
                         var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
                                                                           element],
+                                                               var,
                                                                var_minmax_element)
                     end
                 end
