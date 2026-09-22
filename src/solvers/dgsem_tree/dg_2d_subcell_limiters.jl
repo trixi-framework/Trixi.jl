@@ -143,7 +143,7 @@ end
                              dg, cache, boundary_conditions)
     # Compute local bounds
     calc_variable_bounds!(u, mesh, have_nonconservative_terms, equations, limiter,
-                          dg, cache)
+                          dg, cache, limiter.small_stencil)
 
     @threaded for element in eachelement(dg, cache)
         volume_integral_kernel!(du, u, element, typeof(mesh),
@@ -1365,14 +1365,13 @@ end
 end
 
 @inline function calc_variable_bounds!(u, mesh::AbstractMesh{2}, nonconservative_terms,
-                                       equations, limiter::SubcellLimiterIDP, dg, cache)
+                                       equations, limiter::SubcellLimiterIDP, dg, cache,
+                                       ::True)
     if limiter.bar_states == false
         return nothing
     end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; bar_states1, bar_states2) = limiter.cache.container_bar_states
-
-    (; small_stencil) = limiter
 
     # Local two-sided limiting for conservative variables
     if limiter.local_twosided
@@ -1386,65 +1385,32 @@ end
                     var_max[i, j, element] = typemin(eltype(var_max))
                 end
 
-                if small_stencil
-                    for j in eachnode(dg), i in eachnode(dg)
-                        var_min[i, j, element] = min(var_min[i, j, element],
-                                                     u[v, i, j, element])
-                        var_max[i, j, element] = max(var_max[i, j, element],
-                                                     u[v, i, j, element])
-                        # TODO: Add source term!
-                        # - xi direction
-                        var_min[i, j, element] = min(var_min[i, j, element],
-                                                     bar_states1[v, i, j, element])
-                        var_max[i, j, element] = max(var_max[i, j, element],
-                                                     bar_states1[v, i, j, element])
-                        # + xi direction
-                        var_min[i, j, element] = min(var_min[i, j, element],
-                                                     bar_states1[v, i + 1, j, element])
-                        var_max[i, j, element] = max(var_max[i, j, element],
-                                                     bar_states1[v, i + 1, j, element])
-                        # - eta direction
-                        var_min[i, j, element] = min(var_min[i, j, element],
-                                                     bar_states2[v, i, j, element])
-                        var_max[i, j, element] = max(var_max[i, j, element],
-                                                     bar_states2[v, i, j, element])
-                        # + eta direction
-                        var_min[i, j, element] = min(var_min[i, j, element],
-                                                     bar_states2[v, i, j + 1, element])
-                        var_max[i, j, element] = max(var_max[i, j, element],
-                                                     bar_states2[v, i, j + 1, element])
-                    end
-                else # small_stencil == false
-                    var_min_element = typemax(eltype(var_min))
-                    var_max_element = typemin(eltype(var_max))
-                    for j in eachnode(dg), i in eachnode(dg)
-                        var_min_element = min(var_min_element,
-                                              bar_states1[v, i, j, element])
-                        var_max_element = max(var_max_element,
-                                              bar_states1[v, i, j, element])
-                        var_min_element = min(var_min_element,
-                                              bar_states2[v, i, j, element])
-                        var_max_element = max(var_max_element,
-                                              bar_states2[v, i, j, element])
-                    end
-                    for i in eachnode(dg)
-                        var_min_element = min(var_min_element,
-                                              bar_states1[v, end, i, element])
-                        var_max_element = max(var_max_element,
-                                              bar_states1[v, end, i, element])
-                        var_min_element = min(var_min_element,
-                                              bar_states2[v, i, end, element])
-                        var_max_element = max(var_max_element,
-                                              bar_states2[v, i, end, element])
-                    end
-                    for j in eachnode(dg), i in eachnode(dg)
-                        var_min[i, j, element] = min(var_min[i, j, element],
-                                                     u[v, i, j, element],
-                                                     var_min_element)
-                        var_max[i, j, element] = max(var_max[i, j, element],
-                                                     u[v, i, j, element],
-                                                     var_max_element)
-                    end
+                for j in eachnode(dg), i in eachnode(dg)
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 u[v, i, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 u[v, i, j, element])
+                    # TODO: Add source term!
+                    # - xi direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states1[v, i, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states1[v, i, j, element])
+                    # + xi direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states1[v, i + 1, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states1[v, i + 1, j, element])
+                    # - eta direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states2[v, i, j, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states2[v, i, j, element])
+                    # + eta direction
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 bar_states2[v, i, j + 1, element])
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 bar_states2[v, i, j + 1, element])
                 end
             end
         end
@@ -1461,69 +1427,140 @@ end
                     var_minmax[i, j, element] = var
                     # TODO: Add source term!
                 end
-                if small_stencil
-                    # xi direction: subcell face between (i-1, j) and (i, j)
-                    for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
-                        var = variable(get_node_vars(bar_states1, equations, dg, i, j,
-                                                     element), equations)
-                        if i < nnodes(dg) + 1
-                            var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
-                                                                              element],
-                                                                   var)
-                        end
-                        if i > 1
-                            var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1,
-                                                                                  j,
-                                                                                  element],
-                                                                       var)
-                        end
-                    end
-                    # eta direction: subcell face between (i, j-1) and (i, j)
-                    for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
-                        var = variable(get_node_vars(bar_states2, equations, dg, i, j,
-                                                     element), equations)
-                        if j < nnodes(dg) + 1
-                            var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
-                                                                              element],
-                                                                   var)
-                        end
-                        if j > 1
-                            var_minmax[i, j - 1, element] = min_or_max(var_minmax[i,
-                                                                                  j - 1,
-                                                                                  element],
-                                                                       var)
-                        end
-                    end
-                else # small_stencil == false
-                    var_minmax_element = min_or_max === max ?
-                                         typemin(eltype(var_minmax)) :
-                                         typemax(eltype(var_minmax))
-                    for j in eachnode(dg), i in eachnode(dg)
-                        var = variable(get_node_vars(bar_states1, equations, dg, i, j,
-                                                     element), equations)
-                        var_minmax_element = min_or_max(var_minmax_element, var)
-                        var = variable(get_node_vars(bar_states2, equations, dg, i, j,
-                                                     element), equations)
-                        var_minmax_element = min_or_max(var_minmax_element, var)
-                    end
-                    for i in eachnode(dg)
-                        var = variable(get_node_vars(bar_states1, equations, dg,
-                                                     nnodes(dg) + 1, i,
-                                                     element), equations)
-                        var_minmax_element = min_or_max(var_minmax_element, var)
-                        var = variable(get_node_vars(bar_states2, equations, dg, i,
-                                                     nnodes(dg) + 1,
-                                                     element), equations)
-                        var_minmax_element = min_or_max(var_minmax_element, var)
-                    end
-                    for j in eachnode(dg), i in eachnode(dg)
-                        var = variable(get_node_vars(u, equations, dg, i, j, element),
-                                       equations)
+                # xi direction: subcell face between (i-1, j) and (i, j)
+                for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
+                    var = variable(get_node_vars(bar_states1, equations, dg, i, j,
+                                                 element), equations)
+                    if i < nnodes(dg) + 1
                         var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
                                                                           element],
-                                                               var,
-                                                               var_minmax_element)
+                                                               var)
                     end
+                    if i > 1
+                        var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1,
+                                                                              j,
+                                                                              element],
+                                                                   var)
+                    end
+                end
+                # eta direction: subcell face between (i, j-1) and (i, j)
+                for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
+                    var = variable(get_node_vars(bar_states2, equations, dg, i, j,
+                                                 element), equations)
+                    if j < nnodes(dg) + 1
+                        var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
+                                                                          element],
+                                                               var)
+                    end
+                    if j > 1
+                        var_minmax[i, j - 1, element] = min_or_max(var_minmax[i,
+                                                                              j - 1,
+                                                                              element],
+                                                                   var)
+                    end
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+@inline function calc_variable_bounds!(u, mesh::AbstractMesh{2}, nonconservative_terms,
+                                       equations, limiter::SubcellLimiterIDP, dg, cache,
+                                       ::False)
+    if limiter.bar_states == false
+        return nothing
+    end
+    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
+    (; bar_states1, bar_states2) = limiter.cache.container_bar_states
+
+    # Local two-sided limiting for conservative variables
+    if limiter.local_twosided
+        for v in limiter.local_twosided_variables_cons
+            v_string = string(v)
+            var_min = variable_bounds[Symbol(v_string, "_min")]
+            var_max = variable_bounds[Symbol(v_string, "_max")]
+            @threaded for element in eachelement(dg, cache)
+                for j in eachnode(dg), i in eachnode(dg)
+                    var_min[i, j, element] = typemax(eltype(var_min))
+                    var_max[i, j, element] = typemin(eltype(var_max))
+                end
+
+                var_min_element = typemax(eltype(var_min))
+                var_max_element = typemin(eltype(var_max))
+                for j in eachnode(dg), i in eachnode(dg)
+                    var_min_element = min(var_min_element,
+                                          bar_states1[v, i, j, element])
+                    var_max_element = max(var_max_element,
+                                          bar_states1[v, i, j, element])
+                    var_min_element = min(var_min_element,
+                                          bar_states2[v, i, j, element])
+                    var_max_element = max(var_max_element,
+                                          bar_states2[v, i, j, element])
+                end
+                for i in eachnode(dg)
+                    var_min_element = min(var_min_element,
+                                          bar_states1[v, end, i, element])
+                    var_max_element = max(var_max_element,
+                                          bar_states1[v, end, i, element])
+                    var_min_element = min(var_min_element,
+                                          bar_states2[v, i, end, element])
+                    var_max_element = max(var_max_element,
+                                          bar_states2[v, i, end, element])
+                end
+                for j in eachnode(dg), i in eachnode(dg)
+                    var_min[i, j, element] = min(var_min[i, j, element],
+                                                 u[v, i, j, element],
+                                                 var_min_element)
+                    var_max[i, j, element] = max(var_max[i, j, element],
+                                                 u[v, i, j, element],
+                                                 var_max_element)
+                end
+            end
+        end
+    end
+    # Local two-sided limiting for non-linear variables
+    if limiter.local_onesided
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+            var_minmax = variable_bounds[Symbol(string(variable), "_",
+                                                string(min_or_max))]
+            @threaded for element in eachelement(dg, cache)
+                for j in eachnode(dg), i in eachnode(dg)
+                    var = variable(get_node_vars(u, equations, dg, i, j, element),
+                                   equations)
+                    var_minmax[i, j, element] = var
+                    # TODO: Add source term!
+                end
+
+                var_minmax_element = min_or_max === max ?
+                                     typemin(eltype(var_minmax)) :
+                                     typemax(eltype(var_minmax))
+                for j in eachnode(dg), i in eachnode(dg)
+                    var = variable(get_node_vars(bar_states1, equations, dg, i, j,
+                                                 element), equations)
+                    var_minmax_element = min_or_max(var_minmax_element, var)
+                    var = variable(get_node_vars(bar_states2, equations, dg, i, j,
+                                                 element), equations)
+                    var_minmax_element = min_or_max(var_minmax_element, var)
+                end
+                for i in eachnode(dg)
+                    var = variable(get_node_vars(bar_states1, equations, dg,
+                                                 nnodes(dg) + 1, i,
+                                                 element), equations)
+                    var_minmax_element = min_or_max(var_minmax_element, var)
+                    var = variable(get_node_vars(bar_states2, equations, dg, i,
+                                                 nnodes(dg) + 1,
+                                                 element), equations)
+                    var_minmax_element = min_or_max(var_minmax_element, var)
+                end
+                for j in eachnode(dg), i in eachnode(dg)
+                    var = variable(get_node_vars(u, equations, dg, i, j, element),
+                                   equations)
+                    var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
+                                                                      element],
+                                                           var,
+                                                           var_minmax_element)
                 end
             end
         end
