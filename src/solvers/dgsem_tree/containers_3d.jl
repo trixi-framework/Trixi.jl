@@ -70,6 +70,23 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
                                                   _surface_flux_values)
 end
 
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::TreeElementContainer3D, equations, solver::DG, cache)
+    axes_correct = axes(elements.node_coordinates) == (Base.OneTo(ndims(equations)),
+                    eachnode(solver),
+                    eachnode(solver),
+                    eachnode(solver),
+            eachelement(solver,cache)) &&
+            axes(elements.inverse_jacobian) == (eachelement(solver,cache),) &&
+            axes(elements.cell_ids) == (eachelement(solver,cache),)
+    if !axes_correct
+        throw(DimensionMismatch())
+    end
+    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
+                                   cache)
+end
+
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh3D,
                        equations::AbstractEquations{3},

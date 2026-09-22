@@ -1529,6 +1529,7 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -1563,6 +1564,7 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
     @boundscheck begin
         check_axes(u, equations, dg, cache)
         check_axes(du, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
