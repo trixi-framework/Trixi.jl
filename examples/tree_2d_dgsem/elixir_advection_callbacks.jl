@@ -162,7 +162,7 @@ example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
 
 sol = solve(ode,
             CarpenterKennedy2N54(; stage_limiter! = example_stage_callback!,
-                                 williamson_condition = false);
+                                 williamson_condition = false, thread = Trixi.Threaded());
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 

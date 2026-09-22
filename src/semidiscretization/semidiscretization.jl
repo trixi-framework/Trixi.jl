@@ -135,6 +135,15 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         if flux_differencing_kernel === nothing
             flux_differencing_kernel = HalfSweep()
         end
+
+        volume_integral = semi.solver.volume_integral
+        if flux_differencing_kernel isa FullSweepGlobal &&
+           volume_integral isa VolumeIntegralFluxDifferencing &&
+           volume_integral.volume_flux isa FluxTurbo &&
+           have_nonconservative_terms(semi.equations) === True()
+            error("`FullSweepGlobal()` does not support `FluxTurbo` with nonconservative terms")
+        end
+        check_flux_differencing_shared_memory(flux_differencing_kernel, semi)
         @reset semi.cache = (; semi.cache..., flux_differencing_kernel)
     end
 
