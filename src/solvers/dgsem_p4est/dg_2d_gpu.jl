@@ -556,8 +556,7 @@ end
 end
 
 function prolong2mortars!(backend::Backend, cache, u,
-                          mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                      T8codeMesh{2}},
+                          mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                           equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM{<:LobattoLegendreBasis})
@@ -583,7 +582,6 @@ end
 
 @kernel function prolong2mortars_KAkernel!(backend, mortars_u, u,
                                            MeshT::Type{<:Union{P4estMesh{2},
-                                                               P4estMeshView{2},
                                                                T8codeMesh{2}}},
                                            equations,
                                            neighbor_ids, node_indices,
@@ -606,8 +604,7 @@ end
 
 function calc_mortar_flux!(backend::Backend,
                            surface_flux_values,
-                           mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                       T8codeMesh{2}},
+                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                            have_nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DGSEM, cache)
@@ -635,7 +632,6 @@ end
 
 @kernel function calc_mortar_flux_KAkernel!(backend, surface_flux_values,
                                             MeshT::Type{<:Union{P4estMesh{2},
-                                                                P4estMeshView{2},
                                                                 T8codeMesh{2}}},
                                             have_nonconservative_terms, equations,
                                             surface_flux, SolverT::Type{<:DGSEM},
