@@ -28,7 +28,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 # also works for every MPI rank). The `TRIXI_TEST` value of such a suite selects
 # the items via the equally-named tag; `threaded_legacy` reuses the `threaded`
 # items but is launched on a different Julia version by CI.
-const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions")
+const SPECIAL_PROCESS_SUITES = ("mpi", "threaded", "kernelabstractions",
+                                "kernelabstractions_mpi")
 const IN_WORKER = haskey(ENV, "TRIXI_TEST_RUN_ITEMS")
 
 # Remove Trixi's output directory `out`, where examples write solution/restart/mesh

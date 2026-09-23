@@ -205,7 +205,7 @@ end
     return nothing
 end
 
-function prolong2mpimortars!(cache, u,
+function prolong2mpimortars!(backend::Nothing, cache, u,
                              mesh::Union{P4estMeshParallel{2}, T8codeMeshParallel{2}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
