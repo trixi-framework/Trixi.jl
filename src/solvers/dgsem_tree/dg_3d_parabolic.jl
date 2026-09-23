@@ -40,8 +40,8 @@ function transform_variables!(u_transformed, u, mesh::Union{TreeMesh{3}, P4estMe
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 u_node = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
                 u_transformed_node = transformation(u_node, equations_parabolic)
-                set_node_vars!(u_transformed, u_transformed_node, equations_parabolic,
-                               dg,
+                set_node_vars!(u_transformed, u_transformed_node,
+                               equations_parabolic, dg,
                                i, j, k, element)
             end
         end
@@ -91,20 +91,20 @@ function calc_volume_integral!(du, flux_parabolic, mesh::TreeMesh{3},
 
                 for ii in eachnode(dg)
                     multiply_add_to_node_vars!(du, derivative_hat[ii, i], flux_1_node,
-                                               equations_parabolic, dg, ii, j, k,
-                                               element)
+                                               equations_parabolic, dg,
+                                               ii, j, k, element)
                 end
 
                 for jj in eachnode(dg)
                     multiply_add_to_node_vars!(du, derivative_hat[jj, j], flux_2_node,
-                                               equations_parabolic, dg, i, jj, k,
-                                               element)
+                                               equations_parabolic, dg,
+                                               i, jj, k, element)
                 end
 
                 for kk in eachnode(dg)
                     multiply_add_to_node_vars!(du, derivative_hat[kk, k], flux_3_node,
-                                               equations_parabolic, dg, i, j, kk,
-                                               element)
+                                               equations_parabolic, dg,
+                                               i, j, kk, element)
                 end
             end
         end
@@ -152,7 +152,8 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                                                                            j, k,
                                                                            left_element]
                     interfaces_u[2, v, j, k, interface] = flux_parabolic_x[v,
-                                                                           1, j, k,
+                                                                           1,
+                                                                           j, k,
                                                                            right_element]
                 end
             elseif orientations[interface] == 2
@@ -160,13 +161,13 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                 for k in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
 
-                    interfaces_u[1, v, i, k, interface] = flux_parabolic_y[v,
-                                                                           i,
+                    interfaces_u[1, v, i, k, interface] = flux_parabolic_y[v, i,
                                                                            nnodes(dg),
                                                                            k,
                                                                            left_element]
-                    interfaces_u[2, v, i, k, interface] = flux_parabolic_y[v,
-                                                                           i, 1, k,
+                    interfaces_u[2, v, i, k, interface] = flux_parabolic_y[v, i,
+                                                                           1,
+                                                                           k,
                                                                            right_element]
                 end
             else # if orientations[interface] == 3
@@ -174,12 +175,11 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
                 for j in eachnode(dg), i in eachnode(dg),
                     v in eachvariable(equations_parabolic)
 
-                    interfaces_u[1, v, i, j, interface] = flux_parabolic_z[v,
-                                                                           i, j,
+                    interfaces_u[1, v, i, j, interface] = flux_parabolic_z[v, i, j,
                                                                            nnodes(dg),
                                                                            left_element]
-                    interfaces_u[2, v, i, j, interface] = flux_parabolic_z[v,
-                                                                           i, j, 1,
+                    interfaces_u[2, v, i, j, interface] = flux_parabolic_z[v, i, j,
+                                                                           1,
                                                                            right_element]
                 end
             end
@@ -367,8 +367,8 @@ function calc_parabolic_fluxes!(flux_parabolic,
         @inbounds begin
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 # Get solution and gradients
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j, k,
-                                       element)
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, j, k, element)
                 gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
                                                  i, j, k, element)
                 gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
