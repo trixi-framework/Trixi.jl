@@ -570,7 +570,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{2}, equa
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
         check_axes(interfaces, equations, dg, cache)
-        checkbounds(boundary_interpolation, eachnode(dg), 1:2)
+        check_axes(boundary_interpolation, (eachnode(dg), Base.OneTo(2)))
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -779,7 +779,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
         check_axes(boundaries, equations, dg, cache)
-        checkbounds(boundary_interpolation, eachnode(dg), 1:2)
+        check_axes(boundary_interpolation, (eachnode(dg), Base.OneTo(2)))
     end
 
     @threaded for boundary in eachboundary(dg, cache)
@@ -1433,7 +1433,8 @@ function calc_surface_integral!(backend::Nothing, du, u,
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
-        checkbounds(boundary_interpolation_inverse_weights, eachnode(dg), 1:2)
+        check_axes(boundary_interpolation_inverse_weights,
+                   (eachnode(dg), Base.OneTo(2)))
     end
 
     @threaded for element in eachelement(dg, cache)
