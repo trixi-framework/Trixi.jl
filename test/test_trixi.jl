@@ -8,6 +8,9 @@ macro test_trixi_include(expr, args...)
         r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
         # NOTE: These warnings arose from Julia 1.10 onwards
         r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+        # Some elixirs use mesh files provided by TrixiData.jl. These are lazy
+        # artifacts that Pkg.jl downloads on demand, reporting the download.
+        r"(\e\[\d+m)* *(Downloading|Downloaded)(\e\[\d+m)* artifact: .+\n",
         # Warnings from third party packages
         r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
         r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",

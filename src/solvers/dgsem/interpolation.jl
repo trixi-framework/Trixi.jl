@@ -117,7 +117,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2},
     multiply_dimensionwise!(nothing, data_out, matrix, data_in)
 end
 
-# Version used on CPUs
+# CPU
 function multiply_dimensionwise!(backend::Nothing,
                                  data_out::AbstractArray{<:Any, 2},
                                  matrix::AbstractMatrix, data_in::AbstractArray{<:Any, 2})
@@ -133,17 +133,18 @@ function multiply_dimensionwise!(backend::Nothing,
     return nothing
 end
 
-# 1D GPU version
+# GPU
 function multiply_dimensionwise!(backend::Backend,
                                  data_out::AbstractArray{<:Any, 2},
                                  matrix::AbstractMatrix, data_in::AbstractArray{<:Any, 2})
-    for i in axes(data_out, 2), v in axes(data_out, 1)
-        res = zero(eltype(data_out))
-        for ii in axes(matrix, 2)
-            # res = res + ... to use muladd
-            @muladd res = res + matrix[i, ii] * data_in[v, ii]
+    @inbounds @simd ivdep for i in 1:size(data_out, 2)
+        for v in axes(data_out, 1)
+            res = zero(eltype(data_out))
+            for ii in axes(matrix, 2)
+                res += matrix[i, ii] * data_in[v, ii]
+            end
+            data_out[v, i] = res
         end
-        data_out[v, i] = res
     end
 
     return nothing
@@ -174,7 +175,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2},
     multiply_dimensionwise!(nothing, data_out, matrix1, data_in1, matrix2, data_in2)
 end
 
-# Version used on CPUs
+# CPU
 function multiply_dimensionwise!(backend::Nothing,
                                  data_out::AbstractArray{<:Any, 2},
                                  matrix1::AbstractMatrix, data_in1::AbstractArray{<:Any, 2},
@@ -203,26 +204,28 @@ function multiply_dimensionwise!(backend::Nothing,
     return nothing
 end
 
-# 1D GPU version, apply matrixJ to data_inJ
+# GPU
 function multiply_dimensionwise!(backend::Backend,
                                  data_out::AbstractArray{<:Any, 2},
                                  matrix1::AbstractMatrix, data_in1::AbstractArray{<:Any, 2},
                                  matrix2::AbstractMatrix, data_in2::AbstractArray{<:Any, 2})
-    for i in axes(data_out, 2), v in axes(data_out, 1)
-        res = zero(eltype(data_out))
-        for ii in axes(matrix1, 2)
-            # res = res + ... to use muladd
-            @muladd res = res + matrix1[i, ii] * data_in1[v, ii]
+    @inbounds @simd ivdep for i in 1:size(data_out, 2)
+        for v in axes(data_out, 1)
+            res = zero(eltype(data_out))
+            for ii in axes(matrix1, 2)
+                res += matrix1[i, ii] * data_in1[v, ii]
+            end
+            data_out[v, i] = res
         end
-        data_out[v, i] = res
     end
-    for i in axes(data_out, 2), v in axes(data_out, 1)
-        res = zero(eltype(data_out))
-        for ii in axes(matrix2, 2)
-            # res = res + ... to use muladd
-            @muladd res = res + matrix2[i, ii] * data_in2[v, ii]
+    @inbounds @simd ivdep for i in 1:size(data_out, 2)
+        for v in axes(data_out, 1)
+            res = zero(eltype(data_out))
+            for ii in axes(matrix2, 2)
+                res += matrix2[i, ii] * data_in2[v, ii]
+            end
+            data_out[v, i] += res
         end
-        data_out[v, i] += res
     end
 
     return nothing

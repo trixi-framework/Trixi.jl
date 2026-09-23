@@ -201,28 +201,17 @@ listed and discussed:
 ### VS Code
 [Visual Studio Code](https://code.visualstudio.com/) is a modern open source
 editor with [good support for Julia](https://github.com/julia-vscode/julia-vscode).
-While [Juno](#Juno) had some better support in the past, the developers of Juno
-and the Julia VS Code plugin are joining forces and concentrating on VS Code
-since support of Atom has been suspended. Basically, all comments on [Juno](#Juno)
-below also apply to VS Code.
-
-### Juno
 If you are new to programming or do not have a preference for a text editor
-yet, [Juno](https://junolab.org) is a good choice for developing Julia code.
-It is based on *Atom*, a sophisticated and widely used editor for software
-developers, and is enhanced with several Julia-specific features. Furthermore
-and especially helpful for novice programmers, it has a MATLAB-like
-appearance with easy and interactive access to the current variables, the
-help system, and a debugger.
+yet, [Visual Studio Code](https://code.visualstudio.com/) is a good choice.
 
 ### Vim or Emacs
 Vim and Emacs are both very popular editors that work great with Julia. One
 of their advantages is that they are text editors without a GUI and as such
 are available for almost any operating system. They also are preinstalled on
-virtually all Unix-like systems.  However, Vim and Emacs come with their own,
+virtually all Unix-like systems. However, Vim and Emacs come with their own,
 steep learning curve if they have never been used before. Therefore, if in doubt, it
 is probably easier to get started with a classic GUI-based text editor (like
-Juno). If you decide to use Vim or Emacs, make sure that you install the
+Visual Studio Code). If you decide to use Vim or Emacs, make sure that you install the
 corresponding Vim plugin
 [julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
 mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).

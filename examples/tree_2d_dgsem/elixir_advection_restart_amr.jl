@@ -4,7 +4,7 @@ using Accessors: @reset
 
 ###############################################################################
 # Define time integration algorithm
-alg = CarpenterKennedy2N54(williamson_condition = false)
+alg = CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.Threaded())
 # Create a restart file
 trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"), alg = alg,
               tspan = (0.0, 3.0))
