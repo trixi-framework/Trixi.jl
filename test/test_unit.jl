@@ -3076,6 +3076,21 @@ end
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
+@testitem "Unit: is_github_url" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The `GITHUB_TOKEN` used by `Trixi.download` must only be sent to GitHub
+    @test Trixi.is_github_url("https://github.com/trixi-framework/Trixi.jl")
+    @test Trixi.is_github_url("https://raw.githubusercontent.com/foo/bar/baz.txt")
+    @test Trixi.is_github_url("https://gist.githubusercontent.com/foo/bar/raw/baz.txt")
+    @test Trixi.is_github_url("http://GitHub.com:443/foo?a=b#c")
+
+    @test !Trixi.is_github_url("https://github.com@evil.com/foo")
+    @test !Trixi.is_github_url("https://gist.github.com.example.com/foo")
+    @test !Trixi.is_github_url("https://example.com/github.com/foo")
+    @test !Trixi.is_github_url("https://user@example.com/foo")
+    @test !Trixi.is_github_url("https://trixi-framework.github.io/assets/foo.txt")
+    @test !Trixi.is_github_url("/local/path/to/file.txt")
+end
+
 @testitem "Unit: PERK Single p2 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
@@ -4185,6 +4200,32 @@ end
     removed_kw = Symbol("n_cells", "_max")
     kwargs = (; initial_refinement_level = 1, removed_kw => 10)
     @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
+end
+
+@testitem "Unit: calc_depressed_cubic_roots three-root branch" setup=[Setup, UnitTests] tags=[
+    :misc_part1
+] begin
+    cubic_residual(p, q, m) = m^3 + p * m + q
+
+    @testset "p = -12, q = 10 (formerly acos domain error)" begin
+        p, q = -12.0, 10.0
+        n_roots, roots = Trixi.calc_depressed_cubic_roots(p, q)
+        @test n_roots == 3
+        @test all(isfinite, roots)
+        for i in 1:n_roots
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
+        end
+    end
+
+    @testset "p = -12, q = 3 (formerly large residuals)" begin
+        p, q = -12.0, 3.0
+        n_roots, roots = Trixi.calc_depressed_cubic_roots(p, q)
+        @test n_roots == 3
+        @test all(isfinite, roots)
+        for i in 1:n_roots
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
+        end
+    end
 end
 
 @testitem "Unit: Euler admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
