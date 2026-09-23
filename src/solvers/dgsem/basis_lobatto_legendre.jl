@@ -237,12 +237,40 @@ struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, NDIMS, LENGTH,
     # LENGTH = `2 * (NDIMS - 1) + 1`
     mortar_weights::Array{RealT, LENGTH}     # [node_i (large), node_j (large), node_i (small), node_j (small), small_element]
     mortar_weights_sums::Array{RealT, NDIMS} # [node_i, node_j, small (1) / large (2) element]
-    output_directory::String
 end
 
+"""
+    MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
+              pure_low_order = false)
+
+Mortar for nonconforming interfaces which is compatible with subcell IDP limiting. It is used
+together with [`VolumeIntegralSubcellLimiting`](@ref) and has to be passed the same
+[`SubcellLimiterIDP`](@ref) `limiter` as the volume integral.
+
+In addition to the standard L2-projected high-order mortar flux (see `MortarL2`), a low-order
+finite volume flux is computed at the nonconforming interface. Both fluxes are blended using a
+limiting factor `alpha` in `[0, 1]`,
+```
+f = alpha * f_low_order + (1 - alpha) * f_high_order,
+```
+where `alpha` is chosen as small as possible such that the bounds requested by `limiter` are still
+satisfied in all elements adjacent to the mortar. In contrast to the element-internal limiting,
+which uses one factor per subcell interface, a single factor is used for the whole mortar.
+
+Setting `pure_low_order = true` skips the computation of the limiting factor and the corresponding
+correction, such that the pure low-order finite volume flux (`alpha = 1`) is used at all
+nonconforming interfaces. This is mainly useful for debugging and comparisons.
+
+!!! note
+    Like [`SubcellLimiterIDP`](@ref), this mortar only works together with the correction callback
+    [`SubcellLimiterIDPCorrection`](@ref). Without the callback, no mortar correction takes place,
+    leading to pure low-order fluxes at nonconforming interfaces.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 function MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
-                   pure_low_order = false,
-                   output_directory = "out")
+                   pure_low_order = false)
     if !(limiter isa SubcellLimiterIDP)
         throw(ArgumentError("`MortarIDP` requires a `SubcellLimiterIDP`, got a `$(typeof(limiter))`."))
     end
@@ -261,8 +289,7 @@ function MortarIDP(equations, basis::LobattoLegendreBasis, limiter;
                                                 pure_low_order,
                                                 mortar_l2,
                                                 mortar_weights,
-                                                mortar_weights_sums,
-                                                output_directory)
+                                                mortar_weights_sums)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)

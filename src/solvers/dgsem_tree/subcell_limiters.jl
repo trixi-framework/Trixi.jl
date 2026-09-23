@@ -53,6 +53,17 @@ Local and global limiting of nonlinear variables uses a Newton-bisection method 
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
 where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
 
+Optionally, a smoothness `indicator` such as [`IndicatorHennemannGassner`](@ref) can be passed to
+restrict the local limiting to non-smooth regions. In that case, two blending factors are computed
+for every subcell interface: one using positivity limiting only and one using positivity *and*
+local limiting. Both are combined element-wise using the indicator value `alpha_ind` in `[0, 1]` as
+`alpha = (1 - alpha_ind) * alpha_positivity + alpha_ind * alpha_local`.
+Thus, local limiting acts with full strength only where the indicator marks an element as
+non-smooth, while the scheme falls back to pure positivity limiting in smooth regions. At mortars,
+the maximum indicator value of all adjacent elements is used.
+Note that with an `indicator` the local bounds are not enforced exactly anymore. Therefore, the
+computation of the deviations by [`BoundsCheckCallback`](@ref) are skipped.
+
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.

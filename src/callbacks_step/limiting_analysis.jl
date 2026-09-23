@@ -11,6 +11,9 @@
 Analyze the subcell blending coefficient of IDP limiting ([`SubcellLimiterIDP`](@ref)) in the last
 RK stage of every `interval` time steps. This contains a volume-weighted average of the node
 coefficients. The results are saved in `alphas.txt` in `output_directory`.
+
+When [`MortarIDP`](@ref) is used, the maximum and the size-weighted average mortar limiting factor
+are additionally saved in `mortar_limiting_factor.txt` in `output_directory`.
 """
 struct LimitingAnalysisCallback
     output_directory::String
@@ -75,6 +78,14 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t, integra
         println(f, "# iter, simu_time, alpha_max, alpha_avg")
     end
 
+    _, _, solver, _ = mesh_equations_solver_cache(integrator.p)
+    if solver.mortar isa LobattoLegendreMortarIDP
+        open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
+            println(f,
+                    "# iter, simu_time, limiting_factor_max, limiting_factor_avg")
+        end
+    end
+
     return nothing
 end
 
@@ -128,14 +139,12 @@ end
     # Provisional analysis of limiting factor
     if nmortars(cache.mortars) > 0 && dg.mortar isa LobattoLegendreMortarIDP
         (; limiting_factor) = cache.mortars
-        (; output_directory) = dg.mortar
         limiting_factor_avg = average_mortar_limiting_factor(limiting_factor, mesh,
                                                              dg, cache)
 
         open(joinpath(output_directory, "mortar_limiting_factor.txt"), "a") do f
-            print(f, time, ", ")
-            print(f, maximum(limiting_factor), ", ", limiting_factor_avg)
-            println(f)
+            println(f, iter, ", ", time, ", ", maximum(limiting_factor), ", ",
+                    limiting_factor_avg)
         end
     end
 end
