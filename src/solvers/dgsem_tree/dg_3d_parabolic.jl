@@ -272,8 +272,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
 
                         boundaries_u[1, v, j, k, boundary] = flux_parabolic_x[v,
                                                                               nnodes(dg),
-                                                                              j,
-                                                                              k,
+                                                                              j, k,
                                                                               element]
                     end
                 else # Element in +x direction of boundary
@@ -282,8 +281,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
 
                         boundaries_u[2, v, j, k, boundary] = flux_parabolic_x[v,
                                                                               1,
-                                                                              j,
-                                                                              k,
+                                                                              j, k,
                                                                               element]
                     end
                 end
@@ -294,8 +292,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                     for k in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations_parabolic)
 
-                        boundaries_u[1, v, i, k, boundary] = flux_parabolic_y[v,
-                                                                              i,
+                        boundaries_u[1, v, i, k, boundary] = flux_parabolic_y[v, i,
                                                                               nnodes(dg),
                                                                               k,
                                                                               element]
@@ -305,8 +302,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                     for k in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations_parabolic)
 
-                        boundaries_u[2, v, i, k, boundary] = flux_parabolic_y[v,
-                                                                              i,
+                        boundaries_u[2, v, i, k, boundary] = flux_parabolic_y[v, i,
                                                                               1,
                                                                               k,
                                                                               element]
@@ -319,9 +315,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                     for j in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations_parabolic)
 
-                        boundaries_u[1, v, i, j, boundary] = flux_parabolic_z[v,
-                                                                              i,
-                                                                              j,
+                        boundaries_u[1, v, i, j, boundary] = flux_parabolic_z[v, i, j,
                                                                               nnodes(dg),
                                                                               element]
                     end
@@ -330,9 +324,7 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
                     for j in eachnode(dg), i in eachnode(dg),
                         v in eachvariable(equations_parabolic)
 
-                        boundaries_u[2, v, i, j, boundary] = flux_parabolic_z[v,
-                                                                              i,
-                                                                              j,
+                        boundaries_u[2, v, i, j, boundary] = flux_parabolic_z[v, i, j,
                                                                               1,
                                                                               element]
                     end
@@ -1173,12 +1165,9 @@ function calc_surface_integral_gradient!(gradients,
                     # surface at -x
                     gradients_x[v, 1, l, m, element] = (gradients_x[v,
                                                                     1,
-                                                                    l,
-                                                                    m,
+                                                                    l, m,
                                                                     element] -
-                                                        surface_flux_values[v,
-                                                                            l,
-                                                                            m,
+                                                        surface_flux_values[v, l, m,
                                                                             1,
                                                                             element] *
                                                         factor)
@@ -1186,8 +1175,7 @@ function calc_surface_integral_gradient!(gradients,
                     # surface at +x
                     gradients_x[v, nnodes(dg), l, m, element] = (gradients_x[v,
                                                                              nnodes(dg),
-                                                                             l,
-                                                                             m,
+                                                                             l, m,
                                                                              element] +
                                                                  surface_flux_values[v,
                                                                                      l,
@@ -1197,21 +1185,17 @@ function calc_surface_integral_gradient!(gradients,
                                                                  factor)
 
                     # surface at -y
-                    gradients_y[v, l, 1, m, element] = (gradients_y[v,
-                                                                    l,
+                    gradients_y[v, l, 1, m, element] = (gradients_y[v, l,
                                                                     1,
                                                                     m,
                                                                     element] -
-                                                        surface_flux_values[v,
-                                                                            l,
-                                                                            m,
+                                                        surface_flux_values[v, l, m,
                                                                             3,
                                                                             element] *
                                                         factor)
 
                     # surface at +y
-                    gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v,
-                                                                             l,
+                    gradients_y[v, l, nnodes(dg), m, element] = (gradients_y[v, l,
                                                                              nnodes(dg),
                                                                              m,
                                                                              element] +
@@ -1223,22 +1207,16 @@ function calc_surface_integral_gradient!(gradients,
                                                                  factor)
 
                     # surface at -z
-                    gradients_z[v, l, m, 1, element] = (gradients_z[v,
-                                                                    l,
-                                                                    m,
+                    gradients_z[v, l, m, 1, element] = (gradients_z[v, l, m,
                                                                     1,
                                                                     element] -
-                                                        surface_flux_values[v,
-                                                                            l,
-                                                                            m,
+                                                        surface_flux_values[v, l, m,
                                                                             5,
                                                                             element] *
                                                         factor)
 
                     # surface at +z
-                    gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v,
-                                                                             l,
-                                                                             m,
+                    gradients_z[v, l, m, nnodes(dg), element] = (gradients_z[v, l, m,
                                                                              nnodes(dg),
                                                                              element] +
                                                                  surface_flux_values[v,
@@ -1338,8 +1316,8 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                           i, j, k, element)
                 du_local = source_terms_parabolic(u_local, gradients_local, x_local, t,
                                                   equations_parabolic)
-                add_to_node_vars!(du, du_local, equations_parabolic, dg, i, j, k,
-                                  element)
+                add_to_node_vars!(du, du_local, equations_parabolic, dg,
+                                  i, j, k, element)
             end
         end
     end
