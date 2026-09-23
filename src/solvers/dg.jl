@@ -972,38 +972,18 @@ end
 
 # Check whether the array `u` has the axes we assume it must have in the inner loops
 # of Trixi.jl.
-@inline function check_axes(u::AbstractArray, equations::AbstractEquations{1},
-                            solver::DG, cache)
-    axes_correct = axes(u) == (eachvariable(equations),
-                    eachnode(solver),
-                    eachelement(solver, cache))
-    if !axes_correct
-        throw(DimensionMismatch())
-    end
-end
+@inline check_axes(u, mesh, equations, solver, cache) = check_axes(u, Val(ndims(mesh)),
+                                                                   equations, solver,
+                                                                   cache)
 
-@inline function check_axes(u::AbstractArray, equations::AbstractEquations{2},
-                            solver::DG, cache)
+@inline function check_axes(u, ::Val{NDIMS}, equations, solver,
+                            cache) where {NDIMS}
     axes_correct = axes(u) == (eachvariable(equations),
-                    eachnode(solver),
-                    eachnode(solver),
-                    eachelement(solver, cache))
-    if !axes_correct
-        throw(DimensionMismatch())
-    end
-end
-
-@inline function check_axes(u::AbstractArray, equations::AbstractEquations{3},
-                            solver::DG, cache)
-    axes_correct = axes(u) == (eachvariable(equations),
-                    eachnode(solver),
-                    eachnode(solver),
-                    eachnode(solver),
+                    ntuple(_ -> eachnode(solver), NDIMS)...,
                     eachelement(solver, cache))
 
-    if !axes_correct
-        throw(DimensionMismatch())
-    end
+    axes_correct || throw(DimensionMismatch())
+    return nothing
 end
 
 # Check whether the array `surface_flux_values` has the axes we assume it must have in the inner loops

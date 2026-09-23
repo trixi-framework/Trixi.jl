@@ -185,8 +185,8 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     # We explicitly check whether the input arrays have the assumed sizes so
     # that we can use `@inbounds` below to improve the performance.
     @boundscheck begin
-        check_axes(u, equations, dg, cache)
-        check_axes(du, equations, dg, cache)
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
     end
 
     MeshT = typeof(mesh)

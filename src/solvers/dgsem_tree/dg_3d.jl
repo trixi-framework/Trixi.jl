@@ -542,7 +542,7 @@ function prolong2interfaces!(backend::Nothing, cache, u, mesh::TreeMesh{3}, equa
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes(u, equations, dg, cache)
+        check_axes(u, mesh, equations, dg, cache)
         check_axes(interfaces, equations, dg, cache)
     end
 
@@ -687,7 +687,7 @@ function prolong2boundaries!(backend::Nothing, cache, u,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes(u, equations, dg, cache)
+        check_axes(u, mesh, equations, dg, cache)
         check_axes(boundaries, equations, dg, cache)
     end
 
@@ -840,7 +840,7 @@ function prolong2mortars!(cache, u,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes(u, equations, dg, cache)
+        check_axes(u, mesh, equations, dg, cache)
         check_axes(cache.mortars, equations, dg, cache)
     end
 
@@ -1468,7 +1468,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes(du, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
     end
 
@@ -1528,7 +1528,7 @@ function apply_jacobian!(backend::Nothing, du, mesh::TreeMesh{3},
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes(du, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
     end
 
@@ -1562,8 +1562,8 @@ function calc_sources!(backend::Nothing, du, u, t, source_terms,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        check_axes(u, equations, dg, cache)
-        check_axes(du, equations, dg, cache)
+        check_axes(u, Val(3), equations, dg, cache)
+        check_axes(du, Val(3), equations, dg, cache)
         check_axes(cache.elements, equations, dg, cache)
     end
 
