@@ -90,7 +90,7 @@ global_limiter! = PositivityPreservingLimiterLiuZhang(local_limiter!, semi;
 
 ode_solver = CarpenterKennedy2N54(; stage_limiter! = global_limiter!,
                                   step_limiter! = global_limiter!,
-                                  williamson_condition = false)
+                                  williamson_condition = false, thread = Trixi.Threaded())
 
 sol = solve(ode, ode_solver;
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
