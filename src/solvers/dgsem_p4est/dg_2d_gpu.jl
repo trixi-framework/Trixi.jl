@@ -652,15 +652,14 @@ end
                                                                     RealType}
     mortar = @index(Global)
 
-    fstar_primary = [MArray{Tuple{NVARS, _nnodes}, RealType}(undef),
-        MArray{Tuple{NVARS, _nnodes}, RealType}(undef)]
-    fstar_secondary = [MArray{Tuple{NVARS, _nnodes}, RealType}(undef),
-        MArray{Tuple{NVARS, _nnodes}, RealType}(undef)]
+    fstar_primary = (MArray{Tuple{NVARS, _nnodes}, RealType}(undef),
+                     MArray{Tuple{NVARS, _nnodes}, RealType}(undef))
+    fstar_secondary = (MArray{Tuple{NVARS, _nnodes}, RealType}(undef),
+                       MArray{Tuple{NVARS, _nnodes}, RealType}(undef))
     u_buffer = MArray{Tuple{NVARS, _nnodes}, RealType}(undef)
 
-    # Warning: creating tuples like (fstar_p1, fstar_p2), as done in the CPU case, results
-    # in non-constant tuple indexing on the GPU later on, which can cause illegal memory
-    # access!
+    # Warning: creating such tuples, as done in the CPU case, may result in non-constant
+    # tuple indexing on the GPU later on, which can cause illegal memory access!
 
     calc_mortar_flux_per_mortar!(backend, mortar, surface_flux_values, MeshT,
                                  have_nonconservative_terms, equations, surface_flux,
