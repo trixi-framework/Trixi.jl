@@ -10,11 +10,12 @@ function prolong2mpiinterfaces!(backend::Nothing, cache, u,
                                             T8codeMeshParallel{2}},
                                 equations, surface_integral, dg::DG)
     @unpack local_sides, local_neighbor_ids, node_indices = cache.mpi_interfaces
+    mpi_interfaces_u = cache.mpi_interfaces.u
     index_range = eachnode(dg)
     variables_range = eachvariable(equations)
 
     @threaded for interface in eachmpiinterface(dg, cache)
-        prolong2mpiinterfaces_per_interface!(cache.mpi_interfaces.u, interface,
+        prolong2mpiinterfaces_per_interface!(mpi_interfaces_u, interface,
                                              local_sides, local_neighbor_ids,
                                              node_indices,
                                              index_range, variables_range, u)
