@@ -4202,6 +4202,32 @@ end
     @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
+@testitem "Unit: calc_depressed_cubic_roots three-root branch" setup=[Setup, UnitTests] tags=[
+    :misc_part1
+] begin
+    cubic_residual(p, q, m) = m^3 + p * m + q
+
+    @testset "p = -12, q = 10 (formerly acos domain error)" begin
+        p, q = -12.0, 10.0
+        n_roots, roots = Trixi.calc_depressed_cubic_roots(p, q)
+        @test n_roots == 3
+        @test all(isfinite, roots)
+        for i in 1:n_roots
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
+        end
+    end
+
+    @testset "p = -12, q = 3 (formerly large residuals)" begin
+        p, q = -12.0, 3.0
+        n_roots, roots = Trixi.calc_depressed_cubic_roots(p, q)
+        @test n_roots == 3
+        @test all(isfinite, roots)
+        for i in 1:n_roots
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
+        end
+    end
+end
+
 @testitem "Unit: Euler admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
     Setup,
     UnitTests
