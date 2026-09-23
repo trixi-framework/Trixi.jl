@@ -46,13 +46,17 @@ function rhs_hyperbolic!(backend::Backend,
                             dg.surface_integral, dg)
     end
 
-    # Prolong solution to mortars and calculate flux
-    @trixi_timeit_ext backend timer() "prolong2mortars + flux" begin
-        prolong2mortars_and_calc_mortar_flux!(backend,
-                                              cache.elements.surface_flux_values,
-                                              u, mesh,
-                                              have_nonconservative_terms(equations),
-                                              equations, dg.mortar, dg, cache)
+    # Prolong solution to mortars
+    @trixi_timeit_ext backend timer() "prolong2mortars" begin
+        prolong2mortars!(backend, cache, u, mesh, equations,
+                         dg.mortar, dg)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit_ext backend timer() "mortar flux" begin
+        calc_mortar_flux!(backend, cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals, apply Jacobian from mapping to reference element
@@ -66,6 +70,22 @@ function rhs_hyperbolic!(backend::Backend,
     end
 
     return nothing
+end
+
+# For GPU backends mortars are not yet implemented
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMeshView{2}, P4estMesh{3}, T8codeMesh{3}},
+                          equations, mortar, dg)
+    @assert isempty(eachmortar(dg, cache))
+    return nothing
+end
+
+# For GPU backends mortars are not yet implemented
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
+                           mesh::Union{P4estMeshView{2}, P4estMesh{3}, T8codeMesh{3}},
+                           have_nonconservative_terms, equations, mortar,
+                           surface_integral, dg, cache)
+    @assert isempty(eachmortar(dg, cache))
 end
 
 function prolong2interfaces_and_calc_interface_flux!(backend::Backend,
@@ -459,66 +479,41 @@ end
     return nothing
 end
 
-function prolong2mortars_and_calc_mortar_flux!(backend::Backend, surface_flux_values, u,
-                                               mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                               have_nonconservative_terms, equations,
-                                               mortar_l2::LobattoLegendreMortarL2,
-                                               dg::DGSEM{<:LobattoLegendreBasis}, cache)
+function prolong2mortars!(backend::Backend, cache, u,
+                          mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                          equations,
+                          mortar_l2::LobattoLegendreMortarL2,
+                          dg::DGSEM{<:LobattoLegendreBasis})
     nmortars(dg, cache) == 0 && return nothing
 
     @unpack neighbor_ids, node_indices = cache.mortars
-    @unpack contravariant_vectors = cache.elements
-    @unpack surface_flux = dg.surface_integral
 
     index_range = eachnode(dg)
     nvars = nvariables(equations)
 
-    kernel! = prolong2mortars_and_calc_mortar_flux_KAkernel!(backend)
-    kernel!(cache.mortars.u, surface_flux_values, u, typeof(mesh),
-            have_nonconservative_terms, equations,
-            surface_flux, typeof(dg),
-            neighbor_ids, node_indices, contravariant_vectors,
+    kernel! = prolong2mortars_KAkernel!(backend)
+    kernel!(cache.mortars.u, u, typeof(mesh),
+            neighbor_ids, node_indices,
             mortar_l2.forward_lower, mortar_l2.forward_upper,
-            mortar_l2.reverse_lower, mortar_l2.reverse_upper,
             index_range, Val(nvars),
             ndrange = (nnodes(dg), nmortars(dg, cache)))
 
     return nothing
 end
 
-@kernel function prolong2mortars_and_calc_mortar_flux_KAkernel!(mortars_u,
-                                                                surface_flux_values, u,
-                                                                MeshT::Type{<:Union{P4estMesh{2},
-                                                                                    T8codeMesh{2}}},
-                                                                have_nonconservative_terms,
-                                                                equations,
-                                                                surface_flux, SolverT,
-                                                                neighbor_ids,
-                                                                node_indices,
-                                                                contravariant_vectors,
-                                                                forward_lower,
-                                                                forward_upper,
-                                                                reverse_lower,
-                                                                reverse_upper,
-                                                                index_range,
-                                                                val_vars::Val{nvars}) where {nvars}
+@kernel function prolong2mortars_KAkernel!(mortars_u, u,
+                                           MeshT::Type{<:Union{P4estMesh{2},
+                                                               T8codeMesh{2}}},
+                                           neighbor_ids,
+                                           node_indices,
+                                           forward_lower,
+                                           forward_upper,
+                                           index_range,
+                                           val_vars::Val{nvars}) where {nvars}
     node, mortar = @index(Global, NTuple)
 
     prolong2mortars_per_node!(mortars_u, u, neighbor_ids, node_indices, forward_lower,
                               forward_upper, node, mortar, index_range, val_vars)
-
-    calc_mortar_flux_small_per_node!(surface_flux_values, MeshT,
-                                     have_nonconservative_terms, equations,
-                                     surface_flux, SolverT, neighbor_ids, node_indices,
-                                     contravariant_vectors, mortars_u,
-                                     index_range, mortar, node, val_vars)
-
-    calc_mortar_flux_large_per_node!(surface_flux_values, MeshT,
-                                     have_nonconservative_terms, equations,
-                                     surface_flux, SolverT, neighbor_ids, node_indices,
-                                     contravariant_vectors, mortars_u,
-                                     reverse_lower, reverse_upper,
-                                     index_range, mortar, node, val_vars)
 end
 
 @inline function prolong2mortars_per_node!(mortars_u,
@@ -560,12 +555,68 @@ end
             i_large = i_large_start + (ii - 1) * i_large_step
             j_large = j_large_start + (ii - 1) * j_large_step
             res_lower += forward_lower[node, ii] * u[v, i_large, j_large, element]
-            res_lower += forward_upper[node, ii] * u[v, i_large, j_large, element]
+            res_upper += forward_upper[node, ii] * u[v, i_large, j_large, element]
         end
         mortars_u[2, v, 1, node, mortar] = res_lower
         mortars_u[2, v, 2, node, mortar] = res_upper
     end
     return nothing
+end
+
+function calc_mortar_flux!(backend::Backend, surface_flux_values,
+                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                           have_nonconservative_terms, equations,
+                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                           dg::DGSEM{<:LobattoLegendreBasis}, cache)
+    nmortars(dg, cache) == 0 && return nothing
+
+    @unpack neighbor_ids, node_indices = cache.mortars
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    index_range = eachnode(dg)
+    nvars = nvariables(equations)
+
+    kernel! = calc_mortar_flux_KAkernel!(backend)
+    kernel!(cache.mortars.u, surface_flux_values, typeof(mesh),
+            have_nonconservative_terms, equations,
+            surface_flux, typeof(dg),
+            neighbor_ids, node_indices, contravariant_vectors,
+            mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+            index_range, Val(nvars),
+            ndrange = (nnodes(dg), nmortars(dg, cache)))
+
+    return nothing
+end
+
+@kernel function calc_mortar_flux_KAkernel!(mortars_u,
+                                            surface_flux_values,
+                                            MeshT::Type{<:Union{P4estMesh{2},
+                                                                T8codeMesh{2}}},
+                                            have_nonconservative_terms,
+                                            equations,
+                                            surface_flux, SolverT,
+                                            neighbor_ids,
+                                            node_indices,
+                                            contravariant_vectors,
+                                            reverse_lower,
+                                            reverse_upper,
+                                            index_range,
+                                            val_vars::Val{nvars}) where {nvars}
+    node, mortar = @index(Global, NTuple)
+
+    calc_mortar_flux_small_per_node!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_flux, SolverT, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortars_u,
+                                     index_range, mortar, node, val_vars)
+
+    calc_mortar_flux_large_per_node!(surface_flux_values, MeshT,
+                                     have_nonconservative_terms, equations,
+                                     surface_flux, SolverT, neighbor_ids, node_indices,
+                                     contravariant_vectors, mortars_u,
+                                     reverse_lower, reverse_upper,
+                                     index_range, mortar, node, val_vars)
 end
 
 @inline function calc_mortar_flux_small_per_node!(surface_flux_values,
@@ -672,7 +723,7 @@ end
                                                      SolverT, mortars_u,
                                                      mortar, 1,
                                                      normal_direction_lower,
-                                                     node)
+                                                     ii)
         _, fstar_secondary_upper = calc_mortar_flux!(MeshT,
                                                      have_nonconservative_terms,
                                                      combine_conservative_and_nonconservative_fluxes(surface_flux,
@@ -682,7 +733,7 @@ end
                                                      SolverT, mortars_u,
                                                      mortar, 2,
                                                      normal_direction_upper,
-                                                     node)
+                                                     ii)
         # The flux is calculated in the outward direction of the small elements,
         # so the sign must be switched to get the flux in outward direction
         # of the large element.
@@ -736,7 +787,7 @@ end
 
     # Compute combined fluxes
     flux_left, flux_right = surface_flux(u_ll, u_rr, normal_direction, equations)
-    return flux_left, -flux_right
+    return flux_left, flux_right
 end
 
 function calc_surface_integral_and_apply_jacobian_and_calc_sources!(backend::Backend,
