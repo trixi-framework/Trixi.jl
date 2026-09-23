@@ -4308,15 +4308,16 @@ end
                                  "elixir_euler_source_terms.jl"), maxiters=1)
 
     @testset "TreeMesh{1}" begin
-        _, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
         u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
 
-        @test Trixi.check_axes(u, equations, dg, cache) === nothing
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
 
         u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
         u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
-        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, equations, dg, cache)
-        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, equations, dg,
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
                                                         cache)
     end
 
@@ -4324,15 +4325,16 @@ end
                                  "elixir_euler_source_terms.jl"), maxiters=1)
 
     @testset "TreeMesh{2}" begin
-        _, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
         u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
 
-        @test Trixi.check_axes(u, equations, dg, cache) === nothing
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
 
         u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
         u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
-        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, equations, dg, cache)
-        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, equations, dg,
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
                                                         cache)
     end
 
@@ -4340,10 +4342,10 @@ end
                                  "elixir_euler_mortar.jl"), maxiters=1)
 
     @testset "TreeMesh{3}" begin
-        _, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
         u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
 
-        @test Trixi.check_axes(u, equations, dg, cache) === nothing
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
         @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
         @test Trixi.check_axes(cache.interfaces, equations, dg, cache) === nothing
         @test Trixi.check_axes(cache.boundaries, equations, dg, cache) === nothing
@@ -4353,8 +4355,9 @@ end
 
         u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
         u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
-        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, equations, dg, cache)
-        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, equations, dg,
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
                                                         cache)
     end
 end

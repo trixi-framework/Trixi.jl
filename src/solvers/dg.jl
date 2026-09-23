@@ -972,9 +972,9 @@ end
 
 # Check whether the array `u` has the axes we assume it must have in the inner loops
 # of Trixi.jl.
-@inline check_axes(u, mesh, equations, solver, cache) = check_axes(u, Val(ndims(mesh)),
-                                                                   equations, solver,
-                                                                   cache)
+@inline function check_axes(u, mesh::AbstractMesh, equations, solver, cache)
+    check_axes(u, Val(ndims(mesh)), equations, solver, cache)
+end
 
 @inline function check_axes(u, ::Val{NDIMS}, equations, solver,
                             cache) where {NDIMS}
