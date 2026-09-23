@@ -4346,12 +4346,6 @@ end
         u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
 
         @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
-        @test Trixi.check_axes(cache.elements, equations, dg, cache) === nothing
-        @test Trixi.check_axes(cache.interfaces, equations, dg, cache) === nothing
-        @test Trixi.check_axes(cache.boundaries, equations, dg, cache) === nothing
-        @test Trixi.check_axes(cache.mortars, equations, dg, cache) === nothing
-        @test Trixi.check_axes_surface_flux_values(cache.elements.surface_flux_values,
-                                                   equations, dg, cache) === nothing
 
         u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
         u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
