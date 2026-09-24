@@ -1,4 +1,5 @@
 using Trixi
+using TrixiData # for the mesh file
 using OrdinaryDiffEqSSPRK
 using LinearAlgebra: norm
 
@@ -91,10 +92,8 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 # The base mesh is available at
 # https://gitlab.com/hisa/hisa/-/blob/master/examples/oneraM6/mesh/p3dMesh/m6wing.msh?ref_type=heads
 #
-# The sanitized, i.e., higher-order ready mesh was subsequently created by Daniel Doehring
-# and is available at
-mesh_file = Trixi.download("https://github.com/DanielDoehring/AerodynamicMeshes/raw/refs/heads/main/ONERA_M6_Wing/ONERA_M6_Wing_sanitized.inp",
-                           joinpath(@__DIR__, "ONERA_M6_sanitized.inp"))
+# The sanitized, i.e., higher-order ready mesh was subsequently created by Daniel Doehring.
+mesh_file = mesh_onera_m6_wing()
 
 # Boundary symbols follow from nodesets in the mesh file
 boundary_symbols = [:Symmetry, :FarField, :BottomWing, :TopWing]

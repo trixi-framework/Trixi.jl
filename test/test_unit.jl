@@ -3153,6 +3153,21 @@ end
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
+@testitem "Unit: is_github_url" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    # The `GITHUB_TOKEN` used by `Trixi.download` must only be sent to GitHub
+    @test Trixi.is_github_url("https://github.com/trixi-framework/Trixi.jl")
+    @test Trixi.is_github_url("https://raw.githubusercontent.com/foo/bar/baz.txt")
+    @test Trixi.is_github_url("https://gist.githubusercontent.com/foo/bar/raw/baz.txt")
+    @test Trixi.is_github_url("http://GitHub.com:443/foo?a=b#c")
+
+    @test !Trixi.is_github_url("https://github.com@evil.com/foo")
+    @test !Trixi.is_github_url("https://gist.github.com.example.com/foo")
+    @test !Trixi.is_github_url("https://example.com/github.com/foo")
+    @test !Trixi.is_github_url("https://user@example.com/foo")
+    @test !Trixi.is_github_url("https://trixi-framework.github.io/assets/foo.txt")
+    @test !Trixi.is_github_url("/local/path/to/file.txt")
+end
+
 @testitem "Unit: PERK Single p2 Constructors" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
@@ -4264,6 +4279,32 @@ end
     @test_throws MethodError TreeMesh((-1.0,), (1.0,); kwargs...)
 end
 
+@testitem "Unit: calc_depressed_cubic_roots three-root branch" setup=[Setup, UnitTests] tags=[
+    :misc_part1
+] begin
+    cubic_residual(p, q, m) = m^3 + p * m + q
+
+    @testset "p = -12, q = 10 (formerly acos domain error)" begin
+        p, q = -12.0, 10.0
+        n_roots, roots = Trixi.calc_depressed_cubic_roots(p, q)
+        @test n_roots == 3
+        @test all(isfinite, roots)
+        for i in 1:n_roots
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
+        end
+    end
+
+    @testset "p = -12, q = 3 (formerly large residuals)" begin
+        p, q = -12.0, 3.0
+        n_roots, roots = Trixi.calc_depressed_cubic_roots(p, q)
+        @test n_roots == 3
+        @test all(isfinite, roots)
+        for i in 1:n_roots
+            @test cubic_residual(p, q, roots[i])≈0.0 atol=1.0e-12 rtol=1.0e-12
+        end
+    end
+end
+
 @testitem "Unit: Euler admissible projection for PositivityPreservingLimiterLiuZhang" setup=[
     Setup,
     UnitTests
@@ -4336,5 +4377,88 @@ end
         @test u_proj[3]≈3.05456167498393e-9 rtol=1e-12
         @test u_proj[4]≈2.5000000028466725e-8 rtol=1e-12
         @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
+    end
+end
+
+@testitem "Unit: check_axes with explicit axes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    A = zeros(2, 3)
+    @test Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(3))) === nothing
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(4)))
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2),))
+    # The error message reports both the axes found and the axes expected
+    err = try
+        Trixi.check_axes(A, (Base.OneTo(3), Base.OneTo(3)))
+    catch e
+        e
+    end
+    @test err isa DimensionMismatch
+    @test occursin(string(axes(A)), err.msg)
+    @test occursin(string((Base.OneTo(3), Base.OneTo(3))), err.msg)
+end
+
+@testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_euler_source_terms.jl"), maxiters=1)
+
+    @testset "TreeMesh{1}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_euler_source_terms.jl"), maxiters=1)
+
+    @testset "TreeMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_euler_mortar.jl"), maxiters=1)
+
+    @testset "TreeMesh{3}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
     end
 end
