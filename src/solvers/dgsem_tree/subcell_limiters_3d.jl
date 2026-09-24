@@ -640,14 +640,16 @@ end
     (; inverse_weights) = dg.basis # Plays role of inverse DG-subcell sizes
     (; antidiffusive_flux1_L, antidiffusive_flux1_R, antidiffusive_flux2_L, antidiffusive_flux2_R, antidiffusive_flux3_L, antidiffusive_flux3_R) = cache.antidiffusive_fluxes
 
-    (; gamma_constant_newton) = limiter
-
     indices = (i, j, k, element)
     isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
 
+    # See the 2D version for an explanation.
+    gamma = min(limiter.gamma_constant_newton,
+                n_antidiffusive_contributions(i, j, k, element, dg))
+
     # negative xi direction
     if i > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = gamma * inverse_jacobian *
                              inverse_weights[i] *
                              get_node_vars(antidiffusive_flux1_R, equations, dg,
                                            i, j, k, element)
@@ -659,7 +661,7 @@ end
 
     # positive xi direction
     if i < nnodes(dg)
-        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = -gamma * inverse_jacobian *
                              inverse_weights[i] *
                              get_node_vars(antidiffusive_flux1_L, equations, dg,
                                            i + 1, j, k, element)
@@ -671,7 +673,7 @@ end
 
     # negative eta direction
     if j > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = gamma * inverse_jacobian *
                              inverse_weights[j] *
                              get_node_vars(antidiffusive_flux2_R, equations, dg,
                                            i, j, k, element)
@@ -683,7 +685,7 @@ end
 
     # positive eta direction
     if j < nnodes(dg)
-        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = -gamma * inverse_jacobian *
                              inverse_weights[j] *
                              get_node_vars(antidiffusive_flux2_L, equations, dg,
                                            i, j + 1, k, element)
@@ -695,7 +697,7 @@ end
 
     # negative zeta direction
     if k > 1
-        antidiffusive_flux = gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = gamma * inverse_jacobian *
                              inverse_weights[k] *
                              get_node_vars(antidiffusive_flux3_R, equations, dg,
                                            i, j, k, element)
@@ -707,7 +709,7 @@ end
 
     # positive zeta direction
     if k < nnodes(dg)
-        antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
+        antidiffusive_flux = -gamma * inverse_jacobian *
                              inverse_weights[k] *
                              get_node_vars(antidiffusive_flux3_L, equations, dg,
                                            i, j, k + 1, element)
@@ -718,4 +720,14 @@ end
 
     return nothing
 end
+
+# See the 2D version for an explanation.
+@inline function n_antidiffusive_contributions(i, j, k, element, dg)
+    n_subcell_interfaces = (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg)) +
+                           (k > 1) + (k < nnodes(dg))
+
+    return n_subcell_interfaces +
+           n_mortar_contributions(dg.mortar, i, j, k, element, dg)
+end
+@inline n_mortar_contributions(mortar, i, j, k, element, dg) = 0
 end # @muladd

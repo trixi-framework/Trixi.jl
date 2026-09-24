@@ -23,6 +23,7 @@ end
                       positivity_variables_nonlinear = [],
                       positivity_correction_factor = 0.1,
                       local_onesided_variables_nonlinear = [],
+                      indicator = nothing,
                       bar_states = false,
                       max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
@@ -52,6 +53,10 @@ Local and global limiting of nonlinear variables uses a Newton-bisection method 
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
 where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
+For every node, this constant is reduced to the number of antidiffusive fluxes actually contributing
+to its update. That number is smaller than `2*d` at nodes adjacent to an element boundary across
+which the flux is not limited. The update then still is a convex combination of provisional states,
+such that the bounds are preserved, but it is limited less than with the uniform constant.
 
 Optionally, a smoothness `indicator` such as [`IndicatorHennemannGassner`](@ref) can be passed to
 restrict the local limiting to non-smooth regions. In that case, two blending factors are computed
