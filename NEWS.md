@@ -28,7 +28,7 @@ for human readability.
   `FullSweepGlobal` ([#3206]).
 - Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
   which substitutes `@inline` to correctly propagate inbounds access for
-  - `TreeMesh1D` ([#3267])
+  - `TreeMesh1D` ([#3267], [#3268])
   - `TreeMesh2D` ([#3262], [#3266])
   - `TreeMesh3D` ([#3208], [#3263])
 
