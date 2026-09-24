@@ -673,7 +673,7 @@ end
 end
 
 @testitem "Unit: DG IDP mortar container debug output" setup=[Setup, UnitTests] tags=[:misc_part1] begin
-    c2d = Trixi.IDPMortarContainer2D{Float64}(1, 1, 1)
+    c2d = Trixi.TreeIDPMortarContainer2D{Float64}(1, 1, 1)
     @test isnothing(display(c2d))
 end
 

@@ -735,7 +735,8 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractTreeL2MortarContainer
+mutable struct TreeIDPMortarContainer2D{uEltype <: Real} <:
+               AbstractTreeL2MortarContainer
     u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_large::Array{uEltype, 3}  # [variables, i, mortars]
@@ -752,11 +753,11 @@ mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractTreeL2MortarCont
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 2)
-nnodes(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 3)
+nvariables(mortars::TreeIDPMortarContainer2D) = size(mortars.u_upper, 2)
+nnodes(mortars::TreeIDPMortarContainer2D) = size(mortars.u_upper, 3)
 
 # See explanation of Base.resize! for the element container
-function Base.resize!(mortars::IDPMortarContainer2D, capacity)
+function Base.resize!(mortars::TreeIDPMortarContainer2D, capacity)
     n_nodes = nnodes(mortars)
     n_variables = nvariables(mortars)
     @unpack _u_upper, _u_lower, _u_large, _neighbor_ids,
@@ -788,8 +789,8 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
     return nothing
 end
 
-function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
-                                       n_nodes) where {uEltype <: Real}
+function TreeIDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
+                                           n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -816,14 +817,15 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
     limiting_factor = fill(nan, capacity)
     limiting_factor_local = fill(nan, capacity)
 
-    return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
-                                         large_sides, orientations,
-                                         limiting_factor, limiting_factor_local,
-                                         _u_upper, _u_lower, _u_large, _neighbor_ids)
+    return TreeIDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
+                                             large_sides, orientations,
+                                             limiting_factor, limiting_factor_local,
+                                             _u_upper, _u_lower, _u_large,
+                                             _neighbor_ids)
 end
 
 # Allow printing container contents
-function Base.show(io::IO, ::MIME"text/plain", c::IDPMortarContainer2D)
+function Base.show(io::IO, ::MIME"text/plain", c::TreeIDPMortarContainer2D)
     @nospecialize c # reduce precompilation time
 
     println(io, '*'^20)
@@ -845,7 +847,7 @@ end
 
 # Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
 # of Trixi.jl.
-function check_axes(mortars::IDPMortarContainer2D, equations, solver::DG, cache)
+function check_axes(mortars::TreeIDPMortarContainer2D, equations, solver::DG, cache)
     u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
                      eachnode(solver),
                      eachmortar(solver, cache))
@@ -879,9 +881,9 @@ function init_mortars(cell_ids, mesh::TreeMesh2D,
                       mortar::LobattoLegendreMortarIDP)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = IDPMortarContainer2D{eltype(elements)}(n_mortars,
-                                                     nvariables(elements),
-                                                     nnodes(elements))
+    mortars = TreeIDPMortarContainer2D{eltype(elements)}(n_mortars,
+                                                         nvariables(elements),
+                                                         nnodes(elements))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
