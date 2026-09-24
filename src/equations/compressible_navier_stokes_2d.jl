@@ -392,7 +392,7 @@ end
 end
 
 @doc raw"""
-    enstrophy(u, gradients_inner, equations::CompressibleNavierStokesDiffusion2D)
+    enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
 
 Computes the (node-wise) enstrophy, defined as
 ```math
@@ -401,10 +401,10 @@ Computes the (node-wise) enstrophy, defined as
 where ``\omega = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
 In 2D, ``\omega`` is just a scalar.
 """
-@inline function enstrophy(u, gradients_inner, equations::CompressibleNavierStokesDiffusion2D)
+@inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
-    omega = vorticity(u, gradients_inner, equations)
+    omega = vorticity(u, gradients, equations)
     return 0.5f0 * u[1] * omega^2
 end
 
