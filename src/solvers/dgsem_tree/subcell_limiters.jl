@@ -20,8 +20,7 @@ end
                       positivity_correction_factor = 0.1,
                       local_onesided_variables_nonlinear = [],
                       max_iterations_newton = 10,
-                      newton_tolerances = (1.0e-12, 1.0e-14),
-                      gamma_constant_newton = 2 * ndims(equations))
+                      newton_tolerances = (1.0e-12, 1.0e-14))
 
 Subcell invariant domain preserving (IDP) limiting used with [`VolumeIntegralSubcellLimiting`](@ref)
 including:
@@ -44,19 +43,11 @@ entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_g
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
-`max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
-and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
-where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
+`max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`.
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
     Without the callback, no correction takes place, leading to a standard low-order FV scheme.
-
-Implementation in 3D:
-In 3D, only the positivity limiter for conservative variables using
-(`positivity_variables_cons`) is implemented and merged for `P4estMesh`.
-`BoundsCheckCallback` is not supported in 3D yet.
-More features will follow soon.
 
 ## References
 
@@ -81,7 +72,6 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
-    gamma_constant_newton::RealT            # Constant for the subcell limiting of convex (nonlinear) constraints
 end
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
@@ -92,8 +82,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_correction_factor = 0.1,
                            local_onesided_variables_nonlinear = [],
                            max_iterations_newton = 10,
-                           newton_tolerances = (1.0e-12, 1.0e-14),
-                           gamma_constant_newton = 2 * ndims(equations))
+                           newton_tolerances = (1.0e-12, 1.0e-14))
     local_twosided = (length(local_twosided_variables_cons) > 0)
     local_onesided = (length(local_onesided_variables_nonlinear) > 0)
     positivity = (length(positivity_variables_cons) +
@@ -161,8 +150,7 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                             local_onesided,
                                             local_onesided_variables_nonlinear_,
                                             cache,
-                                            max_iterations_newton, newton_tolerances,
-                                            gamma_constant_newton)
+                                            max_iterations_newton, newton_tolerances)
 end
 
 function Base.show(io::IO, limiter::SubcellLimiterIDP)
