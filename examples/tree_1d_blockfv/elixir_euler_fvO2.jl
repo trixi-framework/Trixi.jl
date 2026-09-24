@@ -8,7 +8,11 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-# Standard 2nd order block FV setup with a less dissipative reconstruction limiter
+# This example showcases the second-order BlockFV reconstruction mode.
+# `reconstruction_O2_full` reconstructs on every FV cell, including those next
+# to element faces (unlimited central slope there). This gives it 
+# second-order accuracy on this problem.
+# `monotonized_central` is used so that the limiter is lower dissipation
 solver = BlockFV(n_nodes = 4, surface_flux = flux_hllc,
                  reconstruction_mode = reconstruction_O2_full,
                  slope_limiter = monotonized_central)
@@ -31,18 +35,9 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # Create ODE problem with time span from 0.0 to 2.0
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
-
-# At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
-# and resets the timers
 summary_callback = SummaryCallback()
-
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval = 100)
-
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.5)
-
-# Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 
 ###############################################################################
