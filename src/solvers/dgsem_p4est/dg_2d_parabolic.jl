@@ -1194,7 +1194,9 @@ function calc_boundary_flux!(cache, cache_parabolic, t,
             x = get_node_coords(node_coordinates, equations_parabolic, dg,
                                 i_node, j_node, element)
 
-            flux_ = boundary_condition_parabolic(flux_inner, u_inner, normal_direction,
+            flux_ = boundary_condition_parabolic(flux_inner, u_inner,
+                                                 (gradient_1_inner, gradient_2_inner),
+                                                 normal_direction,
                                                  x, t, operator_type,
                                                  equations_parabolic)
 
