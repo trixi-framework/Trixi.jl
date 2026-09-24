@@ -43,7 +43,7 @@ entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_g
 The bounds are calculated using the low-order FV solution. The positivity limiter uses
 `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
-`max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`.
+`max_iterations_newton` iterations and relative and absolute tolerances of `newton_tolerances`.
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
