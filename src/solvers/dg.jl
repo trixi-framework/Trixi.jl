@@ -1178,7 +1178,8 @@ Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, solver::D
 end
 
 # As above but dispatches on a type to avoid needing to pass complex objects on GPUs
-Base.@propagate_inbounds function set_node_vars!(u, u_node, equations, SolverT::Type{<:DG}, indices...)
+Base.@propagate_inbounds function set_node_vars!(u, u_node, equations,
+                                                 SolverT::Type{<:DG}, indices...)
     for v in eachvariable(equations)
         u[v, indices...] = u_node[v]
     end
