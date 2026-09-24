@@ -68,6 +68,20 @@ function TreeElementContainer1D{RealT, uEltype}(capacity::Integer, n_variables,
                                                   _surface_flux_values)
 end
 
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::TreeElementContainer1D, equations, solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(ndims(equations)),
+                eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
+    check_axes(elements.cell_ids, (eachelement(solver, cache),))
+    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
+                                   cache)
+    return nothing
+end
+
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh1D,
                        equations::AbstractEquations{1},
@@ -171,6 +185,17 @@ function TreeInterfaceContainer1D{uEltype}(capacity::Integer,
 
     return TreeInterfaceContainer1D{uEltype}(u, neighbor_ids, orientations,
                                              _u, _neighbor_ids)
+end
+
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::TreeInterfaceContainer1D, equations, solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.neighbor_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.orientations, (eachinterface(solver, cache),))
+    return nothing
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -333,6 +358,21 @@ function TreeBoundaryContainer1D{RealT, uEltype}(capacity::Integer,
                                                    node_coordinates,
                                                    n_boundaries_per_direction,
                                                    _u, _node_coordinates)
+end
+
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::TreeBoundaryContainer1D, equations, solver::DG, cache)
+    check_axes(boundaries.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(ndims(equations)),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
+    check_axes(boundaries.orientations, (eachboundary(solver, cache),))
+    check_axes(boundaries.neighbor_sides, (eachboundary(solver, cache),))
+    return nothing
 end
 
 # Create boundaries container and initialize boundary data in `elements`.
