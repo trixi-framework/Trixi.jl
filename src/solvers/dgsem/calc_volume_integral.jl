@@ -34,10 +34,12 @@ Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
     return nothing
 end
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                                         dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                                                          dg::DGSEM, cache,
+                                                          alpha = true)
     @unpack volume_flux_fv = volume_integral # Volume integral specific data
 
     fv_kernel!(du, u, MeshT,
@@ -47,10 +49,12 @@ end
     return nothing
 end
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
-                                         dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                                                          dg::DGSEM, cache,
+                                                          alpha = true)
     # Unpack volume integral specific data
     @unpack (sc_interface_coords, volume_flux_fv, reconstruction_mode, slope_limiter,
     cons2recon, recon2cons) = volume_integral
@@ -65,10 +69,11 @@ end
     return nothing
 end
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralAdaptive{<:IndicatorEntropyChange},
-                                         dg::DGSEM, cache)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralAdaptive{<:IndicatorEntropyChange},
+                                                          dg::DGSEM, cache)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
     @unpack maximum_entropy_increase = indicator
 
@@ -102,10 +107,11 @@ end
     return nothing
 end
 
-@inline function volume_integral_kernel!(du, u, element, MeshT,
-                                         have_nonconservative_terms, equations,
-                                         volume_integral::VolumeIntegralEntropyCorrection,
-                                         dg::DGSEM, cache)
+Base.@propagate_inbounds function volume_integral_kernel!(du, u, element, MeshT,
+                                                          have_nonconservative_terms,
+                                                          equations,
+                                                          volume_integral::VolumeIntegralEntropyCorrection,
+                                                          dg::DGSEM, cache)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
     @unpack scaling = indicator
     @unpack alpha = indicator.cache
@@ -179,6 +185,16 @@ end
     return nothing
 end
 
+# Check whether the temporary storage in the `cache` used by the `volume_integral`
+# has the axes we assume in the inner loops of Trixi.jl. Volume integrals using
+# additional temporary storage must add a specialized method, typically next to
+# the `create_cache` method allocating this storage, before inbounds access is
+# assumed in their kernels.
+@inline function check_axes_volume_integral(mesh, equations, volume_integral,
+                                            dg, cache)
+    return nothing
+end
+
 function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                have_nonconservative_terms, equations,
                                volume_integral, dg::DGSEM, cache)
@@ -187,6 +203,7 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     @boundscheck begin
         check_axes(u, mesh, equations, dg, cache)
         check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)
     end
 
     MeshT = typeof(mesh)
@@ -204,6 +221,14 @@ end
                                        volume_integral::VolumeIntegralAdaptive{<:IndicatorHennemannGassner},
                                        dg::DGSEM, cache)
     @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+
+    # We explicitly check whether the input arrays have the assumed sizes so
+    # that we can use `@inbounds` below to improve the performance.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)
+    end
 
     # Calculate a-priori stabilization indicator
     alpha = @trixi_timeit timer() "indicator" indicator(u, mesh, equations,
@@ -224,13 +249,13 @@ end
         default_volume_integral = isapprox(alpha_element, 0, atol = atol)
 
         if default_volume_integral
-            volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_default, dg, cache)
+            @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral_default, dg, cache)
         else
-            volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_stabilized, dg, cache)
+            @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral_stabilized, dg, cache)
         end
     end
 
@@ -243,6 +268,14 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
                                dg::DGSEM, cache)
     @unpack (indicator, volume_integral_default,
     volume_integral_blend_high_order, volume_integral_blend_low_order) = volume_integral
+
+    # We explicitly check whether the input arrays have the assumed sizes so
+    # that we can use `@inbounds` below to improve the performance.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)
+    end
 
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations,
@@ -259,21 +292,21 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
         dg_only = isapprox(alpha_element, 0, atol = atol)
 
         if dg_only
-            volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_default, dg, cache)
+            @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral_default, dg, cache)
         else
             # Calculate DG volume integral contribution
-            volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_blend_high_order, dg, cache,
-                                    1 - alpha_element)
+            @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral_blend_high_order, dg,
+                                              cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
-            volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_blend_low_order, dg, cache,
-                                    alpha_element)
+            @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral_blend_low_order, dg,
+                                              cache, alpha_element)
         end
     end
 
@@ -288,6 +321,14 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     (; indicator_entropy_correction, indicator_shock_capturing) = indicator
     (; scaling) = indicator_entropy_correction
     du_element_threaded = indicator_entropy_correction.cache.volume_integral_values_threaded
+
+    # We explicitly check whether the input arrays have the assumed sizes so
+    # that we can use `@inbounds` below to improve the performance.
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes_volume_integral(mesh, equations, volume_integral, dg, cache)
+    end
 
     # Calculate DG-FV blending factors α a-priori for: u_{DG-FV} = u_DG * (1 - α) + u_FV * α
     # Note that we also reuse the `alpha_shock_capturing` array to store the indicator values for visualization.
@@ -306,9 +347,9 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
     MeshT = typeof(mesh)
     @threaded for element in eachelement(dg, cache)
         # run default volume integral
-        volume_integral_kernel!(du, u, element, MeshT,
-                                have_nonconservative_terms, equations,
-                                volume_integral_default, dg, cache)
+        @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                          have_nonconservative_terms, equations,
+                                          volume_integral_default, dg, cache)
 
         # Check entropy production of "high order" volume integral.
         #
@@ -346,9 +387,9 @@ function calc_volume_integral!(backend::Nothing, du, u, mesh,
             du[.., element] .= zero(eltype(du))
 
             # Calculate entropy stable volume integral contribution
-            volume_integral_kernel!(du, u, element, MeshT,
-                                    have_nonconservative_terms, equations,
-                                    volume_integral_stabilized, dg, cache)
+            @inbounds volume_integral_kernel!(du, u, element, MeshT,
+                                              have_nonconservative_terms, equations,
+                                              volume_integral_stabilized, dg, cache)
 
             dS_volume_integral_stabilized = -entropy_change_reference_element(du, u,
                                                                               element,

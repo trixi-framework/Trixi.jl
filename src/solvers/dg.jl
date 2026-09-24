@@ -530,6 +530,16 @@ function create_cache(mesh, equations,
     return (; cache_default..., cache_stabilized...)
 end
 
+@inline function check_axes_volume_integral(mesh, equations,
+                                            volume_integral::VolumeIntegralAdaptive,
+                                            dg, cache)
+    @unpack volume_integral_default, volume_integral_stabilized = volume_integral
+    check_axes_volume_integral(mesh, equations, volume_integral_default, dg, cache)
+    check_axes_volume_integral(mesh, equations, volume_integral_stabilized, dg, cache)
+
+    return nothing
+end
+
 function resize_volume_integral_cache!(cache, mesh,
                                        volume_integral::VolumeIntegralAdaptive,
                                        new_size)

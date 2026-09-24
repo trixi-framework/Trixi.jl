@@ -4385,3 +4385,111 @@ end
         end
     end
 end
+
+@testitem "Unit: check_axes_volume_integral rejects wrongly-shaped FV buffers" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    function test_check_axes_volume_integral(semi)
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        volume_integral = dg.volume_integral
+
+        @test Trixi.check_axes_volume_integral(mesh, equations, volume_integral,
+                                               dg, cache) === nothing
+
+        # Composite volume integrals forward to their sub-integrals
+        volume_integral_adaptive = VolumeIntegralAdaptive(;
+                                                          volume_integral_default = VolumeIntegralWeakForm(),
+                                                          volume_integral_stabilized = volume_integral)
+        @test Trixi.check_axes_volume_integral(mesh, equations,
+                                               volume_integral_adaptive,
+                                               dg, cache) === nothing
+
+        # Wrong number of subcell interfaces
+        f1_wrong = [similar(f, size(f, 1), size(f, 2) - 1, size(f, 3))
+                    for f in cache.fstar1_L_threaded]
+        cache_wrong = (; cache..., fstar1_L_threaded = f1_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral,
+                                                                        dg, cache_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral_adaptive,
+                                                                        dg, cache_wrong)
+
+        # Too few thread-local arrays
+        f2_wrong = cache.fstar2_R_threaded[1:(end - 1)]
+        cache_wrong = (; cache..., fstar2_R_threaded = f2_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral,
+                                                                        dg, cache_wrong)
+
+        # Volume integrals without additional temporary storage do not check anything
+        @test Trixi.check_axes_volume_integral(mesh, equations,
+                                               VolumeIntegralWeakForm(),
+                                               dg, cache_wrong) === nothing
+        return nothing
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_euler_blast_wave.jl"), maxiters=1)
+    @testset "TreeMesh{2}" begin
+        test_check_axes_volume_integral(semi)
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
+                                 "elixir_euler_sedov.jl"), maxiters=1)
+    @testset "StructuredMesh{2}" begin
+        test_check_axes_volume_integral(semi)
+    end
+end
+
+@testitem "Unit: check_axes_volume_integral rejects wrongly-shaped entropy correction caches" setup=[
+    Setup,
+    UnitTests
+] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_euler_sedov_limiter_liu_zhang.jl"), maxiters=1)
+    @testset "TreeMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        volume_integral = dg.volume_integral
+        @test volume_integral isa Trixi.VolumeIntegralEntropyCorrection
+        @test Trixi.check_axes_volume_integral(mesh, equations, volume_integral,
+                                               dg, cache) === nothing
+
+        # Wrong number of blending factors
+        (; alpha, volume_integral_values_threaded) = volume_integral.indicator.cache
+        push!(alpha, zero(eltype(alpha)))
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral,
+                                                                        dg, cache)
+        pop!(alpha)
+
+        # Too many thread-local arrays
+        push!(volume_integral_values_threaded, similar(volume_integral_values_threaded[1]))
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral,
+                                                                        dg, cache)
+        pop!(volume_integral_values_threaded)
+
+        # Wrongly-shaped thread-local array
+        values = volume_integral_values_threaded[1]
+        volume_integral_values_threaded[1] = similar(values, size(values, 1),
+                                                     size(values, 2) - 1,
+                                                     size(values, 3))
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral,
+                                                                        dg, cache)
+        volume_integral_values_threaded[1] = values
+
+        # FV buffers of the stabilized volume integral are checked as well
+        f1_wrong = [similar(f, size(f, 1), size(f, 2) - 1, size(f, 3))
+                    for f in cache.fstar1_L_threaded]
+        cache_wrong = (; cache..., fstar1_L_threaded = f1_wrong)
+        @test_throws DimensionMismatch Trixi.check_axes_volume_integral(mesh, equations,
+                                                                        volume_integral,
+                                                                        dg, cache_wrong)
+
+        @test Trixi.check_axes_volume_integral(mesh, equations, volume_integral,
+                                               dg, cache) === nothing
+    end
+end

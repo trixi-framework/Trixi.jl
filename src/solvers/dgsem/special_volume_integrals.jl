@@ -67,6 +67,29 @@ function create_cache(mesh, equations,
     return (; cache_default..., cache_stabilized...)
 end
 
+# In addition to the temporary storage of the default and stabilized volume
+# integrals, the `volume_integral_kernel!` accesses the indicator cache, which
+# is checked here.
+function check_axes_volume_integral(mesh, equations,
+                                    volume_integral::VolumeIntegralEntropyCorrection,
+                                    dg, cache)
+    @unpack volume_integral_default, volume_integral_stabilized, indicator = volume_integral
+    check_axes_volume_integral(mesh, equations, volume_integral_default, dg, cache)
+    check_axes_volume_integral(mesh, equations, volume_integral_stabilized, dg, cache)
+
+    @unpack alpha, volume_integral_values_threaded = indicator.cache
+    check_axes(alpha, (eachelement(dg, cache),))
+
+    # The thread-local arrays are accessed via `Threads.threadid()`
+    check_axes(volume_integral_values_threaded, (Base.OneTo(Threads.maxthreadid()),))
+    element_axes = (eachvariable(equations), ntuple(_ -> eachnode(dg), ndims(mesh))...)
+    for volume_integral_values in volume_integral_values_threaded
+        check_axes(volume_integral_values, element_axes)
+    end
+
+    return nothing
+end
+
 # `resize_volume_integral_cache!` is called after mesh adaptation in `reinitialize_containers!`.
 # We only need to resize `volume_integral.indicator.cache.alpha`, which stores the blending factors
 # for visualization.
