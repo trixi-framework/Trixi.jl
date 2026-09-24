@@ -4302,3 +4302,86 @@ end
         @test energy_internal(u_proj, equations) >= lower_bounds[2] - arithmetic_tol
     end
 end
+
+@testitem "Unit: check_axes with explicit axes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    A = zeros(2, 3)
+    @test Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(3))) === nothing
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(4)))
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2),))
+    # The error message reports both the axes found and the axes expected
+    err = try
+        Trixi.check_axes(A, (Base.OneTo(3), Base.OneTo(3)))
+    catch e
+        e
+    end
+    @test err isa DimensionMismatch
+    @test occursin(string(axes(A)), err.msg)
+    @test occursin(string((Base.OneTo(3), Base.OneTo(3))), err.msg)
+end
+
+@testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_euler_source_terms.jl"), maxiters=1)
+
+    @testset "TreeMesh{1}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_euler_source_terms.jl"), maxiters=1)
+
+    @testset "TreeMesh{2}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_euler_mortar.jl"), maxiters=1)
+
+    @testset "TreeMesh{3}" begin
+        mesh, equations, dg, cache = Trixi.mesh_equations_solver_cache(semi)
+        u = Trixi.wrap_array(Trixi.compute_coefficients(0.0, semi), semi)
+
+        @test Trixi.check_axes(u, mesh, equations, dg, cache) === nothing
+
+        u_too_few = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) - 1)
+        u_too_many = similar(u, size(u)[1:(end - 1)]..., size(u, ndims(u)) + 1)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_few, mesh, equations, dg,
+                                                        cache)
+        @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
+                                                        cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
+    end
+end
