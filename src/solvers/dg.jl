@@ -970,35 +970,44 @@ const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
     return nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 end
 
+# Check whether the array `A` has exactly the axes `expected_axes` we assume in the
+# inner loops of Trixi.jl before assuming inbounds access.
+# All other methods of `check_axes` compute the expected axes and call this method.
+@inline function check_axes(A, expected_axes::Tuple)
+    axes(A) == expected_axes || throw_axes_mismatch(axes(A), expected_axes)
+    return nothing
+end
+
+# Keep the error path out of the inlined code above. The lazy string defers
+# formatting the message until it is actually displayed.
+@noinline function throw_axes_mismatch(found_axes, expected_axes)
+    throw(DimensionMismatch(lazy"axes $(found_axes) found, but $(expected_axes) expected"))
+end
+
 # Check whether the array `u` has the axes we assume it must have in the inner loops
 # of Trixi.jl.
 @inline function check_axes(u, mesh::AbstractMesh, equations, solver, cache)
-    check_axes(u, Val(ndims(mesh)), equations, solver, cache)
+    return check_axes(u, Val(ndims(mesh)), equations, solver, cache)
 end
 
 @inline function check_axes(u, ::Val{NDIMS}, equations, solver,
                             cache) where {NDIMS}
-    axes_correct = axes(u) == (eachvariable(equations),
-                    ntuple(_ -> eachnode(solver), NDIMS)...,
-                    eachelement(solver, cache))
-
-    axes_correct || throw(DimensionMismatch())
-    return nothing
+    return check_axes(u,
+                      (eachvariable(equations),
+                       ntuple(_ -> eachnode(solver), NDIMS)...,
+                       eachelement(solver, cache)))
 end
 
-# Check whether the array `surface_flux_values` has the axes we assume it must have in the inner loops
-# of Trixi.jl.
+# Check whether the array `surface_flux_values` has the axes we assume it must have
+# in the inner loops of Trixi.jl.
 @inline function check_axes_surface_flux_values(surface_flux_values::AbstractArray,
                                                 equations::AbstractEquations{NDIMS},
                                                 solver::DG, cache) where {NDIMS}
-    axes_correct = axes(surface_flux_values) == (eachvariable(equations),
-                    ntuple(_ -> eachnode(solver), NDIMS - 1)...,
-                    Base.OneTo(2 * NDIMS),
-                    eachelement(solver, cache))
-
-    if !axes_correct
-        throw(DimensionMismatch())
-    end
+    return check_axes(surface_flux_values,
+                      (eachvariable(equations),
+                       ntuple(_ -> eachnode(solver), NDIMS - 1)...,
+                       Base.OneTo(2 * NDIMS),
+                       eachelement(solver, cache)))
 end
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg)) for DGSEM

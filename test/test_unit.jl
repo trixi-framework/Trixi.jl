@@ -4303,6 +4303,22 @@ end
     end
 end
 
+@testitem "Unit: check_axes with explicit axes" setup=[Setup, UnitTests] tags=[:misc_part1] begin
+    A = zeros(2, 3)
+    @test Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(3))) === nothing
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2), Base.OneTo(4)))
+    @test_throws DimensionMismatch Trixi.check_axes(A, (Base.OneTo(2),))
+    # The error message reports both the axes found and the axes expected
+    err = try
+        Trixi.check_axes(A, (Base.OneTo(3), Base.OneTo(3)))
+    catch e
+        e
+    end
+    @test err isa DimensionMismatch
+    @test occursin(string(axes(A)), err.msg)
+    @test occursin(string((Base.OneTo(3), Base.OneTo(3))), err.msg)
+end
+
 @testitem "Unit: check_axes rejects wrongly-shaped u and du" setup=[Setup, UnitTests] tags=[:misc_part1] begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_euler_source_terms.jl"), maxiters=1)
@@ -4336,6 +4352,11 @@ end
                                                         cache)
         @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
                                                         cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
     end
 
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
@@ -4353,5 +4374,10 @@ end
                                                         cache)
         @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
                                                         cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries,
+                          cache.mortars)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
     end
 end
