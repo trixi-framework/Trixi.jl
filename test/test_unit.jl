@@ -4335,6 +4335,10 @@ end
                                                         cache)
         @test_throws DimensionMismatch Trixi.check_axes(u_too_many, mesh, equations, dg,
                                                         cache)
+
+        for container in (cache.elements, cache.interfaces, cache.boundaries)
+            @test Trixi.check_axes(container, equations, dg, cache) === nothing
+        end
     end
 
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
