@@ -72,10 +72,9 @@ function calc_volume_integral!(du, flux_parabolic, mesh::TreeMesh{3},
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations_parabolic, dg, cache)
-        for flux_component in flux_parabolic
-            check_axes(flux_component, mesh, equations_parabolic, dg, cache)
-        end
-        checkbounds(derivative_hat, eachnode(dg), eachnode(dg))
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -131,9 +130,9 @@ function prolong2interfaces!(cache, flux_parabolic::Tuple,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        for flux_component in flux_parabolic
-            check_axes(flux_component, mesh, equations_parabolic, dg, cache)
-        end
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
         check_axes(interfaces, equations_parabolic, dg, cache)
     end
 
@@ -253,9 +252,9 @@ function prolong2boundaries!(cache, flux_parabolic::Tuple,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        for flux_component in flux_parabolic
-            check_axes(flux_component, mesh, equations_parabolic, dg, cache)
-        end
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
         check_axes(boundaries, equations_parabolic, dg, cache)
     end
 
@@ -347,12 +346,12 @@ function calc_parabolic_fluxes!(flux_parabolic,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
-        for gradient in gradients
-            check_axes(gradient, mesh, equations_parabolic, dg, cache)
-        end
-        for flux_component in flux_parabolic
-            check_axes(flux_component, mesh, equations_parabolic, dg, cache)
-        end
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -646,9 +645,9 @@ function prolong2mortars!(cache, flux_parabolic::Tuple,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        for flux_component in flux_parabolic
-            check_axes(flux_component, mesh, equations_parabolic, dg, cache)
-        end
+        check_axes(flux_parabolic_x, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_y, mesh, equations_parabolic, dg, cache)
+        check_axes(flux_parabolic_z, mesh, equations_parabolic, dg, cache)
         check_axes(cache.mortars, equations_parabolic, dg, cache)
     end
 
@@ -1050,10 +1049,9 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u_transformed, mesh, equations_parabolic, dg, cache)
-        for gradient in gradients
-            check_axes(gradient, mesh, equations_parabolic, dg, cache)
-        end
-        checkbounds(derivative_hat, eachnode(dg), eachnode(dg))
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -1151,9 +1149,9 @@ function calc_surface_integral_gradient!(gradients,
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
-        for gradient in gradients
-            check_axes(gradient, mesh, equations_parabolic, dg, cache)
-        end
+        check_axes(gradients_x, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_y, mesh, equations_parabolic, dg, cache)
+        check_axes(gradients_z, mesh, equations_parabolic, dg, cache)
         check_axes_surface_flux_values(surface_flux_values, equations_parabolic, dg,
                                        cache)
     end
@@ -1294,9 +1292,9 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
     @boundscheck begin
         check_axes(u, Val(3), equations_parabolic, dg, cache)
         check_axes(du, Val(3), equations_parabolic, dg, cache)
-        for gradient in gradients
-            check_axes(gradient, Val(3), equations_parabolic, dg, cache)
-        end
+        check_axes(gradients[1], Val(3), equations_parabolic, dg, cache)
+        check_axes(gradients[2], Val(3), equations_parabolic, dg, cache)
+        check_axes(gradients[3], Val(3), equations_parabolic, dg, cache)
         check_axes(cache.elements, equations_parabolic, dg, cache)
     end
 
