@@ -1287,14 +1287,15 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
                                  equations_parabolic::AbstractEquations{3}, dg::DG,
                                  cache)
     @unpack node_coordinates = cache.elements
+    gradients_x, gradients_y, gradients_z = gradients
 
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(u, Val(3), equations_parabolic, dg, cache)
         check_axes(du, Val(3), equations_parabolic, dg, cache)
-        check_axes(gradients[1], Val(3), equations_parabolic, dg, cache)
-        check_axes(gradients[2], Val(3), equations_parabolic, dg, cache)
-        check_axes(gradients[3], Val(3), equations_parabolic, dg, cache)
+        check_axes(gradients_x, Val(3), equations_parabolic, dg, cache)
+        check_axes(gradients_y, Val(3), equations_parabolic, dg, cache)
+        check_axes(gradients_z, Val(3), equations_parabolic, dg, cache)
         check_axes(cache.elements, equations_parabolic, dg, cache)
     end
 
@@ -1302,11 +1303,11 @@ function calc_sources_parabolic!(du, u, gradients, t, source_terms_parabolic,
         @inbounds begin
             for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                 u_local = get_node_vars(u, equations_parabolic, dg, i, j, k, element)
-                gradients_x_local = get_node_vars(gradients[1], equations_parabolic, dg,
+                gradients_x_local = get_node_vars(gradients_x, equations_parabolic, dg,
                                                   i, j, k, element)
-                gradients_y_local = get_node_vars(gradients[2], equations_parabolic, dg,
+                gradients_y_local = get_node_vars(gradients_y, equations_parabolic, dg,
                                                   i, j, k, element)
-                gradients_z_local = get_node_vars(gradients[3], equations_parabolic, dg,
+                gradients_z_local = get_node_vars(gradients_z, equations_parabolic, dg,
                                                   i, j, k, element)
                 gradients_local = (gradients_x_local, gradients_y_local,
                                    gradients_z_local)
