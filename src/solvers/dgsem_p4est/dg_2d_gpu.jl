@@ -577,7 +577,7 @@ function calc_mortar_flux!(backend::Backend, surface_flux_values,
             have_nonconservative_terms, equations,
             surface_flux, typeof(dg),
             neighbor_ids, node_indices, contravariant_vectors,
-            mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+            (mortar_l2.reverse_lower, mortar_l2.reverse_upper),
             index_range, Val(nvars),
             ndrange = (nnodes(dg), nmortars(dg, cache)))
 
@@ -594,8 +594,7 @@ end
                                             neighbor_ids,
                                             node_indices,
                                             contravariant_vectors,
-                                            reverse_lower,
-                                            reverse_upper,
+                                            reverse_matrices,
                                             index_range,
                                             val_vars::Val{nvars}) where {nvars}
     node, mortar = @index(Global, NTuple)
@@ -610,7 +609,7 @@ end
                                      have_nonconservative_terms, equations,
                                      surface_flux, SolverT, neighbor_ids, node_indices,
                                      contravariant_vectors, mortars_u,
-                                     reverse_lower, reverse_upper,
+                                     reverse_matrices,
                                      index_range, mortar, node, val_vars)
 end
 
@@ -666,7 +665,7 @@ end
                                                   surface_flux, SolverT,
                                                   neighbor_ids, node_indices,
                                                   contravariant_vectors, mortars_u,
-                                                  reverse_lower, reverse_upper,
+                                                  reverse_matrices,
                                                   index_range, mortar, node,
                                                   ::Val{nvars}) where {nvars}
     large_element = neighbor_ids[3, mortar]
@@ -679,72 +678,53 @@ end
                        node
 
     # Get index information on the small elements
-    small_element_lower = neighbor_ids[1, mortar]
-    small_element_upper = neighbor_ids[2, mortar]
     small_indices = node_indices[1, mortar]
     small_direction = indices2direction(small_indices)
 
     i_small_start, i_small_step = index_to_start_step_2d(small_indices[1], index_range)
     j_small_start, j_small_step = index_to_start_step_2d(small_indices[2], index_range)
 
-    for v in 1:nvars
-        surface_flux_values[v, large_node_index, large_direction, large_element] = 0
+    flux_large = zero(SVector{nvars, eltype(mortars_u)})
+
+    KernelAbstractions.Extras.@unroll for position in 1:2
+        reverse_matrix = reverse_matrices[position]
+        element = neighbor_ids[position, mortar]
+
+        i_small = i_small_start
+        j_small = j_small_start
+        for ii in index_range
+            # Get the normal direction on the small element.
+            # Note, contravariant vectors at interfaces in negative coordinate direction
+            # are pointing inwards. This is handled by `get_normal_direction`.
+            normal_direction = get_normal_direction(small_direction,
+                                                    contravariant_vectors,
+                                                    i_small, j_small,
+                                                    element)
+
+            _, fstar_secondary = calc_mortar_flux!(MeshT, have_nonconservative_terms,
+                                                   combine_conservative_and_nonconservative_fluxes(surface_flux,
+                                                                                                   equations),
+                                                   equations, surface_flux, SolverT,
+                                                   mortars_u, mortar, position,
+                                                   normal_direction, ii)
+
+            flux_large += reverse_matrix[node, ii] * fstar_secondary
+
+            i_small += i_small_step
+            j_small += j_small_step
+        end
     end
 
-    i_small = i_small_start
-    j_small = j_small_start
-
-    # TODO node dimes reverse upper lower?
-    for ii in index_range
-        # Get the normal direction on the small element.
-        # Note, contravariant vectors at interfaces in negative coordinate direction
-        # are pointing inwards. This is handled by `get_normal_direction`.
-        normal_direction_lower = get_normal_direction(small_direction,
-                                                      contravariant_vectors,
-                                                      i_small, j_small,
-                                                      small_element_lower)
-
-        normal_direction_upper = get_normal_direction(small_direction,
-                                                      contravariant_vectors,
-                                                      i_small, j_small,
-                                                      small_element_upper)
-
-        _, fstar_secondary_lower = calc_mortar_flux!(MeshT,
-                                                     have_nonconservative_terms,
-                                                     combine_conservative_and_nonconservative_fluxes(surface_flux,
-                                                                                                     equations),
-                                                     equations,
-                                                     surface_flux,
-                                                     SolverT, mortars_u,
-                                                     mortar, 1,
-                                                     normal_direction_lower,
-                                                     ii)
-        _, fstar_secondary_upper = calc_mortar_flux!(MeshT,
-                                                     have_nonconservative_terms,
-                                                     combine_conservative_and_nonconservative_fluxes(surface_flux,
-                                                                                                     equations),
-                                                     equations,
-                                                     surface_flux,
-                                                     SolverT, mortars_u,
-                                                     mortar, 2,
-                                                     normal_direction_upper,
-                                                     ii)
-        # The flux is calculated in the outward direction of the small elements,
-        # so the sign must be switched to get the flux in outward direction
-        # of the large element.
-        # The contravariant vectors of the large element (and therefore the normal
-        # vectors of the large element as well) are twice as large as the
-        # contravariant vectors of the small elements. Therefore, the flux needs
-        # to be scaled by a factor of 2 to obtain the flux of the large element.
-        for v in 1:nvars
-            surface_flux_values[v, large_node_index,
-            large_direction,
-            large_element] += -2 * (reverse_upper[node, ii] * fstar_secondary_upper[v] +
-                               reverse_lower[node, ii] * fstar_secondary_lower[v])
-        end
-
-        i_small += i_small_step
-        j_small += j_small_step
+    # The flux is calculated in the outward direction of the small elements,
+    # so the sign must be switched to get the flux in outward direction
+    # of the large element.
+    # The contravariant vectors of the large element (and therefore the normal
+    # vectors of the large element as well) are twice as large as the
+    # contravariant vectors of the small elements. Therefore, the flux needs
+    # to be scaled by a factor of 2 to obtain the flux of the large element.
+    for v in 1:nvars
+        surface_flux_values[v, large_node_index, large_direction, large_element] = -2 *
+                                                                                   flux_large[v]
     end
 end
 
