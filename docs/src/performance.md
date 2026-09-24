@@ -44,12 +44,13 @@ For example, the following steps were used to benchmark the changes introduced i
 1. `git checkout e7ebf3846b3fd62ee1d0042e130afb50d7fe8e48` (new version)
 2. Start `julia --threads=1`.
    Back then, Julia was started with the additional flag `--check-bounds=no` to
-   disable bounds checking globally. Nowadays, this flag must not be used anymore,
-   since it makes the code significantly slower for all Julia versions supported
-   by Trixi.jl, see [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
+   disable bounds checking globally. Nowadays, this flag should not be used anymore,
+   since it can make the code significantly slower for Julia versions before v1.13,
+   see [Julia issue #48245](https://github.com/JuliaLang/julia/issues/48245) and
+   [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
    Instead, Trixi.jl uses `@inbounds` in performance-critical parts of the code
-   as described in the list above and in more detail in the section on
-   [enabling bounds checking](@ref enabling-bounds-checking).
+   to make it fast by default, as described in the list above and in more detail
+   in the section on [enabling bounds checking](@ref enabling-bounds-checking).
 3. Execute the following code in the REPL to benchmark the `rhs!` call at the final state.
    ```julia
    julia> using BenchmarkTools, Revise; using Trixi
@@ -151,11 +152,14 @@ command line options affecting the performance such as the number of threads.
 
 !!! warning "Do not disable bounds checking globally"
     Do not start Julia with `--check-bounds=no` for benchmarking or production runs.
-    For all Julia versions supported by Trixi.jl, this makes the code significantly
+    For Julia versions before v1.13, this can make the code significantly
     slower instead of faster, see
+    [Julia issue #48245](https://github.com/JuliaLang/julia/issues/48245) and
     [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
-    Trixi.jl uses `@inbounds` in performance-critical parts of the code instead,
-    see the section on [enabling bounds checking](@ref enabling-bounds-checking).
+    Instead, Trixi.jl uses `@inbounds` in performance-critical parts of the code
+    to make it fast by default, see the section on
+    [enabling bounds checking](@ref enabling-bounds-checking).
+    Thus, disabling bounds checking globally is not necessary to obtain good performance.
 
 A useful feature when developing Trixi.jl is to compare the performance of Trixi.jl's
 current state vs. the `main` branch. This can be achieved by executing
