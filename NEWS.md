@@ -26,6 +26,12 @@ for human readability.
   can now be chosen via the new keyword argument `flux_differencing_kernel` of
   `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
   `FullSweepGlobal` ([#3206]).
+- Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
+  which substitutes `@inline` to correctly propagate inbounds access for
+  `TreeMesh2D` ([#3262]) and `TreeMesh3D` ([#3208]).
+  Moreover, explicit bounds check are added before assuming inbounds access.
+  This improves the performance in common cases; developers are encouraged to
+  start Julia with `julia --check-bounds=yes` during development in case of issues.
 - For the `CompressibleNavierStokesDiffusion` equations a specific gas constant `R` different from
   unity is now supported, which then results in a different temperature `T` ([#3165])
 
