@@ -70,6 +70,20 @@ function TreeElementContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
                                                   _surface_flux_values)
 end
 
+# Check whether the arrays in `elements` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(elements::TreeElementContainer3D, equations, solver::DG, cache)
+    check_axes(elements.node_coordinates,
+               (Base.OneTo(ndims(equations)),
+                eachnode(solver), eachnode(solver), eachnode(solver),
+                eachelement(solver, cache)))
+    check_axes(elements.inverse_jacobian, (eachelement(solver, cache),))
+    check_axes(elements.cell_ids, (eachelement(solver, cache),))
+    check_axes_surface_flux_values(elements.surface_flux_values, equations, solver,
+                                   cache)
+    return nothing
+end
+
 # Create element container and initialize element data
 function init_elements(cell_ids, mesh::TreeMesh3D,
                        equations::AbstractEquations{3},
@@ -179,6 +193,18 @@ function TreeInterfaceContainer3D{uEltype}(capacity::Integer, n_variables,
 
     return TreeInterfaceContainer3D{uEltype}(u, neighbor_ids, orientations,
                                              _u, _neighbor_ids)
+end
+
+# Check whether the arrays in `interfaces` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(interfaces::TreeInterfaceContainer3D, equations, solver::DG, cache)
+    check_axes(interfaces.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver), eachnode(solver),
+                eachinterface(solver, cache)))
+    check_axes(interfaces.neighbor_ids, (Base.OneTo(2), eachinterface(solver, cache)))
+    check_axes(interfaces.orientations, (eachinterface(solver, cache),))
+    return nothing
 end
 
 # Create interface container and initialize interface data in `elements`.
@@ -346,6 +372,23 @@ function TreeBoundaryContainer3D{RealT, uEltype}(capacity::Integer, n_variables,
                                                    node_coordinates,
                                                    n_boundaries_per_direction,
                                                    _u, _node_coordinates)
+end
+
+# Check whether the arrays in `boundaries` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(boundaries::TreeBoundaryContainer3D, equations, solver::DG, cache)
+    check_axes(boundaries.u,
+               (Base.OneTo(2), eachvariable(equations),
+                eachnode(solver), eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.node_coordinates,
+               (Base.OneTo(ndims(equations)),
+                eachnode(solver), eachnode(solver),
+                eachboundary(solver, cache)))
+    check_axes(boundaries.neighbor_ids, (eachboundary(solver, cache),))
+    check_axes(boundaries.orientations, (eachboundary(solver, cache),))
+    check_axes(boundaries.neighbor_sides, (eachboundary(solver, cache),))
+    return nothing
 end
 
 # Create boundaries container and initialize boundary data in `elements`.
@@ -606,6 +649,39 @@ function Base.show(io::IO, ::MIME"text/plain", c::TreeL2MortarContainer3D)
     println(io, "c.large_sides = $(c.large_sides)")
     println(io, "c.orientations = $(c.orientations)")
     print(io, '*'^20)
+    return nothing
+end
+
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::TreeL2MortarContainer3D, equations, solver::DG, cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
+                     eachnode(solver), eachnode(solver),
+                     eachmortar(solver, cache))
+    check_axes(mortars.u_lower_left, u_mortar_axes)
+    check_axes(mortars.u_lower_right, u_mortar_axes)
+    check_axes(mortars.u_upper_left, u_mortar_axes)
+    check_axes(mortars.u_upper_right, u_mortar_axes)
+    check_axes(mortars.neighbor_ids, (Base.OneTo(5), eachmortar(solver, cache)))
+    check_axes(mortars.large_sides, (eachmortar(solver, cache),))
+    check_axes(mortars.orientations, (eachmortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes and projections
+    threaded_values_axes = (eachvariable(equations), eachnode(solver), eachnode(solver))
+    for values in (cache.fstar_primary_upper_left_threaded,
+                   cache.fstar_primary_upper_right_threaded,
+                   cache.fstar_primary_lower_left_threaded,
+                   cache.fstar_primary_lower_right_threaded,
+                   cache.fstar_secondary_upper_left_threaded,
+                   cache.fstar_secondary_upper_right_threaded,
+                   cache.fstar_secondary_lower_left_threaded,
+                   cache.fstar_secondary_lower_right_threaded,
+                   cache.fstar_tmp1_threaded)
+        check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
+        for value in values
+            check_axes(value, threaded_values_axes)
+        end
+    end
     return nothing
 end
 
