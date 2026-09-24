@@ -624,14 +624,15 @@ end
     isone(alpha[indices...]) && return nothing # Skip if alpha is already 1
 
     # The updated state is a convex combination of one provisional state per antidiffusive flux
-    # contributing to this node. Each one of them is considered and limited separately. Because
-    # of that the antidiffusive fluxes need to be scaled. Instead of using the uniform constant
-    # `2 * ndims` for the number of contributions (as in equation (29) of Rueda-Ramírez et al.
+    # contributing to this node. The antidiffusive fluxes are scaled by the number of contributions
+    # so that the update can be written as this convex combination; limiting each provisional state
+    # separately then ensures that the combination satisfies the bounds. Instead of using the uniform
+    # constant `2 * ndims` for the number of contributions (as in equation (29) of Rueda-Ramírez et al.
     # (2022)), we use the actual number of contributions to the update of the node `(i, j, k, element)`.
     # Nodes at an element boundary get fewer contributions than inner nodes because the flux across
-    # that boundary is not limited. In 3D, the number of contributions is 6 for inner nodes, 5 for
-    # nodes at one element boundary, 4 for nodes at two element boundaries, and 3 for nodes at three
-    # element boundaries (corner nodes).
+    # that boundary is not limited.
+    # In 3D, the number of contributions is 6 for inner nodes, 5 for nodes at one element boundary,
+    # 4 for nodes at two element boundaries, and 3 for nodes at three element boundaries (corner nodes).
     gamma = n_antidiffusive_contributions(i, j, k, element, dg)
 
     # negative xi direction
