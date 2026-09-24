@@ -843,6 +843,36 @@ function Base.show(io::IO, ::MIME"text/plain", c::IDPMortarContainer2D)
     print(io, '*'^20)
 end
 
+# Check whether the arrays in `mortars` have the axes we assume it must have in the inner loops
+# of Trixi.jl.
+function check_axes(mortars::IDPMortarContainer2D, equations, solver::DG, cache)
+    u_mortar_axes = (Base.OneTo(2), eachvariable(equations),
+                     eachnode(solver),
+                     eachmortar(solver, cache))
+    check_axes(mortars.u_upper, u_mortar_axes)
+    check_axes(mortars.u_lower, u_mortar_axes)
+    check_axes(mortars.u_large,
+               (eachvariable(equations), eachnode(solver), eachmortar(solver, cache)))
+    check_axes(mortars.neighbor_ids, (Base.OneTo(3), eachmortar(solver, cache)))
+    check_axes(mortars.large_sides, (eachmortar(solver, cache),))
+    check_axes(mortars.orientations, (eachmortar(solver, cache),))
+    check_axes(mortars.limiting_factor, (eachmortar(solver, cache),))
+    check_axes(mortars.limiting_factor_local, (eachmortar(solver, cache),))
+
+    # Thread-local storage used for the mortar fluxes
+    threaded_values_axes = (eachvariable(equations), eachnode(solver))
+    for values in (cache.fstar_primary_upper_threaded,
+                   cache.fstar_primary_lower_threaded,
+                   cache.fstar_secondary_upper_threaded,
+                   cache.fstar_secondary_lower_threaded)
+        check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
+        for value in values
+            check_axes(value, threaded_values_axes)
+        end
+    end
+    return nothing
+end
+
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh2D,
                       elements::TreeElementContainer2D,
