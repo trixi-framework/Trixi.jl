@@ -27,10 +27,14 @@ for human readability.
   `semidiscretize`, either `HalfSweep()` (default), `FullSweep()`, or
   `FullSweepGlobal` ([#3206]).
 - Add `@inbounds` statements and its correct propagation through `Base.@propagate_inbounds`,
-  which substitutes `@inline` to correctly propagate inbounds access for `TreeMesh3D`.
+  which substitutes `@inline` to correctly propagate inbounds access for
+  - `TreeMesh1D` ([#3267])
+  - `TreeMesh2D` ([#3262])
+  - `TreeMesh3D` ([#3208], [#3263])
+
   Moreover, explicit bounds check are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
-  start Julia with `julia --check-bounds=yes` during development in case of issues ([#3208]).
+  start Julia with `julia --check-bounds=yes` during development in case of issues.
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
