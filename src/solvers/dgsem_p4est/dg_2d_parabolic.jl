@@ -727,6 +727,8 @@ function calc_mortar_flux_divergence!(surface_flux_values, mesh::P4estMesh{2},
         u_buffer = cache.u_threaded[Threads.threadid()]
 
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
+        # The first argument `nothing` is the `backend`, i.e., this
+        # implementation is specialized to CPUs only.
         mortar_fluxes_to_elements!(nothing, surface_flux_values,
                                    typeof(mesh), equations_parabolic, typeof(dg),
                                    neighbor_ids, node_indices, mortar,
