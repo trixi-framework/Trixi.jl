@@ -684,7 +684,7 @@ end
 
     limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
                                     true, [(entropy_guermond_etal, min)], "cache",
-                                    1, (1.0, 1.0), 1.0)
+                                    1, (1.0, 1.0))
     @test_nowarn show(stdout, limiter_idp)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
