@@ -36,6 +36,7 @@ for human readability.
   Moreover, explicit bounds check are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
   start Julia with `julia --check-bounds=yes` during development in case of issues.
+- Added experimental second-order reconstructions for 1D `TreeMesh` `BlockFV` via `VolumeIntegralFiniteVolumeO2` enabled by passing a `reconstruction_mode`, with volume-local higher-order reconstruction and reconstructed states at element interfaces and boundaries ([#3156]).
 
 #### Changed
 - The diffusive eigenvalue estimate (`max_diffusivity`) for the Navier-Stokes equations has changed ([#3192]).
