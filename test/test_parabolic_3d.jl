@@ -980,7 +980,8 @@ end
     Setup,
     Parabolic3D
 ] tags=[:parabolic_part3] begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "tree_3d_dgsem",
+                                 "elixir_euler_laplace_diffusion.jl"),
                         l2=[
                             0.013299230512542162,
                             0.0073025819009651,
