@@ -1,7 +1,7 @@
 mutable struct ParabolicContainer1D{uEltype <: Real}
-    u_transformed::Array{uEltype, 3}
-    gradients::Array{uEltype, 3}
-    flux_parabolic::Array{uEltype, 3}
+    u_transformed::Array{uEltype, 3}  # [variables, nodes, elements]
+    gradients::Array{uEltype, 3}      # [variables, nodes, elements]
+    flux_parabolic::Array{uEltype, 3} # [variables, nodes, elements]
 
     # internal `resize!`able storage
     _u_transformed::Vector{uEltype}
