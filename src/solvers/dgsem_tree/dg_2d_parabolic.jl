@@ -112,7 +112,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     # Calculate boundary fluxes.
     # This calls the specialized version for parabolic equations.
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache, t,
+        calc_boundary_flux_divergence!(cache, cache_parabolic, t,
                                        boundary_conditions_parabolic, mesh,
                                        equations_parabolic,
                                        dg.surface_integral, dg)
@@ -626,22 +626,6 @@ function get_unsigned_normal_vector_2d(direction)
     else
         return SVector(0.0, 1.0)
     end
-end
-
-function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
-                                      boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                      mesh::TreeMesh,
-                                      equations_parabolic::AbstractEquationsParabolic,
-                                      surface_integral, dg::DG)
-    return nothing
-end
-
-function calc_boundary_flux_divergence!(cache, cache_parabolic, t,
-                                        boundary_conditions_parabolic::BoundaryConditionPeriodic,
-                                        mesh::Union{TreeMesh{2}, P4estMesh{2}},
-                                        equations_parabolic::AbstractEquationsParabolic,
-                                        surface_integral, dg::DG)
-    return nothing
 end
 
 function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
