@@ -31,14 +31,18 @@ see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
 =#
-@inline function weak_form_kernel!(du, u,
-                                   element,
-                                   ::Type{<:Union{StructuredMesh{2},
-                                                  StructuredMeshView{2},
-                                                  UnstructuredMesh2D, P4estMesh{2},
-                                                  P4estMeshView{2}, T8codeMesh{2}}},
-                                   have_nonconservative_terms::False, equations,
-                                   dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function weak_form_kernel!(du, u,
+                                                    element,
+                                                    ::Type{<:Union{StructuredMesh{2},
+                                                                   StructuredMeshView{2},
+                                                                   UnstructuredMesh2D,
+                                                                   P4estMesh{2},
+                                                                   P4estMeshView{2},
+                                                                   T8codeMesh{2}}},
+                                                    have_nonconservative_terms::False,
+                                                    equations,
+                                                    dg::DGSEM,
+                                                    cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_hat = dg.basis
@@ -74,14 +78,17 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{2},
-                                                          StructuredMeshView{2},
-                                                          UnstructuredMesh2D,
-                                                          P4estMesh{2},
-                                                          T8codeMesh{2}}},
-                                           have_nonconservative_terms::False, equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
+                                                            element,
+                                                            ::Type{<:Union{StructuredMesh{2},
+                                                                           StructuredMeshView{2},
+                                                                           UnstructuredMesh2D,
+                                                                           P4estMesh{2},
+                                                                           T8codeMesh{2}}},
+                                                            have_nonconservative_terms::False,
+                                                            equations,
+                                                            volume_flux, dg::DGSEM,
+                                                            cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
 
@@ -138,14 +145,17 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
-                                           MeshT::Type{<:Union{StructuredMesh{2},
-                                                               StructuredMeshView{2},
-                                                               UnstructuredMesh2D,
-                                                               P4estMesh{2},
-                                                               T8codeMesh{2}}},
-                                           have_nonconservative_terms::True, equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
+                                                            element,
+                                                            MeshT::Type{<:Union{StructuredMesh{2},
+                                                                                StructuredMeshView{2},
+                                                                                UnstructuredMesh2D,
+                                                                                P4estMesh{2},
+                                                                                T8codeMesh{2}}},
+                                                            have_nonconservative_terms::True,
+                                                            equations,
+                                                            volume_flux, dg::DGSEM,
+                                                            cache, alpha = true)
     flux_differencing_kernel!(du, u, element, MeshT, have_nonconservative_terms,
                               combine_conservative_and_nonconservative_fluxes(volume_flux,
                                                                               equations),
@@ -155,16 +165,18 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
-                                           MeshT::Type{<:Union{StructuredMesh{2},
-                                                               StructuredMeshView{2},
-                                                               UnstructuredMesh2D,
-                                                               P4estMesh{2},
-                                                               T8codeMesh{2}}},
-                                           have_nonconservative_terms::True,
-                                           combine_conservative_and_nonconservative_fluxes::False,
-                                           equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
+                                                            element,
+                                                            MeshT::Type{<:Union{StructuredMesh{2},
+                                                                                StructuredMeshView{2},
+                                                                                UnstructuredMesh2D,
+                                                                                P4estMesh{2},
+                                                                                T8codeMesh{2}}},
+                                                            have_nonconservative_terms::True,
+                                                            combine_conservative_and_nonconservative_fluxes::False,
+                                                            equations,
+                                                            volume_flux, dg::DGSEM,
+                                                            cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     symmetric_flux, nonconservative_flux = volume_flux
@@ -229,16 +241,18 @@ end
     return nothing
 end
 
-@inline function flux_differencing_kernel!(du, u, element,
-                                           ::Type{<:Union{StructuredMesh{2},
-                                                          StructuredMeshView{2},
-                                                          UnstructuredMesh2D,
-                                                          P4estMesh{2},
-                                                          T8codeMesh{2}}},
-                                           have_nonconservative_terms::True,
-                                           combine_conservative_and_nonconservative_fluxes::True,
-                                           equations,
-                                           volume_flux, dg::DGSEM, cache, alpha = true)
+Base.@propagate_inbounds function flux_differencing_kernel!(du, u,
+                                                            element,
+                                                            ::Type{<:Union{StructuredMesh{2},
+                                                                           StructuredMeshView{2},
+                                                                           UnstructuredMesh2D,
+                                                                           P4estMesh{2},
+                                                                           T8codeMesh{2}}},
+                                                            have_nonconservative_terms::True,
+                                                            combine_conservative_and_nonconservative_fluxes::True,
+                                                            equations,
+                                                            volume_flux, dg::DGSEM,
+                                                            cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
 
@@ -496,23 +510,31 @@ function prolong2interfaces!(cache, u,
                              equations, dg::DG)
     @unpack interfaces_u = cache.elements
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(u, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        for i in eachnode(dg)
-            # Negative x-direction (direction 1, left/negative x face)
-            for v in eachvariable(equations)
-                interfaces_u[v, i, 1, element] = u[v, 1, i, element]
-            end
-            # Positive x-direction (direction 2, right/positive x face)
-            for v in eachvariable(equations)
-                interfaces_u[v, i, 2, element] = u[v, nnodes(dg), i, element]
-            end
-            # Negative y-direction (direction 3, bottom/negative y face)
-            for v in eachvariable(equations)
-                interfaces_u[v, i, 3, element] = u[v, i, 1, element]
-            end
-            # Positive y-direction (direction 4, top/positive y face)
-            for v in eachvariable(equations)
-                interfaces_u[v, i, 4, element] = u[v, i, nnodes(dg), element]
+        @inbounds begin
+            for i in eachnode(dg)
+                # Negative x-direction (direction 1, left/negative x face)
+                for v in eachvariable(equations)
+                    interfaces_u[v, i, 1, element] = u[v, 1, i, element]
+                end
+                # Positive x-direction (direction 2, right/positive x face)
+                for v in eachvariable(equations)
+                    interfaces_u[v, i, 2, element] = u[v, nnodes(dg), i, element]
+                end
+                # Negative y-direction (direction 3, bottom/negative y face)
+                for v in eachvariable(equations)
+                    interfaces_u[v, i, 3, element] = u[v, i, 1, element]
+                end
+                # Positive y-direction (direction 4, top/positive y face)
+                for v in eachvariable(equations)
+                    interfaces_u[v, i, 4, element] = u[v, i, nnodes(dg), element]
+                end
             end
         end
     end
@@ -526,34 +548,44 @@ function calc_interface_flux!(surface_flux_values,
                               equations, surface_integral, dg::DG, cache)
     @unpack elements = cache
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(elements, equations, dg, cache)
+    end
+
     @threaded for element in eachelement(dg, cache)
-        # Interfaces in negative directions
-        # Faster version of "for orientation in (1, 2)"
+        @inbounds begin
+            # Interfaces in negative directions
+            # Faster version of "for orientation in (1, 2)"
 
-        # Interfaces in x-direction (`orientation` = 1)
-        calc_interface_flux!(elements.surface_flux_values,
-                             elements.left_neighbors[1, element],
-                             element, 1, mesh,
-                             have_nonconservative_terms, equations,
-                             surface_integral, dg, cache)
+            # Interfaces in x-direction (`orientation` = 1)
+            calc_interface_flux!(elements.surface_flux_values,
+                                 elements.left_neighbors[1, element],
+                                 element, 1, mesh,
+                                 have_nonconservative_terms, equations,
+                                 surface_integral, dg, cache)
 
-        # Interfaces in y-direction (`orientation` = 2)
-        calc_interface_flux!(elements.surface_flux_values,
-                             elements.left_neighbors[2, element],
-                             element, 2, mesh,
-                             have_nonconservative_terms, equations,
-                             surface_integral, dg, cache)
+            # Interfaces in y-direction (`orientation` = 2)
+            calc_interface_flux!(elements.surface_flux_values,
+                                 elements.left_neighbors[2, element],
+                                 element, 2, mesh,
+                                 have_nonconservative_terms, equations,
+                                 surface_integral, dg, cache)
+        end
     end
 
     return nothing
 end
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation,
-                                      mesh::Union{StructuredMesh{2},
-                                                  StructuredMeshView{2}},
-                                      have_nonconservative_terms::False, equations,
-                                      surface_integral, dg::DG, cache)
+Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
+                                                       left_element, right_element,
+                                                       orientation,
+                                                       mesh::Union{StructuredMesh{2},
+                                                                   StructuredMeshView{2}},
+                                                       have_nonconservative_terms::False,
+                                                       equations,
+                                                       surface_integral, dg::DG,
+                                                       cache)
     # This is slow for LSA, but for some reason faster for Euler (see #519)
     if left_element <= 0 # left_element = 0 at boundaries
         return nothing
@@ -566,10 +598,10 @@ end
     left_direction = right_direction - 1
 
     for i in eachnode(dg)
-        u_ll = get_node_vars(interfaces_u, equations, dg, i, right_direction,
-                             left_element)
-        u_rr = get_node_vars(interfaces_u, equations, dg, i, left_direction,
-                             right_element)
+        u_ll = get_node_vars(interfaces_u, equations, dg,
+                             i, right_direction, left_element)
+        u_rr = get_node_vars(interfaces_u, equations, dg,
+                             i, left_direction, right_element)
 
         if orientation == 1
             # If the mapping is orientation-reversing, the contravariant vectors' orientation
@@ -605,12 +637,15 @@ end
     return nothing
 end
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
-                                      orientation,
-                                      mesh::Union{StructuredMesh{2},
-                                                  StructuredMeshView{2}},
-                                      have_nonconservative_terms::True, equations,
-                                      surface_integral, dg::DG, cache)
+Base.@propagate_inbounds function calc_interface_flux!(surface_flux_values,
+                                                       left_element, right_element,
+                                                       orientation,
+                                                       mesh::Union{StructuredMesh{2},
+                                                                   StructuredMeshView{2}},
+                                                       have_nonconservative_terms::True,
+                                                       equations,
+                                                       surface_integral, dg::DG,
+                                                       cache)
     # See comment on `calc_interface_flux!` with `have_nonconservative_terms::False`
     if left_element <= 0 # left_element = 0 at boundaries
         return nothing
@@ -623,10 +658,10 @@ end
     left_direction = right_direction - 1
 
     for i in eachnode(dg)
-        u_ll = get_node_vars(interfaces_u, equations, dg, i, right_direction,
-                             left_element)
-        u_rr = get_node_vars(interfaces_u, equations, dg, i, left_direction,
-                             right_element)
+        u_ll = get_node_vars(interfaces_u, equations, dg,
+                             i, right_direction, left_element)
+        u_rr = get_node_vars(interfaces_u, equations, dg,
+                             i, left_direction, right_element)
 
         if orientation == 1
             # If the mapping is orientation-reversing, the contravariant vectors' orientation
@@ -685,63 +720,74 @@ function calc_boundary_flux!(cache, t,
     @unpack surface_flux_values = cache.elements
     linear_indices = LinearIndices(size(mesh))
 
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(cache.elements, equations, dg, cache)
+    end
+
     for cell_y in axes(mesh, 2)
-        # Negative x-direction
-        direction = 1
-        element = linear_indices[begin, cell_y]
+        @inbounds begin
+            # Negative x-direction
+            direction = 1
+            element = linear_indices[begin, cell_y]
 
-        for j in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
-                                             boundary_conditions[direction],
-                                             mesh,
-                                             have_nonconservative_terms(equations),
-                                             equations, surface_integral, dg,
-                                             cache,
-                                             direction, (1, j), (j,), element)
-        end
+            for j in eachnode(dg)
+                calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
+                                                 boundary_conditions[direction],
+                                                 mesh,
+                                                 have_nonconservative_terms(equations),
+                                                 equations, surface_integral, dg,
+                                                 cache,
+                                                 direction, (1, j), (j,), element)
+            end
 
-        # Positive x-direction
-        direction = 2
-        element = linear_indices[end, cell_y]
+            # Positive x-direction
+            direction = 2
+            element = linear_indices[end, cell_y]
 
-        for j in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
-                                             boundary_conditions[direction],
-                                             mesh,
-                                             have_nonconservative_terms(equations),
-                                             equations, surface_integral, dg,
-                                             cache,
-                                             direction, (nnodes(dg), j), (j,), element)
+            for j in eachnode(dg)
+                calc_boundary_flux_by_direction!(surface_flux_values, t, 1,
+                                                 boundary_conditions[direction],
+                                                 mesh,
+                                                 have_nonconservative_terms(equations),
+                                                 equations, surface_integral, dg,
+                                                 cache,
+                                                 direction, (nnodes(dg), j), (j,),
+                                                 element)
+            end
         end
     end
 
     for cell_x in axes(mesh, 1)
-        # Negative y-direction
-        direction = 3
-        element = linear_indices[cell_x, begin]
+        @inbounds begin
+            # Negative y-direction
+            direction = 3
+            element = linear_indices[cell_x, begin]
 
-        for i in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
-                                             boundary_conditions[direction],
-                                             mesh,
-                                             have_nonconservative_terms(equations),
-                                             equations, surface_integral, dg,
-                                             cache,
-                                             direction, (i, 1), (i,), element)
-        end
+            for i in eachnode(dg)
+                calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
+                                                 boundary_conditions[direction],
+                                                 mesh,
+                                                 have_nonconservative_terms(equations),
+                                                 equations, surface_integral, dg,
+                                                 cache,
+                                                 direction, (i, 1), (i,), element)
+            end
 
-        # Positive y-direction
-        direction = 4
-        element = linear_indices[cell_x, end]
+            # Positive y-direction
+            direction = 4
+            element = linear_indices[cell_x, end]
 
-        for i in eachnode(dg)
-            calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
-                                             boundary_conditions[direction],
-                                             mesh,
-                                             have_nonconservative_terms(equations),
-                                             equations, surface_integral, dg,
-                                             cache,
-                                             direction, (i, nnodes(dg)), (i,), element)
+            for i in eachnode(dg)
+                calc_boundary_flux_by_direction!(surface_flux_values, t, 2,
+                                                 boundary_conditions[direction],
+                                                 mesh,
+                                                 have_nonconservative_terms(equations),
+                                                 equations, surface_integral, dg,
+                                                 cache,
+                                                 direction, (i, nnodes(dg)), (i,),
+                                                 element)
+            end
         end
     end
 
@@ -755,15 +801,23 @@ function apply_jacobian!(backend::Nothing, du,
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            # Negative sign included to account for the negated surface and volume terms,
-            # see e.g. the computation of `derivative_hat` in the basis setup and
-            # the comment in `calc_surface_integral!`.
-            factor = -inverse_jacobian[i, j, element]
+    # Explicit bounds check, which allows us to assume inbounds access below
+    @boundscheck begin
+        check_axes(du, mesh, equations, dg, cache)
+        check_axes(cache.elements, equations, dg, cache)
+    end
 
-            for v in eachvariable(equations)
-                du[v, i, j, element] *= factor
+    @threaded for element in eachelement(dg, cache)
+        @inbounds begin
+            for j in eachnode(dg), i in eachnode(dg)
+                # Negative sign included to account for the negated surface and volume terms,
+                # see e.g. the computation of `derivative_hat` in the basis setup and
+                # the comment in `calc_surface_integral!`.
+                factor = -inverse_jacobian[i, j, element]
+
+                for v in eachvariable(equations)
+                    du[v, i, j, element] *= factor
+                end
             end
         end
     end

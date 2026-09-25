@@ -31,6 +31,7 @@ for human readability.
   - `TreeMesh1D` ([#3267], [#3268])
   - `TreeMesh2D` ([#3262], [#3266])
   - `TreeMesh3D` ([#3208], [#3263])
+  - `StructuredMesh2D`
   - `StructuredMesh3D` ([#3272])
 
   Moreover, explicit bounds check are added before assuming inbounds access.
