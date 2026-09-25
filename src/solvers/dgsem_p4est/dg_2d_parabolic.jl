@@ -44,7 +44,7 @@ function rhs_parabolic!(backend::Nothing, du, u, t,
     @trixi_timeit timer() "calculate gradient" begin
         calc_gradient!(backend, gradients, u_transformed, t, mesh,
                        equations_parabolic, boundary_conditions_parabolic,
-                       dg, parabolic_scheme, cache)
+                       dg, parabolic_scheme, cache, cache_parabolic)
     end
 
     # 3D does currently not have a `GradientBoundaryContainer`
@@ -151,7 +151,8 @@ end
 function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
                         mesh::Union{P4estMesh{2}, P4estMesh{3}},
                         equations_parabolic, boundary_conditions_parabolic,
-                        dg::DG, parabolic_scheme, cache)
+                        dg::DG, parabolic_scheme,
+                        cache, cache_parabolic)
 
     # Reset gradients
     @trixi_timeit timer() "reset gradients" begin
@@ -187,7 +188,8 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradient!(cache, t, boundary_conditions_parabolic,
+        calc_boundary_flux_gradient!(cache, cache_parabolic, 
+                                     t, boundary_conditions_parabolic,
                                      mesh, equations_parabolic, dg.surface_integral,
                                      dg)
     end
@@ -970,7 +972,7 @@ function calc_volume_integral_gradient!(gradients, u_transformed,
     return nothing
 end
 
-function calc_boundary_flux_gradient!(cache, t,
+function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
                                       boundary_condition::Union{BoundaryConditionPeriodic,
                                                                 BoundaryConditionDoNothing},
                                       mesh::P4estMesh,
@@ -979,11 +981,12 @@ function calc_boundary_flux_gradient!(cache, t,
 end
 
 # Function barrier for type stability
-function calc_boundary_flux_gradient!(cache, t, boundary_conditions, mesh::P4estMesh,
+function calc_boundary_flux_gradient!(cache, cache_parabolic, t,
+                                      boundary_conditions, mesh::P4estMesh,
                                       equations_parabolic, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
-    calc_boundary_flux_by_type!(cache, nothing, t,
+    calc_boundary_flux_by_type!(cache, cache_parabolic, t,
                                 boundary_condition_types, boundary_indices,
                                 Gradient(), mesh, equations_parabolic, surface_integral,
                                 dg)
