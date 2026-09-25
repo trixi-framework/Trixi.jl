@@ -1088,6 +1088,7 @@ In particular, not the mortars themselves are returned.
 end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
+@inline nboundaries(dg::DG, cache, mesh) = nboundaries(dg, cache.boundaries)
 @inline nmortars(dg::DG, cache) = nmortars(cache.mortars)
 @inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
 @inline nmpimortars(dg::DG, cache) = nmpimortars(cache.mpi_mortars)
