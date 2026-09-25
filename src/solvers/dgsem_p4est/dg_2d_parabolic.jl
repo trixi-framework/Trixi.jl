@@ -188,7 +188,7 @@ function calc_gradient!(backend::Nothing, gradients, u_transformed, t,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_gradient!(cache, cache_parabolic, 
+        calc_boundary_flux_gradient!(cache, cache_parabolic,
                                      t, boundary_conditions_parabolic,
                                      mesh, equations_parabolic, dg.surface_integral,
                                      dg)
