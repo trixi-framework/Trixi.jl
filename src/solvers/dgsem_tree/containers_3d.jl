@@ -667,21 +667,17 @@ function check_axes(mortars::TreeL2MortarContainer3D, equations, solver::DG, cac
     check_axes(mortars.orientations, (eachmortar(solver, cache),))
 
     # Thread-local storage used for the mortar fluxes and projections
-    threaded_values_axes = (eachvariable(equations), eachnode(solver), eachnode(solver))
-    for values in (cache.fstar_primary_upper_left_threaded,
-                   cache.fstar_primary_upper_right_threaded,
-                   cache.fstar_primary_lower_left_threaded,
-                   cache.fstar_primary_lower_right_threaded,
-                   cache.fstar_secondary_upper_left_threaded,
-                   cache.fstar_secondary_upper_right_threaded,
-                   cache.fstar_secondary_lower_left_threaded,
-                   cache.fstar_secondary_lower_right_threaded,
-                   cache.fstar_tmp1_threaded)
-        check_axes(values, (Base.OneTo(Threads.maxthreadid()),))
-        for value in values
-            check_axes(value, threaded_values_axes)
-        end
-    end
+    fstar_axes = (eachvariable(equations),
+                  eachnode(solver), eachnode(solver))
+    check_axes_threaded(cache.fstar_primary_upper_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_upper_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_primary_lower_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_upper_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_left_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_secondary_lower_right_threaded, fstar_axes)
+    check_axes_threaded(cache.fstar_tmp1_threaded, fstar_axes)
     return nothing
 end
 
