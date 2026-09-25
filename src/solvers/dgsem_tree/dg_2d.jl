@@ -635,7 +635,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -677,7 +677,7 @@ function calc_interface_flux!(backend::Nothing, surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.interfaces, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for interface in eachinterface(dg, cache)
@@ -896,7 +896,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(2), equations, dg,
+                                       cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -939,7 +940,8 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.boundaries, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, Val(2), equations, dg,
+                                       cache)
     end
 
     @threaded for boundary in first_boundary:last_boundary
@@ -1097,7 +1099,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1143,7 +1145,7 @@ function calc_mortar_flux!(surface_flux_values,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(cache.mortars, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1378,7 +1380,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
     end
 
     @threaded for element in eachelement(dg, cache)
@@ -1432,7 +1434,7 @@ function calc_surface_integral!(backend::Nothing, du, u,
     # Explicit bounds check, which allows us to assume inbounds access below
     @boundscheck begin
         check_axes(du, mesh, equations, dg, cache)
-        check_axes_surface_flux_values(surface_flux_values, equations, dg, cache)
+        check_axes_surface_flux_values(surface_flux_values, mesh, equations, dg, cache)
         check_axes(boundary_interpolation_inverse_weights,
                    (eachnode(dg), Base.OneTo(2)))
     end
