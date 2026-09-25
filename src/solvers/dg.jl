@@ -1086,10 +1086,14 @@ In particular, not the mortars themselves are returned.
 @inline function nelementsglobal(mesh, dg::DG, cache)
     return mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 end
+
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
+
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
-@inline nboundaries(dg::DG, cache, mesh) = nboundaries(dg, cache.boundaries)
+@inline nboundaries(dg::DG, cache, mesh) = nboundaries(dg, cache)
+
 @inline nmortars(dg::DG, cache) = nmortars(cache.mortars)
+
 @inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
 @inline nmpimortars(dg::DG, cache) = nmpimortars(cache.mpi_mortars)
 
