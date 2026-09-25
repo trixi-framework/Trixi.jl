@@ -24,8 +24,15 @@ function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
 end
 
 # Extract contravariant vector Ja^i (i = index) as SVector
-@inline function get_contravariant_vector(index, contravariant_vectors, indices...)
-    return SVector(ntuple(@inline(dim->contravariant_vectors[dim, index, indices...]),
+Base.@propagate_inbounds function get_contravariant_vector(index,
+                                                           contravariant_vectors,
+                                                           indices...)
+    # Explicit bounds check, which can be removed by calling this function with `@inbounds`
+    @boundscheck checkbounds(contravariant_vectors,
+                             1:(ndims(contravariant_vectors) - 3), index, indices...)
+    # Assume inbounds access now
+    return SVector(ntuple(@inline(dim->@inbounds contravariant_vectors[dim, index,
+                                                                       indices...]),
                           Val(ndims(contravariant_vectors) - 3)))
 end
 
@@ -121,16 +128,20 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
-                                                  orientation,
-                                                  boundary_condition,
-                                                  mesh::Union{StructuredMesh,
-                                                              StructuredMeshView},
-                                                  have_nonconservative_terms::False,
-                                                  equations,
-                                                  surface_integral, dg::DG, cache,
-                                                  direction, node_indices,
-                                                  surface_node_indices, element)
+Base.@propagate_inbounds function calc_boundary_flux_by_direction!(surface_flux_values,
+                                                                   t,
+                                                                   orientation,
+                                                                   boundary_condition,
+                                                                   mesh::Union{StructuredMesh,
+                                                                               StructuredMeshView},
+                                                                   have_nonconservative_terms::False,
+                                                                   equations,
+                                                                   surface_integral,
+                                                                   dg::DG, cache,
+                                                                   direction,
+                                                                   node_indices,
+                                                                   surface_node_indices,
+                                                                   element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
     # Boundary values are for `StructuredMesh` stored in the interface datastructure
     boundaries_u = interfaces_u
@@ -164,16 +175,20 @@ end
     return nothing
 end
 
-@inline function calc_boundary_flux_by_direction!(surface_flux_values, t,
-                                                  orientation,
-                                                  boundary_condition,
-                                                  mesh::Union{StructuredMesh,
-                                                              StructuredMeshView},
-                                                  have_nonconservative_terms::True,
-                                                  equations,
-                                                  surface_integral, dg::DG, cache,
-                                                  direction, node_indices,
-                                                  surface_node_indices, element)
+Base.@propagate_inbounds function calc_boundary_flux_by_direction!(surface_flux_values,
+                                                                   t,
+                                                                   orientation,
+                                                                   boundary_condition,
+                                                                   mesh::Union{StructuredMesh,
+                                                                               StructuredMeshView},
+                                                                   have_nonconservative_terms::True,
+                                                                   equations,
+                                                                   surface_integral,
+                                                                   dg::DG, cache,
+                                                                   direction,
+                                                                   node_indices,
+                                                                   surface_node_indices,
+                                                                   element)
     @unpack node_coordinates, contravariant_vectors, inverse_jacobian, interfaces_u = cache.elements
     # Boundary values are for `StructuredMesh` stored in the interface datastructure
     boundaries_u = interfaces_u
