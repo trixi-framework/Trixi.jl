@@ -226,7 +226,8 @@ export AcousticPerturbationEquations2D,
 
 export NonIdealCompressibleEulerEquations1D, NonIdealCompressibleEulerEquations2D
 export IdealGas, ThermallyPerfectGas9PolyFit,
-       VanDerWaals, PengRobinson, HelmholtzIdealGas
+       VanDerWaals, PengRobinson, HelmholtzIdealGas,
+       HelmholtzVanDerWaals, HelmholtzPengRobinson
 
 export LinearDiffusionEquation1D, LinearDiffusionEquation2D,
        LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
