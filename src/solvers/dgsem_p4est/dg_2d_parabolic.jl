@@ -1001,7 +1001,6 @@ function calc_boundary_flux_divergence!(cache, cache_parabolic, t, boundary_cond
     return nothing
 end
 
-# Note the "additional" `cache_parabolic` argument
 function calc_boundary_flux_by_type!(cache, cache_parabolic, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      operator_type,
