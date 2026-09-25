@@ -983,7 +983,8 @@ function calc_boundary_flux_gradient!(cache, t, boundary_conditions, mesh::P4est
                                       equations_parabolic, surface_integral, dg::DG)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
 
-    calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
+    calc_boundary_flux_by_type!(cache, nothing, t,
+                                boundary_condition_types, boundary_indices,
                                 Gradient(), mesh, equations_parabolic, surface_integral,
                                 dg)
     return nothing
