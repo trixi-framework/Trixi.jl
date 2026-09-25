@@ -1045,6 +1045,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
     return nothing
 end
 
+# Note the "additional" `cache_parabolic` argument
 function calc_boundary_flux_by_type!(cache, cache_parabolic, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      operator_type,
@@ -1073,6 +1074,7 @@ function calc_boundary_flux_by_type!(cache, cache_parabolic, t, BCs::NTuple{N, A
     return nothing
 end
 
+# Note the "additional" `cache_parabolic` argument
 function calc_boundary_flux_by_type!(cache, cache_parabolic, t,
                                      BCs::Tuple{}, BC_indices::Tuple{},
                                      operator_type, mesh::P4estMesh,
@@ -1211,21 +1213,6 @@ function calc_boundary_flux!(cache, cache_parabolic, t,
     end
 
     return nothing
-end
-
-# 3D does currently not contain the 
-function calc_boundary_flux!(cache, cache_parabolic, t,
-                             boundary_condition_parabolic, # works with Dict types
-                             boundary_condition_indices,
-                             operator_type, mesh::P4estMesh{3},
-                             equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG)
-    return calc_boundary_flux!(cache, t,
-                               boundary_condition_parabolic,
-                               boundary_condition_indices,
-                               operator_type, mesh,
-                               equations_parabolic,
-                               surface_integral, dg)
 end
 
 function calc_surface_integral_gradient!(gradients,
