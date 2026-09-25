@@ -249,7 +249,7 @@ function create_cache(mesh::P4estMeshParallel, equations::AbstractEquations, dg:
 
     interfaces = init_interfaces(mesh, equations, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
-    mortars = init_mortars(mesh, equations, dg.basis, elements)
+    mortars = init_mortars(mesh, equations, dg.basis, elements, dg.mortar)
 
     # Container cache
     cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,

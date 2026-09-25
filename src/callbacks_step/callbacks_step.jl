@@ -71,6 +71,7 @@ include("save_restart.jl")
 include("save_solution.jl")
 include("time_series.jl")
 include("visualization.jl")
+include("limiting_analysis.jl")
 include("averaging.jl")
 
 include("amr.jl")

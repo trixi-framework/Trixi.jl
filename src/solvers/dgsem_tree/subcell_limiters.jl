@@ -12,6 +12,10 @@ function create_cache(typ::Type{LimiterType},
     return create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
 
+@inline as_static_bool(b::Bool) = b ? True() : False()
+@inline as_static_bool(b::True) = b
+@inline as_static_bool(b::False) = b
+
 """
     SubcellLimiterIDP(equations::AbstractEquations, basis;
                       local_twosided_variables_cons = String[],
@@ -19,6 +23,8 @@ end
                       positivity_variables_nonlinear = [],
                       positivity_correction_factor = 0.1,
                       local_onesided_variables_nonlinear = [],
+                      indicator = nothing,
+                      bar_states = false,
                       max_iterations_newton = 10,
                       newton_tolerances = (1.0e-12, 1.0e-14),
                       gamma_constant_newton = 2 * ndims(equations))
@@ -41,12 +47,27 @@ For local one-sided limiting pass the variable function combined with the reques
 (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified specific
 entropy by Guermond et al. use `local_onesided_variables_nonlinear = [(entropy_guermond_etal, min)]`.
 
-The bounds are calculated using the low-order FV solution. The positivity limiter uses
-`positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
+The bounds can be calculated using the `bar_states` or the low-order FV solution. The positivity
+limiter uses `positivity_correction_factor` such that `u^new >= positivity_correction_factor * u^FV`.
 Local and global limiting of nonlinear variables uses a Newton-bisection method with a maximum of
 `max_iterations_newton` iterations, relative and absolute tolerances of `newton_tolerances`
 and a provisional update constant `gamma_constant_newton` (`gamma_constant_newton>=2*d`,
 where `d = #dimensions`). See equation (20) of Pazner (2020) and equation (30) of Rueda-Ramírez et al. (2022).
+For every node, this constant is reduced to the number of antidiffusive fluxes actually contributing
+to its update. That number is smaller than `2*d` at nodes adjacent to an element boundary across
+which the flux is not limited. The update then still is a convex combination of provisional states,
+such that the bounds are preserved, but it is limited less than with the uniform constant.
+
+Optionally, a smoothness `indicator` such as [`IndicatorHennemannGassner`](@ref) can be passed to
+restrict the local limiting to non-smooth regions. In that case, two blending factors are computed
+for every subcell interface: one using positivity limiting only and one using positivity *and*
+local limiting. Both are combined element-wise using the indicator value `alpha_ind` in `[0, 1]` as
+`alpha = (1 - alpha_ind) * alpha_positivity + alpha_ind * alpha_local`.
+Thus, local limiting acts with full strength only where the indicator marks an element as
+non-smooth, while the scheme falls back to pure positivity limiting in smooth regions. At mortars,
+the maximum indicator value of all adjacent elements is used.
+Note that with an `indicator` the local bounds are not enforced exactly anymore. Therefore, the
+computation of the deviations by [`BoundsCheckCallback`](@ref) are skipped.
 
 !!! note
     This limiter and the correction callback [`SubcellLimiterIDPCorrection`](@ref) only work together.
@@ -68,7 +89,8 @@ More features will follow soon.
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
 """
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
-                         LimitingOnesidedVariablesNonlinear, Cache} <:
+                         LimitingOnesidedVariablesNonlinear, Indicator, BarStates,
+                         SmallStencil, Cache} <:
        AbstractSubcellLimiter
     local_twosided::Bool
     local_twosided_variables_cons::Vector{Int}                 # Local two-sided limiting for conservative variables
@@ -78,6 +100,9 @@ struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
     positivity_correction_factor::RealT
     local_onesided::Bool
     local_onesided_variables_nonlinear::LimitingOnesidedVariablesNonlinear # Local one-sided limiting for nonlinear variables
+    indicator::Indicator
+    bar_states::BarStates
+    small_stencil::SmallStencil             # Use small stencil for computation of bar state bounds
     cache::Cache
     max_iterations_newton::Int
     newton_tolerances::Tuple{RealT, RealT}  # Relative and absolute tolerances for Newton's method
@@ -91,6 +116,9 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                            positivity_variables_nonlinear = [],
                            positivity_correction_factor = 0.1,
                            local_onesided_variables_nonlinear = [],
+                           indicator = nothing,
+                           bar_states = false,
+                           small_stencil = true,
                            max_iterations_newton = 10,
                            newton_tolerances = (1.0e-12, 1.0e-14),
                            gamma_constant_newton = 2 * ndims(equations))
@@ -98,6 +126,18 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     local_onesided = (length(local_onesided_variables_nonlinear) > 0)
     positivity = (length(positivity_variables_cons) +
                   length(positivity_variables_nonlinear) > 0)
+
+    if !isnothing(indicator) && ndims(equations) != 2
+        error("The smoothness indicator is only implemented in 2D.")
+    end
+
+    # The MPI-parallel `rhs!` implementations do not call the `calc_volume_integral!` method
+    # specialized on `VolumeIntegralSubcellLimiting`, so neither the bar states nor the local
+    # bounds would be computed. Additionally, the mortar limiting factors are not communicated
+    # between ranks. Bail out here instead of silently computing a wrong solution.
+    if mpi_isparallel()
+        error("Subcell limiting is not supported with MPI.")
+    end
 
     # When passing `min` or `max` in the elixir, the specific function of Base is used.
     # To speed up the simulation, we replace it with `Trixi.min` and `Trixi.max` respectively.
@@ -136,23 +176,35 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
         end
     end
     for v in positivity_variables_cons_
-        if !(v in local_twosided_variables_cons_)
+        was_limited_locally = local_twosided &&
+                              (v in local_twosided_variables_cons_)
+        enabled_indicator = !isnothing(indicator)
+        if !was_limited_locally
             bound_keys = (bound_keys..., Symbol(string(v), "_min"))
+        elseif enabled_indicator # && was_limited_locally
+            bound_keys = (bound_keys..., Symbol(string(v), "_min_positivity"))
         end
     end
     for variable in positivity_variables_nonlinear
         bound_keys = (bound_keys..., Symbol(string(variable), "_min"))
     end
 
+    bar_states = as_static_bool(bar_states)
+    small_stencil = as_static_bool(small_stencil)
     # Only cache the variable values when they are needed for the limiter.
     # This is the case when local one-sided limiting is used.
     cache_variable_values = local_onesided
-    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys,
-                         cache_variable_values)
+    # Only cache `alpha_local` if smoothness indicator is enabled.
+    cache_alpha_local = !isnothing(indicator)
+    cache = create_cache(SubcellLimiterIDP, equations, basis, bound_keys, bar_states,
+                         cache_variable_values, cache_alpha_local)
 
     return SubcellLimiterIDP{typeof(positivity_correction_factor),
                              typeof(positivity_variables_nonlinear),
                              typeof(local_onesided_variables_nonlinear_),
+                             typeof(indicator),
+                             typeof(bar_states),
+                             typeof(small_stencil),
                              typeof(cache)}(local_twosided,
                                             local_twosided_variables_cons_,
                                             positivity, positivity_variables_cons_,
@@ -160,8 +212,11 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
                                             positivity_correction_factor,
                                             local_onesided,
                                             local_onesided_variables_nonlinear_,
+                                            indicator,
+                                            bar_states, small_stencil,
                                             cache,
-                                            max_iterations_newton, newton_tolerances,
+                                            max_iterations_newton,
+                                            newton_tolerances,
                                             gamma_constant_newton)
 end
 
@@ -186,7 +241,8 @@ function Base.show(io::IO, limiter::SubcellLimiterIDP)
         join(io, features, ", ")
         print(io, "Limiter=($features), ")
     end
-    print(io, "Local bounds with FV solution")
+    print(io,
+          "Local bounds with $(limiter.bar_states == true ? "Bar States" : "FV solution")")
     print(io, ")")
     return nothing
 end
@@ -223,23 +279,30 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                     push!(setup, "" => "Local $min_or_max limiting for $variable")
                 end
             end
-            push!(setup, "Local bounds" => "FV solution")
+            push!(setup,
+                  "Local bounds with" => (limiter.bar_states == true ? "Bar States" :
+                                          "FV solution"))
+            if limiter.small_stencil == false
+                push!(setup, "" => "Large stencil for bar state bounds")
+            end
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
 end
 
-# this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP},
                       equations::AbstractEquations{NDIMS},
                       basis::LobattoLegendreBasis, bound_keys,
-                      cache_variable_values) where {NDIMS}
+                      ::False,
+                      cache_variable_values,
+                      cache_alpha_local) where {NDIMS}
     # The number of elements is not yet known here. So, we initialize the container with 0 elements
     # and resize it later while creating the cache for the volume integral.
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP{NDIMS, real(basis)}(0,
                                                                                         nnodes(basis),
                                                                                         bound_keys,
-                                                                                        cache_variable_values)
+                                                                                        cache_variable_values,
+                                                                                        cache_alpha_local)
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -258,8 +321,27 @@ function create_cache(limiter::Type{SubcellLimiterIDP},
             idp_bounds_delta_global, idp_newton_converged)
 end
 
+function create_cache(limiter::Type{SubcellLimiterIDP},
+                      equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, bound_keys,
+                      ::True,
+                      cache_variable_values,
+                      cache_alpha_local)
+    cache = create_cache(limiter, equations, basis, bound_keys, False(),
+                         cache_variable_values, cache_alpha_local)
+    container_bar_states = Trixi.ContainerBarStates2D{real(basis)}(0,
+                                                                   nvariables(equations),
+                                                                   nnodes(basis))
+
+    return (; container_bar_states, cache...)
+end
+
 function resize_subcell_limiter_cache!(limiter::SubcellLimiterIDP, new_size)
     resize!(limiter.cache.subcell_limiter_coefficients, new_size)
+
+    if limiter.bar_states == true
+        resize!(limiter.cache.container_bar_states, new_size)
+    end
 
     return nothing
 end
@@ -318,6 +400,39 @@ function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
     return nothing
 end
 
+function (limiter::SubcellLimiterIDP)(u, semi, equations, dg::DGSEM,
+                                      t, dt, alpha_indicator;
+                                      kwargs...)
+    @unpack alpha, alpha_local = limiter.cache.subcell_limiter_coefficients
+    @trixi_timeit timer() "reset alpha" set_zero!(alpha, dg, semi.cache)
+
+    # Local limiting comes first, even though only a fraction `alpha_indicator` of it enters
+    # the merged blending factor below. The local limiters are the ones computing (or, for
+    # `bar_states=true`, consuming) the local bounds in `variable_bounds`. Running the
+    # positivity limiting first would overwrite those bounds before they are used, both here
+    # and in the subsequent mortar limiting, which only reads them.
+    @trixi_timeit timer() "reset alpha local" set_zero!(alpha_local, dg, semi.cache)
+    if limiter.local_twosided
+        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha_local,
+                                                                   limiter,
+                                                                   u, t, dt, semi)
+    end
+    if limiter.local_onesided
+        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha_local,
+                                                                   limiter,
+                                                                   u, t, dt, semi)
+    end
+
+    # positivity
+    if limiter.positivity
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
+    end
+
+    merge_alphas!(alpha, alpha_local, alpha_indicator, dg, semi.cache)
+
+    return nothing
+end
+
 ###############################################################################
 # Local minimum and maximum limiting (conservative variables)
 
@@ -353,6 +468,77 @@ end
     @trixi_timeit timer() "nonlinear variables" for variable in limiter.positivity_variables_nonlinear
         idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
     end
+
+    return nothing
+end
+
+###############################################################################
+# IDP mortar limiting
+###############################################################################
+
+@inline function calc_mortar_limiting_factor!(u, semi, t, dt)
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    (; limiter) = solver.mortar
+    (; local_twosided_variables_cons, positivity_variables_cons, positivity_variables_nonlinear, local_onesided_variables_nonlinear) = limiter
+
+    (; limiting_factor) = cache.mortars
+    @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
+
+    @trixi_timeit timer() "local limiting: conservative variables" for var_index in local_twosided_variables_cons
+        idp_mortar_local_twosided!(limiting_factor, u, dt, semi, mesh, var_index)
+    end
+
+    @trixi_timeit timer() "local limiting: nonlinear variables" for (variable, min_or_max) in local_onesided_variables_nonlinear
+        idp_mortar_local_onesided!(limiting_factor, u, dt, semi, mesh,
+                                   variable, min_or_max)
+    end
+
+    @trixi_timeit timer() "positivity: conservative variables" for var_index in positivity_variables_cons
+        idp_mortar_positivity_conservative!(limiting_factor, u, dt, semi, mesh,
+                                            var_index)
+    end
+
+    @trixi_timeit timer() "positivity: nonlinear variables" for variable in positivity_variables_nonlinear
+        idp_mortar_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
+    end
+
+    return nothing
+end
+
+@inline function calc_mortar_limiting_factor!(u, semi, t, dt,
+                                              alpha_indicator)
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    (; limiter) = solver.mortar
+    (; local_twosided_variables_cons, positivity_variables_cons,
+    positivity_variables_nonlinear, local_onesided_variables_nonlinear) = limiter
+
+    (; limiting_factor, limiting_factor_local) = cache.mortars
+    @trixi_timeit timer() "reset alpha" limiting_factor.=zero(eltype(limiting_factor))
+
+    # Same order as within the elements: local limiting first, then positivity.
+    @trixi_timeit timer() "reset alpha local" limiting_factor_local.=zero(eltype(limiting_factor_local))
+    @trixi_timeit timer() "local limiting: conservative variables" for var_index in local_twosided_variables_cons
+        idp_mortar_local_twosided!(limiting_factor_local, u, dt, semi, mesh,
+                                   var_index)
+    end
+
+    @trixi_timeit timer() "local limiting: nonlinear variables" for (variable, min_or_max) in local_onesided_variables_nonlinear
+        idp_mortar_local_onesided!(limiting_factor_local, u, dt, semi, mesh,
+                                   variable, min_or_max)
+    end
+
+    # positivity
+    @trixi_timeit timer() "positivity: conservative variables" for var_index in positivity_variables_cons
+        idp_mortar_positivity_conservative!(limiting_factor, u, dt, semi, mesh,
+                                            var_index)
+    end
+
+    @trixi_timeit timer() "positivity: nonlinear variables" for variable in positivity_variables_nonlinear
+        idp_mortar_positivity_nonlinear!(limiting_factor, u, dt, semi, mesh, variable)
+    end
+
+    merge_alphas_mortar!(limiting_factor, limiting_factor_local, alpha_indicator,
+                         solver, mesh, cache)
 
     return nothing
 end
