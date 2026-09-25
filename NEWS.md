@@ -32,6 +32,7 @@ for human readability.
   - `TreeMesh2D` ([#3262], [#3266])
   - `TreeMesh3D` ([#3208], [#3263])
   - `StructuredMesh3D` ([#3272])
+  - `P4estMesh3D` and `T8codeMesh3D` ([#3273])
 
   Moreover, explicit bounds check are added before assuming inbounds access.
   This improves the performance in common cases; developers are encouraged to
