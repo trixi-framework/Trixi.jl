@@ -1,6 +1,11 @@
 mutable struct ParabolicContainer2D{uEltype <: Real}
+    # [variables, nodes, nodes, elements]
     u_transformed::Array{uEltype, 4}
+    # ([variables, nodes, nodes, elements],
+    #  [variables, nodes, nodes, elements])
     gradients::NTuple{2, Array{uEltype, 4}}
+    # ([variables, nodes, nodes, elements],
+    #  [variables, nodes, nodes, elements])
     flux_parabolic::NTuple{2, Array{uEltype, 4}}
 
     # internal `resize!`able storage

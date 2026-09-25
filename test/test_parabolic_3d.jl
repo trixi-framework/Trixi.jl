@@ -975,3 +975,27 @@ end
     @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
     @test_allocations(Trixi.rhs_parabolic!, semi, sol, 1000)
 end
+
+@testitem "Parabolic3D Euler-Laplace Diffusion: elixir_euler_laplace_diffusion.jl" setup=[
+    Setup,
+    Parabolic3D
+] tags=[:parabolic_part3] begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
+                        l2=[
+                            0.013299230512542162,
+                            0.0073025819009651,
+                            0.007302581900965106,
+                            0.007300042097573285,
+                            0.04888085245959731
+                        ],
+                        linf=[
+                            0.31714843611640464,
+                            0.23586839231625517,
+                            0.23586839231625506,
+                            0.23698123351744782,
+                            1.1174271158464726
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    @test_allocations(Trixi.rhs_hyperbolic!, semi, sol, 1000)
+end
