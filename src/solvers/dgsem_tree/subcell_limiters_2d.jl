@@ -810,7 +810,7 @@ end
     # In 2D, the number of contributions is 4 for inner nodes, 3 for nodes at an element boundary,
     # and 2 for nodes at an element corner.
     gamma = min(limiter.gamma_constant_newton,
-                n_antidiffusive_contributions(i, j, element, dg))
+                n_antidiffusive_contributions(i, j, dg))
 
     # negative xi direction
     if i > 1
@@ -858,27 +858,14 @@ end
     return nothing
 end
 
-# Number of antidiffusive flux contributions to the update of the node `(i, j, element)`, i.e., the
+# Number of antidiffusive flux contributions to the update of the node `(i, j)`, i.e., the
 # number of provisional states whose convex combination gives the new state. Since the bound is
 # imposed on every provisional state separately, this is the factor the antidiffusive fluxes have to
 # be scaled with. Nodes at an element boundary get fewer contributions than inner nodes because the
 # flux across that boundary is the surface flux, which is not limited - unless that boundary is a
 # mortar, which is limited as well.
-@inline function n_antidiffusive_contributions(i, j, element, dg)
-    n_subcell_interfaces = (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg))
-
-    return n_subcell_interfaces + n_mortar_contributions(dg.mortar, i, j, element, dg)
-end
-
-# Without IDP mortar limiting, the fluxes at the element boundaries are not limited and, therefore,
-# do not contribute.
-@inline n_mortar_contributions(mortar, i, j, element, dg) = 0
-
-@inline function n_mortar_contributions(mortar::LobattoLegendreMortarIDP, i, j, element,
-                                        dg)
-    (; n_mortars_per_node) = subcell_limiter_coefficients(dg.volume_integral)
-
-    return n_mortars_per_node[i, j, element]
+@inline function n_antidiffusive_contributions(i, j, dg)
+    return (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg))
 end
 
 ###############################################################################

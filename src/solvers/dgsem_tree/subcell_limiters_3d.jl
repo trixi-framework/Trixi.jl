@@ -645,7 +645,7 @@ end
 
     # See the 2D version for an explanation.
     gamma = min(limiter.gamma_constant_newton,
-                n_antidiffusive_contributions(i, j, k, element, dg))
+                n_antidiffusive_contributions(i, j, k, dg))
 
     # negative xi direction
     if i > 1
@@ -722,10 +722,8 @@ end
 end
 
 # See the 2D version for an explanation.
-@inline function n_antidiffusive_contributions(i, j, k, element, dg)
-    n_subcell_interfaces = (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg)) +
-                           (k > 1) + (k < nnodes(dg))
-
-    return n_subcell_interfaces
+@inline function n_antidiffusive_contributions(i, j, k, dg)
+    return (i > 1) + (i < nnodes(dg)) + (j > 1) + (j < nnodes(dg)) +
+           (k > 1) + (k < nnodes(dg))
 end
 end # @muladd
