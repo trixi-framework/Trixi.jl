@@ -96,6 +96,7 @@ function prolong2interfaces!(backend::Nothing, cache, u,
                              equations, dg::DG)
     @unpack interfaces = cache
     @unpack neighbor_ids, node_indices = cache.interfaces
+    interfaces_u = interfaces.u
     index_range = eachnode(dg)
     MeshT = typeof(mesh)
 
@@ -106,7 +107,7 @@ function prolong2interfaces!(backend::Nothing, cache, u,
     end
 
     @threaded for interface in eachinterface(dg, cache)
-        @inbounds prolong2interfaces_per_interface!(interfaces.u, u, MeshT, equations,
+        @inbounds prolong2interfaces_per_interface!(interfaces_u, u, MeshT, equations,
                                                     neighbor_ids, node_indices,
                                                     index_range, interface)
     end
